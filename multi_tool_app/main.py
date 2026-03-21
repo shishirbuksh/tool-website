@@ -11,16 +11,21 @@ import os
 
 app = FastAPI(title="Multi-Tool Website")
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Ensure directories exist
-os.makedirs("static/css", exist_ok=True)
-os.makedirs("static/js", exist_ok=True)
-os.makedirs("templates/tools", exist_ok=True)
+try:
+    os.makedirs(os.path.join(BASE_DIR, "static", "css"), exist_ok=True)
+    os.makedirs(os.path.join(BASE_DIR, "static", "js"), exist_ok=True)
+    os.makedirs(os.path.join(BASE_DIR, "templates", "tools"), exist_ok=True)
+except OSError:
+    pass  # Allow serverless/read-only production environments to proceed
 
 # Mount static folder
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 # Templates
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -57,7 +62,8 @@ async def sitemap():
     
     def get_lastmod(file_path: str) -> str:
         try:
-            return datetime.datetime.fromtimestamp(os.path.getmtime(file_path)).strftime("%Y-%m-%d")
+            full_path = os.path.join(BASE_DIR, file_path)
+            return datetime.datetime.fromtimestamp(os.path.getmtime(full_path)).strftime("%Y-%m-%d")
         except:
             return datetime.datetime.now().strftime("%Y-%m-%d")
 
