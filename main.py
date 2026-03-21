@@ -35,17 +35,11 @@ async def home(request: Request):
 
 @app.get("/tool/{tool_name}", response_class=HTMLResponse)
 async def get_tool(request: Request, tool_name: str):
-    valid_tools = [
-        "calculator",
-        "scientific-calculator",
-        "age-calculator", 
-        "percentage-calculator", 
-        "password-generator", 
-        "qr-generator", 
-        "image-compressor",
-        "image-converter",
-        "base64-tool"
-    ]
+    tools_dir = os.path.join(BASE_DIR, "templates", "tools")
+    valid_tools = []
+    if os.path.exists(tools_dir):
+        valid_tools = [f[:-5].replace('_', '-') for f in os.listdir(tools_dir) if f.endswith('.html')]
+        
     if tool_name not in valid_tools:
         return HTMLResponse(status_code=404, content="Tool not found")
     
@@ -69,21 +63,25 @@ async def sitemap():
 
     pages = [
         {"url": "/", "file": "templates/index.html", "freq": "weekly", "pri": "1.0"},
-        {"url": "/tool/calculator", "file": "templates/tools/calculator.html", "freq": "monthly", "pri": "0.8"},
-        {"url": "/tool/scientific-calculator", "file": "templates/tools/scientific_calculator.html", "freq": "monthly", "pri": "0.8"},
-        {"url": "/tool/age-calculator", "file": "templates/tools/age_calculator.html", "freq": "monthly", "pri": "0.8"},
-        {"url": "/tool/percentage-calculator", "file": "templates/tools/percentage_calculator.html", "freq": "monthly", "pri": "0.8"},
-        {"url": "/tool/password-generator", "file": "templates/tools/password_generator.html", "freq": "monthly", "pri": "0.8"},
-        {"url": "/tool/qr-generator", "file": "templates/tools/qr_generator.html", "freq": "monthly", "pri": "0.8"},
-        {"url": "/tool/image-compressor", "file": "templates/tools/image_compressor.html", "freq": "monthly", "pri": "0.8"},
-        {"url": "/tool/image-converter", "file": "templates/tools/image_converter.html", "freq": "monthly", "pri": "0.8"},
-        {"url": "/tool/base64-tool", "file": "templates/tools/base64_tool.html", "freq": "monthly", "pri": "0.8"},
-        {"url": "/about", "file": "templates/pages/about.html", "freq": "yearly", "pri": "0.4"},
-        {"url": "/contact", "file": "templates/pages/contact.html", "freq": "yearly", "pri": "0.4"},
-        {"url": "/privacy", "file": "templates/pages/privacy.html", "freq": "yearly", "pri": "0.2"},
-        {"url": "/terms", "file": "templates/pages/terms.html", "freq": "yearly", "pri": "0.2"},
-        {"url": "/disclaimer", "file": "templates/pages/disclaimer.html", "freq": "yearly", "pri": "0.2"},
     ]
+    
+    # Dynamically inject tools
+    tools_dir = os.path.join(BASE_DIR, "templates", "tools")
+    if os.path.exists(tools_dir):
+        for f in os.listdir(tools_dir):
+            if f.endswith(".html"):
+                tool_name = f[:-5].replace('_', '-')
+                pages.append({"url": f"/tool/{tool_name}", "file": f"templates/tools/{f}", "freq": "monthly", "pri": "0.8"})
+    
+    # Dynamically inject static pages
+    pages_dir = os.path.join(BASE_DIR, "templates", "pages")
+    if os.path.exists(pages_dir):
+        for f in os.listdir(pages_dir):
+            if f.endswith(".html"):
+                page_name = f[:-5]
+                # Lower priority for generic static pages like privacy, terms, disclaimer
+                pri = "0.2" if page_name in ["privacy", "terms", "disclaimer"] else "0.4"
+                pages.append({"url": f"/{page_name}", "file": f"templates/pages/{f}", "freq": "yearly", "pri": pri})
     
     url_tags = []
     for p in pages:
@@ -105,7 +103,9 @@ async def robots():
 
 @app.get("/{page_name}", response_class=HTMLResponse)
 async def get_page(request: Request, page_name: str):
-    valid_pages = ["about", "contact", "privacy", "terms", "disclaimer"]
+    pages_dir = os.path.join(BASE_DIR, "templates", "pages")
+    valid_pages = [f[:-5] for f in os.listdir(pages_dir) if f.endswith('.html')] if os.path.exists(pages_dir) else []
+    
     if page_name in valid_pages:
         return templates.TemplateResponse(request=request, name=f"pages/{page_name}.html", context={"title": page_name.title()})
     return HTMLResponse(status_code=404, content="Page not found")
