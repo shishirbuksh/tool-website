@@ -1,0 +1,131 @@
+import base64
+import qrcode
+import io
+from fastapi import FastAPI, Request, Form
+from fastapi.responses import HTMLResponse, StreamingResponse, Response
+import datetime
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
+import os
+
+app = FastAPI(title="Multi-Tool Website")
+
+# Ensure directories exist
+os.makedirs("static/css", exist_ok=True)
+os.makedirs("static/js", exist_ok=True)
+os.makedirs("templates/tools", exist_ok=True)
+
+# Mount static folder
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Templates
+templates = Jinja2Templates(directory="templates")
+
+@app.get("/", response_class=HTMLResponse)
+async def home(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="index.html"
+    )
+
+@app.get("/tool/{tool_name}", response_class=HTMLResponse)
+async def get_tool(request: Request, tool_name: str):
+    valid_tools = [
+        "age-calculator", 
+        "percentage-calculator", 
+        "password-generator", 
+        "qr-generator", 
+        "base64-tool"
+    ]
+    if tool_name not in valid_tools:
+        return HTMLResponse(status_code=404, content="Tool not found")
+    
+    template_name = f"tools/{tool_name.replace('-', '_')}.html"
+    return templates.TemplateResponse(
+        request=request, 
+        name=template_name, 
+        context={"tool_name": tool_name.replace('-', ' ').title()}
+    )
+
+@app.get("/sitemap.xml")
+async def sitemap():
+    base_url = "https://storybrainai.com"
+    
+    def get_lastmod(file_path: str) -> str:
+        try:
+            return datetime.datetime.fromtimestamp(os.path.getmtime(file_path)).strftime("%Y-%m-%d")
+        except:
+            return datetime.datetime.now().strftime("%Y-%m-%d")
+
+    pages = [
+        {"url": "/", "file": "templates/index.html", "freq": "weekly", "pri": "1.0"},
+        {"url": "/tool/age-calculator", "file": "templates/tools/age_calculator.html", "freq": "monthly", "pri": "0.8"},
+        {"url": "/tool/percentage-calculator", "file": "templates/tools/percentage_calculator.html", "freq": "monthly", "pri": "0.8"},
+        {"url": "/tool/password-generator", "file": "templates/tools/password_generator.html", "freq": "monthly", "pri": "0.8"},
+        {"url": "/tool/qr-generator", "file": "templates/tools/qr_generator.html", "freq": "monthly", "pri": "0.8"},
+        {"url": "/tool/base64-tool", "file": "templates/tools/base64_tool.html", "freq": "monthly", "pri": "0.8"},
+        {"url": "/about", "file": "templates/pages/about.html", "freq": "yearly", "pri": "0.4"},
+        {"url": "/contact", "file": "templates/pages/contact.html", "freq": "yearly", "pri": "0.4"},
+        {"url": "/privacy", "file": "templates/pages/privacy.html", "freq": "yearly", "pri": "0.2"},
+        {"url": "/terms", "file": "templates/pages/terms.html", "freq": "yearly", "pri": "0.2"},
+        {"url": "/disclaimer", "file": "templates/pages/disclaimer.html", "freq": "yearly", "pri": "0.2"},
+    ]
+    
+    url_tags = []
+    for p in pages:
+        lastmod = get_lastmod(p["file"])
+        url_tags.append(f'    <url><loc>{base_url}{p["url"]}</loc><lastmod>{lastmod}</lastmod><changefreq>{p["freq"]}</changefreq><priority>{p["pri"]}</priority></url>')
+        
+    xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml_content += '<?xml-stylesheet type="text/xsl" href="/static/sitemap.xsl"?>\n'
+    xml_content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    xml_content += "\n".join(url_tags)
+    xml_content += '\n</urlset>'
+    
+    return Response(content=xml_content, media_type="application/xml")
+
+@app.get("/robots.txt")
+async def robots():
+    txt = "User-agent: *\nAllow: /\n\nSitemap: https://storybrainai.com/sitemap.xml"
+    return Response(content=txt, media_type="text/plain")
+
+@app.get("/{page_name}", response_class=HTMLResponse)
+async def get_page(request: Request, page_name: str):
+    valid_pages = ["about", "contact", "privacy", "terms", "disclaimer"]
+    if page_name in valid_pages:
+        return templates.TemplateResponse(request=request, name=f"pages/{page_name}.html", context={"title": page_name.title()})
+    return HTMLResponse(status_code=404, content="Page not found")
+
+# --- Tool Specific APIs ---
+
+@app.post("/api/generate-qr")
+async def generate_qr(data: str = Form(...)):
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    buf = io.BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    
+    return StreamingResponse(buf, media_type="image/png")
+
+@app.post("/api/base64-encode")
+async def base64_encode(text: str = Form(...)):
+    encoded_bytes = base64.b64encode(text.encode('utf-8'))
+    return {"result": encoded_bytes.decode('utf-8')}
+
+@app.post("/api/base64-decode")
+async def base64_decode(text: str = Form(...)):
+    try:
+        decoded_bytes = base64.b64decode(text.encode('utf-8'))
+        return {"result": decoded_bytes.decode('utf-8')}
+    except Exception as e:
+        return {"error": "Invalid Base64 string"}

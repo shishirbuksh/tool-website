@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}QR Code Generator | StoryBrain AI{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto animate-fade-in-up px-2 sm:px-0">
+    <div class="text-center mb-8 md:mb-12">
+        <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 flex items-center justify-center gap-2 sm:gap-3">
+            <i class="fa-solid fa-qrcode text-info"></i> QR Code Generator
+        </h1>
+        <p class="text-sm sm:text-base md:text-lg opacity-80 px-4">Generate high-quality QR codes for links, text, and data.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        <!-- Form -->
+        <div class="card bg-base-100 shadow-xl border border-base-300 h-fit transition-shadow hover:shadow-info/10">
+            <div class="card-body p-4 sm:p-6 lg:p-8">
+                <form id="qrForm" class="space-y-4 sm:space-y-5">
+                    <div class="form-control w-full">
+                        <label class="label mb-1">
+                            <span class="label-text font-semibold text-sm sm:text-base">Enter Text or URL</span>
+                        </label>
+                        <textarea id="qrData" class="textarea textarea-bordered h-28 sm:h-32 focus:textarea-info transition-colors text-base" placeholder="https://example.com" required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-info w-full shadow-lg shadow-info/30 h-12 sm:h-14 text-base sm:text-lg" id="generateBtn">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Generate QR Code
+                    </button>
+                    <button type="button" class="btn btn-ghost w-full sm:hidden text-sm opacity-70" onclick="document.getElementById('qrData').value=''">
+                        Clear Input
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div class="card bg-base-100 shadow-xl border border-base-300 relative overflow-hidden group">
+            <div class="absolute -right-12 -bottom-12 w-40 h-40 bg-info/10 rounded-full blur-3xl group-hover:bg-info/20 transition-all duration-700 hidden sm:block"></div>
+            <div class="card-body flex flex-col items-center justify-center min-h-[250px] sm:min-h-[300px] z-10 p-4 sm:p-6">
+                
+                <div id="qrResult" class="hidden flex-col items-center space-y-5 sm:space-y-6 w-full animate-fade-in-up">
+                    <div class="bg-white p-3 sm:p-4 rounded-xl shadow-inner inline-block relative hover:scale-[1.02] transition-transform duration-300 cursor-pointer w-full max-w-[200px] sm:max-w-[256px]">
+                        <img id="qrImage" src="" alt="Generated QR Code" class="w-full h-auto object-contain aspect-square" />
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-2 w-full max-w-xs sm:max-w-[256px]">
+                        <a id="downloadBtn" href="#" download="qrcode.png" class="btn btn-info w-full text-sm sm:text-base">
+                            <i class="fa-solid fa-download mr-1 sm:mr-2"></i> Save PNG
+                        </a>
+                    </div>
+                </div>
+
+                <div id="qrPlaceholder" class="flex flex-col items-center text-center opacity-40 transition-opacity p-4">
+                    <i class="fa-solid fa-qrcode text-5xl sm:text-6xl mb-3 sm:mb-4"></i>
+                    <p class="text-sm sm:text-base">Your QR code will appear here</p>
+                </div>
+
+                <div id="qrLoading" class="hidden flex-col items-center p-4">
+                    <span class="loading loading-spinner text-info loading-lg mb-3 sm:mb-4"></span>
+                    <p class="animate-pulse text-sm sm:text-base">Generating your code...</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('qrForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = document.getElementById('qrData').value.trim();
+    if(!data) return;
+
+    const btn = document.getElementById('generateBtn');
+    const result = document.getElementById('qrResult');
+    const placeholder = document.getElementById('qrPlaceholder');
+    const loading = document.getElementById('qrLoading');
+    const img = document.getElementById('qrImage');
+    const download = document.getElementById('downloadBtn');
+
+    // UI States
+    placeholder.classList.add('hidden');
+    result.classList.add('hidden');
+    loading.classList.remove('hidden');
+    btn.disabled = true;
+
+    try {
+        const formData = new FormData();
+        formData.append('data', data);
+
+        const response = await fetch('/api/generate-qr', {
+            method: 'POST',
+            body: formData
+        });
+
+        if(response.ok) {
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            img.src = url;
+            download.href = url;
+            
+            loading.classList.add('hidden');
+            result.classList.remove('hidden');
+            result.classList.add('flex');
+            
+            // Scroll to bottom on mobile so the user sees the generated QR immediately
+            if(window.innerWidth < 1024) {
+               setTimeout(() => {
+                   window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+               }, 100);
+            }
+        } else {
+            alert("Failed to generate QR code.");
+            loading.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+        }
+    } catch (err) {
+        console.error(err);
+        alert("An error occurred.");
+        loading.classList.add('hidden');
+        placeholder.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+    }
+});
+</script>
+{% endblock %}

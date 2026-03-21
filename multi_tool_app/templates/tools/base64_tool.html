@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Base64 Tool | StoryBrain AI{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto animate-fade-in-up px-2 sm:px-0">
+    <!-- Header -->
+    <div class="text-center mb-8 md:mb-12">
+        <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 flex items-center justify-center gap-2 sm:gap-3">
+            <i class="fa-solid fa-code text-success"></i> Base64 Tool
+        </h1>
+        <p class="text-sm sm:text-base md:text-lg opacity-80 px-4">Easily encode string to Base64 or decode Base64 back to string.</p>
+    </div>
+
+    <!-- Tabs -->
+    <div role="tablist" class="tabs tabs-boxed mb-6 sm:mb-8 w-full max-w-xs mx-auto p-1 bg-base-300">
+        <a role="tab" class="tab w-1/2 tab-active transition-all font-semibold text-xs sm:text-sm" id="tabEncode" onclick="switchMode('encode')">Encode</a>
+        <a role="tab" class="tab w-1/2 transition-all font-semibold text-xs sm:text-sm" id="tabDecode" onclick="switchMode('decode')">Decode</a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+        
+        <!-- Input Side -->
+        <div class="card bg-base-100 shadow-xl border border-base-300">
+            <div class="card-body p-4 sm:p-6 lg:p-8">
+                <div class="flex justify-between items-center mb-2 sm:mb-4">
+                    <h2 class="card-title text-base sm:text-lg" id="inputTitle">Input Text</h2>
+                    <button class="btn btn-xs sm:btn-sm btn-ghost" onclick="document.getElementById('inputText').value=''">
+                        <i class="fa-solid fa-eraser"></i> Clear
+                    </button>
+                </div>
+                <textarea id="inputText" class="textarea textarea-bordered h-40 sm:h-56 focus:textarea-success font-mono text-sm sm:text-base transition-colors leading-relaxed" placeholder="Type something..."></textarea>
+                
+                <div class="mt-4">
+                    <button class="btn btn-success w-full shadow-lg shadow-success/30 h-12 sm:h-14 text-base sm:text-lg" onclick="processText()">
+                        <i class="fa-solid fa-bolt mr-2"></i> <span id="btnText">Execute Process</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Side -->
+        <div class="card bg-base-100 shadow-xl border border-base-300 relative overflow-hidden transition-all duration-300" id="outputCard">
+            <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-success/10 rounded-full blur-2xl pointer-events-none hidden sm:block"></div>
+            <div class="card-body p-4 sm:p-6 lg:p-8 z-10 flex flex-col h-full">
+                <div class="flex justify-between items-center mb-2 sm:mb-4">
+                    <h2 class="card-title text-base sm:text-lg">Result</h2>
+                    <button class="btn btn-xs sm:btn-sm btn-outline btn-success" onclick="copyResult()">
+                        <i class="fa-regular fa-copy copy-icon"></i> Copy
+                    </button>
+                </div>
+                
+                <div id="outputText" class="bg-base-300 p-3 sm:p-4 rounded-xl flex-grow min-h-[160px] sm:min-h-[224px] font-mono text-sm sm:text-base overflow-auto whitespace-pre-wrap break-all text-success select-all relative"></div>
+                
+                <div id="errorBox" class="text-error text-sm mt-3 hidden bg-error/10 p-3 rounded-lg border border-error/30 font-semibold text-center w-full shadow-inner animate-fade-in-up"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let mode = 'encode'; // 'encode' or 'decode'
+
+function switchMode(newMode) {
+    if(mode === newMode) return;
+    mode = newMode;
+    
+    document.getElementById('tabEncode').classList.toggle('tab-active', mode === 'encode');
+    document.getElementById('tabDecode').classList.toggle('tab-active', mode === 'decode');
+    
+    document.getElementById('inputTitle').innerText = mode === 'encode' ? 'Plain Text Input' : 'Base64 Input';
+    document.getElementById('inputText').placeholder = mode === 'encode' ? 'Type text to encode...' : 'Paste Base64 string to decode...';
+    document.getElementById('btnText').innerText = mode === 'encode' ? 'Encode to Base64' : 'Decode Base64';
+    
+    document.getElementById('outputText').innerText = '';
+    document.getElementById('errorBox').classList.add('hidden');
+    document.getElementById('outputCard').classList.remove('shadow-error/20', 'border-error/30');
+    
+    // Quick focus
+    if(window.innerWidth > 768) {
+        document.getElementById('inputText').focus();
+    }
+}
+
+// Initial state
+document.addEventListener('DOMContentLoaded', () => {
+    switchMode('encode');
+});
+
+async function processText() {
+    const text = document.getElementById('inputText').value;
+    const errBox = document.getElementById('errorBox');
+    const outBox = document.getElementById('outputText');
+    const outCard = document.getElementById('outputCard');
+    
+    if(!text) {
+        errBox.innerText = 'Input cannot be empty.';
+        errBox.classList.remove('hidden');
+        outBox.innerText = '';
+        return;
+    }
+    errBox.classList.add('hidden');
+
+    const endpoint = mode === 'encode' ? '/api/base64-encode' : '/api/base64-decode';
+    
+    try {
+        const formData = new FormData();
+        formData.append('text', text);
+
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await res.json();
+        
+        if(data.error) {
+            errBox.innerText = data.error;
+            errBox.classList.remove('hidden');
+            outBox.innerText = '-- Invalid Input --';
+            outCard.classList.remove('shadow-success/20');
+            outCard.classList.add('shadow-error/20', 'border-error/30');
+        } else {
+            outBox.innerText = data.result;
+            // Animation
+            outCard.classList.remove('shadow-error/20', 'border-error/30');
+            outCard.classList.add('scale-[1.01]', 'shadow-success/30');
+            setTimeout(() => outCard.classList.remove('scale-[1.01]', 'shadow-success/30'), 200);
+            
+            // Auto scroll on mobile
+            if(window.innerWidth < 1024) {
+               setTimeout(() => {
+                   window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+               }, 100);
+            }
+        }
+    } catch(err) {
+        errBox.innerText = 'Server error occurred.';
+        errBox.classList.remove('hidden');
+    }
+}
+
+function copyResult() {
+    const text = document.getElementById('outputText').innerText;
+    if(text && text !== '-- Invalid Input --') {
+        navigator.clipboard.writeText(text);
+        const btn = event.currentTarget.querySelector('.copy-icon');
+        btn.classList.replace('fa-regular', 'fa-solid');
+        btn.classList.replace('fa-copy', 'fa-check');
+        
+        const originalText = event.currentTarget.innerHTML;
+        event.currentTarget.innerHTML = `<i class="fa-solid fa-check mr-1"></i> Copied!`;
+        event.currentTarget.classList.add('btn-success', 'text-success-content');
+        event.currentTarget.classList.remove('btn-outline');
+        
+        setTimeout(() => {
+            event.currentTarget.innerHTML = `<i class="fa-regular fa-copy copy-icon"></i> Copy`;
+            event.currentTarget.classList.remove('btn-success', 'text-success-content');
+            event.currentTarget.classList.add('btn-outline');
+        }, 1500);
+    }
+}
+</script>
+{% endblock %}
