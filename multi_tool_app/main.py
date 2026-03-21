@@ -31,10 +31,14 @@ async def home(request: Request):
 @app.get("/tool/{tool_name}", response_class=HTMLResponse)
 async def get_tool(request: Request, tool_name: str):
     valid_tools = [
+        "calculator",
+        "scientific-calculator",
         "age-calculator", 
         "percentage-calculator", 
         "password-generator", 
         "qr-generator", 
+        "image-compressor",
+        "image-converter",
         "base64-tool"
     ]
     if tool_name not in valid_tools:
@@ -59,10 +63,14 @@ async def sitemap():
 
     pages = [
         {"url": "/", "file": "templates/index.html", "freq": "weekly", "pri": "1.0"},
+        {"url": "/tool/calculator", "file": "templates/tools/calculator.html", "freq": "monthly", "pri": "0.8"},
+        {"url": "/tool/scientific-calculator", "file": "templates/tools/scientific_calculator.html", "freq": "monthly", "pri": "0.8"},
         {"url": "/tool/age-calculator", "file": "templates/tools/age_calculator.html", "freq": "monthly", "pri": "0.8"},
         {"url": "/tool/percentage-calculator", "file": "templates/tools/percentage_calculator.html", "freq": "monthly", "pri": "0.8"},
         {"url": "/tool/password-generator", "file": "templates/tools/password_generator.html", "freq": "monthly", "pri": "0.8"},
         {"url": "/tool/qr-generator", "file": "templates/tools/qr_generator.html", "freq": "monthly", "pri": "0.8"},
+        {"url": "/tool/image-compressor", "file": "templates/tools/image_compressor.html", "freq": "monthly", "pri": "0.8"},
+        {"url": "/tool/image-converter", "file": "templates/tools/image_converter.html", "freq": "monthly", "pri": "0.8"},
         {"url": "/tool/base64-tool", "file": "templates/tools/base64_tool.html", "freq": "monthly", "pri": "0.8"},
         {"url": "/about", "file": "templates/pages/about.html", "freq": "yearly", "pri": "0.4"},
         {"url": "/contact", "file": "templates/pages/contact.html", "freq": "yearly", "pri": "0.4"},

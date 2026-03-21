@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Image Compressor | StoryBrain AI{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto animate-fade-in-up">
+    <div class="text-center mb-10">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-warning/10 mb-4">
+            <i class="fa-solid fa-compress text-warning text-3xl"></i>
+        </div>
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4">Image Compressor</h1>
+        <p class="text-base sm:text-lg opacity-80 max-w-2xl mx-auto">
+            Compress JPEG and PNG images directly in your browser without sacrificing quality. 100% secure and private—no files are uploaded to our servers.
+        </p>
+    </div>
+
+    <div class="card bg-base-100 shadow-2xl border border-base-300">
+        <div class="card-body p-6 sm:p-8 md:p-10">
+            <!-- Upload Area -->
+            <div id="uploadArea" class="border-2 border-dashed border-base-300 hover:border-warning rounded-xl p-8 sm:p-12 text-center transition-colors duration-300 cursor-pointer mb-6 group bg-base-200/50 hover:bg-base-200">
+                <input type="file" id="fileInput" class="hidden" accept="image/jpeg, image/png, image/webp">
+                <div class="w-16 h-16 rounded-full bg-base-100 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-sm">
+                    <i class="fa-solid fa-cloud-arrow-up text-warning text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold mb-2">Drag & drop your image here</h3>
+                <p class="text-sm opacity-60 mb-4">or click to browse from your device</p>
+                <div class="badge badge-warning badge-outline">JPG, PNG, WEBP (Max 20MB)</div>
+            </div>
+
+            <!-- Editor Area (Hidden initially) -->
+            <div id="editorArea" class="hidden flex flex-col gap-6">
+                <!-- Controls -->
+                <div class="bg-base-200 rounded-xl p-6 border border-base-300">
+                    <div class="flex flex-col sm:flex-row gap-6 items-center">
+                        <div class="w-full sm:w-1/2">
+                            <label class="label">
+                                <span class="label-text font-medium text-base">Compression Quality: <span id="qualityValue" class="text-warning font-bold">80%</span></span>
+                            </label>
+                            <input type="range" id="qualitySlider" min="1" max="100" value="80" class="range range-warning range-sm" />
+                            <div class="w-full flex justify-between text-xs px-2 mt-2 opacity-60">
+                                <span>Small File</span>
+                                <span>High Quality</span>
+                            </div>
+                        </div>
+                        <div class="w-full sm:w-1/2 flex justify-end gap-3 mt-4 sm:mt-0">
+                            <button id="resetBtn" class="btn btn-outline btn-sm">Upload New</button>
+                            <button id="downloadBtn" class="btn btn-warning btn-sm gap-2">
+                                <i class="fa-solid fa-download"></i> Download Compressed
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparison View -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Original Image -->
+                    <div class="bg-base-200 rounded-xl p-4 border border-base-300 flex flex-col items-center">
+                        <div class="w-full flex justify-between items-center mb-3 text-sm font-medium">
+                            <span class="badge badge-neutral">Original</span>
+                            <span id="originalSize" class="opacity-80">0 KB</span>
+                        </div>
+                        <div class="w-full max-h-[300px] overflow-hidden rounded-lg bg-base-100 flex items-center justify-center border border-base-300 relative group p-2">
+                            <img id="originalPreview" src="" alt="Original Image" class="max-w-full max-h-[284px] object-contain">
+                        </div>
+                    </div>
+
+                    <!-- Compressed Image -->
+                    <div class="bg-base-200 rounded-xl p-4 border border-warning/30 flex flex-col items-center shadow-[0_0_15px_rgba(251,189,35,0.1)] relative overflow-hidden">
+                        <div class="absolute -right-6 top-6 bg-success text-success-content px-8 py-1 rotate-45 text-xs font-bold shadow-lg" id="savingsBadge">
+                            -0%
+                        </div>
+                        <div class="w-full flex justify-between items-center mb-3 text-sm font-medium">
+                            <span class="badge badge-warning">Compressed</span>
+                            <span id="compressedSize" class="text-warning font-bold">0 KB</span>
+                        </div>
+                        <div class="w-full max-h-[300px] overflow-hidden rounded-lg bg-base-100 flex items-center justify-center border border-base-300 relative p-2">
+                            <img id="compressedPreview" src="" alt="Compressed Image" class="max-w-full max-h-[284px] object-contain">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const editorArea = document.getElementById('editorArea');
+    
+    const qualitySlider = document.getElementById('qualitySlider');
+    const qualityValue = document.getElementById('qualityValue');
+    
+    const originalPreview = document.getElementById('originalPreview');
+    const compressedPreview = document.getElementById('compressedPreview');
+    
+    const originalSize = document.getElementById('originalSize');
+    const compressedSize = document.getElementById('compressedSize');
+    const savingsBadge = document.getElementById('savingsBadge');
+    
+    const downloadBtn = document.getElementById('downloadBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let originalFile = null;
+    let originalImageObj = null;
+    let compressedBlobUrl = null;
+
+    // Helper to format bytes
+    const formatBytes = (bytes, decimals = 2) => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    };
+
+    // Initialize Upload Events
+    uploadArea.addEventListener('click', () => fileInput.click());
+    
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('border-warning', 'bg-base-200');
+    });
+    
+    uploadArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('border-warning', 'bg-base-200');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('border-warning', 'bg-base-200');
+        if (e.dataTransfer.files.length) {
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length) {
+            handleFile(e.target.files[0]);
+        }
+    });
+
+    resetBtn.addEventListener('click', () => {
+        uploadArea.classList.remove('hidden');
+        editorArea.classList.add('hidden');
+        fileInput.value = '';
+        if (compressedBlobUrl) URL.revokeObjectURL(compressedBlobUrl);
+    });
+
+    qualitySlider.addEventListener('input', (e) => {
+        qualityValue.textContent = e.target.value + '%';
+        if (originalImageObj) {
+            compressImage();
+        }
+    });
+
+    function handleFile(file) {
+        if (!file.type.match(/image\/(jpeg|png|webp)/)) {
+            alert('Please upload a valid JPEG, PNG, or WEBP image.');
+            return;
+        }
+
+        originalFile = file;
+        originalSize.textContent = formatBytes(file.size);
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            originalPreview.src = e.target.result;
+            
+            // Create Image object for canvas rendering
+            originalImageObj = new Image();
+            originalImageObj.onload = () => {
+                uploadArea.classList.add('hidden');
+                editorArea.classList.remove('hidden');
+                compressImage();
+            };
+            originalImageObj.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function compressImage() {
+        const quality = parseInt(qualitySlider.value) / 100;
+        
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = originalImageObj.width;
+        canvas.height = originalImageObj.height;
+        
+        // Fill white background for transparent PNG to JPEG conversion (optional, but good for uniform output)
+        if (originalFile.type === 'image/png' || originalFile.type === 'image/webp') {
+             // For simplicity, we just keep their transparency and output as WebP if possible, or force JPEG.
+             // We'll output as JPEG by default for best compression, filling background with white
+             ctx.fillStyle = "#FFFFFF";
+             ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        ctx.drawImage(originalImageObj, 0, 0, canvas.width, canvas.height);
+        
+        // Re-use object URL to prevent memory leaks
+        if (compressedBlobUrl) URL.revokeObjectURL(compressedBlobUrl);
+
+        // Compress
+        canvas.toBlob((blob) => {
+            compressedBlobUrl = URL.createObjectURL(blob);
+            compressedPreview.src = compressedBlobUrl;
+            compressedSize.textContent = formatBytes(blob.size);
+            
+            // Calculate savings
+            const savings = ((originalFile.size - blob.size) / originalFile.size) * 100;
+            if (savings > 0) {
+                savingsBadge.textContent = '-' + savings.toFixed(1) + '%';
+                savingsBadge.classList.replace('bg-error', 'bg-success');
+                savingsBadge.classList.replace('text-error-content', 'text-success-content');
+            } else {
+                savingsBadge.textContent = '+' + Math.abs(savings).toFixed(1) + '%';
+                savingsBadge.classList.replace('bg-success', 'bg-error');
+                savingsBadge.classList.replace('text-success-content', 'text-error-content');
+            }
+
+            // Setup download
+            downloadBtn.onclick = () => {
+                const a = document.createElement('a');
+                a.href = compressedBlobUrl;
+                
+                // Output is always JPEG due to canvas.toBlob type
+                let ext = 'jpg';
+
+                let nameWithoutExt = originalFile.name.substring(0, originalFile.name.lastIndexOf('.')) || originalFile.name;
+                a.download = `${nameWithoutExt}-compressed.${ext}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+
+        }, 'image/jpeg', quality);
+    }
+});
+</script>
+{% endblock %}

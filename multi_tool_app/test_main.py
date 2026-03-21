@@ -37,10 +37,14 @@ def test_homepage_seo_tags():
 
 def test_tools_pages_exist():
     tools = [
+        "calculator",
+        "scientific-calculator",
         "age-calculator",
         "percentage-calculator",
         "password-generator",
         "qr-generator",
+        "image-compressor",
+        "image-converter",
         "base64-tool"
     ]
     for tool in tools:
