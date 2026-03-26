@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}PDF Converter Tool | StoryBrain AI{% endblock %}
+
+{% block content %}
+<!-- Back breadcrumb -->
+<div class="mb-6 animate-fade-in-up">
+    <a href="/" class="inline-flex items-center gap-2 text-sm font-medium text-base-content/50 hover:text-primary transition-colors duration-200">
+        <i class="fa-solid fa-arrow-left text-xs"></i> All Tools
+    </a>
+</div>
+<div class="max-w-4xl mx-auto animate-fade-in-up px-2 sm:px-0">
+    <!-- Header -->
+    <div class="text-center mb-8 md:mb-12">
+        <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 flex items-center justify-center gap-2 sm:gap-3">
+            <i class="fa-solid fa-file-pdf text-error"></i> PDF Converter
+        </h1>
+        <p class="text-sm sm:text-base md:text-lg opacity-80 px-4">Convert images (.png, .jpg, .webp) or text files (.txt) to PDF instantly.</p>
+    </div>
+
+    <div class="card bg-base-100 shadow-xl border border-base-300">
+        <div class="card-body p-6 lg:p-10 text-center">
+            
+            <div id="dropZone" class="border-2 border-dashed border-base-300 rounded-2xl p-8 sm:p-12 mb-6 cursor-pointer hover:border-primary transition-colors duration-300 flex flex-col items-center justify-center relative bg-base-200/50" onclick="document.getElementById('fileInput').click()">
+                <i class="fa-solid fa-cloud-arrow-up text-4xl sm:text-6xl text-primary/70 mb-4"></i>
+                <h3 class="text-lg sm:text-xl font-bold mb-2">Click or Drag & Drop File</h3>
+                <p class="text-sm hover:text-primary transition-colors duration-300 opacity-70">Supports JPG, PNG, WEBP, BMP, and TXT files (Max 10MB)</p>
+                
+                <input type="file" id="fileInput" class="hidden" accept=".jpg,.jpeg,.png,.webp,.bmp,.txt" onchange="handleFileSelect(event)">
+            </div>
+            
+            <!-- File Info Preview -->
+            <div id="fileInfo" class="hidden mb-6 bg-base-200 rounded-lg p-4 flex items-center justify-between border border-base-300 shadow-inner">
+                <div class="flex items-center gap-3 overflow-hidden">
+                    <i class="fa-solid fa-file-lines text-2xl text-primary"></i>
+                    <div class="text-left truncate">
+                        <p id="fileName" class="font-bold text-sm sm:text-base truncate"></p>
+                        <p id="fileSize" class="text-xs opacity-70"></p>
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-ghost text-error" onclick="clearFile(event)" aria-label="Remove File">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Error Box -->
+            <div id="errorBox" class="text-error text-sm mb-4 hidden bg-error/10 p-3 rounded-lg border border-error/30 font-semibold text-center shadow-inner animate-fade-in-up"></div>
+            
+            <!-- Convert Button -->
+            <button id="convertBtn" class="btn btn-error w-full sm:w-auto sm:px-12 h-14 text-lg shadow-lg shadow-error/30 btn-disabled transition-all" onclick="processConversion()">
+                <i class="fa-solid fa-file-export mr-2"></i> Convert to PDF
+            </button>
+
+            <!-- Loading Spinner (Hidden initially) -->
+            <div id="loadingIndicator" class="hidden flex-col items-center justify-center mt-6 text-primary">
+                <span class="loading loading-spinner loading-lg mb-2"></span>
+                <p class="text-sm font-semibold animate-pulse">Converting your file...</p>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const convertBtn = document.getElementById('convertBtn');
+    const errorBox = document.getElementById('errorBox');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    let currentFile = null;
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.add('border-primary', 'bg-primary/5'), false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-primary', 'bg-primary/5'), false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length) handleFiles(files[0]);
+    }, false);
+
+    function handleFileSelect(e) {
+        if (e.target.files.length) {
+            handleFiles(e.target.files[0]);
+        }
+    }
+
+    function handleFiles(file) {
+        currentFile = file;
+        fileName.innerText = file.name;
+        fileSize.innerText = formatBytes(file.size);
+        fileInfo.classList.remove('hidden');
+        dropZone.classList.add('hidden');
+        convertBtn.classList.remove('btn-disabled');
+        errorBox.classList.add('hidden');
+    }
+
+    function clearFile(e) {
+        if(e) e.stopPropagation();
+        currentFile = null;
+        fileInput.value = '';
+        fileInfo.classList.add('hidden');
+        dropZone.classList.remove('hidden');
+        convertBtn.classList.add('btn-disabled');
+    }
+
+    function formatBytes(bytes, decimals = 2) {
+        if (!+bytes) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+    }
+
+    async function processConversion() {
+        if(!currentFile) return;
+        
+        errorBox.classList.add('hidden');
+        convertBtn.classList.add('hidden');
+        loadingIndicator.classList.remove('hidden');
+        loadingIndicator.classList.add('flex');
+
+        const formData = new FormData();
+        formData.append('file', currentFile);
+
+        try {
+            const response = await fetch('/api/convert-to-pdf', {
+                method: 'POST',
+                body: formData
+            });
+
+            if(!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || "Conversion failed on the server.");
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            
+            let downloadFilename = `converted_${currentFile.name}.pdf`;
+            const disposition = response.headers.get('content-disposition');
+            if (disposition && disposition.indexOf('attachment') !== -1) {
+                const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                if (matches != null && matches[1]) { 
+                    downloadFilename = matches[1].replace(/['"]/g, '');
+                }
+            }
+
+            a.download = downloadFilename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            setTimeout(() => {
+                clearFile();
+                loadingIndicator.classList.remove('flex');
+                loadingIndicator.classList.add('hidden');
+                convertBtn.classList.remove('hidden');
+                
+                convertBtn.innerHTML = `<i class="fa-solid fa-check mr-2"></i> Downloaded!`;
+                convertBtn.classList.add('btn-success');
+                convertBtn.classList.remove('btn-error');
+                
+                setTimeout(() => {
+                    convertBtn.innerHTML = `<i class="fa-solid fa-file-export mr-2"></i> Convert to PDF`;
+                    convertBtn.classList.remove('btn-success');
+                    convertBtn.classList.add('btn-error');
+                }, 3000);
+            }, 500);
+
+        } catch (error) {
+            errorBox.innerText = error.message;
+            errorBox.classList.remove('hidden');
+            loadingIndicator.classList.remove('flex');
+            loadingIndicator.classList.add('hidden');
+            convertBtn.classList.remove('hidden');
+        }
+    }
+</script>
+{% endblock %}

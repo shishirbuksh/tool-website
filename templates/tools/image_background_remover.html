@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Image Background Remover | StoryBrain AI{% endblock %}
+
+{% block content %}
+<!-- Back breadcrumb -->
+<div class="mb-6">
+    <a href="/" class="inline-flex items-center gap-2 text-sm font-medium text-base-content/50 hover:text-primary transition-colors duration-200">
+        <i class="fa-solid fa-arrow-left text-xs"></i> All Tools
+    </a>
+</div>
+<div class="max-w-5xl mx-auto">
+
+    <!-- Hero Header -->
+    <div class="text-center mb-10 animate-fade-in-up">
+        <div class="inline-flex items-center gap-2 badge badge-primary badge-outline mb-4 px-4 py-3 text-sm font-medium">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> AI-Powered
+        </div>
+        <h1 class="text-4xl sm:text-5xl font-extrabold mb-4 leading-tight">
+            Background <span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Remover</span>
+        </h1>
+        <p class="text-base sm:text-lg opacity-70 max-w-xl mx-auto">
+            Remove backgrounds from any image in seconds. 100% automatic — just upload and download.
+        </p>
+    </div>
+
+    <!-- Main Upload Card -->
+    <div id="uploadCard" class="animate-fade-in-up">
+        <div class="card bg-base-100 shadow-2xl border border-base-300">
+            <div class="card-body p-6 sm:p-10">
+
+                <!-- Drop Zone -->
+                <div id="uploadArea"
+                     class="relative border-2 border-dashed border-base-300 rounded-2xl p-10 sm:p-16 text-center cursor-pointer
+                            transition-all duration-300 hover:border-primary hover:bg-primary/5 group">
+                    <input type="file" id="fileInput" class="hidden" accept="image/*">
+
+                    <div class="flex flex-col items-center gap-4">
+                        <div class="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center
+                                    group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
+                            <i class="fa-solid fa-cloud-arrow-up text-primary text-3xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-xl font-bold mb-1">Drop your image here</p>
+                            <p class="text-sm opacity-50">or <span class="text-primary font-semibold">click to browse</span></p>
+                        </div>
+                        <div class="flex gap-2 flex-wrap justify-center mt-2">
+                            <span class="badge badge-ghost badge-sm">JPG</span>
+                            <span class="badge badge-ghost badge-sm">PNG</span>
+                            <span class="badge badge-ghost badge-sm">WEBP</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features row -->
+                <div class="flex justify-center gap-8 mt-6 text-xs opacity-50">
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-bolt text-primary"></i>
+                        <span>Fast AI</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved text-primary"></i>
+                        <span>Private</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-image text-primary"></i>
+                        <span>Transparent PNG</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Alert -->
+    <div id="errorMsg" class="hidden mt-4">
+        <div class="alert alert-error shadow-lg">
+            <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+            <span id="errorText">Something went wrong. Please try again.</span>
+            <button onclick="document.getElementById('errorMsg').classList.add('hidden')" class="btn btn-sm btn-ghost ml-auto">✕</button>
+        </div>
+    </div>
+
+    <!-- Result Card (hidden until processed) -->
+    <div id="resultCard" class="hidden mt-6 animate-fade-in-up">
+        <div class="card bg-base-100 shadow-2xl border border-base-300">
+            <div class="card-body p-6 sm:p-8">
+
+                <!-- Result header -->
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                    <div>
+                        <h2 class="text-xl font-bold">Background Removed!</h2>
+                        <p class="text-sm opacity-50 mt-0.5">Compare the original with the result below</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="resetBtn" class="btn btn-sm btn-ghost gap-2">
+                            <i class="fa-solid fa-arrow-rotate-left"></i> New Image
+                        </button>
+                        <a id="downloadBtn" href="#" download="removed_bg.png" class="btn btn-sm btn-primary gap-2">
+                            <i class="fa-solid fa-download"></i> Download PNG
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Before / After -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                    <!-- Original -->
+                    <div class="rounded-xl overflow-hidden border border-base-300 bg-base-200">
+                        <div class="px-4 py-2.5 flex items-center justify-between border-b border-base-300 bg-base-200">
+                            <span class="text-xs font-semibold uppercase tracking-wider opacity-60">Original</span>
+                            <span id="originalSize" class="text-xs opacity-50 font-mono"></span>
+                        </div>
+                        <div class="p-3 flex items-center justify-center min-h-64 bg-base-100">
+                            <img id="originalPreview" src="" alt="Original" class="max-w-full max-h-72 object-contain rounded-lg">
+                        </div>
+                    </div>
+
+                    <!-- Result -->
+                    <div class="rounded-xl overflow-hidden border border-primary/30 bg-base-200 relative">
+                        <div class="px-4 py-2.5 flex items-center justify-between border-b border-primary/20 bg-primary/5">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-primary">Result</span>
+                            <span id="resultSize" class="text-xs opacity-50 font-mono"></span>
+                        </div>
+
+                        <!-- Loading state -->
+                        <div id="loadingOverlay" class="absolute inset-0 top-10 flex flex-col items-center justify-center bg-base-100/95 backdrop-blur-sm z-10">
+                            <span class="loading loading-spinner loading-lg text-primary"></span>
+                            <p class="mt-3 text-sm font-medium animate-pulse">Processing with AI…</p>
+                            <p class="text-xs opacity-40 mt-1">This may take a few seconds</p>
+                        </div>
+
+                        <div class="p-3 flex items-center justify-center min-h-64 checkers-bg">
+                            <img id="resultPreview" src="" alt="Result" class="max-w-full max-h-72 object-contain rounded-lg hidden">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download bar for mobile -->
+                <div class="mt-4 flex justify-center sm:hidden">
+                    <a id="downloadBtnMobile" href="#" download="removed_bg.png" class="btn btn-primary w-full gap-2">
+                        <i class="fa-solid fa-download"></i> Download Transparent PNG
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+.checkers-bg {
+    background-color: #fff;
+    background-image:
+        linear-gradient(45deg, #ddd 25%, transparent 25%),
+        linear-gradient(-45deg, #ddd 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ddd 75%),
+        linear-gradient(-45deg, transparent 75%, #ddd 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+}
+html[data-theme="dracula"] .checkers-bg,
+html[data-theme="dark"] .checkers-bg {
+    background-color: #1e1e2e;
+    background-image:
+        linear-gradient(45deg, #2a2a3e 25%, transparent 25%),
+        linear-gradient(-45deg, #2a2a3e 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #2a2a3e 75%),
+        linear-gradient(-45deg, transparent 75%, #2a2a3e 75%);
+}
+
+#uploadArea.dragover {
+    border-color: oklch(var(--p));
+    background-color: oklch(var(--p) / 0.08);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const uploadCard    = document.getElementById('uploadCard');
+    const uploadArea    = document.getElementById('uploadArea');
+    const fileInput     = document.getElementById('fileInput');
+    const resultCard    = document.getElementById('resultCard');
+    const originalPreview = document.getElementById('originalPreview');
+    const originalSize  = document.getElementById('originalSize');
+    const resultPreview = document.getElementById('resultPreview');
+    const resultSize    = document.getElementById('resultSize');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const resetBtn      = document.getElementById('resetBtn');
+    const downloadBtn   = document.getElementById('downloadBtn');
+    const downloadBtnMobile = document.getElementById('downloadBtnMobile');
+    const errorMsg      = document.getElementById('errorMsg');
+    const errorText     = document.getElementById('errorText');
+
+    const fmt = b => b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(2)+' MB';
+
+    // Click to upload
+    uploadArea.addEventListener('click', () => fileInput.click());
+
+    // Drag & drop
+    uploadArea.addEventListener('dragover',  e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+    uploadArea.addEventListener('dragleave', e => { e.preventDefault(); uploadArea.classList.remove('dragover'); });
+    uploadArea.addEventListener('drop', e => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files.length) handleFile(this.files[0]);
+    });
+
+    async function handleFile(file) {
+        if (!file.type.startsWith('image/')) {
+            showError('Please upload an image file (JPG, PNG, or WEBP).');
+            return;
+        }
+
+        errorMsg.classList.add('hidden');
+
+        // Show the original image immediately
+        const reader = new FileReader();
+        reader.onload = e => { originalPreview.src = e.target.result; };
+        reader.readAsDataURL(file);
+        originalSize.textContent = fmt(file.size);
+
+        // Switch to result card with loading state
+        uploadCard.classList.add('hidden');
+        resultCard.classList.remove('hidden');
+        loadingOverlay.classList.remove('hidden');
+        resultPreview.classList.add('hidden');
+        resultSize.textContent = '';
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const res = await fetch('/api/remove-background', { method: 'POST', body: formData });
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(txt || `Server error (${res.status})`);
+            }
+
+            const blob = await res.blob();
+            const url  = URL.createObjectURL(blob);
+
+            resultPreview.src = url;
+            resultSize.textContent = fmt(blob.size);
+            downloadBtn.href = url;
+            downloadBtnMobile.href = url;
+
+            const nameParts = file.name.split('.');
+            nameParts.pop();
+            const dlName = `${nameParts.join('.')}_nobg.png`;
+            downloadBtn.download = dlName;
+            downloadBtnMobile.download = dlName;
+
+            loadingOverlay.classList.add('hidden');
+            resultPreview.classList.remove('hidden');
+
+        } catch (err) {
+            console.error(err);
+            showError(err.message || 'Processing failed. Please try a different image.');
+            uploadCard.classList.remove('hidden');
+            resultCard.classList.add('hidden');
+        }
+    }
+
+    function showError(msg) {
+        errorText.textContent = msg;
+        errorMsg.classList.remove('hidden');
+        errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    resetBtn.addEventListener('click', () => {
+        fileInput.value = '';
+        uploadCard.classList.remove('hidden');
+        resultCard.classList.add('hidden');
+        errorMsg.classList.add('hidden');
+        resultPreview.src = '';
+        originalPreview.src = '';
+    });
+});
+</script>
+{% endblock %}

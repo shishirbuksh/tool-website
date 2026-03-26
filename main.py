@@ -1,13 +1,18 @@
 import base64
 import qrcode
 import io
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, StreamingResponse, Response
 import datetime
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 import os
+import rembg
+from PIL import Image
+import cv2
+import numpy as np
+from fpdf import FPDF
 
 app = FastAPI(title="Multi-Tool Website")
 
@@ -21,8 +26,15 @@ try:
 except OSError:
     pass  # Allow serverless/read-only production environments to proceed
 
-# Mount static folder
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+# Mount static folder with caching headers
+class CachedStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200:
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+app.mount("/static", CachedStaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
 # Templates
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
@@ -131,6 +143,10 @@ async def generate_qr(data: str = Form(...)):
     
     return StreamingResponse(buf, media_type="image/png")
 
+@app.get("/api/ping")
+def ping():
+    return {"ping": "pong"}
+
 @app.post("/api/base64-encode")
 async def base64_encode(text: str = Form(...)):
     encoded_bytes = base64.b64encode(text.encode('utf-8'))
@@ -143,3 +159,106 @@ async def base64_decode(text: str = Form(...)):
         return {"result": decoded_bytes.decode('utf-8')}
     except Exception as e:
         return {"error": "Invalid Base64 string"}
+
+@app.post("/api/remove-background")
+async def remove_background(image: UploadFile = File(...)):
+    try:
+        # Read the uploaded file bytes into memory
+        input_bytes = await image.read()
+        
+        # Open as PIL Image — more reliable than passing raw bytes directly on Windows
+        input_img = Image.open(io.BytesIO(input_bytes)).convert("RGBA")
+        
+        # Run background removal (rembg accepts and returns PIL Images)
+        output_img = rembg.remove(input_img)
+        
+        # Save result to an in-memory buffer as PNG (keeps transparency)
+        buf = io.BytesIO()
+        output_img.save(buf, format="PNG")
+        return StreamingResponse(buf, media_type="image/png")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response(content=f"Error processing image: {str(e)}", status_code=500)
+
+@app.post("/api/remove-watermark")
+async def remove_watermark(image: UploadFile = File(...), mask: UploadFile = File(...)):
+    try:
+        # Read files into bytes
+        img_bytes = await image.read()
+        mask_bytes = await mask.read()
+
+        # Convert to numpy arrays decoded by cv2
+        np_img = np.frombuffer(img_bytes, np.uint8)
+        img_cv2 = cv2.imdecode(np_img, cv2.IMREAD_COLOR)
+
+        np_mask = np.frombuffer(mask_bytes, np.uint8)
+        mask_cv2 = cv2.imdecode(np_mask, cv2.IMREAD_GRAYSCALE)
+
+        # Inpaint using Telea's algorithm
+        # The mask must be a single-channel 8-bit image where non-zero pixels indicate area to inpaint.
+        restored = cv2.inpaint(img_cv2, mask_cv2, inpaintRadius=3, flags=cv2.INPAINT_TELEA)
+
+        # Encode back to PNG
+        is_success, buffer = cv2.imencode(".png", restored)
+        if not is_success:
+            return Response(content="Failed to encode image", status_code=500)
+
+        io_buf = io.BytesIO(buffer)
+        return StreamingResponse(io_buf, media_type="image/png")
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response(content=f"Error processing watermark: {str(e)}", status_code=500)
+
+@app.post("/api/convert-to-pdf")
+async def convert_to_pdf(file: UploadFile = File(...)):
+    try:
+        file_bytes = await file.read()
+        filename = file.filename.lower()
+        
+        if filename.endswith(('.png', '.jpg', '.jpeg', '.webp', '.bmp')):
+            image = Image.open(io.BytesIO(file_bytes)).convert("RGB")
+            pdf_buf = io.BytesIO()
+            image.save(pdf_buf, format="PDF", resolution=100.0)
+            pdf_buf.seek(0)
+            return StreamingResponse(
+                pdf_buf, 
+                media_type="application/pdf", 
+                headers={"Content-Disposition": f'attachment; filename="converted_{file.filename}.pdf"'}
+            )
+            
+        elif filename.endswith('.txt'):
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=12)
+            
+            try:
+                text = file_bytes.decode('utf-8')
+            except UnicodeDecodeError:
+                text = file_bytes.decode('latin-1')
+                
+            text = text.encode('latin-1', 'replace').decode('latin-1')
+            text = text.replace('\r', '')
+            
+            pdf.multi_cell(w=0, h=10, txt=text)
+                
+            pdf_buf = io.BytesIO(pdf.output())
+
+            pdf_buf.seek(0)
+            return StreamingResponse(
+                pdf_buf, 
+                media_type="application/pdf", 
+                headers={"Content-Disposition": f'attachment; filename="converted_{file.filename}.pdf"'}
+            )
+            
+        else:
+            return Response(content="Unsupported file format. Only Images and TXT files are supported.", status_code=400)
+            
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response(content=f"Error generating PDF: {str(e)}", status_code=500)
+
+# trigger reload

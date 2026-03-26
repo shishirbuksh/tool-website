@@ -1,0 +1,480 @@
+{% extends "base.html" %}
+
+{% block title %}Advanced Crypto Profit Calculator | StoryBrain AI{% endblock %}
+
+{% block content %}
+<!-- Back breadcrumb -->
+<div class="mb-6 animate-fade-in-up">
+    <a href="/"
+        class="inline-flex items-center gap-2 text-sm font-medium text-base-content/50 hover:text-primary transition-colors duration-200">
+        <i class="fa-solid fa-arrow-left text-xs"></i> All Tools
+    </a>
+</div>
+
+<div class="max-w-5xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8 md:mb-10 animate-fade-in-up">
+        <div
+            class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-warning/10 text-warning mb-4 shadow-inner">
+            <i class="fa-brands fa-bitcoin text-3xl"></i>
+        </div>
+        <h1 class="text-3xl md:text-4xl font-extrabold mb-3 text-base-content tracking-tight">Advanced Crypto Profit
+            Calculator</h1>
+        <p class="text-base md:text-lg text-base-content/60 max-w-xl mx-auto leading-relaxed">Calculate spot profits or
+            margin trading limits. Support for Long/Short positions, Leverage multipliers, and Liquidation prices.</p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in-up" style="animation-delay: 100ms">
+
+        <!-- Calculator Form -->
+        <div class="lg:col-span-7 card bg-base-100 shadow-xl border border-base-200 overflow-visible z-10">
+            <div class="card-body p-6 sm:p-8">
+                <form id="cryptoForm" class="space-y-7">
+
+                    <!-- Trade Setup -->
+                    <div class="space-y-5">
+                        <h2
+                            class="text-lg font-bold text-base-content flex items-center gap-2 border-b border-base-200 pb-2">
+                            <i class="fa-solid fa-layer-group text-primary"></i> Trade Setup
+                        </h2>
+
+                        <!-- Long / Short Switch -->
+                        <div class="flex items-center gap-3">
+                            <div class="join bg-base-200 p-1 rounded-xl shadow-inner w-full sm:w-auto">
+                                <input
+                                    class="join-item btn btn-sm sm:btn-md flex-1 px-8 focus:outline-none aria-checked:bg-success aria-checked:text-success-content aria-checked:hover:bg-success border-none"
+                                    type="radio" name="tradeDirection" aria-label="Long (Buy)" value="long" checked />
+                                <input
+                                    class="join-item btn btn-sm sm:btn-md flex-1 px-8 focus:outline-none aria-checked:bg-error aria-checked:text-error-content aria-checked:hover:bg-error border-none"
+                                    type="radio" name="tradeDirection" aria-label="Short (Sell)" value="short" />
+                            </div>
+                            <span class="text-sm text-base-content/60 font-medium ml-2 hidden sm:inline"
+                                id="tradeDirectionHint">Profits when price goes up.</span>
+                        </div>
+
+                        <!-- Leverage -->
+                        <div class="form-control w-full relative">
+                            <label class="label pb-1">
+                                <span class="label-text font-medium text-base-content/80">Leverage Multiplier (<span
+                                        id="leverageValueDisplay">1x</span>)</span>
+                            </label>
+                            <input type="range" min="1" max="100" value="1" class="range range-primary range-sm mt-2"
+                                id="leverageSlider" />
+                            <div
+                                class="w-full flex justify-between text-xs px-2 mt-2 text-base-content/40 font-medium font-mono">
+                                <span>1x (Spot)</span>
+                                <span>25x</span>
+                                <span>50x</span>
+                                <span>75x</span>
+                                <span>100x</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Investment Details -->
+                    <div class="space-y-4">
+                        <h2
+                            class="text-lg font-bold text-base-content flex items-center gap-2 border-b border-base-200 pb-2">
+                            <i class="fa-solid fa-money-bill-wave text-success"></i> Price Data
+                        </h2>
+
+                        <div class="form-control w-full">
+                            <label class="label">
+                                <span class="label-text font-medium text-base-content/80">Initial Margin
+                                    (Investment)</span>
+                            </label>
+                            <div class="relative">
+                                <input type="number" id="investmentAmount"
+                                    class="input input-bordered w-full bg-base-200/50 focus:bg-base-100 transition-colors font-mono text-lg"
+                                    placeholder="1000" min="0" step="any" required>
+                                <div class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono text-base-content/40 bg-base-200 px-2 py-1 rounded hidden sm:block"
+                                    id="positionSizeHint">Size: $1,000</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-control w-full">
+                                <label class="label">
+                                    <span class="label-text font-medium text-base-content/80" id="entryLabel">Entry
+                                        Price ($)</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="number" id="buyPrice"
+                                        class="input input-bordered w-full bg-base-200/50 focus:bg-base-100 transition-colors font-mono text-lg"
+                                        placeholder="50000" min="0" step="any" required>
+                                </div>
+                            </div>
+                            <div class="form-control w-full">
+                                <label class="label">
+                                    <span class="label-text font-medium text-base-content/80" id="exitLabel">Exit Price
+                                        ($)</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="number" id="sellPrice"
+                                        class="input input-bordered w-full bg-base-200/50 focus:bg-base-100 transition-colors font-mono text-lg"
+                                        placeholder="60000" min="0" step="any" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Exchange Fees -->
+                    <div class="collapse collapse-arrow border border-base-200 bg-base-100/50">
+                        <input type="checkbox" />
+                        <div class="collapse-title text-base font-bold text-base-content flex items-center gap-2">
+                            <i class="fa-solid fa-percent text-secondary"></i> Trading Fees (Optional)
+                        </div>
+                        <div class="collapse-content space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="form-control w-full">
+                                    <label class="label">
+                                        <span class="label-text font-medium text-base-content/80">Open Fee (%)</span>
+                                    </label>
+                                    <input type="number" id="buyFee"
+                                        class="input input-bordered input-sm w-full bg-base-200/50 focus:bg-base-100 transition-colors font-mono"
+                                        placeholder="0.1" min="0" step="any" value="0">
+                                </div>
+                                <div class="form-control w-full">
+                                    <label class="label">
+                                        <span class="label-text font-medium text-base-content/80">Close Fee (%)</span>
+                                    </label>
+                                    <input type="number" id="sellFee"
+                                        class="input input-bordered input-sm w-full bg-base-200/50 focus:bg-base-100 transition-colors font-mono"
+                                        placeholder="0.1" min="0" step="any" value="0">
+                                </div>
+                            </div>
+                            <p class="text-xs text-base-content/50">Note: Futures fees are usually charged on the entire
+                                *position size*, not just the initial margin.</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="button" id="calculateBtn"
+                            class="btn btn-primary w-full shadow-lg shadow-primary/20 text-base h-12">
+                            <i class="fa-solid fa-bolt mr-2"></i> Calculate Result
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Panel -->
+        <div class="lg:col-span-5 h-full z-0 lg:-ml-4">
+            <div class="card bg-base-200/60 shadow-inner border border-base-200 h-full relative overflow-hidden group">
+                <!-- Background decoration -->
+                <div
+                    class="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none transition-transform duration-700 group-hover:scale-150">
+                </div>
+                <div
+                    class="absolute bottom-0 left-0 w-32 h-32 bg-secondary/5 rounded-full blur-2xl -ml-10 -mb-10 pointer-events-none transition-transform duration-700 group-hover:scale-150">
+                </div>
+
+                <div class="card-body p-6 lg:p-8 lg:pl-10 flex flex-col justify-center relative z-10">
+                    <h3
+                        class="text-xl font-bold mb-5 text-center text-base-content/80 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-chart-line"></i> Trade Summary
+                    </h3>
+
+                    <div class="space-y-4">
+                        <!-- Total Profit/Loss -->
+                        <div class="bg-base-100 rounded-2xl p-5 shadow-sm border border-base-200 relative overflow-hidden transition-all duration-300 transform scale-100"
+                            id="profitContainer">
+                            <div id="profitIndicator"
+                                class="absolute left-0 top-0 bottom-0 w-1.5 bg-base-300 transition-colors duration-300">
+                            </div>
+                            <p class="text-sm font-medium text-base-content/60 mb-1 ml-3">Net Profit / Loss</p>
+                            <div class="flex items-end gap-2 ml-3">
+                                <span id="totalProfit"
+                                    class="text-3xl md:text-5xl font-black font-mono text-base-content transition-colors duration-300 tracking-tight">$0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <!-- ROI -->
+                            <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200">
+                                <p
+                                    class="text-[0.7rem] uppercase font-bold text-base-content/50 tracking-wider mb-1 flex items-center gap-1">
+                                    <i class="fa-solid fa-arrow-trend-up"></i> Return on Equity
+                                </p>
+                                <span id="roiValue"
+                                    class="text-xl font-bold font-mono text-base-content transition-colors duration-300">0.00%</span>
+                            </div>
+
+                            <!-- Total Exit Amount -->
+                            <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200">
+                                <p
+                                    class="text-[0.7rem] uppercase font-bold text-base-content/50 tracking-wider mb-1 flex items-center gap-1">
+                                    <i class="fa-solid fa-wallet"></i> Total Exit Equity
+                                </p>
+                                <span id="totalReturn" class="text-xl font-bold font-mono text-primary">$0.00</span>
+                            </div>
+                        </div>
+
+                        <!-- Liquidation Price Alert -->
+                        <div id="liquidationBox"
+                            class="bg-error/10 text-error rounded-xl p-4 shadow-sm border border-error/20 flex items-center justify-between hidden transition-all duration-300">
+                            <div>
+                                <p
+                                    class="text-[0.7rem] uppercase font-bold tracking-wider mb-1 flex items-center gap-1">
+                                    <i class="fa-solid fa-skull-crossbones"></i> Liquidation Price
+                                </p>
+                                <span id="liquidationPrice"
+                                    class="text-lg font-bold font-mono tracking-tight">$0.00</span>
+                            </div>
+                            <div id="liquidationWarning" class="hidden">
+                                <span
+                                    class="badge badge-error border-none text-error-content animate-pulse">LIQUIDATED</span>
+                            </div>
+                        </div>
+
+                        <!-- Technical Breakdown -->
+                        <div class="bg-base-100 rounded-xl p-4 shadow-sm border border-base-200 text-sm">
+                            <div class="flex justify-between items-center mb-2.5 pb-2.5 border-b border-base-200/50">
+                                <p class="font-medium text-base-content/60">Position Size</p>
+                                <span id="positionSize" class="font-bold font-mono text-base-content">$0.00</span>
+                            </div>
+                            <div class="flex justify-between items-center mb-2.5 pb-2.5 border-b border-base-200/50">
+                                <p class="font-medium text-base-content/60">Asset Quantity</p>
+                                <span id="coinsBought" class="font-bold font-mono text-base-content">0</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <p class="font-medium text-base-content/60">Total Fees Paid</p>
+                                <span id="totalFees" class="font-bold font-mono text-warning/80">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const calculateBtn = document.getElementById('calculateBtn');
+        const formInputs = document.querySelectorAll('#cryptoForm input');
+        const leverageSlider = document.getElementById('leverageSlider');
+        const leverageValueDisplay = document.getElementById('leverageValueDisplay');
+        const positionSizeHint = document.getElementById('positionSizeHint');
+        const tradeDirectionRadios = document.querySelectorAll('input[name="tradeDirection"]');
+        const tradeDirectionHint = document.getElementById('tradeDirectionHint');
+
+        const inputInvestment = document.getElementById('investmentAmount');
+        const inputBuyPrice = document.getElementById('buyPrice');
+        const inputSellPrice = document.getElementById('sellPrice');
+        const inputBuyFee = document.getElementById('buyFee');
+        const inputSellFee = document.getElementById('sellFee');
+
+        const outProfit = document.getElementById('totalProfit');
+        const outROI = document.getElementById('roiValue');
+        const outTotalReturn = document.getElementById('totalReturn');
+        const outPositionSize = document.getElementById('positionSize');
+        const outCoinsBought = document.getElementById('coinsBought');
+        const outTotalFees = document.getElementById('totalFees');
+
+        const liquidationBox = document.getElementById('liquidationBox');
+        const outLiquidationPrice = document.getElementById('liquidationPrice');
+        const liquidationWarning = document.getElementById('liquidationWarning');
+
+        const profitIndicator = document.getElementById('profitIndicator');
+        const profitContainer = document.getElementById('profitContainer');
+
+        const formatMoney = (amount) => {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(amount);
+        };
+
+        const formatCrypto = (amount) => {
+            return new Intl.NumberFormat('en-US', {
+                maximumFractionDigits: 6
+            }).format(amount);
+        };
+
+        // Update hints
+        const updateHints = () => {
+            const investment = parseFloat(inputInvestment.value) || 0;
+            const leverage = parseInt(leverageSlider.value) || 1;
+
+            leverageValueDisplay.textContent = `${leverage}x`;
+            positionSizeHint.textContent = `Size: ${formatMoney(investment * leverage).replace('.00', '')}`;
+
+            const isLong = document.querySelector('input[name="tradeDirection"]:checked').value === 'long';
+            tradeDirectionHint.textContent = isLong ? "Profits when price goes up." : "Profits when price goes down.";
+
+            if (leverage > 1) {
+                liquidationBox.classList.remove('hidden');
+            } else {
+                liquidationBox.classList.add('hidden');
+            }
+        };
+
+        leverageSlider.addEventListener('input', () => {
+            updateHints();
+            if (inputInvestment.value && inputBuyPrice.value && inputSellPrice.value) calculate();
+        });
+
+        tradeDirectionRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                updateHints();
+                if (inputInvestment.value && inputBuyPrice.value && inputSellPrice.value) calculate();
+            });
+        });
+
+        inputInvestment.addEventListener('input', updateHints);
+
+        const calculate = () => {
+            const investment = parseFloat(inputInvestment.value);
+            const buyPrice = parseFloat(inputBuyPrice.value);
+            const sellPrice = parseFloat(inputSellPrice.value);
+            const buyFeePct = parseFloat(inputBuyFee.value) || 0;
+            const sellFeePct = parseFloat(inputSellFee.value) || 0;
+            const leverage = parseInt(leverageSlider.value) || 1;
+            const isLong = document.querySelector('input[name="tradeDirection"]:checked').value === 'long';
+
+            if (isNaN(investment) || isNaN(buyPrice) || isNaN(sellPrice) || investment <= 0 || buyPrice <= 0 || sellPrice <= 0) {
+                return;
+            }
+
+            // Liquidation logic (simplified standard formula)
+            let liqPrice = 0;
+            if (leverage > 1) {
+                if (isLong) {
+                    liqPrice = buyPrice * (1 - 1 / leverage);
+                } else {
+                    liqPrice = buyPrice * (1 + 1 / leverage);
+                }
+                outLiquidationPrice.textContent = formatMoney(liqPrice);
+            }
+
+            // Margin & Position size
+            // Fees apply to POSITION SIZE in futures trading
+            const openPositionSize = investment * leverage;
+            const openFeeAmount = openPositionSize * (buyFeePct / 100);
+
+            // Usable margin after paying open fees
+            const usableMargin = investment - openFeeAmount;
+
+            if (usableMargin <= 0) {
+                outProfit.textContent = `Error: Fees > Margin`;
+                outProfit.className = 'text-2xl md:text-3xl font-bold font-mono text-error';
+                return;
+            }
+
+            // Recalculate true position size based on usable margin (optional, usually users expect full multiple)
+            // But let's assume they brought X margin, paid open fee from it.
+            const coinsBought = (usableMargin * leverage) / buyPrice;
+            const actualPositionSize = usableMargin * leverage;
+
+            // PNL Calculations
+            let rawPnl = 0;
+            let isLiquidated = false;
+
+            if (isLong) {
+                rawPnl = (sellPrice - buyPrice) * coinsBought;
+                if (leverage > 1 && sellPrice <= liqPrice) isLiquidated = true;
+            } else {
+                rawPnl = (buyPrice - sellPrice) * coinsBought;
+                if (leverage > 1 && sellPrice >= liqPrice) isLiquidated = true;
+            }
+
+            // If liquidated, all margin is lost. Net return = 0, PNL = -Investment
+            if (isLiquidated) {
+                liquidationWarning.classList.remove('hidden');
+                liquidationBox.classList.add('animate-pulse');
+
+                outTotalReturn.textContent = formatMoney(0);
+                outCoinsBought.textContent = formatCrypto(coinsBought);
+                outPositionSize.textContent = formatMoney(actualPositionSize);
+                outTotalFees.textContent = "-";
+
+                outProfit.textContent = `${formatMoney(-investment)}`;
+                outROI.textContent = `-100.00%`;
+
+                outProfit.className = 'text-3xl md:text-5xl font-black font-mono text-error transition-colors duration-300';
+                outROI.className = 'text-xl font-bold font-mono text-error transition-colors duration-300';
+                profitIndicator.className = 'absolute left-0 top-0 bottom-0 w-1.5 bg-error transition-colors duration-300';
+                return;
+            } else {
+                liquidationWarning.classList.add('hidden');
+                liquidationBox.classList.remove('animate-pulse');
+            }
+
+            // Not liquidated -> Calculate close fees
+            // Close fee is based on the value of the position at closing
+            const closeValue = isLong ? (coinsBought * sellPrice) : actualPositionSize + rawPnl;
+            // In short, if price drops (profit), your return value is bigger. Wait, the notional value of short at close = Coins * SellPrice.
+            const notionalCloseValue = coinsBought * sellPrice;
+            const closeFeeAmount = notionalCloseValue * (sellFeePct / 100);
+
+            const totalFeesPaid = openFeeAmount + closeFeeAmount;
+            const netProfit = rawPnl - totalFeesPaid;
+            const netReturn = investment + netProfit;
+            const roi = (netProfit / investment) * 100;
+
+            // Prevent negative net return beyond investment (you can't lose more than margin in isolated futures)
+            const finalReturn = Math.max(0, netReturn);
+            const finalProfit = finalReturn - investment;
+            const finalRoi = (finalProfit / investment) * 100;
+
+            outTotalReturn.textContent = formatMoney(finalReturn);
+            outPositionSize.textContent = formatMoney(actualPositionSize);
+            outCoinsBought.textContent = formatCrypto(coinsBought);
+            outTotalFees.textContent = formatMoney(totalFeesPaid);
+
+            const absProfitLoss = Math.abs(finalProfit);
+            const sign = finalProfit >= 0 ? '+' : '-';
+            outProfit.textContent = `${sign}${formatMoney(absProfitLoss)}`;
+            outROI.textContent = `${sign}${Math.abs(finalRoi).toFixed(2)}%`;
+
+            // Adding a bump animation on calculation
+            profitContainer.style.transform = 'scale(1.02)';
+            setTimeout(() => {
+                profitContainer.style.transform = 'scale(1)';
+            }, 150);
+
+            if (finalProfit > 0) {
+                outProfit.className = 'text-3xl md:text-5xl font-black font-mono text-success transition-colors duration-300 tracking-tight';
+                outROI.className = 'text-xl font-bold font-mono text-success transition-colors duration-300';
+                profitIndicator.className = 'absolute left-0 top-0 bottom-0 w-1.5 bg-success transition-colors duration-300';
+            } else if (finalProfit < 0) {
+                outProfit.className = 'text-3xl md:text-5xl font-black font-mono text-error transition-colors duration-300 tracking-tight';
+                outROI.className = 'text-xl font-bold font-mono text-error transition-colors duration-300';
+                profitIndicator.className = 'absolute left-0 top-0 bottom-0 w-1.5 bg-error transition-colors duration-300';
+            } else {
+                outProfit.className = 'text-3xl md:text-5xl font-black font-mono text-base-content transition-colors duration-300 tracking-tight';
+                outROI.className = 'text-xl font-bold font-mono text-base-content transition-colors duration-300';
+                profitIndicator.className = 'absolute left-0 top-0 bottom-0 w-1.5 bg-base-300 transition-colors duration-300';
+            }
+        };
+
+        calculateBtn.addEventListener('click', calculate);
+
+        formInputs.forEach(input => {
+            if (input.type === 'radio') return;
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    calculate();
+                }
+            });
+            input.addEventListener('input', () => {
+                if (inputInvestment.value && inputBuyPrice.value && inputSellPrice.value) {
+                    calculate();
+                }
+            });
+        });
+
+        // Initial setup
+        updateHints();
+    });
+</script>
+{% endblock %}

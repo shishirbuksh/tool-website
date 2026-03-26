@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Watermark Remover | StoryBrain AI{% endblock %}
+
+{% block content %}
+<!-- Back breadcrumb -->
+<div class="mb-6">
+    <a href="/" class="inline-flex items-center gap-2 text-sm font-medium text-base-content/50 hover:text-primary transition-colors duration-200">
+        <i class="fa-solid fa-arrow-left text-xs"></i> All Tools
+    </a>
+</div>
+<div class="max-w-5xl mx-auto">
+
+    <!-- Hero Header -->
+    <div class="text-center mb-10 animate-fade-in-up">
+        <div class="inline-flex items-center gap-2 badge badge-info badge-outline mb-4 px-4 py-3 text-sm font-medium">
+            <i class="fa-solid fa-stamp"></i> AI Inpainting
+        </div>
+        <h1 class="text-4xl sm:text-5xl font-extrabold mb-4 leading-tight">
+            Watermark <span class="text-primary">Remover</span>
+        </h1>
+        <p class="text-base sm:text-lg opacity-70 max-w-xl mx-auto">
+            Remove unwanted text, logos, or watermarks from your images instantly. Just brush over what you want to erase.
+        </p>
+    </div>
+
+    <!-- Main Upload Card -->
+    <div id="uploadContainer" class="animate-fade-in-up">
+        <div class="card bg-base-100 shadow-2xl border border-base-300">
+            <div class="card-body p-6 sm:p-10 text-center">
+                <input type="file" id="fileInput" class="file-input file-input-bordered file-input-primary w-full max-w-sm mx-auto mb-4" accept="image/*">
+                <p class="text-sm opacity-50">Upload a JPG, PNG, or WEBP image to start editing.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor UI (Hidden initally) -->
+    <div id="editorContainer" class="hidden animate-fade-in-up">
+        <div class="card bg-base-100 shadow-2xl border border-base-300">
+            <div class="card-body p-4 sm:p-6 lg:p-8">
+
+                <!-- Tools Panel -->
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 bg-base-200 p-4 rounded-xl border border-base-300">
+                    <div class="flex items-center gap-4 w-full sm:w-auto">
+                        <label class="text-sm font-medium whitespace-nowrap"><i class="fa-solid fa-paintbrush text-primary"></i> Brush Size:</label>
+                        <input type="range" id="brushSize" min="5" max="100" value="20" class="range range-xs range-primary w-full sm:w-48">
+                    </div>
+                    
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button id="clearBtn" class="btn btn-sm btn-outline btn-error flex-grow sm:flex-grow-0">
+                            <i class="fa-solid fa-trash-can"></i> Clear Mask
+                        </button>
+                        <button id="removeBtn" class="btn btn-sm btn-primary flex-grow sm:flex-grow-0">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Erase Object
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Canvas Wrapper -->
+                <div class="relative w-full overflow-hidden rounded-xl border border-base-300 bg-base-200 flex justify-center items-center min-h-[300px]" id="canvasWrapper">
+                    
+                    <!-- Loading Overlay -->
+                    <div id="loadingOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-base-100/95 backdrop-blur-sm z-50 hidden">
+                        <span class="loading loading-spinner loading-lg text-primary"></span>
+                        <p class="mt-3 text-sm font-medium animate-pulse">Running AI Inpainting…</p>
+                        <p class="text-xs opacity-40 mt-1">Reconstructing image pixels</p>
+                    </div>
+
+                    <div class="relative" style="display: inline-block;">
+                        <!-- The base image -->
+                        <canvas id="imageCanvas" class="max-w-full z-10 block cursor-crosshair rounded-lg"></canvas>
+                        <!-- The drawing mask layer overlaid -->
+                        <canvas id="maskCanvas" class="absolute top-0 left-0 max-w-full z-20 block cursor-crosshair opacity-60 rounded-lg pointer-events-none"></canvas>
+                    </div>
+
+                </div>
+
+                <div class="mt-4 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm opacity-60">
+                     <p><i class="fa-solid fa-circle-info"></i> Paint over the unwanted object. The red mask indicates the area to remove.</p>
+                     <p>Use smooth, continuous strokes covering the entire object.</p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Container -->
+    <div id="resultContainer" class="hidden mt-6 animate-fade-in-up">
+        <div class="card bg-base-100 shadow-2xl border border-success/30 relative">
+            <div class="card-body p-6 sm:p-10 text-center">
+                <h2 class="text-2xl font-bold text-success mb-2">Restoration Complete!</h2>
+                <p class="text-sm opacity-70 mb-6">The watermark has been removed using context-aware inpainting.</p>
+                
+                <div class="flex flex-col sm:flex-row justify-center gap-4 w-full">
+                     <button id="backBtn" class="btn btn-outline gap-2">
+                        <i class="fa-solid fa-arrow-rotate-left"></i> Edit Again
+                    </button>
+                    <a id="downloadBtn" href="#" download="restored_image.png" class="btn btn-success gap-2">
+                        <i class="fa-solid fa-download"></i> Download Image
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Alert -->
+    <div id="errorMsg" class="hidden mt-4">
+        <div class="alert alert-error shadow-lg">
+            <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+            <span id="errorText">Something went wrong. Please try again.</span>
+            <button onclick="document.getElementById('errorMsg').classList.add('hidden')" class="btn btn-sm btn-ghost ml-auto">✕</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const fileInput = document.getElementById('fileInput');
+    const uploadContainer = document.getElementById('uploadContainer');
+    const editorContainer = document.getElementById('editorContainer');
+    const resultContainer = document.getElementById('resultContainer');
+    
+    const imageCanvas = document.getElementById('imageCanvas');
+    const maskCanvas = document.getElementById('maskCanvas');
+    const ctxImage = imageCanvas.getContext('2d');
+    const ctxMask = maskCanvas.getContext('2d', {willReadFrequently: true});
+    
+    const brushSizeSlider = document.getElementById('brushSize');
+    const clearBtn = document.getElementById('clearBtn');
+    const removeBtn = document.getElementById('removeBtn');
+    const backBtn = document.getElementById('backBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const errorMsg = document.getElementById('errorMsg');
+    const errorText = document.getElementById('errorText');
+
+    let isDrawing = false;
+    let originalImageObj = new Image();
+
+    // Setup Canvas on Upload
+    fileInput.addEventListener('change', (e) => {
+        if (!e.target.files.length) return;
+        const file = e.target.files[0];
+        if (!file.type.startsWith('image/')) {
+            showError("Please upload a valid image file.");
+            return;
+        }
+
+        const url = URL.createObjectURL(file);
+        originalImageObj.onload = () => {
+            initCanvases(originalImageObj);
+            uploadContainer.classList.add('hidden');
+            editorContainer.classList.remove('hidden');
+            resultContainer.classList.add('hidden');
+            errorMsg.classList.add('hidden');
+        };
+        originalImageObj.src = url;
+    });
+
+    function initCanvases(img) {
+        // constrain max width mostly to screen for ease of use but keep original resolution backing
+        // Wait, standard canvas css scaling is tricky. 
+        // We set canvas width/height to intrinsic image size, but css limits width to 100%. 
+        // We calculate mouse events based on CSS bounds.
+        imageCanvas.width = img.width;
+        imageCanvas.height = img.height;
+        maskCanvas.width = img.width;
+        maskCanvas.height = img.height;
+
+        ctxImage.drawImage(img, 0, 0);
+        clearMask();
+    }
+
+    function clearMask() {
+        ctxMask.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+        // fill dark mask with transparent black, we paint solid Red for visual
+        ctxMask.fillStyle = 'rgba(0,0,0,0)'; 
+        ctxMask.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+    }
+
+    // Drawing Logic
+    function getMousePos(canvas, evt) {
+        let rect = canvas.getBoundingClientRect();
+        // Calculate scaling since canvas can be resized by CSS max-w-full
+        let scaleX = canvas.width / rect.width;
+        let scaleY = canvas.height / rect.height;
+
+        let clientX = evt.clientX;
+        let clientY = evt.clientY;
+
+        if(evt.touches && evt.touches.length > 0) {
+            clientX = evt.touches[0].clientX;
+            clientY = evt.touches[0].clientY;
+        }
+
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+        };
+    }
+
+    function startPosition(e) {
+        isDrawing = true;
+        draw(e);
+    }
+
+    function endPosition() {
+        isDrawing = false;
+        ctxMask.beginPath();
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        // Don't scroll page while painting on touch
+        if(e.type === 'touchmove') e.preventDefault(); 
+
+        const pos = getMousePos(imageCanvas, e);
+        
+        ctxMask.lineWidth = parseInt(brushSizeSlider.value);
+        ctxMask.lineCap = 'round';
+        ctxMask.strokeStyle = 'red'; // Red mask for visualization
+
+        ctxMask.lineTo(pos.x, pos.y);
+        ctxMask.stroke();
+        ctxMask.beginPath();
+        ctxMask.moveTo(pos.x, pos.y);
+    }
+
+    // Listeners for drawing pointer
+    // We attach events to imageCanvas but draw on maskCanvas ctx because maskCanvas is pointer-events-none layer
+    imageCanvas.addEventListener('mousedown', startPosition);
+    imageCanvas.addEventListener('mouseup', endPosition);
+    imageCanvas.addEventListener('mousemove', draw);
+    imageCanvas.addEventListener('mouseout', endPosition);
+
+    imageCanvas.addEventListener('touchstart', startPosition, {passive: false});
+    imageCanvas.addEventListener('touchend', endPosition);
+    imageCanvas.addEventListener('touchmove', draw, {passive: false});
+
+    clearBtn.addEventListener('click', clearMask);
+
+    // Call API
+    removeBtn.addEventListener('click', async () => {
+        errorMsg.classList.add('hidden');
+        loadingOverlay.classList.remove('hidden');
+        
+        try {
+            // We need to generate pure B&W mask for backend cv2.inpaint
+            // OpenCV expects white (255) for areas to inpaint and black (0) elsewhere.
+            const rawMaskCanvas = document.createElement('canvas');
+            rawMaskCanvas.width = maskCanvas.width;
+            rawMaskCanvas.height = maskCanvas.height;
+            const rCtx = rawMaskCanvas.getContext('2d');
+            rCtx.fillStyle = 'black';
+            rCtx.fillRect(0, 0, rawMaskCanvas.width, rawMaskCanvas.height);
+
+            // Fetch pixel data of painted mask layer
+            const mData = ctxMask.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+            const rData = rCtx.getImageData(0, 0, rawMaskCanvas.width, rawMaskCanvas.height);
+            
+            // Reconstruct mask: Every painted red pixel becomes white, else black
+            for(let i=0; i < mData.data.length; i+=4) {
+                 if(mData.data[i] > 0 || mData.data[i+3] > 0) { // If drawn (opacity or red channel)
+                     rData.data[i] = 255;   // R
+                     rData.data[i+1] = 255; // G
+                     rData.data[i+2] = 255; // B
+                 }
+            }
+            rCtx.putImageData(rData, 0, 0);
+
+            // Convert canvases to blobs
+            const imageBlob = await new Promise(resolve => imageCanvas.toBlob(resolve, 'image/png'));
+            const maskBlob = await new Promise(resolve => rawMaskCanvas.toBlob(resolve, 'image/png'));
+
+            const formData = new FormData();
+            formData.append('image', imageBlob, 'original.png');
+            formData.append('mask', maskBlob, 'mask.png');
+
+            const response = await fetch('/api/remove-watermark', {
+                method: 'POST',
+                body: formData
+            });
+
+            if(!response.ok) {
+                const txt = await response.text();
+                throw new Error(txt || `Server error ${response.status}`);
+            }
+
+            const outBlob = await response.blob();
+            const outUrl = URL.createObjectURL(outBlob);
+
+            // Load result to base canvas
+            const restoredImg = new Image();
+            restoredImg.onload = () => {
+                ctxImage.drawImage(restoredImg, 0, 0);
+                clearMask(); // reset mask since it's removed
+                resultContainer.classList.remove('hidden');
+                
+                downloadBtn.href = outUrl;
+                loadingOverlay.classList.add('hidden');
+            };
+            restoredImg.src = outUrl;
+
+        } catch (err) {
+            console.error(err);
+            loadingOverlay.classList.add('hidden');
+            showError(err.message || 'Watermark removal failed.');
+        }
+    });
+
+    backBtn.addEventListener('click', () => {
+        resultContainer.classList.add('hidden');
+    });
+
+    function showError(msg) {
+        errorText.textContent = msg;
+        errorMsg.classList.remove('hidden');
+        errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+});
+</script>
+{% endblock %}

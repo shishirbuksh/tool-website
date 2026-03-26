@@ -2,152 +2,359 @@
 
 {% block title %}Home | StoryBrain AI{% endblock %}
 
-{% block content %}
-<div class="text-center mb-8 md:mb-14 animate-fade-in-up px-2 sm:px-4">
-    <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-3 md:mb-5 leading-tight tracking-tight">Ultimate <br class="block sm:hidden"/><span class="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Multi-Tool</span> Collection</h1>
-    <p class="text-base sm:text-lg md:text-xl opacity-80 max-w-2xl mx-auto px-2">Access a suite of powerful, fast, and beautifully designed string, math, and utility tools directly in your browser.</p>
-</div>
+{% block head %}
+<style>
+    /* ── Tab bar ── */
+    .filter-tabs {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px;
+        background: oklch(var(--b3) / 0.6);
+        border: 1px solid oklch(var(--b3));
+        border-radius: 14px;
+        box-shadow: inset 0 1px 3px oklch(var(--bc) / 0.08);
+    }
 
-<!-- Categories Tabs -->
-<div class="flex justify-center mb-8 animate-fade-in-up" style="animation-delay: 0.1s;">
-    <div role="tablist" class="tabs tabs-boxed bg-base-200/50 p-1 border border-base-300">
-        <a role="tab" class="tab tab-active transition-colors font-medium sm:px-6" onclick="filterTools('all', this)">All Tools</a>
-        <a role="tab" class="tab transition-colors font-medium sm:px-6" onclick="filterTools('calculators', this)">Calculators</a>
-        <a role="tab" class="tab transition-colors font-medium sm:px-6" onclick="filterTools('generators', this)">Generators</a>
-        <a role="tab" class="tab transition-colors font-medium sm:px-6" onclick="filterTools('developer', this)">Developer</a>
+    .filter-tab {
+        position: relative;
+        padding: 8px 20px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        color: oklch(var(--bc) / 0.55);
+        background: transparent;
+        transition: color 0.22s ease, background 0.22s ease, box-shadow 0.22s ease, transform 0.15s ease;
+        white-space: nowrap;
+        outline: none;
+    }
+
+    .filter-tab:hover:not(.active) {
+        color: oklch(var(--bc) / 0.85);
+        background: oklch(var(--b1) / 0.5);
+    }
+
+    .filter-tab.active {
+        color: oklch(var(--bc));
+        background: oklch(var(--b1));
+        box-shadow: 0 1px 6px oklch(var(--bc) / 0.12), 0 0 0 0.5px oklch(var(--b3));
+        transform: translateY(-0.5px);
+    }
+
+    /* ── Smooth card filter transitions ── */
+    .tool-card {
+        transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+            box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+
+    .tool-card.hiding {
+        opacity: 0;
+        transform: scale(0.95) translateY(8px);
+        pointer-events: none;
+    }
+
+    /* ── Stats bar pill ── */
+    .stat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.85rem;
+        border-radius: 99px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        background: oklch(var(--b1));
+        border: 1px solid oklch(var(--b3));
+        color: oklch(var(--bc) / 0.65);
+        transition: color 0.2s;
+    }
+
+    .stat-pill i {
+        color: oklch(var(--p));
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="text-center mb-10 px-4 animate-fade-in-up">
+    <!-- Trust badge -->
+    <div
+        class="inline-flex items-center gap-2 bg-primary/10 text-primary border border-primary/20 text-xs font-semibold tracking-wide uppercase px-4 py-1.5 rounded-full mb-6">
+        <i class="fa-solid fa-bolt text-xs"></i> 13 Free Tools · No Sign-up Required
+    </div>
+
+    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-5 tracking-tight text-base-content leading-tight">
+        The Ultimate<br>
+        <span
+            style="background: linear-gradient(135deg, oklch(0.56 0.26 330), oklch(0.46 0.31 280)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Multi-Tool</span>
+        Collection
+    </h1>
+    <p class="text-base md:text-lg text-base-content/60 text-align-center mx-auto leading-relaxed">
+        Powerful, fast, and beautifully designed math, string, and image tools — all running privately in your browser.
+    </p>
+
+    <!-- Stats bar -->
+    <div class="flex flex-wrap justify-center gap-2 mt-7">
+        <span class="stat-pill"><i class="fa-solid fa-wrench"></i> 13 Tools</span>
+        <span class="stat-pill"><i class="fa-solid fa-lock"></i> Browser-Only</span>
+        <span class="stat-pill"><i class="fa-solid fa-user-slash"></i> No Account</span>
+        <span class="stat-pill"><i class="fa-solid fa-shield-halved"></i> 100% Private</span>
     </div>
 </div>
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8 px-2 sm:px-0" id="toolsGrid">
+<!-- Tabs -->
+<div class="flex justify-center mb-8 overflow-x-auto pb-1 animate-fade-in-up" style="animation-delay: 80ms">
+    <div role="tablist" class="filter-tabs bg-base-200/50">
+        <button role="tab" class="filter-tab active transition-colors" onclick="filterTools('all', this)"
+            id="tab-all">All Tools</button>
+        <button role="tab" class="filter-tab transition-colors" onclick="filterTools('calculators', this)"
+            id="tab-calculators">Calculators</button>
+        <button role="tab" class="filter-tab transition-colors" onclick="filterTools('generators', this)"
+            id="tab-generators">Generators</button>
+        <button role="tab" class="filter-tab transition-colors" onclick="filterTools('developer', this)"
+            id="tab-developer">Developer</button>
+    </div>
+</div>
+
+<!-- Tools Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 relative" id="toolsGrid">
 
     <!-- Standard Calculator -->
-    <a href="/tool/calculator" data-category="calculators" class="tool-card card bg-base-100 shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-300 border border-base-300 hover:border-primary group active:scale-95 sm:active:scale-100">
-        <div class="card-body p-5 md:p-6 lg:p-8">
-            <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-calculator text-primary text-lg md:text-xl"></i>
-            </div>
-            <h2 class="card-title text-base-content text-lg md:text-xl">Standard Calculator</h2>
-            <p class="text-xs md:text-sm opacity-70 text-base-content leading-relaxed">A fast, beautiful everyday calculator for basic math operations.</p>
+    <a href="/tool/calculator" data-category="calculators"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-primary/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 0ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center mb-4 text-primary group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
+            <i class="fa-solid fa-calculator text-lg"></i>
         </div>
+        <h2
+            class="text-base font-bold text-base-content mb-1.5 group-hover:text-primary transition-colors duration-200">
+            Standard Calculator</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">A fast, beautiful everyday calculator for basic math
+            operations.</p>
     </a>
 
     <!-- Scientific Calculator -->
-    <a href="/tool/scientific-calculator" data-category="calculators" class="tool-card card bg-base-100 shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-300 border border-base-300 hover:border-secondary group active:scale-95 sm:active:scale-100">
-        <div class="card-body p-5 md:p-6 lg:p-8">
-            <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-secondary/10 flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-flask text-secondary text-lg md:text-xl"></i>
-            </div>
-            <h2 class="card-title text-base-content text-lg md:text-xl">Scientific Calculator</h2>
-            <p class="text-xs md:text-sm opacity-70 text-base-content leading-relaxed">Advanced mathematical functions including trig, logs, square roots, and exponentiation.</p>
+    <a href="/tool/scientific-calculator" data-category="calculators"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-secondary/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 50ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-secondary/10 flex items-center justify-center mb-4 text-secondary group-hover:scale-110 group-hover:bg-secondary/20 transition-all duration-300">
+            <i class="fa-solid fa-flask text-lg"></i>
         </div>
+        <h2
+            class="text-base font-bold text-base-content mb-1.5 group-hover:text-secondary transition-colors duration-200">
+            Scientific Calculator</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">Advanced mathematical functions including trig, logs,
+            square roots, and exponentiation.</p>
     </a>
 
     <!-- Age Calculator -->
-    <a href="/tool/age-calculator" data-category="calculators" class="tool-card card bg-base-100 shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-300 border border-base-300 hover:border-primary group active:scale-95 sm:active:scale-100">
-        <div class="card-body p-5 md:p-6 lg:p-8">
-            <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-calendar-days text-primary text-lg md:text-xl"></i>
-            </div>
-            <h2 class="card-title text-base-content text-lg md:text-xl">Age Calculator</h2>
-            <p class="text-xs md:text-sm opacity-70 text-base-content leading-relaxed">Calculate exact age in years, months, and days instantly.</p>
+    <a href="/tool/age-calculator" data-category="calculators"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-primary/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 100ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center mb-4 text-primary group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
+            <i class="fa-solid fa-calendar-days text-lg"></i>
         </div>
+        <h2
+            class="text-base font-bold text-base-content mb-1.5 group-hover:text-primary transition-colors duration-200">
+            Age Calculator</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">Calculate exact age in years, months, and days
+            instantly.</p>
     </a>
 
     <!-- Percentage Calculator -->
-    <a href="/tool/percentage-calculator" data-category="calculators" class="tool-card card bg-base-100 shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-300 border border-base-300 hover:border-secondary group active:scale-95 sm:active:scale-100">
-        <div class="card-body p-5 md:p-6 lg:p-8">
-            <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-secondary/10 flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-percent text-secondary text-lg md:text-xl"></i>
-            </div>
-            <h2 class="card-title text-base-content text-lg md:text-xl">Percentage Calculator</h2>
-            <p class="text-xs md:text-sm opacity-70 text-base-content leading-relaxed">Easily find percentages, discounts, and ratio values.</p>
+    <a href="/tool/percentage-calculator" data-category="calculators"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-secondary/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 150ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-secondary/10 flex items-center justify-center mb-4 text-secondary group-hover:scale-110 group-hover:bg-secondary/20 transition-all duration-300">
+            <i class="fa-solid fa-percent text-lg"></i>
         </div>
+        <h2
+            class="text-base font-bold text-base-content mb-1.5 group-hover:text-secondary transition-colors duration-200">
+            Percentage Calculator</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">Easily find percentages, discounts, and ratio values.
+        </p>
+    </a>
+
+    <!-- Crypto Profit Calculator -->
+    <a href="/tool/crypto-profit-calculator" data-category="calculators"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-warning/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 175ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-warning/10 flex items-center justify-center mb-4 text-warning group-hover:scale-110 group-hover:bg-warning/20 transition-all duration-300">
+            <i class="fa-brands fa-bitcoin text-lg"></i>
+        </div>
+        <h2
+            class="text-base font-bold text-base-content mb-1.5 group-hover:text-warning transition-colors duration-200">
+            Crypto Profit Calculator</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">Calculate crypto profit, ROI, and account for trading fees easily.</p>
     </a>
 
     <!-- Password Generator -->
-    <a href="/tool/password-generator" data-category="generators" class="tool-card card bg-base-100 shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-300 border border-base-300 hover:border-accent group active:scale-95 sm:active:scale-100">
-        <div class="card-body p-5 md:p-6 lg:p-8">
-            <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-accent/10 flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-key text-accent text-lg md:text-xl"></i>
-            </div>
-            <h2 class="card-title text-base-content text-lg md:text-xl">Password Gen</h2>
-            <p class="text-xs md:text-sm opacity-70 text-base-content leading-relaxed">Generate strong, secure passwords with custom rules.</p>
+    <a href="/tool/password-generator" data-category="generators"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-accent/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 200ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center mb-4 text-accent group-hover:scale-110 group-hover:bg-accent/20 transition-all duration-300">
+            <i class="fa-solid fa-key text-lg"></i>
         </div>
+        <h2 class="text-base font-bold text-base-content mb-1.5 group-hover:text-accent transition-colors duration-200">
+            Password Generator</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">Generate strong, secure passwords with custom rules.</p>
     </a>
 
-    <!-- QR Generator -->
-    <a href="/tool/qr-generator" data-category="generators" class="tool-card card bg-base-100 shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-300 border border-base-300 hover:border-info group active:scale-95 sm:active:scale-100">
-        <div class="card-body p-5 md:p-6 lg:p-8">
-            <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-info/10 flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-qrcode text-info text-lg md:text-xl"></i>
-            </div>
-            <h2 class="card-title text-base-content text-lg md:text-xl">QR Code Generator</h2>
-            <p class="text-xs md:text-sm opacity-70 text-base-content leading-relaxed">Create scannable QR codes from text or links instantly.</p>
+    <!-- QR Code Generator -->
+    <a href="/tool/qr-generator" data-category="generators"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-info/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 250ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-info/10 flex items-center justify-center mb-4 text-info group-hover:scale-110 group-hover:bg-info/20 transition-all duration-300">
+            <i class="fa-solid fa-qrcode text-lg"></i>
         </div>
+        <h2 class="text-base font-bold text-base-content mb-1.5 group-hover:text-info transition-colors duration-200">QR
+            Code Generator</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">Create scannable QR codes from text or links instantly.
+        </p>
     </a>
 
-    <!-- Base64 Tool -->
-    <a href="/tool/base64-tool" data-category="developer" class="tool-card card bg-base-100 shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-300 border border-base-300 hover:border-success group active:scale-95 sm:active:scale-100">
-        <div class="card-body p-5 md:p-6 lg:p-8">
-            <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-success/10 flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-code text-success text-lg md:text-xl"></i>
-            </div>
-            <h2 class="card-title text-base-content text-lg md:text-xl">Base64 Encode/Decode</h2>
-            <p class="text-xs md:text-sm opacity-70 text-base-content leading-relaxed">Encode data to Base64 or decode Base64 strings.</p>
+    <!-- Base64 Encode/Decode -->
+    <a href="/tool/base64-tool" data-category="developer"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-success/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 300ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-success/10 flex items-center justify-center mb-4 text-success group-hover:scale-110 group-hover:bg-success/20 transition-all duration-300">
+            <i class="fa-solid fa-code text-lg"></i>
         </div>
+        <h2
+            class="text-base font-bold text-base-content mb-1.5 group-hover:text-success transition-colors duration-200">
+            Base64 Encode/Decode</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">Encode data to Base64 or decode Base64 strings
+            instantly.</p>
     </a>
 
-    <!-- Image Compressor Tool -->
-    <a href="/tool/image-compressor" data-category="developer" class="tool-card card bg-base-100 shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-300 border border-base-300 hover:border-warning group active:scale-95 sm:active:scale-100">
-        <div class="card-body p-5 md:p-6 lg:p-8">
-            <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-warning/10 flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-compress text-warning text-lg md:text-xl"></i>
-            </div>
-            <h2 class="card-title text-base-content text-lg md:text-xl">Image Compressor</h2>
-            <p class="text-xs md:text-sm opacity-70 text-base-content leading-relaxed">Fast, secure in-browser image compression for JPEG and PNG.</p>
+    <!-- Image Compressor -->
+    <a href="/tool/image-compressor" data-category="developer"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-warning/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 350ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-warning/10 flex items-center justify-center mb-4 text-warning group-hover:scale-110 group-hover:bg-warning/20 transition-all duration-300">
+            <i class="fa-solid fa-compress text-lg"></i>
         </div>
+        <h2
+            class="text-base font-bold text-base-content mb-1.5 group-hover:text-warning transition-colors duration-200">
+            Image Compressor</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">Fast, secure in-browser image compression for JPEG and
+            PNG.</p>
     </a>
 
-    <!-- Image Converter Tool -->
-    <a href="/tool/image-converter" data-category="developer" class="tool-card card bg-base-100 shadow-xl hover:-translate-y-1 sm:hover:-translate-y-2 transition-all duration-300 border border-base-300 hover:border-secondary group active:scale-95 sm:active:scale-100">
-        <div class="card-body p-5 md:p-6 lg:p-8">
-            <div class="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-secondary/10 flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
-                <i class="fa-solid fa-file-import text-secondary text-lg md:text-xl"></i>
-            </div>
-            <h2 class="card-title text-base-content text-lg md:text-xl">Image Converter</h2>
-            <p class="text-xs md:text-sm opacity-70 text-base-content leading-relaxed">Convert images between JPG, PNG, and WEBP instantly in-browser.</p>
+    <!-- Image Converter -->
+    <a href="/tool/image-converter" data-category="developer"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-secondary/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 400ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-secondary/10 flex items-center justify-center mb-4 text-secondary group-hover:scale-110 group-hover:bg-secondary/20 transition-all duration-300">
+            <i class="fa-solid fa-file-import text-lg"></i>
         </div>
+        <h2
+            class="text-base font-bold text-base-content mb-1.5 group-hover:text-secondary transition-colors duration-200">
+            Image Converter</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">Convert images between JPG, PNG, and WEBP instantly
+            in-browser.</p>
+    </a>
+
+    <!-- Background Remover -->
+    <a href="/tool/image-background-remover" data-category="developer"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-primary/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 450ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center mb-4 text-primary group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
+            <i class="fa-solid fa-eraser text-lg"></i>
+        </div>
+        <h2
+            class="text-base font-bold text-base-content mb-1.5 group-hover:text-primary transition-colors duration-200">
+            Background Remover</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">Remove backgrounds from any image instantly in-browser.
+        </p>
+    </a>
+
+    <!-- Watermark Remover -->
+    <a href="/tool/watermark-remover" data-category="developer"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-info/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 500ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-info/10 flex items-center justify-center mb-4 text-info group-hover:scale-110 group-hover:bg-info/20 transition-all duration-300">
+            <i class="fa-solid fa-stamp text-lg"></i>
+        </div>
+        <h2 class="text-base font-bold text-base-content mb-1.5 group-hover:text-info transition-colors duration-200">
+            Watermark Remover</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">Erase text, objects, and watermarks via AI Inpainting.
+        </p>
+    </a>
+
+    <!-- PDF Converter -->
+    <a href="/tool/pdf-converter" data-category="developer"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-error/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 550ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-error/10 flex items-center justify-center mb-4 text-error group-hover:scale-110 group-hover:bg-error/20 transition-all duration-300">
+            <i class="fa-solid fa-file-pdf text-lg"></i>
+        </div>
+        <h2 class="text-base font-bold text-base-content mb-1.5 group-hover:text-error transition-colors duration-200">
+            PDF Converter</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">Convert images and text files to PDF format instantly.
+        </p>
+    </a>
+
+    <!-- Text Case Converter -->
+    <a href="/tool/text-case-converter" data-category="developer"
+        class="tool-card flex flex-col text-left p-6 sm:p-7 bg-base-100 border border-base-200 shadow-sm rounded-2xl hover:border-info/40 hover:shadow-xl hover:-translate-y-1.5 cursor-pointer group animate-fade-in-up"
+        style="animation-delay: 600ms">
+        <div
+            class="w-11 h-11 rounded-xl bg-info/10 flex items-center justify-center mb-4 text-info group-hover:scale-110 group-hover:bg-info/20 transition-all duration-300">
+            <i class="fa-solid fa-font text-lg"></i>
+        </div>
+        <h2 class="text-base font-bold text-base-content mb-1.5 group-hover:text-info transition-colors duration-200">
+            Text Case Converter</h2>
+        <p class="text-sm text-base-content/55 leading-relaxed">Instantly convert text between various cases like uppercase, camelCase, and more.
+        </p>
     </a>
 
 </div>
 
 <script>
-function filterTools(category, tabElement) {
-    // Update active tab
-    const tabs = document.querySelectorAll('.tab');
-    tabs.forEach(t => t.classList.remove('tab-active'));
-    tabElement.classList.add('tab-active');
-    
-    // Filter tools
-    const tools = document.querySelectorAll('.tool-card');
-    tools.forEach(tool => {
-        if (category === 'all' || tool.getAttribute('data-category') === category) {
-            tool.style.display = 'flex';
-        } else {
-            tool.style.display = 'none';
-        }
-    });
-}
-</script>
+    const allTabs = document.querySelectorAll('.filter-tab');
 
-<style>
-/* Add simple animation for header */
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in-up {
-    animation: fadeInUp 0.6s ease-out forwards;
-}
-</style>
+    function filterTools(category, tabElement) {
+        // Update tab active state
+        allTabs.forEach(t => t.classList.remove('active'));
+        tabElement.classList.add('active');
+
+        // Filter cards with smooth animation
+        const tools = document.querySelectorAll('.tool-card');
+        tools.forEach(tool => {
+            const matches = category === 'all' || tool.getAttribute('data-category') === category;
+            if (matches) {
+                // Show: remove hiding class, ensure visible
+                tool.style.display = 'flex';
+                // Force reflow so the transition plays
+                void tool.offsetHeight;
+                tool.classList.remove('hiding');
+            } else {
+                // Fade out, then hide from layout
+                tool.classList.add('hiding');
+                setTimeout(() => {
+                    if (tool.classList.contains('hiding')) {
+                        tool.style.display = 'none';
+                    }
+                }, 300);
+            }
+        });
+    }
+</script>
 {% endblock %}
