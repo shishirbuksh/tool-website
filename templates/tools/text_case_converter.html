@@ -1,79 +1,168 @@
 {% extends "base.html" %}
 
 {% block title %}Text Case Converter | StoryBrain AI{% endblock %}
+{% block meta_description %}Free, ultra-fast Text Case Converter natively in your browser. Engineered for privacy and precision by StoryBrain AI.{% endblock %}
 
-{% block content %}
-<!-- Back breadcrumb -->
-<div class="mb-6 animate-fade-in-up">
-    <a href="/" class="inline-flex items-center gap-2 text-sm font-medium text-base-content/50 hover:text-primary transition-colors duration-200">
-        <i class="fa-solid fa-arrow-left text-xs"></i> All Tools
-    </a>
-</div>
-<div class="max-w-5xl mx-auto animate-fade-in-up px-2 sm:px-0">
-    <!-- Header -->
-    <div class="text-center mb-8 md:mb-12">
-        <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 flex items-center justify-center gap-2 sm:gap-3">
-            <i class="fa-solid fa-font text-info"></i> Text Case Converter
-        </h1>
-        <p class="text-sm sm:text-base md:text-lg opacity-80 px-4">Instantly convert text between various cases like uppercase, lowercase, camelCase, and more.</p>
-    </div>
 
-    <!-- Case Options -->
-    <div class="flex flex-wrap justify-center gap-2 mb-6 sm:mb-8">
-        <button class="btn btn-sm btn-outline btn-info hover:shadow-md transition-all" onclick="convertCase('sentence')">Sentence case</button>
-        <button class="btn btn-sm btn-outline btn-info hover:shadow-md transition-all" onclick="convertCase('lower')">lowercase</button>
-        <button class="btn btn-sm btn-outline btn-info hover:shadow-md transition-all" onclick="convertCase('upper')">UPPERCASE</button>
-        <button class="btn btn-sm btn-outline btn-info hover:shadow-md transition-all" onclick="convertCase('title')">Title Case</button>
-        <button class="btn btn-sm btn-outline btn-info hover:shadow-md transition-all" onclick="convertCase('camel')">camelCase</button>
-        <button class="btn btn-sm btn-outline btn-info hover:shadow-md transition-all" onclick="convertCase('pascal')">PascalCase</button>
-        <button class="btn btn-sm btn-outline btn-info hover:shadow-md transition-all" onclick="convertCase('snake')">snake_case</button>
-        <button class="btn btn-sm btn-outline btn-info hover:shadow-md transition-all" onclick="convertCase('kebab')">kebab-case</button>
-        <button class="btn btn-sm btn-outline btn-info hover:shadow-md transition-all" onclick="convertCase('alternating')">aLtErNaTiNg</button>
-    </div>
+{% block head %}
+<style>
+    .case-chip {
+        padding: 0.6rem 1.25rem;
+        border-radius: 99px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: none;
+        letter-spacing: 0.5px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.03);
+        color: rgba(255, 255, 255, 0.6);
+    }
+    .case-chip:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        transform: translateY(-2px);
+    }
+    .case-chip.active {
+        background: var(--sb-accent);
+        color: #000;
+        border-color: var(--sb-accent);
+        box-shadow: 0 4px 15px rgba(var(--sb-accent-rgb), 0.3);
+    }
+    .text-pane {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: #fff !important;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        resize: none;
+        transition: all 0.3s ease;
+    }
+    .text-pane:focus {
+        border-color: var(--sb-accent) !important;
+        box-shadow: 0 0 0 0.25rem rgba(var(--sb-accent-rgb), 0.1) !important;
+    }
+    .stats-footer {
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 1rem;
+        padding: 0.75rem 1.5rem;
+        margin-top: 1rem;
+        display: flex;
+        gap: 2rem;
+    }
+    .stat-label {
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: rgba(255, 255, 255, 0.4);
+    }
+    .stat-val {
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--sb-accent);
+    }
+    .res-box {
+        background: #080808;
+        min-height: 250px;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--sb-accent);
+        overflow-y: auto;
+        white-space: pre-wrap;
+        box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+    }
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-        
-        <!-- Input Side -->
-        <div class="card bg-base-100 shadow-xl border border-base-300">
-            <div class="card-body p-4 sm:p-6 lg:p-8">
-                <div class="flex justify-between items-center mb-2 sm:mb-4">
-                    <h2 class="card-title text-base sm:text-lg justify-center text-center w-full" id="inputTitle">Input Text</h2>
-                    <button class="btn btn-xs sm:btn-sm btn-ghost" onclick="clearInput()">
-                        <i class="fa-solid fa-eraser"></i> Clear
-                    </button>
-                </div>
-                <!-- Real-time processing via oninput -->
-                <textarea id="inputText" class="textarea textarea-bordered h-40 sm:h-56 focus:textarea-info font-mono text-sm sm:text-base transition-colors leading-relaxed" placeholder="Type or paste your text here..." oninput="realtimeConvert()"></textarea>
-                
-                <div class="flex justify-between items-center mt-3 text-xs text-base-content/60">
-                    <div id="charCount">Characters: 0</div>
-                    <div id="wordCount">Words: 0</div>
-                    <div id="lineCount">Lines: 0</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Output Side -->
-        <div class="card bg-base-100 shadow-xl border border-base-300 relative overflow-hidden transition-all duration-300" id="outputCard">
-            <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-info/10 rounded-full blur-2xl pointer-events-none hidden sm:block"></div>
-            <div class="card-body p-4 sm:p-6 lg:p-8 z-10 flex flex-col h-full">
-                <div class="flex justify-between items-center mb-2 sm:mb-4">
-                    <h2 class="card-title text-base sm:text-lg justify-center text-center w-full bg-base-100"><span id="activeCaseLabel">Result</span></h2>
-                    <button class="btn btn-xs sm:btn-sm btn-outline btn-info" onclick="copyResult(event)">
-                        <i class="fa-regular fa-copy copy-icon"></i> Copy
-                    </button>
-                </div>
-                
-                <div id="outputText" class="bg-base-300 p-3 sm:p-4 rounded-xl flex-grow min-h-[160px] sm:min-h-[224px] font-mono text-sm sm:text-base overflow-auto whitespace-pre-wrap break-all text-info select-all relative transition-all duration-300"></div>
-                
-            </div>
-        </div>
-
-    </div>
-</div>
+    /* Mobile Responsive Injection */
+    @media (max-width: 768px) {
+        .display-3, .display-4, .hero-title { font-size: 2.25rem !important; }
+        .glass-card { padding: 1.5rem !important; }
+        .row.g-4 { gap: 1rem !important; }
+        .metrics-grid, .grid-layout { grid-template-columns: 1fr !important; }
+    }
+</style>
 {% endblock %}
 
-{% block scripts %}
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-xl mx-auto reveal">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 mb-3">
+            <i class="fa-solid fa-font me-2"></i> Typography Engine
+        </div>
+        <h1 class="h2 fw-black mb-1">TEXT <span class="gradient-text">MORPH</span> PRO</h1>
+        <p class="text-white-50 small text-uppercase tracking-widest fw-bold">Multi-Case Formatting Suite</p>
+    </div>
+
+    <!-- Case Selector -->
+    <div class="d-flex flex-wrap justify-content-center gap-2 mb-5">
+        <button class="case-chip active" id="btn_sentence" onclick="convertCase('sentence')">Sentence Case</button>
+        <button class="case-chip" id="btn_lower" onclick="convertCase('lower')">lowercase</button>
+        <button class="case-chip" id="btn_upper" onclick="convertCase('upper')">UPPERCASE</button>
+        <button class="case-chip" id="btn_title" onclick="convertCase('title')">Title Case</button>
+        <button class="case-chip" id="btn_camel" onclick="convertCase('camel')">camelCase</button>
+        <button class="case-chip" id="btn_pascal" onclick="convertCase('pascal')">PascalCase</button>
+        <button class="case-chip" id="btn_snake" onclick="convertCase('snake')">snake_case</button>
+        <button class="case-chip" id="btn_kebab" onclick="convertCase('kebab')">kebab-case</button>
+        <button class="case-chip" id="btn_alternating" onclick="convertCase('alternating')">aLtErNaTiNg</button>
+    </div>
+
+    <div class="row g-4 g-lg-5">
+        <!-- Input -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <label class="small fw-black tracking-widest text-white-50 text-uppercase">SOURCE TEXT</label>
+                    <button class="btn btn-link btn-sm text-danger text-decoration-none p-0" onclick="clearInput()">
+                        <i class="fa-solid fa-trash-can me-1"></i> CLEAR
+                    </button>
+                </div>
+                <textarea id="inputText" class="form-control text-pane w-100" rows="12" placeholder="Start typing or paste text..." oninput="realtimeConvert()"></textarea>
+                
+                <div class="stats-footer">
+                    <div>
+                        <div class="stat-label">CHARS</div>
+                        <div id="charCount" class="stat-val">0</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">WORDS</div>
+                        <div id="wordCount" class="stat-val">0</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">LINES</div>
+                        <div id="lineCount" class="stat-val">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <label class="small fw-black tracking-widest text-white-50 text-uppercase" id="activeCaseLabel">RESULT</label>
+                    <button class="btn-premium btn-sm px-3 rounded-pill fw-bold" onclick="copyResult(this)">
+                        <i class="fa-regular fa-copy me-1"></i> COPY
+                    </button>
+                </div>
+                <div id="outputText" class="res-box"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let currentMode = 'sentence';
 
@@ -85,171 +174,98 @@ function clearInput() {
 
 function updateCounts() {
     const text = document.getElementById('inputText').value;
-    
-    // Character count
-    document.getElementById('charCount').innerText = `Characters: ${text.length}`;
-    
-    // Word count
+    document.getElementById('charCount').innerText = text.length;
     const words = text.trim() ? text.trim().split(/\s+/) : [];
-    document.getElementById('wordCount').innerText = `Words: ${words.length}`;
-    
-    // Line count
+    document.getElementById('wordCount').innerText = words.length;
     const lines = text === '' ? 0 : text.split(/\r\n|\r|\n/).length;
-    document.getElementById('lineCount').innerText = `Lines: ${lines}`;
+    document.getElementById('lineCount').innerText = lines;
 }
 
-// Convert logic
-function toSentenceCase(str) {
-    return str.toLowerCase().replace(/(^\s*\w|[\.\!\?]\s*\w)/g, function(c) {
-        return c.toUpperCase();
-    });
-}
-
-function toTitleCase(str) {
-    return str.toLowerCase().replace(/\b\w/g, function(c) {
-        return c.toUpperCase();
-    });
-}
-
-function toCamelCase(str) {
-    return str.replace(/(?:^\w|[A-Z]|\b\w)/g, function(word, index) {
-        return index === 0 ? word.toLowerCase() : word.toUpperCase();
-    }).replace(/\s+/g, '');
-}
-
-function toPascalCase(str) {
-    return str.replace(/(?:^\w|[A-Z]|\b\w)/g, function(word) {
-        return word.toUpperCase();
-    }).replace(/\s+/g, '');
-}
-
-function toSnakeCase(str) {
-    return str.replace(/\W+/g, " ")
-      .split(/ |\B(?=[A-Z])/)
-      .map(word => word.toLowerCase())
-      .join('_');
-}
-
-function toKebabCase(str) {
-    return str.replace(/\W+/g, " ")
-      .split(/ |\B(?=[A-Z])/)
-      .map(word => word.toLowerCase())
-      .join('-');
-}
-
-function toAlternatingCase(str) {
-    let result = '';
-    for (let i = 0; i < str.length; i++) {
-        result += i % 2 === 0 ? str[i].toLowerCase() : str[i].toUpperCase();
-    }
-    return result;
+const toSentenceCase = s => s.toLowerCase().replace(/(^\s*\w|[\.\!\?]\s*\w)/g, c => c.toUpperCase());
+const toTitleCase = s => s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+const toCamelCase = s => s.replace(/(?:^\w|[A-Z]|\b\w)/g, (w, i) => i === 0 ? w.toLowerCase() : w.toUpperCase()).replace(/\s+/g, '');
+const toPascalCase = s => s.replace(/(?:^\w|[A-Z]|\b\w)/g, w => w.toUpperCase()).replace(/\s+/g, '');
+const toSnakeCase = s => s.replace(/\W+/g, " ").split(/ |\B(?=[A-Z])/).map(w => w.toLowerCase()).join('_');
+const toKebabCase = s => s.replace(/\W+/g, " ").split(/ |\B(?=[A-Z])/).map(w => w.toLowerCase()).join('-');
+function toAlternatingCase(s) {
+    let r = '';
+    for (let i = 0; i < s.length; i++) r += i % 2 === 0 ? s[i].toLowerCase() : s[i].toUpperCase();
+    return r;
 }
 
 function convertCase(mode) {
     currentMode = mode;
-    const buttons = document.querySelectorAll('.flex-wrap .btn');
-    buttons.forEach(btn => {
-        btn.classList.remove('btn-active');
-        // A simple check to match the mode name in button text
-        if(btn.innerText.toLowerCase().includes(mode.toLowerCase().replace('_','').replace('-','')) || 
-           (mode === 'alternating' && btn.innerText.includes('aLtErNaTiNg'))) {
-            btn.classList.add('btn-active');
-        }
-    });
-    
+    document.querySelectorAll('.case-chip').forEach(c => c.classList.remove('active'));
+    document.getElementById(`btn_${mode}`).classList.add('active');
     realtimeConvert();
 }
 
 function realtimeConvert() {
     updateCounts();
-    
     const text = document.getElementById('inputText').value;
-    const outBox = document.getElementById('outputText');
+    const out = document.getElementById('outputText');
     const label = document.getElementById('activeCaseLabel');
-    const outCard = document.getElementById('outputCard');
     
-    if(!text) {
-        outBox.innerText = '';
-        return;
-    }
+    if(!text) { out.innerText = ''; return; }
     
-    let result = '';
-    let labelText = 'Result';
+    let res = '';
+    let lbl = 'RESULT';
     
     switch(currentMode) {
-        case 'upper':
-            result = text.toUpperCase();
-            labelText = 'UPPERCASE';
-            break;
-        case 'lower':
-            result = text.toLowerCase();
-            labelText = 'lowercase';
-            break;
-        case 'title':
-            result = toTitleCase(text);
-            labelText = 'Title Case';
-            break;
-        case 'sentence':
-            result = toSentenceCase(text);
-            labelText = 'Sentence case';
-            break;
-        case 'camel':
-            result = toCamelCase(text);
-            labelText = 'camelCase';
-            break;
-        case 'pascal':
-            result = toPascalCase(text);
-            labelText = 'PascalCase';
-            break;
-        case 'snake':
-            result = toSnakeCase(text);
-            labelText = 'snake_case';
-            break;
-        case 'kebab':
-            result = toKebabCase(text);
-            labelText = 'kebab-case';
-            break;
-        case 'alternating':
-            result = toAlternatingCase(text);
-            labelText = 'aLtErNaTiNg CaSe';
-            break;
+        case 'upper': res = text.toUpperCase(); lbl = 'UPPERCASE'; break;
+        case 'lower': res = text.toLowerCase(); lbl = 'LOWERCASE'; break;
+        case 'title': res = toTitleCase(text); lbl = 'TITLE CASE'; break;
+        case 'sentence': res = toSentenceCase(text); lbl = 'SENTENCE CASE'; break;
+        case 'camel': res = toCamelCase(text); lbl = 'CAMELCASE'; break;
+        case 'pascal': res = toPascalCase(text); lbl = 'PASCALCASE'; break;
+        case 'snake': res = toSnakeCase(text); lbl = 'SNAKE_CASE'; break;
+        case 'kebab': res = toKebabCase(text); lbl = 'KEBAB-CASE'; break;
+        case 'alternating': res = toAlternatingCase(text); lbl = 'ALTERNATING'; break;
     }
-    
-    label.innerText = labelText;
-    outBox.innerText = result;
+    label.innerText = lbl;
+    out.innerText = res;
 }
 
-function copyResult(event) {
+function copyResult(btn) {
     const text = document.getElementById('outputText').innerText;
-    if(text) {
-        navigator.clipboard.writeText(text);
-        
-        // Find the copy icon inside the event button
-        const btn = event.currentTarget.querySelector('.copy-icon');
-        if (btn) {
-            btn.classList.replace('fa-regular', 'fa-solid');
-            btn.classList.replace('fa-copy', 'fa-check');
-        }
-        
-        event.currentTarget.classList.add('btn-info', 'text-info-content');
-        event.currentTarget.classList.remove('btn-outline');
-        
-        setTimeout(() => {
-            if (btn) {
-                btn.classList.replace('fa-solid', 'fa-regular');
-                btn.classList.replace('fa-check', 'fa-copy');
-            }
-            event.currentTarget.classList.remove('btn-info', 'text-info-content');
-            event.currentTarget.classList.add('btn-outline');
-        }, 1500);
-    }
+    if(!text) return;
+    navigator.clipboard.writeText(text);
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> COPIED';
+    btn.classList.replace('btn-premium', 'btn-success');
+    setTimeout(() => {
+        btn.innerHTML = original;
+        btn.classList.replace('btn-success', 'btn-premium');
+    }, 1500);
 }
 
-// Init event listeners after DOM load
 document.addEventListener('DOMContentLoaded', () => {
-    // Select first case on load
     convertCase('sentence');
     document.getElementById('inputText').focus();
 });
 </script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Text Syntax Morph Tool</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-primary me-2"></i> High Performance</h3>
+            <p class="text-theme-muted">Transform raw text into upper, lower, camel, snake, or pascal case flawlessly.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-primary me-2"></i> Secure & Private</h3>
+            <p class="text-theme-muted">Engineered by StoryBrain AI to ensure your data remains completely private. Zero server-side logging for total peace of mind.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-primary me-2"></i> String Manipulation</h3>
+            <p class="text-theme-muted">Optimized specifically for high-speed string manipulation natively in your browser using modern Web APIs.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-primary me-2"></i> Syntax Formatting</h3>
+            <p class="text-theme-muted">Leveraging advanced techniques in syntax formatting to deliver precision results every single time.</p>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

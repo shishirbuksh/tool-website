@@ -1,235 +1,178 @@
 {% extends "base.html" %}
 
-{% block title %}Hybrid AI Predictor | StoryBrain AI{% endblock %}
+{% block title %}Hybrid AI Crypto Price Prediction Tool | StoryBrain AI{% endblock %}
+{% block meta_description %}Free, ultra-fast Hybrid AI Crypto Price Prediction Tool natively in your browser. Engineered for privacy and precision by StoryBrain AI.{% endblock %}
+
 
 {% block head %}
 <!-- ApexCharts for Data Visualization -->
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <style>
-    :root {
-        --glass-bg: rgba(17, 24, 39, 0.7);
-        --glass-border: rgba(255, 255, 255, 0.1);
-        --glow-primary: rgba(100, 25, 230, 0.4);
-        --glow-success: rgba(0, 200, 150, 0.4);
-    }
-    
-    [data-theme="light"] {
-        --glass-bg: rgba(255, 255, 255, 0.8);
-        --glass-border: rgba(0, 0, 0, 0.05);
+    @keyframes spinHologram {
+        0% { transform: rotate(0deg) scale(0.8); opacity: 0.5; }
+        50% { transform: rotate(180deg) scale(1.1); opacity: 1; }
+        100% { transform: rotate(360deg) scale(0.8); opacity: 0.5; }
     }
 
-    .premium-panel {
-        background: var(--glass-bg);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid var(--glass-border);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-        border-radius: 1.5rem;
-        overflow: hidden;
-        position: relative;
-    }
-
-    /* Subtle Animated Glow behind the panel */
-    .premium-panel::before {
-        content: "";
-        position: absolute;
-        top: -50%; left: -50%; width: 200%; height: 200%;
-        background: radial-gradient(circle at center, var(--glow-primary) 0%, transparent 60%);
-        opacity: 0.15;
-        z-index: 0;
-        pointer-events: none;
-        animation: rotateGlow 20s linear infinite;
-    }
-
-    @keyframes rotateGlow {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+    .hologram-spinner {
+        width: 100px;
+        height: 100px;
+        border: 2px solid transparent;
+        border-top-color: var(--sb-accent);
+        border-bottom-color: #10b981;
+        border-radius: 50%;
+        animation: spinHologram 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        filter: drop-shadow(0 0 15px rgba(124, 58, 237, 0.5));
     }
 
     .loader-overlay {
         position: absolute;
         inset: 0;
-        background: var(--glass-bg);
-        backdrop-filter: blur(10px);
+        z-index: 100;
+        background: rgba(5, 5, 5, 0.8);
+        backdrop-filter: blur(20px);
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        z-index: 50;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.4s ease;
-    }
-    
-    .loader-overlay.active {
-        opacity: 1;
-        pointer-events: all;
-    }
-
-    .hologram-spinner {
-        width: 80px;
-        height: 80px;
-        border: 2px solid transparent;
-        border-top-color: oklch(var(--p));
-        border-bottom-color: oklch(var(--su));
-        border-radius: 50%;
-        animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-        box-shadow: 0 0 20px var(--glow-primary);
-    }
-
-    @keyframes spin { 
-        0% { transform: rotate(0deg) scale(0.8); } 
-        50% { transform: rotate(180deg) scale(1.1); }
-        100% { transform: rotate(360deg) scale(0.8); } 
+        border-radius: 2.5rem;
+        transition: all 0.5s ease;
     }
 
     .stat-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid var(--glass-border);
-        border-radius: 1rem;
-        transition: transform 0.2s, box-shadow 0.2s;
-        position: relative;
-        z-index: 10;
-        backdrop-filter: blur(10px);
+        padding: 1.5rem;
+        border-left: 4px solid var(--sb-accent);
     }
-    
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px -5px rgba(0,0,0,0.3);
-    }
-    
-    .glow-text {
-        text-shadow: 0 0 15px currentColor;
-    }
-    
-    /* Range Slider Styling */
-    input[type=range] {
-        -webkit-appearance: none;
+    .stat-card.success { border-left-color: #10b981; }
+    .stat-card.info { border-left-color: #0ea5e9; }
+
+    #chartContainer {
+        min-height: 450px;
         width: 100%;
-        background: transparent;
     }
-    input[type=range]::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        height: 24px;
-        width: 24px;
-        border-radius: 50%;
-        background: oklch(var(--p));
-        cursor: pointer;
-        margin-top: -10px;
-        box-shadow: 0 0 15px var(--glow-primary);
-        border: 2px solid white;
-    }
-    input[type=range]::-webkit-slider-runnable-track {
-        width: 100%;
-        height: 4px;
-        cursor: pointer;
-        background: rgba(255,255,255,0.2);
-        border-radius: 4px;
+
+    /* Mobile Responsive Injection */
+    @media (max-width: 768px) {
+        .display-3, .display-4, .hero-title { font-size: 2.25rem !important; }
+        .glass-card { padding: 1.5rem !important; }
+        .row.g-4 { gap: 1rem !important; }
+        .metrics-grid, .grid-layout { grid-template-columns: 1fr !important; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 md:px-6 relative z-10">
+<!-- ── Tool Header ── -->
+<div class="text-center mb-5 reveal">
+    <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 mb-4">
+        <i class="fa-solid fa-satellite-dish me-2"></i> Hybrid Forecasting Engine
+    </div>
+    <h1 class="display-3 fw-black mb-3">HYBRID AI <span class="gradient-text">FORECASTING</span></h1>
+    <p class="text-white-50 fs-5 mx-auto" style="max-width: 750px;">
+        Ensemble intelligence blending <span class="text-white">Prophet regression</span> and <span class="text-white">Rust MLP networks</span> for high-fidelity market projections.
+    </p>
+</div>
 
-    <!-- Header -->
-    <div class="text-center mb-10 animate-fade-in-up">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-tr from-primary/20 to-success/20 text-primary mb-6 shadow-[0_0_30px_rgba(100,25,230,0.3)] hover:scale-110 transition-transform">
-            <i class="fa-solid fa-satellite-dish text-2xl animate-pulse"></i>
+<div class="row g-4 reveal" style="animation-delay: 0.2s;">
+    <!-- Sidebar Controls -->
+    <div class="col-lg-4">
+        <div class="glass-card p-4 h-100">
+            <h6 class="small fw-black text-white-50 tracking-widest text-uppercase mb-4">Control Interface</h6>
+            
+            <div class="mb-4">
+                <div class="input-group mb-3">
+                    <span class="input-group-text bg-white bg-opacity-5 border-white border-opacity-10 text-white-50">
+                        <i class="fa-brands fa-bitcoin fs-5"></i>
+                    </span>
+                    <select id="cryptoSelector" class="form-select bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 fw-black">
+                        <option value="BTC-USD">BTC / USD</option>
+                        <option value="ETH-USD">ETH / USD</option>
+                        <option value="SOL-USD">SOL / USD</option>
+                        <option value="XRP-USD">XRP / USD</option>
+                        <option value="DOGE-USD">DOGE / USD</option>
+                    </select>
+                </div>
+                <button id="predictBtn" onclick="runPrediction()" class="btn btn-premium w-100 py-3 fw-black">
+                    RUN AI SIMULATION
+                </button>
+            </div>
+
+            <!-- Weight Slider -->
+            <div id="sliderControlGroup" class="p-4 rounded-4 bg-black bg-opacity-40 border border-white border-opacity-5 opacity-50 pe-none transition-all">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <span class="small fw-black text-primary tracking-widest text-uppercase" style="font-size: 0.6rem;">PROPHET</span>
+                    <div id="sliderValueText" class="badge bg-white bg-opacity-5 font-mono">50 / 50</div>
+                    <span class="small fw-black text-success tracking-widest text-uppercase" style="font-size: 0.6rem;">RUST MLP</span>
+                </div>
+                <input type="range" id="weightSlider" min="0" max="100" value="50" oninput="handleSliderChange()" class="form-range mb-3">
+                <p class="small text-white-50 text-center text-uppercase fw-bold m-0" style="font-size: 0.6rem; letter-spacing: 0.1em;">
+                    ADJUST ENSEMBLE WEIGHTS
+                </p>
+            </div>
+
+            <div class="mt-4 p-4 rounded-4 bg-primary bg-opacity-5 border border-primary border-opacity-10">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <i class="fa-solid fa-microchip text-primary"></i>
+                    <h6 class="small fw-black text-primary tracking-widest text-uppercase m-0">Engine Logic</h6>
+                </div>
+                <p class="small text-white-50 fw-bold m-0 leading-base">
+                    Prophet handles macro trends, while the Rust Neural Net captures high-velocity micro-patterns.
+                </p>
+            </div>
         </div>
-        <h1 class="text-4xl md:text-5xl font-black mb-4 text-base-content tracking-tighter">
-            Hybrid AI <span class="bg-gradient-to-r from-primary via-info to-success bg-clip-text text-transparent">Forecasting</span>
-        </h1>
-        <p class="text-base-content/70 max-w-2xl mx-auto text-sm md:text-lg leading-relaxed mb-8">
-            Harness a dual-engine ensemble combining Meta's Prophet model and high-speed Rust neural networks for extreme accuracy over the next 7 days.
-        </p>
     </div>
 
-    <!-- Main Content -->
-    <div class="premium-panel p-6 md:p-8 animate-fade-in-up" style="animation-delay: 100ms">
-        
-        <!-- Loading Overlay -->
-        <div id="aiLoader" class="loader-overlay text-base-content rounded-3xl">
-            <div class="relative mb-6">
-                <div class="hologram-spinner"></div>
-                <i class="fa-solid fa-microchip text-2xl absolute inset-0 flex items-center justify-center text-primary z-10 w-full h-full text-center"></i>
-            </div>
-            <h3 class="text-xl font-black tracking-wide mb-2">Engaging Dual Ensemble Engine...</h3>
-            <p class="text-sm opacity-70 max-w-sm text-center">Blending seasonal regression (Prophet) with short-term pattern recognition (Rust MLP) to form hyper-accurate projections.</p>
-        </div>
-
-        <div class="flex flex-col lg:flex-row gap-8 mb-8 relative z-10">
-            <!-- Controls Sidebar -->
-            <div class="w-full lg:w-1/4 space-y-6 flex flex-col">
-                <div class="form-control w-full">
-                    <label class="label"><span class="label-text text-xs uppercase tracking-widest font-bold opacity-70">Target Asset</span></label>
-                    <div class="relative">
-                        <i class="fa-brands fa-bitcoin absolute left-4 top-1/2 -translate-y-1/2 opacity-50"></i>
-                        <select id="cryptoSelector" class="select select-bordered w-full pl-10 h-14 bg-base-300/50 backdrop-blur-md shadow-inner text-lg font-bold border-base-content/10 focus:border-primary transition-all">
-                            <option value="BTC-USD" selected>BTC/USD</option>
-                            <option value="ETH-USD">ETH/USD</option>
-                            <option value="SOL-USD">SOL/USD</option>
-                            <option value="XRP-USD">XRP/USD</option>
-                            <option value="DOGE-USD">DOGE/USD</option>
-                        </select>
+    <!-- Main Dashboard -->
+    <div class="col-lg-8">
+        <div class="glass-card p-2 p-md-4 position-relative overflow-d-none h-100" style="min-height: 600px;">
+            <!-- Loading -->
+            <div id="aiLoader" class="loader-overlay d-none">
+                <div class="position-relative mb-4">
+                    <div class="hologram-spinner"></div>
+                    <div class="position-absolute top-50 start-50 translate-middle">
+                        <i class="fa-solid fa-brain text-primary fs-3 animate-pulse"></i>
                     </div>
                 </div>
-                
-                <button id="predictBtn" onclick="runPrediction()" class="btn btn-primary h-14 w-full shadow-[0_0_20px_var(--glow-primary)] transition-all hover:scale-[1.02] hover:shadow-[0_0_30px_var(--glow-primary)] text-lg border-0 bg-gradient-to-r from-primary to-info">
-                    <i class="fa-solid fa-radar mr-2"></i> Compute Forecast
-                </button>
-
-                <!-- ADVANCED INTEGRATION SLIDER -->
-                <div id="sliderControlGroup" class="form-control w-full mt-6 p-4 bg-base-300/30 rounded-2xl border border-base-content/5 opacity-50 pointer-events-none transition-all duration-500">
-                    <label class="label mb-2 flex justify-between">
-                        <span class="label-text text-xs uppercase tracking-widest font-bold text-info"><i class="fa-solid fa-brain mr-1"></i> Prophet</span>
-                        <span id="sliderValueText" class="label-text text-xs tracking-widest font-bold opacity-80 font-mono">50 / 50</span>
-                        <span class="label-text text-xs uppercase tracking-widest font-bold text-success">Rust <i class="fa-solid fa-bolt ml-1"></i></span>
-                    </label>
-                    <input type="range" id="weightSlider" min="0" max="100" value="50" oninput="handleSliderChange()" class="w-full">
-                    <label class="label mt-2">
-                        <span class="label-text-alt opacity-60 text-xs">Dynamically adjust engine weight</span>
-                    </label>
-                </div>
-
-                <div class="stat-card p-5 mt-auto border-l-4 border-l-info">
-                    <h4 class="font-bold text-sm mb-2 opacity-90"><i class="fa-solid fa-layer-group text-info mr-2"></i>Real-Time Analytics</h4>
-                    <p class="text-xs opacity-60 leading-relaxed font-mono">
-                        Prophet anchors long-term macro trends while the compiled Rust neural network identifies micro-patterns and immediate momentum. Play with the timeline allocation above.
-                    </p>
-                </div>
+                <h4 class="fw-black tracking-tighter text-white">Neural Matrix Syncing...</h4>
+                <p class="text-white-50 small fw-bold text-uppercase tracking-widest">Bridging Prophet & Rust MLP</p>
             </div>
 
-            <!-- Insights / Key Stats -->
-            <div class="w-full lg:w-3/4 flex flex-col gap-4">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="stat-card p-4 md:p-5 flex flex-col justify-center">
-                        <span class="text-xs font-bold opacity-50 uppercase tracking-widest mb-2 font-mono"><i class="fa-solid fa-tag mr-1"></i>Current</span>
-                        <span id="currentPrice" class="text-xl lg:text-3xl font-black font-mono">--</span>
+            <!-- Stats Row -->
+            <div class="row g-3 mb-4 p-2">
+                <div class="col-md-4">
+                    <div class="glass-card stat-card h-100">
+                        <span class="small fw-black text-white-50 tracking-widest text-uppercase d-block mb-1">Live Market</span>
+                        <div id="currentPrice" class="h3 fw-black font-mono mb-0 text-white">-</div>
                     </div>
-                    <div class="stat-card p-4 md:p-5 flex flex-col justify-center border-b-2 border-b-success">
-                        <span class="text-xs font-bold text-success uppercase tracking-widest mb-2 font-mono"><i class="fa-solid fa-crosshairs mr-1"></i>Target</span>
-                        <span id="targetPrice" class="text-xl lg:text-3xl font-black font-mono text-success glow-text transition-all duration-300">--</span>
+                </div>
+                <div class="col-md-4">
+                    <div class="glass-card stat-card success h-100">
+                        <span class="small fw-black text-white-50 tracking-widest text-uppercase d-block mb-1">7D Prediction</span>
+                        <div id="targetPrice" class="h3 fw-black font-mono mb-0 text-success">-</div>
                     </div>
-                    <div class="stat-card p-4 md:p-5 flex flex-col justify-center col-span-2 md:col-span-2 relative overflow-hidden">
-                        <div class="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-base-content/5 to-transparent"></div>
-                        <span class="text-xs font-bold opacity-50 uppercase tracking-widest mb-2 font-mono z-10">Momentum</span>
-                        <div class="flex items-center gap-4 z-10">
-                            <div id="trendIcon" class="w-12 h-12 rounded-xl bg-base-300 flex items-center justify-center text-xl shadow-inner border border-base-content/10 transition-colors">
-                                <i class="fa-solid fa-minus opacity-30"></i>
-                            </div>
-                            <span id="trendText" class="text-sm lg:text-xl font-black opacity-80">Awaiting Signal...</span>
+                </div>
+                <div class="col-md-4">
+                    <div class="glass-card stat-card info h-100 d-flex align-items-center gap-3">
+                        <div id="trendIcon" class="flex-shrink-0 w-12 h-12 rounded-3 bg-white bg-opacity-5 d-flex align-items-center justify-content-center border border-white border-opacity-5">
+                            <i class="fa-solid fa-chart-line text-white-50"></i>
                         </div>
+                        <div id="trendText" class="small fw-black text-uppercase tracking-widest text-white-50">Link Pending...</div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Advanced Charting Container -->
-                <div class="w-full flex-grow min-h-[450px] rounded-2xl bg-black/30 border border-[var(--glass-border)] p-4 relative shadow-inner backdrop-blur-xl">
-                    <div id="chartContainer" class="w-full h-full"></div>
-                    <div id="chartEmpty" class="absolute inset-0 flex items-center justify-center opacity-30 font-mono text-sm uppercase tracking-widest gap-2">
-                        <i class="fa-solid fa-chart-area"></i> Terminals Offline
+            <!-- Chart -->
+            <div class="glass-card bg-black bg-opacity-40 p-4 rounded-5 position-relative">
+                <div class="d-flex justify-content-between align-items-center mb-4 px-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="spinner-grow spinner-grow-sm text-success"></span>
+                        <span class="small fw-black text-white-50 tracking-widest text-uppercase">Forecasting Visualizer v5.0</span>
                     </div>
+                </div>
+                <div id="chartContainer"></div>
+                <div id="chartEmpty" class="position-absolute top-50 start-50 translate-middle opacity-10 pe-none">
+                    <h5 class="fw-black tracking-widest text-uppercase">ENGAGE SIMULATOR</h5>
                 </div>
             </div>
         </div>
@@ -239,214 +182,123 @@
 <script>
     let predictionChart = null;
     let globalHistoryData = [];
-    let globalPredictionData = []; 
+    let globalPredictionData = [];
     let currentAssetPrice = 0;
 
     async function runPrediction() {
         const symbol = document.getElementById('cryptoSelector').value;
         const loader = document.getElementById('aiLoader');
         const sliderGroup = document.getElementById('sliderControlGroup');
-        
-        loader.classList.add('active');
+
+        loader.classList.remove('d-none');
         document.getElementById('predictBtn').disabled = true;
-        sliderGroup.classList.add('opacity-50', 'pointer-events-none');
+        sliderGroup.classList.add('opacity-50', 'pe-none');
 
         try {
             const response = await fetch(`/api/predict-crypto?symbol=${symbol}`);
             const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(data.detail || data || 'Failed to fetch AI prediction.');
-            }
+            if (!response.ok) throw new Error(data.detail || 'Prediction failed');
 
             globalHistoryData = data.history;
             globalPredictionData = data.predictions;
             currentAssetPrice = globalHistoryData[globalHistoryData.length - 1].price;
 
-            // Reset Slider to 50/50 on new fetch
-            const slider = document.getElementById('weightSlider');
-            slider.value = 50;
-
+            document.getElementById('weightSlider').value = 50;
             document.getElementById('currentPrice').innerText = formatMoney(currentAssetPrice);
-            
-            // Enable slider
-            sliderGroup.classList.remove('opacity-50', 'pointer-events-none');
+            sliderGroup.classList.remove('opacity-50', 'pe-none');
 
-            // Initial render
             handleSliderChange(true);
-            
-            document.getElementById('chartEmpty').style.display = 'none';
+            document.getElementById('chartEmpty').classList.add('d-none');
 
         } catch (error) {
-            console.error(error);
-            alert("Error running prediction: " + error.message);
+            alert("Error: " + error.message);
         } finally {
-            loader.classList.remove('active');
+            loader.classList.add('d-none');
             document.getElementById('predictBtn').disabled = false;
         }
     }
 
-    function formatMoney(val) {
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
-    }
+    function formatMoney(v) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v); }
 
-    function handleSliderChange(isInitialRender = false) {
-        if (!globalPredictionData || globalPredictionData.length === 0) return;
+    function handleSliderChange(isInitial = false) {
+        if (!globalPredictionData?.length) return;
 
-        const slider = document.getElementById('weightSlider');
-        const val = parseInt(slider.value);
-        
-        // Value 0 = 100% Prophet, 0% Rust
-        // Value 100 = 0% Prophet, 100% Rust
-        const rustWeight = val / 100.0;
-        const prophetWeight = 1.0 - rustWeight;
+        const val = parseInt(document.getElementById('weightSlider').value);
+        const rustWeight = val / 100.0, prophetWeight = 1.0 - rustWeight;
 
-        // Update Slider UI Label
-        const sliderLabel = document.getElementById('sliderValueText');
-        sliderLabel.innerText = `${Math.round(prophetWeight * 100)} / ${Math.round(rustWeight * 100)}`;
+        document.getElementById('sliderValueText').innerText = `${Math.round(prophetWeight * 100)} / ${Math.round(rustWeight * 100)}`;
 
-        // Calculate Hybrid Array
-        const blendedPredictions = globalPredictionData.map(item => {
-            const blend = (item.prophet_price * prophetWeight) + (item.rust_price * rustWeight);
-            return {
-                date: item.date,
-                price: blend
-            };
-        });
+        const blended = globalPredictionData.map(item => ({
+            date: item.date,
+            price: (item.prophet_price * prophetWeight) + (item.rust_price * rustWeight)
+        }));
 
-        // Update UI Text metrics
-        const finalPredPrice = blendedPredictions[blendedPredictions.length - 1].price;
-        const diff = finalPredPrice - currentAssetPrice;
-        const diffPercent = (diff / currentAssetPrice) * 100;
+        const finalPrice = blended[blended.length - 1].price;
+        const diffPercent = ((finalPrice - currentAssetPrice) / currentAssetPrice) * 100;
 
-        document.getElementById('targetPrice').innerText = formatMoney(finalPredPrice);
+        document.getElementById('targetPrice').innerText = formatMoney(finalPrice);
+        const tIcon = document.getElementById('trendIcon'), tText = document.getElementById('trendText');
 
-        const trendIcon = document.getElementById('trendIcon');
-        const trendText = document.getElementById('trendText');
-
-        if (diff > 0) {
-            trendIcon.className = "w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center text-success text-xl border border-success/30 shadow-[0_0_15px_rgba(0,200,150,0.3)] transition-colors duration-300";
-            trendIcon.innerHTML = `<i class="fa-solid fa-rocket"></i>`;
-            trendText.innerHTML = `Strong Uptrend <span class="text-success text-base lg:text-lg ml-2 border border-success/20 bg-success/10 px-2 py-0.5 rounded-lg">+${diffPercent.toFixed(2)}%</span>`;
+        if (finalPrice > currentAssetPrice) {
+            tIcon.className = "flex-shrink-0 w-12 h-12 rounded-3 bg-success bg-opacity-10 d-flex align-items-center justify-content-center border border-success border-opacity-20 text-success shadow-lg";
+            tIcon.innerHTML = `<i class="fa-solid fa-rocket"></i>`;
+            tText.innerHTML = `UPTREND <span class="text-success ms-1">+${diffPercent.toFixed(2)}%</span>`;
         } else {
-            trendIcon.className = "w-12 h-12 rounded-xl bg-error/20 flex items-center justify-center text-error text-xl border border-error/30 shadow-[0_0_15px_rgba(255,80,80,0.3)] transition-colors duration-300";
-            trendIcon.innerHTML = `<i class="fa-solid fa-meteor"></i>`;
-            trendText.innerHTML = `Downtrend Risk <span class="text-error text-base lg:text-lg ml-2 border border-error/20 bg-error/10 px-2 py-0.5 rounded-lg">${diffPercent.toFixed(2)}%</span>`;
+            tIcon.className = "flex-shrink-0 w-12 h-12 rounded-3 bg-danger bg-opacity-10 d-flex align-items-center justify-content-center border border-danger border-opacity-20 text-danger shadow-lg";
+            tIcon.innerHTML = `<i class="fa-solid fa-meteor"></i>`;
+            tText.innerHTML = `RISK <span class="text-danger ms-1">${diffPercent.toFixed(2)}%</span>`;
         }
 
-        // Draw/Update Chart
-        const recentHistory = globalHistoryData.slice(-60);
-        const historySeriesData = recentHistory.map(item => ({ x: item.date, y: item.price.toFixed(2) }));
+        const histSeries = globalHistoryData.slice(-60).map(i => ({ x: i.date, y: i.price.toFixed(2) }));
+        const predSeries = [{ x: histSeries[histSeries.length-1].x, y: histSeries[histSeries.length-1].y }, 
+                            ...blended.map(i => ({ x: i.date, y: i.price.toFixed(2) }))];
 
-        const lastHistPoint = recentHistory[recentHistory.length - 1];
-        const predictionSeriesData = [
-            { x: lastHistPoint.date, y: lastHistPoint.price.toFixed(2) },
-            ...blendedPredictions.map(item => ({ x: item.date, y: item.price.toFixed(2) }))
-        ];
-
-        if (isInitialRender || !predictionChart) {
-            renderApexChart(historySeriesData, predictionSeriesData);
-        } else {
-            predictionChart.updateSeries([{
-                name: 'Historical Data',
-                data: historySeriesData
-            }, {
-                name: 'Hybrid Projection',
-                data: predictionSeriesData
-            }]);
-        }
+        if (isInitial || !predictionChart) renderChart(histSeries, predSeries);
+        else predictionChart.updateSeries([{ name: 'Historical', data: histSeries }, { name: 'Projection', data: predSeries }]);
     }
 
-    function renderApexChart(historyData, predictionData) {
-        const chartBox = document.getElementById('chartContainer');
-        chartBox.innerHTML = ''; 
-
-        const isDark = document.documentElement.getAttribute('data-theme') !== 'cupcake';
-        const textColor = isDark ? '#9ca3af' : '#4b5563';
-        
+    function renderChart(h, p) {
         const options = {
-            series: [{
-                name: 'Historical Data',
-                data: historyData
-            }, {
-                name: 'Hybrid Projection',
-                data: predictionData
-            }],
-            chart: {
-                type: 'area',
-                height: '100%',
-                fontFamily: 'inherit',
-                background: 'transparent',
-                toolbar: { show: false },
-                animations: { 
-                    enabled: true, 
-                    easing: 'easeout', 
-                    speed: 400,
-                    dynamicAnimation: { speed: 150 }
-                },
-                dropShadow: {
-                    enabled: true,
-                    top: 5,
-                    left: 0,
-                    blur: 8,
-                    opacity: 0.2
-                }
-            },
-            colors: ['#0ea5e9', '#10b981'], 
-            fill: {
-                type: ['gradient', 'gradient'],
-                gradient: {
-                    shadeIntensity: 1,
-                    inverseColors: false,
-                    opacityFrom: 0.4,
-                    opacityTo: 0.05,
-                    stops: [0, 100]
-                }
-            },
+            series: [{ name: 'Historical', data: h }, { name: 'Projection', data: p }],
+            chart: { type: 'area', height: '100%', background: 'transparent', toolbar: { show: false }, animations: { speed: 400 } },
+            colors: ['#0ea5e9', '#10b981'],
+            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05, stops: [0, 100] } },
             dataLabels: { enabled: false },
-            stroke: {
-                curve: 'smooth',
-                width: [3, 4],
-                dashArray: [0, 8] 
-            },
-            xaxis: {
-                type: 'datetime',
-                labels: {
-                    style: { colors: textColor, fontWeight: 500 },
-                    datetimeUTC: false
-                },
-                axisBorder: { show: false },
-                axisTicks: { show: false },
-                tooltip: { enabled: false }
-            },
-            yaxis: {
-                labels: {
-                    style: { colors: textColor, fontWeight: 500 },
-                    formatter: (value) => { return "$" + value.toLocaleString() }
-                }
-            },
-            grid: {
-                borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
-                strokeDashArray: 5,
-                padding: { left: 10, right: 10 }
-            },
-            theme: { mode: isDark ? 'dark' : 'light' },
-            legend: {
-                position: 'top',
-                horizontalAlign: 'right',
-                markers: { radius: 12 },
-                labels: { colors: textColor, useSeriesColors: true },
-                fontWeight: 600
-            },
-            tooltip: {
-                theme: isDark ? 'dark' : 'light',
-                style: { fontSize: '14px', fontFamily: 'inherit' },
-                y: { formatter: function (val) { return "$" + Number(val).toLocaleString() } }
-            }
+            stroke: { curve: 'smooth', width: [3, 4], dashArray: [0, 8] },
+            xaxis: { type: 'datetime', labels: { style: { colors: 'rgba(255,255,255,0.4)', fontWeight: 600 } }, axisBorder: { show: false }, axisTicks: { show: false } },
+            yaxis: { labels: { style: { colors: 'rgba(255,255,255,0.4)', fontWeight: 600 }, formatter: v => "$" + v.toLocaleString() } },
+            grid: { borderColor: 'rgba(255,255,255,0.05)', strokeDashArray: 5 },
+            theme: { mode: 'dark' },
+            legend: { position: 'top', horizontalAlign: 'right', labels: { colors: 'rgba(255,255,255,0.4)' } },
+            tooltip: { theme: 'dark', y: { formatter: v => "$" + Number(v).toLocaleString() } }
         };
-
         predictionChart = new ApexCharts(document.querySelector("#chartContainer"), options);
         predictionChart.render();
     }
 </script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the AI Crypto Price Predictor</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-primary me-2"></i> High Performance</h3>
+            <p class="text-theme-muted">Advanced neural forecasts and market trajectory analysis powered by ensemble AI models.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-primary me-2"></i> Secure & Private</h3>
+            <p class="text-theme-muted">Engineered by StoryBrain AI to ensure your data remains completely private. Zero server-side logging for total peace of mind.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-primary me-2"></i> Machine Learning</h3>
+            <p class="text-theme-muted">Optimized specifically for high-speed machine learning natively in your browser using modern Web APIs.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-primary me-2"></i> Trend Forecasting</h3>
+            <p class="text-theme-muted">Leveraging advanced techniques in trend forecasting to deliver precision results every single time.</p>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

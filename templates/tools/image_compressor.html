@@ -1,113 +1,145 @@
 {% extends "base.html" %}
 
-{% block title %}Image Compressor | StoryBrain AI{% endblock %}
+{% block title %}Lens Compressor | StoryBrain AI{% endblock %}
+{% block meta_description %}Free, ultra-fast Lens Compressor natively in your browser. Engineered for privacy and precision by StoryBrain AI.{% endblock %}
+
+
+{% block head %}
+<style>
+    .comparison-frame {
+        aspect-ratio: 1 / 1;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+    }
+    .comparison-frame img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+    .savings-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        z-index: 10;
+        padding: 0.5rem 1rem;
+        border-radius: 99px;
+        font-size: 0.7rem;
+        font-weight: 900;
+        letter-spacing: 0.1em;
+    }
+
+    /* Mobile Responsive Injection */
+    @media (max-width: 768px) {
+        .display-3, .display-4, .hero-title { font-size: 2.25rem !important; }
+        .glass-card { padding: 1.5rem !important; }
+        .row.g-4 { gap: 1rem !important; }
+        .metrics-grid, .grid-layout { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Back breadcrumb -->
-<div class="mb-6 animate-fade-in-up">
-    <a href="/" class="inline-flex items-center gap-2 text-sm font-medium text-base-content/50 hover:text-primary transition-colors duration-200">
-        <i class="fa-solid fa-arrow-left text-xs"></i> All Tools
-    </a>
-</div>
-<div class="max-w-4xl mx-auto animate-fade-in-up">
-    <div class="text-center mb-10">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-warning/10 mb-4">
-            <i class="fa-solid fa-compress text-warning text-3xl"></i>
-        </div>
-        <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4">Image Compressor</h1>
-        <p class="text-base sm:text-lg opacity-80 max-w-2xl mx-auto">
-            Compress JPEG and PNG images directly in your browser without sacrificing quality. 100% secure and private—no files are uploaded to our servers.
-        </p>
+<!-- ── Tool Header ── -->
+<div class="text-center mb-5 reveal">
+    <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 mb-4">
+        <i class="fa-solid fa-compress me-2"></i> Pixel Optimization
     </div>
+    <h1 class="display-3 fw-black mb-3">LENS <span class="gradient-text italic">COMPRESSOR</span></h1>
+    <p class="text-white-50 fs-5 mx-auto" style="max-width: 700px;">
+        Intelligent pixel squeezing for JPEG, PNG, and WEBP. 
+        <span class="text-white">Preserve quality. Reduce footprint.</span>
+    </p>
+</div>
 
-    <div class="card bg-base-100 shadow-2xl border border-base-300">
-        <div class="card-body p-6 sm:p-8 md:p-10">
-            <!-- Upload Area -->
-            <div id="uploadArea" class="border-2 border-dashed border-base-300 hover:border-warning rounded-xl p-8 sm:p-12 text-center transition-colors duration-300 cursor-pointer mb-6 group bg-base-200/50 hover:bg-base-200">
-                <input type="file" id="fileInput" class="hidden" accept="image/jpeg, image/png, image/webp">
-                <div class="w-16 h-16 rounded-full bg-base-100 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-sm">
-                    <i class="fa-solid fa-cloud-arrow-up text-warning text-2xl"></i>
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        
+        <!-- Upload Zone -->
+        <div id="uploadArea" class="reveal" style="animation-delay: 0.2s;">
+            <div class="glass-card p-5 text-center border-dashed border-2" style="cursor: pointer; border-style: dashed !important;">
+                <input type="file" id="fileInput" class="position-absolute top-0 start-0 w-100 h-100 opacity-0" style="cursor: pointer; z-index: 10;" accept="image/jpeg, image/png, image/webp">
+                <div class="rounded-4 bg-white bg-opacity-5 d-inline-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px;">
+                    <i class="fa-solid fa-cloud-arrow-up fs-2 text-white-50"></i>
                 </div>
-                <h3 class="text-lg font-semibold mb-2">Drag & drop your image here</h3>
-                <p class="text-sm opacity-60 mb-4">or click to browse from your device</p>
-                <div class="badge badge-warning badge-outline">JPG, PNG, WEBP (Max 20MB)</div>
+                <h3 class="fw-black text-white">Ingest Visual Assets</h3>
+                <p class="small fw-black text-white-50 tracking-widest text-uppercase m-0">JPG · PNG · WEBP · MAX 20MB</p>
             </div>
+        </div>
 
-            <!-- Editor Area (Hidden initially) -->
-            <div id="editorArea" class="hidden flex flex-col gap-6">
-                <!-- Controls -->
-                <div class="bg-base-200 rounded-xl p-6 border border-base-300">
-                    <div class="flex flex-col sm:flex-row gap-6 items-center justify-center">
-                        <div class="w-full sm:w-1/2">
-                            <label class="label">
-                                <span class="label-text font-medium text-base">Compression Quality: <span id="qualityValue" class="text-warning font-bold">80%</span></span>
-                            </label>
-                            <input type="range" id="qualitySlider" min="1" max="100" value="80" class="range range-warning range-sm" />
-                            <div class="w-full flex justify-between text-xs px-2 mt-2 opacity-60">
-                                <span>Small File</span>
-                                <span>High Quality</span>
-                            </div>
+        <!-- Editor Area -->
+        <div id="editorArea" class="d-none reveal">
+            <!-- Control Panel -->
+            <div class="glass-card p-4 p-md-5 mb-4">
+                <div class="row align-items-center g-4">
+                    <div class="col-md-7">
+                        <div class="d-flex justify-content-between align-items-end mb-3">
+                            <label class="small fw-black text-white-50 tracking-widest text-uppercase">Compression Intensity</label>
+                            <span id="qualityValue" class="h4 fw-black text-primary m-0">80%</span>
                         </div>
-                        <div class="w-full sm:w-1/2 flex justify-end gap-3 mt-4 sm:mt-0">
-                            <button id="resetBtn" class="btn btn-outline btn-sm">Upload New</button>
-                            <button id="downloadBtn" class="btn btn-warning btn-sm gap-2">
-                                <i class="fa-solid fa-download"></i> Download Compressed
-                            </button>
+                        <input type="range" id="qualitySlider" min="1" max="100" value="80" class="form-range">
+                        <div class="d-flex justify-content-between mt-2">
+                            <span class="text-white-50 small fw-bold" style="font-size: 0.65rem;">MAX DENSITY</span>
+                            <span class="text-white-50 small fw-bold" style="font-size: 0.65rem;">MAX FIDELITY</span>
                         </div>
                     </div>
-                </div>
-
-                <!-- Comparison View -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Original Image -->
-                    <div class="bg-base-200 rounded-xl p-4 border border-base-300 flex flex-col items-center">
-                        <div class="w-full flex justify-between items-center mb-3 text-sm font-medium">
-                            <span class="badge badge-neutral">Original</span>
-                            <span id="originalSize" class="opacity-80">0 KB</span>
-                        </div>
-                        <div class="w-full max-h-[300px] overflow-hidden rounded-lg bg-base-100 flex items-center justify-center border border-base-300 relative group p-2">
-                            <img id="originalPreview" src="" alt="Original Image" class="max-w-full max-h-[284px] object-contain">
-                        </div>
-                    </div>
-
-                    <!-- Compressed Image -->
-                    <div class="bg-base-200 rounded-xl p-4 border border-warning/30 flex flex-col items-center shadow-[0_0_15px_rgba(251,189,35,0.1)] relative overflow-hidden">
-                        <div class="absolute -right-6 top-6 bg-success text-success-content px-8 py-1 rotate-45 text-xs font-bold shadow-lg" id="savingsBadge">
-                            -0%
-                        </div>
-                        <div class="w-full flex justify-between items-center mb-3 text-sm font-medium">
-                            <span class="badge badge-warning">Compressed</span>
-                            <span id="compressedSize" class="text-warning font-bold">0 KB</span>
-                        </div>
-                        <div class="w-full max-h-[300px] overflow-hidden rounded-lg bg-base-100 flex items-center justify-center border border-base-300 relative p-2">
-                            <img id="compressedPreview" src="" alt="Compressed Image" class="max-w-full max-h-[284px] object-contain">
-                        </div>
+                    <div class="col-md-5 d-flex gap-2">
+                        <button id="resetBtn" class="btn btn-dark w-100 py-3 rounded-3 fw-bold border border-white border-opacity-10">RESET</button>
+                        <button id="downloadBtn" class="btn btn-premium w-100 py-3">
+                            <i class="fa-solid fa-download me-2"></i> EXPORT
+                        </button>
                     </div>
                 </div>
             </div>
 
+            <!-- Comparison -->
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="glass-card p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-white border-opacity-5">
+                            <span class="small fw-black text-white-50 tracking-widest text-uppercase">SOURCE MATRIX</span>
+                            <span id="originalSize" class="small fw-black text-white-50 italic">0 KB</span>
+                        </div>
+                        <div class="comparison-frame">
+                            <img alt="StoryBrain AI Module" loading="lazy" id="originalPreview" src="">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="glass-card p-4 border-primary border-opacity-20" style="background: rgba(124, 58, 237, 0.02);">
+                        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-white border-opacity-5">
+                            <span class="small fw-black text-primary tracking-widest text-uppercase">OPTIMIZED STREAM</span>
+                            <span id="compressedSize" class="small fw-black text-primary italic">0 KB</span>
+                        </div>
+                        <div class="comparison-frame">
+                            <div class="savings-badge bg-success text-dark" id="savingsBadge">-0%</div>
+                            <img alt="StoryBrain AI Module" loading="lazy" id="compressedPreview" src="">
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
     </div>
 </div>
-
-
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
     const editorArea = document.getElementById('editorArea');
-    
     const qualitySlider = document.getElementById('qualitySlider');
     const qualityValue = document.getElementById('qualityValue');
-    
     const originalPreview = document.getElementById('originalPreview');
     const compressedPreview = document.getElementById('compressedPreview');
-    
     const originalSize = document.getElementById('originalSize');
     const compressedSize = document.getElementById('compressedSize');
     const savingsBadge = document.getElementById('savingsBadge');
-    
     const downloadBtn = document.getElementById('downloadBtn');
     const resetBtn = document.getElementById('resetBtn');
 
@@ -115,139 +147,93 @@ document.addEventListener('DOMContentLoaded', () => {
     let originalImageObj = null;
     let compressedBlobUrl = null;
 
-    // Helper to format bytes
-    const formatBytes = (bytes, decimals = 2) => {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    const formatBytes = (bytes) => {
+        if (bytes === 0) return '0 B';
+        const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'], i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-    // Initialize Upload Events
     uploadArea.addEventListener('click', () => fileInput.click());
-    
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.classList.add('border-warning', 'bg-base-200');
-    });
-    
-    uploadArea.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('border-warning', 'bg-base-200');
-    });
-    
-    uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('border-warning', 'bg-base-200');
-        if (e.dataTransfer.files.length) {
-            handleFile(e.dataTransfer.files[0]);
-        }
-    });
+    fileInput.addEventListener('change', (e) => e.target.files[0] && handleFile(e.target.files[0]));
 
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length) {
-            handleFile(e.target.files[0]);
-        }
-    });
-
-    resetBtn.addEventListener('click', () => {
-        uploadArea.classList.remove('hidden');
-        editorArea.classList.add('hidden');
-        fileInput.value = '';
-        if (compressedBlobUrl) URL.revokeObjectURL(compressedBlobUrl);
-    });
-
-    qualitySlider.addEventListener('input', (e) => {
-        qualityValue.textContent = e.target.value + '%';
-        if (originalImageObj) {
-            compressImage();
-        }
-    });
-
-    function handleFile(file) {
-        if (!file.type.match(/image\/(jpeg|png|webp)/)) {
-            alert('Please upload a valid JPEG, PNG, or WEBP image.');
-            return;
-        }
-
+    const handleFile = (file) => {
         originalFile = file;
         originalSize.textContent = formatBytes(file.size);
-        
         const reader = new FileReader();
         reader.onload = (e) => {
             originalPreview.src = e.target.result;
-            
-            // Create Image object for canvas rendering
             originalImageObj = new Image();
             originalImageObj.onload = () => {
-                uploadArea.classList.add('hidden');
-                editorArea.classList.remove('hidden');
+                uploadArea.classList.add('d-none');
+                editorArea.classList.remove('d-none');
                 compressImage();
             };
             originalImageObj.src = e.target.result;
         };
         reader.readAsDataURL(file);
-    }
+    };
 
-    function compressImage() {
+    qualitySlider.addEventListener('input', (e) => {
+        qualityValue.textContent = e.target.value + '%';
+        compressImage();
+    });
+
+    const compressImage = () => {
         const quality = parseInt(qualitySlider.value) / 100;
-        
         const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
         canvas.width = originalImageObj.width;
         canvas.height = originalImageObj.height;
+        const ctx = canvas.getContext('2d');
         
-        // Fill white background for transparent PNG to JPEG conversion (optional, but good for uniform output)
         if (originalFile.type === 'image/png' || originalFile.type === 'image/webp') {
-             // For simplicity, we just keep their transparency and output as WebP if possible, or force JPEG.
-             // We'll output as JPEG by default for best compression, filling background with white
-             ctx.fillStyle = "#FFFFFF";
+             ctx.fillStyle = "#000000";
              ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
-        
-        ctx.drawImage(originalImageObj, 0, 0, canvas.width, canvas.height);
-        
-        // Re-use object URL to prevent memory leaks
-        if (compressedBlobUrl) URL.revokeObjectURL(compressedBlobUrl);
+        ctx.drawImage(originalImageObj, 0, 0);
 
-        // Compress
+        if (compressedBlobUrl) URL.revokeObjectURL(compressedBlobUrl);
         canvas.toBlob((blob) => {
             compressedBlobUrl = URL.createObjectURL(blob);
             compressedPreview.src = compressedBlobUrl;
             compressedSize.textContent = formatBytes(blob.size);
-            
-            // Calculate savings
             const savings = ((originalFile.size - blob.size) / originalFile.size) * 100;
-            if (savings > 0) {
-                savingsBadge.textContent = '-' + savings.toFixed(1) + '%';
-                savingsBadge.classList.replace('bg-error', 'bg-success');
-                savingsBadge.classList.replace('text-error-content', 'text-success-content');
-            } else {
-                savingsBadge.textContent = '+' + Math.abs(savings).toFixed(1) + '%';
-                savingsBadge.classList.replace('bg-success', 'bg-error');
-                savingsBadge.classList.replace('text-success-content', 'text-error-content');
-            }
-
-            // Setup download
-            downloadBtn.onclick = () => {
-                const a = document.createElement('a');
-                a.href = compressedBlobUrl;
-                
-                // Output is always JPEG due to canvas.toBlob type
-                let ext = 'jpg';
-
-                let nameWithoutExt = originalFile.name.substring(0, originalFile.name.lastIndexOf('.')) || originalFile.name;
-                a.download = `${nameWithoutExt}-compressed.${ext}`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            };
-
+            savingsBadge.textContent = (savings > 0 ? '-' : '+') + Math.abs(savings).toFixed(1) + '%';
+            savingsBadge.className = `savings-badge ${savings > 0 ? 'bg-success text-dark' : 'bg-danger text-white'}`;
         }, 'image/jpeg', quality);
-    }
+    };
+
+    downloadBtn.onclick = () => {
+        const a = document.createElement('a');
+        a.href = compressedBlobUrl;
+        a.download = `optimized_${originalFile.name.split('.')[0]}.jpg`;
+        a.click();
+    };
+
+    resetBtn.addEventListener('click', () => location.reload());
 });
 </script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Lossless Lens Compressor</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-primary me-2"></i> High Performance</h3>
+            <p class="text-theme-muted">Studio-grade visual optimization reducing size with absolute zero quality loss.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-primary me-2"></i> Secure & Private</h3>
+            <p class="text-theme-muted">Engineered by StoryBrain AI to ensure your data remains completely private. Zero server-side logging for total peace of mind.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-primary me-2"></i> WebP Optimization</h3>
+            <p class="text-theme-muted">Optimized specifically for high-speed webp optimization natively in your browser using modern Web APIs.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-primary me-2"></i> Bandwidth Saving</h3>
+            <p class="text-theme-muted">Leveraging advanced techniques in bandwidth saving to deliver precision results every single time.</p>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

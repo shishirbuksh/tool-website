@@ -1,173 +1,225 @@
 {% extends "base.html" %}
 
-{% block title %}Base64 Tool | StoryBrain AI{% endblock %}
+{% block title %}Base64 Encode/Decode | StoryBrain AI{% endblock %}
+{% block meta_description %}Free, ultra-fast Base64 Encode/Decode natively in your browser. Engineered for privacy and precision by StoryBrain AI.{% endblock %}
 
-{% block content %}
-<!-- Back breadcrumb -->
-<div class="mb-6 animate-fade-in-up">
-    <a href="/" class="inline-flex items-center gap-2 text-sm font-medium text-base-content/50 hover:text-primary transition-colors duration-200">
-        <i class="fa-solid fa-arrow-left text-xs"></i> All Tools
-    </a>
-</div>
-<div class="max-w-5xl mx-auto animate-fade-in-up px-2 sm:px-0">
-    <!-- Header -->
-    <div class="text-center mb-8 md:mb-12">
-        <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 flex items-center justify-center gap-2 sm:gap-3">
-            <i class="fa-solid fa-code text-success"></i> Base64 Tool
-        </h1>
-        <p class="text-sm sm:text-base md:text-lg opacity-80 px-4">Easily encode string to Base64 or decode Base64 back to string.</p>
-    </div>
 
-    <!-- Tabs -->
-    <div role="tablist" class="tabs tabs-boxed mb-6 sm:mb-8 w-full max-w-xs mx-auto p-1 bg-base-300">
-        <a role="tab" class="tab w-1/2 tab-active transition-all font-semibold text-xs sm:text-sm" id="tabEncode" onclick="switchMode('encode')">Encode</a>
-        <a role="tab" class="tab w-1/2 transition-all font-semibold text-xs sm:text-sm" id="tabDecode" onclick="switchMode('decode')">Decode</a>
-    </div>
+{% block head %}
+<style>
+    .mode-pill {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 99px;
+        padding: 0.5rem;
+        display: inline-flex;
+        gap: 0.5rem;
+    }
+    .mode-btn {
+        padding: 0.5rem 2rem;
+        border-radius: 99px;
+        border: none;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.5);
+        font-weight: 800;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .mode-btn.active {
+        background: var(--sb-accent);
+        color: #000;
+        box-shadow: 0 4px 15px rgba(var(--sb-accent-rgb), 0.3);
+    }
+    .base64-pane {
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        color: #fff !important;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        resize: none;
+        transition: all 0.3s ease;
+    }
+    .base64-pane:focus {
+        border-color: var(--sb-accent) !important;
+        box-shadow: 0 0 0 0.25rem rgba(var(--sb-accent-rgb), 0.1) !important;
+    }
+    .res-box {
+        background: #080808;
+        min-height: 250px;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--sb-accent);
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+        box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+    }
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-        
-        <!-- Input Side -->
-        <div class="card bg-base-100 shadow-xl border border-base-300">
-            <div class="card-body p-4 sm:p-6 lg:p-8">
-                <div class="flex justify-between items-center mb-2 sm:mb-4">
-                    <h2 class="card-title text-base sm:text-lg justify-center text-center w-full" id="inputTitle">Input Text</h2>
-                    <button class="btn btn-xs sm:btn-sm btn-ghost" onclick="document.getElementById('inputText').value=''">
-                        <i class="fa-solid fa-eraser"></i> Clear
-                    </button>
-                </div>
-                <textarea id="inputText" class="textarea textarea-bordered h-40 sm:h-56 focus:textarea-success font-mono text-sm sm:text-base transition-colors leading-relaxed" placeholder="Type something..."></textarea>
-                
-                <div class="mt-4">
-                    <button class="btn btn-success w-full shadow-lg shadow-success/30 h-12 sm:h-14 text-base sm:text-lg" onclick="processText()">
-                        <i class="fa-solid fa-bolt mr-2"></i> <span id="btnText">Execute Process</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Output Side -->
-        <div class="card bg-base-100 shadow-xl border border-base-300 relative overflow-hidden transition-all duration-300" id="outputCard">
-            <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-success/10 rounded-full blur-2xl pointer-events-none hidden sm:block"></div>
-            <div class="card-body p-4 sm:p-6 lg:p-8 z-10 flex flex-col h-full">
-                <div class="flex justify-between items-center mb-2 sm:mb-4">
-                    <h2 class="card-title text-base sm:text-lg justify-center text-center w-full">Result</h2>
-                    <button class="btn btn-xs sm:btn-sm btn-outline btn-success" onclick="copyResult()">
-                        <i class="fa-regular fa-copy copy-icon"></i> Copy
-                    </button>
-                </div>
-                
-                <div id="outputText" class="bg-base-300 p-3 sm:p-4 rounded-xl flex-grow min-h-[160px] sm:min-h-[224px] font-mono text-sm sm:text-base overflow-auto whitespace-pre-wrap break-all text-success select-all relative"></div>
-                
-                <div id="errorBox" class="text-error text-sm mt-3 hidden bg-error/10 p-3 rounded-lg border border-error/30 font-semibold text-center w-full shadow-inner animate-fade-in-up"></div>
-            </div>
-        </div>
-
-    </div>
-</div>
+    /* Mobile Responsive Injection */
+    @media (max-width: 768px) {
+        .display-3, .display-4, .hero-title { font-size: 2.25rem !important; }
+        .glass-card { padding: 1.5rem !important; }
+        .row.g-4 { gap: 1rem !important; }
+        .metrics-grid, .grid-layout { grid-template-columns: 1fr !important; }
+    }
+</style>
 {% endblock %}
 
-{% block scripts %}
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-xl mx-auto reveal">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <div class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-20 px-4 py-2 mb-3">
+            <i class="fa-solid fa-code me-2"></i> Developer Suite
+        </div>
+        <h1 class="h2 fw-black mb-1">BASE64 <span class="gradient-text">MORPH</span></h1>
+        <p class="text-white-50 small text-uppercase tracking-widest fw-bold">Instant Stream Encoding & Decoding</p>
+    </div>
+
+    <!-- Mode Selector -->
+    <div class="text-center mb-5">
+        <div class="mode-pill">
+            <button class="mode-btn active" id="tabEncode" onclick="switchMode('encode')">Encode</button>
+            <button class="mode-btn" id="tabDecode" onclick="switchMode('decode')">Decode</button>
+        </div>
+    </div>
+
+    <div class="row g-4 g-lg-5">
+        <!-- Input -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100 flex-column d-flex">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <label class="small fw-black tracking-widest text-white-50 text-uppercase" id="inputTitle">PLAIN TEXT</label>
+                    <button class="btn btn-link btn-sm text-danger text-decoration-none p-0" onclick="document.getElementById('inputText').value=''">
+                        <i class="fa-solid fa-eraser me-1"></i> CLEAR
+                    </button>
+                </div>
+                <textarea id="inputText" class="form-control base64-pane flex-grow-1" rows="10" placeholder="Type or paste content..." style="min-height: 300px;"></textarea>
+                
+                <button onclick="processText()" class="btn-premium w-100 py-3 fw-black rounded-3 mt-4 shadow-sm" id="processBtn">
+                    <i class="fa-solid fa-bolt me-2"></i> ENCODE TO BASE64
+                </button>
+            </div>
+        </div>
+
+        <!-- Output -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 h-100 flex-column d-flex">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <label class="small fw-black tracking-widest text-white-50 text-uppercase">RESULT</label>
+                    <button class="btn-premium btn-sm px-3 rounded-pill fw-bold" id="copyBtn" onclick="copyResult()">
+                        <i class="fa-regular fa-copy me-1"></i> COPY
+                    </button>
+                </div>
+                <div id="outputText" class="res-box flex-grow-1"></div>
+                <div id="errorBox" class="d-none mt-3 p-3 bg-danger bg-opacity-10 border border-danger border-opacity-20 rounded-3 text-danger small fw-bold text-center"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-let mode = 'encode'; // 'encode' or 'decode'
+let mode = 'encode';
 
 function switchMode(newMode) {
-    if(mode === newMode) return;
+    if (mode === newMode) return;
     mode = newMode;
-    
-    document.getElementById('tabEncode').classList.toggle('tab-active', mode === 'encode');
-    document.getElementById('tabDecode').classList.toggle('tab-active', mode === 'decode');
-    
-    document.getElementById('inputTitle').innerText = mode === 'encode' ? 'Plain Text Input' : 'Base64 Input';
+    document.getElementById('tabEncode').classList.toggle('active', mode === 'encode');
+    document.getElementById('tabDecode').classList.toggle('active', mode === 'decode');
+    document.getElementById('inputTitle').innerText = mode === 'encode' ? 'PLAIN TEXT' : 'BASE64 INPUT';
     document.getElementById('inputText').placeholder = mode === 'encode' ? 'Type text to encode...' : 'Paste Base64 string to decode...';
-    document.getElementById('btnText').innerText = mode === 'encode' ? 'Encode to Base64' : 'Decode Base64';
-    
+    document.getElementById('processBtn').innerHTML = `<i class="fa-solid fa-bolt me-2"></i> ${mode === 'encode' ? 'ENCODE TO BASE64' : 'DECODE BASE64'}`;
     document.getElementById('outputText').innerText = '';
     document.getElementById('errorBox').classList.add('hidden');
-    document.getElementById('outputCard').classList.remove('shadow-error/20', 'border-error/30');
-    
-    // Quick focus
-    if(window.innerWidth > 768) {
-        document.getElementById('inputText').focus();
-    }
 }
-
-// Initial state
-document.addEventListener('DOMContentLoaded', () => {
-    switchMode('encode');
-});
 
 async function processText() {
     const text = document.getElementById('inputText').value;
     const errBox = document.getElementById('errorBox');
     const outBox = document.getElementById('outputText');
-    const outCard = document.getElementById('outputCard');
-    
-    if(!text) {
-        errBox.innerText = 'Input cannot be empty.';
+
+    if (!text) {
+        errBox.innerText = 'INPUT CANNOT BE EMPTY';
         errBox.classList.remove('hidden');
-        outBox.innerText = '';
         return;
     }
     errBox.classList.add('hidden');
 
     const endpoint = mode === 'encode' ? '/api/base64-encode' : '/api/base64-decode';
-    
+
     try {
-        const formData = new FormData();
-        formData.append('text', text);
-
-        const res = await fetch(endpoint, {
-            method: 'POST',
-            body: formData
-        });
-
+        const form = new FormData();
+        form.append('text', text);
+        const res = await fetch(endpoint, { method: 'POST', body: form });
         const data = await res.json();
-        
-        if(data.error) {
+
+        if (data.error) {
             errBox.innerText = data.error;
             errBox.classList.remove('hidden');
-            outBox.innerText = '-- Invalid Input --';
-            outCard.classList.remove('shadow-success/20');
-            outCard.classList.add('shadow-error/20', 'border-error/30');
+            outBox.innerText = '-- INVALID DATA --';
         } else {
             outBox.innerText = data.result;
-            // Animation
-            outCard.classList.remove('shadow-error/20', 'border-error/30');
-            outCard.classList.add('scale-[1.01]', 'shadow-success/30');
-            setTimeout(() => outCard.classList.remove('scale-[1.01]', 'shadow-success/30'), 200);
-            
-            // Auto scroll on mobile
-            if(window.innerWidth < 1024) {
-               setTimeout(() => {
-                   window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-               }, 100);
+            if (window.innerWidth < 1024) {
+                setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
             }
         }
-    } catch(err) {
-        errBox.innerText = 'Server error occurred.';
+    } catch (err) {
+        errBox.innerText = 'SERVER ERROR';
         errBox.classList.remove('hidden');
     }
 }
 
 function copyResult() {
     const text = document.getElementById('outputText').innerText;
-    if(text && text !== '-- Invalid Input --') {
-        navigator.clipboard.writeText(text);
-        const btn = event.currentTarget.querySelector('.copy-icon');
-        btn.classList.replace('fa-regular', 'fa-solid');
-        btn.classList.replace('fa-copy', 'fa-check');
-        
-        const originalText = event.currentTarget.innerHTML;
-        event.currentTarget.innerHTML = `<i class="fa-solid fa-check mr-1"></i> Copied!`;
-        event.currentTarget.classList.add('btn-success', 'text-success-content');
-        event.currentTarget.classList.remove('btn-outline');
-        
-        setTimeout(() => {
-            event.currentTarget.innerHTML = `<i class="fa-regular fa-copy copy-icon"></i> Copy`;
-            event.currentTarget.classList.remove('btn-success', 'text-success-content');
-            event.currentTarget.classList.add('btn-outline');
-        }, 1500);
-    }
+    if (!text || text === '-- INVALID DATA --') return;
+    navigator.clipboard.writeText(text);
+    const btn = document.getElementById('copyBtn');
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> COPIED';
+    btn.classList.replace('btn-premium', 'btn-success');
+    setTimeout(() => {
+        btn.innerHTML = original;
+        btn.classList.replace('btn-success', 'btn-premium');
+    }, 1500);
 }
+
+document.addEventListener('DOMContentLoaded', () => switchMode('encode'));
 </script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Base64 Encode/Decode Terminal</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-primary me-2"></i> High Performance</h3>
+            <p class="text-theme-muted">Rapidly encode or decode strings and files into raw Base64 logic arrays.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-primary me-2"></i> Secure & Private</h3>
+            <p class="text-theme-muted">Engineered by StoryBrain AI to ensure your data remains completely private. Zero server-side logging for total peace of mind.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-primary me-2"></i> Data Encoding</h3>
+            <p class="text-theme-muted">Optimized specifically for high-speed data encoding natively in your browser using modern Web APIs.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-primary me-2"></i> Binary Transformation</h3>
+            <p class="text-theme-muted">Leveraging advanced techniques in binary transformation to deliver precision results every single time.</p>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

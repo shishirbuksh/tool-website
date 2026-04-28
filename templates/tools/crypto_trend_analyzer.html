@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+
+{% block title %}AI Crypto Trend Analyzer | StoryBrain AI{% endblock %}
+{% block meta_description %}Free, ultra-fast AI Crypto Trend Analyzer natively in your browser. Engineered for privacy and precision by StoryBrain AI.{% endblock %}
+
+
+{% block head %}
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<style>
+    @keyframes cursorBlink {
+        0% { opacity: 0; }
+        50% { opacity: 1; }
+        100% { opacity: 0; }
+    }
+    .term-cursor {
+        display: inline-block;
+        width: 8px;
+        height: 1.2em;
+        background: var(--bs-success);
+        vertical-align: middle;
+        animation: cursorBlink 1s infinite;
+    }
+    .terminal-window {
+        background: rgba(0, 0, 0, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 1.5rem;
+        padding: 2rem;
+        font-family: 'JetBrains Mono', monospace;
+        color: #00ff41;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+    .verdict-glow {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at center, var(--sb-accent) 0%, transparent 70%);
+        opacity: 0.1;
+        filter: blur(60px);
+        pointer-events: none;
+    }
+    .stat-bento {
+        border-left: 4px solid var(--sb-accent);
+        transition: all 0.3s ease;
+    }
+    .stat-bento:hover {
+        background: rgba(255, 255, 255, 0.03);
+        transform: translateY(-2px);
+    }
+
+    /* Mobile Responsive Injection */
+    @media (max-width: 768px) {
+        .display-3, .display-4, .hero-title { font-size: 2.25rem !important; }
+        .glass-card { padding: 1.5rem !important; }
+        .row.g-4 { gap: 1rem !important; }
+        .metrics-grid, .grid-layout { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back & Status -->
+<div class="d-flex justify-content-between align-items-center mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+    <div class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-20 px-3 py-2">
+        <span class="spinner-grow spinner-grow-sm me-2" style="width: 8px; height: 8px;"></span> SYSTEM: ONLINE
+    </div>
+</div>
+
+<div class="container-xxl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 mb-4">
+            <i class="fa-solid fa-bolt-lightning me-2"></i> Quantum Intelligence
+        </div>
+        <h1 class="display-3 fw-black mb-3">TREND <span class="gradient-text">ENGINE</span></h1>
+        <p class="text-white-50 fs-5 mx-auto" style="max-width: 750px;">
+            High-fidelity predictive analytics powered by a <span class="text-white">hybrid neural-statistical matrix</span>.
+        </p>
+    </div>
+
+    <!-- Controls -->
+    <div class="glass-card p-2 p-md-3 mb-5 reveal" style="animation-delay: 0.2s;">
+        <form id="analyzeForm" class="row g-2">
+            <div class="col-md">
+                <div class="input-group input-group-lg h-100">
+                    <span class="input-group-text bg-white bg-opacity-5 border-white border-opacity-10 text-white-50 px-4">
+                        <i class="fa-brands fa-bitcoin fs-4"></i>
+                    </span>
+                    <select id="symbolInput" class="form-select bg-white bg-opacity-5 border-white border-opacity-10 text-white fw-black h-100 py-3" required>
+                        <option value="BTC-USD">BTC / USD</option>
+                        <option value="ETH-USD">ETH / USD</option>
+                        <option value="SOL-USD">SOL / USD</option>
+                        <option value="BNB-USD">BNB / USD</option>
+                        <option value="XRP-USD">XRP / USD</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" id="analyzeBtn" class="btn btn-premium h-100 px-5 py-3 fw-black">
+                    INITIALIZE ANALYSIS
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Terminal Loader -->
+    <div id="loadingState" class="d-none my-5 container-sm mx-auto reveal">
+        <div class="terminal-window">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-white border-opacity-10">
+                <div class="d-flex gap-2">
+                    <span class="rounded-circle bg-danger" style="width: 10px; height: 10px;"></span>
+                    <span class="rounded-circle bg-warning" style="width: 10px; height: 10px;"></span>
+                    <span class="rounded-circle bg-success" style="width: 10px; height: 10px;"></span>
+                </div>
+                <span class="small fw-black text-white-50 tracking-widest text-uppercase">Matrix Core v4.0</span>
+            </div>
+            <div id="terminalOutput" class="small overflow-d-none" style="min-height: 150px;">
+                <!-- Lines inject here -->
+            </div>
+            <div class="mt-3">
+                <span class="term-cursor"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="resultsPanel" class="d-none reveal">
+        <div class="row g-4 mb-4">
+            <!-- Large Verdict -->
+            <div class="col-12">
+                <div id="verdictCard" class="glass-card p-5 text-center position-relative overflow-d-none group border-primary border-opacity-40" style="min-height: 350px;">
+                    <div id="verdictGlow" class="verdict-glow"></div>
+                    <div class="position-relative z-1">
+                        <span class="small fw-black text-white-50 tracking-widest text-uppercase d-block mb-4">Neural Consensus Verdict</span>
+                        <h2 id="aiVerdict" class="display-1 fw-black tracking-tighter text-uppercase mb-2">-</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bento Stats -->
+            <div class="col-md-3">
+                <div class="glass-card p-4 stat-bento h-100">
+                    <span class="small fw-black text-white-50 tracking-widest text-uppercase d-block mb-2">Tracked Asset</span>
+                    <div id="statSymbol" class="h3 fw-black mb-3">-</div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="spinner-grow spinner-grow-sm text-success"></span>
+                        <span class="small fw-bold text-white-50 text-uppercase tracking-widest">Pricing Online</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="glass-card p-4 stat-bento h-100 border-success border-opacity-40">
+                    <span class="small fw-black text-white-50 tracking-widest text-uppercase d-block mb-2">Market Price</span>
+                    <div id="statPrice" class="h3 fw-black font-mono">-</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="glass-card p-4 stat-bento h-100 border-info border-opacity-40">
+                    <span class="small fw-black text-white-50 tracking-widest text-uppercase d-block mb-2">RSI Heuristic</span>
+                    <div id="statRSI" class="h3 fw-black font-mono">-</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="glass-card p-4 stat-bento h-100 border-warning border-opacity-40">
+                    <span class="small fw-black text-white-50 tracking-widest text-uppercase d-block mb-2">Structural SMA</span>
+                    <div id="statSMA" class="h3 fw-black font-mono">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Matrix Dashboard -->
+        <div class="glass-card p-0 overflow-d-none mb-5">
+            <div class="p-4 bg-white bg-opacity-5 border-bottom border-white border-opacity-5 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="w-10 h-10 rounded-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center text-primary">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-black m-0">Market Intelligence Matrix</h5>
+                        <p class="small fw-bold text-white-50 text-uppercase tracking-widest m-0" style="font-size: 0.65rem;">Neural Output / Telemetry</p>
+                    </div>
+                </div>
+                <div class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-20 px-3 py-2">
+                    <i class="fa-solid fa-cloud-check me-2"></i> SYNCED
+                </div>
+            </div>
+            
+            <div class="p-4 p-md-5">
+                <div class="glass-card bg-black bg-opacity-40 p-4 rounded-5 mb-4 border border-white border-opacity-5">
+                    <div id="priceChart" style="min-height: 500px;"></div>
+                </div>
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="glass-card bg-black bg-opacity-40 p-3 rounded-4 border border-white border-opacity-5">
+                            <div id="rsiChart" style="min-height: 250px;"></div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="glass-card bg-black bg-opacity-40 p-3 rounded-4 border border-white border-opacity-5">
+                            <div id="macdChart" style="min-height: 250px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const analyzeForm = document.getElementById('analyzeForm');
+    const symbolInput = document.getElementById('symbolInput');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const resultsPanel = document.getElementById('resultsPanel');
+    const loadingState = document.getElementById('loadingState');
+    const terminalOutput = document.getElementById('terminalOutput');
+
+    let priceChartObj = null, rsiChartObj = null, macdChartObj = null;
+
+    const terminalLines = [
+        "Allocating memory buffers [OK]",
+        "Establishing SECURE socket to market data...",
+        "Market data retrieved gracefully.",
+        "Bootstrapping Rust MLP native extension...",
+        "Computing structural time-series (Prophet)...",
+        "Converging neural weights...",
+        "Verdict generated successfully."
+    ];
+
+    const simulateTerminal = async () => {
+        terminalOutput.innerHTML = '';
+        for (let lineText of terminalLines) {
+            const line = document.createElement('div');
+            line.className = 'mb-2 opacity-0';
+            line.innerText = `>> ${lineText}`;
+            terminalOutput.appendChild(line);
+            void line.offsetWidth;
+            line.style.transition = 'all 0.3s ease';
+            line.classList.remove('opacity-0');
+            if (terminalOutput.children.length > 6) terminalOutput.removeChild(terminalOutput.children[0]);
+            await new Promise(r => setTimeout(r, 300));
+        }
+    };
+
+    const getVerdictStyle = (v) => {
+        v = v.toLowerCase();
+        if (v.includes("strong bullish")) return "text-success bg-gradient-to-tr from-success to-emerald-400";
+        if (v.includes("bullish")) return "text-primary bg-gradient-to-tr from-primary to-info";
+        if (v.includes("bearish")) return "text-danger bg-gradient-to-tr from-danger to-warning";
+        return "text-white";
+    };
+
+    const formatMoney = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+
+    analyzeForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const symbol = symbolInput.value;
+        resultsPanel.classList.add('d-none');
+        loadingState.classList.remove('d-none');
+        analyzeBtn.disabled = true;
+
+        const termPromise = simulateTerminal();
+
+        try {
+            const resp = await fetch(`/api/analyze-crypto-trend?symbol=${encodeURIComponent(symbol)}`);
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || 'Analysis failed');
+
+            await termPromise;
+            renderResults(data);
+            loadingState.classList.add('d-none');
+            resultsPanel.classList.remove('d-none');
+        } catch (error) {
+            alert(error.message);
+            loadingState.classList.add('d-none');
+        } finally {
+            analyzeBtn.disabled = false;
+        }
+    });
+
+    const renderResults = (data) => {
+        document.getElementById('statSymbol').innerText = data.symbol;
+        document.getElementById('statPrice').innerText = formatMoney(data.current_metrics.price);
+        document.getElementById('statRSI').innerText = data.current_metrics.rsi.toFixed(2);
+        document.getElementById('statSMA').innerText = formatMoney(data.current_metrics.sma20);
+
+        const vText = document.getElementById('aiVerdict');
+        vText.innerText = data.verdict;
+        vText.className = `display-1 fw-black tracking-tighter text-uppercase mb-2 gradient-text`;
+
+        if (priceChartObj) priceChartObj.destroy();
+        if (rsiChartObj) rsiChartObj.destroy();
+        if (macdChartObj) macdChartObj.destroy();
+
+        const commonOpts = {
+            chart: { animations: { enabled: true, speed: 600 }, toolbar: { show: false }, background: 'transparent' },
+            grid: { borderColor: 'rgba(255,255,255,0.05)', strokeDashArray: 4 },
+            theme: { mode: 'dark' },
+            dataLabels: { enabled: false }
+        };
+
+        const history = data.history, preds = data.predictions;
+        const allDates = [...history.map(h => h.date), ...preds.map(p => p.date)];
+        const lastP = history[history.length-1].price;
+        const nulls = new Array(history.length-1).fill(null);
+
+        priceChartObj = new ApexCharts(document.querySelector("#priceChart"), {
+            ...commonOpts,
+            series: [
+                { name: 'Historical', type: 'area', data: history.map(h => h.price) },
+                { name: 'Prophet', type: 'line', data: [...nulls, lastP, ...preds.map(p => p.prophet_price)] },
+                { name: 'Rust Network', type: 'line', data: [...nulls, lastP, ...preds.map(p => p.rust_price)] }
+            ],
+            stroke: { width: [2, 3, 3], curve: 'smooth', dashArray: [0, 8, 8] },
+            colors: ['#0ea5e9', '#10b981', '#a855f7'],
+            xaxis: { type: 'datetime', labels: { style: { colors: 'rgba(255,255,255,0.4)' } } },
+            yaxis: { labels: { style: { colors: 'rgba(255,255,255,0.4)' }, formatter: v => v?v.toFixed(2):'' } },
+            labels: allDates
+        });
+
+        rsiChartObj = new ApexCharts(document.querySelector("#rsiChart"), {
+            ...commonOpts,
+            series: [{ name: 'RSI', data: history.map(h => h.rsi) }],
+            chart: { ...commonOpts.chart, type: 'line', height: 250 },
+            colors: ['#ef4444'],
+            stroke: { width: 2, curve: 'smooth' },
+            yaxis: { min: 0, max: 100, labels: { style: { colors: 'rgba(255,255,255,0.4)' } } },
+            xaxis: { type: 'datetime', labels: { show: false } },
+            annotations: { yaxis: [{ y: 30, borderColor: '#10b981' }, { y: 70, borderColor: '#ef4444' }] }
+        });
+
+        macdChartObj = new ApexCharts(document.querySelector("#macdChart"), {
+            ...commonOpts,
+            series: [
+                { name: 'Histogram', type: 'bar', data: history.map(h => h.macd_hist) },
+                { name: 'MACD', type: 'line', data: history.map(h => h.macd) }
+            ],
+            chart: { ...commonOpts.chart, height: 250 },
+            colors: ['#8b5cf6', '#3b82f6'],
+            xaxis: { type: 'datetime', labels: { show: false } },
+            yaxis: { labels: { style: { colors: 'rgba(255,255,255,0.4)' } } }
+        });
+
+        priceChartObj.render();
+        rsiChartObj.render();
+        macdChartObj.render();
+    };
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Crypto Trend Sentiment Analyzer</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-primary me-2"></i> High Performance</h3>
+            <p class="text-theme-muted">Real-time sentiment parsing and momentum scoring using DeepSeek linguistic logic.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-primary me-2"></i> Secure & Private</h3>
+            <p class="text-theme-muted">Engineered by StoryBrain AI to ensure your data remains completely private. Zero server-side logging for total peace of mind.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-primary me-2"></i> Momentum AI</h3>
+            <p class="text-theme-muted">Optimized specifically for high-speed momentum ai natively in your browser using modern Web APIs.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-primary me-2"></i> Pattern Recognition</h3>
+            <p class="text-theme-muted">Leveraging advanced techniques in pattern recognition to deliver precision results every single time.</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

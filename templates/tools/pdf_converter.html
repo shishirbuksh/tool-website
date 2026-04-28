@@ -1,68 +1,162 @@
 {% extends "base.html" %}
 
 {% block title %}PDF Converter Tool | StoryBrain AI{% endblock %}
+{% block meta_description %}Free, ultra-fast PDF Converter Tool natively in your browser. Engineered for privacy and precision by StoryBrain AI.{% endblock %}
+
+
+{% block head %}
+<style>
+    .upload-chamber {
+        background: rgba(255, 255, 255, 0.03);
+        border: 2px dashed rgba(255, 255, 255, 0.1);
+        border-radius: 2.5rem;
+        padding: 4rem 2rem;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+    .upload-chamber:hover {
+        background: rgba(var(--sb-error-rgb), 0.05);
+        border-color: var(--sb-error);
+        transform: translateY(-5px);
+    }
+    .upload-chamber.drag-over {
+        background: rgba(var(--sb-error-rgb), 0.1);
+        border-color: var(--sb-error);
+        box-shadow: 0 0 30px rgba(var(--sb-error-rgb), 0.2);
+    }
+    .file-preview {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 1.5rem;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        animation: slideInUp 0.4s ease-out;
+    }
+    .file-icon-box {
+        width: 48px;
+        height: 48px;
+        background: rgba(var(--sb-error-rgb), 0.15);
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--sb-error);
+    }
+    .btn-pdf {
+        background: var(--sb-error);
+        border: none;
+        color: #fff;
+        font-weight: 800;
+        padding: 1rem 3rem;
+        border-radius: 1rem;
+        box-shadow: 0 10px 25px rgba(var(--sb-error-rgb), 0.3);
+        transition: all 0.3s ease;
+    }
+    .btn-pdf:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 30px rgba(var(--sb-error-rgb), 0.4);
+        background: #ff5252;
+    }
+    .btn-pdf:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+    .pulse-text {
+        animation: status-pulse 1.5s infinite;
+    }
+    @keyframes status-pulse {
+        0% { opacity: 0.4; }
+        50% { opacity: 1; }
+        100% { opacity: 0.4; }
+    }
+
+    /* Mobile Responsive Injection */
+    @media (max-width: 768px) {
+        .display-3, .display-4, .hero-title { font-size: 2.25rem !important; }
+        .glass-card { padding: 1.5rem !important; }
+        .row.g-4 { gap: 1rem !important; }
+        .metrics-grid, .grid-layout { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Back breadcrumb -->
-<div class="mb-6 animate-fade-in-up">
-    <a href="/" class="inline-flex items-center gap-2 text-sm font-medium text-base-content/50 hover:text-primary transition-colors duration-200">
-        <i class="fa-solid fa-arrow-left text-xs"></i> All Tools
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
     </a>
 </div>
-<div class="max-w-4xl mx-auto animate-fade-in-up px-2 sm:px-0">
+
+<div class="container-md mx-auto reveal">
     <!-- Header -->
-    <div class="text-center mb-8 md:mb-12">
-        <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-3 flex items-center justify-center gap-2 sm:gap-3">
-            <i class="fa-solid fa-file-pdf text-error"></i> PDF Converter
-        </h1>
-        <p class="text-sm sm:text-base md:text-lg opacity-80 px-4">Convert images (.png, .jpg, .webp) or text files (.txt) to PDF instantly.</p>
+    <div class="text-center mb-5">
+        <div class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-20 px-4 py-2 mb-3">
+            <i class="fa-solid fa-file-pdf me-2"></i> Document Engine
+        </div>
+        <h1 class="h2 fw-black mb-1">PDF <span class="gradient-text">CONVERT</span> PRO</h1>
+        <p class="text-white-50 small text-uppercase tracking-widest fw-bold">Instant Format Synthesis</p>
     </div>
 
-    <div class="card bg-base-100 shadow-xl border border-base-300">
-        <div class="card-body p-6 lg:p-10 text-center">
-            
-            <div id="dropZone" class="border-2 border-dashed border-base-300 rounded-2xl p-8 sm:p-12 mb-6 cursor-pointer hover:border-primary transition-colors duration-300 flex flex-col items-center justify-center relative bg-base-200/50" onclick="document.getElementById('fileInput').click()">
-                <i class="fa-solid fa-cloud-arrow-up text-4xl sm:text-6xl text-primary/70 mb-4"></i>
-                <h3 class="text-lg sm:text-xl font-bold mb-2">Click or Drag & Drop File</h3>
-                <p class="text-sm hover:text-primary transition-colors duration-300 opacity-70">Supports JPG, PNG, WEBP, BMP, and TXT files (Max 10MB)</p>
+    <!-- Workspace -->
+    <div class="glass-card p-4 p-md-5 rounded-5 overflow-d-none">
+        <div class="text-center position-relative">
+            <!-- Upload Chamber -->
+            <div id="dropZone" class="upload-chamber mb-4" onclick="document.getElementById('fileInput').click()">
+                <div class="position-absolute top-0 start-0 w-100 h-100 bg-danger opacity-5 blur-3xl rounded-circle" style="transform: translate(-30%, -30%);"></div>
                 
-                <input type="file" id="fileInput" class="hidden" accept=".jpg,.jpeg,.png,.webp,.bmp,.txt" onchange="handleFileSelect(event)">
+                <div class="bg-danger bg-opacity-10 rounded-4 p-4 d-inline-block mb-4">
+                    <i class="fa-solid fa-cloud-arrow-up h1 text-danger mb-0"></i>
+                </div>
+                <h3 class="fw-black mb-2">SYNTHESIZE FILE</h3>
+                <p class="text-white-50 small text-uppercase tracking-widest fw-bold mb-0">DRAG & DROP IMAGES OR TEXT</p>
+                <div class="mt-3">
+                    <span class="badge bg-white bg-opacity-5 text-white-50 border border-white border-opacity-10 px-3 py-2 rounded-pill">PNG / JPG / WEBP / TXT</span>
+                </div>
+                
+                <input type="file" id="fileInput" class="d-none" accept=".jpg,.jpeg,.png,.webp,.bmp,.txt" onchange="handleFileSelect(event)">
             </div>
-            
-            <!-- File Info Preview -->
-            <div id="fileInfo" class="hidden mb-6 bg-base-200 rounded-lg p-4 flex items-center justify-between border border-base-300 shadow-inner">
-                <div class="flex items-center gap-3 overflow-hidden">
-                    <i class="fa-solid fa-file-lines text-2xl text-primary"></i>
-                    <div class="text-left truncate">
-                        <p id="fileName" class="font-bold text-sm sm:text-base truncate"></p>
-                        <p id="fileSize" class="text-xs opacity-70"></p>
+
+            <!-- File Preview -->
+            <div id="fileInfo" class="d-none file-preview">
+                <div class="d-flex align-items-center gap-3 overflow-d-none">
+                    <div class="file-icon-box">
+                        <i class="fa-solid fa-file-pdf h4 mb-0"></i>
+                    </div>
+                    <div class="text-start truncate">
+                        <div id="fileName" class="fw-black text-white small truncate mb-0">FILENAME.PDF</div>
+                        <div id="fileSize" class="font-monospace text-white-50" style="font-size: 0.7rem;">0.00 KB</div>
                     </div>
                 </div>
-                <button class="btn btn-sm btn-ghost text-error" onclick="clearFile(event)" aria-label="Remove File">
-                    <i class="fa-solid fa-xmark"></i>
+                <button class="btn btn-link text-danger p-0" onclick="clearFile(event)">
+                    <i class="fa-solid fa-circle-xmark h4 mb-0"></i>
                 </button>
             </div>
 
-            <!-- Error Box -->
-            <div id="errorBox" class="text-error text-sm mb-4 hidden bg-error/10 p-3 rounded-lg border border-error/30 font-semibold text-center shadow-inner animate-fade-in-up"></div>
-            
-            <!-- Convert Button -->
-            <button id="convertBtn" class="btn btn-error w-full sm:w-auto sm:px-12 h-14 text-lg shadow-lg shadow-error/30 btn-disabled transition-all" onclick="processConversion()">
-                <i class="fa-solid fa-file-export mr-2"></i> Convert to PDF
-            </button>
+            <!-- Error Notification -->
+            <div id="errorBox" class="d-none p-3 bg-danger bg-opacity-10 border border-danger border-opacity-20 rounded-4 text-danger small fw-bold mb-4"></div>
 
-            <!-- Loading Spinner (Hidden initially) -->
-            <div id="loadingIndicator" class="hidden flex-col items-center justify-center mt-6 text-primary">
-                <span class="loading loading-spinner loading-lg mb-2"></span>
-                <p class="text-sm font-semibold animate-pulse">Converting your file...</p>
+            <!-- Actions -->
+            <div class="text-center">
+                <button id="convertBtn" class="btn btn-pdf disabled" onclick="processConversion()">
+                    <i class="fa-solid fa-file-export me-2"></i> CONVERT TO PDF
+                </button>
+
+                <div id="loadingIndicator" class="d-none flex-column align-items-center mt-4">
+                    <div class="spinner-border text-danger mb-3" role="status"></div>
+                    <div class="small fw-black tracking-widest text-danger pulse-text">SYNTHESIZING DOCUMENT...</div>
+                </div>
             </div>
-
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
@@ -75,42 +169,33 @@
 
     let currentFile = null;
 
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, preventDefaults, false);
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
+        dropZone.addEventListener(e, (ev) => { ev.preventDefault(); ev.stopPropagation(); }, false);
     });
 
-    function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => dropZone.classList.add('border-primary', 'bg-primary/5'), false);
+    ['dragenter', 'dragover'].forEach(e => {
+        dropZone.addEventListener(e, () => dropZone.classList.add('drag-over'), false);
     });
 
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-primary', 'bg-primary/5'), false);
+    ['dragleave', 'drop'].forEach(e => {
+        dropZone.addEventListener(e, () => dropZone.classList.remove('drag-over'), false);
     });
 
     dropZone.addEventListener('drop', (e) => {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        if (files.length) handleFiles(files[0]);
-    }, false);
+        if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files[0]);
+    });
 
     function handleFileSelect(e) {
-        if (e.target.files.length) {
-            handleFiles(e.target.files[0]);
-        }
+        if (e.target.files.length) handleFiles(e.target.files[0]);
     }
 
     function handleFiles(file) {
         currentFile = file;
-        fileName.innerText = file.name;
+        fileName.innerText = file.name.toUpperCase();
         fileSize.innerText = formatBytes(file.size);
         fileInfo.classList.remove('hidden');
         dropZone.classList.add('hidden');
-        convertBtn.classList.remove('btn-disabled');
+        convertBtn.classList.remove('disabled');
         errorBox.classList.add('hidden');
     }
 
@@ -120,16 +205,15 @@
         fileInput.value = '';
         fileInfo.classList.add('hidden');
         dropZone.classList.remove('hidden');
-        convertBtn.classList.add('btn-disabled');
+        convertBtn.classList.add('disabled');
     }
 
-    function formatBytes(bytes, decimals = 2) {
-        if (!+bytes) return '0 Bytes';
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 Bytes';
         const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+        const sizes = ['BYTES', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
     async function processConversion() {
@@ -138,7 +222,7 @@
         errorBox.classList.add('hidden');
         convertBtn.classList.add('hidden');
         loadingIndicator.classList.remove('hidden');
-        loadingIndicator.classList.add('flex');
+        loadingIndicator.classList.add('d-flex');
 
         const formData = new FormData();
         formData.append('file', currentFile);
@@ -149,55 +233,60 @@
                 body: formData
             });
 
-            if(!response.ok) {
-                const errText = await response.text();
-                throw new Error(errText || "Conversion failed on the server.");
-            }
+            if(!response.ok) throw new Error("Conversion failed.");
 
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.style.display = 'none';
             a.href = url;
-            
-            let downloadFilename = `converted_${currentFile.name}.pdf`;
-            const disposition = response.headers.get('content-disposition');
-            if (disposition && disposition.indexOf('attachment') !== -1) {
-                const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
-                if (matches != null && matches[1]) { 
-                    downloadFilename = matches[1].replace(/['"]/g, '');
-                }
-            }
-
-            a.download = downloadFilename;
+            a.download = `converted_${currentFile.name}.pdf`;
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
             
             setTimeout(() => {
                 clearFile();
-                loadingIndicator.classList.remove('flex');
                 loadingIndicator.classList.add('hidden');
                 convertBtn.classList.remove('hidden');
-                
-                convertBtn.innerHTML = `<i class="fa-solid fa-check mr-2"></i> Downloaded!`;
-                convertBtn.classList.add('btn-success');
-                convertBtn.classList.remove('btn-error');
-                
+                const oldContent = convertBtn.innerHTML;
+                convertBtn.innerHTML = `<i class="fa-solid fa-check me-2"></i> DOWNLOADED`;
+                convertBtn.classList.replace('btn-pdf', 'btn-success');
                 setTimeout(() => {
-                    convertBtn.innerHTML = `<i class="fa-solid fa-file-export mr-2"></i> Convert to PDF`;
-                    convertBtn.classList.remove('btn-success');
-                    convertBtn.classList.add('btn-error');
+                    convertBtn.innerHTML = oldContent;
+                    convertBtn.classList.replace('btn-success', 'btn-pdf');
                 }, 3000);
             }, 500);
 
         } catch (error) {
-            errorBox.innerText = error.message;
+            errorBox.innerText = error.message.toUpperCase();
             errorBox.classList.remove('hidden');
-            loadingIndicator.classList.remove('flex');
             loadingIndicator.classList.add('hidden');
             convertBtn.classList.remove('hidden');
         }
     }
 </script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the PDF Document Matrix</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-primary me-2"></i> High Performance</h3>
+            <p class="text-theme-muted">Compile, convert, and manage document formats seamlessly within your browser.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-primary me-2"></i> Secure & Private</h3>
+            <p class="text-theme-muted">Engineered by StoryBrain AI to ensure your data remains completely private. Zero server-side logging for total peace of mind.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-primary me-2"></i> Format Assembly</h3>
+            <p class="text-theme-muted">Optimized specifically for high-speed format assembly natively in your browser using modern Web APIs.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-primary me-2"></i> Document Control</h3>
+            <p class="text-theme-muted">Leveraging advanced techniques in document control to deliver precision results every single time.</p>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

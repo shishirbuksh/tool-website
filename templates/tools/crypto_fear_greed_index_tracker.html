@@ -1,370 +1,299 @@
 {% extends "base.html" %}
 
 {% block title %}Crypto Fear & Greed Index Tracker | StoryBrain AI{% endblock %}
+{% block meta_description %}Free, ultra-fast Crypto Fear & Greed Index Tracker natively in your browser. Engineered for privacy and precision by StoryBrain AI.{% endblock %}
+
 
 {% block head %}
-<!-- ApexCharts for Advanced Data Visualization -->
+<!-- ApexCharts -->
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<style>
+    .gauge-container {
+        position: relative;
+        min-height: 350px;
+    }
+    .gauge-glow {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--sb-accent);
+        filter: blur(80px);
+        opacity: 0.1;
+        pointer-events: none;
+        border-radius: 50%;
+        transition: all 1s ease;
+    }
+    .stat-comparison-card {
+        padding: 1.25rem;
+        text-align: center;
+        border-radius: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.03);
+        transition: transform 0.3s ease;
+    }
+    .stat-comparison-card:hover {
+        transform: translateY(-5px);
+        background: rgba(255, 255, 255, 0.05);
+    }
+    .insight-badge {
+        padding: 0.4rem 1rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 900;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    /* Mobile Responsive Injection */
+    @media (max-width: 768px) {
+        .display-3, .display-4, .hero-title { font-size: 2.25rem !important; }
+        .glass-card { padding: 1.5rem !important; }
+        .row.g-4 { gap: 1rem !important; }
+        .metrics-grid, .grid-layout { grid-template-columns: 1fr !important; }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="mb-6 animate-fade-in-up">
-    <a href="/" class="inline-flex items-center gap-2 text-sm font-medium text-base-content/50 hover:text-primary transition-colors duration-200">
-        <i class="fa-solid fa-arrow-left text-xs"></i> All Tools
-    </a>
+<!-- Header -->
+<div class="text-center mb-5 reveal">
+    <div class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-20 px-4 py-2 mb-4">
+        <i class="fa-solid fa-chart-line me-2"></i> Real-time Sentiment Analysis
+    </div>
+    <h1 class="display-3 fw-black mb-3">FEAR <span class="gradient-text">& GREED</span></h1>
+    <p class="text-white-50 fs-5 mx-auto" style="max-width: 750px;">
+        Advanced sentiment algorithm aggregating volatility, market momentum, and social metrics.
+    </p>
 </div>
 
-<div class="max-w-6xl mx-auto">
-    <!-- Header -->
-    <div class="text-center mb-8 md:mb-12 animate-fade-in-up">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary mb-4 shadow-inner border border-primary/20">
-            <i class="fa-solid fa-chart-line text-3xl"></i>
+<div class="row g-4 reveal" style="animation-delay: 0.2s;">
+    <!-- Left Column -->
+    <div class="col-lg-5">
+        <div class="glass-card p-4 p-md-5 mb-4 position-relative overflow-d-none">
+            <div id="gauge-glow" class="gauge-glow"></div>
+            
+            <div class="position-relative z-1 text-center">
+                <h6 class="small fw-black text-white-50 tracking-widest text-uppercase mb-4">
+                    <i class="fa-solid fa-gauge-high text-primary me-2"></i> Current Sentiment
+                </h6>
+
+                <div id="gauge-chart" class="gauge-container mb-n4"></div>
+
+                <div class="mb-4">
+                    <div id="fng-class" class="h1 fw-black text-uppercase tracking-tighter mb-0">-</div>
+                </div>
+
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-2 bg-black bg-opacity-40 border border-white border-opacity-5 rounded-4 small text-white-50 fw-bold" id="next-update">
+                    <i class="fa-regular fa-clock"></i> Next update: --:--:--
+                </div>
+            </div>
         </div>
-        <h1 class="text-3xl md:text-5xl font-extrabold mb-4 text-base-content tracking-tight">Crypto <span class="text-transparent bg-clip-text bg-gradient-to-r from-warning to-error">Fear</span> & <span class="text-transparent bg-clip-text bg-gradient-to-r from-success to-primary">Greed</span></h1>
-        <p class="text-base md:text-lg text-base-content/60 max-w-2xl mx-auto leading-relaxed">
-            Advanced sentiment analysis algorithm aggregating volatility, market momentum, social media, and dominance metrics.
-        </p>
+
+        <!-- AI Insight Widget -->
+        <div class="glass-card p-4 border-start border-primary border-4">
+            <h6 class="small fw-black text-primary tracking-widest text-uppercase mb-3">
+                <i class="fa-solid fa-wand-magic-sparkles me-2"></i> AI Market Insight
+            </h6>
+            <p id="market-insight" class="small fw-bold text-white-50 m-0 leading-base">
+                Analyzing current market sentiment and historical trends...
+            </p>
+        </div>
     </div>
 
-    <!-- Main Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in-up" style="animation-delay: 100ms">
-        
-        <!-- Left: Current Sentiment & Gauge -->
-        <div class="lg:col-span-5 flex flex-col gap-6">
-            <div class="card bg-base-100 shadow-xl border border-base-200/50 backdrop-blur-sm relative overflow-hidden group">
-                <!-- Soft glow -->
-                <div id="gauge-glow" class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none transition-colors duration-700"></div>
-                
-                <div class="card-body items-center text-center p-6 lg:p-8 relative z-10 block">
-                    <h2 class="text-lg font-bold text-base-content flex items-center gap-2 justify-center w-full mb-2">
-                        <i class="fa-solid fa-gauge-high text-primary"></i> Current Sentiment
-                    </h2>
-                    
-                    <!-- Advanced Radial Gauge from ApexCharts -->
-                    <div id="gauge-chart" class="flex justify-center -mb-8"></div>
-                    
-                    <div class="mt-4 mb-2 flex flex-col items-center">
-                        <div id="fng-class" class="text-3xl font-black tracking-widest uppercase transition-colors duration-500 min-h-[40px]">Loading...</div>
-                    </div>
-
-                    <div class="mt-4 text-sm font-medium text-base-content/50 bg-base-200/50 px-4 py-2 rounded-xl flex items-center gap-2 border border-base-200" id="next-update">
-                        <i class="fa-regular fa-clock"></i> Next update: --:--:--
-                    </div>
+    <!-- Right Column -->
+    <div class="col-lg-7">
+        <!-- Quick Comparison Stats -->
+        <div class="row g-3 mb-4">
+            <div class="col-4">
+                <div class="stat-comparison-card">
+                    <span class="small fw-black text-white-50 tracking-widest text-uppercase d-block mb-2" style="font-size: 0.6rem;">Yesterday</span>
+                    <div id="stat-yesterday-val" class="h3 fw-black font-mono mb-2">-</div>
+                    <span id="stat-yesterday-class" class="insight-badge d-inline-block">-</span>
                 </div>
             </div>
-
-            <!-- AI Market Insights Widget -->
-            <div class="card bg-gradient-to-br from-base-200/50 to-base-100 shadow-lg border border-base-200/50">
-                <div class="card-body p-6">
-                    <h3 class="text-sm font-bold uppercase tracking-wider text-base-content/50 mb-3 flex items-center gap-2">
-                        <i class="fa-solid fa-wand-magic-sparkles text-primary"></i> Market Insight
-                    </h3>
-                    <p id="market-insight" class="text-base-content/80 text-sm leading-relaxed min-h-[60px]">
-                        Analyzing current market sentiment and historical trends...
-                    </p>
+            <div class="col-4">
+                <div class="stat-comparison-card">
+                    <span class="small fw-black text-white-50 tracking-widest text-uppercase d-block mb-2" style="font-size: 0.6rem;">Last Week</span>
+                    <div id="stat-week-val" class="h3 fw-black font-mono mb-2">-</div>
+                    <span id="stat-week-class" class="insight-badge d-inline-block">-</span>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="stat-comparison-card">
+                    <span class="small fw-black text-white-50 tracking-widest text-uppercase d-block mb-2" style="font-size: 0.6rem;">Last Month</span>
+                    <div id="stat-month-val" class="h3 fw-black font-mono mb-2">-</div>
+                    <span id="stat-month-class" class="insight-badge d-inline-block">-</span>
                 </div>
             </div>
         </div>
 
-        <!-- Right: Stats & Historical Chart -->
-        <div class="lg:col-span-7 flex flex-col gap-6">
-            
-            <!-- Quick Comparison Stats -->
-            <div class="grid grid-cols-3 gap-4">
-                <!-- Yesterday -->
-                <div class="bg-base-100 rounded-2xl p-4 border border-base-200 shadow-sm flex flex-col justify-center items-center relative overflow-hidden">
-                    <span class="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-1">Yesterday</span>
-                    <span id="stat-yesterday-val" class="text-2xl font-bold font-mono">-</span>
-                    <span id="stat-yesterday-class" class="text-xs font-medium px-2 py-0.5 rounded-full mt-1 bg-base-200 text-base-content/70">-</span>
-                </div>
-                <!-- Last Week -->
-                <div class="bg-base-100 rounded-2xl p-4 border border-base-200 shadow-sm flex flex-col justify-center items-center relative overflow-hidden">
-                    <span class="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-1">Last Week</span>
-                    <span id="stat-week-val" class="text-2xl font-bold font-mono">-</span>
-                    <span id="stat-week-class" class="text-xs font-medium px-2 py-0.5 rounded-full mt-1 bg-base-200 text-base-content/70">-</span>
-                </div>
-                <!-- Last Month -->
-                <div class="bg-base-100 rounded-2xl p-4 border border-base-200 shadow-sm flex flex-col justify-center items-center relative overflow-hidden">
-                    <span class="text-xs font-semibold text-base-content/50 uppercase tracking-wide mb-1">Last Month</span>
-                    <span id="stat-month-val" class="text-2xl font-bold font-mono">-</span>
-                    <span id="stat-month-class" class="text-xs font-medium px-2 py-0.5 rounded-full mt-1 bg-base-200 text-base-content/70">-</span>
-                </div>
+        <!-- Historical Trend Chart -->
+        <div class="glass-card p-4 p-md-5 h-100 min-vh-50">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h6 class="small fw-black text-white-50 tracking-widest text-uppercase m-0">
+                    <i class="fa-solid fa-chart-area text-primary me-2"></i> 30-Day Trend
+                </h6>
             </div>
-
-            <!-- Historical Area Chart -->
-            <div class="card bg-base-100 shadow-xl border border-base-200/50 flex-grow">
-                <div class="card-body p-5 md:p-6 flex flex-col h-full">
-                    <div class="flex justify-between items-center mb-2">
-                        <h2 class="text-lg font-bold text-base-content flex items-center gap-2">
-                            <i class="fa-solid fa-chart-area text-primary"></i> 30-Day Historical Trend
-                        </h2>
-                    </div>
-                    
-                    <div id="history-chart" class="w-full flex-grow min-h-[300px]"></div>
-                </div>
-            </div>
-            
+            <div id="history-chart" style="min-height: 400px; width: 100%;"></div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
+    let gaugeChart = null, historyChart = null;
+
+    const fetchFNG = async () => {
+        try {
+            const response = await fetch('https://api.alternative.me/fng/?limit=32');
+            const data = await response.json();
+            if (data?.data?.length > 0) processDashboard(data.data);
+        } catch (error) {
+            console.error("Error fetching FnG:", error);
+            document.getElementById('fng-class').innerText = "API Error";
+        }
+    };
+
+    const getColorClass = (val) => {
+        if (val <= 25) return { color: '#ef4444', name: 'Extreme Fear' };
+        if (val <= 46) return { color: '#f97316', name: 'Fear' };
+        if (val <= 54) return { color: '#eab308', name: 'Neutral' };
+        if (val <= 75) return { color: '#84cc16', name: 'Greed' };
+        return { color: '#22c55e', name: 'Extreme Greed' };
+    };
+
+    const getInsightText = (val) => {
+        if (val <= 25) return "Extreme fear detected. Historically a prime contrarian buying opportunity as the market is heavily oversold.";
+        if (val <= 46) return "Current sentiment indicates moderate fear. Market participants are cautious, potentially awaiting clear macro signals.";
+        if (val <= 54) return "Neutral sentiment. Market indecision suggests consolidation before a potential volatility breakout.";
+        if (val <= 75) return "Greed is rising. While the trend is positive, evaluate structural resistance levels to avoid buying local peaks.";
+        return "Extreme greed exhibition. Highly overbought territory often signaling an imminent euphoria-driven correction.";
+    };
+
+    const processDashboard = (allData) => {
+        const current = allData[0], val = parseInt(current.value);
+        const { color } = getColorClass(val);
+
+        updateGauge(val, current.value_classification, color);
+        document.getElementById('market-insight').innerText = getInsightText(val);
+        document.getElementById('gauge-glow').style.backgroundColor = color;
+
+        if(allData[1]) updateStatCard('yesterday', allData[1]);
+        if(allData[7]) updateStatCard('week', allData[7]);
+        if(allData[30]) updateStatCard('month', allData[30]);
+
+        renderAreaChart(allData.slice(0, 30).reverse());
+        startCountdown(current.time_until_update);
+    };
+
+    const updateStatCard = (id, data) => {
+        const val = parseInt(data.value);
+        const { color } = getColorClass(val);
+        const valEl = document.getElementById(`stat-${id}-val`);
+        const classEl = document.getElementById(`stat-${id}-class`);
         
-        let gaugeChart = null;
-        let historyChart = null;
+        valEl.innerText = val;
+        valEl.style.color = color;
+        classEl.innerText = data.value_classification;
+        classEl.style.color = color;
+        classEl.style.backgroundColor = `${color}15`;
+    };
 
-        const fetchFNG = async () => {
-            try {
-                // Fetch 32 limit to get a full 30 days past + today
-                const response = await fetch('https://api.alternative.me/fng/?limit=32');
-                const data = await response.json();
-                
-                if (data && data.data && data.data.length > 0) {
-                    processDashboard(data.data);
-                }
-            } catch (error) {
-                console.error("Error fetching FnG data:", error);
-                document.getElementById('fng-class').innerText = "API Error";
-            }
-        };
+    const updateGauge = (value, classification, color) => {
+        const classEl = document.getElementById('fng-class');
+        classEl.innerText = classification;
+        classEl.style.color = color;
 
-        const getColorClass = (val) => {
-            if (val <= 25) return { color: '#ef4444', name: 'Extreme Fear' };
-            if (val <= 46) return { color: '#f97316', name: 'Fear' };
-            if (val <= 54) return { color: '#eab308', name: 'Neutral' };
-            if (val <= 75) return { color: '#84cc16', name: 'Greed' }; // light green
-            return { color: '#22c55e', name: 'Extreme Greed' };
-        };
-        
-        const getInsightText = (val) => {
-            if (val <= 25) return "The market is experiencing extreme fear. Historically, this indicates that investors are too worried and heavily selling off assets, which contrarian investors view as a potential prime buying opportunity.";
-            if (val <= 46) return "Current sentiment indicates moderate fear. Investors are showing signs of anxiety and caution. This usually implies a holding pattern or slow accumulation phase.";
-            if (val <= 54) return "The market lacks a clear directional sentiment right now. Traders are undecided, and the market may experience sideways movement or consolidation before its next major move.";
-            if (val <= 75) return "Optimism is high and investors are getting greedy. While the market is trending upwards, cautious evaluation of fundamentals is advised to avoid buying at potential local peaks.";
-            return "The market is exhibiting extreme greed. This often signifies a heavily overbought and euphoric market, indicating that a significant price correction could be imminent.";
-        };
-
-        const processDashboard = (allData) => {
-            const current = allData[0];
-            const val = parseInt(current.value);
-            const { color } = getColorClass(val);
-            
-            // 1. Update Gauge & Main Text
-            updateGauge(val, current.value_classification, color);
-            
-            // Generate Insight
-            document.getElementById('market-insight').innerText = getInsightText(val);
-            document.getElementById('gauge-glow').style.backgroundColor = color;
-            
-            // 2. Update Quick Stats
-            if(allData[1]) updateStatCard('yesterday', allData[1]);
-            if(allData[7]) updateStatCard('week', allData[7]);
-            if(allData[30]) updateStatCard('month', allData[30]);
-            
-            // 3. Render Historic Area Chart
-            // We want last 30 days chronologically
-            const chartData = allData.slice(0, 30).reverse();
-            renderAreaChart(chartData);
-            
-            // 4. Start Countdown
-            startCountdown(current.time_until_update);
-        };
-        
-        const updateStatCard = (idSelector, dataPoint) => {
-            const val = parseInt(dataPoint.value);
-            const { color } = getColorClass(val);
-            
-            const valEl = document.getElementById(`stat-${idSelector}-val`);
-            const classEl = document.getElementById(`stat-${idSelector}-class`);
-            
-            valEl.innerText = val;
-            valEl.style.color = color;
-            
-            classEl.innerText = dataPoint.value_classification;
-            classEl.style.color = color;
-            classEl.style.backgroundColor = `${color}20`; // 20% opacity background
-        };
-
-        const updateGauge = (value, classification, color) => {
-            document.getElementById('fng-class').innerText = classification;
-            document.getElementById('fng-class').style.color = color;
-
-            const gaugeOptions = {
-                series: [value],
-                chart: {
-                    type: 'radialBar',
-                    height: 350,
-                    offsetY: -10,
-                    sparkline: { enabled: true }
-                },
-                plotOptions: {
-                    radialBar: {
-                        startAngle: -90,
-                        endAngle: 90,
-                        track: {
-                            background: "oklch(var(--b3))",
-                            strokeWidth: '97%',
-                            margin: 5,
-                            dropShadow: {
-                                enabled: true,
-                                top: 2,
-                                left: 0,
-                                color: '#000',
-                                opacity: 0.1,
-                                blur: 2
-                            }
-                        },
-                        dataLabels: {
-                            name: { show: false },
-                            value: {
-                                offsetY: 0,
-                                fontSize: '64px',
-                                fontWeight: 900,
-                                color: color,
-                                formatter: function (val) {
-                                    return val;
-                                }
-                            }
-                        }
-                    }
-                },
-                grid: { padding: { top: -10 } },
-                fill: {
-                    type: 'solid',
-                    colors: [color]
-                },
-                stroke: { lineCap: 'round' }
-            };
-
-            if(gaugeChart) {
-                gaugeChart.updateOptions(gaugeOptions);
-            } else {
-                gaugeChart = new ApexCharts(document.querySelector("#gauge-chart"), gaugeOptions);
-                gaugeChart.render();
-            }
-        };
-
-        const renderAreaChart = (historicalData) => {
-            const dates = historicalData.map(item => {
-                return new Date(parseInt(item.timestamp) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-            const values = historicalData.map(item => parseInt(item.value));
-            
-            const axisColor = "oklch(var(--bc) / 0.5)";
-            const gridColor = "oklch(var(--b3) / 0.5)";
-
-            const options = {
-                series: [{
-                    name: 'Fear & Greed Index',
-                    data: values
-                }],
-                chart: {
-                    type: 'area',
-                    height: '100%',
-                    fontFamily: 'Inter, sans-serif',
-                    toolbar: { show: false },
-                    animations: { enabled: true, easing: 'easeinout', speed: 800 }
-                },
-                colors: ['oklch(var(--p))'],
-                fill: {
-                    type: 'gradient',
-                    gradient: {
-                        shadeIntensity: 1,
-                        opacityFrom: 0.7,
-                        opacityTo: 0.1,
-                        stops: [0, 90, 100]
-                    }
-                },
-                dataLabels: { enabled: false },
-                stroke: { curve: 'smooth', width: 3 },
-                xaxis: {
-                    categories: dates,
-                    tickAmount: 6,
-                    labels: { style: { colors: axisColor, fontSize: '12px', fontWeight: 500 } },
-                    axisBorder: { show: false },
-                    axisTicks: { show: false },
-                    tooltip: { enabled: false }
-                },
-                yaxis: {
-                    min: 0,
-                    max: 100,
-                    tickAmount: 4,
-                    labels: { style: { colors: axisColor, fontSize: '12px', fontWeight: 500 } }
-                },
-                grid: {
-                    borderColor: gridColor,
-                    strokeDashArray: 4,
-                    xaxis: { lines: { show: true } },
-                    yaxis: { lines: { show: true } },
-                    padding: { top: 0, right: 0, bottom: 0, left: 10 }
-                },
-                theme: {
-                    mode: document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
-                },
-                tooltip: {
-                    theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark',
-                    y: {
-                        formatter: function (val) {
-                            return val + " (" + getColorClass(val).name + ")";
-                        }
+        const options = {
+            series: [value],
+            chart: { type: 'radialBar', height: 380, sparkline: { enabled: true } },
+            plotOptions: {
+                radialBar: {
+                    startAngle: -90, endAngle: 90,
+                    track: { background: "rgba(255,255,255,0.05)", strokeWidth: '100%', margin: 15 },
+                    dataLabels: {
+                        name: { show: false },
+                        value: { offsetY: -20, fontSize: '60px', fontWeight: 900, color: color }
                     }
                 }
-            };
-
-            if(historyChart) {
-                historyChart.updateOptions(options, true);
-            } else {
-                historyChart = new ApexCharts(document.querySelector("#history-chart"), options);
-                historyChart.render();
-            }
+            },
+            fill: { type: 'solid', colors: [color] },
+            stroke: { lineCap: 'round' }
         };
 
-        const startCountdown = (secondsUntilUpdate) => {
-            let seconds = parseInt(secondsUntilUpdate);
-            const nextUpdateEl = document.getElementById('next-update');
-            
-            if (isNaN(seconds) || seconds <= 0) {
-                nextUpdateEl.innerHTML = "<i class='fa-regular fa-clock'></i> Next update: Shortly";
-                return;
-            }
+        if (gaugeChart) gaugeChart.updateOptions(options);
+        else {
+            gaugeChart = new ApexCharts(document.querySelector("#gauge-chart"), options);
+            gaugeChart.render();
+        }
+    };
 
-            const interval = setInterval(() => {
-                seconds--;
-                if (seconds < 0) {
-                    clearInterval(interval);
-                    fetchFNG(); 
-                    return;
-                }
-                
-                const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-                const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-                const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-                
-                nextUpdateEl.innerHTML = `<i class="fa-regular fa-clock"></i> Next update in: ${h}:${m}:${s}`;
-            }, 1000);
+    const renderAreaChart = (hist) => {
+        const options = {
+            series: [{ name: 'Index', data: hist.map(i => parseInt(i.value)) }],
+            chart: { type: 'area', height: '100%', toolbar: { show: false }, background: 'transparent' },
+            colors: ['#7c3aed'],
+            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.5, opacityTo: 0.05 } },
+            dataLabels: { enabled: false },
+            stroke: { curve: 'smooth', width: 3 },
+            xaxis: {
+                categories: hist.map(i => new Date(i.timestamp * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
+                labels: { style: { colors: 'rgba(255,255,255,0.3)', fontSize: '10px' } },
+                axisBorder: { show: false }, axisTicks: { show: false }
+            },
+            yaxis: { min: 0, max: 100, tickAmount: 4, labels: { style: { colors: 'rgba(255,255,255,0.3)' } } },
+            grid: { borderColor: 'rgba(255,255,255,0.05)', strokeDashArray: 4 },
+            theme: { mode: 'dark' },
+            tooltip: { theme: 'dark', y: { formatter: v => v + " (" + getColorClass(v).name + ")" } }
         };
-        
-        // Listen to theme changes to update ApexCharts theme
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.attributeName === 'data-theme') {
-                    if (historyChart) {
-                        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-                        historyChart.updateOptions({
-                            theme: { mode: isLight ? 'light' : 'dark' },
-                            tooltip: { theme: isLight ? 'light' : 'dark' }
-                        });
-                    }
-                }
-            });
-        });
-        observer.observe(document.documentElement, { attributes: true });
 
-        // Init
-        fetchFNG();
-    });
+        if (historyChart) historyChart.updateOptions(options);
+        else {
+            historyChart = new ApexCharts(document.querySelector("#history-chart"), options);
+            historyChart.render();
+        }
+    };
+
+    const startCountdown = (sec) => {
+        let s = parseInt(sec);
+        const el = document.getElementById('next-update');
+        const ival = setInterval(() => {
+            s--;
+            if (s < 0) { clearInterval(ival); fetchFNG(); return; }
+            const h = Math.floor(s/3600).toString().padStart(2, '0');
+            const m = Math.floor((s%3600)/60).toString().padStart(2, '0');
+            const r = (s%60).toString().padStart(2,'0');
+            el.innerHTML = `<i class="fa-regular fa-clock me-2"></i> Next update in: ${h}:${m}:${r}`;
+        }, 1000);
+    };
+
+    fetchFNG();
+});
 </script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Crypto Fear & Greed Index</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-primary me-2"></i> High Performance</h3>
+            <p class="text-theme-muted">Track live emotional metrics and market sentiment to perfectly time your entries and exits.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-primary me-2"></i> Secure & Private</h3>
+            <p class="text-theme-muted">Engineered by StoryBrain AI to ensure your data remains completely private. Zero server-side logging for total peace of mind.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-primary me-2"></i> Market Sentiment</h3>
+            <p class="text-theme-muted">Optimized specifically for high-speed market sentiment natively in your browser using modern Web APIs.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-primary me-2"></i> Live Indicators</h3>
+            <p class="text-theme-muted">Leveraging advanced techniques in live indicators to deliver precision results every single time.</p>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

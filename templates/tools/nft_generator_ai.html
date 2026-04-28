@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+
+{% block title %}NFT Generator AI | StoryBrain AI{% endblock %}
+{% block meta_description %}Free, ultra-fast NFT Generator AI natively in your browser. Engineered for privacy and precision by StoryBrain AI.{% endblock %}
+
+
+{% block head %}
+<style>
+    @keyframes pulseGlow {
+        0%, 100% { opacity: 0.5; transform: scale(1); }
+        50% { opacity: 0.8; transform: scale(1.05); }
+    }
+    @keyframes sweep {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(200%); }
+    }
+
+    .art-chamber {
+        position: relative;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 3rem;
+        box-shadow: 0 40px 80px -20px rgba(0,0,0,0.6);
+        overflow: hidden;
+        aspect-ratio: 1/1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        max-width: 512px;
+        margin: 0 auto;
+    }
+
+    .img-loading-layer {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(15px);
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .img-loading-layer::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.2), transparent);
+        animation: sweep 2s infinite linear;
+    }
+
+    .style-card {
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+    }
+
+    .style-card:hover {
+        background: rgba(255, 255, 255, 0.06);
+        transform: translateY(-2px);
+    }
+
+    input[name="style"]:checked + .style-card {
+        border-color: var(--sb-accent);
+        background: rgba(124, 58, 237, 0.1);
+        box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
+    }
+
+    input[name="style"]:checked + .style-card i {
+        color: var(--sb-accent);
+        opacity: 1;
+    }
+
+    .art-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        height: 80%;
+        background: var(--sb-accent);
+        filter: blur(100px);
+        opacity: 0.15;
+        border-radius: 50%;
+        pointer-events: none;
+        transition: all 1s ease;
+    }
+
+    /* Mobile Responsive Injection */
+    @media (max-width: 768px) {
+        .display-3, .display-4, .hero-title { font-size: 2.25rem !important; }
+        .glass-card { padding: 1.5rem !important; }
+        .row.g-4 { gap: 1rem !important; }
+        .metrics-grid, .grid-layout { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back link & Status -->
+<div class="d-flex justify-content-between align-items-center mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+    <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-3 py-2">
+        <span class="spinner-grow spinner-grow-sm me-2" style="width: 8px; height: 8px;"></span> SYNTHESIS CORE: READY
+    </div>
+</div>
+
+<!-- Header -->
+<div class="text-center mb-5 reveal">
+    <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 mb-4">
+        <i class="fa-solid fa-palette me-2"></i> AI Generative Engine
+    </div>
+    <h1 class="display-3 fw-black mb-3">AI <span class="gradient-text">NFT LAB</span></h1>
+    <p class="text-white-50 fs-5 mx-auto" style="max-width: 750px;">
+        Compose high-fidelity digital assets via <span class="text-white">latent diffusion orchestration</span>.
+    </p>
+</div>
+
+<div class="row g-4 reveal" style="animation-delay: 0.2s;">
+    <!-- Controls Section -->
+    <div class="col-lg-5">
+        <div class="glass-card p-4 p-md-5 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-white border-opacity-5">
+                <span class="small fw-black text-white-50 tracking-widest text-uppercase">Synthesis Parameters</span>
+                <i class="fa-solid fa-sliders text-primary opacity-50"></i>
+            </div>
+
+            <form id="genForm">
+                <div class="mb-4">
+                    <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Orchestration Provider</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white bg-opacity-5 border-white border-opacity-10 text-white-50">
+                            <i class="fa-solid fa-server"></i>
+                        </span>
+                        <select id="providerSelect" class="form-select bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 fw-bold">
+                            <option value="local">Local Baseline (Fast, Free)</option>
+                            <option value="openai">OpenAI (DALL-E Core)</option>
+                            <option value="gemini">Google Gemini API</option>
+                            <option value="deepseek">DeepSeek AI</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="apiKeyContainer" class="mb-4 d-none">
+                    <label class="small fw-black text-primary tracking-widest text-uppercase mb-2 d-block">Provider API Key</label>
+                    <input type="password" id="apiKeyInput" class="form-control bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 text-center font-mono" placeholder="sk-...">
+                </div>
+
+                <div class="mb-4">
+                    <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Prompt Identity</label>
+                    <textarea id="promptInput" class="form-control bg-white bg-opacity-5 border-white border-opacity-10 text-white rounded-5 p-4 fw-bold fs-5 resize-none" rows="5" placeholder="E.g. A cybernetic owl perched on a neon branch..." required></textarea>
+                </div>
+
+                <div class="mb-5">
+                    <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-3 d-block">Aesthetic Prism</label>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <input type="radio" name="style" id="style3d" value="3d" class="btn-check" checked>
+                            <label class="style-card text-center d-flex flex-column align-items-center gap-2 w-100 h-100" for="style3d">
+                                <i class="fa-solid fa-cube fs-3 opacity-40"></i>
+                                <span class="small fw-black text-uppercase tracking-widest">3D Render</span>
+                            </label>
+                        </div>
+                        <div class="col-6">
+                            <input type="radio" name="style" id="styleCyber" value="cyberpunk" class="btn-check">
+                            <label class="style-card text-center d-flex flex-column align-items-center gap-2 w-100 h-100" for="styleCyber">
+                                <i class="fa-solid fa-city fs-3 opacity-40"></i>
+                                <span class="small fw-black text-uppercase tracking-widest">Cyberpunk</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" id="generateBtn" class="btn btn-premium w-100 py-4 fs-4 fw-black">
+                    <span id="btnContent">INITIALIZE MINT</span>
+                </button>
+                <div class="text-center mt-4">
+                    <span class="small fw-black text-white-50 tracking-widest text-uppercase">
+                        <i class="fa-solid fa-shield-halved me-2"></i> Quantum Encrypted Generation
+                    </span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Output Section -->
+    <div class="col-lg-7">
+        <div class="glass-card p-4 p-md-5 h-100 d-flex flex-column align-items-center justify-content-center position-relative overflow-d-none">
+            <div id="artGlow" class="art-glow"></div>
+
+            <div class="art-chamber group">
+                <!-- Empty State -->
+                <div id="emptyState" class="text-center p-5">
+                    <div class="w-20 h-20 rounded-4 bg-white bg-opacity-5 d-flex align-items-center justify-content-center text-secondary fs-1 mx-auto mb-4 shadow-inner">
+                        <i class="fa-regular fa-image"></i>
+                    </div>
+                    <div>
+                        <p class="small fw-black text-white-50 tracking-widest text-uppercase m-0 leading-none">Awaiting Signal</p>
+                        <p class="small fw-bold text-white-50 opacity-20 text-uppercase tracking-widest m-0">Latent field initialized</p>
+                    </div>
+                </div>
+
+                <!-- Loading Layer -->
+                <div id="loadingLayer" class="img-loading-layer d-none">
+                    <div class="spinner-border text-primary mb-4" style="width: 4rem; height: 4rem; border-width: 0.3rem;" role="status"></div>
+                    <div class="px-5">
+                        <p class="small fw-black text-primary tracking-widest text-uppercase mb-3">Synthesizing Asset</p>
+                        <p id="loadingLog" class="small fw-bold text-white-50 opacity-50 text-uppercase tracking-widest text-truncate" style="max-width: 300px;">Allocating latent noise...</p>
+                    </div>
+                </div>
+
+                <!-- Result Image -->
+                <img loading="lazy" id="resultImage" class="w-100 h-100 d-none object-fit-cover rounded-5 cursor-pointer transition-all" alt="Generated NFT" onclick="openViewer()">
+            </div>
+
+            <!-- Action Row -->
+            <div id="actionRow" class="d-none mt-5 w-100 row g-3" style="max-width: 512px;">
+                <div class="col">
+                    <a id="downloadBtn" class="btn btn-dark w-100 py-3 rounded-4 border border-white border-opacity-10 d-flex align-items-center justify-content-center gap-2 fw-black small tracking-widest">
+                        <i class="fa-solid fa-download text-primary"></i> DOWNLOAD ASSET
+                    </a>
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-dark h-100 px-4 rounded-4 border border-white border-opacity-10" onclick="openViewer()">
+                        <i class="fa-solid fa-expand text-white-50"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fullscreen Viewer Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content bg-transparent border-0 shadow-none">
+            <div class="modal-body p-0 position-relative">
+                <button type="button" class="btn btn-dark btn-circle border border-white border-opacity-20 position-absolute top-0 end-0 m-3 z-3" data-bs-dismiss="modal">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <img loading="lazy" id="modalImg" src="" class="img-fluid rounded-4 shadow-lg w-100" alt="Full size preview">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const genForm = document.getElementById('genForm');
+    const promptInput = document.getElementById('promptInput');
+    const providerSelect = document.getElementById('providerSelect');
+    const apiKeyContainer = document.getElementById('apiKeyContainer');
+    const apiKeyInput = document.getElementById('apiKeyInput');
+    const generateBtn = document.getElementById('generateBtn');
+    const btnContent = document.getElementById('btnContent');
+    const resultImage = document.getElementById('resultImage');
+    const emptyState = document.getElementById('emptyState');
+    const loadingLayer = document.getElementById('loadingLayer');
+    const actionRow = document.getElementById('actionRow');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const loadingLog = document.getElementById('loadingLog');
+    const artGlow = document.getElementById('artGlow');
+    const modalImg = document.getElementById('modalImg');
+    const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+
+    providerSelect.addEventListener('change', () => {
+        apiKeyContainer.className = (providerSelect.value === 'local') ? 'mb-4 d-none' : 'mb-4';
+    });
+
+    const loadingLines = [
+        "Allocating latent noise...",
+        "Encoding structural vectors...",
+        "Applying aesthetic overlays...",
+        "Denoising generation loop...",
+        "Finalizing compositional matrix..."
+    ];
+
+    let currentImageUrl = null;
+    let logInterval = null;
+
+    window.openViewer = () => {
+        if (currentImageUrl) {
+            modalImg.src = currentImageUrl;
+            imageModal.show();
+        }
+    };
+
+    genForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const prompt = promptInput.value.trim();
+        if (!prompt) return;
+
+        const style = document.querySelector('input[name="style"]:checked').value;
+        const provider = providerSelect.value;
+        const apiKey = apiKeyInput.value.trim();
+
+        if (provider !== 'local' && !apiKey) {
+            alert("API Key is required for provider!");
+            return;
+        }
+
+        // Reset UI
+        emptyState.classList.add('d-none');
+        resultImage.classList.add('d-none');
+        actionRow.classList.add('d-none');
+        loadingLayer.classList.remove('d-none');
+        generateBtn.disabled = true;
+        btnContent.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> MINTING...`;
+
+        // Update glow based on style
+        const glowColors = { '3d': '#7c3aed', 'cyberpunk': '#ec4899' };
+        artGlow.style.backgroundColor = glowColors[style] || '#7c3aed';
+
+        logInterval = simulateLogs();
+
+        try {
+            const resp = await fetch('/api/generate-nft', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt, style, provider, api_key: apiKey || null })
+            });
+            const data = await resp.json();
+            if (!resp.ok) throw new Error(data.detail || 'API failure');
+
+            // Preload
+            const img = new Image();
+            img.onload = () => {
+                currentImageUrl = data.image_url;
+                resultImage.src = currentImageUrl;
+                downloadBtn.href = currentImageUrl;
+                downloadBtn.download = `StoryBrainAI_NFT_${Date.now()}.png`;
+                
+                clearInterval(logInterval);
+                loadingLayer.classList.add('d-none');
+                resultImage.classList.remove('d-none');
+                actionRow.classList.remove('d-none');
+                
+                generateBtn.disabled = false;
+                btnContent.innerText = "REMINT ASSET";
+            };
+            img.src = data.image_url;
+        } catch (error) {
+            alert(error.message);
+            clearInterval(logInterval);
+            loadingLayer.classList.add('d-none');
+            emptyState.classList.remove('d-none');
+            generateBtn.disabled = false;
+            btnContent.innerText = "INITIALIZE MINT";
+        }
+    });
+
+    function simulateLogs() {
+        let i = 0;
+        return setInterval(() => {
+            i = (i + 1) % loadingLines.length;
+            loadingLog.innerText = loadingLines[i];
+        }, 800);
+    }
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the AI NFT Generation Lab</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-primary me-2"></i> High Performance</h3>
+            <p class="text-theme-muted">Procedural art studio powered by hybrid Rust-Python orchestration to turn prompts into assets.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-primary me-2"></i> Secure & Private</h3>
+            <p class="text-theme-muted">Engineered by StoryBrain AI to ensure your data remains completely private. Zero server-side logging for total peace of mind.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-primary me-2"></i> Procedural Art</h3>
+            <p class="text-theme-muted">Optimized specifically for high-speed procedural art natively in your browser using modern Web APIs.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-primary me-2"></i> Latent Space</h3>
+            <p class="text-theme-muted">Leveraging advanced techniques in latent space to deliver precision results every single time.</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,240 +1,151 @@
 {% extends "base.html" %}
 
-{% block title %}Image Converter | StoryBrain AI{% endblock %}
+{% block title %}Neural Converter | StoryBrain AI{% endblock %}
+{% block meta_description %}Free, ultra-fast Neural Converter natively in your browser. Engineered for privacy and precision by StoryBrain AI.{% endblock %}
+
+
+{% block head %}
+<style>
+    .comparison-frame {
+        aspect-ratio: 16 / 9;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+    }
+    .comparison-frame img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    /* Mobile Responsive Injection */
+    @media (max-width: 768px) {
+        .display-3, .display-4, .hero-title { font-size: 2.25rem !important; }
+        .glass-card { padding: 1.5rem !important; }
+        .row.g-4 { gap: 1rem !important; }
+        .metrics-grid, .grid-layout { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Back breadcrumb -->
-<div class="mb-6 animate-fade-in-up">
-    <a href="/" class="inline-flex items-center gap-2 text-sm font-medium text-base-content/50 hover:text-primary transition-colors duration-200">
-        <i class="fa-solid fa-arrow-left text-xs"></i> All Tools
-    </a>
-</div>
-<div class="max-w-4xl mx-auto animate-fade-in-up">
-    <div class="text-center mb-10">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-secondary/10 mb-4">
-            <i class="fa-solid fa-file-import text-secondary text-3xl"></i>
-        </div>
-        <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4">Image Converter</h1>
-        <p class="text-base sm:text-lg opacity-80 max-w-2xl mx-auto">
-            Convert images between JPG, PNG, and WEBP formats directly in your browser. 100% secure and private—no files are uploaded to our servers.
-        </p>
+<!-- ── Tool Header ── -->
+<div class="text-center mb-5 reveal">
+    <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 mb-4">
+        <i class="fa-solid fa-sync me-2"></i> Format Synthesis
     </div>
+    <h1 class="display-3 fw-black mb-3">NEURAL <span class="gradient-text italic">CONVERTER</span></h1>
+    <p class="text-white-50 fs-5 mx-auto" style="max-width: 700px;">
+        Surgical format transcoding between JPEG, PNG, and WEBP. 
+        <span class="text-white">Preserve metadata. Ensure compatibility.</span>
+    </p>
+</div>
 
-    <div class="card bg-base-100 shadow-2xl border border-base-300">
-        <div class="card-body p-6 sm:p-8 md:p-10">
-            <!-- Upload Area -->
-            <div id="uploadArea" class="border-2 border-dashed border-base-300 hover:border-secondary rounded-xl p-8 sm:p-12 text-center transition-colors duration-300 cursor-pointer mb-6 group bg-base-200/50 hover:bg-base-200">
-                <input type="file" id="fileInput" class="hidden" accept="image/jpeg, image/png, image/webp">
-                <div class="w-16 h-16 rounded-full bg-base-100 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-sm">
-                    <i class="fa-solid fa-cloud-arrow-up text-secondary text-2xl"></i>
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        
+        <!-- Upload Zone -->
+        <div id="uploadArea" class="reveal" style="animation-delay: 0.2s;">
+            <div class="glass-card p-5 text-center border-dashed border-2" style="cursor: pointer; border-style: dashed !important;">
+                <input type="file" id="fileInput" class="position-absolute top-0 start-0 w-100 h-100 opacity-0" style="cursor: pointer; z-index: 10;" accept="image/jpeg, image/png, image/webp">
+                <div class="rounded-4 bg-white bg-opacity-5 d-inline-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px;">
+                    <i class="fa-solid fa-file-import fs-2 text-white-50"></i>
                 </div>
-                <h3 class="text-lg font-semibold mb-2">Drag & drop your image here</h3>
-                <p class="text-sm opacity-60 mb-4">or click to browse from your device</p>
-                <div class="badge badge-secondary badge-outline">JPG, PNG, WEBP (Max 20MB)</div>
+                <h3 class="fw-black text-white">Ingest Image Stream</h3>
+                <p class="small fw-black text-white-50 tracking-widest text-uppercase m-0">JPG · PNG · WEBP · MAX 20MB</p>
             </div>
+        </div>
 
-            <!-- Editor Area (Hidden initially) -->
-            <div id="editorArea" class="hidden flex flex-col gap-6">
-                <!-- Controls -->
-                <div class="bg-base-200 rounded-xl p-6 border border-base-300">
-                    <div class="flex flex-col sm:flex-row gap-6 items-center justify-center">
-                        <div class="w-full sm:w-1/2">
-                            <label class="label">
-                                <span class="label-text font-medium text-base">Select Output Format:</span>
-                            </label>
-                            <select id="formatSelect" class="select select-secondary w-full max-w-xs">
-                                <option value="image/jpeg">JPEG (.jpg)</option>
-                                <option value="image/png">PNG (.png)</option>
-                                <option value="image/webp">WEBP (.webp)</option>
-                            </select>
-                            
-                            <!-- Quality Slider (Only for JPG/WEBP) -->
-                            <div id="qualityControl" class="mt-4">
-                                <label class="label pt-0 pb-1">
-                                    <span class="label-text text-sm opacity-70">Quality: <span id="qualityValue" class="text-secondary font-bold">90%</span></span>
-                                </label>
-                                <input type="range" id="qualitySlider" min="1" max="100" value="90" class="range range-secondary range-xs" />
-                            </div>
-                        </div>
-                        <div class="w-full sm:w-1/2 flex justify-end gap-3 mt-4 sm:mt-0">
-                            <button id="resetBtn" class="btn btn-outline btn-sm">Upload New</button>
-                            <button id="downloadBtn" class="btn btn-secondary btn-sm gap-2">
-                                <i class="fa-solid fa-download"></i> Download Converted
-                            </button>
-                        </div>
+        <!-- Editor Area -->
+        <div id="editorArea" class="d-none reveal">
+            <!-- Control Panel -->
+            <div class="glass-card p-4 p-md-5 mb-4">
+                <div class="row align-items-end g-4">
+                    <div class="col-md-4">
+                        <label class="small fw-black text-white-50 tracking-widest text-uppercase d-block mb-3">Target Syntax</label>
+                        <select id="formatSelect" class="form-select bg-white bg-opacity-5 border-white border-opacity-10 text-white rounded-3 py-3">
+                            <option value="image/jpeg">JPEG (.jpg)</option>
+                            <option value="image/png">PNG (.png)</option>
+                            <option value="image/webp">WEBP (.webp)</option>
+                        </select>
                     </div>
-                </div>
-
-                <!-- Comparison View -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Original Image -->
-                    <div class="bg-base-200 rounded-xl p-4 border border-base-300 flex flex-col items-center">
-                        <div class="w-full flex justify-between items-center mb-3 text-sm font-medium">
-                            <span class="badge badge-neutral">Original: <span id="originalExt" class="ml-1 uppercase"></span></span>
-                            <span id="originalSize" class="opacity-80">0 KB</span>
+                    <div class="col-md-4" id="qualityControl">
+                        <div class="d-flex justify-content-between align-items-end mb-3">
+                            <label class="small fw-black text-white-50 tracking-widest text-uppercase">Quality Fidelity</label>
+                            <span id="qualityValue" class="h4 fw-black text-primary m-0">90%</span>
                         </div>
-                        <div class="w-full max-h-[300px] overflow-hidden rounded-lg bg-base-100 flex items-center justify-center border border-base-300 relative group p-2">
-                            <img id="originalPreview" src="" alt="Original Image" class="max-w-full max-h-[284px] object-contain">
-                        </div>
+                        <input type="range" id="qualitySlider" min="1" max="100" value="90" class="form-range">
                     </div>
-
-                    <!-- Converted Image -->
-                    <div class="bg-base-200 rounded-xl p-4 border border-secondary/30 flex flex-col items-center shadow-[0_0_15px_rgba(217,38,169,0.1)] relative overflow-hidden">
-                        <div class="w-full flex justify-between items-center mb-3 text-sm font-medium">
-                            <span class="badge badge-secondary">Converted: <span id="convertedExt" class="ml-1 uppercase"></span></span>
-                            <span id="convertedSize" class="text-secondary font-bold">0 KB</span>
-                        </div>
-                        <div class="w-full max-h-[300px] overflow-hidden rounded-lg bg-base-100 flex items-center justify-center border border-base-300 relative p-2" id="canvasContainer">
-                            <img id="convertedPreview" src="" alt="Converted Image" class="max-w-full max-h-[284px] object-contain">
-                        </div>
+                    <div class="col-md-4 d-flex gap-2">
+                        <button id="resetBtn" class="btn btn-dark w-100 py-3 rounded-3 fw-bold border border-white border-opacity-10">RESET</button>
+                        <button id="downloadBtn" class="btn btn-premium w-100 py-3">
+                            <i class="fa-solid fa-download me-2"></i> EXPORT
+                        </button>
                     </div>
                 </div>
             </div>
 
+            <!-- Comparison -->
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="glass-card p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-white border-opacity-5">
+                            <span class="badge bg-white bg-opacity-10 text-white-50 fw-black tracking-widest px-3 py-2" id="originalExt">SOURCE</span>
+                            <span id="originalSize" class="small fw-black text-white-50 italic">0 KB</span>
+                        </div>
+                        <div class="comparison-frame">
+                            <img alt="StoryBrain AI Module" loading="lazy" id="originalPreview" src="">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="glass-card p-4 border-primary border-opacity-20" style="background: rgba(124, 58, 237, 0.02);">
+                        <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-white border-opacity-5">
+                            <span class="badge bg-primary bg-opacity-10 text-primary fw-black tracking-widest px-3 py-2" id="convertedExt">TARGET</span>
+                            <span id="convertedSize" class="small fw-black text-primary italic">0 KB</span>
+                        </div>
+                        <div class="comparison-frame">
+                            <img alt="StoryBrain AI Module" loading="lazy" id="convertedPreview" src="">
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
     </div>
 </div>
-
-<style>
-/* Grid background to show transparency on PNGs */
-.bg-transparency-grid {
-    background-image: 
-      linear-gradient(45deg, #e5e7eb 25%, transparent 25%), 
-      linear-gradient(-45deg, #e5e7eb 25%, transparent 25%), 
-      linear-gradient(45deg, transparent 75%, #e5e7eb 75%), 
-      linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-}
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const uploadArea = document.getElementById('uploadArea');
-    const fileInput = document.getElementById('fileInput');
-    const editorArea = document.getElementById('editorArea');
-    
-    const formatSelect = document.getElementById('formatSelect');
-    const qualityControl = document.getElementById('qualityControl');
-    const qualitySlider = document.getElementById('qualitySlider');
-    const qualityValue = document.getElementById('qualityValue');
-    
-    const originalPreview = document.getElementById('originalPreview');
-    const convertedPreview = document.getElementById('convertedPreview');
-    
-    const originalSize = document.getElementById('originalSize');
-    const convertedSize = document.getElementById('convertedSize');
-    const originalExt = document.getElementById('originalExt');
-    const convertedExt = document.getElementById('convertedExt');
-    
-    const downloadBtn = document.getElementById('downloadBtn');
-    const resetBtn = document.getElementById('resetBtn');
+    const uploadArea = document.getElementById('uploadArea'), fileInput = document.getElementById('fileInput'),
+          editorArea = document.getElementById('editorArea'), formatSelect = document.getElementById('formatSelect'),
+          qualityControl = document.getElementById('qualityControl'), qualitySlider = document.getElementById('qualitySlider'),
+          qualityValue = document.getElementById('qualityValue'), originalPreview = document.getElementById('originalPreview'),
+          convertedPreview = document.getElementById('convertedPreview'), originalSize = document.getElementById('originalSize'),
+          convertedSize = document.getElementById('convertedSize'), originalExt = document.getElementById('originalExt'),
+          convertedExt = document.getElementById('convertedExt'), downloadBtn = document.getElementById('downloadBtn'),
+          resetBtn = document.getElementById('resetBtn');
 
-    let originalFile = null;
-    let originalImageObj = null;
-    let convertedBlobUrl = null;
-
-    const formatBytes = (bytes, decimals = 2) => {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-    };
-
-    const getExtFromMime = (mime) => {
-        if (mime === 'image/jpeg') return 'jpg';
-        if (mime === 'image/png') return 'png';
-        if (mime === 'image/webp') return 'webp';
-        return 'jpg';
-    };
+    let originalFile = null, originalImageObj = null, convertedBlobUrl = null;
+    const fmtBytes = b => b < 1024 ? b+' B' : b < 1048576 ? (b/1024).toFixed(1)+' KB' : (b/1048576).toFixed(2)+' MB';
+    const getExt = m => ({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp' }[m] || 'jpg');
 
     uploadArea.addEventListener('click', () => fileInput.click());
-    
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.classList.add('border-secondary', 'bg-base-200');
-    });
-    
-    uploadArea.addEventListener('dragleave', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('border-secondary', 'bg-base-200');
-    });
-    
-    uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('border-secondary', 'bg-base-200');
-        if (e.dataTransfer.files.length) {
-            handleFile(e.dataTransfer.files[0]);
-        }
-    });
-
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length) {
-            handleFile(e.target.files[0]);
-        }
-    });
-
-    resetBtn.addEventListener('click', () => {
-        uploadArea.classList.remove('hidden');
-        editorArea.classList.add('hidden');
-        fileInput.value = '';
-        if (convertedBlobUrl) URL.revokeObjectURL(convertedBlobUrl);
-    });
-
-    formatSelect.addEventListener('change', () => {
-        if (formatSelect.value === 'image/png') {
-            qualityControl.style.opacity = '0.3';
-            qualitySlider.disabled = true;
-        } else {
-            qualityControl.style.opacity = '1';
-            qualitySlider.disabled = false;
-        }
-        if (originalImageObj) convertImage();
-    });
-
-    qualitySlider.addEventListener('input', (e) => {
-        qualityValue.textContent = e.target.value + '%';
-        if (originalImageObj && !qualitySlider.disabled) {
-            convertImage();
-        }
-    });
+    fileInput.addEventListener('change', e => e.target.files[0] && handleFile(e.target.files[0]));
 
     function handleFile(file) {
-        if (!file.type.match(/image\/(jpeg|png|webp)/)) {
-            alert('Please upload a valid JPEG, PNG, or WEBP image.');
-            return;
-        }
-
-        originalFile = file;
-        originalSize.textContent = formatBytes(file.size);
-        originalExt.textContent = getExtFromMime(file.type);
-        
-        // Auto-select a different output format to suggest conversion
-        if (file.type === 'image/webp') formatSelect.value = 'image/png';
-        else if (file.type === 'image/png') formatSelect.value = 'image/jpeg';
-        else formatSelect.value = 'image/png';
-        
-        // Setup initial background based on alpha support
-        if(file.type === 'image/png' || file.type === 'image/webp') {
-            originalPreview.parentElement.classList.add('bg-transparency-grid');
-            originalPreview.classList.add('backdrop-blur-sm'); // nice effect
-        } else {
-            originalPreview.parentElement.classList.remove('bg-transparency-grid');
-        }
-
-        // Trigger change to update UI
-        formatSelect.dispatchEvent(new Event('change'));
-        
+        originalFile = file; originalSize.textContent = fmtBytes(file.size); originalExt.textContent = getExt(file.type).toUpperCase();
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = e => {
             originalPreview.src = e.target.result;
-            
             originalImageObj = new Image();
             originalImageObj.onload = () => {
-                uploadArea.classList.add('hidden');
-                editorArea.classList.remove('hidden');
+                uploadArea.classList.add('d-none'); editorArea.classList.remove('d-none');
                 convertImage();
             };
             originalImageObj.src = e.target.result;
@@ -242,54 +153,67 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsDataURL(file);
     }
 
+    formatSelect.addEventListener('change', () => {
+        const isPng = formatSelect.value === 'image/png';
+        qualityControl.style.opacity = isPng ? '0.3' : '1';
+        qualityControl.style.pointerEvents = isPng ? 'none' : 'auto';
+        convertImage();
+    });
+
+    qualitySlider.addEventListener('input', e => {
+        qualityValue.textContent = e.target.value + '%';
+        convertImage();
+    });
+
     function convertImage() {
-        const targetFormat = formatSelect.value;
-        const quality = parseInt(qualitySlider.value) / 100;
-        
-        convertedExt.textContent = getExtFromMime(targetFormat);
-        
-        if(targetFormat === 'image/png' || targetFormat === 'image/webp') {
-            convertedPreview.parentElement.classList.add('bg-transparency-grid');
-        } else {
-            convertedPreview.parentElement.classList.remove('bg-transparency-grid');
-        }
-
+        if (!originalImageObj) return;
+        const fmt = formatSelect.value, quality = parseInt(qualitySlider.value) / 100;
+        convertedExt.textContent = getExt(fmt).toUpperCase();
         const canvas = document.createElement('canvas');
+        canvas.width = originalImageObj.width; canvas.height = originalImageObj.height;
         const ctx = canvas.getContext('2d');
-        
-        canvas.width = originalImageObj.width;
-        canvas.height = originalImageObj.height;
-        
-        // If converting transparent image to JPEG, fill white background
-        if (targetFormat === 'image/jpeg' && (originalFile.type === 'image/png' || originalFile.type === 'image/webp')) {
-             ctx.fillStyle = "#FFFFFF";
-             ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (fmt === 'image/jpeg' && originalFile.type !== 'image/jpeg') {
+            ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
-        
-        ctx.drawImage(originalImageObj, 0, 0, canvas.width, canvas.height);
-        
+        ctx.drawImage(originalImageObj, 0, 0);
         if (convertedBlobUrl) URL.revokeObjectURL(convertedBlobUrl);
-
-        canvas.toBlob((blob) => {
+        canvas.toBlob(blob => {
             convertedBlobUrl = URL.createObjectURL(blob);
             convertedPreview.src = convertedBlobUrl;
-            convertedSize.textContent = formatBytes(blob.size);
-            
+            convertedSize.textContent = fmtBytes(blob.size);
             downloadBtn.onclick = () => {
-                const a = document.createElement('a');
-                a.href = convertedBlobUrl;
-                
-                let ext = getExtFromMime(targetFormat);
-                let nameWithoutExt = originalFile.name.substring(0, originalFile.name.lastIndexOf('.')) || originalFile.name;
-                
-                a.download = `${nameWithoutExt}-converted.${ext}`;
-                document.body.appendChild(a);
+                const a = document.createElement('a'); a.href = convertedBlobUrl;
+                a.download = `converted_${originalFile.name.split('.')[0]}.${getExt(fmt)}`;
                 a.click();
-                document.body.removeChild(a);
             };
-
-        }, targetFormat, quality);
+        }, fmt, quality);
     }
+
+    resetBtn.addEventListener('click', () => location.reload());
 });
 </script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Universal Image Format Converter</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-primary me-2"></i> High Performance</h3>
+            <p class="text-theme-muted">Flawlessly convert imagery between WEBP, PNG, JPG, and AVIF encodings.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-primary me-2"></i> Secure & Private</h3>
+            <p class="text-theme-muted">Engineered by StoryBrain AI to ensure your data remains completely private. Zero server-side logging for total peace of mind.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-primary me-2"></i> Format Bridging</h3>
+            <p class="text-theme-muted">Optimized specifically for high-speed format bridging natively in your browser using modern Web APIs.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-primary me-2"></i> Asset Preparation</h3>
+            <p class="text-theme-muted">Leveraging advanced techniques in asset preparation to deliver precision results every single time.</p>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

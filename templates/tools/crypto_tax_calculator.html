@@ -1,0 +1,332 @@
+{% extends "base.html" %}
+
+{% block title %}Advanced Crypto Tax Calculator | StoryBrain AI{% endblock %}
+{% block meta_description %}Free, ultra-fast Advanced Crypto Tax Calculator natively in your browser. Engineered for privacy and precision by StoryBrain AI.{% endblock %}
+
+
+{% block head %}
+<!-- ApexCharts -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<style>
+    .tax-result-card {
+        padding: 2.5rem;
+        border-radius: 2rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+    .tax-result-card::after {
+        content: '';
+        position: absolute;
+        top: -50px;
+        right: -50px;
+        width: 150px;
+        height: 150px;
+        background: var(--sb-accent);
+        filter: blur(80px);
+        opacity: 0.1;
+    }
+    .field-wrapper {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .rule-box {
+        background: rgba(124, 58, 237, 0.05);
+        border: 1px solid rgba(124, 58, 237, 0.1);
+        border-radius: 1rem;
+        padding: 1rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* Mobile Responsive Injection */
+    @media (max-width: 768px) {
+        .display-3, .display-4, .hero-title { font-size: 2.25rem !important; }
+        .glass-card { padding: 1.5rem !important; }
+        .row.g-4 { gap: 1rem !important; }
+        .metrics-grid, .grid-layout { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-20 px-4 py-2 mb-4">
+            <i class="fa-solid fa-scale-balanced me-2"></i> Compliance Engine
+        </div>
+        <h1 class="display-3 fw-black mb-3">CRYPTO <span class="gradient-text">TAX ESTIMATOR</span></h1>
+        <p class="text-white-50 fs-5 mx-auto" style="max-width: 750px;">
+            Multi-country dynamic calculation engine. Real 2024 marginal brackets for <span class="text-white">USA & Canada</span>, plus flat rates for <span class="text-white">India</span>.
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-4 reveal" style="animation-delay: 0.2s;">
+        <!-- Configuration Form -->
+        <div class="col-lg-7">
+            <div class="glass-card p-4 p-md-5">
+                <div class="d-flex align-items-center gap-2 mb-4 pb-2 border-bottom border-white border-opacity-5">
+                    <i class="fa-solid fa-sliders text-primary"></i>
+                    <span class="small fw-black text-white-50 tracking-widest text-uppercase">Tax Configuration</span>
+                </div>
+
+                <form id="taxForm">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Jurisdiction</label>
+                            <select id="jurisdiction" class="form-select bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 fw-bold">
+                                <option value="usa" selected>United States (2024)</option>
+                                <option value="canada">Canada (Federal 2024)</option>
+                                <option value="india">India (Sec 115BBH)</option>
+                                <option value="custom">Custom Flat Rate</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 field-wrapper" id="wrapper-filing-status">
+                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Filing Status</label>
+                            <select id="filingStatus" class="form-select bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 fw-bold">
+                                <option value="single" selected>Single (Individual)</option>
+                                <option value="married">Married Filing Jointly</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6 field-wrapper" id="wrapper-annual-income">
+                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Annual Income ($)</label>
+                            <input type="number" id="annualIncome" class="form-control bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 font-mono fw-bold" placeholder="75000">
+                        </div>
+                        <div class="col-md-6 field-wrapper" id="wrapper-holding-period">
+                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Holding Period</label>
+                            <select id="holdingPeriod" class="form-select bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 fw-bold">
+                                <option value="short" selected>Short-Term (&lt; 1 Year)</option>
+                                <option value="long">Long-Term (&gt; 1 Year)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 field-wrapper d-none" id="wrapper-custom-rate">
+                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Custom Tax Rate (%)</label>
+                            <input type="number" id="customRate" class="form-control bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 font-mono fw-bold" placeholder="20">
+                        </div>
+                    </div>
+
+                    <hr class="border-white border-opacity-5 my-5">
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Cost Basis ($)</label>
+                            <input type="number" id="costBasis" class="form-control bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 font-mono fw-bold fs-5" placeholder="10000" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Sale Value ($)</label>
+                            <input type="number" id="saleValue" class="form-control bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 font-mono fw-bold fs-5" placeholder="50000" required>
+                        </div>
+                    </div>
+
+                    <div class="rule-box mb-5">
+                        <i class="fa-solid fa-circle-info text-primary me-2"></i>
+                        <span id="rule-notes-text">Select a jurisdiction to view tax rules.</span>
+                    </div>
+
+                    <button type="button" id="calculateBtn" class="btn btn-premium w-100 py-4 fs-4 fw-black">
+                        COMPUTE TAX ESTIMATE
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div class="col-lg-5">
+            <div class="d-flex flex-column h-100 gap-4">
+                <div class="tax-result-card text-center">
+                    <p class="small fw-black text-white-50 tracking-widest text-uppercase mb-2">Estimated Tax Owed</p>
+                    <h2 id="taxOwed" class="display-3 fw-black font-mono tracking-tighter text-danger mb-0">$0.00</h2>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="glass-card p-4 text-center">
+                            <p class="small fw-black text-white-50 tracking-widest text-uppercase mb-1" style="font-size: 0.6rem;">Gross Gain</p>
+                            <h4 id="grossGain" class="fw-black font-mono mb-0">$0.00</h4>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="glass-card p-4 text-center border-bottom border-success border-4 border-opacity-20">
+                            <p class="small fw-black text-white-50 tracking-widest text-uppercase mb-1" style="font-size: 0.6rem;">Net Total Yield</p>
+                            <h4 id="netProfit" class="fw-black font-mono text-success mb-0">$0.00</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visualization -->
+                <div class="glass-card p-4 p-md-5 flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <span class="small fw-black text-white-50 tracking-widest text-uppercase">
+                            <i class="fa-solid fa-chart-pie text-secondary me-2"></i> Yield Breakdown
+                        </span>
+                        <span id="effectiveRateBadge" class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 opacity-0 px-3 py-2">Eff: 0%</span>
+                    </div>
+                    <div id="donut-chart" class="d-flex align-items-center justify-content-center" style="min-height: 300px;">
+                        <span class="text-white-50 opacity-20 small fw-bold text-uppercase tracking-widest">Awaiting Analysis...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const jSel = document.getElementById('jurisdiction'), fStatus = document.getElementById('filingStatus'), hPeriod = document.getElementById('holdingPeriod');
+    const iIncome = document.getElementById('annualIncome'), iCost = document.getElementById('costBasis'), iSale = document.getElementById('saleValue'), iCustom = document.getElementById('customRate');
+    
+    const wStatus = document.getElementById('wrapper-filing-status'), wIncome = document.getElementById('wrapper-annual-income'), wHolding = document.getElementById('wrapper-holding-period'), wCustom = document.getElementById('wrapper-custom-rate');
+    const rNotes = document.getElementById('rule-notes-text');
+
+    const outTax = document.getElementById('taxOwed'), outGross = document.getElementById('grossGain'), outNet = document.getElementById('netProfit'), bEff = document.getElementById('effectiveRateBadge');
+
+    let donutChart = null;
+
+    const usBrackets = {
+        single: {
+            ordinary: [{ max: 11600, rate: 0.10 }, { max: 47150, rate: 0.12 }, { max: 100525, rate: 0.22 }, { max: 191950, rate: 0.24 }, { max: 243725, rate: 0.32 }, { max: 609350, rate: 0.35 }, { max: Infinity, rate: 0.37 }],
+            longterm: [{ max: 47025, rate: 0.00 }, { max: 518900, rate: 0.15 }, { max: Infinity, rate: 0.20 }]
+        },
+        married: {
+            ordinary: [{ max: 23200, rate: 0.10 }, { max: 94300, rate: 0.12 }, { max: 201050, rate: 0.22 }, { max: 383900, rate: 0.24 }, { max: 487450, rate: 0.32 }, { max: 731200, rate: 0.35 }, { max: Infinity, rate: 0.37 }],
+            longterm: [{ max: 94050, rate: 0.00 }, { max: 583750, rate: 0.15 }, { max: Infinity, rate: 0.20 }]
+        }
+    };
+
+    const caFedBrackets = [{ max: 55867, rate: 0.15 }, { max: 111733, rate: 0.205 }, { max: 173205, rate: 0.26 }, { max: 246302, rate: 0.29 }, { max: Infinity, rate: 0.33 }];
+
+    const calcMarginal = (base, added, brackets) => {
+        let tax = 0, remaining = added, current = base;
+        for (let b of brackets) {
+            if (current >= b.max) continue;
+            let space = b.max - current;
+            if (remaining <= space || b.max === Infinity) { tax += remaining * b.rate; break; }
+            tax += space * b.rate; remaining -= space; current += space;
+        }
+        return tax;
+    };
+
+    const updateUIState = () => {
+        const j = jSel.value;
+        wStatus.classList.add('d-none'); wIncome.classList.add('d-none'); wHolding.classList.add('d-none'); wCustom.classList.add('d-none');
+
+        if (j === 'usa') {
+            wStatus.classList.remove('d-none'); wIncome.classList.remove('d-none'); wHolding.classList.remove('d-none');
+            rNotes.innerHTML = "<strong>USA (2024):</strong> Short-term taxed as ordinary income. Long-term (>1yr) enjoys 0/15/20% rates.";
+        } else if (j === 'canada') {
+            wIncome.classList.remove('d-none');
+            rNotes.innerHTML = "<strong>Canada (Fed 2024):</strong> 50% of capital gains are included in taxable income at federal rates.";
+        } else if (j === 'india') {
+            rNotes.innerHTML = "<strong>India (Sec 115BBH):</strong> Flat 31.2% effective tax on all crypto gains. No losses set-off.";
+        } else if (j === 'custom') {
+            wCustom.classList.remove('d-none');
+            rNotes.innerHTML = "<strong>Custom Rate:</strong> Applies a fixed percentage directly to the gross capital gain.";
+        }
+        calculate();
+    };
+
+    const format = (v) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+
+    const renderChart = (cost, net, tax) => {
+        const opts = {
+            series: [parseFloat(cost.toFixed(2)), parseFloat(net.toFixed(2)), parseFloat(tax.toFixed(2))],
+            labels: ['Cost Basis', 'Net Profit', 'Taxes Owed'],
+            colors: ['#3f3f46', '#22c55e', '#ef4444'],
+            chart: { type: 'donut', height: 350, background: 'transparent' },
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '75%',
+                        labels: {
+                            show: true,
+                            name: { show: true, fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontWeight: 800 },
+                            value: { show: true, fontSize: '24px', fontWeight: 900, color: '#fff', formatter: v => format(v) },
+                            total: { show: true, label: 'TOTAL VALUE', color: 'rgba(255,255,255,0.4)', formatter: w => format(w.globals.seriesTotals.reduce((a, b) => a + b, 0)) }
+                        }
+                    }
+                }
+            },
+            dataLabels: { enabled: false },
+            legend: { position: 'bottom', labels: { colors: '#fff' } },
+            stroke: { show: false },
+            theme: { mode: 'dark' }
+        };
+        if (!donutChart) {
+            document.querySelector("#donut-chart").innerHTML = "";
+            donutChart = new ApexCharts(document.querySelector("#donut-chart"), opts);
+            donutChart.render();
+        } else donutChart.updateOptions(opts);
+    };
+
+    const calculate = () => {
+        const cost = parseFloat(iCost.value), sale = parseFloat(iSale.value), j = jSel.value, inc = parseFloat(iIncome.value) || 0;
+        if (isNaN(cost) || isNaN(sale)) return;
+
+        const gross = sale - cost;
+        let tax = 0;
+        if (gross > 0) {
+            if (j === 'usa') tax = calcMarginal(inc, gross, hPeriod.value === 'short' ? usBrackets[fStatus.value].ordinary : usBrackets[fStatus.value].longterm);
+            else if (j === 'canada') tax = calcMarginal(inc, gross * 0.5, caFedBrackets);
+            else if (j === 'india') tax = gross * 0.30 * 1.04;
+            else if (j === 'custom') tax = gross * ((parseFloat(iCustom.value) || 0) / 100);
+        }
+
+        const net = gross - tax;
+        outGross.innerText = (gross >= 0 ? '+' : '') + format(gross);
+        outGross.className = `fw-black font-mono mb-0 text-${gross >= 0 ? 'success' : 'danger'}`;
+        outNet.innerText = format(cost + Math.max(0, net));
+        outTax.innerText = format(tax);
+        
+        if (gross > 0) {
+            bEff.innerText = `Eff Tax: ${((tax/gross)*100).toFixed(1)}%`;
+            bEff.classList.remove('opacity-0');
+        } else bEff.classList.add('opacity-0');
+
+        renderChart(gross < 0 ? sale : cost, gross < 0 ? 0 : net, tax);
+    };
+
+    jSel.addEventListener('change', updateUIState);
+    [fStatus, hPeriod, iIncome, iCost, iSale, iCustom].forEach(e => e.addEventListener('input', calculate));
+    document.getElementById('calculateBtn').addEventListener('click', calculate);
+    
+    updateUIState();
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Crypto Tax Compliance Engine</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-primary me-2"></i> High Performance</h3>
+            <p class="text-theme-muted">Multi-jurisdiction capital gains compliance calculator for the modern trader.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-primary me-2"></i> Secure & Private</h3>
+            <p class="text-theme-muted">Engineered by StoryBrain AI to ensure your data remains completely private. Zero server-side logging for total peace of mind.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-primary me-2"></i> Capital Gains</h3>
+            <p class="text-theme-muted">Optimized specifically for high-speed capital gains natively in your browser using modern Web APIs.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-primary me-2"></i> Tax Strategy</h3>
+            <p class="text-theme-muted">Leveraging advanced techniques in tax strategy to deliver precision results every single time.</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

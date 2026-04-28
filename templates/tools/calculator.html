@@ -1,72 +1,160 @@
 {% extends "base.html" %}
 
-{% block title %}Calculator | StoryBrain AI{% endblock %}
+{% block title %}Standard Calculator | StoryBrain AI{% endblock %}
+{% block meta_description %}Free, ultra-fast Standard Calculator natively in your browser. Engineered for privacy and precision by StoryBrain AI.{% endblock %}
+
+
+{% block head %}
+<style>
+    .calc-chassis {
+        max-width: 360px;
+        margin: 0 auto;
+    }
+    .oled-display {
+        background: #080808;
+        border-radius: 1.5rem;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: inset 0 4px 15px rgba(0,0,0,0.5);
+        text-align: right;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+    }
+    .main-val {
+        font-size: 2.75rem;
+        font-weight: 900;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: -1.5px;
+        color: #fff;
+        line-height: 1;
+        transition: all 0.1s ease;
+    }
+    .history-val {
+        font-size: 0.85rem;
+        color: var(--sb-accent);
+        opacity: 0.5;
+        font-family: 'JetBrains Mono', monospace;
+        margin-bottom: 0.5rem;
+        min-height: 1.2rem;
+        letter-spacing: 1px;
+    }
+    .calc-btn {
+        height: 70px;
+        border-radius: 1.2rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.03);
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 800;
+        font-size: 1.25rem;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .calc-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
+    }
+    .calc-btn:active {
+        transform: translateY(0) scale(0.95);
+    }
+    .btn-num {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+    }
+    .btn-op {
+        background: var(--sb-accent);
+        color: #000 !important;
+        font-size: 1.5rem;
+        border: none;
+    }
+    .btn-op:hover {
+        background: var(--sb-accent);
+        filter: brightness(1.2);
+    }
+    .btn-ac {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        font-size: 1rem;
+    }
+    .btn-equal {
+        background: var(--sb-accent);
+        color: #fff;
+        font-size: 1.75rem;
+    }
+    .btn-zero {
+        grid-column: span 2;
+    }
+
+    /* Mobile Responsive Injection */
+    @media (max-width: 768px) {
+        .display-3, .display-4, .hero-title { font-size: 2.25rem !important; }
+        .glass-card { padding: 1.5rem !important; }
+        .row.g-4 { gap: 1rem !important; }
+        .metrics-grid, .grid-layout { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Back breadcrumb -->
-<div class="mb-6 animate-fade-in-up">
-    <a href="/" class="inline-flex items-center gap-2 text-sm font-medium text-base-content/50 hover:text-primary transition-colors duration-200">
-        <i class="fa-solid fa-arrow-left text-xs"></i> All Tools
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
     </a>
 </div>
-<div class="max-w-[360px] mx-auto animate-fade-in-up px-2 sm:px-0">
-    <!-- Header -->
-    <div class="text-center mb-6 md:mb-8">
-        <h1 class="text-2xl sm:text-3xl font-extrabold mb-2 flex items-center justify-center gap-2">
-            <i class="fa-solid fa-calculator text-primary"></i> Standard Calculator
-        </h1>
-        <p class="text-sm opacity-80">A fast, beautiful everyday calculator.</p>
+
+<div class="calc-chassis reveal">
+    <div class="text-center mb-5">
+        <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 mb-3">
+            <i class="fa-solid fa-calculator me-2"></i> Standard
+        </div>
+        <h1 class="h2 fw-black mb-1">POCKET <span class="gradient-text">CALC</span></h1>
+        <p class="text-white-50 small text-uppercase tracking-widest fw-bold">Daily Math Simplified</p>
     </div>
 
     <!-- Calculator Card -->
-    <div class="card bg-base-100 shadow-2xl border border-base-300 overflow-hidden relative">
-        <!-- Subtle gradient background -->
-        <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 pointer-events-none"></div>
-        
-        <div class="card-body p-4 sm:p-5 relative z-10">
-            <!-- Display -->
-            <div class="w-full bg-base-200 rounded-xl p-4 mb-4 shadow-inner text-right border border-base-300">
-                <div id="calc-history" class="text-xs sm:text-sm text-base-content/60 min-h-[20px] mb-1 font-mono tracking-wider overflow-hidden text-ellipsis whitespace-nowrap"></div>
-                <div id="calc-display" class="text-3xl sm:text-4xl font-bold text-base-content font-mono tracking-tight overflow-hidden text-ellipsis whitespace-nowrap" style="transition: all 0.1s ease-in-out;">0</div>
-            </div>
+    <div class="glass-card p-4 rounded-5 shadow-lg">
+        <!-- OLED Display -->
+        <div class="oled-display">
+            <div id="calc-history" class="history-val"></div>
+            <div id="calc-display" class="main-val">0</div>
+        </div>
 
-            <!-- Keypad -->
-            <div class="grid grid-cols-4 gap-2 sm:gap-3">
-                <!-- Row 1 -->
-                <button onclick="clearCalc()" class="btn btn-error btn-sm sm:btn-md grid-cols-1 hover:brightness-110 active:scale-95 shadow-sm text-error-content shadow-error/20 flex flex-col justify-center items-center">AC</button>
-                <button onclick="toggleSign()" class="btn border-base-300 btn-sm sm:btn-md bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm flex flex-col justify-center items-center">+/-</button>
-                <button onclick="inputPercent()" class="btn border-base-300 btn-sm sm:btn-md bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm flex flex-col justify-center items-center">%</button>
-                <button onclick="setOperator('/')" class="btn btn-primary btn-sm sm:btn-md hover:brightness-110 active:scale-95 shadow-sm shadow-primary/20 text-lg flex flex-col justify-center items-center">&divide;</button>
-                
-                <!-- Row 2 -->
-                <button onclick="inputDigit('7')" class="btn border-base-300 btn-sm sm:btn-md bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm flex flex-col justify-center items-center">7</button>
-                <button onclick="inputDigit('8')" class="btn border-base-300 btn-sm sm:btn-md bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm flex flex-col justify-center items-center">8</button>
-                <button onclick="inputDigit('9')" class="btn border-base-300 btn-sm sm:btn-md bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm flex flex-col justify-center items-center">9</button>
-                <button onclick="setOperator('*')" class="btn btn-primary btn-sm sm:btn-md hover:brightness-110 active:scale-95 shadow-sm shadow-primary/20 text-lg flex flex-col justify-center items-center">&times;</button>
-                
-                <!-- Row 3 -->
-                <button onclick="inputDigit('4')" class="btn border-base-300 btn-sm sm:btn-md bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm flex flex-col justify-center items-center">4</button>
-                <button onclick="inputDigit('5')" class="btn border-base-300 btn-sm sm:btn-md bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm flex flex-col justify-center items-center">5</button>
-                <button onclick="inputDigit('6')" class="btn border-base-300 btn-sm sm:btn-md bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm flex flex-col justify-center items-center">6</button>
-                <button onclick="setOperator('-')" class="btn btn-primary btn-sm sm:btn-md hover:brightness-110 active:scale-95 shadow-sm shadow-primary/20 text-lg flex flex-col justify-center items-center">&minus;</button>
-                
-                <!-- Row 4 -->
-                <button onclick="inputDigit('1')" class="btn border-base-300 btn-sm sm:btn-md bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm flex flex-col justify-center items-center">1</button>
-                <button onclick="inputDigit('2')" class="btn border-base-300 btn-sm sm:btn-md bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm flex flex-col justify-center items-center">2</button>
-                <button onclick="inputDigit('3')" class="btn border-base-300 btn-sm sm:btn-md bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm flex flex-col justify-center items-center">3</button>
-                <button onclick="setOperator('+')" class="btn btn-primary btn-sm sm:btn-md hover:brightness-110 active:scale-95 shadow-sm shadow-primary/20 text-lg flex flex-col justify-center items-center">+</button>
-                
-                <!-- Row 5 -->
-                <button onclick="inputDigit('0')" class="btn border-base-300 btn-sm sm:btn-md bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm col-span-2 flex flex-col justify-center items-center">0</button>
-                <button onclick="inputDecimal()" class="btn border-base-300 btn-sm sm:btn-md bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm flex flex-col justify-center items-center">.</button>
-                <button onclick="calculateResult()" class="btn btn-secondary btn-sm sm:btn-md hover:brightness-110 active:scale-95 shadow-sm shadow-secondary/20 text-lg flex flex-col justify-center items-center">=</button>
-            </div>
+        <!-- Keypad -->
+        <div class="grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+            <button onclick="clearCalc()" class="calc-btn btn-ac">AC</button>
+            <button onclick="toggleSign()" class="calc-btn">+/-</button>
+            <button onclick="inputPercent()" class="calc-btn">%</button>
+            <button onclick="setOperator('/')" class="calc-btn btn-op">&divide;</button>
+
+            <button onclick="inputDigit('7')" class="calc-btn btn-num">7</button>
+            <button onclick="inputDigit('8')" class="calc-btn btn-num">8</button>
+            <button onclick="inputDigit('9')" class="calc-btn btn-num">9</button>
+            <button onclick="setOperator('*')" class="calc-btn btn-op">&times;</button>
+
+            <button onclick="inputDigit('4')" class="calc-btn btn-num">4</button>
+            <button onclick="inputDigit('5')" class="calc-btn btn-num">5</button>
+            <button onclick="inputDigit('6')" class="calc-btn btn-num">6</button>
+            <button onclick="setOperator('-')" class="calc-btn btn-op">&minus;</button>
+
+            <button onclick="inputDigit('1')" class="calc-btn btn-num">1</button>
+            <button onclick="inputDigit('2')" class="calc-btn btn-num">2</button>
+            <button onclick="inputDigit('3')" class="calc-btn btn-num">3</button>
+            <button onclick="setOperator('+')" class="calc-btn btn-op">+</button>
+
+            <button onclick="inputDigit('0')" class="calc-btn btn-num btn-zero">0</button>
+            <button onclick="inputDecimal()" class="calc-btn btn-num">.</button>
+            <button onclick="calculateResult()" class="calc-btn btn-equal">=</button>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
     let displayValue = '0';
     let firstOperand = null;
@@ -78,123 +166,104 @@
     const historyElement = document.getElementById('calc-history');
 
     function updateDisplay(pop = false) {
-        displayElement.textContent = displayValue;
+        let showVal = displayValue;
+        if (showVal.length > 12) {
+            const num = parseFloat(showVal);
+            if (!isNaN(num)) showVal = num.toPrecision(8).replace(/(?:\.0+|(\.\d+?)0+)$/, '$1');
+        }
+        displayElement.textContent = showVal;
         historyElement.textContent = historyStr;
         if (pop) {
             displayElement.style.transform = 'scale(1.05)';
-            displayElement.style.color = 'oklch(var(--s))';
+            displayElement.style.color = 'var(--sb-accent)';
             setTimeout(() => {
                 displayElement.style.transform = 'scale(1)';
-                displayElement.style.color = '';
+                displayElement.style.color = '#fff';
             }, 100);
         }
     }
 
     function inputDigit(digit) {
-        if (waitingForSecondOperand) {
-            displayValue = digit;
-            waitingForSecondOperand = false;
-        } else {
-            displayValue = displayValue === '0' ? digit : displayValue + digit;
-        }
+        if (waitingForSecondOperand) { displayValue = digit; waitingForSecondOperand = false; }
+        else displayValue = displayValue === '0' ? digit : displayValue + digit;
         updateDisplay();
     }
 
     function inputDecimal() {
-        if (waitingForSecondOperand) {
-            displayValue = '0.';
-            waitingForSecondOperand = false;
-            return updateDisplay();
-        }
-        if (!displayValue.includes('.')) {
-            displayValue += '.';
-        }
+        if (waitingForSecondOperand) { displayValue = '0.'; waitingForSecondOperand = false; return updateDisplay(); }
+        if (!displayValue.includes('.')) displayValue += '.';
         updateDisplay();
     }
 
-    function setOperator(nextOperator) {
-        const inputValue = parseFloat(displayValue);
-
-        if (operator && waitingForSecondOperand) {
-            operator = nextOperator;
-            historyStr = historyStr.replace(/[+\-*/]$/, operator);
-            updateDisplay();
-            return;
+    function setOperator(nextOp) {
+        const val = parseFloat(displayValue);
+        if (operator && waitingForSecondOperand) { operator = nextOp; historyStr = historyStr.replace(/[+\-*/]$/, operator); updateDisplay(); return; }
+        if (firstOperand == null && !isNaN(val)) firstOperand = val;
+        else if (operator) {
+            const res = calculate(firstOperand, val, operator);
+            displayValue = `${parseFloat(res.toFixed(10))}`;
+            firstOperand = res;
         }
-
-        if (firstOperand == null && !isNaN(inputValue)) {
-            firstOperand = inputValue;
-        } else if (operator) {
-            const result = calculate(firstOperand, inputValue, operator);
-            displayValue = `${parseFloat(result.toFixed(10))}`;
-            firstOperand = parseFloat(result.toFixed(10));
-        }
-
         waitingForSecondOperand = true;
-        operator = nextOperator;
-        const opSymbol = nextOperator === '*' ? '×' : nextOperator === '/' ? '÷' : nextOperator === '+' ? '+' : '−';
-        historyStr = `${firstOperand} ${opSymbol} `;
+        operator = nextOp;
+        const sym = nextOp === '*' ? '×' : nextOp === '/' ? '÷' : nextOp === '+' ? '+' : '−';
+        historyStr = `${firstOperand} ${sym} `;
         updateDisplay();
     }
 
-    function calculate(first, second, op) {
-        if (op === '+') return first + second;
-        if (op === '-') return first - second;
-        if (op === '*') return first * second;
-        if (op === '/') return second === 0 ? 'Error' : first / second;
-        return second;
+    function calculate(f, s, op) {
+        if (op === '+') return f + s;
+        if (op === '-') return f - s;
+        if (op === '*') return f * s;
+        if (op === '/') return s === 0 ? NaN : f / s;
+        return s;
     }
 
     function calculateResult() {
         if (!operator || waitingForSecondOperand) return;
-        const inputValue = parseFloat(displayValue);
-        const result = calculate(firstOperand, inputValue, operator);
-        
-        historyStr += `${displayValue} =`;
-        displayValue = `${parseFloat(result.toFixed(10))}`;
-        
-        firstOperand = null;
-        operator = null;
-        waitingForSecondOperand = true;
+        const val = parseFloat(displayValue);
+        let res = calculate(firstOperand, val, operator);
+        if (isNaN(res) || !isFinite(res)) { displayValue = "Error"; historyStr = ''; }
+        else { historyStr += `${displayValue} =`; displayValue = `${parseFloat(res.toFixed(10))}`; }
+        firstOperand = null; operator = null; waitingForSecondOperand = true;
         updateDisplay(true);
     }
 
-    function clearCalc() {
-        displayValue = '0';
-        firstOperand = null;
-        waitingForSecondOperand = false;
-        operator = null;
-        historyStr = '';
-        updateDisplay();
-    }
+    function clearCalc() { displayValue = '0'; firstOperand = null; waitingForSecondOperand = false; operator = null; historyStr = ''; updateDisplay(); }
+    function toggleSign() { if (["0","0.","Error"].includes(displayValue)) return; displayValue = displayValue.charAt(0) === '-' ? displayValue.slice(1) : '-' + displayValue; updateDisplay(); }
+    function inputPercent() { if (displayValue === 'Error') return; displayValue = `${parseFloat(displayValue) / 100}`; updateDisplay(); }
 
-    function toggleSign() {
-        if (displayValue === '0' || displayValue === 'Error') return;
-        displayValue = displayValue.charAt(0) === '-' ? displayValue.slice(1) : '-' + displayValue;
-        updateDisplay();
-    }
-
-    function inputPercent() {
-        if (displayValue === 'Error') return;
-        const value = parseFloat(displayValue);
-        displayValue = `${value / 100}`;
-        updateDisplay();
-    }
-
-    // Keyboard support
-    document.addEventListener('keydown', (event) => {
-        if (event.key >= '0' && event.key <= '9') inputDigit(event.key);
-        if (event.key === '.') inputDecimal();
-        if (event.key === '=' || event.key === 'Enter') {
-            event.preventDefault();
-            calculateResult();
-        }
-        if (event.key === 'Backspace') {
-            displayValue = displayValue.length > 1 ? displayValue.slice(0, -1) : '0';
-            updateDisplay();
-        }
-        if (event.key === 'Escape') clearCalc();
-        if (['+', '-', '*', '/'].includes(event.key)) setOperator(event.key);
+    document.addEventListener('keydown', (e) => {
+        if (e.key >= '0' && e.key <= '9') inputDigit(e.key);
+        if (e.key === '.') inputDecimal();
+        if (e.key === '=' || e.key === 'Enter') { e.preventDefault(); calculateResult(); }
+        if (e.key === 'Backspace') { displayValue = displayValue.length > 1 ? displayValue.slice(0, -1) : '0'; updateDisplay(); }
+        if (e.key === 'Escape') clearCalc();
+        if (['+', '-', '*', '/'].includes(e.key)) setOperator(e.key);
     });
 </script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Standard Matrix Calculator</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-primary me-2"></i> High Performance</h3>
+            <p class="text-theme-muted">A minimalist, beautiful, and highly responsive daily arithmetic calculator.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-primary me-2"></i> Secure & Private</h3>
+            <p class="text-theme-muted">Engineered by StoryBrain AI to ensure your data remains completely private. Zero server-side logging for total peace of mind.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-primary me-2"></i> Basic Arithmetic</h3>
+            <p class="text-theme-muted">Optimized specifically for high-speed basic arithmetic natively in your browser using modern Web APIs.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-primary me-2"></i> Responsive Math</h3>
+            <p class="text-theme-muted">Leveraging advanced techniques in responsive math to deliver precision results every single time.</p>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

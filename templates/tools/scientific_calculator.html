@@ -1,99 +1,213 @@
 {% extends "base.html" %}
 
 {% block title %}Scientific Calculator | StoryBrain AI{% endblock %}
+{% block meta_description %}Free, ultra-fast Scientific Calculator natively in your browser. Engineered for privacy and precision by StoryBrain AI.{% endblock %}
+
+
+{% block head %}
+<style>
+    .calc-chassis {
+        max-width: 480px;
+        margin: 0 auto;
+        position: relative;
+    }
+    .oled-display {
+        background: #080808;
+        border-radius: 1.5rem;
+        padding: 2.5rem 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: inset 0 4px 15px rgba(0,0,0,0.5);
+        text-align: right;
+        position: relative;
+        overflow: hidden;
+    }
+    .oled-display::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0; height: 100%;
+        background: radial-gradient(circle at 50% -20%, rgba(255,255,255,0.05), transparent);
+        pointer-events: none;
+    }
+    .main-val {
+        font-size: 3.5rem;
+        font-weight: 900;
+        font-family: 'JetBrains Mono', monospace;
+        letter-spacing: -2px;
+        color: #fff;
+        text-shadow: 0 0 15px rgba(255,255,255,0.3);
+        line-height: 1;
+        transition: all 0.1s ease;
+    }
+    .history-val {
+        font-size: 0.85rem;
+        color: var(--sb-accent);
+        opacity: 0.5;
+        font-family: 'JetBrains Mono', monospace;
+        margin-bottom: 0.5rem;
+        height: 1.2rem;
+        letter-spacing: 1px;
+    }
+    .calc-btn {
+        height: 60px;
+        border-radius: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.03);
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 800;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 1px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .calc-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
+    }
+    .calc-btn:active {
+        transform: translateY(0) scale(0.95);
+    }
+    .btn-sci {
+        background: rgba(124, 58, 237, 0.05);
+        color: var(--sb-accent);
+        font-size: 0.65rem;
+    }
+    .btn-num {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+        font-size: 1.25rem;
+        font-family: 'Outfit', sans-serif;
+    }
+    .btn-op {
+        background: var(--sb-accent);
+        color: #000;
+        font-size: 1.5rem;
+        border: none;
+    }
+    .btn-op:hover {
+        background: var(--sb-accent);
+        filter: brightness(1.2);
+        color: #000;
+    }
+    .btn-ac {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        font-size: 0.8rem;
+    }
+    .btn-equal {
+        background: var(--sb-accent);
+        color: #fff;
+        font-size: 1.75rem;
+        grid-column: span 2;
+    }
+    .btn-zero {
+        grid-column: span 2;
+    }
+
+    /* Mobile Responsive Injection */
+    @media (max-width: 768px) {
+        .display-3, .display-4, .hero-title { font-size: 2.25rem !important; }
+        .glass-card { padding: 1.5rem !important; }
+        .row.g-4 { gap: 1rem !important; }
+        .metrics-grid, .grid-layout { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Back breadcrumb -->
-<div class="mb-6 animate-fade-in-up">
-    <a href="/" class="inline-flex items-center gap-2 text-sm font-medium text-base-content/50 hover:text-primary transition-colors duration-200">
-        <i class="fa-solid fa-arrow-left text-xs"></i> All Tools
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
     </a>
 </div>
-<div class="max-w-[480px] mx-auto animate-fade-in-up px-2 sm:px-0 mb-10">
+
+<div class="calc-chassis reveal">
     <!-- Header -->
-    <div class="text-center mb-6 md:mb-8">
-        <h1 class="text-2xl sm:text-3xl font-extrabold mb-2 flex items-center justify-center gap-2">
-            <i class="fa-solid fa-flask text-secondary"></i> Scientific Calculator
-        </h1>
-        <p class="text-sm opacity-80">Advanced mathematical functions at your fingertips.</p>
+    <div class="text-center mb-5">
+        <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 mb-3">
+            <i class="fa-solid fa-flask me-2"></i> Math Engine
+        </div>
+        <h1 class="h2 fw-black mb-1">SCIENTIFIC <span class="gradient-text">CALC</span></h1>
+        <p class="text-white-50 small text-uppercase tracking-widest fw-bold">Advanced Precision Computing</p>
     </div>
 
     <!-- Calculator Card -->
-    <div class="card bg-base-100 shadow-2xl border border-base-300 overflow-hidden relative">
-        <!-- Subtle gradient background -->
-        <div class="absolute inset-0 bg-gradient-to-br from-secondary/5 to-accent/5 pointer-events-none"></div>
-        
-        <div class="card-body p-4 sm:p-5 relative z-10 w-full overflow-hidden">
-            <!-- Display -->
-            <div class="w-full bg-base-200 rounded-xl p-4 mb-4 shadow-inner text-right border border-base-300">
-                <div id="calc-history" class="text-xs sm:text-sm text-base-content/60 min-h-[20px] mb-1 font-mono tracking-wider overflow-hidden text-ellipsis whitespace-nowrap"></div>
-                <div id="calc-display" class="text-3xl sm:text-4xl font-bold text-base-content font-mono tracking-tight overflow-hidden text-ellipsis whitespace-nowrap" style="transition: all 0.1s ease-in-out;">0</div>
-            </div>
+    <div class="glass-card p-4 p-md-5 rounded-5 shadow-lg">
+        <!-- OLED Display -->
+        <div class="oled-display">
+            <div id="calc-history" class="history-val"></div>
+            <div id="calc-display" class="main-val">0</div>
+        </div>
 
-            <!-- Keypad -->
-            <div class="grid grid-cols-5 gap-2 sm:gap-2.5">
-                
-                <!-- Row 1: Scientific/Advanced -->
-                <button onclick="calcFunc('sin')" class="btn border-base-300 btn-xs sm:btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">sin</button>
-                <button onclick="calcFunc('cos')" class="btn border-base-300 btn-xs sm:btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">cos</button>
-                <button onclick="calcFunc('tan')" class="btn border-base-300 btn-xs sm:btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">tan</button>
-                <button onclick="calcFunc('sqrt')" class="btn border-base-300 btn-xs sm:btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">&radic;(x)</button>
-                <button onclick="setOperator('^')" class="btn border-base-300 btn-xs sm:btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">x<sup>y</sup></button>
+        <!-- Keypad -->
+        <div class="grid" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px;">
+            <!-- Row 1 -->
+            <button onclick="calcFunc('sin')" class="calc-btn btn-sci">sin</button>
+            <button onclick="calcFunc('cos')" class="calc-btn btn-sci">cos</button>
+            <button onclick="calcFunc('tan')" class="calc-btn btn-sci">tan</button>
+            <button onclick="calcFunc('sqrt')" class="calc-btn btn-sci">&radic;(x)</button>
+            <button onclick="setOperator('^')" class="calc-btn btn-sci">x<sup>y</sup></button>
 
-                <!-- Row 2: Scientific/Advanced -->
-                <button onclick="calcFunc('asin')" class="btn border-base-300 btn-xs sm:btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">sin&sup1;</button>
-                <button onclick="calcFunc('acos')" class="btn border-base-300 btn-xs sm:btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">cos&sup1;</button>
-                <button onclick="calcFunc('atan')" class="btn border-base-300 btn-xs sm:btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">tan&sup1;</button>
-                <button onclick="calcFunc('log')" class="btn border-base-300 btn-xs sm:btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">log</button>
-                <button onclick="calcFunc('ln')" class="btn border-base-300 btn-xs sm:btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">ln</button>
-                
-                <!-- Divider -->
-                <div class="col-span-5 h-[1px] bg-base-300 my-1"></div>
+            <!-- Row 2 -->
+            <button onclick="calcFunc('asin')" class="calc-btn btn-sci">sin⁻¹</button>
+            <button onclick="calcFunc('acos')" class="calc-btn btn-sci">cos⁻¹</button>
+            <button onclick="calcFunc('atan')" class="calc-btn btn-sci">tan⁻¹</button>
+            <button onclick="calcFunc('log')" class="calc-btn btn-sci">log</button>
+            <button onclick="calcFunc('ln')" class="calc-btn btn-sci">ln</button>
 
-                <!-- Row 3: Standard Mix 1 -->
-                <button onclick="inputConstant('pi')" class="btn border-base-300 btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">&pi;</button>
-                <button onclick="inputConstant('e')" class="btn border-base-300 btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">e</button>
-                <button onclick="calcFunc('fact')" class="btn border-base-300 btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">x!</button>
-                <button onclick="inputPercent()" class="btn border-base-300 btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">%</button>
-                <button onclick="setOperator('/')" class="btn btn-secondary btn-sm hover:brightness-110 active:scale-95 shadow-sm shadow-secondary/20 text-lg">&divide;</button>
-                
-                <!-- Row 4 -->
-                <button onclick="inputDigit('7')" class="btn border-base-300 btn-sm bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm">7</button>
-                <button onclick="inputDigit('8')" class="btn border-base-300 btn-sm bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm">8</button>
-                <button onclick="inputDigit('9')" class="btn border-base-300 btn-sm bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm">9</button>
-                <button onclick="toggleSign()" class="btn border-base-300 btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm">+/-</button>
-                <button onclick="setOperator('*')" class="btn btn-secondary btn-sm hover:brightness-110 active:scale-95 shadow-sm shadow-secondary/20 text-lg">&times;</button>
-                
-                <!-- Row 5 -->
-                <button onclick="inputDigit('4')" class="btn border-base-300 btn-sm bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm">4</button>
-                <button onclick="inputDigit('5')" class="btn border-base-300 btn-sm bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm">5</button>
-                <button onclick="inputDigit('6')" class="btn border-base-300 btn-sm bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm">6</button>
-                <button onclick="clearCalc()" class="btn btn-error btn-sm hover:brightness-110 active:scale-95 shadow-sm text-error-content shadow-error/20">AC</button>
-                <button onclick="setOperator('-')" class="btn btn-secondary btn-sm hover:brightness-110 active:scale-95 shadow-sm shadow-secondary/20 text-lg">&minus;</button>
-                
-                <!-- Row 6 -->
-                <button onclick="inputDigit('1')" class="btn border-base-300 btn-sm bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm">1</button>
-                <button onclick="inputDigit('2')" class="btn border-base-300 btn-sm bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm">2</button>
-                <button onclick="inputDigit('3')" class="btn border-base-300 btn-sm bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm">3</button>
-                <button onclick="backspace()" class="btn border-base-300 btn-sm bg-base-200 hover:bg-base-300 active:scale-95 shadow-sm"><i class="fa-solid fa-delete-left"></i></button>
-                <button onclick="setOperator('+')" class="btn btn-secondary btn-sm hover:brightness-110 active:scale-95 shadow-sm shadow-secondary/20 text-lg">+</button>
-                
-                <!-- Row 7 -->
-                <button onclick="inputDigit('0')" class="btn border-base-300 btn-sm bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm col-span-2">0</button>
-                <button onclick="inputDecimal()" class="btn border-base-300 btn-sm bg-base-100 hover:bg-base-200 text-lg active:scale-95 shadow-sm">.</button>
-                <button onclick="calculateResult()" class="btn btn-primary btn-sm hover:brightness-110 active:scale-95 shadow-sm shadow-primary/20 text-lg col-span-2">=</button>
-            </div>
-            
-            <div class="mt-4 flex justify-between items-center text-xs opacity-50 px-1">
-                <span class="font-mono">DEG</span>
-                <span>Supports Keyboard</span>
-            </div>
+            <div style="grid-column: span 5; height: 1px; background: rgba(255,255,255,0.05); margin: 5px 0;"></div>
+
+            <!-- Row 3 -->
+            <button onclick="inputConstant('pi')" class="calc-btn">&pi;</button>
+            <button onclick="inputConstant('e')" class="calc-btn">e</button>
+            <button onclick="calcFunc('fact')" class="calc-btn">x!</button>
+            <button onclick="inputPercent()" class="calc-btn">%</button>
+            <button onclick="setOperator('/')" class="calc-btn btn-op">&divide;</button>
+
+            <!-- Row 4 -->
+            <button onclick="inputDigit('7')" class="calc-btn btn-num">7</button>
+            <button onclick="inputDigit('8')" class="calc-btn btn-num">8</button>
+            <button onclick="inputDigit('9')" class="calc-btn btn-num">9</button>
+            <button onclick="toggleSign()" class="calc-btn">+/-</button>
+            <button onclick="setOperator('*')" class="calc-btn btn-op">&times;</button>
+
+            <!-- Row 5 -->
+            <button onclick="inputDigit('4')" class="calc-btn btn-num">4</button>
+            <button onclick="inputDigit('5')" class="calc-btn btn-num">5</button>
+            <button onclick="inputDigit('6')" class="calc-btn btn-num">6</button>
+            <button onclick="clearCalc()" class="calc-btn btn-ac">AC</button>
+            <button onclick="setOperator('-')" class="calc-btn btn-op">&minus;</button>
+
+            <!-- Row 6 -->
+            <button onclick="inputDigit('1')" class="calc-btn btn-num">1</button>
+            <button onclick="inputDigit('2')" class="calc-btn btn-num">2</button>
+            <button onclick="inputDigit('3')" class="calc-btn btn-num">3</button>
+            <button onclick="backspace()" class="calc-btn"><i class="fa-solid fa-delete-left"></i></button>
+            <button onclick="setOperator('+')" class="calc-btn btn-op">+</button>
+
+            <!-- Row 7 -->
+            <button onclick="inputDigit('0')" class="calc-btn btn-num btn-zero">0</button>
+            <button onclick="inputDecimal()" class="calc-btn btn-num">.</button>
+            <button onclick="calculateResult()" class="calc-btn btn-equal">=</button>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4 px-2">
+            <span class="small text-white-50 tracking-widest fw-bold opacity-50" style="font-size: 0.6rem;">
+                <i class="fa-solid fa-circle text-success me-1"></i> DEG MODE
+            </span>
+            <span class="small text-white-50 tracking-widest fw-bold opacity-50" style="font-size: 0.6rem;">
+                KEYBOARD ACTIVE <i class="fa-solid fa-keyboard ms-1"></i>
+            </span>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
     let displayValue = '0';
     let firstOperand = null;
@@ -105,197 +219,142 @@
     const historyElement = document.getElementById('calc-history');
 
     function updateDisplay(pop = false) {
-        // format output length if too long
         let showVal = displayValue;
-        if (showVal.length > 15) {
+        if (showVal.length > 12) {
             const num = parseFloat(showVal);
-            if (!isNaN(num)) {
-                showVal = num.toPrecision(10).replace(/(?:\.0+|(\.\d+?)0+)$/, '$1');
-            }
+            if (!isNaN(num)) showVal = num.toPrecision(8).replace(/(?:\.0+|(\.\d+?)0+)$/, '$1');
         }
         displayElement.textContent = showVal;
         historyElement.textContent = historyStr;
         if (pop) {
             displayElement.style.transform = 'scale(1.05)';
-            displayElement.style.color = 'oklch(var(--s))';
+            displayElement.style.color = 'var(--sb-accent)';
             setTimeout(() => {
                 displayElement.style.transform = 'scale(1)';
-                displayElement.style.color = '';
+                displayElement.style.color = '#fff';
             }, 100);
         }
     }
 
     function inputDigit(digit) {
-        if (waitingForSecondOperand) {
-            displayValue = digit;
-            waitingForSecondOperand = false;
-        } else {
-            displayValue = displayValue === '0' ? digit : displayValue + digit;
-            if (displayValue === '-0') displayValue = '-' + digit;
-        }
+        if (waitingForSecondOperand) { displayValue = digit; waitingForSecondOperand = false; }
+        else displayValue = displayValue === '0' ? digit : displayValue + digit;
         updateDisplay();
     }
 
     function inputDecimal() {
-        if (waitingForSecondOperand) {
-            displayValue = '0.';
-            waitingForSecondOperand = false;
-            return updateDisplay();
-        }
-        if (!displayValue.includes('.')) {
-            displayValue += '.';
-        }
+        if (waitingForSecondOperand) { displayValue = '0.'; waitingForSecondOperand = false; return updateDisplay(); }
+        if (!displayValue.includes('.')) displayValue += '.';
         updateDisplay();
     }
 
     function inputConstant(type) {
-        const val = type === 'pi' ? Math.PI : Math.E;
-        if (waitingForSecondOperand) {
-            displayValue = String(val);
-            waitingForSecondOperand = false;
-        } else {
-            displayValue = String(val);
-        }
-        updateDisplay();
+        displayValue = String(type === 'pi' ? Math.PI : Math.E);
+        waitingForSecondOperand = false;
+        updateDisplay(true);
     }
 
-    function setOperator(nextOperator) {
-        const inputValue = parseFloat(displayValue);
-
-        if (operator && waitingForSecondOperand) {
-            operator = nextOperator;
-            historyStr = historyStr.replace(/[+\-*/^]$/, operator);
-            updateDisplay();
-            return;
+    function setOperator(nextOp) {
+        const val = parseFloat(displayValue);
+        if (operator && waitingForSecondOperand) { operator = nextOp; historyStr = historyStr.replace(/[+\-*/^]$/, operator); updateDisplay(); return; }
+        if (firstOperand == null && !isNaN(val)) firstOperand = val;
+        else if (operator) {
+            const res = calculate(firstOperand, val, operator);
+            displayValue = `${parseFloat(res.toFixed(12))}`;
+            firstOperand = res;
         }
-
-        if (firstOperand == null && !isNaN(inputValue)) {
-            firstOperand = inputValue;
-        } else if (operator) {
-            const result = calculate(firstOperand, inputValue, operator);
-            displayValue = `${parseFloat(result.toFixed(12))}`;
-            firstOperand = parseFloat(result.toFixed(12));
-        }
-
         waitingForSecondOperand = true;
-        operator = nextOperator;
-        const opSymbol = nextOperator === '*' ? '×' : nextOperator === '/' ? '÷' : nextOperator === '+' ? '+' : nextOperator === '-' ? '−' : '^';
-        historyStr = `${firstOperand} ${opSymbol} `;
+        operator = nextOp;
+        const sym = nextOp === '*' ? '×' : nextOp === '/' ? '÷' : nextOp === '+' ? '+' : nextOp === '-' ? '−' : '^';
+        historyStr = `${firstOperand} ${sym} `;
         updateDisplay();
     }
 
-    function calculate(first, second, op) {
-        if (op === '+') return first + second;
-        if (op === '-') return first - second;
-        if (op === '*') return first * second;
-        if (op === '/') return second === 0 ? NaN : first / second;
-        if (op === '^') return Math.pow(first, second);
-        return second;
+    function calculate(f, s, op) {
+        if (op === '+') return f + s;
+        if (op === '-') return f - s;
+        if (op === '*') return f * s;
+        if (op === '/') return s === 0 ? NaN : f / s;
+        if (op === '^') return Math.pow(f, s);
+        return s;
     }
 
     function calcFunc(func) {
         if (displayValue === 'Error' || isNaN(displayValue)) return;
         const val = parseFloat(displayValue);
         let res = val;
-        let funcName = '';
-        
+        let name = '';
         switch (func) {
-            case 'sin': res = Math.sin(val * Math.PI / 180); funcName = 'sin'; break; // DEG
-            case 'cos': res = Math.cos(val * Math.PI / 180); funcName = 'cos'; break; // DEG
-            case 'tan': res = Math.tan(val * Math.PI / 180); funcName = 'tan'; break; // DEG
-            case 'asin': res = Math.asin(val) * 180 / Math.PI; funcName = 'asin'; break; // returns DEG
-            case 'acos': res = Math.acos(val) * 180 / Math.PI; funcName = 'acos'; break; // returns DEG
-            case 'atan': res = Math.atan(val) * 180 / Math.PI; funcName = 'atan'; break; // returns DEG
-            case 'log': res = Math.log10(val); funcName = 'log'; break;
-            case 'ln': res = Math.log(val); funcName = 'ln'; break;
-            case 'sqrt': res = Math.sqrt(val); funcName = '√'; break;
+            case 'sin': res = Math.sin(val * Math.PI / 180); name = 'sin'; break;
+            case 'cos': res = Math.cos(val * Math.PI / 180); name = 'cos'; break;
+            case 'tan': res = Math.tan(val * Math.PI / 180); name = 'tan'; break;
+            case 'asin': res = Math.asin(val) * 180 / Math.PI; name = 'asin'; break;
+            case 'acos': res = Math.acos(val) * 180 / Math.PI; name = 'acos'; break;
+            case 'atan': res = Math.atan(val) * 180 / Math.PI; name = 'atan'; break;
+            case 'log': res = Math.log10(val); name = 'log'; break;
+            case 'ln': res = Math.log(val); name = 'ln'; break;
+            case 'sqrt': res = Math.sqrt(val); name = '√'; break;
             case 'fact': 
-                if (val < 0 || !Number.isInteger(val)) { res = NaN; }
-                else {
-                    let f = 1; for(let i = 2; i <= val; i++) f *= i;
-                    res = f;
-                }
-                funcName = 'fact'; break;
+                if (val < 0 || !Number.isInteger(val)) res = NaN;
+                else { let f = 1; for(let i = 2; i <= val; i++) f *= i; res = f; }
+                name = 'fact'; break;
         }
-
-        if (isNaN(res)) {
-            displayValue = "Error";
-            historyStr = '';
-        } else {
-            // format slight precision errors like sin(180) != 0
+        if (isNaN(res)) { displayValue = "Error"; historyStr = ''; }
+        else {
             if (Math.abs(res) < 1e-10) res = 0;
-            displayValue = `${parseFloat(res.toFixed(12))}`;
-            if (waitingForSecondOperand && firstOperand !== null) {
-                // user clicked function on second operand before equals
-            } else {
-                historyStr = `${funcName}(${val}) =`;
-                firstOperand = null;
-                operator = null;
-                waitingForSecondOperand = true;
-            }
+            displayValue = `${parseFloat(res.toFixed(10))}`;
+            historyStr = `${name}(${val}) =`;
+            firstOperand = null; operator = null; waitingForSecondOperand = true;
         }
         updateDisplay(true);
     }
 
     function calculateResult() {
         if (!operator || waitingForSecondOperand) return;
-        const inputValue = parseFloat(displayValue);
-        const result = calculate(firstOperand, inputValue, operator);
-        
-        if (isNaN(result) || !isFinite(result)) {
-            displayValue = "Error";
-            historyStr = '';
-        } else {
-            historyStr += `${displayValue} =`;
-            displayValue = `${parseFloat(result.toFixed(12))}`;
-        }
-        
-        firstOperand = null;
-        operator = null;
-        waitingForSecondOperand = true;
+        const val = parseFloat(displayValue);
+        const res = calculate(firstOperand, val, operator);
+        if (isNaN(res) || !isFinite(res)) { displayValue = "Error"; historyStr = ''; }
+        else { historyStr += `${displayValue} =`; displayValue = `${parseFloat(res.toFixed(10))}`; }
+        firstOperand = null; operator = null; waitingForSecondOperand = true;
         updateDisplay(true);
     }
 
-    function clearCalc() {
-        displayValue = '0';
-        firstOperand = null;
-        waitingForSecondOperand = false;
-        operator = null;
-        historyStr = '';
-        updateDisplay();
-    }
-    
-    function backspace() {
-        if (waitingForSecondOperand || displayValue === 'Error') return;
-        displayValue = displayValue.length > 1 ? displayValue.slice(0, -1) : '0';
-        if (displayValue === '-') displayValue = '0';
-        updateDisplay();
-    }
+    function clearCalc() { displayValue = '0'; firstOperand = null; waitingForSecondOperand = false; operator = null; historyStr = ''; updateDisplay(); }
+    function backspace() { if (waitingForSecondOperand || displayValue === 'Error') return; displayValue = displayValue.length > 1 ? displayValue.slice(0, -1) : '0'; updateDisplay(); }
+    function toggleSign() { if (["0","0.","Error"].includes(displayValue)) return; displayValue = displayValue.charAt(0) === '-' ? displayValue.slice(1) : '-' + displayValue; updateDisplay(); }
+    function inputPercent() { if (displayValue === 'Error') return; displayValue = `${parseFloat(displayValue) / 100}`; updateDisplay(); }
 
-    function toggleSign() {
-        if (displayValue === '0' || displayValue === '0.' || displayValue === 'Error') return;
-        displayValue = displayValue.charAt(0) === '-' ? displayValue.slice(1) : '-' + displayValue;
-        updateDisplay();
-    }
-
-    function inputPercent() {
-        if (displayValue === 'Error') return;
-        const value = parseFloat(displayValue);
-        displayValue = `${value / 100}`;
-        updateDisplay();
-    }
-
-    // Keyboard support
-    document.addEventListener('keydown', (event) => {
-        if (event.key >= '0' && event.key <= '9') inputDigit(event.key);
-        if (event.key === '.') inputDecimal();
-        if (event.key === '=' || event.key === 'Enter') {
-            event.preventDefault();
-            calculateResult();
-        }
-        if (event.key === 'Backspace') backspace();
-        if (event.key === 'Escape') clearCalc();
-        if (['+', '-', '*', '/', '^'].includes(event.key)) setOperator(event.key);
+    document.addEventListener('keydown', (e) => {
+        if (e.key >= '0' && e.key <= '9') inputDigit(e.key);
+        if (e.key === '.') inputDecimal();
+        if (e.key === '=' || e.key === 'Enter') { e.preventDefault(); calculateResult(); }
+        if (e.key === 'Backspace') backspace();
+        if (e.key === 'Escape') clearCalc();
+        if (['+', '-', '*', '/', '^'].includes(e.key)) setOperator(e.key);
     });
 </script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Scientific Equation Calculator</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-primary me-2"></i> High Performance</h3>
+            <p class="text-theme-muted">Advanced trigonometry, logarithms, and exponents for complex engineering mathematics.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-primary me-2"></i> Secure & Private</h3>
+            <p class="text-theme-muted">Engineered by StoryBrain AI to ensure your data remains completely private. Zero server-side logging for total peace of mind.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-primary me-2"></i> Complex Equations</h3>
+            <p class="text-theme-muted">Optimized specifically for high-speed complex equations natively in your browser using modern Web APIs.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-primary me-2"></i> Trigonometry</h3>
+            <p class="text-theme-muted">Leveraging advanced techniques in trigonometry to deliver precision results every single time.</p>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
