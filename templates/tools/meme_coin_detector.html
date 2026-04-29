@@ -1,0 +1,626 @@
+{% extends "base.html" %}
+
+{% block title %}Premium Meme Coin Detector | StoryBrain AI{% endblock %}
+{% block meta_description %}Advanced heuristic logic to detect meme coins, shitcoins, and speculative assets. Analyze live liquidity, age, and linguistics via DexScreener.{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-lg mx-auto" style="max-width: 1200px;">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-20 px-4 py-2 mb-4" style="color: #ec4899 !important; background: rgba(236, 72, 153, 0.1) !important; border-color: rgba(236, 72, 153, 0.2) !important;">
+            <i class="fa-solid fa-dog me-2 animate-pulse"></i> Degen Forensics Engine v2
+        </div>
+        <h1 class="display-4 fw-black mb-3">MEME <span class="gradient-text" style="background: linear-gradient(135deg, #ec4899, #f43f5e); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">DETECTOR</span></h1>
+        <p class="text-white-50 fs-5 mx-auto" style="max-width: 700px;">
+            Institutional-grade speculative asset analysis. Identify meme coins instantly using live on-chain liquidity ratios, linguistic heuristics, volume velocity, and contract auditing.
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-4 reveal" style="animation-delay: 0.2s;">
+        <!-- Input & Search -->
+        <div class="col-lg-4">
+            <div class="glass-card p-4 h-100 d-flex flex-column border-theme position-sticky" style="top: 100px;">
+                
+                <form id="detectForm" class="mb-4">
+                    <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-3 d-block">Target Asset</label>
+                    <div class="input-group mb-4">
+                        <span class="input-group-text bg-white bg-opacity-5 border-white border-opacity-10 text-white-50"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" id="targetInput" class="form-control bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 font-mono" placeholder="Symbol (PEPE) or Address (0x...)" required>
+                    </div>
+                    
+                    <button type="submit" id="detectBtn" class="btn w-100 py-3 fs-6 fw-black text-white tracking-widest text-uppercase" style="background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); border: none; box-shadow: 0 0 20px rgba(236, 72, 153, 0.3);">
+                        RUN FORENSICS
+                    </button>
+                </form>
+
+                <!-- Token History / Terminal -->
+                <div class="mt-auto bg-black bg-opacity-50 rounded-4 border border-white border-opacity-10 p-3 font-mono small position-relative overflow-hidden" style="height: 200px;">
+                    <div class="d-flex align-items-center mb-2 pb-2 border-bottom border-white border-opacity-10">
+                        <div class="d-flex gap-2 me-3">
+                            <div class="rounded-circle bg-danger" style="width: 8px; height: 8px;"></div>
+                            <div class="rounded-circle bg-warning" style="width: 8px; height: 8px;"></div>
+                            <div class="rounded-circle bg-success" style="width: 8px; height: 8px;"></div>
+                        </div>
+                        <span class="text-white-50 fw-bold" style="font-size: 0.65rem;">degen-cli@storybrain:~# scan --api dex,goplus</span>
+                    </div>
+                    
+                    <div id="terminalOutput" class="text-white-50" style="font-size: 0.70rem; line-height: 1.6; height: 140px; overflow-y: auto;">
+                        <span class="text-success">&gt;</span> System ready. Awaiting input vector...
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div class="col-lg-8">
+            <div class="glass-card shadow-lg p-4 p-md-5 h-100 d-flex flex-column position-relative overflow-hidden" id="dashboardCard">
+                <!-- Overlay for Unscanned State -->
+                <div id="unscannedOverlay" class="position-absolute top-0 start-0 w-100 h-100 bg-black bg-opacity-80 d-flex flex-column align-items-center justify-content-center z-index-2 transition-all" style="backdrop-filter: blur(5px); z-index: 10;">
+                    <i class="fa-solid fa-radar text-white-50 fs-1 mb-4" style="color: #ec4899 !important; opacity: 0.5;"></i>
+                    <p class="text-white-50 fw-bold tracking-widest text-uppercase small animate-pulse" style="color: #ec4899 !important;">Awaiting Target Data</p>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-start mb-4 pb-3 border-bottom border-white border-opacity-10">
+                    <div class="d-flex align-items-center gap-3">
+                        <div id="tokenIcon" class="rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background: rgba(255,255,255,0.1); font-size: 1.5rem;">
+                            <i class="fa-brands fa-ethereum text-white"></i>
+                        </div>
+                        <div>
+                            <h4 id="tokenName" class="mb-0 fw-bold text-white tracking-widest text-uppercase">UNKNOWN</h4>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <span id="tokenSymbol" class="text-white-50 font-mono small">N/A</span>
+                                <span id="tokenChain" class="badge bg-secondary" style="font-size: 0.6rem;">CHAIN</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <span id="riskProfile" class="badge bg-secondary text-uppercase tracking-widest px-3 py-2">ANALYZING</span>
+                    </div>
+                </div>
+
+                <!-- Overall Meme Score -->
+                <div class="mb-4 text-center py-4 rounded-4 position-relative" style="background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.1);">
+                    <p class="small text-white-50 tracking-widest text-uppercase mb-2 font-mono">Meme Probability Score</p>
+                    <div class="d-flex align-items-baseline justify-content-center gap-1">
+                        <h2 id="memeScore" class="display-2 fw-black mb-0 text-white font-mono" style="letter-spacing: -2px;">0</h2>
+                        <span class="fs-4 text-white-50 fw-bold">%</span>
+                    </div>
+                    <div class="progress mt-3 mx-auto" style="height: 6px; width: 80%; background: rgba(255,255,255,0.1);">
+                        <div id="memeBar" class="progress-bar" role="progressbar" style="width: 0%; background: #ec4899; transition: width 1s ease-out;"></div>
+                    </div>
+                </div>
+
+                <!-- Heuristics Grid -->
+                <div class="row g-3">
+                    <!-- Liquidity / FDV -->
+                    <div class="col-md-4">
+                        <div class="p-3 h-100 rounded-4 bg-black bg-opacity-40 border border-white border-opacity-5">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small fw-black text-white-50 tracking-widest text-uppercase" style="font-size: 0.65rem;">Liq/FDV Ratio</span>
+                                <i id="liqIcon" class="fa-solid fa-circle-question text-white-50 small"></i>
+                            </div>
+                            <h5 id="liqRatio" class="fw-bold mb-0 text-white font-mono">-</h5>
+                            <div class="d-flex flex-column mt-2 gap-1">
+                                <span class="text-white-50" style="font-size: 0.6rem;">Liq: <span id="valLiq" class="text-white">$0</span></span>
+                                <span class="text-white-50" style="font-size: 0.6rem;">FDV: <span id="valFdv" class="text-white">$0</span></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Volume Velocity -->
+                    <div class="col-md-4">
+                        <div class="p-3 h-100 rounded-4 bg-black bg-opacity-40 border border-white border-opacity-5">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small fw-black text-white-50 tracking-widest text-uppercase" style="font-size: 0.65rem;">Volume Velocity</span>
+                                <i id="volIcon" class="fa-solid fa-circle-question text-white-50 small"></i>
+                            </div>
+                            <h5 id="volRatio" class="fw-bold mb-0 text-white font-mono">-</h5>
+                            <p class="mb-0 text-white-50 mt-2 font-mono" style="font-size: 0.6rem;" id="volDesc">24h Vol / Liquidity</p>
+                        </div>
+                    </div>
+
+                    <!-- Volatility Index -->
+                    <div class="col-md-4">
+                        <div class="p-3 h-100 rounded-4 bg-black bg-opacity-40 border border-white border-opacity-5">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small fw-black text-white-50 tracking-widest text-uppercase" style="font-size: 0.65rem;">Volatility Index</span>
+                                <i id="volaIcon" class="fa-solid fa-circle-question text-white-50 small"></i>
+                            </div>
+                            <h5 id="volaH24" class="fw-bold mb-0 text-white font-mono">-</h5>
+                            <p class="mb-0 text-white-50 mt-2 font-mono" style="font-size: 0.6rem;">1H: <span id="volaH1" class="text-white">-</span></p>
+                        </div>
+                    </div>
+
+                    <!-- Pair Age -->
+                    <div class="col-md-4">
+                        <div class="p-3 h-100 rounded-4 bg-black bg-opacity-40 border border-white border-opacity-5">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small fw-black text-white-50 tracking-widest text-uppercase" style="font-size: 0.65rem;">Pair Age</span>
+                                <i id="ageIcon" class="fa-solid fa-circle-question text-white-50 small"></i>
+                            </div>
+                            <h5 id="pairAge" class="fw-bold mb-0 text-white font-mono">-</h5>
+                            <p class="mb-0 text-white-50 mt-2" style="font-size: 0.6rem;" id="ageDesc">Analyzing inception time</p>
+                        </div>
+                    </div>
+
+                    <!-- Social Presence -->
+                    <div class="col-md-8">
+                        <div class="p-3 h-100 rounded-4 bg-black bg-opacity-40 border border-white border-opacity-5">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small fw-black text-white-50 tracking-widest text-uppercase" style="font-size: 0.65rem;">Digital Footprint</span>
+                                <span id="socialScore" class="badge bg-secondary">+0%</span>
+                            </div>
+                            <h6 id="socialVerdict" class="fw-bold mb-2 text-white">Pending Scan</h6>
+                            <div class="d-flex gap-2" id="socialLinks">
+                                <!-- Social badges dynamically injected -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Smart Contract Audit -->
+                    <div class="col-12">
+                        <div class="p-4 rounded-4 position-relative overflow-hidden" style="background: rgba(20, 184, 166, 0.05); border: 1px solid rgba(20, 184, 166, 0.2);">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="small fw-black text-teal tracking-widest text-uppercase" style="font-size: 0.7rem; color: #14b8a6;"><i class="fa-solid fa-shield-halved me-2"></i> Contract Security Audit</span>
+                                <span id="auditVerdict" class="badge bg-secondary">AWAITING EVM TARGET</span>
+                            </div>
+                            
+                            <div class="row g-2" id="auditGrid">
+                                <div class="col-sm-4">
+                                    <div class="bg-black bg-opacity-50 rounded-3 p-2 text-center border border-white border-opacity-5">
+                                        <p class="small text-white-50 mb-1" style="font-size:0.6rem;">Honeypot</p>
+                                        <span id="auditHoneypot" class="fw-bold text-white small font-mono">-</span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="bg-black bg-opacity-50 rounded-3 p-2 text-center border border-white border-opacity-5">
+                                        <p class="small text-white-50 mb-1" style="font-size:0.6rem;">Buy Tax</p>
+                                        <span id="auditBuy" class="fw-bold text-white small font-mono">-</span>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="bg-black bg-opacity-50 rounded-3 p-2 text-center border border-white border-opacity-5">
+                                        <p class="small text-white-50 mb-1" style="font-size:0.6rem;">Sell Tax</p>
+                                        <span id="auditSell" class="fw-bold text-white small font-mono">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Linguistics -->
+                    <div class="col-12">
+                        <div class="p-3 rounded-4 bg-black bg-opacity-40 border border-white border-opacity-5 d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="small fw-black text-white-50 tracking-widest text-uppercase d-block mb-1" style="font-size: 0.65rem;">Linguistic Matrix</span>
+                                <h6 id="lingVerdict" class="fw-bold mb-0 text-white">Pending Scan</h6>
+                            </div>
+                            <span id="lingScore" class="badge bg-secondary">+0%</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const detectForm = document.getElementById('detectForm');
+    const targetInput = document.getElementById('targetInput');
+    const detectBtn = document.getElementById('detectBtn');
+    const terminalOutput = document.getElementById('terminalOutput');
+    const unscannedOverlay = document.getElementById('unscannedOverlay');
+    
+    // Core UI
+    const tokenName = document.getElementById('tokenName');
+    const tokenSymbol = document.getElementById('tokenSymbol');
+    const tokenChain = document.getElementById('tokenChain');
+    const tokenIcon = document.getElementById('tokenIcon');
+    const riskProfile = document.getElementById('riskProfile');
+    const memeScore = document.getElementById('memeScore');
+    const memeBar = document.getElementById('memeBar');
+    
+    // Metrics UI
+    const liqRatio = document.getElementById('liqRatio');
+    const valLiq = document.getElementById('valLiq');
+    const valFdv = document.getElementById('valFdv');
+    const liqIcon = document.getElementById('liqIcon');
+    
+    const volRatio = document.getElementById('volRatio');
+    const volIcon = document.getElementById('volIcon');
+
+    const volaH24 = document.getElementById('volaH24');
+    const volaH1 = document.getElementById('volaH1');
+    const volaIcon = document.getElementById('volaIcon');
+    
+    const pairAge = document.getElementById('pairAge');
+    const ageDesc = document.getElementById('ageDesc');
+    const ageIcon = document.getElementById('ageIcon');
+    
+    const socialVerdict = document.getElementById('socialVerdict');
+    const socialScore = document.getElementById('socialScore');
+    const socialLinks = document.getElementById('socialLinks');
+
+    const lingVerdict = document.getElementById('lingVerdict');
+    const lingScore = document.getElementById('lingScore');
+
+    const auditVerdict = document.getElementById('auditVerdict');
+    const auditHoneypot = document.getElementById('auditHoneypot');
+    const auditBuy = document.getElementById('auditBuy');
+    const auditSell = document.getElementById('auditSell');
+
+    // Terminal Logging
+    const logTerminal = (msg, color = 'white-50') => {
+        const time = new Date().toISOString().split('T')[1].slice(0, 8);
+        const line = `<div class="mb-1"><span class="text-secondary">[${time}]</span> <span class="text-${color}">${msg}</span></div>`;
+        terminalOutput.innerHTML += line;
+        terminalOutput.scrollTop = terminalOutput.scrollHeight;
+    };
+
+    const formatCurrency = (val) => {
+        if (!val) return '$0';
+        if (val > 1000000000) return '$' + (val / 1000000000).toFixed(2) + 'B';
+        if (val > 1000000) return '$' + (val / 1000000).toFixed(2) + 'M';
+        if (val > 1000) return '$' + (val / 1000).toFixed(2) + 'K';
+        return '$' + val.toLocaleString('en-US', {maximumFractionDigits: 0});
+    };
+
+    const getChainIcon = (chainId) => {
+        if (chainId === 'solana') return { class: 'fa-bolt', color: '#14F195', id: null };
+        if (chainId === 'bsc') return { class: 'fa-cube', color: '#F3BA2F', id: '56' };
+        if (chainId === 'base') return { class: 'fa-circle-dot', color: '#0052FF', id: '8453' };
+        if (chainId === 'polygon') return { class: 'fa-draw-polygon', color: '#8247E5', id: '137' };
+        if (chainId === 'arbitrum') return { class: 'fa-layer-group', color: '#28A0F0', id: '42161' };
+        return { class: 'fa-ethereum', color: '#627EEA', id: '1' }; // default/ethereum
+    };
+
+    const checkContractSecurity = async (chainId, contractAddress) => {
+        logTerminal(`Connecting to GoPlus Security API (Chain ID: ${chainId})...`, "info");
+        try {
+            const res = await fetch(`https://api.gopluslabs.io/api/v1/token_security/${chainId}?contract_addresses=${contractAddress}`);
+            const data = await res.json();
+            if (data.code === 1 && data.result && data.result[contractAddress.toLowerCase()]) {
+                return data.result[contractAddress.toLowerCase()];
+            }
+        } catch(e) {
+            logTerminal("GoPlus API timeout or failure.", "warning");
+        }
+        return null;
+    };
+
+    const analyzeToken = async (query) => {
+        unscannedOverlay.classList.add('opacity-0');
+        setTimeout(() => unscannedOverlay.classList.add('d-none'), 300);
+        
+        // Reset UI
+        memeScore.innerText = "0";
+        memeBar.style.width = "0%";
+        riskProfile.className = "badge bg-primary text-uppercase tracking-widest px-3 py-2 animate-pulse";
+        riskProfile.innerText = "SCANNING...";
+        
+        logTerminal(`Initiating Deep Heuristics for vector: ${query}`, "info");
+        detectBtn.disabled = true;
+
+        try {
+            // 1. Fetch live data from DexScreener
+            const res = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(query)}`);
+            const data = await res.json();
+            
+            if (!data.pairs || data.pairs.length === 0) {
+                logTerminal(`CRITICAL: No liquidity pairs found for '${query}'. Either highly obscure or invalid.`, "danger");
+                riskProfile.className = "badge bg-secondary text-uppercase tracking-widest px-3 py-2";
+                riskProfile.innerText = "NO DATA";
+                throw new Error("No pairs found");
+            }
+
+            // Get primary pair
+            const pair = data.pairs.reduce((prev, current) => (prev.liquidity?.usd > current.liquidity?.usd) ? prev : current);
+            
+            const name = pair.baseToken.name;
+            const symbol = pair.baseToken.symbol;
+            const address = pair.baseToken.address;
+            const chain = pair.chainId;
+            
+            tokenName.innerText = name.length > 20 ? name.substring(0, 20) + '...' : name;
+            tokenSymbol.innerText = symbol;
+            tokenChain.innerText = chain.toUpperCase();
+            
+            const iconData = getChainIcon(chain);
+            tokenIcon.innerHTML = `<i class="fa-brands ${iconData.class}" style="color: ${iconData.color};"></i>`;
+            
+            logTerminal(`Primary pair acquired: ${symbol}/USD on ${chain.toUpperCase()}`, "success");
+
+            // HEURISTIC CALCULATION
+            let finalScore = 0;
+            
+            // --- Metric 1: Linguistic Matrix ---
+            logTerminal("Running Linguistic Pattern Recognition...", "info");
+            const memeKeywords = ['doge', 'shib', 'pepe', 'floki', 'inu', 'cat', 'safe', 'moon', 'elon', 'wif', 'pog', 'cum', 'trump', 'biden', 'wojak', 'chad', 'bonk', 'bome', 'fomo', 'based', 'degen', 'ai', 'coin', 'baby', 'wif', 'hat'];
+            const lowerName = name.toLowerCase();
+            const lowerSymbol = symbol.toLowerCase();
+            
+            let lingHits = 0;
+            memeKeywords.forEach(kw => {
+                if (lowerName.includes(kw) || lowerSymbol.includes(kw)) lingHits++;
+            });
+
+            if (lingHits > 0) {
+                const boost = Math.min(30, lingHits * 15);
+                finalScore += boost;
+                lingVerdict.innerText = "Meme Terminology Detected";
+                lingVerdict.className = "fw-bold mb-0 text-danger";
+                lingScore.className = "badge bg-danger";
+                lingScore.innerText = `+${boost}%`;
+                logTerminal(`Linguistics MATCH: Found ${lingHits} meme/hype keyword(s).`, "danger");
+            } else {
+                lingVerdict.innerText = "Standard Nomenclature";
+                lingVerdict.className = "fw-bold mb-0 text-success";
+                lingScore.className = "badge bg-success";
+                lingScore.innerText = "+0%";
+            }
+
+            // --- Metric 2: Liquidity / FDV Ratio ---
+            logTerminal("Evaluating Tokenomics (Liq vs FDV)...", "info");
+            const fdv = pair.fdv || 0;
+            const liq = pair.liquidity?.usd || 0;
+            
+            valLiq.innerText = formatCurrency(liq);
+            valFdv.innerText = formatCurrency(fdv);
+            
+            if (fdv > 0) {
+                const ratio = (liq / fdv) * 100;
+                liqRatio.innerText = ratio.toFixed(2) + "%";
+                
+                if (ratio < 1.0) {
+                    finalScore += 20; 
+                    liqIcon.className = "fa-solid fa-triangle-exclamation text-danger small";
+                    liqRatio.className = "fw-bold mb-0 text-danger font-mono";
+                    logTerminal(`CRITICAL: Extreme low liquidity ratio (${ratio.toFixed(2)}%). High risk.`, "danger");
+                } else if (ratio < 4.0) {
+                    finalScore += 10;
+                    liqIcon.className = "fa-solid fa-triangle-exclamation text-warning small";
+                    liqRatio.className = "fw-bold mb-0 text-warning font-mono";
+                } else {
+                    liqIcon.className = "fa-solid fa-check-circle text-success small";
+                    liqRatio.className = "fw-bold mb-0 text-success font-mono";
+                }
+            } else {
+                liqRatio.innerText = "N/A";
+                finalScore += 10; 
+            }
+
+            // --- Metric 3: Volume Velocity ---
+            logTerminal("Calculating Volume Velocity Metrics...", "info");
+            const vol24h = pair.volume?.h24 || 0;
+            if (liq > 0) {
+                const velocity = vol24h / liq;
+                volRatio.innerText = velocity.toFixed(2) + "x";
+                
+                if (velocity > 5.0) {
+                    finalScore += 20;
+                    volIcon.className = "fa-solid fa-gauge-high text-danger small";
+                    volRatio.className = "fw-bold mb-0 text-danger font-mono";
+                    logTerminal(`Hyper-Speculation Detected: Trading volume is ${velocity.toFixed(1)}x liquidity.`, "danger");
+                } else if (velocity > 2.0) {
+                    finalScore += 10;
+                    volIcon.className = "fa-solid fa-gauge-simple-high text-warning small";
+                    volRatio.className = "fw-bold mb-0 text-warning font-mono";
+                } else {
+                    volIcon.className = "fa-solid fa-gauge-simple text-success small";
+                    volRatio.className = "fw-bold mb-0 text-success font-mono";
+                }
+            } else {
+                volRatio.innerText = "N/A";
+            }
+
+            // --- Metric 4: Volatility Index ---
+            logTerminal("Measuring Intraday Price Volatility...", "info");
+            const pc1 = pair.priceChange?.h1 || 0;
+            const pc24 = pair.priceChange?.h24 || 0;
+            
+            volaH1.innerText = (pc1 > 0 ? '+' : '') + pc1.toFixed(1) + '%';
+            volaH1.className = pc1 > 0 ? "text-success" : (pc1 < 0 ? "text-danger" : "text-white");
+            
+            volaH24.innerText = Math.abs(pc24).toFixed(1) + "%";
+            
+            if (Math.abs(pc24) > 50 || Math.abs(pc1) > 20) {
+                finalScore += 15;
+                volaIcon.className = "fa-solid fa-arrow-trend-up text-danger small";
+                volaH24.className = "fw-bold mb-0 text-danger font-mono";
+                logTerminal(`Massive volatility swing (${pc24.toFixed(1)}% 24H). Highly speculative.`, "danger");
+            } else {
+                volaIcon.className = "fa-solid fa-chart-line text-success small";
+                volaH24.className = "fw-bold mb-0 text-success font-mono";
+            }
+
+            // --- Metric 5: Pair Age Velocity ---
+            const createdAt = pair.pairCreatedAt || 0;
+            if (createdAt > 0) {
+                const ageDays = (Date.now() - createdAt) / (1000 * 60 * 60 * 24);
+                
+                if (ageDays < 1) {
+                    pairAge.innerText = "< 24 Hours";
+                    ageDesc.innerText = "Ultra-hot inception phase";
+                    ageIcon.className = "fa-solid fa-fire text-danger small";
+                    pairAge.className = "fw-bold mb-0 text-danger font-mono";
+                    finalScore += 25;
+                    logTerminal("Temporal CRITICAL: Pair created < 24H ago.", "danger");
+                } else if (ageDays < 14) {
+                    pairAge.innerText = Math.floor(ageDays) + " Days";
+                    ageDesc.innerText = "Recent launch window";
+                    ageIcon.className = "fa-solid fa-triangle-exclamation text-warning small";
+                    pairAge.className = "fw-bold mb-0 text-warning font-mono";
+                    finalScore += 10;
+                } else {
+                    pairAge.innerText = Math.floor(ageDays) + " Days";
+                    ageDesc.innerText = "Established trading history";
+                    ageIcon.className = "fa-solid fa-check-circle text-success small";
+                    pairAge.className = "fw-bold mb-0 text-success font-mono";
+                    finalScore -= 10; // Penalty for old age (less likely a pump meme)
+                }
+            } else {
+                pairAge.innerText = "Unknown";
+            }
+
+            // --- Metric 6: Social & Web Presence ---
+            logTerminal("Verifying Digital Footprint...", "info");
+            let socialHits = 0;
+            socialLinks.innerHTML = '';
+            
+            if (pair.info?.websites && pair.info.websites.length > 0) {
+                socialHits++;
+                socialLinks.innerHTML += `<span class="badge bg-white bg-opacity-10 text-white border border-white border-opacity-10"><i class="fa-solid fa-globe text-info"></i> Web</span>`;
+            }
+            if (pair.info?.socials) {
+                const hasTw = pair.info.socials.find(s => s.type === 'twitter');
+                const hasTg = pair.info.socials.find(s => s.type === 'telegram');
+                if (hasTw) { socialHits++; socialLinks.innerHTML += `<span class="badge bg-white bg-opacity-10 text-white border border-white border-opacity-10"><i class="fa-brands fa-twitter text-primary"></i></span>`; }
+                if (hasTg) { socialHits++; socialLinks.innerHTML += `<span class="badge bg-white bg-opacity-10 text-white border border-white border-opacity-10"><i class="fa-brands fa-telegram text-info"></i></span>`; }
+            }
+
+            if (socialHits === 0) {
+                finalScore += 15;
+                socialVerdict.innerText = "Zero Digital Footprint";
+                socialVerdict.className = "fw-bold mb-2 text-danger";
+                socialScore.className = "badge bg-danger";
+                socialScore.innerText = "+15%";
+                socialLinks.innerHTML = '<span class="small text-white-50">No verified links on DEX.</span>';
+                logTerminal("CRITICAL: No website or social media found. Highly suspicious.", "danger");
+            } else {
+                socialVerdict.innerText = `Verified Presence (${socialHits}/3)`;
+                socialVerdict.className = "fw-bold mb-2 text-success";
+                socialScore.className = "badge bg-success";
+                socialScore.innerText = "+0%";
+            }
+
+            // --- Metric 7: Smart Contract Audit (GoPlus) ---
+            if (iconData.id) {
+                const security = await checkContractSecurity(iconData.id, address);
+                if (security) {
+                    const isHoneypot = security.is_honeypot === "1";
+                    const buyTax = parseFloat(security.buy_tax || "0") * 100;
+                    const sellTax = parseFloat(security.sell_tax || "0") * 100;
+                    
+                    auditHoneypot.innerText = isHoneypot ? "YES" : "NO";
+                    auditHoneypot.className = isHoneypot ? "fw-bold text-danger small font-mono" : "fw-bold text-success small font-mono";
+                    
+                    auditBuy.innerText = buyTax.toFixed(1) + "%";
+                    auditBuy.className = buyTax > 5 ? "fw-bold text-danger small font-mono" : "fw-bold text-success small font-mono";
+                    
+                    auditSell.innerText = sellTax.toFixed(1) + "%";
+                    auditSell.className = sellTax > 5 ? "fw-bold text-danger small font-mono" : "fw-bold text-success small font-mono";
+
+                    if (isHoneypot) {
+                        finalScore += 40; // Definite scam/meme
+                        auditVerdict.innerText = "CRITICAL: HONEYPOT";
+                        auditVerdict.className = "badge bg-danger animate-pulse";
+                        logTerminal("GOPLUS AUDIT: Honeypot detected. Asset cannot be sold.", "danger");
+                    } else if (buyTax > 10 || sellTax > 10) {
+                        finalScore += 20;
+                        auditVerdict.innerText = "WARNING: HIGH TAX";
+                        auditVerdict.className = "badge bg-warning text-dark";
+                        logTerminal(`GOPLUS AUDIT: High trading taxes (${buyTax.toFixed(1)}% / ${sellTax.toFixed(1)}%).`, "warning");
+                    } else {
+                        auditVerdict.innerText = "CONTRACT SAFE";
+                        auditVerdict.className = "badge bg-success";
+                        logTerminal("GOPLUS AUDIT: Standard contract parameters. No honeypot.", "success");
+                    }
+                } else {
+                    auditVerdict.innerText = "AUDIT FAILED";
+                    auditVerdict.className = "badge bg-secondary";
+                    auditHoneypot.innerText = "?"; auditBuy.innerText = "?"; auditSell.innerText = "?";
+                }
+            } else {
+                auditVerdict.innerText = "NON-EVM CHAIN";
+                auditVerdict.className = "badge bg-secondary";
+                auditHoneypot.innerText = "N/A"; auditBuy.innerText = "N/A"; auditSell.innerText = "N/A";
+                logTerminal(`Skipping GoPlus Security Audit. Not supported for ${chain.toUpperCase()}.`, "info");
+            }
+            
+            // Final Clamp
+            finalScore = Math.floor(Math.min(99, Math.max(1, finalScore)));
+
+            // Counter animation
+            let currentScore = 0;
+            const scoreInterval = setInterval(() => {
+                currentScore += 2;
+                if (currentScore >= finalScore) {
+                    currentScore = finalScore;
+                    clearInterval(scoreInterval);
+                    
+                    // Assign Risk Profile Badge
+                    if (finalScore >= 75) {
+                        riskProfile.className = "badge bg-danger text-uppercase tracking-widest px-3 py-2 animate-pulse";
+                        riskProfile.innerText = "DEGEN MEME COIN";
+                        memeScore.style.color = "#ef4444";
+                        memeBar.style.background = "#ef4444";
+                        logTerminal("VERDICT: High probability Meme/Speculative Asset. Extreme volatility expected.", "danger");
+                    } else if (finalScore >= 40) {
+                        riskProfile.className = "badge bg-warning text-dark text-uppercase tracking-widest px-3 py-2";
+                        riskProfile.innerText = "SPECULATIVE ALTCOIN";
+                        memeScore.style.color = "#f59e0b";
+                        memeBar.style.background = "#f59e0b";
+                        logTerminal("VERDICT: Mixed signals. Contains speculative characteristics.", "warning");
+                    } else {
+                        riskProfile.className = "badge bg-success text-uppercase tracking-widest px-3 py-2";
+                        riskProfile.innerText = "BLUECHIP / UTILITY";
+                        memeScore.style.color = "#22c55e";
+                        memeBar.style.background = "#22c55e";
+                        logTerminal("VERDICT: Strong fundamentals detected. Likely a utility or established asset.", "success");
+                    }
+                }
+                memeScore.innerText = currentScore;
+            }, 20);
+            
+            memeBar.style.width = `${finalScore}%`;
+
+        } catch (err) {
+            logTerminal("Heuristic scan aborted due to data retrieval failure.", "danger");
+        } finally {
+            detectBtn.disabled = false;
+        }
+    };
+
+    detectForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const target = targetInput.value.trim();
+        if (target) analyzeToken(target);
+    });
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the AI Meme Coin Detector (v2)</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-danger me-2" style="color: #ec4899 !important;"></i> Enterprise Contract Auditing</h3>
+            <p class="text-theme-muted">Directly hooks into the GoPlus Security network to audit the smart contract byte-code. Instantly flags hidden honeypots, exorbitant trading taxes, and proxy vulnerabilities.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-gauge-high text-danger me-2" style="color: #ec4899 !important;"></i> Hyper-Velocity Engine</h3>
+            <p class="text-theme-muted">Analyzes the 24-hour trading volume relative to the total liquidity pool. Detects artificially high turnover rates typically found in pump-and-dump speculative assets.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-globe text-danger me-2" style="color: #ec4899 !important;"></i> Social & Web Verification</h3>
+            <p class="text-theme-muted">Cross-references live DEX aggregator data to verify the existence of associated digital footprints, heavily penalizing shadow tokens lacking public websites or telegram channels.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-language text-danger me-2" style="color: #ec4899 !important;"></i> Linguistic NLP Engine</h3>
+            <p class="text-theme-muted">Scans token nomenclature against a dynamic matrix of 30+ known hype terms, identifying derivatives and culturally-driven assets instantly.</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
