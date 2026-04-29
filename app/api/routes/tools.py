@@ -78,9 +78,21 @@ async def base64_decode(text: str = Form(...)):
 @router.post("/remove-background")
 async def remove_background(image: UploadFile = File(...)):
     try:
+        # Prevent permission denied issues on VPS by using /tmp
+        os.environ["U2NET_HOME"] = "/tmp/.u2net"
+        
         input_bytes = await image.read()
         input_img = Image.open(io.BytesIO(input_bytes)).convert("RGBA")
-        output_img = rembg.remove(input_img)
+        
+        # Use u2netp (lightweight model) to prevent Out of Memory (OOM) Killer on low-RAM VPS
+        try:
+            from rembg import new_session
+            session = new_session("u2netp")
+            output_img = rembg.remove(input_img, session=session)
+        except Exception as session_err:
+            print(f"Fallback to default model due to session error: {session_err}")
+            output_img = rembg.remove(input_img)
+
         buf = io.BytesIO()
         output_img.save(buf, format="PNG")
         buf.seek(0)
