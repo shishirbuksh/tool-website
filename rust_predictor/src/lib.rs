@@ -134,8 +134,39 @@ fn train_and_predict(prices: Vec<f64>, lookback: usize, epochs: usize, future_da
     Ok(predictions)
 }
 
+#[pyfunction]
+fn generate_pattern(width: u32, height: u32, zoom: f64, c_re: f64, c_im: f64, max_iter: u32) -> PyResult<Vec<u8>> {
+    let mut data = Vec::with_capacity((width * height) as usize);
+
+    for y in 0..height {
+        for x in 0..width {
+            let mut new_re = 1.5 * (x as f64 - width as f64 / 2.0) / (0.5 * zoom * width as f64);
+            let mut new_im = (y as f64 - height as f64 / 2.0) / (0.5 * zoom * height as f64);
+            
+            let mut i = 0;
+            while i < max_iter {
+                let old_re = new_re;
+                let old_im = new_im;
+                new_re = old_re * old_re - old_im * old_im + c_re;
+                new_im = 2.0 * old_re * old_im + c_im;
+                if (new_re * new_re + new_im * new_im) > 4.0 {
+                    break;
+                }
+                i += 1;
+            }
+            
+            // Map iteration depth to structural pixel density payload
+            let v = (i as f64 / max_iter as f64 * 255.0) as u8;
+            data.push(v);
+        }
+    }
+    
+    Ok(data)
+}
+
 #[pymodule]
 fn rust_predictor(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(train_and_predict, m)?)?;
+    m.add_function(wrap_pyfunction!(generate_pattern, m)?)?;
     Ok(())
 }
