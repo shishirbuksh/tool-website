@@ -1,0 +1,600 @@
+{% extends "base.html" %}
+
+{% block title %}Free Advanced EMI Calculator Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Calculate your Equated Monthly Installment (EMI) for home, car, or personal loans. View full amortization schedules and visual breakdowns instantly for free.{% endblock %}
+
+{% block head %}
+<style>
+    .amortization-table th, .amortization-table td {
+        background-color: transparent !important;
+        border-color: var(--sb-border) !important;
+        color: var(--sb-text) !important;
+        vertical-align: middle;
+    }
+    .amortization-table th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--sb-text-muted) !important;
+    }
+    .breakdown-card {
+        background: rgba(var(--sb-accent-rgb), 0.05);
+        border: 1px solid rgba(var(--sb-accent-rgb), 0.2);
+        border-radius: 1rem;
+        padding: 1.5rem;
+    }
+    .amount-display {
+        font-family: var(--font-display);
+        font-size: 2.5rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+    .progress-stacked {
+        height: 1.5rem;
+        border-radius: 1rem;
+        overflow: hidden;
+        background-color: var(--sb-border);
+    }
+    .progress-principal {
+        background: var(--sb-accent);
+    }
+    .progress-interest {
+        background: var(--bs-warning);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-lg mx-auto" style="max-width: 1200px;">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-20 px-4 py-2 mb-4">
+            <i class="fa-solid fa-house-chimney me-2"></i> Professional Grade
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">ADVANCED <span class="gradient-text italic">EMI CALCULATOR</span></h1>
+        <p class="text-white-50 fs-5 mx-auto text-center" style="max-width: 700px;">
+            Calculate your monthly loan payments accurately. Get instant visual breakdowns of principal versus interest and export your complete amortization schedule.
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-4 reveal" style="animation-delay: 0.2s;">
+        
+        <!-- Calculator Inputs -->
+        <div class="col-lg-5">
+            <div class="glass-card p-4 p-md-5 h-100 d-flex flex-column border-theme position-relative">
+                <h3 class="fs-4 fw-bold mb-4"><i class="fa-solid fa-sliders text-primary me-2"></i> Loan Details</h3>
+                
+                <form id="emiForm" class="flex-grow-1">
+                    <!-- Loan Amount -->
+                    <div class="mb-4">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2 d-flex justify-content-between">
+                            <span>Loan Amount</span>
+                            <span class="text-theme" id="valAmountDisplay">₹ 10,00,000</span>
+                        </label>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted">₹</span>
+                            <input type="number" id="loanAmount" class="form-control form-control-lg py-2 fw-bold" value="1000000" min="1000" step="1000" required>
+                        </div>
+                        <input type="range" class="form-range" id="loanAmountRange" min="10000" max="50000000" step="10000" value="1000000">
+                    </div>
+
+                    <!-- Interest Rate -->
+                    <div class="mb-4">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2 d-flex justify-content-between">
+                            <span>Interest Rate (Annual)</span>
+                            <span class="text-theme" id="valRateDisplay">8.5 %</span>
+                        </label>
+                        <div class="input-group mb-2">
+                            <input type="number" id="interestRate" class="form-control form-control-lg py-2 fw-bold" value="8.5" step="0.1" min="0.1" max="50" required>
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted">%</span>
+                        </div>
+                        <input type="range" class="form-range" id="interestRateRange" min="1" max="30" step="0.1" value="8.5">
+                    </div>
+
+                    <!-- Loan Tenure -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="small fw-bold text-theme-muted tracking-widest text-uppercase m-0">Loan Tenure</label>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <input type="radio" class="btn-check" name="tenureType" id="tenureYr" value="yr" checked>
+                                <label class="btn btn-outline-secondary px-3" for="tenureYr">Years</label>
+                                <input type="radio" class="btn-check" name="tenureType" id="tenureMo" value="mo">
+                                <label class="btn btn-outline-secondary px-3" for="tenureMo">Months</label>
+                            </div>
+                        </div>
+                        <div class="input-group mb-2 mt-2">
+                            <input type="number" id="loanTenure" class="form-control form-control-lg py-2 fw-bold" value="10" min="1" max="360" required>
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted" id="tenureLabel">Years</span>
+                        </div>
+                        <input type="range" class="form-range" id="loanTenureRange" min="1" max="30" step="1" value="10">
+                    </div>
+
+                    <button type="submit" class="btn-premium w-100 py-3 fs-6 mt-2">
+                        CALCULATE EMI
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div class="col-lg-7">
+            <div class="glass-card shadow-lg p-4 p-md-5 h-100 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-theme">
+                    <h3 class="fs-4 fw-bold mb-0"><i class="fa-solid fa-chart-pie text-success me-2"></i> Repayment Summary</h3>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="copyBtn"><i class="fa-regular fa-copy me-1"></i> Copy Details</button>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-md-12">
+                        <div class="p-4 rounded-4 bg-primary bg-opacity-10 border border-primary border-opacity-25 text-center position-relative overflow-hidden">
+                            <span class="small fw-black text-primary tracking-widest text-uppercase d-block mb-1">Monthly EMI</span>
+                            <div class="d-flex justify-content-center align-items-center gap-2">
+                                <span class="fs-4 text-theme-muted">₹</span>
+                                <span id="resEmi" class="amount-display text-theme m-0">0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center">
+                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Total Interest</span>
+                            <h4 id="resInterest" class="fw-bold text-warning mb-0 font-mono">₹0.00</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center">
+                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Total Payment</span>
+                            <h4 id="resTotalPayment" class="fw-bold text-theme mb-0 font-mono">₹0.00</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Breakdown -->
+                <div class="breakdown-card mt-auto">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold m-0 text-theme"><i class="fa-solid fa-chart-bar text-accent me-2"></i> Principal vs Interest</h6>
+                    </div>
+                    
+                    <div class="d-flex progress-stacked w-100 mb-3">
+                        <div id="barPrincipal" class="progress-principal" style="width: 50%" data-bs-toggle="tooltip" title="Principal Amount"></div>
+                        <div id="barInterest" class="progress-interest" style="width: 50%" data-bs-toggle="tooltip" title="Total Interest"></div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between small fw-bold">
+                        <div class="d-flex align-items-center text-theme-muted">
+                            <span class="d-inline-block rounded-circle me-2" style="width: 10px; height: 10px; background: var(--sb-accent);"></span>
+                            Principal (<span id="pctPrincipal">50</span>%)
+                        </div>
+                        <div class="d-flex align-items-center text-theme-muted">
+                            <span class="d-inline-block rounded-circle me-2" style="width: 10px; height: 10px; background: var(--bs-warning);"></span>
+                            Interest (<span id="pctInterest">50</span>%)
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    
+    <!-- Amortization Schedule (Pro Feature) -->
+    <div class="mt-5 glass-card p-4 p-md-5 reveal" style="animation-delay: 0.3s;" id="scheduleSection">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
+            <div>
+                <h3 class="fs-4 fw-bold mb-1"><i class="fa-solid fa-table-list text-info me-2"></i> Amortization Schedule</h3>
+                <p class="text-theme-muted small mb-0">Detailed breakdown of your repayment timeline, showing principal and interest components.</p>
+            </div>
+            <div class="btn-group">
+                <input type="radio" class="btn-check schedule-toggle" name="scheduleMode" id="schYear" value="yearly" checked>
+                <label class="btn btn-outline-theme px-4 fw-bold" for="schYear">Yearly</label>
+
+                <input type="radio" class="btn-check schedule-toggle" name="scheduleMode" id="schMonth" value="monthly">
+                <label class="btn btn-outline-theme px-4 fw-bold" for="schMonth">Monthly</label>
+            </div>
+        </div>
+        
+        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+            <table class="table amortization-table text-theme table-hover border-top border-theme position-relative">
+                <thead class="sticky-top bg-theme border-bottom border-theme" style="z-index: 1;">
+                    <tr>
+                        <th width="10%">Period</th>
+                        <th width="22%">Opening Balance</th>
+                        <th width="22%">Principal Paid</th>
+                        <th width="22%">Interest Paid</th>
+                        <th width="24%">Closing Balance</th>
+                    </tr>
+                </thead>
+                <tbody id="scheduleBody">
+                    <!-- Dynamic Rows -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Format Currency Indian Style
+function formatCurrency(val) {
+    return parseFloat(val).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+// Generate Schedule Array
+function generateSchedule(principal, rate, tenureMonths, emi) {
+    let balance = principal;
+    const monthlyRate = rate / 12 / 100;
+    const schedule = [];
+    
+    for (let month = 1; month <= tenureMonths; month++) {
+        let interest = balance * monthlyRate;
+        let principalPaid = emi - interest;
+        
+        // Handle last month rounding
+        if (month === tenureMonths || balance < principalPaid) {
+            principalPaid = balance;
+            emi = principalPaid + interest;
+            balance = 0;
+        } else {
+            balance -= principalPaid;
+        }
+        
+        schedule.push({
+            month: month,
+            emi: emi,
+            principalPaid: principalPaid,
+            interestPaid: interest,
+            balance: balance > 0 ? balance : 0
+        });
+    }
+    return schedule;
+}
+
+// Aggregate to Yearly
+function getYearlySchedule(monthlySchedule) {
+    const yearly = [];
+    let currentYear = 1;
+    let yPrincipal = 0;
+    let yInterest = 0;
+    let openingBalance = monthlySchedule[0] ? monthlySchedule[0].balance + monthlySchedule[0].principalPaid : 0;
+    
+    for (let i = 0; i < monthlySchedule.length; i++) {
+        const item = monthlySchedule[i];
+        if (i > 0 && i % 12 === 0) {
+            openingBalance = monthlySchedule[i].balance + monthlySchedule[i].principalPaid;
+        }
+        
+        yPrincipal += item.principalPaid;
+        yInterest += item.interestPaid;
+        
+        if ((i + 1) % 12 === 0 || i === monthlySchedule.length - 1) {
+            yearly.push({
+                year: currentYear,
+                opening: openingBalance,
+                principalPaid: yPrincipal,
+                interestPaid: yInterest,
+                balance: item.balance
+            });
+            currentYear++;
+            yPrincipal = 0;
+            yInterest = 0;
+        }
+    }
+    return yearly;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const emiForm = document.getElementById('emiForm');
+    
+    // Inputs
+    const loanAmount = document.getElementById('loanAmount');
+    const loanAmountRange = document.getElementById('loanAmountRange');
+    const valAmountDisplay = document.getElementById('valAmountDisplay');
+    
+    const interestRate = document.getElementById('interestRate');
+    const interestRateRange = document.getElementById('interestRateRange');
+    const valRateDisplay = document.getElementById('valRateDisplay');
+    
+    const loanTenure = document.getElementById('loanTenure');
+    const loanTenureRange = document.getElementById('loanTenureRange');
+    const tenureLabel = document.getElementById('tenureLabel');
+    const tenureRadios = document.getElementsByName('tenureType');
+    
+    // Results
+    const resEmi = document.getElementById('resEmi');
+    const resInterest = document.getElementById('resInterest');
+    const resTotalPayment = document.getElementById('resTotalPayment');
+    const copyBtn = document.getElementById('copyBtn');
+    
+    // Progress Bar
+    const barPrincipal = document.getElementById('barPrincipal');
+    const barInterest = document.getElementById('barInterest');
+    const pctPrincipalNode = document.getElementById('pctPrincipal');
+    const pctInterestNode = document.getElementById('pctInterest');
+    
+    // Schedule
+    const scheduleBody = document.getElementById('scheduleBody');
+    const scheduleRadios = document.querySelectorAll('.schedule-toggle');
+    
+    let currentSchedule = []; // holds monthly schedule
+
+    // Sync Input & Ranges
+    function syncValue(input, range, display, formatter) {
+        input.addEventListener('input', () => {
+            range.value = input.value;
+            display.innerText = formatter(input.value);
+            calculateEMI();
+        });
+        range.addEventListener('input', () => {
+            input.value = range.value;
+            display.innerText = formatter(range.value);
+            calculateEMI();
+        });
+    }
+
+    syncValue(loanAmount, loanAmountRange, valAmountDisplay, v => '₹ ' + formatCurrency(v));
+    syncValue(interestRate, interestRateRange, valRateDisplay, v => parseFloat(v).toFixed(1) + ' %');
+    
+    loanTenure.addEventListener('input', () => {
+        loanTenureRange.value = loanTenure.value;
+        calculateEMI();
+    });
+    loanTenureRange.addEventListener('input', () => {
+        loanTenure.value = loanTenureRange.value;
+        calculateEMI();
+    });
+
+    // Tenure Toggle
+    tenureRadios.forEach(r => {
+        r.addEventListener('change', () => {
+            const isYear = document.getElementById('tenureYr').checked;
+            tenureLabel.innerText = isYear ? 'Years' : 'Months';
+            
+            // Adjust ranges
+            if (isYear) {
+                loanTenureRange.min = 1;
+                loanTenureRange.max = 30;
+                let val = Math.max(1, Math.round(loanTenure.value / 12));
+                loanTenure.value = val;
+                loanTenureRange.value = val;
+            } else {
+                loanTenureRange.min = 1;
+                loanTenureRange.max = 360;
+                let val = loanTenure.value * 12;
+                loanTenure.value = val;
+                loanTenureRange.value = val;
+            }
+            calculateEMI();
+        });
+    });
+
+    // Core Calculation
+    function calculateEMI() {
+        const principal = parseFloat(loanAmount.value) || 0;
+        const rateAnnual = parseFloat(interestRate.value) || 0;
+        const tenureInput = parseFloat(loanTenure.value) || 0;
+        
+        if (principal <= 0 || rateAnnual <= 0 || tenureInput <= 0) {
+            resetUI();
+            return;
+        }
+
+        const isYear = document.getElementById('tenureYr').checked;
+        const months = isYear ? tenureInput * 12 : tenureInput;
+        
+        const r = rateAnnual / 12 / 100;
+        const emi = (principal * r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1);
+        
+        const totalPayment = emi * months;
+        const totalInterest = totalPayment - principal;
+
+        // Update Text
+        resEmi.innerText = formatCurrency(emi);
+        resInterest.innerText = "₹ " + formatCurrency(totalInterest);
+        resTotalPayment.innerText = "₹ " + formatCurrency(totalPayment);
+
+        // Update Progress Bar
+        const pctP = Math.round((principal / totalPayment) * 100);
+        const pctI = 100 - pctP;
+        
+        barPrincipal.style.width = pctP + '%';
+        barInterest.style.width = pctI + '%';
+        pctPrincipalNode.innerText = pctP;
+        pctInterestNode.innerText = pctI;
+        
+        // Generate Schedule Data
+        currentSchedule = generateSchedule(principal, rateAnnual, months, emi);
+        renderSchedule();
+    }
+
+    function resetUI() {
+        resEmi.innerText = "0";
+        resInterest.innerText = "₹ 0";
+        resTotalPayment.innerText = "₹ 0";
+        barPrincipal.style.width = '50%';
+        barInterest.style.width = '50%';
+        pctPrincipalNode.innerText = "50";
+        pctInterestNode.innerText = "50";
+        scheduleBody.innerHTML = '<tr><td colspan="5" class="text-center text-theme-muted py-4">Enter loan details to view schedule.</td></tr>';
+    }
+
+    // Render Schedule UI
+    function renderSchedule() {
+        if (!currentSchedule || currentSchedule.length === 0) return;
+        
+        const isMonthly = document.getElementById('schMonth').checked;
+        scheduleBody.innerHTML = '';
+        
+        if (isMonthly) {
+            currentSchedule.forEach(row => {
+                const tr = document.createElement('tr');
+                const opening = row.balance + row.principalPaid;
+                tr.innerHTML = `
+                    <td class="fw-bold">Month ${row.month}</td>
+                    <td class="font-mono">₹${formatCurrency(opening)}</td>
+                    <td class="font-mono text-accent">₹${formatCurrency(row.principalPaid)}</td>
+                    <td class="font-mono text-warning">₹${formatCurrency(row.interestPaid)}</td>
+                    <td class="font-mono fw-bold">₹${formatCurrency(row.balance)}</td>
+                `;
+                scheduleBody.appendChild(tr);
+            });
+        } else {
+            const yearly = getYearlySchedule(currentSchedule);
+            yearly.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold">Year ${row.year}</td>
+                    <td class="font-mono">₹${formatCurrency(row.opening)}</td>
+                    <td class="font-mono text-accent">₹${formatCurrency(row.principalPaid)}</td>
+                    <td class="font-mono text-warning">₹${formatCurrency(row.interestPaid)}</td>
+                    <td class="font-mono fw-bold">₹${formatCurrency(row.balance)}</td>
+                `;
+                scheduleBody.appendChild(tr);
+            });
+        }
+    }
+
+    scheduleRadios.forEach(r => r.addEventListener('change', renderSchedule));
+
+    emiForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        calculateEMI();
+        document.getElementById('scheduleSection').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    copyBtn.addEventListener('click', () => {
+        const txt = `EMI Calculation:\nLoan Amount: ₹${formatCurrency(loanAmount.value)}\nInterest Rate: ${interestRate.value}%\nTenure: ${loanTenure.value} ${tenureLabel.innerText}\n\nMonthly EMI: ₹${resEmi.innerText}\nTotal Interest: ${resInterest.innerText}\nTotal Payment: ${resTotalPayment.innerText}`;
+        navigator.clipboard.writeText(txt).then(() => {
+            const og = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Copied';
+            setTimeout(() => copyBtn.innerHTML = og, 2000);
+        });
+    });
+
+    // Initial calc
+    calculateEMI();
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Free EMI Calculator Online</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-house-chimney text-warning me-2"></i> Home, Car & Personal Loans</h3>
+            <p class="text-theme-muted">Versatile enough to handle any loan type. Simply input your principal amount, interest rate, and tenure to discover your exact Equated Monthly Installment (EMI).</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-chart-pie text-warning me-2"></i> Visual Breakdowns</h3>
+            <p class="text-theme-muted">Easily see how much of your total payment is going towards the principal versus the interest through our instant graphical progress bar breakdown.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-table-list text-warning me-2"></i> Amortization Schedule</h3>
+            <p class="text-theme-muted">An advanced table showing exactly how your loan pays down over time. Toggle between Yearly and Monthly views to see precise interest and principal portions for every single payment period.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-warning me-2"></i> 100% Privacy & Speed</h3>
+            <p class="text-theme-muted">Like all StoryBrain AI tools, calculations happen entirely locally in your browser. Zero data is sent to external servers, meaning your financial details remain completely private.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.5s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    What is an EMI?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    <strong>Equated Monthly Installment (EMI)</strong> is a fixed payment amount made by a borrower to a lender at a specified date each calendar month. EMIs are used to pay off both interest and principal each month so that over a specified number of years, the loan is paid off in full.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    How is the EMI calculated?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    The mathematical formula to calculate EMI is: <strong>E = P x r x (1+r)^n / ((1+r)^n - 1)</strong>. Here, P stands for the principal loan amount, r is the monthly interest rate (annual interest rate / 12 / 100), and n is the total number of monthly payments (tenure in months). Our tool handles this complex math instantly.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    What is an Amortization Schedule?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    An amortization schedule is a complete table of periodic loan payments, showing the amount of principal and the amount of interest that comprise each payment until the loan is paid off at the end of its term. While your EMI stays the same, early payments consist mostly of interest, while later payments pay down more of the principal.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Advanced EMI Calculator",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "INR"
+            },
+            "description": "Calculate your Equated Monthly Installment (EMI) for home, car, or personal loans. View full amortization schedules and visual breakdowns instantly."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "What is an EMI?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Equated Monthly Installment (EMI) is a fixed payment amount made by a borrower to a lender at a specified date each calendar month. EMIs pay off both interest and principal."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "How is the EMI calculated?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "The mathematical formula to calculate EMI is: E = P x r x (1+r)^n / ((1+r)^n - 1). Our tool handles this math instantly to provide exact monthly payments."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "What is an Amortization Schedule?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "An amortization schedule is a complete table of periodic loan payments, showing the amount of principal and the amount of interest that comprise each payment until the loan is paid off."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+
+{% endblock %}

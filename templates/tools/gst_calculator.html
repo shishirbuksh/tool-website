@@ -1,0 +1,636 @@
+{% extends "base.html" %}
+
+{% block title %}Free Advanced GST Calculator Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Use our advanced online GST Calculator for professional use. Instantly calculate inclusive and exclusive GST, generate CGST/SGST breakdowns, and itemize invoices for free.{% endblock %}
+
+{% block head %}
+<style>
+    .invoice-table th, .invoice-table td {
+        background-color: transparent !important;
+        border-color: var(--sb-border) !important;
+        color: var(--sb-text) !important;
+        vertical-align: middle;
+    }
+    .invoice-table th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--sb-text-muted) !important;
+    }
+    .breakdown-card {
+        background: rgba(var(--sb-accent-rgb), 0.05);
+        border: 1px solid rgba(var(--sb-accent-rgb), 0.2);
+        border-radius: 1rem;
+        padding: 1.5rem;
+    }
+    .amount-display {
+        font-family: var(--font-display);
+        font-size: 2.5rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-lg mx-auto" style="max-width: 1200px;">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-20 px-4 py-2 mb-4">
+            <i class="fa-solid fa-file-invoice-dollar me-2"></i> Professional Grade
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">ADVANCED <span class="gradient-text italic">GST CALCULATOR</span></h1>
+        <p class="text-white-50 fs-5 mx-auto text-center" style="max-width: 700px;">
+            Calculate inclusive and exclusive GST instantly. Generate CGST/SGST breakdowns, convert amounts to words, and itemize your invoices.
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-4 reveal" style="animation-delay: 0.2s;">
+        
+        <!-- Standard Calculator Mode -->
+        <div class="col-lg-5">
+            <div class="glass-card p-4 p-md-5 h-100 d-flex flex-column border-theme position-relative">
+                <h3 class="fs-4 fw-bold mb-4"><i class="fa-solid fa-calculator text-primary me-2"></i> Quick Calculator</h3>
+                
+                <form id="gstForm" class="flex-grow-1">
+                    <!-- Amount Input -->
+                    <div class="mb-4">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2 d-block">Initial Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted"><i class="fa-solid fa-indian-rupee-sign"></i></span>
+                            <input type="number" id="baseAmount" class="form-control form-control-lg py-3 fw-bold" placeholder="0.00" step="0.01" min="0" required>
+                        </div>
+                    </div>
+
+                    <!-- GST Type -->
+                    <div class="mb-4">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2 d-block">Calculation Type</label>
+                        <div class="d-flex gap-2 bg-theme-surface p-1 rounded-3 border border-theme">
+                            <input type="radio" class="btn-check" name="calcType" id="typeExclusive" value="exclusive" checked>
+                            <label class="btn btn-sm flex-grow-1 rounded-2 fw-bold" for="typeExclusive">Add GST (+)</label>
+
+                            <input type="radio" class="btn-check" name="calcType" id="typeInclusive" value="inclusive">
+                            <label class="btn btn-sm flex-grow-1 rounded-2 fw-bold" for="typeInclusive">Remove GST (-)</label>
+                        </div>
+                        <div class="form-text mt-2 small text-theme-faint" id="typeHelpText">Amount entered is before tax. GST will be added to the total.</div>
+                    </div>
+
+                    <!-- GST Slab -->
+                    <div class="mb-4">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2 d-block">GST Rate Slab</label>
+                        <div class="row g-2 mb-3" id="slabButtons">
+                            <div class="col-4"><button type="button" class="btn btn-outline-secondary w-100 slab-btn" data-rate="3">3%</button></div>
+                            <div class="col-4"><button type="button" class="btn btn-outline-secondary w-100 slab-btn" data-rate="5">5%</button></div>
+                            <div class="col-4"><button type="button" class="btn btn-outline-secondary w-100 slab-btn" data-rate="12">12%</button></div>
+                            <div class="col-4"><button type="button" class="btn btn-outline-secondary w-100 slab-btn active border-primary" data-rate="18">18%</button></div>
+                            <div class="col-4"><button type="button" class="btn btn-outline-secondary w-100 slab-btn" data-rate="28">28%</button></div>
+                            <div class="col-4">
+                                <div class="input-group">
+                                    <input type="number" id="customRate" class="form-control text-center" placeholder="Custom" step="0.1" min="0">
+                                    <span class="input-group-text bg-transparent text-theme-muted">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Interstate Toggle -->
+                    <div class="form-check form-switch mb-4">
+                        <input class="form-check-input" type="checkbox" role="switch" id="interstateToggle">
+                        <label class="form-check-label small fw-bold text-theme" for="interstateToggle">Inter-state transaction (IGST only)</label>
+                    </div>
+
+                    <button type="submit" class="btn-premium w-100 py-3 fs-6">
+                        CALCULATE GST
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div class="col-lg-7">
+            <div class="glass-card shadow-lg p-4 p-md-5 h-100 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-theme">
+                    <h3 class="fs-4 fw-bold mb-0"><i class="fa-solid fa-chart-pie text-success me-2"></i> Calculation Summary</h3>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="copyBtn"><i class="fa-regular fa-copy me-1"></i> Copy Details</button>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-md-12">
+                        <div class="p-4 rounded-4 bg-primary bg-opacity-10 border border-primary border-opacity-25 text-center position-relative overflow-hidden">
+                            <span class="small fw-black text-primary tracking-widest text-uppercase d-block mb-1">Total Net Amount</span>
+                            <div class="d-flex justify-content-center align-items-center gap-2">
+                                <span class="fs-4 text-theme-muted">₹</span>
+                                <span id="resTotal" class="amount-display text-theme m-0">0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center">
+                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Base Amount</span>
+                            <h4 id="resBase" class="fw-bold text-theme mb-0 font-mono">₹0.00</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center">
+                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Total GST</span>
+                            <h4 id="resGst" class="fw-bold text-danger mb-0 font-mono">+ ₹0.00</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tax Breakdown -->
+                <div class="breakdown-card mt-auto">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold m-0 text-theme"><i class="fa-solid fa-layer-group text-accent me-2"></i> Tax Component Breakdown</h6>
+                        <span id="resRateBadge" class="badge bg-secondary">18% GST</span>
+                    </div>
+                    
+                    <div id="breakdownIntra" class="row g-3">
+                        <div class="col-6">
+                            <div class="d-flex justify-content-between align-items-center p-2 border-bottom border-theme">
+                                <span class="small text-theme-muted fw-semibold">CGST (<span id="cgstRate">9</span>%)</span>
+                                <span id="resCgst" class="fw-bold text-theme font-mono">₹0.00</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex justify-content-between align-items-center p-2 border-bottom border-theme">
+                                <span class="small text-theme-muted fw-semibold">SGST (<span id="sgstRate">9</span>%)</span>
+                                <span id="resSgst" class="fw-bold text-theme font-mono">₹0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="breakdownInter" class="row g-3 d-none">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center p-2 border-bottom border-theme">
+                                <span class="small text-theme-muted fw-semibold">IGST (<span id="igstRate">18</span>%)</span>
+                                <span id="resIgst" class="fw-bold text-theme font-mono">₹0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-3 border-top border-theme border-opacity-50">
+                        <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-2">Amount in Words</span>
+                        <p id="amountWords" class="text-theme-faint fst-italic mb-0 small" style="line-height: 1.5;">Zero Rupees Only.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    
+    <!-- Advanced Invoice Itemizer (Pro Feature) -->
+    <div class="mt-5 glass-card p-4 p-md-5 reveal" style="animation-delay: 0.3s;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fs-4 fw-bold mb-1"><i class="fa-solid fa-list-check text-info me-2"></i> Invoice Itemizer</h3>
+                <p class="text-theme-muted small mb-0">Add multiple items with different GST rates to calculate a consolidated invoice.</p>
+            </div>
+            <button class="btn btn-sm btn-outline-info rounded-pill px-3" id="addItemBtn"><i class="fa-solid fa-plus me-1"></i> Add Item</button>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table invoice-table text-theme">
+                <thead>
+                    <tr>
+                        <th width="35%">Item Description</th>
+                        <th width="15%">Price (₹)</th>
+                        <th width="15%">Qty</th>
+                        <th width="15%">GST %</th>
+                        <th width="15%">Net Total (₹)</th>
+                        <th width="5%"></th>
+                    </tr>
+                </thead>
+                <tbody id="invoiceBody">
+                    <tr class="item-row">
+                        <td><input type="text" class="form-control form-control-sm item-desc" placeholder="Product / Service"></td>
+                        <td><input type="number" class="form-control form-control-sm item-price" placeholder="0.00" min="0" step="0.01"></td>
+                        <td><input type="number" class="form-control form-control-sm item-qty" value="1" min="1" step="1"></td>
+                        <td>
+                            <select class="form-select form-select-sm item-gst">
+                                <option value="0">0%</option>
+                                <option value="3">3%</option>
+                                <option value="5">5%</option>
+                                <option value="12">12%</option>
+                                <option value="18" selected>18%</option>
+                                <option value="28">28%</option>
+                            </select>
+                        </td>
+                        <td class="align-middle fw-bold item-total font-mono">0.00</td>
+                        <td class="align-middle text-center">
+                            <button class="btn btn-link text-danger p-0 delete-row"><i class="fa-solid fa-trash-can"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-end fw-bold text-theme-muted">Total Taxable Value:</td>
+                        <td colspan="2" class="fw-bold text-theme font-mono" id="invBaseTotal">₹0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="text-end fw-bold text-theme-muted">Total GST Added:</td>
+                        <td colspan="2" class="fw-bold text-danger font-mono" id="invGstTotal">+ ₹0.00</td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="text-end fw-black text-theme fs-5">Invoice Grand Total:</td>
+                        <td colspan="2" class="fw-black text-primary fs-5 font-mono" id="invGrandTotal">₹0.00</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Standard Calculator Logic ---
+    const gstForm = document.getElementById('gstForm');
+    const baseAmountInput = document.getElementById('baseAmount');
+    const typeRadios = document.getElementsByName('calcType');
+    const typeHelpText = document.getElementById('typeHelpText');
+    const slabBtns = document.querySelectorAll('.slab-btn');
+    const customRateInput = document.getElementById('customRate');
+    const interstateToggle = document.getElementById('interstateToggle');
+    const copyBtn = document.getElementById('copyBtn');
+
+    // Result Nodes
+    const resTotal = document.getElementById('resTotal');
+    const resBase = document.getElementById('resBase');
+    const resGst = document.getElementById('resGst');
+    const resRateBadge = document.getElementById('resRateBadge');
+    
+    const breakdownIntra = document.getElementById('breakdownIntra');
+    const breakdownInter = document.getElementById('breakdownInter');
+    
+    const cgstRateNode = document.getElementById('cgstRate');
+    const resCgst = document.getElementById('resCgst');
+    const sgstRateNode = document.getElementById('sgstRate');
+    const resSgst = document.getElementById('resSgst');
+    
+    const igstRateNode = document.getElementById('igstRate');
+    const resIgst = document.getElementById('resIgst');
+    
+    const amountWords = document.getElementById('amountWords');
+
+    let currentRate = 18;
+
+    // Number to Words Converter (Indian Numbering System)
+    const numberToWords = (num) => {
+        if (num === 0) return 'Zero Rupees Only.';
+        const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+        const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        
+        const inWords = (n) => {
+            if (n < 20) return a[n];
+            if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? '-' + a[n % 10] : ' ');
+            if (n < 1000) return a[Math.floor(n / 100)] + 'Hundred ' + (n % 100 !== 0 ? 'and ' + inWords(n % 100) : '');
+            if (n < 100000) return inWords(Math.floor(n / 1000)) + 'Thousand ' + (n % 1000 !== 0 ? inWords(n % 1000) : '');
+            if (n < 10000000) return inWords(Math.floor(n / 100000)) + 'Lakh ' + (n % 100000 !== 0 ? inWords(n % 100000) : '');
+            return inWords(Math.floor(n / 10000000)) + 'Crore ' + (n % 10000000 !== 0 ? inWords(n % 10000000) : '');
+        };
+        
+        let words = inWords(Math.floor(num));
+        let decimals = Math.round((num % 1) * 100);
+        
+        let res = words + 'Rupees ';
+        if (decimals > 0) {
+            res += 'and ' + inWords(decimals) + 'Paise ';
+        }
+        return res + 'Only.';
+    };
+
+    const formatCurrency = (val) => {
+        return parseFloat(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    };
+
+    const updateSlabButtons = (selectedRate) => {
+        slabBtns.forEach(btn => {
+            if(parseFloat(btn.dataset.rate) === selectedRate && !customRateInput.value) {
+                btn.classList.add('active', 'border-primary');
+                btn.classList.remove('btn-outline-secondary');
+            } else {
+                btn.classList.remove('active', 'border-primary');
+                btn.classList.add('btn-outline-secondary');
+            }
+        });
+    };
+
+    slabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentRate = parseFloat(btn.dataset.rate);
+            customRateInput.value = '';
+            updateSlabButtons(currentRate);
+            calculateGST();
+        });
+    });
+
+    customRateInput.addEventListener('input', (e) => {
+        if(e.target.value !== '') {
+            currentRate = parseFloat(e.target.value) || 0;
+            slabBtns.forEach(b => {
+                b.classList.remove('active', 'border-primary');
+                b.classList.add('btn-outline-secondary');
+            });
+            calculateGST();
+        }
+    });
+
+    typeRadios.forEach(r => {
+        r.addEventListener('change', () => {
+            if(document.getElementById('typeExclusive').checked) {
+                typeHelpText.innerText = "Amount entered is before tax. GST will be added to the total.";
+            } else {
+                typeHelpText.innerText = "Amount entered includes tax. GST will be deducted to find the base price.";
+            }
+            calculateGST();
+        });
+    });
+
+    interstateToggle.addEventListener('change', calculateGST);
+
+    function calculateGST() {
+        const inputStr = baseAmountInput.value;
+        if (!inputStr) {
+            // Reset to 0
+            resTotal.innerText = "0.00";
+            resBase.innerText = "₹0.00";
+            resGst.innerText = "+ ₹0.00";
+            resCgst.innerText = "₹0.00";
+            resSgst.innerText = "₹0.00";
+            resIgst.innerText = "₹0.00";
+            amountWords.innerText = "Zero Rupees Only.";
+            return;
+        }
+        
+        const inputAmount = parseFloat(inputStr) || 0;
+        const isExclusive = document.getElementById('typeExclusive').checked;
+        const isInterstate = interstateToggle.checked;
+        
+        let baseAmount = 0;
+        let gstAmount = 0;
+        let totalAmount = 0;
+
+        if (isExclusive) {
+            // Add GST
+            baseAmount = inputAmount;
+            gstAmount = baseAmount * (currentRate / 100);
+            totalAmount = baseAmount + gstAmount;
+        } else {
+            // Remove GST (Inclusive)
+            totalAmount = inputAmount;
+            baseAmount = totalAmount / (1 + (currentRate / 100));
+            gstAmount = totalAmount - baseAmount;
+        }
+
+        // Update UI Summary
+        resTotal.innerText = formatCurrency(totalAmount);
+        resBase.innerText = "₹" + formatCurrency(baseAmount);
+        resGst.innerText = "+ ₹" + formatCurrency(gstAmount);
+        resRateBadge.innerText = `${currentRate}% GST`;
+
+        // Update Breakdown
+        if (isInterstate) {
+            breakdownIntra.classList.add('d-none');
+            breakdownInter.classList.remove('d-none');
+            igstRateNode.innerText = currentRate;
+            resIgst.innerText = "₹" + formatCurrency(gstAmount);
+        } else {
+            breakdownInter.classList.add('d-none');
+            breakdownIntra.classList.remove('d-none');
+            const halfRate = currentRate / 2;
+            const halfGst = gstAmount / 2;
+            cgstRateNode.innerText = halfRate;
+            sgstRateNode.innerText = halfRate;
+            resCgst.innerText = "₹" + formatCurrency(halfGst);
+            resSgst.innerText = "₹" + formatCurrency(halfGst);
+        }
+
+        // Words
+        amountWords.innerText = numberToWords(totalAmount);
+    };
+
+    gstForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        calculateGST();
+    });
+    
+    // Auto calculate on input
+    baseAmountInput.addEventListener('input', calculateGST);
+
+    // Copy Details
+    copyBtn.addEventListener('click', () => {
+        const txt = `GST Calculation:\nBase Amount: ${resBase.innerText}\nGST Amount: ${resGst.innerText} (${currentRate}%)\nTotal Net Amount: ₹${resTotal.innerText}\nAmount in Words: ${amountWords.innerText}`;
+        navigator.clipboard.writeText(txt).then(() => {
+            const og = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Copied';
+            setTimeout(() => copyBtn.innerHTML = og, 2000);
+        });
+    });
+
+
+    // --- Invoice Itemizer Logic ---
+    const invoiceBody = document.getElementById('invoiceBody');
+    const addItemBtn = document.getElementById('addItemBtn');
+    
+    const invBaseTotal = document.getElementById('invBaseTotal');
+    const invGstTotal = document.getElementById('invGstTotal');
+    const invGrandTotal = document.getElementById('invGrandTotal');
+
+    const calculateInvoiceRow = (row) => {
+        const price = parseFloat(row.querySelector('.item-price').value) || 0;
+        const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+        const rate = parseFloat(row.querySelector('.item-gst').value) || 0;
+        
+        const base = price * qty;
+        const gst = base * (rate / 100);
+        const net = base + gst;
+        
+        row.querySelector('.item-total').innerText = formatCurrency(net);
+        return { base, gst, net };
+    };
+
+    const calculateInvoiceTotal = () => {
+        let tBase = 0, tGst = 0, tNet = 0;
+        const rows = invoiceBody.querySelectorAll('.item-row');
+        rows.forEach(row => {
+            const vals = calculateInvoiceRow(row);
+            tBase += vals.base;
+            tGst += vals.gst;
+            tNet += vals.net;
+        });
+        
+        invBaseTotal.innerText = "₹" + formatCurrency(tBase);
+        invGstTotal.innerText = "+ ₹" + formatCurrency(tGst);
+        invGrandTotal.innerText = "₹" + formatCurrency(tNet);
+    };
+
+    const bindRowEvents = (row) => {
+        const inputs = row.querySelectorAll('input, select');
+        inputs.forEach(inp => inp.addEventListener('input', calculateInvoiceTotal));
+        
+        row.querySelector('.delete-row').addEventListener('click', () => {
+            if (invoiceBody.querySelectorAll('.item-row').length > 1) {
+                row.remove();
+                calculateInvoiceTotal();
+            }
+        });
+    };
+
+    // Bind initial row
+    bindRowEvents(invoiceBody.querySelector('.item-row'));
+
+    addItemBtn.addEventListener('click', () => {
+        const newRow = document.createElement('tr');
+        newRow.className = 'item-row';
+        newRow.innerHTML = `
+            <td><input type="text" class="form-control form-control-sm item-desc" placeholder="Product / Service"></td>
+            <td><input type="number" class="form-control form-control-sm item-price" placeholder="0.00" min="0" step="0.01"></td>
+            <td><input type="number" class="form-control form-control-sm item-qty" value="1" min="1" step="1"></td>
+            <td>
+                <select class="form-select form-select-sm item-gst">
+                    <option value="0">0%</option>
+                    <option value="3">3%</option>
+                    <option value="5">5%</option>
+                    <option value="12">12%</option>
+                    <option value="18" selected>18%</option>
+                    <option value="28">28%</option>
+                </select>
+            </td>
+            <td class="align-middle fw-bold item-total font-mono">0.00</td>
+            <td class="align-middle text-center">
+                <button class="btn btn-link text-danger p-0 delete-row"><i class="fa-solid fa-trash-can"></i></button>
+            </td>
+        `;
+        invoiceBody.appendChild(newRow);
+        bindRowEvents(newRow);
+    });
+
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Free GST Calculator Online</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-calculator text-warning me-2"></i> Inclusive & Exclusive GST</h3>
+            <p class="text-theme-muted">Easily switch between adding GST to a base price (Exclusive) or extracting the base price from a total amount (Inclusive). Perfect for reverse tax calculations.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-warning me-2"></i> CGST, SGST & IGST Breakdown</h3>
+            <p class="text-theme-muted">Automatically splits your calculated tax into Central GST (CGST) and State GST (SGST) for local sales, or calculates Integrated GST (IGST) for inter-state commerce.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-list-check text-warning me-2"></i> Invoice Itemization</h3>
+            <p class="text-theme-muted">Advanced table feature allows you to add multiple products, apply different quantities, and set varying tax slabs per item to generate a consolidated grand total.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-indian-rupee-sign text-warning me-2"></i> Automatic Number to Words</h3>
+            <p class="text-theme-muted">Saves time during invoice generation by automatically converting your total calculated net amount into the Indian numbering system format (Lakhs/Crores) in words.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.5s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    What is the difference between Inclusive and Exclusive GST?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    <strong>Exclusive GST</strong> means the tax is added on top of the base price. For example, ₹100 base + 18% GST = ₹118 total. <strong>Inclusive GST</strong> means the entered price already contains the tax, and the calculator works backwards to find the base price and the tax component.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    How is CGST, SGST, and IGST calculated?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    For intra-state sales (within the same state), the total GST rate is divided equally into Central GST (CGST) and State GST (SGST). For example, 18% GST becomes 9% CGST and 9% SGST. For inter-state sales (between different states), the full 18% is applied as Integrated GST (IGST).
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    Is this GST Calculator suitable for professional invoicing?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Yes! Our tool features an Advanced Invoice Itemizer that allows you to calculate mixed-rate invoices, generate exact tax breakdowns, and automatically outputs the final amount in words, which is a legal requirement for Indian invoices.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Advanced GST Calculator",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "INR"
+            },
+            "description": "Calculate inclusive and exclusive GST, generate CGST/SGST breakdowns, and itemize invoices with our professional-grade online GST calculator."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "What is the difference between Inclusive and Exclusive GST?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Exclusive GST means the tax is added on top of the base price. Inclusive GST means the entered price already contains the tax, and the calculator works backwards to find the base price and the tax component."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "How is CGST, SGST, and IGST calculated?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "For intra-state sales, the total GST rate is divided equally into CGST and SGST. For inter-state sales, the full rate is applied as IGST."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Is this GST Calculator suitable for professional invoicing?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Yes! Our tool features an Advanced Invoice Itemizer that calculates mixed-rate invoices and automatically outputs the final amount in words, which is required for invoices."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+
+{% endblock %}

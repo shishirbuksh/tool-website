@@ -1,0 +1,694 @@
+{% extends "base.html" %}
+
+{% block title %}Free Online Invoice Generator & PDF Maker | StoryBrain AI{% endblock %}
+{% block meta_description %}Create professional, customizable invoices instantly for free. Add your logo, calculate taxes, and download as a high-quality PDF. No sign-up required.{% endblock %}
+
+{% block head %}
+<style>
+    /* UI Layout Styles */
+    .invoice-builder-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+    @media (min-width: 992px) {
+        .invoice-builder-layout {
+            flex-direction: row;
+            align-items: flex-start;
+        }
+        .controls-panel {
+            width: 320px;
+            position: sticky;
+            top: 2rem;
+        }
+        .preview-panel {
+            flex: 1;
+            min-width: 0;
+        }
+    }
+
+    /* Controls Panel */
+    .controls-panel {
+        background: var(--sb-surface);
+        border: 1px solid var(--sb-border);
+        border-radius: 1rem;
+        padding: 1.5rem;
+    }
+
+    /* Invoice Preview Card */
+    .invoice-paper {
+        background: #ffffff;
+        color: #1a1a1a;
+        padding: 3rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        font-family: 'Inter', sans-serif; /* Clean font for invoice */
+        min-height: 1056px; /* Approx 11 inches */
+        max-width: 816px; /* Approx 8.5 inches */
+        margin: 0 auto;
+        border: 1px solid #e5e7eb;
+    }
+
+    /* Reset Dark Mode inherited styles for the paper only */
+    .invoice-paper input, 
+    .invoice-paper textarea {
+        background: transparent !important;
+        border: 1px solid transparent;
+        color: #1a1a1a !important;
+        font-family: inherit;
+        padding: 0.25rem;
+        border-radius: 4px;
+        transition: border 0.2s;
+        width: 100%;
+    }
+    
+    .invoice-paper input:hover, 
+    .invoice-paper textarea:hover,
+    .invoice-paper input:focus, 
+    .invoice-paper textarea:focus {
+        border-color: #d1d5db;
+        outline: none;
+        background: #f9fafb !important;
+    }
+
+    .invoice-paper textarea {
+        resize: vertical;
+        overflow: hidden;
+    }
+    
+    /* Logo Uploader */
+    .logo-upload-area {
+        width: 150px;
+        height: 100px;
+        border: 2px dashed #cbd5e1;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        background: #f8fafc;
+        transition: border 0.2s;
+    }
+    .logo-upload-area:hover {
+        border-color: #94a3b8;
+    }
+    .logo-upload-area img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+    .logo-upload-input {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        opacity: 0; cursor: pointer;
+    }
+
+    /* Invoice Header */
+    .inv-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 3rem;
+    }
+    .inv-title-input {
+        font-size: 3rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        color: #0f172a !important;
+        text-align: right;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Meta Details */
+    .inv-meta-table {
+        margin-left: auto;
+    }
+    .inv-meta-table td {
+        padding: 0.25rem 0.5rem;
+    }
+    .inv-meta-table td:first-child {
+        text-align: right;
+        font-weight: 600;
+        color: #64748b;
+    }
+
+    /* Bill To / From */
+    .address-block label {
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+        display: block;
+    }
+
+    /* Items Table */
+    .inv-table {
+        width: 100%;
+        margin-top: 2rem;
+        border-collapse: collapse;
+    }
+    .inv-table th {
+        background: #0f172a;
+        color: #ffffff;
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .inv-table td {
+        padding: 0.5rem;
+        border-bottom: 1px solid #e2e8f0;
+        position: relative;
+    }
+    .inv-table th:nth-child(1) { text-align: left; width: 40%; border-radius: 6px 0 0 6px; }
+    .inv-table th:nth-child(2) { text-align: right; width: 10%; }
+    .inv-table th:nth-child(3) { text-align: right; width: 15%; }
+    .inv-table th:nth-child(4) { text-align: right; width: 15%; }
+    .inv-table th:nth-child(5) { text-align: right; width: 20%; border-radius: 0 6px 6px 0; }
+    
+    .inv-table td:nth-child(2) input,
+    .inv-table td:nth-child(3) input,
+    .inv-table td:nth-child(4) input,
+    .inv-table td:nth-child(5) {
+        text-align: right;
+    }
+    
+    .row-remove-btn {
+        position: absolute;
+        left: -30px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #ef4444;
+        background: none;
+        border: none;
+        cursor: pointer;
+        opacity: 0.3;
+        transition: opacity 0.2s;
+    }
+    .inv-table tr:hover .row-remove-btn {
+        opacity: 1;
+    }
+
+    /* Totals */
+    .inv-totals {
+        width: 300px;
+        margin-left: auto;
+        margin-top: 1rem;
+    }
+    .inv-totals table {
+        width: 100%;
+    }
+    .inv-totals td {
+        padding: 0.5rem;
+    }
+    .inv-totals tr.total-row {
+        border-top: 2px solid #0f172a;
+        font-weight: 800;
+        font-size: 1.25rem;
+    }
+    
+    /* Helper text */
+    .helper-text {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        text-align: center;
+        margin-top: 1rem;
+    }
+
+    /* Print Styles */
+    @media print {
+        @page { size: A4; margin: 0; }
+        body {
+            background: #ffffff !important;
+            padding: 0;
+            margin: 0;
+        }
+        body * {
+            visibility: hidden;
+        }
+        .invoice-paper, .invoice-paper * {
+            visibility: visible;
+        }
+        .invoice-paper {
+            position: absolute;
+            left: 0;
+            top: 0;
+            box-shadow: none;
+            border: none;
+            margin: 0;
+            padding: 15mm; /* Print margins */
+            width: 100%;
+            max-width: none;
+        }
+        /* Hide UI elements during print */
+        .row-remove-btn,
+        #addRowBtn,
+        .logo-upload-area span.text-muted {
+            display: none !important;
+        }
+        .invoice-paper input, .invoice-paper textarea {
+            border: none !important;
+            background: transparent !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-4 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-fluid mx-auto px-lg-4" style="max-width: 1400px;">
+    
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-20 px-4 py-2 mb-3">
+            <i class="fa-solid fa-file-pdf me-2"></i> PDF Generation Engine
+        </div>
+        <h1 class="display-4 fw-black mb-3">INVOICE <span class="gradient-text italic">GENERATOR</span></h1>
+        <p class="text-white-50 fs-6 mx-auto" style="max-width: 600px;">
+            Click anywhere on the invoice template below to edit. Once finished, download it as a high-quality PDF.
+        </p>
+    </div>
+
+    <!-- Layout -->
+    <div class="invoice-builder-layout reveal" style="animation-delay: 0.1s;">
+        
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <h3 class="fs-5 fw-bold border-bottom border-theme pb-3 mb-4"><i class="fa-solid fa-gear text-accent me-2"></i> Settings</h3>
+            
+            <div class="mb-4">
+                <label class="small fw-bold text-theme-muted text-uppercase tracking-widest mb-2">Currency Symbol</label>
+                <select id="currencySelector" class="form-select bg-theme border-theme text-theme fw-bold shadow-none">
+                    <option value="$">USD ($)</option>
+                    <option value="€">EUR (€)</option>
+                    <option value="£">GBP (£)</option>
+                    <option value="₹">INR (₹)</option>
+                    <option value="A$">AUD (A$)</option>
+                    <option value="C$">CAD (C$)</option>
+                    <option value="¥">JPY (¥)</option>
+                    <option value="">None</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="small fw-bold text-theme-muted text-uppercase tracking-widest mb-2">Color Accent</label>
+                <input type="color" id="colorSelector" class="form-control form-control-color w-100 bg-theme border-theme p-1" value="#0f172a" title="Choose your color">
+            </div>
+
+            <hr class="border-theme opacity-25 my-4">
+
+            <button class="btn-premium w-100 py-3 mb-3" id="downloadPdfBtn">
+                <i class="fa-solid fa-download me-2"></i> DOWNLOAD PDF
+            </button>
+            <button class="btn btn-outline-danger w-100 rounded-pill fw-bold" id="resetBtn">
+                <i class="fa-solid fa-trash-can me-2"></i> Reset Form
+            </button>
+            
+            <p class="small text-theme-muted mt-4 text-center">
+                <i class="fa-solid fa-lock text-success me-1"></i> Data is stored strictly in your browser. No data is sent to our servers.
+            </p>
+        </div>
+
+        <!-- Preview Panel -->
+        <div class="preview-panel">
+            <div class="invoice-paper" id="invoicePaper">
+                
+                <div class="inv-header">
+                    <!-- Logo Box -->
+                    <div>
+                        <div class="logo-upload-area" id="logoBox">
+                            <span class="text-muted small fw-bold" id="logoPlaceholderText"><i class="fa-solid fa-image mb-1 d-block fs-4"></i> Add Logo</span>
+                            <img id="logoImg" src="" style="display:none;" alt="Logo">
+                            <input type="file" id="logoUpload" class="logo-upload-input" accept="image/*">
+                        </div>
+                    </div>
+
+                    <!-- Meta -->
+                    <div style="text-align: right;">
+                        <input type="text" class="inv-title-input" value="INVOICE" id="invTitle">
+                        <table class="inv-meta-table">
+                            <tr>
+                                <td>Invoice #</td>
+                                <td><input type="text" value="INV-001" style="width: 100px; text-align: right;"></td>
+                            </tr>
+                            <tr>
+                                <td>Date</td>
+                                <td><input type="date" id="invDate" style="width: 120px; text-align: right;"></td>
+                            </tr>
+                            <tr>
+                                <td>Due Date</td>
+                                <td><input type="date" id="dueDate" style="width: 120px; text-align: right;"></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="row mb-5">
+                    <div class="col-6 address-block">
+                        <label>Billed By</label>
+                        <textarea rows="4" placeholder="Your Company Name&#10;123 Business Rd.&#10;City, State 12345&#10;your@email.com"></textarea>
+                    </div>
+                    <div class="col-6 address-block" style="text-align: right;">
+                        <label>Billed To</label>
+                        <textarea rows="4" placeholder="Client Name&#10;Client Address&#10;City, State 12345&#10;client@email.com" style="text-align: right;"></textarea>
+                    </div>
+                </div>
+
+                <!-- Items -->
+                <table class="inv-table" id="itemsTable">
+                    <thead>
+                        <tr id="tableHeaderRow" style="background-color: #1e40af;">
+                            <th>Item Description</th>
+                            <th>Qty</th>
+                            <th>Rate</th>
+                            <th><input type="text" value="Tax %" style="width: 100%; text-align: right; color: white !important; font-weight: bold; border: none; padding: 0;" title="Rename column (e.g. GST %)"></th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsBody">
+                        <!-- Rows injected by JS -->
+                    </tbody>
+                </table>
+                
+                <button id="addRowBtn" class="btn btn-sm btn-light text-primary fw-bold mt-2 rounded-pill px-3 border"><i class="fa-solid fa-plus me-1"></i> Add Line Item</button>
+
+                <!-- Totals -->
+                <div class="row mt-4">
+                    <div class="col-6 address-block">
+                        <label>Notes / Terms</label>
+                        <textarea rows="4" placeholder="Thank you for your business. Payment is due within 30 days."></textarea>
+                    </div>
+                    <div class="col-6">
+                        <div class="inv-totals">
+                            <table>
+                                <tr>
+                                    <td class="text-end fw-bold text-muted">Subtotal</td>
+                                    <td class="text-end" style="width: 120px;"><span class="currency-sym">$</span><span id="calcSubtotal">0.00</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-end fw-bold text-muted d-flex justify-content-end align-items-center">
+                                        <input type="text" value="Total Tax" style="width: 100px; text-align: right; padding: 0; color: #6c757d !important; font-weight: bold; border-color: transparent;" class="me-1" title="Rename tax label (e.g. Total GST)">
+                                    </td>
+                                    <td class="text-end"><span class="currency-sym">$</span><span id="calcTax">0.00</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-end fw-bold text-muted d-flex justify-content-end align-items-center">
+                                        Discount (<input type="number" id="discountValue" value="0" min="0" style="width: 60px; text-align: right; padding: 0;" class="me-1">)
+                                    </td>
+                                    <td class="text-end text-danger">- <span class="currency-sym">$</span><span id="calcDiscount">0.00</span></td>
+                                </tr>
+                                <tr class="total-row" id="totalRowBorder">
+                                    <td class="text-end">Total</td>
+                                    <td class="text-end"><span class="currency-sym">$</span><span id="calcTotal">0.00</span></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="helper-text"><i class="fa-solid fa-lightbulb text-warning me-1"></i> Pro Tip: The red remove buttons and dotted boxes will automatically hide when you download the PDF.</div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // Elements
+    const itemsBody = document.getElementById('itemsBody');
+    const addRowBtn = document.getElementById('addRowBtn');
+    
+    const calcSubtotal = document.getElementById('calcSubtotal');
+    const calcTax = document.getElementById('calcTax');
+    const calcDiscount = document.getElementById('calcDiscount');
+    const calcTotal = document.getElementById('calcTotal');
+    
+    const discountValueInp = document.getElementById('discountValue');
+    
+    const currencySelector = document.getElementById('currencySelector');
+    const currencySyms = document.getElementsByClassName('currency-sym');
+    
+    const colorSelector = document.getElementById('colorSelector');
+    const tableHeaderRow = document.getElementById('tableHeaderRow');
+    const totalRowBorder = document.getElementById('totalRowBorder');
+    
+    const logoUpload = document.getElementById('logoUpload');
+    const logoImg = document.getElementById('logoImg');
+    const logoPlaceholderText = document.getElementById('logoPlaceholderText');
+    const logoBox = document.getElementById('logoBox');
+    
+    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // Auto-fill dates
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('invDate').value = today;
+    
+    const nextMonth = new Date();
+    nextMonth.setDate(nextMonth.getDate() + 30);
+    document.getElementById('dueDate').value = nextMonth.toISOString().split('T')[0];
+
+    // Functions
+    function addRow() {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <button class="row-remove-btn" tabindex="-1"><i class="fa-solid fa-times"></i></button>
+                <input type="text" placeholder="Item description" class="item-desc">
+            </td>
+            <td><input type="number" value="1" min="1" class="item-qty"></td>
+            <td><input type="number" value="0.00" min="0" step="0.01" class="item-rate"></td>
+            <td><input type="number" value="0" min="0" max="100" step="0.1" class="item-tax" title="Tax/GST percentage for this item"></td>
+            <td class="fw-bold"><span class="currency-sym">${currencySelector.value}</span><span class="item-amount">0.00</span></td>
+        `;
+        
+        // Listeners for math
+        const inputs = tr.querySelectorAll('input');
+        inputs.forEach(inp => inp.addEventListener('input', calculateMath));
+        
+        // Listener for remove
+        tr.querySelector('.row-remove-btn').addEventListener('click', () => {
+            tr.remove();
+            calculateMath();
+        });
+        
+        itemsBody.appendChild(tr);
+        updateCurrencySymbols();
+    }
+
+    function calculateMath() {
+        let subtotal = 0;
+        let totalTaxAmt = 0;
+        
+        // Loop rows
+        const rows = itemsBody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+            const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
+            const taxPct = parseFloat(row.querySelector('.item-tax').value) || 0;
+            
+            const amt = qty * rate;
+            const rowTax = amt * (taxPct / 100);
+            
+            row.querySelector('.item-amount').innerText = amt.toFixed(2);
+            subtotal += amt;
+            totalTaxAmt += rowTax;
+        });
+        
+        const discountAmt = parseFloat(discountValueInp.value) || 0;
+        const total = subtotal + totalTaxAmt - discountAmt;
+        
+        // Updates
+        calcSubtotal.innerText = subtotal.toFixed(2);
+        calcTax.innerText = totalTaxAmt.toFixed(2);
+        calcDiscount.innerText = discountAmt.toFixed(2);
+        calcTotal.innerText = Math.max(0, total).toFixed(2); // No negative total
+    }
+
+    function updateCurrencySymbols() {
+        const sym = currencySelector.value;
+        const els = document.querySelectorAll('.currency-sym');
+        els.forEach(el => el.innerText = sym);
+    }
+    
+    function updateThemeColor() {
+        const c = colorSelector.value;
+        const ths = tableHeaderRow.querySelectorAll('th');
+        ths.forEach(th => th.style.backgroundColor = c);
+        totalRowBorder.style.borderTopColor = c;
+    }
+
+    // Logo Upload Logic
+    logoUpload.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                logoImg.src = evt.target.result;
+                logoImg.style.display = 'block';
+                logoPlaceholderText.style.display = 'none';
+                logoBox.style.border = 'none';
+                logoBox.style.background = 'transparent';
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    });
+
+    // Event Listeners
+    addRowBtn.addEventListener('click', addRow);
+    discountValueInp.addEventListener('input', calculateMath);
+    currencySelector.addEventListener('change', updateCurrencySymbols);
+    colorSelector.addEventListener('input', updateThemeColor);
+    
+    resetBtn.addEventListener('click', () => {
+        if(confirm("Are you sure you want to clear the invoice data?")) {
+            itemsBody.innerHTML = '';
+            discountValueInp.value = 0;
+            logoImg.src = '';
+            logoImg.style.display = 'none';
+            logoPlaceholderText.style.display = 'block';
+            logoBox.style.border = '';
+            logoBox.style.background = '';
+            
+            const textareas = document.querySelectorAll('textarea');
+            textareas.forEach(t => t.value = '');
+            
+            addRow();
+            calculateMath();
+        }
+    });
+
+    downloadPdfBtn.addEventListener('click', () => {
+        window.print();
+    });
+
+    // Auto-resize textareas
+    document.addEventListener('input', function (event) {
+        if (event.target.tagName.toLowerCase() !== 'textarea') return;
+        event.target.style.height = 'auto';
+        event.target.style.height = (event.target.scrollHeight) + 'px';
+    });
+
+    // Init
+    addRow();
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Free Invoice Generator</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-wand-magic-sparkles text-warning me-2"></i> True WYSIWYG Editing</h3>
+            <p class="text-theme-muted">What You See Is What You Get. Unlike clunky forms that require you to hit "preview" repeatedly, our generator lets you type directly onto the final invoice layout. It's the most intuitive way to build bills.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-calculator text-warning me-2"></i> Automated Math</h3>
+            <p class="text-theme-muted">Line item subtotals, complex tax rate percentages, and flat discounts are all calculated instantly in real-time. Never make a math error on a professional invoice again.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-file-pdf text-warning me-2"></i> Instant PDF Export</h3>
+            <p class="text-theme-muted">Once your invoice is ready, clicking "Download PDF" leverages your browser's native print-to-PDF engine to strip away the UI and perfectly frame your invoice on an 8.5x11 page.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-lock text-warning me-2"></i> Absolute Privacy</h3>
+            <p class="text-theme-muted">Invoices contain highly sensitive client addresses, pricing data, and terms. Our tool runs entirely in your local browser cache. We never see, store, or transmit your financial data.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.5s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    Is there a limit to how many invoices I can create?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    No. You can generate unlimited invoices completely for free. There are no paywalls, watermarks, or subscription requirements.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    How do I add my company logo?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Simply click the "Add Logo" box at the top left of the invoice template. Select an image from your computer, and it will be embedded into the PDF. We recommend using a high-quality PNG or JPG file.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    Can I change the currency symbol?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Yes. Use the "Settings" panel on the left side of the screen to select your preferred currency (USD, EUR, GBP, INR, etc.). The entire invoice will automatically update to reflect the new symbol.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Free Invoice Generator",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            },
+            "description": "Create professional, customizable invoices instantly for free. Add your logo, calculate taxes, and download as a high-quality PDF."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "Is there a limit to how many invoices I can create?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "No. You can generate unlimited invoices completely for free. There are no paywalls or watermarks."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "How do I add my company logo?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Simply click the 'Add Logo' box on the template to upload an image directly from your computer."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+
+{% endblock %}

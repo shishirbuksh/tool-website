@@ -1,0 +1,544 @@
+{% extends "base.html" %}
+
+{% block title %}Free Advanced Time Zone Converter Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Convert time across global cities instantly. Use our free professional time zone converter to schedule meetings and visualize business hours overlap across the world.{% endblock %}
+
+{% block head %}
+<style>
+    .tz-card {
+        background: var(--sb-surface);
+        border: 1px solid var(--sb-border);
+        border-radius: 1rem;
+        padding: 1.5rem;
+    }
+    .swap-btn {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: var(--sb-surface);
+        border: 1px solid var(--sb-border);
+        color: var(--sb-text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: -24px auto;
+        position: relative;
+        z-index: 2;
+        transition: all 0.3s ease;
+    }
+    .swap-btn:hover {
+        background: rgba(var(--sb-accent-rgb), 0.1);
+        color: var(--sb-accent);
+        border-color: var(--sb-accent);
+        transform: rotate(180deg);
+    }
+    @media (min-width: 992px) {
+        .swap-btn {
+            margin: auto -24px;
+            transform: rotate(90deg);
+        }
+        .swap-btn:hover {
+            transform: rotate(270deg);
+        }
+    }
+    .time-display {
+        font-family: var(--font-display);
+        font-size: 3rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -1px;
+    }
+    .date-display {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--sb-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+    .business-hours-indicator {
+        height: 6px;
+        border-radius: 3px;
+        background: var(--sb-border);
+        margin-top: 1rem;
+        overflow: hidden;
+        position: relative;
+    }
+    .bh-fill {
+        height: 100%;
+        width: 100%;
+        background: var(--bs-success);
+        transition: opacity 0.3s;
+    }
+    .bh-fill.off-hours {
+        background: var(--bs-warning);
+    }
+    .bh-fill.sleep-hours {
+        background: var(--bs-danger);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-lg mx-auto" style="max-width: 1000px;">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-info bg-opacity-10 text-info border border-info border-opacity-20 px-4 py-2 mb-4">
+            <i class="fa-solid fa-globe me-2"></i> Global Meeting Planner
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">ADVANCED <span class="gradient-text italic">TIME ZONE CONVERTER</span></h1>
+        <p class="text-white-50 fs-5 mx-auto text-center" style="max-width: 700px;">
+            Instantly convert time across major global cities, schedule international meetings, and visualize business hour overlaps.
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="glass-card p-3 p-md-5 reveal" style="animation-delay: 0.2s;">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-theme">
+            <h3 class="fs-4 fw-bold m-0"><i class="fa-regular fa-clock text-accent me-2"></i> Time Converter</h3>
+            <button class="btn btn-sm btn-outline-theme rounded-pill px-3 fw-bold" id="setCurrentTimeBtn">
+                <i class="fa-solid fa-rotate-right me-1"></i> Sync Current Time
+            </button>
+        </div>
+
+        <div class="row g-0 align-items-stretch position-relative mb-4">
+            
+            <!-- SOURCE TZ -->
+            <div class="col-lg-6">
+                <div class="tz-card h-100 d-flex flex-column border-theme">
+                    <label class="small fw-black text-theme-muted tracking-widest text-uppercase mb-3">Your Local Time (Source)</label>
+                    <select class="form-select form-select-lg mb-4 fw-bold bg-theme border-theme text-theme shadow-none tz-select" id="tzSource">
+                        <!-- Populated by JS -->
+                    </select>
+                    
+                    <div class="mt-2 text-center p-4 rounded-4 bg-primary bg-opacity-10 border border-primary border-opacity-25">
+                        <input type="time" id="sourceTimeInput" class="form-control bg-transparent border-0 text-center time-display text-theme shadow-none p-0 mx-auto" style="max-width: 250px;">
+                        <input type="date" id="sourceDateInput" class="form-control bg-transparent border-0 text-center date-display mt-2 shadow-none p-0 mx-auto" style="max-width: 200px;">
+                    </div>
+                    
+                    <!-- Business hours indicator -->
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between small fw-bold text-theme-muted mb-1">
+                            <span>Status: <span id="sourceStatusText" class="text-success">Business Hours</span></span>
+                        </div>
+                        <div class="business-hours-indicator">
+                            <div id="sourceStatusFill" class="bh-fill"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SWAP -->
+            <button class="swap-btn" id="swapBtn" aria-label="Swap Timezones">
+                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+            </button>
+            
+            <!-- TARGET TZ -->
+            <div class="col-lg-6">
+                <div class="tz-card h-100 d-flex flex-column border-theme" style="background: rgba(var(--sb-accent-rgb), 0.03);">
+                    <label class="small fw-black text-accent tracking-widest text-uppercase mb-3">Target Time Zone</label>
+                    <select class="form-select form-select-lg mb-4 fw-bold bg-theme border-theme text-theme shadow-none tz-select border-opacity-50" id="tzTarget">
+                        <!-- Populated by JS -->
+                    </select>
+                    
+                    <div class="mt-2 text-center p-4 rounded-4 bg-theme-surface border border-theme">
+                        <div id="targetTimeDisplay" class="time-display text-accent">12:00</div>
+                        <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
+                            <div id="targetDateDisplay" class="date-display">AUG 25, 2026</div>
+                            <span id="targetDayDiff" class="badge bg-theme border border-theme text-theme-muted rounded-pill">+1 Day</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Business hours indicator -->
+                    <div class="mt-4">
+                        <div class="d-flex justify-content-between small fw-bold text-theme-muted mb-1">
+                            <span>Status: <span id="targetStatusText" class="text-danger">Sleeping Hours</span></span>
+                        </div>
+                        <div class="business-hours-indicator">
+                            <div id="targetStatusFill" class="bh-fill sleep-hours"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Overlap Summary -->
+        <div class="p-4 rounded-4 border border-theme bg-theme-surface d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
+            <div>
+                <h5 class="fw-bold mb-1"><i class="fa-solid fa-handshake text-warning me-2"></i> Meeting Compatibility</h5>
+                <p class="small text-theme-muted mb-0" id="overlapMessage">Finding best times for a meeting...</p>
+            </div>
+            <button class="btn btn-primary rounded-pill px-4" id="copyDetailsBtn"><i class="fa-regular fa-copy me-2"></i>Copy Invite Details</button>
+        </div>
+        
+    </div>
+</div>
+
+<script>
+// Core Timezones mapped to IANA formats
+const timezones = [
+    { value: "Etc/UTC", label: "UTC / GMT (Coordinated Universal Time)" },
+    { value: "America/New_York", label: "New York / EST / EDT (USA)" },
+    { value: "America/Chicago", label: "Chicago / CST / CDT (USA)" },
+    { value: "America/Denver", label: "Denver / MST / MDT (USA)" },
+    { value: "America/Los_Angeles", label: "Los Angeles / PST / PDT (USA)" },
+    { value: "America/Toronto", label: "Toronto (Canada)" },
+    { value: "Europe/London", label: "London / GMT / BST (UK)" },
+    { value: "Europe/Paris", label: "Paris / CET / CEST (France)" },
+    { value: "Europe/Berlin", label: "Berlin / CET / CEST (Germany)" },
+    { value: "Asia/Dubai", label: "Dubai / GST (UAE)" },
+    { value: "Asia/Kolkata", label: "India / IST (India)" },
+    { value: "Asia/Singapore", label: "Singapore / SGT (Singapore)" },
+    { value: "Asia/Tokyo", label: "Tokyo / JST (Japan)" },
+    { value: "Australia/Sydney", label: "Sydney / AEST / AEDT (Australia)" },
+    { value: "Pacific/Auckland", label: "Auckland / NZST / NZDT (New Zealand)" },
+    { value: "America/Sao_Paulo", label: "São Paulo / BRT (Brazil)" }
+];
+
+document.addEventListener('DOMContentLoaded', () => {
+    const tzSource = document.getElementById('tzSource');
+    const tzTarget = document.getElementById('tzTarget');
+    const sourceTimeInput = document.getElementById('sourceTimeInput');
+    const sourceDateInput = document.getElementById('sourceDateInput');
+    
+    const targetTimeDisplay = document.getElementById('targetTimeDisplay');
+    const targetDateDisplay = document.getElementById('targetDateDisplay');
+    const targetDayDiff = document.getElementById('targetDayDiff');
+    
+    const sourceStatusText = document.getElementById('sourceStatusText');
+    const sourceStatusFill = document.getElementById('sourceStatusFill');
+    const targetStatusText = document.getElementById('targetStatusText');
+    const targetStatusFill = document.getElementById('targetStatusFill');
+    
+    const overlapMessage = document.getElementById('overlapMessage');
+    const setCurrentTimeBtn = document.getElementById('setCurrentTimeBtn');
+    const swapBtn = document.getElementById('swapBtn');
+    const copyDetailsBtn = document.getElementById('copyDetailsBtn');
+
+    // Populate selects
+    function populateTimezones() {
+        // Try to guess local timezone
+        let localTz = "Etc/UTC";
+        try {
+            localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        } catch (e) {}
+
+        // Add local TZ if not in list
+        if (!timezones.find(t => t.value === localTz)) {
+            timezones.unshift({ value: localTz, label: `Local (${localTz})` });
+        }
+
+        timezones.forEach(tz => {
+            const opt1 = document.createElement('option');
+            opt1.value = tz.value;
+            opt1.textContent = tz.label;
+            
+            const opt2 = document.createElement('option');
+            opt2.value = tz.value;
+            opt2.textContent = tz.label;
+            
+            tzSource.appendChild(opt1);
+            tzTarget.appendChild(opt2);
+        });
+
+        tzSource.value = localTz;
+        // Set default target to something else
+        tzTarget.value = localTz !== "Europe/London" ? "Europe/London" : "America/New_York";
+    }
+
+    // Set inputs to current time in source TZ
+    function setCurrentTime() {
+        const now = new Date();
+        const sourceTz = tzSource.value;
+        
+        // Format strictly for input[type="time"] -> HH:mm
+        const timeStr = now.toLocaleTimeString('en-US', { timeZone: sourceTz, hour12: false, hour: '2-digit', minute: '2-digit' });
+        
+        // Format strictly for input[type="date"] -> YYYY-MM-DD
+        // Using a trick: format to a specific locale that outputs YYYY-MM-DD
+        const dFmt = new Intl.DateTimeFormat('en-CA', { timeZone: sourceTz, year: 'numeric', month: '2-digit', day: '2-digit' });
+        const dateStr = dFmt.format(now);
+
+        sourceTimeInput.value = timeStr;
+        sourceDateInput.value = dateStr;
+        
+        convertTime();
+    }
+
+    // Status logic
+    function getStatus(hour) {
+        if (hour >= 9 && hour < 17) return { text: "Business Hours (9 AM - 5 PM)", cls: "" };
+        if (hour >= 17 && hour < 22) return { text: "Evening / Off Hours", cls: "off-hours" };
+        if (hour >= 7 && hour < 9) return { text: "Morning / Off Hours", cls: "off-hours" };
+        return { text: "Sleeping Hours (10 PM - 7 AM)", cls: "sleep-hours" };
+    }
+
+    // Update Status UI
+    function updateStatusUI(textNode, fillNode, hour) {
+        const st = getStatus(hour);
+        textNode.innerText = st.text;
+        fillNode.className = "bh-fill " + st.cls;
+        
+        if(st.cls === "") {
+            textNode.className = "text-success";
+        } else if (st.cls === "off-hours") {
+            textNode.className = "text-warning";
+        } else {
+            textNode.className = "text-danger";
+        }
+        
+        return st.cls; // return class for overlap logic
+    }
+
+    // Core conversion
+    function convertTime() {
+        if (!sourceTimeInput.value || !sourceDateInput.value) return;
+
+        const sourceTz = tzSource.value;
+        const targetTz = tzTarget.value;
+        
+        const timeParts = sourceTimeInput.value.split(':');
+        const dateParts = sourceDateInput.value.split('-');
+        
+        // Construct a Date object representing the exact moment in time
+        // Note: JS Date doesn't let us create a date "in a specific timezone" easily without an offset.
+        // We can create a string: YYYY-MM-DDTHH:mm:ss and use a tiny hack.
+        // Or better: Create a Date using local browser time, then calculate offset diffs.
+        // Actually, the easiest way is to construct a UTC date from the inputs, then format it assuming the inputs WERE UTC.
+        // Let's use `Date.parse` with the source timezone if supported. It's not.
+        
+        // Custom approach:
+        // 1. Get current UTC time.
+        // 2. Format it to source TZ to find the offset difference.
+        
+        // Helper to parse date string in specific TZ to actual Date object
+        // 1. Guess the UTC date.
+        const dStr = `${sourceDateInput.value}T${sourceTimeInput.value}:00`;
+        const localDate = new Date(dStr); 
+        // This parses the string as the BROWSER'S local time.
+        
+        // We need to shift it so it represents the time in the SOURCE timezone.
+        // Let's find the offset of sourceTz at this rough date.
+        // (A bit complex due to DST, but good enough for a client-side tool).
+        const targetDateObj = getExactDateInTimezone(dStr, sourceTz);
+
+        // Now targetDateObj is the exact universal moment in time.
+        // Format to target TZ
+        const targetTimeStr = targetDateObj.toLocaleTimeString('en-US', { timeZone: targetTz, hour12: false, hour: '2-digit', minute: '2-digit' });
+        const targetDateFmt = new Intl.DateTimeFormat('en-US', { timeZone: targetTz, month: 'short', day: 'numeric', year: 'numeric' });
+        
+        // Get Hours for status
+        const sourceHourInt = parseInt(sourceTimeInput.value.split(':')[0]);
+        const targetHourInt = parseInt(targetTimeStr.split(':')[0]);
+
+        // UI Updates
+        targetTimeDisplay.innerText = targetTimeStr;
+        targetDateDisplay.innerText = targetDateFmt.format(targetDateObj).toUpperCase();
+
+        // Day diff calculation
+        const srcStr = new Intl.DateTimeFormat('en-CA', { timeZone: sourceTz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(targetDateObj);
+        const tgtStr = new Intl.DateTimeFormat('en-CA', { timeZone: targetTz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(targetDateObj);
+        
+        if (srcStr === tgtStr) {
+            targetDayDiff.style.display = 'none';
+        } else if (tgtStr > srcStr) {
+            targetDayDiff.style.display = 'inline-block';
+            targetDayDiff.innerText = '+1 Day';
+            targetDayDiff.className = "badge bg-warning bg-opacity-25 border border-warning border-opacity-50 text-warning rounded-pill";
+        } else {
+            targetDayDiff.style.display = 'inline-block';
+            targetDayDiff.innerText = '-1 Day';
+            targetDayDiff.className = "badge bg-danger bg-opacity-25 border border-danger border-opacity-50 text-danger rounded-pill";
+        }
+
+        // Statuses
+        const sCls = updateStatusUI(sourceStatusText, sourceStatusFill, sourceHourInt);
+        const tCls = updateStatusUI(targetStatusText, targetStatusFill, targetHourInt);
+
+        // Overlap message
+        if (sCls === "" && tCls === "") {
+            overlapMessage.innerHTML = "<span class='text-success fw-bold'>Great!</span> Both parties are within normal business hours.";
+        } else if (sCls === "sleep-hours" || tCls === "sleep-hours") {
+            overlapMessage.innerHTML = "<span class='text-danger fw-bold'>Warning!</span> One or both parties are in sleeping hours. Not ideal for meetings.";
+        } else {
+            overlapMessage.innerHTML = "<span class='text-warning fw-bold'>Okay.</span> One party is outside core business hours, but awake. Acceptable for quick syncs.";
+        }
+    }
+
+    // A robust function to parse a local date string (YYYY-MM-DDTHH:mm:00) 
+    // into a global Date object, treating the input as if it were in the target `timeZone`.
+    function getExactDateInTimezone(localDateString, timeZone) {
+        // Fallback: Parse as UTC, then find the offset of the timezone and subtract it.
+        const dateAsUTC = new Date(localDateString + "Z"); // Treat input explicitly as UTC
+        
+        // Format the UTC date into the target timezone to see the difference
+        const fmtStr = new Intl.DateTimeFormat('en-US', { timeZone: timeZone, year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false }).format(dateAsUTC);
+        
+        const [datePart, timePart] = fmtStr.split(', ');
+        const [m, d, y] = datePart.split('/');
+        const [hr, min, sec] = timePart.split(':');
+        
+        // Construct the date that the timezone "thinks" it is
+        const dateInTz = new Date(Date.UTC(y, m-1, d, hr, min, sec));
+        
+        // Calculate offset difference
+        const diffMs = dateInTz.getTime() - dateAsUTC.getTime();
+        
+        // Apply inverse offset to get the TRUE universal date
+        return new Date(dateAsUTC.getTime() - diffMs);
+    }
+
+    // Listeners
+    tzSource.addEventListener('change', convertTime);
+    tzTarget.addEventListener('change', convertTime);
+    sourceTimeInput.addEventListener('input', convertTime);
+    sourceDateInput.addEventListener('input', convertTime);
+    
+    setCurrentTimeBtn.addEventListener('click', setCurrentTime);
+    
+    swapBtn.addEventListener('click', () => {
+        const srcVal = tzSource.value;
+        tzSource.value = tzTarget.value;
+        tzTarget.value = srcVal;
+        setCurrentTime(); // Update source inputs to represent the current time in the NEW source timezone.
+    });
+
+    copyDetailsBtn.addEventListener('click', () => {
+        const srcLabel = tzSource.options[tzSource.selectedIndex].text;
+        const tgtLabel = tzTarget.options[tzTarget.selectedIndex].text;
+        
+        // 12-hour formatting for the copy text
+        const srcTime12 = new Date(`1970-01-01T${sourceTimeInput.value}Z`).toLocaleTimeString('en-US', {timeZone:'UTC', hour:'numeric', minute:'2-digit'});
+        const tgtTime12 = new Date(`1970-01-01T${targetTimeDisplay.innerText}Z`).toLocaleTimeString('en-US', {timeZone:'UTC', hour:'numeric', minute:'2-digit'});
+        
+        const txt = `Meeting Proposal:\n\n${srcLabel}:\n${sourceDateInput.value} @ ${srcTime12}\n\n${tgtLabel}:\n${targetDateDisplay.innerText} @ ${tgtTime12}`;
+        
+        navigator.clipboard.writeText(txt).then(() => {
+            const og = copyDetailsBtn.innerHTML;
+            copyDetailsBtn.innerHTML = '<i class="fa-solid fa-check me-2"></i>Copied!';
+            setTimeout(() => copyDetailsBtn.innerHTML = og, 2000);
+        });
+    });
+
+    // Init
+    populateTimezones();
+    setCurrentTime();
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Free Time Zone Converter</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-earth-americas text-warning me-2"></i> Global Compatibility</h3>
+            <p class="text-theme-muted">Schedule international meetings effortlessly. Support for major IANA timezones guarantees accurate conversion regardless of complex daylight saving time changes.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-business-time text-warning me-2"></i> Business Hours Overlap</h3>
+            <p class="text-theme-muted">Stop guessing when people are awake. Our dynamic indicator immediately highlights whether your proposed time falls within standard business hours, evening hours, or sleeping hours for the target timezone.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-calendar-day text-warning me-2"></i> Cross-Date Detection</h3>
+            <p class="text-theme-muted">Time differences can often push meetings into the next or previous calendar day. The converter automatically flags date shifts with clear "+1 Day" or "-1 Day" badges.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-regular fa-copy text-warning me-2"></i> Instant Meeting Invites</h3>
+            <p class="text-theme-muted">Found the perfect time? Click the "Copy Invite Details" button to instantly generate a formatted text block you can paste directly into an email or Slack message.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.5s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    Does the converter account for Daylight Saving Time (DST)?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Yes. By utilizing standardized IANA timezone identifiers (e.g., America/New_York instead of just EST), the underlying JavaScript engine automatically applies the correct daylight saving time rules based on the specific calendar date you select.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    How is the Business Hours overlap calculated?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    We define standard business hours as 9:00 AM to 5:00 PM in local time. If the time falls between 5:00 PM and 10:00 PM, or 7:00 AM to 9:00 AM, it is flagged as "Off Hours". Between 10:00 PM and 7:00 AM, it is flagged as "Sleeping Hours".
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    Is the data processed on external servers?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    No. All time calculations are executed securely within your local web browser via the native `Intl.DateTimeFormat` API. This ensures zero latency and absolute privacy.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Advanced Time Zone Converter",
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            },
+            "description": "Convert time across global cities instantly. Schedule meetings and visualize business hours overlap across the world."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "Does the converter account for Daylight Saving Time (DST)?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Yes. By utilizing standardized IANA timezone identifiers, the engine automatically applies correct daylight saving time rules."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "How is the Business Hours overlap calculated?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "We define standard business hours as 9:00 AM to 5:00 PM in local time. Off hours and sleeping hours are visually flagged to prevent scheduling mistakes."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+
+{% endblock %}
