@@ -1,0 +1,577 @@
+{% extends "base.html" %}
+
+{% block title %}Free JSON-LD Schema Generator | Rich Snippets SEO | StoryBrain AI{% endblock %}
+{% block meta_description %}Generate perfect JSON-LD schema markup for Articles, FAQs, Products, and Local Businesses. Secure Google Rich Snippets instantly with our free SEO tool.{% endblock %}
+
+{% block head %}
+<style>
+    .editor-panel {
+        background: var(--sb-search-bg);
+        border: 1px solid var(--sb-border);
+        border-radius: 1.5rem;
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .code-textarea {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+        background: transparent !important;
+        border: none !important;
+        resize: none;
+        color: var(--sb-text) !important;
+        flex-grow: 1;
+        padding: 1.5rem;
+        line-height: 1.5;
+    }
+    
+    .code-textarea:focus {
+        box-shadow: none !important;
+        outline: none;
+    }
+
+    .output-textarea {
+        color: var(--sb-teal) !important;
+    }
+
+    .controls-strip {
+        background: var(--sb-input-bg);
+        border-bottom: 1px solid var(--sb-border);
+        padding: 1rem 1.5rem;
+        border-radius: 1.5rem 1.5rem 0 0;
+    }
+    
+    .btn-action {
+        background: var(--sb-input-bg);
+        border: 1px solid var(--sb-border);
+        color: var(--sb-text);
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-action:hover {
+        background: rgba(var(--sb-accent-rgb), 0.1);
+        border-color: var(--sb-accent);
+        color: var(--sb-accent);
+        transform: translateY(-2px);
+    }
+
+    .schema-field-group {
+        margin-bottom: 1.25rem;
+    }
+
+    .faq-block {
+        background: rgba(0,0,0,0.02);
+        border: 1px solid var(--sb-border);
+        border-radius: 1rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        position: relative;
+    }
+    [data-bs-theme="dark"] .faq-block { background: rgba(255,255,255,0.02); }
+
+    .faq-delete {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        color: var(--sb-text-faint);
+        transition: color 0.2s;
+    }
+    .faq-delete:hover {
+        color: #ef4444;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-fluid max-w-1600 mx-auto reveal" style="max-width: 1600px; padding: 0 2rem;">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <div class="badge rounded-pill bg-teal bg-opacity-10 text-teal border border-teal border-opacity-20 px-4 py-2 mb-3" style="color: #14b8a6; border-color: rgba(20, 184, 166, 0.2); background: rgba(20, 184, 166, 0.1);">
+            <i class="fa-solid fa-code me-2"></i> SEO Engine
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">SCHEMA <span class="gradient-text italic">GENERATOR</span></h1>
+        <p class="text-white-50 small text-uppercase tracking-widest fw-bold text-theme-muted">Build JSON-LD for Google Rich Snippets</p>
+    </div>
+
+    <!-- Interface -->
+    <div class="row g-4 mb-5" style="min-height: 600px;">
+        
+        <!-- Left Panel: Input Configuration -->
+        <div class="col-lg-5 d-flex flex-column gap-3">
+            
+            <div class="glass-card p-4">
+                <div class="mb-4">
+                    <label class="form-label text-theme-muted small fw-bold mb-2">Select Schema Type</label>
+                    <select id="schema_type" class="form-select form-select-lg fw-bold" onchange="renderForm()">
+                        <option value="Article">Article (News / Blog Post)</option>
+                        <option value="FAQPage">FAQ Page (Accordions)</option>
+                        <option value="Product">Product (eCommerce)</option>
+                        <option value="LocalBusiness">Local Business</option>
+                        <option value="Organization">Organization (Brand Profile)</option>
+                        <option value="Person">Person (Author Profile)</option>
+                    </select>
+                </div>
+
+                <hr class="border-theme opacity-20 my-4">
+
+                <h6 class="fw-bold text-theme-muted mb-3 small tracking-widest text-uppercase"><i class="fa-solid fa-sliders me-2"></i> Schema Properties</h6>
+                
+                <!-- Dynamic Form Container -->
+                <div id="dynamic_form_container">
+                    <!-- Javascript will inject inputs here based on schema_type -->
+                </div>
+
+            </div>
+            
+        </div>
+
+        <!-- Right Panel: Output -->
+        <div class="col-lg-7 d-flex flex-column">
+            <div class="editor-panel flex-grow-1">
+                <div class="controls-strip d-flex flex-wrap gap-3 justify-content-between align-items-center">
+                    <span class="fw-bold tracking-widest small text-theme-muted"><i class="fa-solid fa-brackets-curly me-2"></i> JSON-LD OUTPUT</span>
+                    
+                    <div class="d-flex gap-2">
+                        <button class="btn-action" onclick="copyCode()">
+                            <i class="fa-regular fa-copy me-2"></i> Copy
+                        </button>
+                        <button class="btn-premium py-2 px-3 m-0" style="font-size: 0.85rem;" onclick="downloadCode()">
+                            <i class="fa-solid fa-download me-2"></i> DOWNLOAD JSON-LD
+                        </button>
+                    </div>
+                </div>
+                <textarea id="code_output" class="form-control code-textarea output-textarea" readonly placeholder="Your generated JSON-LD script will appear here instantly..."></textarea>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<script>
+// Schema Data Definitions
+const schemaDefinitions = {
+    Article: [
+        { id: "art_headline", label: "Headline / Title", type: "text", placeholder: "The Ultimate Guide to AI" },
+        { id: "art_url", label: "Article URL", type: "url", placeholder: "https://example.com/article" },
+        { id: "art_image", label: "Cover Image URL", type: "url", placeholder: "https://example.com/image.jpg" },
+        { id: "art_desc", label: "Short Description", type: "textarea", placeholder: "A comprehensive overview of..." },
+        { id: "art_author", label: "Author Name", type: "text", placeholder: "Jane Doe" },
+        { id: "art_pub", label: "Publisher Organization", type: "text", placeholder: "StoryBrain Media" },
+        { id: "art_publogo", label: "Publisher Logo URL", type: "url", placeholder: "https://example.com/logo.png" },
+        { id: "art_datepub", label: "Date Published", type: "date" },
+        { id: "art_datemod", label: "Date Modified", type: "date" }
+    ],
+    FAQPage: [
+        // Special case: handled entirely by custom JS render logic
+    ],
+    Product: [
+        { id: "prod_name", label: "Product Name", type: "text", placeholder: "Wireless Headphones X1" },
+        { id: "prod_image", label: "Product Image URL", type: "url", placeholder: "https://example.com/product.jpg" },
+        { id: "prod_desc", label: "Description", type: "textarea", placeholder: "High quality wireless audio..." },
+        { id: "prod_brand", label: "Brand Name", type: "text", placeholder: "AudioCorp" },
+        { id: "prod_sku", label: "SKU", type: "text", placeholder: "AC-1001" },
+        { id: "prod_price", label: "Price", type: "number", placeholder: "199.99" },
+        { id: "prod_currency", label: "Currency Code", type: "text", placeholder: "USD" },
+        { id: "prod_availability", label: "Availability", type: "select", options: ["InStock", "OutOfStock", "PreOrder"] }
+    ],
+    LocalBusiness: [
+        { id: "lb_name", label: "Business Name", type: "text", placeholder: "Joe's Coffee Shop" },
+        { id: "lb_image", label: "Image URL", type: "url", placeholder: "https://example.com/shop.jpg" },
+        { id: "lb_url", label: "Website URL", type: "url", placeholder: "https://joescoffee.com" },
+        { id: "lb_phone", label: "Phone Number", type: "text", placeholder: "+1-555-0123" },
+        { id: "lb_street", label: "Street Address", type: "text", placeholder: "123 Main St" },
+        { id: "lb_city", label: "City", type: "text", placeholder: "Seattle" },
+        { id: "lb_region", label: "State/Region", type: "text", placeholder: "WA" },
+        { id: "lb_zip", label: "Postal Code", type: "text", placeholder: "98101" },
+        { id: "lb_country", label: "Country Code", type: "text", placeholder: "US" }
+    ],
+    Organization: [
+        { id: "org_name", label: "Organization Name", type: "text", placeholder: "StoryBrain AI" },
+        { id: "org_url", label: "Website URL", type: "url", placeholder: "https://storybrainai.com" },
+        { id: "org_logo", label: "Logo URL", type: "url", placeholder: "https://storybrainai.com/logo.png" },
+        { id: "org_social1", label: "Social Profile 1 (Optional)", type: "url", placeholder: "https://twitter.com/storybrain" },
+        { id: "org_social2", label: "Social Profile 2 (Optional)", type: "url", placeholder: "https://linkedin.com/company/storybrain" }
+    ],
+    Person: [
+        { id: "per_name", label: "Full Name", type: "text", placeholder: "John Doe" },
+        { id: "per_url", label: "Personal Website URL", type: "url", placeholder: "https://johndoe.com" },
+        { id: "per_image", label: "Profile Picture URL", type: "url", placeholder: "https://johndoe.com/me.jpg" },
+        { id: "per_job", label: "Job Title", type: "text", placeholder: "Lead Engineer" },
+        { id: "per_org", label: "Company", type: "text", placeholder: "StoryBrain AI" },
+        { id: "per_social", label: "Social Profile URL", type: "url", placeholder: "https://twitter.com/johndoe" }
+    ]
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    renderForm(); // Initial render
+});
+
+function renderForm() {
+    const type = document.getElementById('schema_type').value;
+    const container = document.getElementById('dynamic_form_container');
+    container.innerHTML = ''; // Clear existing
+    
+    if (type === 'FAQPage') {
+        // Special render for FAQ
+        container.innerHTML = `
+            <div id="faq_list"></div>
+            <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2 fw-bold" style="color: var(--sb-accent);" onclick="addFaqBlock()">
+                + Add Question & Answer
+            </button>
+        `;
+        addFaqBlock(); // Add one default block
+    } else {
+        // Standard render
+        const fields = schemaDefinitions[type];
+        fields.forEach(f => {
+            const group = document.createElement('div');
+            group.className = 'schema-field-group';
+            
+            let inputHtml = '';
+            if (f.type === 'textarea') {
+                inputHtml = `<textarea id="${f.id}" class="form-control" rows="2" placeholder="${f.placeholder || ''}" oninput="compileSchema()"></textarea>`;
+            } else if (f.type === 'select') {
+                let opts = f.options.map(o => `<option value="${o}">${o}</option>`).join('');
+                inputHtml = `<select id="${f.id}" class="form-select" onchange="compileSchema()">${opts}</select>`;
+            } else {
+                inputHtml = `<input type="${f.type}" id="${f.id}" class="form-control" placeholder="${f.placeholder || ''}" oninput="compileSchema()">`;
+            }
+
+            group.innerHTML = `
+                <label class="form-label text-theme-muted small fw-bold mb-1">${f.label}</label>
+                ${inputHtml}
+            `;
+            container.appendChild(group);
+        });
+    }
+    compileSchema();
+}
+
+// FAQ Logic
+let faqCounter = 0;
+function addFaqBlock() {
+    faqCounter++;
+    const list = document.getElementById('faq_list');
+    const block = document.createElement('div');
+    block.className = 'faq-block';
+    block.innerHTML = `
+        <button class="faq-delete" onclick="this.parentElement.remove(); compileSchema();" title="Remove FAQ">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="mb-3 w-75">
+            <label class="form-label text-theme-muted small fw-bold mb-1">Question</label>
+            <input type="text" class="form-control faq-q" placeholder="What is JSON-LD?" oninput="compileSchema()">
+        </div>
+        <div>
+            <label class="form-label text-theme-muted small fw-bold mb-1">Answer</label>
+            <textarea class="form-control faq-a" rows="2" placeholder="JSON-LD is a method of encoding Linked Data..." oninput="compileSchema()"></textarea>
+        </div>
+    `;
+    list.appendChild(block);
+    compileSchema();
+}
+
+function compileSchema() {
+    const type = document.getElementById('schema_type').value;
+    let schemaObj = {
+        "@context": "https://schema.org",
+        "@type": type
+    };
+
+    // Helper to safely get value
+    const val = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.value.trim() : "";
+    };
+
+    if (type === 'Article') {
+        schemaObj.headline = val('art_headline');
+        if (val('art_image')) schemaObj.image = [val('art_image')];
+        if (val('art_datepub')) schemaObj.datePublished = val('art_datepub');
+        if (val('art_datemod')) schemaObj.dateModified = val('art_datemod');
+        
+        let author = val('art_author');
+        if(author) {
+            schemaObj.author = { "@type": "Person", "name": author };
+        }
+        
+        let pub = val('art_pub');
+        let logo = val('art_publogo');
+        if(pub || logo) {
+            schemaObj.publisher = { "@type": "Organization", "name": pub };
+            if (logo) {
+                schemaObj.publisher.logo = { "@type": "ImageObject", "url": logo };
+            }
+        }
+        schemaObj.description = val('art_desc');
+        if(val('art_url')) schemaObj.mainEntityOfPage = { "@type": "WebPage", "@id": val('art_url') };
+
+    } else if (type === 'FAQPage') {
+        const blocks = document.querySelectorAll('.faq-block');
+        let entities = [];
+        blocks.forEach(b => {
+            const q = b.querySelector('.faq-q').value.trim();
+            const a = b.querySelector('.faq-a').value.trim();
+            if (q && a) {
+                entities.push({
+                    "@type": "Question",
+                    "name": q,
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": a
+                    }
+                });
+            }
+        });
+        schemaObj.mainEntity = entities;
+
+    } else if (type === 'Product') {
+        schemaObj.name = val('prod_name');
+        if(val('prod_image')) schemaObj.image = val('prod_image');
+        schemaObj.description = val('prod_desc');
+        if(val('prod_sku')) schemaObj.sku = val('prod_sku');
+        if(val('prod_brand')) schemaObj.brand = { "@type": "Brand", "name": val('prod_brand') };
+        
+        let price = val('prod_price');
+        let curr = val('prod_currency') || "USD";
+        let avail = val('prod_availability');
+        if (price) {
+            schemaObj.offers = {
+                "@type": "Offer",
+                "priceCurrency": curr,
+                "price": price,
+                "availability": "https://schema.org/" + avail
+            };
+        }
+
+    } else if (type === 'LocalBusiness') {
+        schemaObj.name = val('lb_name');
+        if(val('lb_image')) schemaObj.image = val('lb_image');
+        schemaObj.url = val('lb_url');
+        schemaObj.telephone = val('lb_phone');
+        
+        let street = val('lb_street');
+        let city = val('lb_city');
+        let region = val('lb_region');
+        let zip = val('lb_zip');
+        let country = val('lb_country');
+        
+        if (street || city || zip) {
+            schemaObj.address = {
+                "@type": "PostalAddress",
+                "streetAddress": street,
+                "addressLocality": city,
+                "addressRegion": region,
+                "postalCode": zip,
+                "addressCountry": country
+            };
+        }
+
+    } else if (type === 'Organization') {
+        schemaObj.name = val('org_name');
+        schemaObj.url = val('org_url');
+        if (val('org_logo')) schemaObj.logo = val('org_logo');
+        
+        let s1 = val('org_social1');
+        let s2 = val('org_social2');
+        let sameAs = [];
+        if (s1) sameAs.push(s1);
+        if (s2) sameAs.push(s2);
+        if (sameAs.length > 0) schemaObj.sameAs = sameAs;
+
+    } else if (type === 'Person') {
+        schemaObj.name = val('per_name');
+        schemaObj.url = val('per_url');
+        if (val('per_image')) schemaObj.image = val('per_image');
+        schemaObj.jobTitle = val('per_job');
+        if(val('per_org')) schemaObj.worksFor = { "@type": "Organization", "name": val('per_org') };
+        if(val('per_social')) schemaObj.sameAs = [val('per_social')];
+    }
+
+    // Clean up empty keys for a cleaner output
+    cleanObject(schemaObj);
+
+    let outputHtml = `<script type="application/ld+json">\n`;
+    outputHtml += JSON.stringify(schemaObj, null, 2);
+    outputHtml += `\n<\/script>`;
+
+    document.getElementById('code_output').value = outputHtml;
+}
+
+// Recursively remove empty strings and empty arrays to keep JSON clean
+function cleanObject(obj) {
+    for (var propName in obj) {
+        if (obj[propName] === null || obj[propName] === undefined || obj[propName] === '') {
+            delete obj[propName];
+        } else if (Array.isArray(obj[propName]) && obj[propName].length === 0) {
+            delete obj[propName];
+        } else if (typeof obj[propName] === 'object' && !Array.isArray(obj[propName])) {
+            cleanObject(obj[propName]);
+            if (Object.keys(obj[propName]).length === 0 || (Object.keys(obj[propName]).length === 1 && obj[propName]["@type"])) {
+                delete obj[propName];
+            }
+        }
+    }
+}
+
+function copyCode() {
+    const outputArea = document.getElementById('code_output');
+    if (!outputArea.value) return;
+    
+    navigator.clipboard.writeText(outputArea.value).then(() => {
+        const btn = document.querySelector('button[onclick="copyCode()"]');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check me-2"></i> Copied!';
+        btn.classList.add('text-success', 'border-success');
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('text-success', 'border-success');
+        }, 2000);
+    });
+}
+
+function downloadCode() {
+    const code = document.getElementById('code_output').value;
+    if (!code) return;
+    
+    const blob = new Blob([code], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'schema.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+
+<!-- SEO Content Section -->
+<div class="container-lg mx-auto mt-5 pt-5 border-top border-theme reveal">
+    <h2 class="fs-3 fw-bold mb-4">About the Advanced Schema Generator</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-magnifying-glass text-teal me-2"></i> Secure Google Rich Snippets</h3>
+            <p class="text-theme-muted">Schema.org markup (JSON-LD) is the language of search engines. By translating your website's human-readable content into structured machine-data, you become eligible for highly visible "Rich Snippets" on Google, such as star ratings, product pricing, and interactive FAQ accordions.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-teal me-2"></i> Dynamic Multi-Schema Engine</h3>
+            <p class="text-theme-muted">Instead of juggling multiple tools, our unified engine dynamically reconfigures itself. Whether you need a <code>LocalBusiness</code> schema to rank in Google Maps, or a deep <code>FAQPage</code> schema with infinite Question/Answer blocks, the interface adapts instantly.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-teal me-2"></i> 100% Client-Side Privacy</h3>
+            <p class="text-theme-muted">Your unreleased product details, draft copy, and private business data remain entirely on your device. The JavaScript compilation engine operates exclusively within your local browser memory. No data is ever transmitted to a backend server.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-teal me-2"></i> Zero Latency Output</h3>
+            <p class="text-theme-muted">Hand-writing strict JSON-LD is notoriously difficult because a single missing comma or bracket invalidates the entire script. Our engine handles the deep-nesting and syntax formatting perfectly in real-time, delivering production-ready code instantly.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="container-lg mx-auto mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.2s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    What is JSON-LD and why is it preferred?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    JSON-LD (JavaScript Object Notation for Linked Data) is a lightweight Linked Data format. Google explicitly recommends JSON-LD for structured data because it does not interleave with user-visible text (unlike Microdata), making it much easier to express and maintain without breaking your HTML layout.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    Can I put multiple Schemas on one page?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Yes! For instance, if you have a blog post that contains an FAQ at the bottom, you can generate both an <code>Article</code> schema and an <code>FAQPage</code> schema, and include both <code>&lt;script&gt;</code> tags in the <code>&lt;head&gt;</code> of your page to secure multiple rich snippet opportunities.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    Where do I paste this code in my website?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    The generated <code>&lt;script type="application/ld+json"&gt;</code> block should be pasted into the <code>&lt;head&gt;</code> section of your HTML document. Google's crawlers will automatically detect and parse it the next time they index your page.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Schema Generator",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            },
+            "description": "Generate perfect JSON-LD schema markup for Articles, FAQs, Products, and Local Businesses instantly."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "What is JSON-LD and why is it preferred?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Google explicitly recommends JSON-LD for structured data because it does not interleave with user-visible text, making it much easier to maintain."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Can I put multiple Schemas on one page?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Yes! You can generate both an Article schema and an FAQPage schema, and include both script tags on the same page."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Where do I paste this code in my website?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "The generated JSON-LD script block should be pasted into the <head> section of your HTML document."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+{% endblock %}

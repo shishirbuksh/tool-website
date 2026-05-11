@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+
+{% block title %}Free Robots.txt Generator | Build SEO Robots File | StoryBrain AI{% endblock %}
+{% block meta_description %}Create professional, SEO-optimized robots.txt files instantly. Set custom crawl delays, allow/disallow paths for Googlebot, and add your XML sitemap.{% endblock %}
+
+{% block head %}
+<style>
+    .editor-panel {
+        background: var(--sb-search-bg);
+        border: 1px solid var(--sb-border);
+        border-radius: 1.5rem;
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .code-textarea {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+        background: transparent !important;
+        border: none !important;
+        resize: none;
+        color: var(--sb-text) !important;
+        flex-grow: 1;
+        padding: 1.5rem;
+    }
+    
+    .code-textarea:focus {
+        box-shadow: none !important;
+        outline: none;
+    }
+
+    .output-textarea {
+        color: var(--sb-teal) !important;
+    }
+
+    .controls-strip {
+        background: var(--sb-input-bg);
+        border-bottom: 1px solid var(--sb-border);
+        padding: 1rem 1.5rem;
+        border-radius: 1.5rem 1.5rem 0 0;
+    }
+    
+    .btn-action {
+        background: var(--sb-input-bg);
+        border: 1px solid var(--sb-border);
+        color: var(--sb-text);
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-action:hover {
+        background: rgba(var(--sb-accent-rgb), 0.1);
+        border-color: var(--sb-accent);
+        color: var(--sb-accent);
+        transform: translateY(-2px);
+    }
+    
+    .rule-block {
+        background: var(--sb-input-bg);
+        border: 1px solid var(--sb-border);
+        border-radius: 1rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        position: relative;
+    }
+
+    .rule-delete {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        color: var(--sb-text-faint);
+        transition: color 0.2s;
+    }
+    .rule-delete:hover {
+        color: #ef4444;
+    }
+
+    .path-row {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .path-row:last-child {
+        margin-bottom: 0;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-fluid max-w-1600 mx-auto reveal" style="max-width: 1600px; padding: 0 2rem;">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <div class="badge rounded-pill bg-teal bg-opacity-10 text-teal border border-teal border-opacity-20 px-4 py-2 mb-3" style="color: #14b8a6; border-color: rgba(20, 184, 166, 0.2); background: rgba(20, 184, 166, 0.1);">
+            <i class="fa-solid fa-robot me-2"></i> SEO Engine
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">ROBOTS.TXT <span class="gradient-text italic">GENERATOR</span></h1>
+        <p class="text-white-50 small text-uppercase tracking-widest fw-bold text-theme-muted">Control Search Engine Crawlers Instantly</p>
+    </div>
+
+    <!-- Interface -->
+    <div class="row g-4 mb-5" style="min-height: 600px;">
+        
+        <!-- Left Panel: Input -->
+        <div class="col-lg-6 d-flex flex-column gap-3">
+            
+            <div class="glass-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-theme-muted mb-0 small tracking-widest text-uppercase"><i class="fa-solid fa-list-check me-2"></i> Crawler Rules</h6>
+                    <button class="btn btn-sm btn-action" onclick="addRuleBlock()">
+                        <i class="fa-solid fa-plus me-1"></i> Add Bot Rule
+                    </button>
+                </div>
+                
+                <div id="rules_container">
+                    <!-- Dynamic Rule Blocks will be injected here -->
+                </div>
+            </div>
+
+            <!-- Global Settings -->
+            <div class="glass-card p-4">
+                <h6 class="fw-bold text-theme-muted mb-3 small tracking-widest text-uppercase"><i class="fa-solid fa-globe me-2"></i> Global Settings</h6>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-theme-muted small fw-bold mb-1">Crawl Delay (Seconds)</label>
+                        <input type="number" id="global_crawl_delay" class="form-control" placeholder="e.g. 10 (Optional)" min="1" oninput="compileRobotsTxt()">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-theme-muted small fw-bold mb-1">Sitemap URL</label>
+                        <input type="text" id="global_sitemap" class="form-control" placeholder="https://example.com/sitemap.xml" oninput="compileRobotsTxt()">
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- Right Panel: Output -->
+        <div class="col-lg-6 d-flex flex-column">
+            <div class="editor-panel flex-grow-1">
+                <div class="controls-strip d-flex flex-wrap gap-3 justify-content-between align-items-center">
+                    <span class="fw-bold tracking-widest small text-theme-muted"><i class="fa-solid fa-code me-2"></i> RAW TXT OUTPUT</span>
+                    
+                    <div class="d-flex gap-2">
+                        <button class="btn-action" onclick="copyTxt()">
+                            <i class="fa-regular fa-copy me-2"></i> Copy
+                        </button>
+                        <button class="btn-premium py-2 px-3 m-0" style="font-size: 0.85rem;" onclick="downloadTxt()">
+                            <i class="fa-solid fa-download me-2"></i> DOWNLOAD TXT
+                        </button>
+                    </div>
+                </div>
+                <textarea id="txt_output" class="form-control code-textarea output-textarea" readonly placeholder="Your generated robots.txt code will appear here instantly..."></textarea>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<!-- Rule Block Template -->
+<template id="rule_block_template">
+    <div class="rule-block">
+        <button class="rule-delete" onclick="removeRuleBlock(this)" title="Remove Rule">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="mb-3 w-75">
+            <label class="form-label text-theme-muted small fw-bold mb-1">User-agent</label>
+            <select class="form-select user-agent-select fw-bold" onchange="compileRobotsTxt()">
+                <option value="*">* (All Crawlers)</option>
+                <option value="Googlebot">Googlebot</option>
+                <option value="Googlebot-Image">Googlebot-Image</option>
+                <option value="Bingbot">Bingbot</option>
+                <option value="Slurp">Slurp (Yahoo)</option>
+                <option value="DuckDuckBot">DuckDuckBot</option>
+                <option value="Baiduspider">Baiduspider</option>
+                <option value="YandexBot">YandexBot</option>
+                <option value="Applebot">Applebot</option>
+                <option value="custom">Custom...</option>
+            </select>
+            <input type="text" class="form-control mt-2 custom-ua-input" style="display:none;" placeholder="Enter custom bot name" oninput="compileRobotsTxt()">
+        </div>
+        
+        <div class="paths-container">
+            <label class="form-label text-theme-muted small fw-bold mb-1">Access Directives</label>
+            <div class="paths-list"></div>
+            <button class="btn btn-sm btn-link text-decoration-none p-0 mt-2 text-accent fw-bold" style="color: var(--sb-accent);" onclick="addPathRow(this)">
+                + Add Allow/Disallow Path
+            </button>
+        </div>
+    </div>
+</template>
+
+<template id="path_row_template">
+    <div class="path-row">
+        <select class="form-select form-select-sm w-auto path-type fw-bold text-theme-muted" onchange="compileRobotsTxt()" style="min-width: 110px;">
+            <option value="Disallow">Disallow:</option>
+            <option value="Allow">Allow:</option>
+        </select>
+        <input type="text" class="form-control form-control-sm path-value" placeholder="/example/path/" oninput="compileRobotsTxt()">
+        <button class="btn btn-sm text-theme-faint" onclick="this.parentElement.remove(); compileRobotsTxt();">
+            <i class="fa-solid fa-trash"></i>
+        </button>
+    </div>
+</template>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Add default initial rule block
+    addRuleBlock(true);
+});
+
+function addRuleBlock(isDefault = false) {
+    const container = document.getElementById('rules_container');
+    const template = document.getElementById('rule_block_template');
+    const clone = template.content.cloneNode(true);
+    const block = clone.querySelector('.rule-block');
+    
+    // Setup Custom UA toggle logic
+    const select = block.querySelector('.user-agent-select');
+    const customInput = block.querySelector('.custom-ua-input');
+    select.addEventListener('change', (e) => {
+        if (e.target.value === 'custom') {
+            customInput.style.display = 'block';
+        } else {
+            customInput.style.display = 'none';
+        }
+    });
+
+    // Add one empty path by default
+    const pathsList = block.querySelector('.paths-list');
+    
+    container.appendChild(block);
+    
+    if (isDefault) {
+        // Set default path to Disallow: /admin/
+        const pathRowTpl = document.getElementById('path_row_template');
+        const pathClone = pathRowTpl.content.cloneNode(true);
+        pathClone.querySelector('.path-value').value = '/admin/';
+        pathsList.appendChild(pathClone);
+    } else {
+        addPathRow(block.querySelector('button[onclick="addPathRow(this)"]'));
+    }
+    
+    compileRobotsTxt();
+}
+
+function removeRuleBlock(btn) {
+    btn.closest('.rule-block').remove();
+    compileRobotsTxt();
+}
+
+function addPathRow(btn) {
+    const pathsList = btn.previousElementSibling;
+    const template = document.getElementById('path_row_template');
+    const clone = template.content.cloneNode(true);
+    pathsList.appendChild(clone);
+    compileRobotsTxt();
+}
+
+function compileRobotsTxt() {
+    let output = "";
+    
+    const blocks = document.querySelectorAll('.rule-block');
+    
+    blocks.forEach(block => {
+        const uaSelect = block.querySelector('.user-agent-select').value;
+        const uaCustom = block.querySelector('.custom-ua-input').value;
+        let ua = uaSelect === 'custom' ? uaCustom : uaSelect;
+        
+        if (!ua) ua = "*"; // fallback
+        
+        output += `User-agent: ${ua}\n`;
+        
+        const pathRows = block.querySelectorAll('.path-row');
+        let hasPaths = false;
+        
+        pathRows.forEach(row => {
+            const type = row.querySelector('.path-type').value;
+            const val = row.querySelector('.path-value').value.trim();
+            if (val) {
+                output += `${type}: ${val}\n`;
+                hasPaths = true;
+            }
+        });
+        
+        if (!hasPaths) {
+            output += `Disallow:\n`; // Empty disallow means allow all
+        }
+        
+        output += "\n";
+    });
+    
+    const delay = document.getElementById('global_crawl_delay').value;
+    if (delay) {
+        output += `Crawl-delay: ${delay}\n\n`;
+    }
+    
+    const sitemap = document.getElementById('global_sitemap').value.trim();
+    if (sitemap) {
+        output += `Sitemap: ${sitemap}\n`;
+    }
+    
+    document.getElementById('txt_output').value = output.trim();
+}
+
+function copyTxt() {
+    const outputArea = document.getElementById('txt_output');
+    if (!outputArea.value) return;
+    
+    navigator.clipboard.writeText(outputArea.value).then(() => {
+        const btn = document.querySelector('button[onclick="copyTxt()"]');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check me-2"></i> Copied!';
+        btn.classList.add('text-success', 'border-success');
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('text-success', 'border-success');
+        }, 2000);
+    });
+}
+
+function downloadTxt() {
+    const txt = document.getElementById('txt_output').value;
+    if (!txt) return;
+    
+    const blob = new Blob([txt], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'robots.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+
+<!-- SEO Content Section -->
+<div class="container-lg mx-auto mt-5 pt-5 border-top border-theme reveal">
+    <h2 class="fs-3 fw-bold mb-4">About the Free Robots.txt Generator</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-spider text-teal me-2"></i> Control Search Bots</h3>
+            <p class="text-theme-muted">The robots.txt file is the first thing search engine crawlers (like Googlebot and Bingbot) check when visiting your site. Our generator makes it simple to instruct these bots on which folders they are allowed to index and which private directories they must ignore.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-teal me-2"></i> 100% Client-Side Privacy</h3>
+            <p class="text-theme-muted">Your server architecture and secure directory paths are highly sensitive. This generator processes your custom rules entirely within your local browser memory. No data is ever uploaded to our servers, eliminating any risk of exposing your backend paths.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-teal me-2"></i> Zero Latency Output</h3>
+            <p class="text-theme-muted">Unlike older server-side tools, our robust JavaScript engine instantly compiles your configuration into perfectly formatted robots.txt syntax. See your file update in real-time as you type, and instantly download the raw text file.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-code text-teal me-2"></i> Universal Syntax Compliance</h3>
+            <p class="text-theme-muted">Ensure perfect SEO compliance. The generated code rigorously adheres to the official Robots Exclusion Protocol, ensuring maximum compatibility with Google, Yahoo, Bing, Yandex, and custom web scrapers.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="container-lg mx-auto mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.2s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    What happens if I leave the Disallow path empty?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    If you configure a User-agent but do not add any Disallow paths (or leave it blank), the generator will format it as <code>Disallow:</code> with nothing after the colon. This officially tells search engines that they have full permission to crawl the entire site.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    Does Google respect the Crawl-delay setting?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    No, Googlebot actively ignores the <code>Crawl-delay</code> directive and manages crawl rate via the Google Search Console instead. However, search engines like Bing, Yandex, and Baidu do respect it, making it highly valuable if aggressive bots are slowing down your server.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    Where do I put the robots.txt file once I download it?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    You must upload the file to the absolute top-level root directory of your website. For example, search engines will specifically look for it at <code>https://yourdomain.com/robots.txt</code>. Placing it in a subfolder will not work.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Robots.txt Generator",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            },
+            "description": "Generate perfectly formatted, SEO-optimized robots.txt files instantly in your browser to control search engine crawlers."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "What happens if I leave the Disallow path empty?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "The generator will format it as 'Disallow:', officially telling search engines that they have full permission to crawl the entire site."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Does Google respect the Crawl-delay setting?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Google ignores the Crawl-delay directive, but Bing, Yandex, and Baidu do respect it, which helps prevent bots from overloading your server."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Where do I put the robots.txt file once I download it?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Upload the file to the absolute root directory of your website so it is accessible at yourdomain.com/robots.txt."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+{% endblock %}

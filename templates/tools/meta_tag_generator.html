@@ -1,0 +1,558 @@
+{% extends "base.html" %}
+
+{% block title %}Free Meta Tag Generator | SEO & Open Graph Tags | StoryBrain AI{% endblock %}
+{% block meta_description %}Generate perfect SEO meta tags, Open Graph (Facebook), and Twitter Cards instantly. Preview your Google Search snippet in real-time with our free tool.{% endblock %}
+
+{% block head %}
+<style>
+    .editor-panel {
+        background: var(--sb-search-bg);
+        border: 1px solid var(--sb-border);
+        border-radius: 1.5rem;
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .code-textarea {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+        background: transparent !important;
+        border: none !important;
+        resize: none;
+        color: var(--sb-text) !important;
+        flex-grow: 1;
+        padding: 1.5rem;
+    }
+    
+    .code-textarea:focus {
+        box-shadow: none !important;
+        outline: none;
+    }
+
+    .output-textarea {
+        color: var(--sb-teal) !important;
+    }
+
+    .controls-strip {
+        background: var(--sb-input-bg);
+        border-bottom: 1px solid var(--sb-border);
+        padding: 1rem 1.5rem;
+        border-radius: 1.5rem 1.5rem 0 0;
+    }
+    
+    .btn-action {
+        background: var(--sb-input-bg);
+        border: 1px solid var(--sb-border);
+        color: var(--sb-text);
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-action:hover {
+        background: rgba(var(--sb-accent-rgb), 0.1);
+        border-color: var(--sb-accent);
+        color: var(--sb-accent);
+        transform: translateY(-2px);
+    }
+    
+    /* Google Preview Styles */
+    .google-preview {
+        background: var(--sb-surface);
+        border: 1px solid var(--sb-border);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        font-family: 'Arial', sans-serif;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .google-preview-url {
+        font-size: 14px;
+        color: #dadce0;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    [data-bs-theme="light"] .google-preview-url {
+        color: #202124;
+    }
+
+    .google-preview-title {
+        font-size: 20px;
+        color: #8ab4f8;
+        line-height: 1.3;
+        margin-bottom: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .google-preview-title:hover {
+        text-decoration: underline;
+    }
+
+    [data-bs-theme="light"] .google-preview-title {
+        color: #1a0dab;
+    }
+    
+    .google-preview-desc {
+        font-size: 14px;
+        color: #bdc1c6;
+        line-height: 1.58;
+        word-wrap: break-word;
+    }
+
+    [data-bs-theme="light"] .google-preview-desc {
+        color: #4d5156;
+    }
+
+    .char-counter {
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--sb-text-muted);
+    }
+    .char-counter.warning { color: #f59e0b; }
+    .char-counter.danger { color: #ef4444; }
+
+    .nav-pills-custom .nav-link {
+        color: var(--sb-text-muted);
+        font-weight: 600;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+    }
+    .nav-pills-custom .nav-link.active {
+        background-color: rgba(var(--sb-accent-rgb), 0.1);
+        color: var(--sb-accent);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-fluid max-w-1600 mx-auto reveal" style="max-width: 1600px; padding: 0 2rem;">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <div class="badge rounded-pill bg-teal bg-opacity-10 text-teal border border-teal border-opacity-20 px-4 py-2 mb-3" style="color: #14b8a6; border-color: rgba(20, 184, 166, 0.2); background: rgba(20, 184, 166, 0.1);">
+            <i class="fa-solid fa-tags me-2"></i> SEO Engine
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">META TAG <span class="gradient-text italic">GENERATOR</span></h1>
+        <p class="text-white-50 small text-uppercase tracking-widest fw-bold text-theme-muted">Build Perfect HTML Head Elements</p>
+    </div>
+
+    <!-- Interface -->
+    <div class="row g-4 mb-5" style="min-height: 600px;">
+        
+        <!-- Left Panel: Input & Preview -->
+        <div class="col-lg-6 d-flex flex-column gap-3">
+            
+            <!-- Google Preview -->
+            <div class="glass-card p-4">
+                <h6 class="fw-bold text-theme-muted mb-3 small tracking-widest text-uppercase"><i class="fa-brands fa-google me-2"></i> Live Search Snippet Preview</h6>
+                <div class="google-preview">
+                    <div class="google-preview-url">
+                        <div style="width: 28px; height: 28px; background: #e8eaed; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <i class="fa-solid fa-globe" style="color: #5f6368; font-size: 14px;"></i>
+                        </div>
+                        <div>
+                            <div style="font-size: 14px;" id="preview_domain">Website Name</div>
+                            <div style="font-size: 12px; opacity: 0.8;" id="preview_url">https://example.com/</div>
+                        </div>
+                        <i class="fa-solid fa-ellipsis-vertical ms-auto" style="color: #9aa0a6;"></i>
+                    </div>
+                    <a href="#" class="google-preview-title" id="preview_title">Enter a Page Title to See Preview</a>
+                    <div class="google-preview-desc" id="preview_desc">This is how your description will appear in Google Search results. Make sure to keep it compelling and under 160 characters.</div>
+                </div>
+            </div>
+
+            <!-- Input Tabs -->
+            <div class="glass-card p-4 flex-grow-1">
+                <ul class="nav nav-pills nav-pills-custom mb-4 gap-2" id="metaTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#core-seo" type="button" role="tab"><i class="fa-solid fa-magnifying-glass me-2"></i>Core SEO</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#social-graph" type="button" role="tab"><i class="fa-solid fa-share-nodes me-2"></i>Social (OG & Twitter)</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#crawler" type="button" role="tab"><i class="fa-solid fa-spider me-2"></i>Crawlers</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="metaTabsContent">
+                    <!-- Core SEO Tab -->
+                    <div class="tab-pane fade show active" id="core-seo" role="tabpanel">
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label text-theme-muted small fw-bold mb-0">Page Title</label>
+                                <span class="char-counter" id="count_title">0 / 60</span>
+                            </div>
+                            <input type="text" id="input_title" class="form-control" placeholder="Best AI Tools Online - StoryBrain" oninput="updateAll()">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label text-theme-muted small fw-bold mb-0">Meta Description</label>
+                                <span class="char-counter" id="count_desc">0 / 160</span>
+                            </div>
+                            <textarea id="input_desc" class="form-control" rows="3" placeholder="Write a compelling summary of your page..." oninput="updateAll()"></textarea>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label text-theme-muted small fw-bold mb-1">Target URL</label>
+                            <input type="url" id="input_url" class="form-control" placeholder="https://example.com/page" oninput="updateAll()">
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-theme-muted small fw-bold mb-1">Keywords (Comma separated)</label>
+                                <input type="text" id="input_keys" class="form-control" placeholder="ai, tools, calculator" oninput="updateAll()">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-theme-muted small fw-bold mb-1">Author</label>
+                                <input type="text" id="input_author" class="form-control" placeholder="Jane Doe" oninput="updateAll()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Social Tab -->
+                    <div class="tab-pane fade" id="social-graph" role="tabpanel">
+                        <div class="alert bg-primary bg-opacity-10 border border-primary border-opacity-25 text-theme small mb-4">
+                            <i class="fa-solid fa-circle-info text-primary me-2"></i> Fill these out to ensure your links generate rich preview cards when shared on Facebook, LinkedIn, Twitter, and Discord.
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-theme-muted small fw-bold mb-1">Image URL (For Link Previews)</label>
+                            <input type="url" id="input_image" class="form-control" placeholder="https://example.com/og-image.jpg" oninput="updateAll()">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-theme-muted small fw-bold mb-1">Site Name</label>
+                            <input type="text" id="input_sitename" class="form-control" placeholder="StoryBrain AI" oninput="updateAll()">
+                        </div>
+                        
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-theme-muted small fw-bold mb-1">Twitter Handle</label>
+                                <input type="text" id="input_twitter" class="form-control" placeholder="@storybrain" oninput="updateAll()">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-theme-muted small fw-bold mb-1">Page Type</label>
+                                <select id="input_type" class="form-select" onchange="updateAll()">
+                                    <option value="website">Website</option>
+                                    <option value="article">Article</option>
+                                    <option value="profile">Profile</option>
+                                    <option value="product">Product</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Crawler Tab -->
+                    <div class="tab-pane fade" id="crawler" role="tabpanel">
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label text-theme-muted small fw-bold mb-1">Search Engine Indexing</label>
+                                <select id="input_index" class="form-select fw-bold" onchange="updateAll()">
+                                    <option value="index">Index (Allow)</option>
+                                    <option value="noindex">No-Index (Hide from Google)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-theme-muted small fw-bold mb-1">Link Following</label>
+                                <select id="input_follow" class="form-select fw-bold" onchange="updateAll()">
+                                    <option value="follow">Follow (Pass SEO juice)</option>
+                                    <option value="nofollow">No-Follow</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-theme-muted small fw-bold mb-1">Language Code</label>
+                            <input type="text" id="input_lang" class="form-control" placeholder="en, es, fr (Optional)" oninput="updateAll()">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-theme-muted small fw-bold mb-1">Revisit After</label>
+                            <input type="text" id="input_revisit" class="form-control" placeholder="e.g. 7 days (Optional)" oninput="updateAll()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- Right Panel: Output -->
+        <div class="col-lg-6 d-flex flex-column">
+            <div class="editor-panel flex-grow-1">
+                <div class="controls-strip d-flex flex-wrap gap-3 justify-content-between align-items-center">
+                    <span class="fw-bold tracking-widest small text-theme-muted"><i class="fa-solid fa-code me-2"></i> HTML &lt;HEAD&gt; OUTPUT</span>
+                    
+                    <div class="d-flex gap-2">
+                        <button class="btn-action" onclick="copyCode()">
+                            <i class="fa-regular fa-copy me-2"></i> Copy
+                        </button>
+                        <button class="btn-premium py-2 px-3 m-0" style="font-size: 0.85rem;" onclick="downloadCode()">
+                            <i class="fa-solid fa-download me-2"></i> DOWNLOAD HTML
+                        </button>
+                    </div>
+                </div>
+                <textarea id="code_output" class="form-control code-textarea output-textarea" readonly placeholder="Your generated meta tags will appear here instantly..."></textarea>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    updateAll();
+});
+
+function updateAll() {
+    updateCounters();
+    updatePreview();
+    compileCode();
+}
+
+function updateCounters() {
+    const title = document.getElementById('input_title').value;
+    const desc = document.getElementById('input_desc').value;
+    
+    const countTitle = document.getElementById('count_title');
+    const countDesc = document.getElementById('count_desc');
+    
+    countTitle.innerText = `${title.length} / 60`;
+    countDesc.innerText = `${desc.length} / 160`;
+    
+    // Title styling
+    countTitle.className = 'char-counter ' + (title.length > 60 ? 'danger' : (title.length > 50 ? 'warning' : ''));
+    // Desc styling
+    countDesc.className = 'char-counter ' + (desc.length > 160 ? 'danger' : (desc.length > 150 ? 'warning' : ''));
+}
+
+function updatePreview() {
+    let title = document.getElementById('input_title').value.trim() || 'Enter a Page Title to See Preview';
+    let desc = document.getElementById('input_desc').value.trim() || 'This is how your description will appear in Google Search results. Make sure to keep it compelling and under 160 characters.';
+    let url = document.getElementById('input_url').value.trim() || 'https://example.com/page';
+    let sitename = document.getElementById('input_sitename').value.trim() || 'Website Name';
+    
+    // Truncate for realistic view
+    if (title.length > 65) title = title.substring(0, 65) + '...';
+    if (desc.length > 160) desc = desc.substring(0, 160) + '...';
+
+    document.getElementById('preview_title').innerText = title;
+    document.getElementById('preview_desc').innerText = desc;
+    document.getElementById('preview_url').innerText = url;
+    document.getElementById('preview_domain').innerText = sitename;
+}
+
+function compileCode() {
+    const title = document.getElementById('input_title').value.trim();
+    const desc = document.getElementById('input_desc').value.trim();
+    const url = document.getElementById('input_url').value.trim();
+    const keys = document.getElementById('input_keys').value.trim();
+    const author = document.getElementById('input_author').value.trim();
+    
+    const image = document.getElementById('input_image').value.trim();
+    const sitename = document.getElementById('input_sitename').value.trim();
+    const twitter = document.getElementById('input_twitter').value.trim();
+    const type = document.getElementById('input_type').value;
+    
+    const idx = document.getElementById('input_index').value;
+    const fol = document.getElementById('input_follow').value;
+    const lang = document.getElementById('input_lang').value.trim();
+    const rev = document.getElementById('input_revisit').value.trim();
+
+    let code = `<!-- Core Meta Tags -->\n`;
+    if (title) code += `<title>${title}</title>\n`;
+    if (title) code += `<meta name="title" content="${title}">\n`;
+    if (desc) code += `<meta name="description" content="${desc}">\n`;
+    if (keys) code += `<meta name="keywords" content="${keys}">\n`;
+    if (author) code += `<meta name="author" content="${author}">\n`;
+    if (lang) code += `<meta name="language" content="${lang}">\n`;
+    if (rev) code += `<meta name="revisit-after" content="${rev}">\n`;
+    
+    code += `<meta name="robots" content="${idx}, ${fol}">\n\n`;
+
+    // Open Graph
+    code += `<!-- Open Graph / Facebook -->\n`;
+    code += `<meta property="og:type" content="${type}">\n`;
+    if (url) code += `<meta property="og:url" content="${url}">\n`;
+    if (title) code += `<meta property="og:title" content="${title}">\n`;
+    if (desc) code += `<meta property="og:description" content="${desc}">\n`;
+    if (image) code += `<meta property="og:image" content="${image}">\n`;
+    if (sitename) code += `<meta property="og:site_name" content="${sitename}">\n\n`;
+
+    // Twitter
+    code += `<!-- Twitter / X -->\n`;
+    code += `<meta property="twitter:card" content="${image ? 'summary_large_image' : 'summary'}">\n`;
+    if (url) code += `<meta property="twitter:url" content="${url}">\n`;
+    if (title) code += `<meta property="twitter:title" content="${title}">\n`;
+    if (desc) code += `<meta property="twitter:description" content="${desc}">\n`;
+    if (image) code += `<meta property="twitter:image" content="${image}">\n`;
+    if (twitter) {
+        let handle = twitter.startsWith('@') ? twitter : '@' + twitter;
+        code += `<meta property="twitter:creator" content="${handle}">\n`;
+        code += `<meta property="twitter:site" content="${handle}">\n`;
+    }
+
+    document.getElementById('code_output').value = code.trim();
+}
+
+function copyCode() {
+    const outputArea = document.getElementById('code_output');
+    if (!outputArea.value) return;
+    
+    navigator.clipboard.writeText(outputArea.value).then(() => {
+        const btn = document.querySelector('button[onclick="copyCode()"]');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check me-2"></i> Copied!';
+        btn.classList.add('text-success', 'border-success');
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('text-success', 'border-success');
+        }, 2000);
+    });
+}
+
+function downloadCode() {
+    const code = document.getElementById('code_output').value;
+    if (!code) return;
+    
+    const blob = new Blob([code], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'meta-tags.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+
+<!-- SEO Content Section -->
+<div class="container-lg mx-auto mt-5 pt-5 border-top border-theme reveal">
+    <h2 class="fs-3 fw-bold mb-4">About the Advanced Meta Tag Generator</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-eye text-teal me-2"></i> Live Google Snippet Preview</h3>
+            <p class="text-theme-muted">Stop guessing how your website will look on search engine result pages (SERPs). Our generator includes a pixel-perfect, real-time Google Snippet Preview. As you type, see exactly how your title and meta description will render, ensuring your copy is compelling and never truncated.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-share-nodes text-teal me-2"></i> Comprehensive Open Graph & Twitter Cards</h3>
+            <p class="text-theme-muted">SEO is no longer just for Google. When your URL is shared on Facebook, LinkedIn, Discord, or X (Twitter), the platform uses Open Graph (OG) tags to generate rich link previews with massive images. This tool compiles all required OG and Twitter Card tags simultaneously.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-teal me-2"></i> 100% Client-Side Privacy</h3>
+            <p class="text-theme-muted">Your unreleased product titles, draft copy, and private URLs remain entirely on your device. The JavaScript compilation engine operates exclusively within your local browser memory, ensuring your SEO strategy is never uploaded to our servers.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-teal me-2"></i> Zero Latency Output</h3>
+            <p class="text-theme-muted">Generate hundreds of lines of complex HTML instantly. Forget hand-typing verbose <code>&lt;meta property="og:..."&gt;</code> tags. Just fill out the human-readable form, and the production-ready code is generated instantly for easy copying.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="container-lg mx-auto mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.2s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    What is the ideal length for a Meta Title and Description?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Google typically displays the first 50–60 characters of a Title tag. If you exceed this, Google will truncate your title with an ellipsis (...). For Meta Descriptions, aim to keep them between 140 and 160 characters. Our built-in character counter will turn red if you exceed these strict limits.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    Do I need both standard Meta tags and Open Graph tags?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Yes. Standard Meta tags (like <code>&lt;title&gt;</code> and <code>&lt;meta name="description"&gt;</code>) are specifically for search engines like Google and Bing. Open Graph (og:) tags are used by social networks (Facebook, LinkedIn, Discord) to generate the rich image previews when someone texts or posts your link.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    Where do I paste this code in my website?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    The generated HTML code must be placed inside the <code>&lt;head&gt;</code> and <code>&lt;/head&gt;</code> tags of your website's HTML document. If you use a CMS like WordPress, there are usually SEO plugins (like Yoast or RankMath) where you can input these values directly instead of touching the raw HTML.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Meta Tag Generator",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            },
+            "description": "Generate perfect SEO meta tags, Open Graph (Facebook), and Twitter Cards instantly. Preview your Google Search snippet in real-time."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "What is the ideal length for a Meta Title and Description?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Keep Titles under 60 characters and Meta Descriptions under 160 characters to avoid truncation in Google Search Results."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Do I need both standard Meta tags and Open Graph tags?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Yes. Meta tags are for search engines (Google), while Open Graph tags create rich image previews on social media networks (Facebook, LinkedIn, Discord)."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Where do I paste this code in my website?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "The generated HTML tags must be placed inside the <head> section of your website's HTML document."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+{% endblock %}

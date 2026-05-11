@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block title %}Free Profit Margin Calculator Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Instantly calculate gross profit, profit margin, markup, and revenue with our free online profit margin calculator. Perfect for e-commerce, retail, and business planning.{% endblock %}
+
+{% block head %}
+<style>
+    .calc-card {
+        background: var(--sb-surface);
+        border: 1px solid var(--sb-border);
+        border-radius: 1.5rem;
+        padding: 2.5rem;
+        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
+    }
+    
+    .input-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--sb-text-muted);
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .premium-number-input {
+        font-family: var(--font-display);
+        font-size: 1.5rem;
+        font-weight: 700;
+        padding: 1rem 1.5rem;
+    }
+
+    .result-box {
+        background: rgba(var(--sb-accent-rgb), 0.05);
+        border: 1px solid rgba(var(--sb-accent-rgb), 0.2);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        text-align: center;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        transition: transform 0.3s ease;
+    }
+    .result-box:hover {
+        transform: translateY(-5px);
+    }
+    
+    .result-value {
+        font-family: var(--font-display);
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--sb-accent);
+        margin: 0;
+        line-height: 1.1;
+    }
+
+    .result-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--sb-text-muted);
+        margin-bottom: 0.5rem;
+    }
+
+    .formula-badge {
+        font-family: monospace;
+        background: var(--sb-input-bg);
+        color: var(--sb-text-faint);
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        border: 1px solid var(--sb-border);
+    }
+
+    /* Range slider styling */
+    input[type=range] {
+        -webkit-appearance: none;
+        width: 100%;
+        background: transparent;
+    }
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        background: var(--sb-accent);
+        cursor: pointer;
+        margin-top: -8px;
+        box-shadow: 0 0 10px rgba(var(--sb-accent-rgb), 0.5);
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 4px;
+        cursor: pointer;
+        background: var(--sb-border);
+        border-radius: 2px;
+    }
+    input[type=range]:focus {
+        outline: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="workspace-shell">
+    
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill px-4 py-2 mb-4" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981;">
+            <i class="fa-solid fa-chart-pie me-2"></i> Business Calculator
+        </div>
+        <h1 class="display-3 fw-black mb-3">Profit Margin <span class="gradient-text">Calculator</span></h1>
+        <p class="lead text-theme-muted mx-auto" style="max-width: 650px;">
+            Enter your cost and desired margin, or cost and revenue, to instantly calculate gross profit and markup. Perfectly optimized for retail and e-commerce pricing.
+        </p>
+    </div>
+
+    <!-- Main Calculator Area -->
+    <div class="row g-4 mb-5 reveal" style="animation-delay: 0.1s;">
+        <!-- Inputs -->
+        <div class="col-lg-5">
+            <div class="calc-card h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="fw-bold fs-4 m-0"><i class="fa-solid fa-calculator text-primary me-2"></i> Parameters</h3>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="resetCalculator()"><i class="fa-solid fa-rotate-right me-1"></i> Reset</button>
+                </div>
+
+                <form id="marginForm" onsubmit="event.preventDefault();">
+                    
+                    <div class="mb-4">
+                        <label class="input-label" for="calcCost">Item Cost ($)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted"><i class="fa-solid fa-dollar-sign"></i></span>
+                            <input type="number" id="calcCost" class="form-control premium-number-input" placeholder="50.00" step="0.01" min="0" oninput="calculateFromCostRevenue()">
+                        </div>
+                        <div class="form-text text-theme-faint small mt-1">Total cost to produce or purchase the item.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="input-label" for="calcRevenue">Revenue / Selling Price ($)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted"><i class="fa-solid fa-dollar-sign"></i></span>
+                            <input type="number" id="calcRevenue" class="form-control premium-number-input" placeholder="100.00" step="0.01" min="0" oninput="calculateFromCostRevenue()">
+                        </div>
+                        <div class="form-text text-theme-faint small mt-1">Final price the customer pays.</div>
+                    </div>
+
+                    <div class="border-top border-theme my-4 pt-4">
+                        <label class="input-label" for="calcMargin">Target Gross Margin (%)</label>
+                        <div class="input-group mb-2">
+                            <input type="number" id="calcMargin" class="form-control premium-number-input text-primary" placeholder="50.0" step="0.1" oninput="calculateFromMargin()">
+                            <span class="input-group-text bg-theme-surface border-theme text-primary fw-bold">%</span>
+                        </div>
+                        <input type="range" id="marginSlider" min="0" max="99" step="1" value="50" oninput="document.getElementById('calcMargin').value=this.value; calculateFromMargin();">
+                        <div class="form-text text-theme-faint small mt-2">Adjust margin to automatically calculate required selling price.</div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="col-lg-7">
+            <div class="row g-4 h-100">
+                
+                <div class="col-sm-6">
+                    <div class="result-box" style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
+                        <div class="result-title">Gross Profit</div>
+                        <p class="result-value" id="resProfit" style="color: #10b981;">$0.00</p>
+                        <div class="mt-3"><span class="formula-badge">Revenue - Cost</span></div>
+                    </div>
+                </div>
+
+                <div class="col-sm-6">
+                    <div class="result-box">
+                        <div class="result-title">Gross Margin</div>
+                        <p class="result-value" id="resMargin">0.00%</p>
+                        <div class="mt-3"><span class="formula-badge">(Profit / Revenue) × 100</span></div>
+                    </div>
+                </div>
+
+                <div class="col-sm-6">
+                    <div class="result-box" style="background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.2);">
+                        <div class="result-title">Markup</div>
+                        <p class="result-value" id="resMarkup" style="color: #f59e0b;">0.00%</p>
+                        <div class="mt-3"><span class="formula-badge">(Profit / Cost) × 100</span></div>
+                    </div>
+                </div>
+
+                <div class="col-sm-6">
+                    <div class="result-box" style="background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2);">
+                        <div class="result-title">Cost multiplier</div>
+                        <p class="result-value" id="resMultiplier" style="color: #3b82f6;">0.00x</p>
+                        <div class="mt-3"><span class="formula-badge">Revenue / Cost</span></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- SEO Content / FAQ Section -->
+    <article class="glass-card p-4 p-md-5 reveal" style="animation-delay: 0.2s;">
+        <h2 class="h3 fw-bold mb-4">Master Your Pricing Strategy</h2>
+        <div class="row g-5">
+            <div class="col-md-6">
+                <h3 class="h5 fw-bold text-theme">Margin vs. Markup: What's the Difference?</h3>
+                <p class="text-theme-muted">
+                    While often used interchangeably, margin and markup are completely different metrics that show profit from two different angles.
+                </p>
+                <ul class="text-theme-muted">
+                    <li><strong>Margin (Gross Margin):</strong> Profit shown as a percentage of <em>Revenue</em>. A $50 cost sold for $100 yields a $50 profit, which is a <strong>50% margin</strong>.</li>
+                    <li><strong>Markup:</strong> Profit shown as a percentage of <em>Cost</em>. That same $50 profit on a $50 cost is a <strong>100% markup</strong>.</li>
+                </ul>
+                <p class="text-theme-muted">Confusing the two can lead to pricing errors and lost revenue. Our calculator computes both simultaneously to ensure perfect accuracy.</p>
+            </div>
+            <div class="col-md-6">
+                <h3 class="h5 fw-bold text-theme">How to use this calculator</h3>
+                <ol class="text-theme-muted">
+                    <li><strong>Scenario A (Finding Profit):</strong> Enter your Item Cost and your Selling Price. The calculator will instantly reveal your Profit, Margin, and Markup.</li>
+                    <li><strong>Scenario B (Setting a Price):</strong> Enter your Item Cost, then adjust the "Target Gross Margin" slider. The calculator will instantly tell you exactly what your Selling Price must be to hit that margin.</li>
+                </ol>
+            </div>
+        </div>
+
+        <h3 class="h5 fw-bold mt-5 mb-3">Frequently Asked Questions</h3>
+        <div class="accordion accordion-flush bg-transparent" id="faqAccordion">
+            <div class="accordion-item bg-transparent border-theme">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed bg-transparent text-theme fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                        Can profit margin be over 100%?
+                    </button>
+                </h2>
+                <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-theme-muted">
+                        No, <strong>Gross Margin</strong> can never exceed 100%, because the profit can never be greater than the revenue itself (since Revenue = Cost + Profit). However, <strong>Markup</strong> can easily exceed 100% if the profit is higher than the original cost (e.g., buying for $10 and selling for $30 is a 200% markup).
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item bg-transparent border-theme">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed bg-transparent text-theme fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                        What is a "good" profit margin?
+                    </button>
+                </h2>
+                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-theme-muted">
+                        A "good" margin depends heavily on the industry. A typical grocery store might operate on razor-thin margins (1-3%), while software/SaaS companies frequently enjoy gross margins of 70-90%. Generally, a 10% net margin is considered average, 20% is considered high, and 5% is low across mixed industries.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </article>
+</main>
+
+<script>
+    const elCost = document.getElementById('calcCost');
+    const elRev = document.getElementById('calcRevenue');
+    const elMargin = document.getElementById('calcMargin');
+    const elSlider = document.getElementById('marginSlider');
+
+    const resProfit = document.getElementById('resProfit');
+    const resMargin = document.getElementById('resMargin');
+    const resMarkup = document.getElementById('resMarkup');
+    const resMultiplier = document.getElementById('resMultiplier');
+
+    function formatCur(val) {
+        if (!isFinite(val) || isNaN(val)) return "$0.00";
+        return "$" + val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    function formatPct(val) {
+        if (!isFinite(val) || isNaN(val)) return "0.00%";
+        return val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + "%";
+    }
+    
+    function formatMult(val) {
+        if (!isFinite(val) || isNaN(val)) return "0.00x";
+        return val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + "x";
+    }
+
+    // When User types in Cost or Revenue
+    function calculateFromCostRevenue() {
+        const c = parseFloat(elCost.value);
+        const r = parseFloat(elRev.value);
+
+        if (isNaN(c) || isNaN(r) || r === 0) {
+            updateDashboard(0, 0, 0, 0);
+            return;
+        }
+
+        const p = r - c;
+        const margin = (p / r) * 100;
+        const markup = c > 0 ? (p / c) * 100 : 0;
+        const mult = c > 0 ? (r / c) : 0;
+
+        // Update margin inputs without triggering their oninput
+        elMargin.value = margin.toFixed(1);
+        elSlider.value = margin.toFixed(0);
+
+        updateDashboard(p, margin, markup, mult);
+    }
+
+    // When User types in Margin or uses Slider
+    function calculateFromMargin() {
+        const c = parseFloat(elCost.value);
+        const m = parseFloat(elMargin.value);
+
+        // Update slider if user typed in number input
+        elSlider.value = m;
+
+        if (isNaN(c) || isNaN(m) || m >= 100) {
+            updateDashboard(0, 0, 0, 0);
+            return;
+        }
+
+        // Margin = (R - C) / R => Margin * R = R - C => C = R - Margin*R => C = R(1 - Margin) => R = C / (1 - Margin)
+        const r = c / (1 - (m / 100));
+        const p = r - c;
+        const markup = c > 0 ? (p / c) * 100 : 0;
+        const mult = c > 0 ? (r / c) : 0;
+
+        // Update Revenue input
+        elRev.value = r.toFixed(2);
+
+        updateDashboard(p, m, markup, mult);
+    }
+
+    function updateDashboard(p, m, u, mult) {
+        resProfit.textContent = formatCur(p);
+        resMargin.textContent = formatPct(m);
+        resMarkup.textContent = formatPct(u);
+        resMultiplier.textContent = formatMult(mult);
+    }
+
+    function resetCalculator() {
+        elCost.value = '';
+        elRev.value = '';
+        elMargin.value = '';
+        elSlider.value = 50;
+        updateDashboard(0, 0, 0, 0);
+    }
+</script>
+
+<!-- Schema Markup for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Profit Margin Calculator",
+  "operatingSystem": "Web",
+  "applicationCategory": "BusinessApplication",
+  "description": "Instantly calculate gross profit, profit margin, markup, and required selling prices with this free online tool.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0.00",
+    "priceCurrency": "USD"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [{
+    "@type": "Question",
+    "name": "Can profit margin be over 100%?",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No, Gross Margin can never exceed 100%, because the profit can never be greater than the revenue itself. However, Markup can easily exceed 100%."
+    }
+  }, {
+    "@type": "Question",
+    "name": "What is a good profit margin?",
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "A good margin depends heavily on the industry. A 10% net margin is considered average, 20% is considered high, and 5% is low across mixed industries."
+    }
+  }]
+}
+</script>
+{% endblock %}

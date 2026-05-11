@@ -1,0 +1,493 @@
+{% extends "base.html" %}
+
+{% block title %}Free API Tester Online | REST Client - StoryBrain AI{% endblock %}
+{% block meta_description %}A powerful, free online API tester. Send REST, GraphQL, and HTTP requests instantly without downloading Postman. Fast, secure, and developer-friendly.{% endblock %}
+
+{% block head %}
+<!-- Syntax Highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/xml.min.js"></script>
+
+<style>
+    .api-tester-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .method-select {
+        max-width: 120px;
+        font-weight: bold;
+    }
+    
+    .method-get { color: #14b8a6; }
+    .method-post { color: #f59e0b; }
+    .method-put { color: #3b82f6; }
+    .method-delete { color: #ef4444; }
+    .method-patch { color: #8b5cf6; }
+
+    .nav-tabs-custom {
+        border-bottom: 1px solid var(--sb-border);
+    }
+    .nav-tabs-custom .nav-link {
+        color: var(--sb-text-muted);
+        border: none;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        padding: 0.75rem 1.25rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    .nav-tabs-custom .nav-link:hover {
+        color: var(--sb-text);
+        border-bottom-color: var(--sb-border-hover);
+    }
+    .nav-tabs-custom .nav-link.active {
+        color: var(--sb-accent);
+        background: transparent;
+        border-bottom-color: var(--sb-accent);
+    }
+
+    .key-value-row {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .btn-remove-row {
+        color: var(--sb-text-muted);
+        background: transparent;
+        border: 1px solid var(--sb-border);
+        border-radius: 8px;
+        padding: 0.5rem 0.75rem;
+        transition: all 0.2s ease;
+    }
+    .btn-remove-row:hover {
+        color: #ef4444;
+        border-color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    .response-area {
+        background: var(--sb-input-bg);
+        border: 1px solid var(--sb-border);
+        border-radius: 12px;
+        min-height: 300px;
+        max-height: 500px;
+        overflow-y: auto;
+        position: relative;
+    }
+    .response-area pre {
+        margin: 0;
+        padding: 1.5rem;
+        border-radius: 12px;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 0.9rem;
+    }
+    .response-area code {
+        background: transparent !important;
+        padding: 0;
+    }
+    
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: bold;
+    }
+    .status-success { background: rgba(20, 184, 166, 0.1); color: #14b8a6; border: 1px solid rgba(20, 184, 166, 0.2); }
+    .status-error { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+    .status-warning { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
+
+    .meta-metric {
+        font-size: 0.85rem;
+        color: var(--sb-text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    .meta-metric span {
+        color: var(--sb-text);
+        font-weight: 600;
+    }
+
+    .copy-btn {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: var(--sb-surface);
+        border: 1px solid var(--sb-border);
+        color: var(--sb-text-muted);
+        border-radius: 8px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 10;
+    }
+    .copy-btn:hover {
+        color: var(--sb-accent);
+        border-color: var(--sb-accent);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="workspace-shell">
+    <div class="mb-5 text-center reveal">
+        <h1 class="display-4 fw-black mb-3">Professional <span class="gradient-text">API Tester</span></h1>
+        <p class="lead text-theme-muted mx-auto" style="max-width: 600px;">
+            Send REST, GraphQL, and HTTP requests directly from your browser. 
+            Test APIs instantly without CORS limits, view formatted responses, and analyze headers.
+        </p>
+    </div>
+
+    <div class="glass-card p-4 p-md-5 mb-5 reveal" style="animation-delay: 0.1s;">
+        <div class="api-tester-container">
+            
+            <!-- URL & Method Bar -->
+            <form id="apiForm" class="d-flex flex-column flex-md-row gap-3">
+                <select id="methodSelect" class="form-select method-select method-get" onchange="updateMethodColor(this)">
+                    <option value="GET" class="method-get" selected>GET</option>
+                    <option value="POST" class="method-post">POST</option>
+                    <option value="PUT" class="method-put">PUT</option>
+                    <option value="DELETE" class="method-delete">DELETE</option>
+                    <option value="PATCH" class="method-patch">PATCH</option>
+                </select>
+                <input type="url" id="urlInput" class="form-control" placeholder="https://api.example.com/v1/users" required>
+                <button type="submit" class="btn-premium px-4 py-2" id="sendBtn">
+                    SEND <i class="fa-solid fa-paper-plane ms-2"></i>
+                </button>
+            </form>
+
+            <!-- Request Configuration Tabs -->
+            <div class="mt-3">
+                <ul class="nav nav-tabs-custom mb-3" id="requestTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="headers-tab" data-bs-toggle="tab" data-bs-target="#headers" type="button" role="tab">Headers</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="body-tab" data-bs-toggle="tab" data-bs-target="#body" type="button" role="tab">Body</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="auth-tab" data-bs-toggle="tab" data-bs-target="#auth" type="button" role="tab">Authorization</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="requestTabsContent">
+                    <!-- Headers -->
+                    <div class="tab-pane fade show active" id="headers" role="tabpanel">
+                        <div id="headersContainer">
+                            <div class="key-value-row">
+                                <input type="text" class="form-control header-key" placeholder="Key (e.g., Content-Type)">
+                                <input type="text" class="form-control header-val" placeholder="Value (e.g., application/json)">
+                                <button type="button" class="btn-remove-row" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addKeyValueRow('headersContainer')">
+                            <i class="fa-solid fa-plus me-1"></i> Add Header
+                        </button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="tab-pane fade" id="body" role="tabpanel">
+                        <div class="mb-2">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="bodyType" id="bodyJson" value="json" checked>
+                                <label class="form-check-label text-theme-muted" for="bodyJson">Raw (JSON/Text)</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="bodyType" id="bodyNone" value="none">
+                                <label class="form-check-label text-theme-muted" for="bodyNone">None</label>
+                            </div>
+                        </div>
+                        <textarea id="requestBody" class="form-control" rows="6" placeholder='{\n  "key": "value"\n}' style="font-family: monospace;"></textarea>
+                    </div>
+
+                    <!-- Auth -->
+                    <div class="tab-pane fade" id="auth" role="tabpanel">
+                        <select id="authType" class="form-select mb-3" style="max-width: 200px;" onchange="toggleAuthFields()">
+                            <option value="none">No Auth</option>
+                            <option value="bearer">Bearer Token</option>
+                        </select>
+                        <div id="bearerAuthFields" style="display: none;">
+                            <input type="text" id="bearerToken" class="form-control" placeholder="Token">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-theme my-4">
+
+            <!-- Response Section -->
+            <div id="responseSection" style="display: none;">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
+                    <h5 class="m-0 fw-bold">Response</h5>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="meta-metric">Status: <span id="resStatus" class="status-badge status-success">200 OK</span></div>
+                        <div class="meta-metric">Time: <span id="resTime">120 ms</span></div>
+                        <div class="meta-metric">Size: <span id="resSize">1.2 KB</span></div>
+                    </div>
+                </div>
+
+                <ul class="nav nav-tabs-custom mb-3" id="responseTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="res-body-tab" data-bs-toggle="tab" data-bs-target="#res-body" type="button" role="tab">Body</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="res-headers-tab" data-bs-toggle="tab" data-bs-target="#res-headers" type="button" role="tab">Headers</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="responseTabsContent">
+                    <div class="tab-pane fade show active" id="res-body" role="tabpanel">
+                        <div class="response-area">
+                            <button class="copy-btn" onclick="copyResponse()"><i class="fa-regular fa-copy me-1"></i> Copy</button>
+                            <pre><code id="responseBodyCode" class="language-json"></code></pre>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="res-headers" role="tabpanel">
+                        <div class="response-area p-3" id="responseHeadersDiv">
+                            <!-- Headers will be injected here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="text-center py-5" style="display: none;">
+                <div class="spinner-border text-primary" role="status" style="color: var(--sb-accent) !important;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 text-theme-muted fw-bold">Sending Request...</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SEO Content / FAQ Section -->
+    <article class="glass-card p-4 p-md-5 reveal" style="animation-delay: 0.2s;">
+        <h2 class="h3 fw-bold mb-4">The Ultimate Online API Tester</h2>
+        <p class="text-theme-muted mb-4">
+            Testing APIs shouldn't require downloading heavy desktop applications like Postman or Insomnia. Our <strong>Free API Tester Online</strong> is designed for modern developers who need to quickly execute RESTful HTTP requests, inspect headers, and format JSON responses directly in the browser. 
+            Because we route your requests through an advanced backend proxy, you completely bypass browser CORS restrictions—meaning you can test <em>any</em> public or private API seamlessly.
+        </p>
+
+        <h3 class="h5 fw-bold mt-5 mb-3">Frequently Asked Questions</h3>
+        <div class="accordion accordion-flush bg-transparent" id="faqAccordion">
+            <div class="accordion-item bg-transparent border-theme">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed bg-transparent text-theme fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                        How does this bypass CORS errors?
+                    </button>
+                </h2>
+                <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-theme-muted">
+                        Traditional browser-based fetch tools fail when an API server doesn't send <code>Access-Control-Allow-Origin</code> headers. Our tool sends your request payload to our secure StoryBrain AI backend proxy, which executes the request from our servers and streams the pure response back to you. This guarantees 100% success without CORS blocking.
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item bg-transparent border-theme">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed bg-transparent text-theme fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                        Is my API data secure and private?
+                    </button>
+                </h2>
+                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-theme-muted">
+                        Yes. The proxy request is stateless and ephemeral. We do not log, store, or cache your request bodies, tokens, or API responses. The transaction lives only for the milliseconds it takes to route the traffic.
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item bg-transparent border-theme">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed bg-transparent text-theme fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                        What HTTP methods are supported?
+                    </button>
+                </h2>
+                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                    <div class="accordion-body text-theme-muted">
+                        Our HTTP client fully supports GET, POST, PUT, DELETE, and PATCH methods. You can also inject custom headers, authorization tokens (Bearer), and raw JSON payloads.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </article>
+</main>
+
+<script>
+    // --- UI Logic ---
+    function updateMethodColor(selectEle) {
+        selectEle.className = 'form-select method-select';
+        if(selectEle.value === 'GET') selectEle.classList.add('method-get');
+        if(selectEle.value === 'POST') selectEle.classList.add('method-post');
+        if(selectEle.value === 'PUT') selectEle.classList.add('method-put');
+        if(selectEle.value === 'DELETE') selectEle.classList.add('method-delete');
+        if(selectEle.value === 'PATCH') selectEle.classList.add('method-patch');
+    }
+
+    function addKeyValueRow(containerId) {
+        const container = document.getElementById(containerId);
+        const row = document.createElement('div');
+        row.className = 'key-value-row';
+        row.innerHTML = `
+            <input type="text" class="form-control header-key" placeholder="Key">
+            <input type="text" class="form-control header-val" placeholder="Value">
+            <button type="button" class="btn-remove-row" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
+        `;
+        container.appendChild(row);
+    }
+
+    function toggleAuthFields() {
+        const authType = document.getElementById('authType').value;
+        document.getElementById('bearerAuthFields').style.display = authType === 'bearer' ? 'block' : 'none';
+    }
+
+    // --- Format Bytes ---
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // --- Copy Response ---
+    function copyResponse() {
+        const code = document.getElementById('responseBodyCode').innerText;
+        navigator.clipboard.writeText(code);
+        const btn = document.querySelector('.copy-btn');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Copied!';
+        setTimeout(() => btn.innerHTML = orig, 2000);
+    }
+
+    // --- Submit Logic ---
+    document.getElementById('apiForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const url = document.getElementById('urlInput').value;
+        const method = document.getElementById('methodSelect').value;
+        
+        // Gather Headers
+        const headers = {};
+        document.querySelectorAll('#headersContainer .key-value-row').forEach(row => {
+            const k = row.querySelector('.header-key').value.trim();
+            const v = row.querySelector('.header-val').value.trim();
+            if (k && v) headers[k] = v;
+        });
+
+        // Gather Auth
+        const authType = document.getElementById('authType').value;
+        if (authType === 'bearer') {
+            const token = document.getElementById('bearerToken').value.trim();
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        // Gather Body
+        let body = null;
+        if (document.getElementById('bodyJson').checked) {
+            body = document.getElementById('requestBody').value.trim();
+        }
+
+        // Show Loading
+        document.getElementById('responseSection').style.display = 'none';
+        document.getElementById('loadingIndicator').style.display = 'block';
+
+        try {
+            const response = await fetch('/api/proxy-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    url: url,
+                    method: method,
+                    headers: headers,
+                    body: body || null
+                })
+            });
+
+            const data = await response.json();
+            document.getElementById('loadingIndicator').style.display = 'none';
+            document.getElementById('responseSection').style.display = 'block';
+
+            if (data.status === 'success') {
+                // Update Meta
+                const statusBadge = document.getElementById('resStatus');
+                statusBadge.textContent = `${data.status_code}`;
+                statusBadge.className = 'status-badge ' + (data.status_code >= 200 && data.status_code < 300 ? 'status-success' : (data.status_code >= 400 ? 'status-error' : 'status-warning'));
+                
+                document.getElementById('resTime').textContent = `${data.time_ms} ms`;
+                document.getElementById('resSize').textContent = formatBytes(data.size_bytes);
+
+                // Body formatting
+                const codeBlock = document.getElementById('responseBodyCode');
+                codeBlock.className = 'language-json'; // Reset
+                
+                let prettyBody = data.body;
+                try {
+                    // Try to parse JSON to pretty print
+                    if(data.body.trim().startsWith('{') || data.body.trim().startsWith('[')) {
+                         const jsonObj = JSON.parse(data.body);
+                         prettyBody = JSON.stringify(jsonObj, null, 2);
+                    } else if (data.body.trim().startsWith('<')) {
+                         codeBlock.className = 'language-xml';
+                    }
+                } catch(e) { /* Not valid JSON, keep raw */ }
+
+                codeBlock.textContent = prettyBody;
+                hljs.highlightElement(codeBlock);
+
+                // Headers formatting
+                const headersDiv = document.getElementById('responseHeadersDiv');
+                headersDiv.innerHTML = '';
+                for (const [key, value] of Object.entries(data.headers)) {
+                    headersDiv.innerHTML += `
+                        <div class="mb-2">
+                            <span class="fw-bold text-theme">${key}:</span> 
+                            <span class="text-theme-muted" style="word-break: break-all;">${value}</span>
+                        </div>
+                    `;
+                }
+            } else {
+                // Error from proxy itself
+                document.getElementById('resStatus').textContent = 'ERROR';
+                document.getElementById('resStatus').className = 'status-badge status-error';
+                document.getElementById('resTime').textContent = '- ms';
+                document.getElementById('resSize').textContent = '- B';
+                document.getElementById('responseBodyCode').textContent = JSON.stringify(data, null, 2);
+                document.getElementById('responseBodyCode').className = 'language-json';
+                hljs.highlightElement(document.getElementById('responseBodyCode'));
+                document.getElementById('responseHeadersDiv').innerHTML = '<p class="text-theme-muted">No headers received.</p>';
+            }
+
+            // Scroll to response
+            document.getElementById('responseSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        } catch (err) {
+            console.error(err);
+            document.getElementById('loadingIndicator').style.display = 'none';
+            alert("A network error occurred contacting the proxy server.");
+        }
+    });
+
+</script>
+
+<!-- Schema Markup for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Free API Tester Online",
+  "operatingSystem": "Web",
+  "applicationCategory": "DeveloperApplication",
+  "description": "Send REST, GraphQL, and HTTP requests instantly from your browser without CORS limitations.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0.00",
+    "priceCurrency": "USD"
+  }
+}
+</script>
+{% endblock %}

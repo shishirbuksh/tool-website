@@ -30,6 +30,12 @@ class NFTRequest(BaseModel):
     provider: str = "local"
     api_key: Optional[str] = None
 
+class ProxyRequest(BaseModel):
+    url: str
+    method: str = "GET"
+    headers: dict = {}
+    body: Optional[str] = None
+
 class FractalParams(BaseModel):
     c_re: float
     c_im: float
@@ -57,6 +63,49 @@ async def generate_qr(data: str = Form(...)):
     buf.seek(0)
     
     return StreamingResponse(buf, media_type="image/png")
+
+@router.post("/proxy-request")
+async def proxy_request(req: ProxyRequest):
+    import time
+    try:
+        start_time = time.time()
+        
+        # Determine if we should parse the body as JSON to send it properly
+        kwargs = {
+            "method": req.method.upper(),
+            "url": req.url,
+            "headers": req.headers,
+            "timeout": 15.0
+        }
+        
+        if req.body:
+            # Simple heuristic: if content-type is json, try to send as json string in data, or just pass the string as data
+            kwargs["data"] = req.body.encode("utf-8")
+
+        response = requests.request(**kwargs)
+        end_time = time.time()
+        
+        # Prepare response headers as dict
+        resp_headers = dict(response.headers)
+        
+        return {
+            "status": "success",
+            "status_code": response.status_code,
+            "time_ms": int((end_time - start_time) * 1000),
+            "size_bytes": len(response.content) if response.content else 0,
+            "headers": resp_headers,
+            "body": response.text
+        }
+    except requests.exceptions.RequestException as e:
+        return {
+            "status": "error",
+            "detail": f"Request failed: {str(e)}"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "detail": f"An unexpected error occurred: {str(e)}"
+        }
 
 @router.get("/ping")
 def ping():
