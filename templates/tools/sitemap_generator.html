@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+
+{% block title %}Free XML Sitemap Generator | Build SEO Sitemaps Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Generate perfect XML sitemaps instantly. Just paste your URLs and let our free Sitemap Generator handle changefreq, lastmod, and smart priority routing for Google SEO.{% endblock %}
+
+{% block head %}
+<style>
+    .editor-panel {
+        background: var(--sb-search-bg);
+        border: 1px solid var(--sb-border);
+        border-radius: 1.5rem;
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .code-textarea {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.85rem;
+        background: transparent !important;
+        border: none !important;
+        resize: none;
+        color: var(--sb-text) !important;
+        flex-grow: 1;
+        padding: 1.5rem;
+    }
+    
+    .code-textarea:focus {
+        box-shadow: none !important;
+        outline: none;
+    }
+
+    .code-textarea::placeholder {
+        color: var(--sb-text-faint) !important;
+    }
+
+    .output-textarea {
+        color: var(--sb-teal) !important;
+    }
+
+    .controls-strip {
+        background: var(--sb-input-bg);
+        border-bottom: 1px solid var(--sb-border);
+        padding: 1rem 1.5rem;
+        border-radius: 1.5rem 1.5rem 0 0;
+    }
+    
+    .btn-action {
+        background: var(--sb-input-bg);
+        border: 1px solid var(--sb-border);
+        color: var(--sb-text);
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-action:hover {
+        background: rgba(var(--sb-accent-rgb), 0.1);
+        border-color: var(--sb-accent);
+        color: var(--sb-accent);
+        transform: translateY(-2px);
+    }
+    
+    .status-badge-custom {
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+        padding: 0.4rem 0.8rem;
+        border-radius: 0.5rem;
+        background: rgba(var(--sb-accent-rgb), 0.1);
+        color: var(--sb-accent);
+        border: 1px solid rgba(var(--sb-accent-rgb), 0.2);
+    }
+
+    .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+    @media (max-width: 768px) {
+        .settings-grid { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-fluid max-w-1600 mx-auto reveal" style="max-width: 1600px; padding: 0 2rem;">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <div class="badge rounded-pill bg-teal bg-opacity-10 text-teal border border-teal border-opacity-20 px-4 py-2 mb-3" style="color: #14b8a6; border-color: rgba(20, 184, 166, 0.2); background: rgba(20, 184, 166, 0.1);">
+            <i class="fa-solid fa-sitemap me-2"></i> SEO Engine
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">SITEMAP <span class="gradient-text italic">GENERATOR</span></h1>
+        <p class="text-white-50 small text-uppercase tracking-widest fw-bold text-theme-muted">Convert URL Lists into Google-Ready XML</p>
+    </div>
+
+    <!-- Interface -->
+    <div class="row g-4 mb-5" style="min-height: 600px;">
+        
+        <!-- Left Panel: Input -->
+        <div class="col-lg-5 d-flex flex-column gap-3">
+            
+            <!-- Settings Card -->
+            <div class="glass-card p-4">
+                <h6 class="fw-bold text-theme-muted mb-3 small tracking-widest text-uppercase"><i class="fa-solid fa-gear me-2"></i> Engine Settings</h6>
+                
+                <div class="settings-grid">
+                    <div>
+                        <label class="form-label text-theme-muted small fw-bold mb-1">Change Frequency</label>
+                        <select id="setting_freq" class="form-select form-select-sm fw-semibold">
+                            <option value="always">Always</option>
+                            <option value="hourly">Hourly</option>
+                            <option value="daily" selected>Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="yearly">Yearly</option>
+                            <option value="never">Never</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label text-theme-muted small fw-bold mb-1">Last Modified</label>
+                        <select id="setting_lastmod" class="form-select form-select-sm fw-semibold">
+                            <option value="today" selected>Today (Auto)</option>
+                            <option value="none">Do Not Include</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label text-theme-muted small fw-bold mb-1">Priority Logic</label>
+                        <select id="setting_priority" class="form-select form-select-sm fw-semibold">
+                            <option value="smart" selected>Smart (By Depth)</option>
+                            <option value="1.0">All 1.0</option>
+                            <option value="0.8">All 0.8</option>
+                            <option value="0.5">All 0.5</option>
+                            <option value="none">Do Not Include</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- URL Input -->
+            <div class="editor-panel flex-grow-1">
+                <div class="controls-strip d-flex justify-content-between align-items-center">
+                    <span class="fw-bold tracking-widest small text-theme-muted"><i class="fa-solid fa-link me-2"></i> RAW URL LIST</span>
+                    <button class="btn-action" onclick="document.getElementById('url_input').value=''; generateSitemap();">
+                        <i class="fa-solid fa-trash-can me-1"></i> Clear
+                    </button>
+                </div>
+                <textarea id="url_input" class="form-control code-textarea" placeholder="Paste your URLs here (one per line)&#10;https://example.com/&#10;https://example.com/about&#10;https://example.com/blog/post-1"></textarea>
+            </div>
+            
+        </div>
+
+        <!-- Right Panel: Output -->
+        <div class="col-lg-7 d-flex flex-column">
+            <div class="editor-panel flex-grow-1">
+                <div class="controls-strip d-flex flex-wrap gap-3 justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="fw-bold tracking-widest small text-theme-muted"><i class="fa-solid fa-code me-2"></i> XML OUTPUT</span>
+                        <span id="url_count" class="status-badge-custom">0 URLs</span>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button class="btn-action" onclick="copyXml()">
+                            <i class="fa-regular fa-copy me-2"></i> Copy
+                        </button>
+                        <button class="btn-premium py-2 px-3 m-0" style="font-size: 0.85rem;" onclick="downloadXml()">
+                            <i class="fa-solid fa-download me-2"></i> DOWNLOAD XML
+                        </button>
+                    </div>
+                </div>
+                <textarea id="xml_output" class="form-control code-textarea output-textarea" readonly placeholder="Your generated sitemap.xml code will appear here instantly..."></textarea>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Add event listeners for instant generation
+    document.getElementById('url_input').addEventListener('input', generateSitemap);
+    document.getElementById('setting_freq').addEventListener('change', generateSitemap);
+    document.getElementById('setting_lastmod').addEventListener('change', generateSitemap);
+    document.getElementById('setting_priority').addEventListener('change', generateSitemap);
+});
+
+function calculateSmartPriority(url) {
+    try {
+        const urlObj = new URL(url);
+        let path = urlObj.pathname;
+        
+        // Remove trailing slash for exact depth count
+        if (path.endsWith('/') && path.length > 1) {
+            path = path.slice(0, -1);
+        }
+        
+        // Root domain
+        if (path === '/' || path === '') return '1.0';
+        
+        const depth = path.split('/').length - 1;
+        
+        // Smart depth logic
+        if (depth === 1) return '0.8';
+        if (depth === 2) return '0.6';
+        if (depth >= 3) return '0.5';
+        
+        return '0.5';
+    } catch (e) {
+        // Fallback for invalid URLs
+        return '0.5';
+    }
+}
+
+function generateSitemap() {
+    const inputText = document.getElementById('url_input').value;
+    const outputArea = document.getElementById('xml_output');
+    const countBadge = document.getElementById('url_count');
+    
+    // Settings
+    const freq = document.getElementById('setting_freq').value;
+    const lastmodSetting = document.getElementById('setting_lastmod').value;
+    const prioritySetting = document.getElementById('setting_priority').value;
+
+    // Get today's date in YYYY-MM-DD
+    const today = new Date().toISOString().split('T')[0];
+
+    // Extract valid URLs
+    const lines = inputText.split('\n');
+    let validUrls = [];
+    
+    for (let line of lines) {
+        let trimmed = line.trim();
+        if (trimmed) {
+            // Ensure http protocol
+            if (!/^https?:\/\//i.test(trimmed)) {
+                trimmed = 'https://' + trimmed;
+            }
+            validUrls.push(trimmed);
+        }
+    }
+
+    countBadge.innerText = `${validUrls.length} URL${validUrls.length !== 1 ? 's' : ''}`;
+
+    if (validUrls.length === 0) {
+        outputArea.value = '';
+        return;
+    }
+
+    // Build XML
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
+
+    for (let url of validUrls) {
+        // Escape special XML characters in URL
+        let escapedUrl = url.replace(/&/g, '&amp;')
+                            .replace(/'/g, '&apos;')
+                            .replace(/"/g, '&quot;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/</g, '&lt;');
+
+        xml += `  <url>\n`;
+        xml += `    <loc>${escapedUrl}</loc>\n`;
+        
+        if (lastmodSetting === 'today') {
+            xml += `    <lastmod>${today}</lastmod>\n`;
+        }
+        
+        if (freq !== 'none') {
+            xml += `    <changefreq>${freq}</changefreq>\n`;
+        }
+        
+        if (prioritySetting === 'smart') {
+            xml += `    <priority>${calculateSmartPriority(url)}</priority>\n`;
+        } else if (prioritySetting !== 'none') {
+            xml += `    <priority>${prioritySetting}</priority>\n`;
+        }
+
+        xml += `  </url>\n`;
+    }
+
+    xml += `</urlset>`;
+    
+    outputArea.value = xml;
+}
+
+function copyXml() {
+    const outputArea = document.getElementById('xml_output');
+    if (!outputArea.value) return;
+    
+    navigator.clipboard.writeText(outputArea.value).then(() => {
+        const btn = document.querySelector('button[onclick="copyXml()"]');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-check me-2"></i> Copied!';
+        btn.classList.add('text-success', 'border-success');
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('text-success', 'border-success');
+        }, 2000);
+    });
+}
+
+function downloadXml() {
+    const xml = document.getElementById('xml_output').value;
+    if (!xml) return;
+    
+    const blob = new Blob([xml], { type: 'application/xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sitemap.xml';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+
+<!-- SEO Content Section -->
+<div class="container-lg mx-auto mt-5 pt-5 border-top border-theme reveal">
+    <h2 class="fs-3 fw-bold mb-4">About the Professional Sitemap Generator</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-teal me-2"></i> Smart Priority Engine</h3>
+            <p class="text-theme-muted">Proper priority mapping tells Google which pages matter most. Our tool dynamically calculates URL depth to automatically assign logical priorities—giving your root domain a 1.0, and gracefully down-scaling your sub-folders and deep links for optimal search engine crawling.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-teal me-2"></i> 100% Client-Side Privacy</h3>
+            <p class="text-theme-muted">Your internal structure and unlisted URLs are your business. This generator processes your raw list entirely within your local browser memory. No data is ever uploaded to our servers, eliminating any risk of exposing staging URLs or hidden pathways.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-teal me-2"></i> Zero Latency Generation</h3>
+            <p class="text-theme-muted">Say goodbye to waiting for server-side crawlers to slowly index your site. By pasting your URL lists directly, our engine generates perfectly formatted, massive XML files instantly. Build sitemaps with thousands of URLs with absolutely no lag.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-code text-teal me-2"></i> Schema Compliant</h3>
+            <p class="text-theme-muted">The generated code rigorously adheres to the official <code>sitemaps.org</code> protocol. It perfectly handles special character escaping (like ampersands in query parameters) ensuring your XML is valid and readily accepted by Google Search Console.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="container-lg mx-auto mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.2s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    How do I get a list of my URLs to paste here?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    If you use a CMS like WordPress or Webflow, you can often export your pages to a CSV file. Alternatively, you can use local crawler software (like Screaming Frog) to crawl your own site and export the URL list, then simply paste that list into our engine to apply Smart Priority and generate the XML.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    Does it matter if my URLs don't have "https://"?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Our engine automatically cleans and prepares your data. If you paste a URL like <code>example.com/about</code>, the tool will automatically prepend <code>https://</code> to ensure the resulting XML code is valid for search engines.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    Is there a limit to how many URLs I can convert?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Because this tool leverages your browser's local processing power rather than a remote server, there are no artificial limits. You can generate sitemaps containing tens of thousands of URLs instantly, all for free.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Sitemap Generator",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            },
+            "description": "Generate perfectly formatted, SEO-optimized XML sitemaps instantly from your URL lists with zero latency and complete privacy."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "How do I get a list of my URLs to paste here?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "You can export a CSV of pages from your CMS (like WordPress) or use a local crawler to get your URL list, then paste it here for instant XML generation."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Does it matter if my URLs don't have https://?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "No, our engine automatically prepends https:// to any naked domains to ensure your XML is perfectly valid."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Is there a limit to how many URLs I can convert?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "No. Because the tool runs locally in your browser, there are no artificial limits and it is completely free to use."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+{% endblock %}

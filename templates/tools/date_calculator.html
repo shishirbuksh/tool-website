@@ -1,0 +1,496 @@
+{% extends "base.html" %}
+
+{% block title %}Free Date Calculator Online | Add & Subtract Days | StoryBrain AI{% endblock %}
+{% block meta_description %}Use our free online Date Calculator to find the exact difference between two dates or instantly add/subtract days, weeks, months, and years from any date.{% endblock %}
+
+{% block head %}
+<style>
+    .calc-card {
+        height: 100%;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .calc-card:hover {
+        transform: translateY(-8px);
+    }
+    .input-cluster {
+        background: var(--sb-input-bg);
+        border-radius: 1.5rem;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--sb-border);
+    }
+    .date-input, .num-input, .select-input {
+        background: var(--sb-input-bg) !important;
+        border: 1px solid var(--sb-border) !important;
+        color: var(--sb-text) !important;
+        text-align: center;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 800;
+        font-size: 1.1rem;
+        padding: 0.75rem;
+        border-radius: 0.75rem;
+        width: 100%;
+        transition: all 0.3s ease;
+    }
+    [data-bs-theme="dark"] .date-input::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        cursor: pointer;
+    }
+    .date-input:focus, .num-input:focus, .select-input:focus {
+        border-color: var(--sb-accent) !important;
+        box-shadow: 0 0 0 0.25rem rgba(var(--sb-accent-rgb), 0.1) !important;
+        background: var(--sb-input-bg-focus) !important;
+    }
+    .res-display {
+        background: var(--sb-search-bg);
+        border-radius: 1.25rem;
+        padding: 1.5rem;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: 'JetBrains Mono', monospace;
+        font-weight: 900;
+        border: 1px solid var(--sb-border);
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+    .res-val {
+        font-size: 1.5rem;
+        color: var(--sb-accent);
+        text-shadow: 0 0 15px var(--sb-shadow-accent);
+        margin-bottom: 0.25rem;
+    }
+    .res-subval {
+        font-size: 0.9rem;
+        color: var(--sb-text-muted);
+        font-weight: 600;
+    }
+    .connector-text {
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--sb-text-muted);
+        padding: 0.5rem;
+        display: block;
+        text-align: center;
+    }
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+    .grid-4 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 0.5rem;
+    }
+    @media (max-width: 768px) {
+        .grid-4 {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-lg mx-auto reveal">
+    <!-- Header -->
+    <div class="text-center mb-5">
+        <div class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-20 px-4 py-2 mb-3">
+            <i class="fa-solid fa-calendar-days me-2"></i> Time Engine
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">DATE <span class="gradient-text italic">CALCULATOR</span></h1>
+        <p class="text-white-50 small text-uppercase tracking-widest fw-bold">Calculate Duration or Shift Time</p>
+    </div>
+
+    <!-- Cards Grid -->
+    <div class="row g-4 g-md-5">
+        
+        <!-- Date Difference -->
+        <div class="col-md-6">
+            <div class="glass-card calc-card p-4 p-lg-5">
+                <div class="mb-4 text-center">
+                    <i class="fa-solid fa-code-compare text-warning h3 mb-3 d-block"></i>
+                    <h5 class="fw-bold tracking-widest opacity-80 small mb-0">DATE DIFFERENCE</h5>
+                </div>
+
+                <div class="input-cluster">
+                    <div class="d-flex flex-column gap-2">
+                        <label class="connector-text mb-0">Start Date</label>
+                        <input type="date" id="diff_start" class="date-input">
+                        
+                        <label class="connector-text my-2">End Date</label>
+                        <input type="date" id="diff_end" class="date-input">
+                        
+                        <div class="form-check form-switch mt-3 d-flex justify-content-center gap-2">
+                            <input class="form-check-input" type="checkbox" id="include_end_day">
+                            <label class="form-check-label small text-white-50" for="include_end_day">Include End Date (+1 day)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="calcDifference()" class="btn btn-accent w-100 py-3 fw-black rounded-3 mb-4 shadow-sm" style="background-color: #f59e0b; border-color: #f59e0b;">
+                    CALCULATE DIFFERENCE
+                </button>
+
+                <div class="res-display" id="diff_res">
+                    <span class="small opacity-20 fw-bold tracking-widest text-uppercase">RESULT</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add/Subtract Time -->
+        <div class="col-md-6">
+            <div class="glass-card calc-card p-4 p-lg-5">
+                <div class="mb-4 text-center">
+                    <i class="fa-solid fa-clock-rotate-left text-warning h3 mb-3 d-block"></i>
+                    <h5 class="fw-bold tracking-widest opacity-80 small mb-0">ADD / SUBTRACT TIME</h5>
+                </div>
+
+                <div class="input-cluster">
+                    <div class="d-flex flex-column gap-2">
+                        <label class="connector-text mb-0">Start Date</label>
+                        <input type="date" id="shift_start" class="date-input mb-3">
+                        
+                        <div class="grid-2 mb-3">
+                            <select id="shift_action" class="select-input">
+                                <option value="add">Add (+)</option>
+                                <option value="sub">Subtract (-)</option>
+                            </select>
+                        </div>
+
+                        <div class="grid-4">
+                            <div>
+                                <label class="connector-text">Years</label>
+                                <input type="number" id="shift_y" class="num-input" value="0" min="0">
+                            </div>
+                            <div>
+                                <label class="connector-text">Months</label>
+                                <input type="number" id="shift_m" class="num-input" value="0" min="0">
+                            </div>
+                            <div>
+                                <label class="connector-text">Weeks</label>
+                                <input type="number" id="shift_w" class="num-input" value="0" min="0">
+                            </div>
+                            <div>
+                                <label class="connector-text">Days</label>
+                                <input type="number" id="shift_d" class="num-input" value="0" min="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="calcShift()" class="btn-premium w-100 py-3 fw-black rounded-3 mb-4 shadow-sm">
+                    CALCULATE NEW DATE
+                </button>
+
+                <div class="res-display" id="shift_res">
+                    <span class="small opacity-20 fw-bold tracking-widest text-uppercase">RESULT</span>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('diff_start').value = today;
+    document.getElementById('diff_end').value = today;
+    document.getElementById('shift_start').value = today;
+    
+    // Auto calculate on input change
+    document.querySelectorAll('#diff_start, #diff_end, #include_end_day').forEach(el => {
+        el.addEventListener('input', calcDifference);
+    });
+    
+    document.querySelectorAll('#shift_start, #shift_action, #shift_y, #shift_m, #shift_w, #shift_d').forEach(el => {
+        el.addEventListener('input', calcShift);
+    });
+    
+    // Initial calculate
+    calcDifference();
+    calcShift();
+});
+
+function addMonthsToDate(year, month, day, monthsToAdd) {
+    let totalMonths = month + monthsToAdd;
+    let newYear = year + Math.floor(totalMonths / 12);
+    let newMonth = totalMonths % 12;
+    if (newMonth < 0) {
+        newMonth += 12;
+    }
+    let lastDay = new Date(newYear, newMonth + 1, 0).getDate();
+    let d = new Date(newYear, newMonth, Math.min(day, lastDay), 12, 0, 0);
+    d.setFullYear(newYear); // Fix JS year 0-99 bug
+    return d;
+}
+
+function isLeapYear(year) {
+    return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+}
+
+function calcDifference() {
+    const startInput = document.getElementById('diff_start').value;
+    const endInput = document.getElementById('diff_end').value;
+    const res = document.getElementById('diff_res');
+    const includeEnd = document.getElementById('include_end_day').checked;
+
+    if (!startInput || !endInput) {
+        res.innerHTML = '<span class="text-danger small fw-bold">PLEASE SELECT BOTH DATES</span>';
+        return;
+    }
+
+    let startParts = startInput.split('-');
+    let endParts = endInput.split('-');
+    // Use noon to avoid timezone and DST edge cases
+    let d1 = new Date(startParts[0], startParts[1] - 1, startParts[2], 12, 0, 0);
+    let d2 = new Date(endParts[0], endParts[1] - 1, endParts[2], 12, 0, 0);
+    
+    let isNegative = false;
+    if (d1 > d2) {
+        let temp = d1;
+        d1 = d2;
+        d2 = temp;
+        isNegative = true;
+    }
+
+    const msPerDay = 1000 * 60 * 60 * 24;
+    let totalDays = Math.round((d2 - d1) / msPerDay);
+    if (includeEnd) {
+        totalDays += 1;
+        d2.setDate(d2.getDate() + 1);
+    }
+
+    // Exact difference logic using absolute month addition to prevent "memory loss" bug
+    let startYear = d1.getFullYear();
+    let startMonth = d1.getMonth();
+    let startDay = d1.getDate();
+    
+    let years = 0;
+    while(true) {
+        let nextYear = addMonthsToDate(startYear, startMonth, startDay, (years + 1) * 12);
+        if (nextYear <= d2) {
+            years++;
+        } else {
+            break;
+        }
+    }
+
+    let months = 0;
+    while(true) {
+        let nextMonth = addMonthsToDate(startYear, startMonth, startDay, (years * 12) + months + 1);
+        if (nextMonth <= d2) {
+            months++;
+        } else {
+            break;
+        }
+    }
+
+    let d1Temp = addMonthsToDate(startYear, startMonth, startDay, (years * 12) + months);
+    let days = Math.round((d2 - d1Temp) / msPerDay);
+    
+    // Output string
+    let resultText = [];
+    if (years > 0) resultText.push(`${years} ${years === 1 ? 'Year' : 'Years'}`);
+    if (months > 0) resultText.push(`${months} ${months === 1 ? 'Month' : 'Months'}`);
+    if (days > 0 || resultText.length === 0) resultText.push(`${days} ${days === 1 ? 'Day' : 'Days'}`);
+    
+    let primaryText = resultText.join(', ');
+    if(isNegative && totalDays > 0) primaryText = "- " + primaryText;
+    
+    let secondaryText = `${isNegative ? '-' : ''}${totalDays} total days`;
+    
+    res.innerHTML = `
+        <span class="res-val" style="color: #f59e0b; text-shadow: 0 0 15px rgba(245, 158, 11, 0.3);">${primaryText}</span>
+        <span class="res-subval">or ${secondaryText}</span>
+    `;
+    popAnimation(res);
+}
+
+function calcShift() {
+    const startInput = document.getElementById('shift_start').value;
+    const action = document.getElementById('shift_action').value;
+    const res = document.getElementById('shift_res');
+    
+    if (!startInput) {
+        res.innerHTML = '<span class="text-danger small fw-bold">PLEASE SELECT START DATE</span>';
+        return;
+    }
+
+    const y = parseInt(document.getElementById('shift_y').value) || 0;
+    const m = parseInt(document.getElementById('shift_m').value) || 0;
+    const w = parseInt(document.getElementById('shift_w').value) || 0;
+    const d = parseInt(document.getElementById('shift_d').value) || 0;
+    
+    let startParts = startInput.split('-');
+    let year = parseInt(startParts[0]);
+    let month = parseInt(startParts[1]) - 1;
+    let day = parseInt(startParts[2]);
+    
+    let mult = action === 'add' ? 1 : -1;
+    
+    // Safely add months/years
+    let totalMonths = month + (m * mult) + (y * 12 * mult);
+    
+    year += Math.floor(totalMonths / 12);
+    month = totalMonths % 12;
+    if (month < 0) {
+        month += 12;
+    }
+    
+    let lastDayOfTargetMonth = new Date(year, month + 1, 0).getDate();
+    let targetDay = Math.min(day, lastDayOfTargetMonth);
+    
+    let date = new Date(year, month, targetDay, 12, 0, 0);
+    date.setFullYear(year); // Safely enforce exact year logic
+    
+    // Add weeks and days
+    date.setDate(date.getDate() + ((w * 7) * mult) + (d * mult));
+    
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const formatted = date.toLocaleDateString('en-US', options);
+    
+    res.innerHTML = `
+        <span class="res-val">${formatted}</span>
+        <span class="res-subval">${action === 'add' ? 'After' : 'Before'} ${startInput}</span>
+    `;
+    popAnimation(res);
+}
+
+function popAnimation(el) {
+    el.style.transform = 'scale(1.05)';
+    setTimeout(() => {
+        el.style.transform = 'scale(1)';
+    }, 200);
+}
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
+    <h2 class="fs-3 fw-bold mb-4">About the Free Date Calculator Tool</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-code-compare text-warning me-2"></i> Date Difference Engine</h3>
+            <p class="text-theme-muted">Quickly determine the exact time elapsed between two dates. Whether you need the difference broken down into years, months, and days, or just the total amount of days, our calculator handles it instantly. Perfect for counting down to events or analyzing historical periods.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-clock-rotate-left text-warning me-2"></i> Time Shifter</h3>
+            <p class="text-theme-muted">Need to know what the date will be 90 days from now? Or 6 months and 2 weeks in the past? The Add/Subtract Time feature lets you jump forward or backward through the calendar without needing to manually count weeks and account for leap years.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-warning me-2"></i> Lightning Fast & Local</h3>
+            <p class="text-theme-muted">Unlike server-based tools that require you to refresh the page, our date calculator uses modern Web APIs to process the mathematics natively in your browser. This means zero latency and instant results.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-warning me-2"></i> Private by Design</h3>
+            <p class="text-theme-muted">We respect your privacy. The dates you input for calculation are never sent to our servers. All operations happen client-side, ensuring complete security for your personal or business scheduling tasks.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-white border-opacity-10">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    Does the date calculator account for leap years?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Yes. Our calculator engine utilizes the native JavaScript Date object, which accurately accounts for leap years, varying month lengths, and historical calendar adjustments automatically.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-white border-opacity-10">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    What does "Include End Date" mean?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    By default, calculating the difference between today and tomorrow returns "1 day". However, if you are counting the total number of days an event spans (including both the start and end day), you can toggle this option to add +1 day to the final result.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-white border-opacity-10 border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    Is the date calculator free to use?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Absolutely. StoryBrain AI provides this tool completely free of charge. There are no daily limits, subscriptions, or sign-ups required to calculate dates.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Date Calculator",
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            },
+            "description": "Use the free Date Calculator online to find the difference between two dates or add and subtract days, weeks, months, and years."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "Does the date calculator account for leap years?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Yes. Our calculator accurately accounts for leap years and varying month lengths automatically."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "What does 'Include End Date' mean?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "It adds +1 day to the calculation to measure the total span of days encompassing both the start and end dates."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Is the date calculator free to use?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Absolutely. StoryBrain AI provides this tool completely free of charge with no limits."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+
+{% endblock %}
