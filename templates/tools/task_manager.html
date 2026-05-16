@@ -1,0 +1,689 @@
+{% extends "base.html" %}
+
+{% block title %}Free Advanced Task Manager & Kanban Board | StoryBrain AI{% endblock %}
+{% block meta_description %}Manage your projects with our free, private, and highly responsive Task Manager and Kanban board. Drag-and-drop tasks, set priorities, and stay organized entirely in your browser.{% endblock %}
+
+{% block head %}
+<!-- SortableJS for Drag and Drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+<style>
+    .kanban-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+    .kanban-header h1 {
+        font-family: var(--font-display);
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* Kanban Layout */
+    .kanban-board {
+        display: flex;
+        gap: 1.5rem;
+        align-items: flex-start;
+        overflow-x: auto;
+        padding-bottom: 1rem;
+        /* Custom scrollbar for horizontal scrolling */
+        scrollbar-width: thin;
+        scrollbar-color: var(--sb-accent) transparent;
+    }
+    .kanban-board::-webkit-scrollbar { height: 8px; }
+    .kanban-board::-webkit-scrollbar-thumb { background: var(--sb-accent); border-radius: 4px; }
+
+    .kanban-column {
+        flex: 1;
+        min-width: 320px;
+        background: rgba(var(--sb-surface-rgb), 0.6);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--sb-border);
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        max-height: 75vh;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+    }
+    .col-todo { border-top: 4px solid #ef4444; }
+    .col-inprogress { border-top: 4px solid #f59e0b; }
+    .col-done { border-top: 4px solid #10b981; }
+
+    .column-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px dashed var(--sb-border);
+    }
+    .column-title {
+        font-weight: 800;
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .column-badge {
+        background: var(--sb-input-bg);
+        border: 1px solid var(--sb-border);
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .kanban-list {
+        flex-grow: 1;
+        overflow-y: auto;
+        min-height: 150px;
+        /* Padding to allow box-shadows on drag */
+        padding: 0.5rem;
+        margin: -0.5rem;
+    }
+
+    /* Task Card */
+    .task-card {
+        background: var(--sb-card);
+        border: 1px solid var(--sb-border);
+        border-radius: 1rem;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        cursor: grab;
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+        position: relative;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    }
+    .task-card:active {
+        cursor: grabbing;
+    }
+    .task-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--sb-accent);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+    }
+    .task-card.sortable-ghost {
+        opacity: 0.4;
+        background: rgba(var(--sb-accent-rgb), 0.1);
+    }
+    
+    .task-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+    .task-title {
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--sb-text);
+        word-break: break-word;
+        padding-right: 1rem;
+    }
+    .task-delete {
+        color: var(--sb-text-muted);
+        background: transparent;
+        border: none;
+        transition: color 0.2s;
+    }
+    .task-delete:hover {
+        color: #ef4444;
+    }
+    
+    .task-desc {
+        font-size: 0.85rem;
+        color: var(--sb-text-muted);
+        margin-top: 0.2rem;
+        margin-bottom: 1rem;
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .task-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .task-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        border-top: 1px dashed var(--sb-border);
+        padding-top: 0.75rem;
+    }
+    .task-date {
+        color: var(--sb-text-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+    
+    .assignee-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--sb-accent), var(--sb-teal));
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.65rem;
+        font-weight: 800;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        flex-shrink: 0;
+    }
+    .story-points {
+        background: var(--sb-input-bg);
+        border: 1px solid var(--sb-border);
+        border-radius: 12px;
+        padding: 0.1rem 0.4rem;
+        font-size: 0.7rem;
+        font-weight: 800;
+        color: var(--sb-text);
+    }
+
+    /* Priority Badges */
+    .priority-badge {
+        padding: 0.2rem 0.6rem;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+    }
+    .priority-high { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+    .priority-medium { background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
+    .priority-low { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+
+    /* New Task Input */
+    .new-task-form {
+        background: var(--sb-surface);
+        border: 1px solid var(--sb-border);
+        border-radius: 1.25rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    /* Advanced Features */
+    .progress-container {
+        height: 6px;
+        background: var(--sb-input-bg);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 2rem;
+    }
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, var(--sb-accent), var(--sb-teal));
+        width: 0%;
+        transition: width 0.5s ease;
+    }
+    .tag-badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        background: rgba(var(--sb-surface-rgb), 0.5);
+        color: var(--sb-text-muted);
+        border: 1px solid var(--sb-border);
+    }
+    .tag-bug { color: #ef4444; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05); }
+    .tag-feature { color: #3b82f6; border-color: rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05); }
+    .tag-design { color: #a855f7; border-color: rgba(168, 85, 247, 0.3); background: rgba(168, 85, 247, 0.05); }
+    .tag-marketing { color: #f59e0b; border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.05); }
+    
+    .overdue-text { color: #ef4444 !important; font-weight: bold; }
+    
+    @media (max-width: 768px) {
+        .kanban-board {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 2rem;
+        }
+        .kanban-column {
+            max-height: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="workspace-shell">
+    <div class="kanban-header reveal">
+        <div class="badge bg-primary bg-opacity-10 text-primary mb-3 px-3 py-2 rounded-pill fw-bold border border-primary border-opacity-25">
+            <i class="fa-solid fa-layer-group me-2"></i>Private Workspace
+        </div>
+        <h1>Task <span class="gradient-text">Manager</span></h1>
+        <p class="text-theme-muted fs-5 max-w-2xl mx-auto">Organize your projects visually with our responsive drag-and-drop Kanban board. All data is saved securely and locally in your browser.</p>
+    </div>
+
+    <!-- Advanced Dashboard Header -->
+    <div class="row justify-content-center mb-4 reveal" style="animation-delay: 0.1s;">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-bold text-theme-muted small text-uppercase tracking-widest">Global Project Completion</span>
+                <span class="fw-bold text-theme" id="progressPercent">0%</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="globalProgress"></div>
+            </div>
+            
+            <div class="glass-card p-2 p-md-3 mb-4 d-flex gap-3 align-items-center flex-wrap">
+                <div class="flex-grow-1 position-relative">
+                    <i class="fa-solid fa-magnifying-glass position-absolute text-theme-muted" style="left: 1rem; top: 50%; transform: translateY(-50%);"></i>
+                    <input type="text" id="searchInput" class="form-control bg-transparent border-0 shadow-none ps-5 text-theme" placeholder="Search tasks by keyword..." onkeyup="filterTasks()">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toolbar / New Task -->
+    <div class="row justify-content-center mb-4 reveal" style="animation-delay: 0.15s;">
+        <div class="col-12">
+            <div class="new-task-form glass-card">
+                <div class="d-flex w-100 flex-column gap-2">
+                    <input type="text" id="newTaskInput" class="form-control form-control-lg bg-transparent border-0 shadow-none px-0 fs-5 text-theme fw-bold" placeholder="Task Title (e.g. Design homepage layout)" onkeypress="if(event.key === 'Enter') addTask()">
+                    <textarea id="newTaskDesc" class="form-control bg-transparent border-theme rounded-3" rows="2" placeholder="Add description or subtasks..."></textarea>
+                </div>
+                <div class="d-flex gap-2 flex-wrap align-items-center w-100">
+                    <input type="text" id="newAssignee" class="form-control border-theme bg-transparent" style="width: 140px;" placeholder="Assignee Name">
+                    <input type="number" id="newPoints" class="form-control border-theme bg-transparent" style="width: 100px;" placeholder="Estimate (hrs)" min="0">
+                    
+                    <select id="newPriority" class="form-select border-theme bg-transparent" style="width: auto;">
+                        <option value="high">High Priority</option>
+                        <option value="medium" selected>Med Priority</option>
+                        <option value="low">Low Priority</option>
+                    </select>
+                    <select id="newTag" class="form-select border-theme bg-transparent" style="width: auto;">
+                        <option value="">No Tag</option>
+                        <option value="bug">🐛 Bug</option>
+                        <option value="feature">✨ Feature</option>
+                        <option value="design">🎨 Design</option>
+                        <option value="marketing">📈 Marketing</option>
+                    </select>
+                    <input type="date" id="newDueDate" class="form-control border-theme bg-transparent" style="width: auto;" title="Due Date">
+                    <button class="btn-premium px-4 ms-auto" onclick="addTask()">
+                        <i class="fa-solid fa-plus me-2"></i> Add Task
+                    </button>
+                </div>
+                <div class="w-100 d-flex justify-content-end mt-2 pt-2 border-top border-theme gap-3">
+                    <button class="btn btn-sm btn-link text-theme-muted text-decoration-none p-0" onclick="exportTasks()"><i class="fa-solid fa-file-export me-1"></i>Export JSON</button>
+                    <button class="btn btn-sm btn-link text-theme-muted text-decoration-none p-0" onclick="document.getElementById('importFile').click()"><i class="fa-solid fa-file-import me-1"></i>Import JSON</button>
+                    <input type="file" id="importFile" class="d-none" accept=".json" onchange="importTasks(event)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kanban Board -->
+    <div class="kanban-board reveal" style="animation-delay: 0.2s;">
+        
+        <!-- TO DO COLUMN -->
+        <div class="kanban-column col-todo">
+            <div class="column-header">
+                <div class="column-title"><i class="fa-solid fa-circle-dot text-danger"></i> To Do</div>
+                <div class="column-badge" id="count-todo">0</div>
+            </div>
+            <div class="kanban-list" id="list-todo">
+                <!-- Tasks go here -->
+            </div>
+        </div>
+
+        <!-- IN PROGRESS COLUMN -->
+        <div class="kanban-column col-inprogress">
+            <div class="column-header">
+                <div class="column-title"><i class="fa-solid fa-spinner fa-spin-pulse text-warning"></i> In Progress</div>
+                <div class="column-badge" id="count-inprogress">0</div>
+            </div>
+            <div class="kanban-list" id="list-inprogress">
+                <!-- Tasks go here -->
+            </div>
+        </div>
+
+        <!-- DONE COLUMN -->
+        <div class="kanban-column col-done">
+            <div class="column-header">
+                <div class="column-title"><i class="fa-solid fa-circle-check text-success"></i> Done</div>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm text-theme-muted hover-text-danger p-0 border-0 bg-transparent" onclick="clearDoneTasks()" title="Clear Completed Tasks"><i class="fa-solid fa-trash-can"></i></button>
+                    <div class="column-badge" id="count-done">0</div>
+                </div>
+            </div>
+            <div class="kanban-list" id="list-done">
+                <!-- Tasks go here -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SEO & Feature Section -->
+    <div class="container py-5 mt-5 border-top border-theme reveal">
+        <div class="text-center mb-5">
+            <h2 class="display-6 fw-black text-theme mb-3">Professional Workflow Management</h2>
+            <p class="text-theme-muted fs-5 max-w-2xl mx-auto">Boost your productivity using our modern task organization system.</p>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="glass-card p-4 h-100 border-theme hover-border-primary transition-all">
+                    <i class="fa-solid fa-hand-pointer text-primary fs-2 mb-3"></i>
+                    <h3 class="h5 fw-bold text-theme mb-2">Drag & Drop Kanban</h3>
+                    <p class="small text-theme-muted mb-0">Experience a fluid, native-feeling drag and drop interface. Seamlessly move tasks between "To Do", "In Progress", and "Done" columns on both desktop and mobile.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card p-4 h-100 border-theme hover-border-primary transition-all">
+                    <i class="fa-solid fa-shield-halved text-success fs-2 mb-3"></i>
+                    <h3 class="h5 fw-bold text-theme mb-2">Total Privacy</h3>
+                    <p class="small text-theme-muted mb-0">Unlike other project management tools, your data is never sent to a server. All tasks are saved securely within your browser's local storage.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card p-4 h-100 border-theme hover-border-primary transition-all">
+                    <i class="fa-solid fa-file-code text-info fs-2 mb-3"></i>
+                    <h3 class="h5 fw-bold text-theme mb-2">Portable Data</h3>
+                    <p class="small text-theme-muted mb-0">Never feel locked in. Use our 1-click JSON Export and Import functionality to backup your workspace or transfer it to another device securely.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="row justify-content-center mt-5 mb-5">
+            <div class="col-lg-10">
+                <h2 class="h3 fw-bold text-center mb-4">Frequently Asked Questions</h2>
+                <div class="accordion accordion-flush glass-card rounded-4 overflow-hidden" id="faqAccordion">
+                    <div class="accordion-item bg-transparent border-theme">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed bg-transparent text-theme fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                How is my task data saved?
+                            </button>
+                        </h2>
+                        <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-theme-muted">
+                                Your tasks are saved automatically and instantly to your browser's `localStorage`. This means your data never leaves your device, providing unparalleled privacy and instant loading speeds.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item bg-transparent border-theme">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed bg-transparent text-theme fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                Can I use this on my mobile phone?
+                            </button>
+                        </h2>
+                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-theme-muted">
+                                Yes! We have built this Kanban board to be fully mobile responsive. On smaller screens, the horizontal columns automatically stack vertically, while maintaining full drag-and-drop support so you can manage projects on the go.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</main>
+
+<script>
+    let tasks = {
+        todo: [],
+        inprogress: [],
+        done: []
+    };
+
+    // Initialize Tool
+    document.addEventListener('DOMContentLoaded', () => {
+        loadTasks();
+        initSortable();
+    });
+
+    function initSortable() {
+        const commonOptions = {
+            group: 'kanban',
+            animation: 200,
+            ghostClass: 'sortable-ghost',
+            onEnd: function (evt) {
+                const itemEl = evt.item;
+                const taskId = itemEl.getAttribute('data-id');
+                const fromListId = evt.from.id.replace('list-', '');
+                const toListId = evt.to.id.replace('list-', '');
+
+                if (fromListId !== toListId) {
+                    // Move task in state
+                    const taskIndex = tasks[fromListId].findIndex(t => t.id === taskId);
+                    const [task] = tasks[fromListId].splice(taskIndex, 1);
+                    tasks[toListId].splice(evt.newIndex, 0, task);
+                    saveTasks();
+                    updateCounts();
+                } else {
+                    // Reorder in same list
+                    const taskIndex = tasks[fromListId].findIndex(t => t.id === taskId);
+                    const [task] = tasks[fromListId].splice(taskIndex, 1);
+                    tasks[fromListId].splice(evt.newIndex, 0, task);
+                    saveTasks();
+                }
+            }
+        };
+
+        new Sortable(document.getElementById('list-todo'), commonOptions);
+        new Sortable(document.getElementById('list-inprogress'), commonOptions);
+        new Sortable(document.getElementById('list-done'), commonOptions);
+    }
+
+    let searchQuery = "";
+
+    function filterTasks() {
+        searchQuery = document.getElementById('searchInput').value.toLowerCase();
+        renderBoard();
+    }
+
+    function clearDoneTasks() {
+        if(tasks.done.length === 0) return;
+        if(confirm("Are you sure you want to permanently delete all completed tasks?")) {
+            tasks.done = [];
+            saveTasks();
+            renderBoard();
+        }
+    }
+
+    function addTask() {
+        const input = document.getElementById('newTaskInput');
+        const descInput = document.getElementById('newTaskDesc');
+        const priority = document.getElementById('newPriority').value;
+        const tag = document.getElementById('newTag').value;
+        const dueDate = document.getElementById('newDueDate').value;
+        const assignee = document.getElementById('newAssignee').value.trim();
+        const points = document.getElementById('newPoints').value;
+        const text = input.value.trim();
+
+        if (!text) return;
+
+        const newTask = {
+            id: 'task_' + Date.now().toString(),
+            text: text,
+            desc: descInput.value.trim(),
+            assignee: assignee,
+            points: points,
+            priority: priority,
+            tag: tag,
+            dueDate: dueDate,
+            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        };
+
+        tasks.todo.unshift(newTask); // Add to top of To Do
+        input.value = '';
+        descInput.value = '';
+        document.getElementById('newAssignee').value = '';
+        document.getElementById('newPoints').value = '';
+        document.getElementById('newDueDate').value = '';
+        
+        saveTasks();
+        renderBoard();
+    }
+
+    function deleteTask(id, listId) {
+        tasks[listId] = tasks[listId].filter(t => t.id !== id);
+        saveTasks();
+        renderBoard();
+    }
+
+    function renderBoard() {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        ['todo', 'inprogress', 'done'].forEach(listId => {
+            const listEl = document.getElementById('list-' + listId);
+            listEl.innerHTML = '';
+            
+            tasks[listId].forEach(task => {
+                // Search Filter Logic
+                const searchString = (task.text + " " + (task.desc || "") + " " + (task.assignee || "")).toLowerCase();
+                if (searchQuery && !searchString.includes(searchQuery)) {
+                    return; // Skip rendering
+                }
+
+                const card = document.createElement('div');
+                card.className = 'task-card';
+                card.setAttribute('data-id', task.id);
+                
+                // Tags & Assignees & Points HTML
+                let metaHtml = '';
+                if (task.tag) {
+                    const tagNames = { 'bug': 'Bug', 'feature': 'Feature', 'design': 'Design', 'marketing': 'Marketing' };
+                    metaHtml += `<span class="tag-badge tag-${task.tag}">${tagNames[task.tag]}</span>`;
+                }
+                if (task.points) {
+                    metaHtml += `<span class="story-points" title="Estimate">${task.points}</span>`;
+                }
+                
+                let descHtml = task.desc ? `<div class="task-desc">${task.desc.replace(/\\n/g, '<br>')}</div>` : '';
+                
+                let avatarHtml = '';
+                if (task.assignee) {
+                    const initial = task.assignee.charAt(0).toUpperCase();
+                    avatarHtml = `<div class="assignee-avatar" title="Assigned to ${task.assignee}">${initial}</div>`;
+                }
+
+                // Due Date Logic
+                let dateHtml = `<div class="task-date"><i class="fa-regular fa-calendar"></i> Added ${task.date}</div>`;
+                if (task.dueDate) {
+                    const dDate = new Date(task.dueDate + "T00:00:00");
+                    const isOverdue = dDate < today && listId !== 'done';
+                    const formattedDue = dDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    dateHtml = `<div class="task-date ${isOverdue ? 'overdue-text' : ''}" title="Due Date"><i class="fa-regular fa-clock"></i> Due ${formattedDue}</div>`;
+                }
+                
+                card.innerHTML = `
+                    <div class="task-header">
+                        <div class="task-title">${task.text}</div>
+                        <button class="task-delete" onclick="deleteTask('${task.id}', '${listId}')" title="Delete Task">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    ${descHtml}
+                    <div class="task-meta-row">
+                        ${metaHtml}
+                    </div>
+                    <div class="task-footer">
+                        <div class="priority-badge priority-${task.priority}">${task.priority}</div>
+                        ${dateHtml}
+                        ${avatarHtml}
+                    </div>
+                `;
+                listEl.appendChild(card);
+            });
+        });
+        updateCounts();
+        updateProgress();
+    }
+
+    function updateCounts() {
+        // We calculate counts based on the array length, independent of search filter
+        document.getElementById('count-todo').innerText = tasks.todo.length;
+        document.getElementById('count-inprogress').innerText = tasks.inprogress.length;
+        document.getElementById('count-done').innerText = tasks.done.length;
+    }
+
+    function updateProgress() {
+        const total = tasks.todo.length + tasks.inprogress.length + tasks.done.length;
+        const done = tasks.done.length;
+        let percent = 0;
+        if (total > 0) {
+            percent = Math.round((done / total) * 100);
+        }
+        
+        document.getElementById('progressPercent').innerText = percent + '%';
+        document.getElementById('globalProgress').style.width = percent + '%';
+    }
+
+    function saveTasks() {
+        localStorage.setItem('sb_kanban_tasks', JSON.stringify(tasks));
+    }
+
+    function loadTasks() {
+        const saved = localStorage.getItem('sb_kanban_tasks');
+        if (saved) {
+            try {
+                tasks = JSON.parse(saved);
+            } catch(e) {
+                console.error("Failed to parse saved tasks");
+            }
+        } else {
+            // Default Demo Tasks
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            const pastDate = new Date();
+            pastDate.setDate(pastDate.getDate() - 1);
+
+            tasks.todo.push({ id: 'demo1', text: 'Define project scope and architecture', desc: 'Need to finalize the Tech Stack and UI framework choices before next sprint.', assignee: 'Alice', points: 5, priority: 'high', tag: 'feature', dueDate: nextWeek.toISOString().split('T')[0], date: 'Today' });
+            tasks.todo.push({ id: 'demo2', text: 'Fix navigation layout bug on mobile', desc: 'The hamburger menu overflows on iPhone SE screens.', assignee: 'Bob', points: 2, priority: 'high', tag: 'bug', dueDate: pastDate.toISOString().split('T')[0], date: 'Today' });
+            tasks.inprogress.push({ id: 'demo3', text: 'Develop advanced responsive Kanban board features', desc: 'Add glassmorphism UI, avatars, and description fields to cards.', assignee: 'Charlie', points: 8, priority: 'medium', tag: 'design', date: 'Yesterday' });
+        }
+        renderBoard();
+    }
+
+    function exportTasks() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tasks, null, 2));
+        const dlAnchorElem = document.createElement('a');
+        dlAnchorElem.setAttribute("href", dataStr);
+        dlAnchorElem.setAttribute("download", "storybrain_tasks_backup.json");
+        dlAnchorElem.click();
+    }
+
+    function importTasks(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if (imported.todo && imported.inprogress && imported.done) {
+                    tasks = imported;
+                    saveTasks();
+                    renderBoard();
+                    alert("Tasks imported successfully!");
+                } else {
+                    alert("Invalid backup file structure.");
+                }
+            } catch (err) {
+                alert("Failed to read JSON file.");
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    }
+</script>
+
+{% endblock %}

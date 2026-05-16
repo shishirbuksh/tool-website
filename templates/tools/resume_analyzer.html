@@ -1,0 +1,552 @@
+{% extends "base.html" %}
+
+{% block title %}Free AI Resume Analyzer & ATS Score Checker | StoryBrain AI{% endblock %}
+{% block meta_description %}Instantly analyze your resume for ATS compatibility. Get a free resume score, keyword optimization tips, and actionable feedback to land more interviews.{% endblock %}
+
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+    .analyzer-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+    .analyzer-header h1 {
+        font-family: var(--font-display);
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .resume-input-container {
+        position: relative;
+    }
+    .resume-textarea {
+        width: 100%;
+        height: 350px;
+        background: rgba(var(--sb-surface-rgb), 0.5);
+        border: 2px dashed var(--sb-border);
+        border-radius: 1.5rem;
+        padding: 2rem;
+        font-size: 1rem;
+        line-height: 1.6;
+        color: var(--sb-text);
+        resize: none;
+        transition: all 0.3s ease;
+    }
+    .resume-textarea:focus {
+        border-color: var(--sb-accent);
+        background: var(--sb-input-bg-focus);
+        box-shadow: 0 0 0 4px rgba(var(--sb-accent-rgb), 0.1);
+        outline: none;
+    }
+    
+    .score-circle {
+        position: relative;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        background: conic-gradient(var(--sb-accent) var(--score-deg, 0deg), var(--sb-border) 0deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 2rem;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+    }
+    .score-inner {
+        width: 150px;
+        height: 150px;
+        background: var(--sb-card);
+        border-radius: 50%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+    .score-value {
+        font-size: 3.5rem;
+        font-weight: 900;
+        font-family: var(--font-display);
+        line-height: 1;
+        background: linear-gradient(135deg, var(--sb-accent), var(--sb-teal));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .score-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--sb-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-top: 0.25rem;
+    }
+
+    .metric-card {
+        padding: 1.5rem;
+        border-radius: 1rem;
+        border: 1px solid var(--sb-border);
+        background: var(--sb-surface);
+        height: 100%;
+        transition: transform 0.3s ease;
+    }
+    .metric-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(var(--sb-accent-rgb), 0.3);
+    }
+    .metric-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .metric-title {
+        font-weight: 800;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+    .metric-desc {
+        font-size: 0.9rem;
+        color: var(--sb-text-muted);
+        line-height: 1.5;
+    }
+    
+    .feedback-item {
+        padding: 1.25rem;
+        border-radius: 0.75rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid transparent;
+        background: rgba(var(--sb-surface-rgb), 0.5);
+    }
+    .feedback-item.success { border-left-color: #10b981; }
+    .feedback-item.warning { border-left-color: #f59e0b; }
+    .feedback-item.error { border-left-color: #ef4444; }
+    
+    .feedback-title {
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .feedback-success .feedback-title i { color: #10b981; }
+    .feedback-warning .feedback-title i { color: #f59e0b; }
+    .feedback-error .feedback-title i { color: #ef4444; }
+
+    @media (max-width: 768px) {
+        .analyzer-header h1 { font-size: 2.25rem; }
+        .resume-textarea { height: 250px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="workspace-shell">
+    <div class="analyzer-header reveal">
+        <div class="badge bg-primary bg-opacity-10 text-primary mb-3 px-3 py-2 rounded-pill fw-bold border border-primary border-opacity-25">
+            <i class="fa-solid fa-microchip me-2"></i>AI-Powered ATS Engine
+        </div>
+        <h1>Resume <span class="gradient-text">Analyzer</span></h1>
+        <p class="text-theme-muted fs-5 max-w-2xl mx-auto">Paste your resume text below to instantly receive an ATS score, keyword analysis, and actionable optimization feedback. 100% private and runs entirely in your browser.</p>
+    </div>
+
+    <!-- Input Section -->
+    <div class="row justify-content-center mb-5 reveal" style="animation-delay: 0.1s;">
+        <div class="col-lg-10">
+            <div class="glass-card p-2 p-md-4">
+                <div class="d-flex justify-content-between align-items-end mb-3 px-2">
+                    <label class="fw-bold text-theme-muted"><i class="fa-solid fa-paste me-2"></i>Paste or Upload Resume</label>
+                    <div class="d-flex gap-3 align-items-center">
+                        <button class="btn btn-sm btn-outline-primary fw-bold" onclick="document.getElementById('resumeFile').click()">
+                            <i class="fa-solid fa-cloud-arrow-up me-1"></i> Upload PDF / DOCX
+                        </button>
+                        <input type="file" id="resumeFile" class="d-none" accept=".pdf,.doc,.docx" onchange="handleFileUpload(event)">
+                        <button class="btn btn-sm btn-link text-theme-muted text-decoration-none" onclick="document.getElementById('resumeText').value = ''">
+                            <i class="fa-solid fa-eraser me-1"></i>Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="resume-input-container">
+                    <textarea id="resumeText" class="resume-textarea" placeholder="Paste your complete resume text here (Experience, Education, Skills, etc.)..."></textarea>
+                </div>
+                <div class="text-center mt-4">
+                    <button class="btn-premium px-5 py-3 fs-6 w-100" onclick="analyzeResume()" id="analyzeBtn">
+                        <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Analyze My Resume
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="resultsSection" class="d-none reveal">
+        
+        <div class="row justify-content-center mb-5">
+            <div class="col-lg-10">
+                <div class="glass-card p-4 p-md-5 text-center position-relative overflow-hidden">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 bg-primary opacity-5" style="z-index: 0;"></div>
+                    <div class="position-relative" style="z-index: 1;">
+                        <h2 class="h4 fw-bold mb-4">Your ATS Match Score</h2>
+                        <div class="score-circle" id="scoreCircle">
+                            <div class="score-inner">
+                                <div class="score-value" id="scoreValue">0</div>
+                                <div class="score-label">Out of 100</div>
+                            </div>
+                        </div>
+                        <p class="text-theme-muted max-w-xl mx-auto mb-0" id="scoreMessage">Analyzing structural integrity, keyword density, and professional phrasing.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center mb-5">
+            <div class="col-lg-10">
+                <h3 class="h4 fw-bold mb-4"><i class="fa-solid fa-chart-pie text-primary me-2"></i>Key Metrics</h3>
+                <div class="row g-4 mb-5">
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-icon bg-info bg-opacity-10 text-info"><i class="fa-solid fa-file-word"></i></div>
+                            <div class="metric-title">Word Count</div>
+                            <div class="metric-desc" id="wordCountDesc">Optimal length is between 400-800 words.</div>
+                            <div class="mt-3 fw-bold fs-4 text-theme" id="wordCountVal">0</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-bolt"></i></div>
+                            <div class="metric-title">Action Verbs</div>
+                            <div class="metric-desc">Strong verbs used to describe achievements.</div>
+                            <div class="mt-3 fw-bold fs-4 text-theme" id="actionVerbsVal">0</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-puzzle-piece"></i></div>
+                            <div class="metric-title">Core Sections</div>
+                            <div class="metric-desc">Experience, Education, and Skills detected.</div>
+                            <div class="mt-3 fw-bold fs-4 text-theme" id="sectionsVal">0/3</div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="h4 fw-bold mb-4"><i class="fa-solid fa-list-check text-primary me-2"></i>Actionable Feedback</h3>
+                <div id="feedbackList">
+                    <!-- Dynamic feedback populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEO & FAQ Section -->
+    <div class="container py-5 mt-5 border-top border-theme reveal">
+        <div class="text-center mb-5">
+            <h2 class="display-6 fw-black text-theme mb-3">Optimize Your Career Trajectory</h2>
+            <p class="text-theme-muted fs-5 max-w-2xl mx-auto">Understanding how Applicant Tracking Systems (ATS) read your resume is the first step to landing your dream job.</p>
+        </div>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="glass-card p-4 h-100 border-theme hover-border-primary transition-all">
+                    <i class="fa-solid fa-eye text-primary fs-2 mb-3"></i>
+                    <h3 class="h5 fw-bold text-theme mb-2">ATS Readability</h3>
+                    <p class="small text-theme-muted mb-0">Our analyzer checks if your resume structure is easily parseable by standard recruiting software algorithms, ensuring your experience doesn't get lost in translation.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card p-4 h-100 border-theme hover-border-primary transition-all">
+                    <i class="fa-solid fa-text-width text-success fs-2 mb-3"></i>
+                    <h3 class="h5 fw-bold text-theme mb-2">Impact Vocabulary</h3>
+                    <p class="small text-theme-muted mb-0">We scan for powerful action verbs (e.g., "Spearheaded", "Engineered") and penalize weak clichés (e.g., "Hard worker") to elevate your professional tone.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="glass-card p-4 h-100 border-theme hover-border-primary transition-all">
+                    <i class="fa-solid fa-lock text-info fs-2 mb-3"></i>
+                    <h3 class="h5 fw-bold text-theme mb-2">100% Local Privacy</h3>
+                    <p class="small text-theme-muted mb-0">Your career history is highly sensitive. This tool processes all text analysis directly in your browser. Nothing is sent to our servers.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="row justify-content-center mt-5 mb-5">
+            <div class="col-lg-10">
+                <h2 class="h3 fw-bold text-center mb-4">Frequently Asked Questions</h2>
+                <div class="accordion accordion-flush glass-card rounded-4 overflow-hidden" id="faqAccordion">
+                    <div class="accordion-item bg-transparent border-theme">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed bg-transparent text-theme fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                What is an ATS and why does it matter?
+                            </button>
+                        </h2>
+                        <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-theme-muted">
+                                An Applicant Tracking System (ATS) is software used by employers to filter, scan, and rank job applications. If your resume lacks the right keywords, formatting, or structure, the ATS might reject it before a human even sees it. Our analyzer checks your resume against standard ATS rules to maximize your chances of getting past the bots.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item bg-transparent border-theme">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed bg-transparent text-theme fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                Is my uploaded resume kept private?
+                            </button>
+                        </h2>
+                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-theme-muted">
+                                Yes, absolutely! This tool is built with a 100% privacy-first design. We use advanced client-side processing to extract and analyze text directly in your web browser. Your resume is never uploaded, sent, or stored on our servers.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item bg-transparent border-theme border-bottom-0">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed bg-transparent text-theme fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                What is a good ATS match score?
+                            </button>
+                        </h2>
+                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body text-theme-muted">
+                                A score of 80 or above is generally considered highly optimized. This means your resume has a healthy word count, contains standard easily-parseable sections, and utilizes strong action verbs rather than weak buzzwords.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<script>
+    // Set PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+    // File Upload Handler
+    async function handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const textarea = document.getElementById('resumeText');
+        textarea.value = "Extracting text, please wait...";
+        
+        try {
+            if (file.type === "application/pdf" || file.name.endsWith('.pdf')) {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                let fullText = "";
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    const strings = content.items.map(item => item.str);
+                    fullText += strings.join(" ") + "\n";
+                }
+                textarea.value = fullText;
+                analyzeResume(); // Auto analyze after upload
+            } else if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+                textarea.value = result.value;
+                analyzeResume(); // Auto analyze after upload
+            } else {
+                textarea.value = "Unsupported file type. Please upload a PDF or Word Document (.docx).";
+            }
+        } catch (error) {
+            console.error(error);
+            textarea.value = "Error extracting text. Please make sure the file is not password protected or corrupted.";
+        }
+        
+        // Reset file input so the same file can be uploaded again if needed
+        event.target.value = '';
+    }
+
+    // ATS Analysis Engine (Client-Side)
+    const ACTION_VERBS = [
+        "achieved", "improved", "trained", "mentored", "managed", "created", "resolved", "volunteered",
+        "influenced", "increased", "decreased", "negotiated", "launched", "revenue", "profits", "spearheaded",
+        "engineered", "architected", "developed", "designed", "orchestrated", "implemented", "optimized",
+        "transformed", "streamlined", "budgeted", "coordinated", "directed", "executed", "generated", "maximized"
+    ];
+
+    const CLICHES = [
+        "hard worker", "hardworking", "team player", "detail oriented", "detail-oriented",
+        "synergy", "think outside the box", "thought leader", "results driven", "results-driven",
+        "go-getter", "dynamic", "self-starter", "self motivated", "proactive"
+    ];
+
+    function analyzeResume() {
+        const text = document.getElementById('resumeText').value.trim();
+        const btn = document.getElementById('analyzeBtn');
+        
+        if (!text) {
+            alert('Please paste your resume text first.');
+            return;
+        }
+
+        // UI Loading State
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Analyzing...';
+        btn.disabled = true;
+
+        setTimeout(() => {
+            performAnalysis(text.toLowerCase(), text);
+            
+            // Show Results
+            document.getElementById('resultsSection').classList.remove('d-none');
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            // Reset Btn
+            btn.innerHTML = '<i class="fa-solid fa-rotate-right me-2"></i> Re-Analyze';
+            btn.disabled = false;
+        }, 800);
+    }
+
+    function performAnalysis(lowerText, rawText) {
+        let score = 100;
+        let feedback = [];
+        
+        // 1. Length Check
+        const words = rawText.split(/\s+/).filter(w => w.length > 0);
+        const wordCount = words.length;
+        document.getElementById('wordCountVal').innerText = wordCount;
+        
+        if (wordCount < 300) {
+            score -= 15;
+            feedback.push({ type: 'error', title: 'Resume is too short', desc: 'Aim for at least 400 words to provide enough context for ATS and recruiters.' });
+        } else if (wordCount > 1000) {
+            score -= 10;
+            feedback.push({ type: 'warning', title: 'Resume is too long', desc: 'Over 1000 words can dilute your impact. Consider editing down to your most relevant achievements.' });
+        } else {
+            feedback.push({ type: 'success', title: 'Optimal Word Count', desc: 'Your resume length is right in the sweet spot (400-800 words).' });
+        }
+
+        // 2. Core Sections Check
+        let sectionsFound = 0;
+        const requiredSections = [
+            { terms: ["experience", "employment", "work history"], name: "Experience" },
+            { terms: ["education", "academic", "degree"], name: "Education" },
+            { terms: ["skills", "technologies", "expertise", "competencies"], name: "Skills" }
+        ];
+
+        let missingSections = [];
+        requiredSections.forEach(sec => {
+            const found = sec.terms.some(t => lowerText.includes(t));
+            if (found) sectionsFound++;
+            else missingSections.push(sec.name);
+        });
+
+        document.getElementById('sectionsVal').innerText = `${sectionsFound}/3`;
+        
+        if (sectionsFound < 3) {
+            score -= (3 - sectionsFound) * 10;
+            feedback.push({ type: 'error', title: 'Missing Core Sections', desc: `ATS parsers look for standard headings. We couldn't find clear headings for: ${missingSections.join(', ')}.` });
+        } else {
+            feedback.push({ type: 'success', title: 'Strong Structure', desc: 'All core sections (Experience, Education, Skills) were detected.' });
+        }
+
+        // 3. Action Verbs Check
+        let verbsCount = 0;
+        ACTION_VERBS.forEach(verb => {
+            const regex = new RegExp(`\\b${verb}\\b`, 'g');
+            const matches = lowerText.match(regex);
+            if (matches) verbsCount += matches.length;
+        });
+
+        document.getElementById('actionVerbsVal').innerText = verbsCount;
+        
+        if (verbsCount < 5) {
+            score -= 15;
+            feedback.push({ type: 'warning', title: 'Needs More Action Verbs', desc: 'We only found a few strong action verbs. Use words like "Spearheaded", "Optimized", or "Generated" to start bullet points.' });
+        } else if (verbsCount >= 10) {
+            feedback.push({ type: 'success', title: 'Excellent Action Verbs', desc: 'You used a great variety of strong action verbs to describe your achievements.' });
+        }
+
+        // 4. Cliches Check
+        let clichesFound = [];
+        CLICHES.forEach(cliche => {
+            if (lowerText.includes(cliche)) clichesFound.push(cliche);
+        });
+
+        if (clichesFound.length > 0) {
+            score -= (clichesFound.length * 3);
+            feedback.push({ type: 'warning', title: 'Remove Buzzwords', desc: `We found overused clichés: "${clichesFound.join('", "')}". Replace these with concrete examples of your work.` });
+        }
+
+        // 5. Contact Info
+        const hasEmail = /[\w.-]+@[\w.-]+\.\w+/.test(lowerText);
+        const hasPhone = /\+?\d[\d -]{8,12}\d/.test(lowerText);
+        
+        if (!hasEmail || !hasPhone) {
+            score -= 10;
+            feedback.push({ type: 'error', title: 'Missing Contact Info', desc: 'Ensure your email address and phone number are clearly listed in the text.' });
+        }
+
+        // Enforce Bounds
+        score = Math.max(0, Math.min(100, score));
+
+        // Render Score Animation
+        animateScore(score);
+
+        // Render Feedback
+        const feedbackContainer = document.getElementById('feedbackList');
+        feedbackContainer.innerHTML = '';
+        
+        // Sort feedback: errors first, then warnings, then successes
+        feedback.sort((a, b) => {
+            const val = { 'error': 0, 'warning': 1, 'success': 2 };
+            return val[a.type] - val[b.type];
+        });
+
+        feedback.forEach(item => {
+            const iconMap = {
+                'error': 'fa-circle-xmark',
+                'warning': 'fa-triangle-exclamation',
+                'success': 'fa-circle-check'
+            };
+            
+            const html = `
+                <div class="feedback-item ${item.type} feedback-${item.type}">
+                    <div class="feedback-title">
+                        <i class="fa-solid ${iconMap[item.type]}"></i>
+                        ${item.title}
+                    </div>
+                    <div class="text-theme-muted small mt-1">${item.desc}</div>
+                </div>
+            `;
+            feedbackContainer.insertAdjacentHTML('beforeend', html);
+        });
+    }
+
+    function animateScore(targetScore) {
+        let currentScore = 0;
+        const scoreEl = document.getElementById('scoreValue');
+        const circleEl = document.getElementById('scoreCircle');
+        const msgEl = document.getElementById('scoreMessage');
+        
+        const duration = 1500;
+        const steps = 60;
+        const stepTime = duration / steps;
+        const increment = targetScore / steps;
+        
+        const timer = setInterval(() => {
+            currentScore += increment;
+            if (currentScore >= targetScore) {
+                currentScore = targetScore;
+                clearInterval(timer);
+                
+                // Set message
+                if (currentScore >= 85) msgEl.innerText = "Excellent! Your resume is highly optimized for Applicant Tracking Systems.";
+                else if (currentScore >= 65) msgEl.innerText = "Good start, but your resume needs some optimization to beat the ATS.";
+                else msgEl.innerText = "Needs work. Please address the critical feedback below to improve your chances.";
+            }
+            
+            scoreEl.innerText = Math.round(currentScore);
+            circleEl.style.setProperty('--score-deg', `${(currentScore / 100) * 360}deg`);
+            
+        }, stepTime);
+    }
+</script>
+
+{% endblock %}
