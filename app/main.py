@@ -17,7 +17,11 @@ app = FastAPI(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in strict production to specific domains
+    allow_origins=[
+        "https://www.storybrainai.com",
+        "https://storybrainai.com",
+        "http://localhost:8000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

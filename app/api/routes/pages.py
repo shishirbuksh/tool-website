@@ -36,7 +36,7 @@ async def get_tool(request: Request, tool_name: str):
 
 @router.get("/sitemap.xml")
 async def sitemap():
-    base_url = "https://storybrainai.com"
+    base_url = "https://www.storybrainai.com"
     
     def get_lastmod(file_path: str) -> str:
         try:
@@ -82,7 +82,7 @@ async def sitemap():
 
 @router.get("/robots.txt")
 async def robots():
-    txt = "User-agent: *\nAllow: /\n\nSitemap: https://storybrainai.com/sitemap.xml"
+    txt = "User-agent: *\nAllow: /\n\nSitemap: https://www.storybrainai.com/sitemap.xml"
     return Response(content=txt, media_type="text/plain")
 
 @router.get("/{page_name}", response_class=HTMLResponse)
