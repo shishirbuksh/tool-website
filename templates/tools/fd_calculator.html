@@ -1,0 +1,635 @@
+{% extends "base.html" %}
+
+{% block title %}Fixed Deposit (FD) Maturity Calculator | TDS & Senior Citizen Rates{% endblock %}
+{% block meta_description %}Calculate your exact Fixed Deposit maturity amount. Automatically add senior citizen interest rates, check your bank TDS tax deduction, and find your true in-hand cash.{% endblock %}
+{% block meta_keywords %}fixed deposit maturity calculator with tds, senior citizen extra interest on fixed deposits, how to calculate fd interest compounded quarterly, how much tax is deducted on fd interest, bank fd return calculator{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/fd-calculator{% endblock %}
+{% block og_tags %}
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.storybrainai.com/tool/fd-calculator">
+<meta property="og:site_name" content="StoryBrain AI">
+<meta property="og:title" content="FD Maturity Calculator with TDS Tax Check">
+<meta property="og:description" content="Calculate your exact FD maturity. Apply senior citizen bonus rates and see exactly how much bank tax (TDS) will be deducted from your interest.">
+<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Fixed Deposit (FD) Calculator">
+<meta name="twitter:description" content="Find out exactly how much your Fixed Deposit will pay out after bank taxes.">
+{% endblock %}
+
+{% block head %}
+<style>
+    .amount-display {
+        font-family: var(--font-display);
+        font-size: 2.5rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+    
+    /* Range Slider Styling */
+    input[type=range] {
+        -webkit-appearance: none;
+        width: 100%;
+        background: transparent;
+    }
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 24px;
+        width: 24px;
+        border-radius: 50%;
+        background: var(--bs-info); 
+        cursor: pointer;
+        margin-top: -8px;
+        box-shadow: 0 0 10px rgba(var(--bs-info-rgb), 0.5);
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 8px;
+        cursor: pointer;
+        background: var(--sb-border);
+        border-radius: 4px;
+    }
+    input[type=range]:focus {
+        outline: none;
+    }
+
+    .tds-card {
+        background: linear-gradient(135deg, rgba(var(--bs-danger-rgb), 0.1), rgba(var(--bs-danger-rgb), 0.02));
+        border: 1px solid rgba(var(--bs-danger-rgb), 0.3);
+    }
+    .senior-card {
+        background: linear-gradient(135deg, rgba(var(--bs-info-rgb), 0.1), rgba(var(--bs-info-rgb), 0.02));
+        border: 1px solid rgba(var(--bs-info-rgb), 0.3);
+    }
+    
+    /* Hide number arrows */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-lg mx-auto" style="max-width: 1200px;">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-info bg-opacity-10 text-info border border-info border-opacity-20 px-4 py-2 mb-4">
+            <i class="fa-solid fa-vault me-2"></i> Smart Banking Tool
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">FIXED DEPOSIT <span class="gradient-text italic text-info">CALCULATOR</span></h1>
+        <p class="text-white-50 fs-5 mx-auto text-center" style="max-width: 800px;">
+            Calculate your exact bank maturity amount. Use our market-gap features to apply Senior Citizen bonus rates and see exactly how much bank tax (TDS) will be deducted.
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-4 reveal" style="animation-delay: 0.2s;">
+        
+        <!-- Calculator Inputs -->
+        <div class="col-lg-5">
+            <div class="glass-card p-4 p-md-5 h-100 d-flex flex-column border-theme position-relative">
+                <h3 class="fs-4 fw-bold mb-4 text-info"><i class="fa-solid fa-money-check-dollar me-2"></i> FD Details</h3>
+                
+                <form id="calcForm" class="flex-grow-1">
+                    
+                    <!-- Currency Global Selector -->
+                    <div class="mb-4 d-flex justify-content-between align-items-center">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase">Currency</label>
+                        <select id="currency" class="form-select form-select-sm bg-theme-surface border-theme text-theme fw-bold w-auto">
+                            <option value="inr" selected>INR (₹)</option>
+                            <option value="usd">USD ($)</option>
+                            <option value="eur">EUR (€)</option>
+                            <option value="gbp">GBP (£)</option>
+                            <option value="aud">AUD ($)</option>
+                            <option value="cad">CAD ($)</option>
+                        </select>
+                    </div>
+
+                    <!-- Deposit Amount -->
+                    <div class="mb-4 pt-2 border-top border-theme">
+                        <div class="d-flex justify-content-between align-items-end mb-2">
+                            <label class="small fw-bold text-theme-muted tracking-widest text-uppercase">Total Deposit Amount</label>
+                            <div class="input-group" style="width: 160px;">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">₹</span>
+                                <input type="number" id="deposit" class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold text-end" value="100000" min="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tenure -->
+                    <div class="mb-4 pt-3 border-top border-theme">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2 d-block">Time Period (Tenure)</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="input-group">
+                                    <input type="number" id="years" class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold text-end" value="3" min="0" max="50">
+                                    <span class="input-group-text bg-theme-surface border-theme text-theme-muted">Yrs</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="input-group">
+                                    <input type="number" id="months" class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold text-end" value="0" min="0" max="11">
+                                    <span class="input-group-text bg-theme-surface border-theme text-theme-muted">Mos</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interest Rate & Senior Citizen -->
+                    <div class="mb-4 pt-3 border-top border-theme">
+                        <div class="d-flex justify-content-between align-items-end mb-2">
+                            <label class="small fw-bold text-theme-muted tracking-widest text-uppercase">Bank Interest Rate</label>
+                            <div class="input-group" style="width: 120px;">
+                                <input type="number" id="rate" class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold text-end" value="7.0" min="0" step="0.1">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted">%</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Market Gap 1: Senior Citizen -->
+                        <div class="senior-card p-2 rounded-3 mt-3">
+                            <div class="form-check form-switch mb-0 d-flex align-items-center justify-content-between">
+                                <div>
+                                    <input class="form-check-input me-2" type="checkbox" role="switch" id="seniorToggle">
+                                    <label class="form-check-label small fw-bold text-info" for="seniorToggle">I am a Senior Citizen (60+)</label>
+                                </div>
+                                <span class="badge bg-info text-dark">Market Gap</span>
+                            </div>
+                            <small class="text-theme-muted d-block mt-1" style="font-size: 0.75rem; margin-left: 2.5rem;">Automatically adds +0.50% extra bank interest.</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Compounding Frequency -->
+                    <div class="mb-4 pt-3 border-top border-theme">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="small fw-bold text-theme-muted tracking-widest text-uppercase">Compounding Frequency</label>
+                            <select id="compoundFreq" class="form-select form-select-sm bg-theme-surface border-theme text-theme fw-bold w-auto">
+                                <option value="12">Monthly</option>
+                                <option value="4" selected>Quarterly (Default)</option>
+                                <option value="2">Half-Yearly</option>
+                                <option value="1">Yearly</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Market Gap 2: TDS / Tax Deductor -->
+                    <div class="pt-3 border-top border-theme">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <label class="small fw-bold tracking-widest text-uppercase text-danger">The Tax (TDS) Reality Check</label>
+                            <span class="badge bg-danger text-white">Market Gap</span>
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" role="switch" id="taxToggle">
+                            <label class="form-check-label small fw-bold text-theme-muted" for="taxToggle">Deduct Bank Tax (TDS) from Interest</label>
+                        </div>
+                        <div id="taxInputBox" style="display: none;">
+                            <div class="input-group input-group-sm w-50 mt-2">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted">Tax Rate</span>
+                                <input type="number" id="taxRate" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end" value="10.0" step="0.1">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted">%</span>
+                            </div>
+                            <small class="text-theme-muted d-block mt-1" style="font-size: 0.75rem;">Usually 10% if PAN card is provided.</small>
+                        </div>
+                    </div>
+
+                    <!-- Market Gap 3: Inflation Reality Check -->
+                    <div class="pt-3 border-top border-theme mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <label class="small fw-bold tracking-widest text-uppercase text-warning">Inflation Reality Check</label>
+                            <span class="badge bg-warning text-dark">Market Gap</span>
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" role="switch" id="inflationToggle">
+                            <label class="form-check-label small fw-bold text-theme-muted" for="inflationToggle">Adjust for Real Purchasing Power</label>
+                        </div>
+                        <div id="inflationInputBox" style="display: none;">
+                            <div class="input-group input-group-sm w-50 mt-2">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted">Inflation Rate</span>
+                                <input type="number" id="inflationRate" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end" value="6.0" step="0.1">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted">%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Market Gap 4: Opportunity Cost Simulator -->
+                    <div class="pt-3 border-top border-theme mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <label class="small fw-bold tracking-widest text-uppercase text-success">FD vs Mutual Fund Check</label>
+                            <span class="badge bg-success text-white">Market Gap</span>
+                        </div>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" role="switch" id="mfToggle">
+                            <label class="form-check-label small fw-bold text-theme-muted" for="mfToggle">Compare with Index Fund / Mutual Fund</label>
+                        </div>
+                        <div id="mfInputBox" style="display: none;">
+                            <div class="input-group input-group-sm w-50 mt-2">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted">Expected Return</span>
+                                <input type="number" id="mfRate" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end" value="12.0" step="0.1">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div class="col-lg-7">
+            <div class="glass-card shadow-lg p-4 p-md-5 h-100 d-flex flex-column">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-theme flex-wrap gap-2">
+                    <h3 class="fs-4 fw-bold mb-0 text-info"><i class="fa-solid fa-file-invoice-dollar me-2"></i> Maturity Report</h3>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-md-12">
+                        <div class="p-4 rounded-4 text-center position-relative overflow-hidden" style="background-color: rgba(var(--bs-info-rgb), 0.1); border: 1px solid rgba(var(--bs-info-rgb), 0.3);">
+                            <span class="small fw-black tracking-widest text-uppercase d-block mb-1 text-info">Total Maturity Amount</span>
+                            <div class="d-flex justify-content-center align-items-center gap-2">
+                                <span class="fs-4 opacity-75 text-info currency-sym">₹</span>
+                                <span id="resTotal" class="amount-display m-0 text-info">0</span>
+                            </div>
+                            <div id="taxAlert" class="mt-2 d-none">
+                                <small class="text-danger fw-bold"><i class="fa-solid fa-scissors text-danger me-1"></i> Bank deducted <span class="currency-sym">₹</span><span id="resTaxDeducted">0</span> in TDS</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center">
+                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Total Deposit</span>
+                            <div class="d-flex justify-content-center align-items-center">
+                                <span class="small opacity-50 currency-sym me-1">₹</span>
+                                <h4 id="resPrincipal" class="fw-bold text-theme mb-0 font-mono">0</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center position-relative">
+                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Interest Earned</span>
+                            <div class="d-flex justify-content-center align-items-center">
+                                <span class="small opacity-50 currency-sym me-1">₹</span>
+                                <h4 id="resInterest" class="fw-bold text-success mb-0 font-mono">0</h4>
+                            </div>
+                            <span id="rateBadge" class="position-absolute top-0 start-50 translate-middle badge rounded-pill bg-success" style="font-size: 0.65rem;">@ 7.0%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="mb-4 mt-auto">
+                    <div class="d-flex justify-content-between small fw-bold mb-1">
+                        <span class="text-theme-muted">Your Deposit</span>
+                        <span class="text-success">Bank Interest</span>
+                    </div>
+                    <div class="progress rounded-pill" style="height: 12px; background-color: rgba(255,255,255,0.05);">
+                        <div id="barPrincipal" class="progress-bar bg-secondary" role="progressbar" style="width: 50%;"></div>
+                        <div id="barInterest" class="progress-bar bg-success" role="progressbar" style="width: 50%;"></div>
+                    </div>
+                </div>
+
+                <!-- Market Gap: Mutual Fund Comparison -->
+                <div id="mfResultCard" class="mt-4 p-4 rounded-4 position-relative d-none" style="background: linear-gradient(135deg, rgba(var(--bs-success-rgb), 0.1), rgba(var(--bs-success-rgb), 0.02)); border: 1px solid rgba(var(--bs-success-rgb), 0.3);">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <h4 class="fs-5 fw-bold mb-0 text-success"><i class="fa-solid fa-chart-line me-2"></i> The Cost of "Safety"</h4>
+                        <span class="badge bg-success text-white">Opportunity Cost Simulator</span>
+                    </div>
+                    <p class="small text-theme-muted mb-3">If you invested this money in a Mutual Fund instead of a Bank FD, here is how much extra wealth you could have created.</p>
+                    
+                    <div class="row">
+                        <div class="col-sm-6 mb-3 mb-sm-0">
+                            <span class="small fw-bold text-theme-muted d-block mb-1">Mutual Fund Value</span>
+                            <div class="d-flex align-items-center">
+                                <span class="fs-5 opacity-50 text-success currency-sym me-1">₹</span>
+                                <h4 id="resMfTotal" class="fw-bold text-success mb-0 font-mono">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="small fw-bold text-theme-muted d-block mb-1">Wealth Lost to FD</span>
+                            <div class="d-flex align-items-center">
+                                <span class="fs-5 opacity-50 text-danger currency-sym me-1">₹</span>
+                                <h4 id="resMfLost" class="fw-bold text-danger mb-0 font-mono">0</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function formatCurrency(val) {
+    return val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Inputs
+    const depositInput = document.getElementById('deposit');
+    const yearsInput = document.getElementById('years');
+    const monthsInput = document.getElementById('months');
+    const rateInput = document.getElementById('rate');
+    const compoundFreq = document.getElementById('compoundFreq');
+    const seniorToggle = document.getElementById('seniorToggle');
+    const taxToggle = document.getElementById('taxToggle');
+    const taxInputBox = document.getElementById('taxInputBox');
+    const taxRate = document.getElementById('taxRate');
+    const currencySel = document.getElementById('currency');
+    
+    const inflationToggle = document.getElementById('inflationToggle');
+    const inflationInputBox = document.getElementById('inflationInputBox');
+    const inflationRate = document.getElementById('inflationRate');
+    
+    const mfToggle = document.getElementById('mfToggle');
+    const mfInputBox = document.getElementById('mfInputBox');
+    const mfRate = document.getElementById('mfRate');
+    
+    // Outputs
+    const resTotal = document.getElementById('resTotal');
+    const resPrincipal = document.getElementById('resPrincipal');
+    const resInterest = document.getElementById('resInterest');
+    const barPrincipal = document.getElementById('barPrincipal');
+    const barInterest = document.getElementById('barInterest');
+    const rateBadge = document.getElementById('rateBadge');
+    
+    const taxAlert = document.getElementById('taxAlert');
+    
+    const mfResultCard = document.getElementById('mfResultCard');
+    const resMfTotal = document.getElementById('resMfTotal');
+    const resMfLost = document.getElementById('resMfLost');
+    
+    // Currency Symbols
+    const currencySymbols = document.querySelectorAll('.currency-sym');
+
+    let baseRate = parseFloat(rateInput.value) || 0;
+
+    // Listeners
+    depositInput.addEventListener('input', calculate);
+    yearsInput.addEventListener('input', calculate);
+    monthsInput.addEventListener('input', calculate);
+    compoundFreq.addEventListener('change', calculate);
+    taxRate.addEventListener('input', calculate);
+    
+    rateInput.addEventListener('input', () => {
+        baseRate = parseFloat(rateInput.value) || 0;
+        calculate();
+    });
+    
+    seniorToggle.addEventListener('change', () => {
+        calculate();
+    });
+
+    taxToggle.addEventListener('change', () => {
+        taxInputBox.style.display = taxToggle.checked ? 'block' : 'none';
+        calculate();
+    });
+    
+    inflationToggle.addEventListener('change', () => {
+        inflationInputBox.style.display = inflationToggle.checked ? 'block' : 'none';
+        calculate();
+    });
+    inflationRate.addEventListener('input', calculate);
+
+    mfToggle.addEventListener('change', () => {
+        mfInputBox.style.display = mfToggle.checked ? 'block' : 'none';
+        calculate();
+    });
+    mfRate.addEventListener('input', calculate);
+
+    let currentSym = "₹";
+    currencySel.addEventListener('change', () => {
+        currentSym = "$";
+        const c = currencySel.value;
+        if(c === 'inr') currentSym = "₹";
+        if(c === 'eur') currentSym = "€";
+        if(c === 'gbp') currentSym = "£";
+        
+        currencySymbols.forEach(el => el.innerText = currentSym);
+        calculate();
+    });
+
+    function calculate() {
+        const P = parseFloat(depositInput.value) || 0;
+        const y = parseFloat(yearsInput.value) || 0;
+        const m = parseFloat(monthsInput.value) || 0;
+        
+        const totalYears = y + (m / 12);
+        
+        let r = baseRate;
+        // Market Gap 1: Senior Citizen Auto-Bumper
+        if(seniorToggle.checked) {
+            r += 0.50; // Add 0.50%
+        }
+        
+        const n = parseInt(compoundFreq.value); // Compounding frequency per year
+        
+        // Compound Interest Formula: A = P(1 + r/n)^(nt)
+        const rateDecimal = r / 100;
+        const nt = n * totalYears;
+        
+        let A = 0;
+        if (totalYears === 0) {
+            A = P;
+        } else {
+            A = P * Math.pow(1 + (rateDecimal / n), nt);
+        }
+
+        let totalInterestEarned = A - P;
+        if (totalInterestEarned < 0) totalInterestEarned = 0;
+        
+        // Market Gap 2: Tax / TDS Deductor
+        let finalMaturity = A;
+        let taxPaid = 0;
+        let alertHtml = '';
+        
+        if(taxToggle.checked) {
+            const tRate = parseFloat(taxRate.value) || 0;
+            taxPaid = totalInterestEarned * (tRate / 100);
+            finalMaturity = finalMaturity - taxPaid;
+            totalInterestEarned = totalInterestEarned - taxPaid; 
+            
+            alertHtml += `<div><small class="text-danger fw-bold"><i class="fa-solid fa-scissors text-danger me-1"></i> Bank deducted ${currentSym}${formatCurrency(taxPaid)} in TDS</small></div>`;
+        }
+
+        // Market Gap 3: Inflation Reality Check
+        if(inflationToggle.checked) {
+            const iRate = parseFloat(inflationRate.value) || 0;
+            const inflationDiscount = Math.pow(1 + (iRate / 100), totalYears);
+            finalMaturity = finalMaturity / inflationDiscount;
+            
+            totalInterestEarned = finalMaturity - P;
+            if (totalInterestEarned < 0) totalInterestEarned = 0;
+            
+            alertHtml += `<div class="mt-1"><small class="text-warning fw-bold"><i class="fa-solid fa-fire text-warning me-1"></i> Adjusted for ${iRate}% Inflation (True Value)</small></div>`;
+        }
+
+        if(alertHtml !== '') {
+            taxAlert.innerHTML = alertHtml;
+            taxAlert.classList.remove('d-none');
+        } else {
+            taxAlert.classList.add('d-none');
+        }
+
+        // Market Gap 4: Mutual Fund Opportunity Cost
+        if(mfToggle.checked) {
+            const mfR = parseFloat(mfRate.value) || 0;
+            const mfMaturity = P * Math.pow(1 + (mfR / 100), totalYears);
+            // Calculate wealth lost compared to the NOMINAL after-tax FD payout
+            const nominalFdMaturity = A - taxPaid;
+            const wealthLost = mfMaturity - nominalFdMaturity;
+            
+            resMfTotal.innerText = formatCurrency(mfMaturity);
+            resMfLost.innerText = formatCurrency(wealthLost > 0 ? wealthLost : 0);
+            mfResultCard.classList.remove('d-none');
+        } else {
+            mfResultCard.classList.add('d-none');
+        }
+
+        // Update UI
+        resTotal.innerText = formatCurrency(finalMaturity);
+        resPrincipal.innerText = formatCurrency(P);
+        resInterest.innerText = formatCurrency(totalInterestEarned);
+        
+        rateBadge.innerText = `@ ${r.toFixed(2)}%`;
+        
+        // Progress Bar
+        let pPct = (P / finalMaturity) * 100;
+        let iPct = (totalInterestEarned / finalMaturity) * 100;
+        if(finalMaturity === 0) { pPct = 100; iPct = 0; }
+        
+        barPrincipal.style.width = pPct + "%";
+        barInterest.style.width = iPct + "%";
+    }
+
+    // Initialize
+    calculate();
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
+    <h2 class="fs-3 fw-bold mb-4">How to calculate FD interest compounded quarterly</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-scissors text-danger me-2"></i> How much tax is deducted on FD interest?</h3>
+            <p class="text-theme-muted">Many people think FD interest is completely free money. Sadly, it is not! Banks automatically deduct a tax called TDS (Tax Deducted at Source) if your interest crosses a certain limit. Our <strong>TDS Tax Deductor</strong> automatically subtracts this tax (usually 10%) so you can see your true, in-hand maturity amount.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-person-cane text-info me-2"></i> Senior citizen extra interest on fixed deposits</h3>
+            <p class="text-theme-muted">Most banks reward senior citizens (people over 60 years old) with a higher interest rate to help them in retirement. This bonus is usually an extra <strong>0.50% per year</strong>. Instead of doing the math yourself, just click our "Senior Citizen" switch, and our tool instantly boosts your return!</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-fire text-warning me-2"></i> Will inflation eat my FD returns? (Market Gap)</h3>
+            <p class="text-theme-muted">This is our special market-gap feature. If you earn 7% interest on your FD, but the inflation rate is 6%, your real wealth only grew by 1%. Use our <strong>Inflation Reality Check</strong> to mathematically discount your final maturity amount so you can see exactly how much purchasing power your money will actually have in the future.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-chart-line text-success me-2"></i> FD vs Mutual Fund Simulator (Market Gap)</h3>
+            <p class="text-theme-muted">A major reason people use FDs is safety, but they lose out on stock market growth. Use our <strong>Opportunity Cost Simulator</strong> to compare your FD against an Index Fund or Mutual Fund. It instantly calculates how much massive wealth you are losing out on by choosing a safe bank deposit instead of the stock market.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.5s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    How much tax is deducted on FD interest by the bank?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    If you have provided your PAN card to the bank, they will typically deduct <strong>10% TDS (Tax Deducted at Source)</strong> on your total interest earned if it exceeds a certain limit (like ₹40,000 for regular citizens). Use our calculator's TDS switch to instantly see your after-tax maturity amount!
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    How do you calculate FD interest compounded quarterly?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Quarterly compounding means the bank calculates your interest 4 times a year. They divide your annual interest rate by 4, apply it to your balance, and then add that money to your deposit so it can grow even faster. Our calculator does this complex math for you instantly!
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    Do senior citizens really get extra interest on fixed deposits?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Yes! Most major banks offer an extra 0.50% to 0.75% interest rate per year for senior citizens (aged 60 and above). This is to help retirees earn a safer, higher passive income from their life savings.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Fixed Deposit Maturity Calculator with TDS",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "INR"
+            },
+            "description": "Learn how to calculate FD interest compounded quarterly. Calculate your exact FD maturity, apply senior citizen bonus rates, and see how much tax is deducted on FD interest."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "How much tax is deducted on FD interest by the bank?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Banks typically deduct 10% TDS (Tax Deducted at Source) on your interest if you provide a PAN card. Use our TDS switch to calculate your exact after-tax maturity amount."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "How do you calculate FD interest compounded quarterly?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Quarterly compounding calculates your interest four times a year, adding it to your balance so it grows exponentially faster over time."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Do senior citizens really get extra interest on fixed deposits?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Yes, banks usually offer an additional 0.50% to 0.75% interest rate to senior citizens (60+) to provide better returns for retirement."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,615 @@
+{% extends "base.html" %}
+
+{% block title %}Free Salary Calculator | Calculate Take Home Pay Easily{% endblock %}
+{% block meta_description %}Use our free and easy salary calculator to find out your exact take-home pay. Simply enter your gross salary, deductions, and bonuses to see your net income instantly.{% endblock %}
+{% block meta_keywords %}salary calculator, take home pay calculator, paycheck calculator, net salary calculator, income tax calculator, easy wage calculator{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/salary-calculator{% endblock %}
+{% block og_tags %}
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.storybrainai.com/tool/salary-calculator">
+<meta property="og:site_name" content="StoryBrain AI">
+<meta property="og:title" content="Free Salary Calculator | Calculate Take Home Pay Easily">
+<meta property="og:description" content="Find out your exact take-home pay with our easy salary calculator. See your net income after deductions and taxes instantly.">
+<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Free Salary Calculator | Calculate Take Home Pay Easily">
+<meta name="twitter:description" content="Find out your exact take-home pay with our easy salary calculator. See your net income after deductions and taxes instantly.">
+{% endblock %}
+
+{% block head %}
+<style>
+    .amortization-table th, .amortization-table td {
+        background-color: transparent !important;
+        border-color: var(--sb-border) !important;
+        color: var(--sb-text) !important;
+        vertical-align: middle;
+    }
+    .amortization-table th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--sb-text-muted) !important;
+    }
+    .breakdown-card {
+        background: rgba(var(--sb-accent-rgb), 0.05);
+        border: 1px solid rgba(var(--sb-accent-rgb), 0.2);
+        border-radius: 1rem;
+        padding: 1.5rem;
+    }
+    .amount-display {
+        font-family: var(--font-display);
+        font-size: 2.5rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-lg mx-auto" style="max-width: 1200px;">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 mb-4">
+            <i class="fa-solid fa-wallet me-2"></i> Money & Income Tools
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">ADVANCED <span class="gradient-text italic">SALARY CALCULATOR</span></h1>
+        <p class="text-white-50 fs-5 mx-auto text-center" style="max-width: 700px;">
+            Quickly figure out your exact take-home pay. Add your gross salary, overtime, bonuses, and specific tax deductions to see your net income.
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-4 reveal" style="animation-delay: 0.2s;">
+        
+        <!-- Calculator Inputs -->
+        <div class="col-lg-5">
+            <div class="glass-card p-4 p-md-5 h-100 d-flex flex-column border-theme position-relative">
+                <h3 class="fs-4 fw-bold mb-4"><i class="fa-solid fa-sliders text-primary me-2"></i> Income Details</h3>
+                
+                <form id="salaryForm" class="flex-grow-1">
+                    <!-- Base Salary -->
+                    <div class="mb-4">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Base Salary</label>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted">₹</span>
+                            <input type="number" id="baseSalary" class="form-control form-control-lg py-2 fw-bold" value="600000" min="0" step="1000" required>
+                        </div>
+                    </div>
+
+                    <!-- Salary Period -->
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Salary Period</label>
+                            <select id="salaryPeriod" class="form-select bg-theme-surface border-theme text-theme py-2 fw-bold">
+                                <option value="year" selected>Per Year</option>
+                                <option value="month">Per Month</option>
+                                <option value="week">Per Week</option>
+                                <option value="hour">Per Hour</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Hours / Week</label>
+                            <input type="number" id="hoursPerWeek" class="form-control bg-theme-surface border-theme text-theme py-2 fw-bold" value="40" min="1" max="168">
+                        </div>
+                    </div>
+
+                    <!-- Overtime (Advanced) -->
+                    <div class="mb-4 pt-3 border-top border-theme">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" role="switch" id="enableOvertime">
+                            <label class="form-check-label small fw-bold text-theme-muted tracking-widest text-uppercase" for="enableOvertime">Enable Overtime</label>
+                        </div>
+                        <div id="overtimeContainer" style="display: none; opacity: 0; transition: opacity 0.3s ease;">
+                            <div class="row mt-3">
+                                <div class="col-6">
+                                    <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">OT Hours / Week</label>
+                                    <input type="number" id="otHours" class="form-control py-2 fw-bold" value="5" min="0" max="100">
+                                </div>
+                                <div class="col-6">
+                                    <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">OT Rate Multiplier</label>
+                                    <select id="otRate" class="form-select py-2 fw-bold">
+                                        <option value="1.5" selected>1.5x (Time & a half)</option>
+                                        <option value="2.0">2.0x (Double time)</option>
+                                        <option value="1.0">1.0x (Standard)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bonuses / Allowances -->
+                    <div class="mb-4 pt-3 border-top border-theme">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Bonuses & Allowances (Per Year)</label>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted">₹</span>
+                            <input type="number" id="bonuses" class="form-control form-control-lg py-2 fw-bold" value="50000" min="0" step="1000">
+                        </div>
+                    </div>
+
+                    <!-- Specific Deductions -->
+                    <div class="mb-4 pt-3 border-top border-theme">
+                        <h4 class="fs-6 fw-bold mb-3 text-theme">Taxes & Deductions</h4>
+                        
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Income Tax (%)</label>
+                                <div class="input-group">
+                                    <input type="number" id="taxPercent" class="form-control py-2 fw-bold" value="10" step="0.1" min="0" max="100">
+                                    <span class="input-group-text bg-theme-surface border-theme text-theme-muted">%</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Retirement/PF (%)</label>
+                                <div class="input-group">
+                                    <input type="number" id="retirementPercent" class="form-control py-2 fw-bold" value="5" step="0.1" min="0" max="100">
+                                    <span class="input-group-text bg-theme-surface border-theme text-theme-muted">%</span>
+                                </div>
+                            </div>
+                            <div class="col-12 mt-3">
+                                <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Health Insurance (Per Year)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-theme-surface border-theme text-theme-muted">₹</span>
+                                    <input type="number" id="healthFixed" class="form-control py-2 fw-bold" value="12000" min="0" step="100">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-premium w-100 py-3 fs-6 mt-2">
+                        CALCULATE TAKE HOME PAY
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div class="col-lg-7">
+            <div class="glass-card shadow-lg p-4 p-md-5 h-100 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-theme">
+                    <h3 class="fs-4 fw-bold mb-0"><i class="fa-solid fa-money-bill-wave text-success me-2"></i> Your Pay Breakdown</h3>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="copyBtn"><i class="fa-regular fa-copy me-1"></i> Copy Details</button>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-md-12">
+                        <div class="p-4 rounded-4 bg-success bg-opacity-10 border border-success border-opacity-25 text-center position-relative overflow-hidden">
+                            <span class="small fw-black text-success tracking-widest text-uppercase d-block mb-1">Net Take-Home Pay (<span id="lblNetPeriod">Per Year</span>)</span>
+                            <div class="d-flex justify-content-center align-items-center gap-2">
+                                <span class="fs-4 text-theme-muted">₹</span>
+                                <span id="resNetPay" class="amount-display text-theme m-0">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-4">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center h-100 d-flex flex-column justify-content-center">
+                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Gross Pay</span>
+                            <h5 id="resGross" class="fw-bold text-theme mb-0 font-mono">₹0</h5>
+                        </div>
+                    </div>
+                    
+                    <div class="col-4">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center h-100 d-flex flex-column justify-content-center">
+                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Bonuses/OT</span>
+                            <h5 id="resExtra" class="fw-bold text-accent mb-0 font-mono">₹0</h5>
+                        </div>
+                    </div>
+
+                    <div class="col-4">
+                        <div class="p-3 rounded-4 bg-danger bg-opacity-10 border border-danger border-opacity-25 text-center h-100 d-flex flex-column justify-content-center">
+                            <span class="small fw-bold text-danger tracking-widest text-uppercase d-block mb-1">Deductions</span>
+                            <h5 id="resDeductions" class="fw-bold text-danger mb-0 font-mono">₹0</h5>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Breakdown Chart -->
+                <div class="breakdown-card mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold m-0 text-theme"><i class="fa-solid fa-chart-pie text-primary me-2"></i> Exact Income Distribution</h6>
+                    </div>
+                    <div style="height: 200px; width: 100%; position: relative;">
+                        <canvas id="salaryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Split views -->
+                <div class="table-responsive mt-auto border border-theme rounded-3">
+                    <table class="table table-hover text-theme mb-0">
+                        <thead class="bg-theme-surface">
+                            <tr>
+                                <th class="py-3 px-3">Frequency</th>
+                                <th class="py-3 px-3">Gross</th>
+                                <th class="py-3 px-3">Deductions</th>
+                                <th class="py-3 px-3 text-success">Net Pay</th>
+                            </tr>
+                        </thead>
+                        <tbody id="frequencyBody">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function formatCurrency(val) {
+    return parseFloat(val).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const salaryForm = document.getElementById('salaryForm');
+    
+    // Inputs
+    const baseSalary = document.getElementById('baseSalary');
+    const salaryPeriod = document.getElementById('salaryPeriod');
+    const hoursPerWeek = document.getElementById('hoursPerWeek');
+    
+    const enableOvertime = document.getElementById('enableOvertime');
+    const overtimeContainer = document.getElementById('overtimeContainer');
+    const otHours = document.getElementById('otHours');
+    const otRate = document.getElementById('otRate');
+    
+    const bonuses = document.getElementById('bonuses');
+    
+    const taxPercent = document.getElementById('taxPercent');
+    const retirementPercent = document.getElementById('retirementPercent');
+    const healthFixed = document.getElementById('healthFixed');
+    
+    // Outputs
+    const resNetPay = document.getElementById('resNetPay');
+    const resGross = document.getElementById('resGross');
+    const resExtra = document.getElementById('resExtra');
+    const resDeductions = document.getElementById('resDeductions');
+    const lblNetPeriod = document.getElementById('lblNetPeriod');
+    const copyBtn = document.getElementById('copyBtn');
+    const frequencyBody = document.getElementById('frequencyBody');
+
+    let chartInstance = null;
+
+    // Toggle Overtime
+    enableOvertime.addEventListener('change', (e) => {
+        if(e.target.checked) {
+            overtimeContainer.style.display = 'block';
+            setTimeout(() => { overtimeContainer.style.opacity = '1'; }, 10);
+        } else {
+            overtimeContainer.style.opacity = '0';
+            setTimeout(() => { overtimeContainer.style.display = 'none'; }, 300);
+        }
+        calculateSalary();
+    });
+
+    // Make inputs auto-calculate
+    [baseSalary, salaryPeriod, hoursPerWeek, otHours, otRate, bonuses, taxPercent, retirementPercent, healthFixed].forEach(el => {
+        el.addEventListener('input', calculateSalary);
+    });
+
+    function calculateSalary() {
+        let base = parseFloat(baseSalary.value) || 0;
+        let period = salaryPeriod.value;
+        let hpw = parseFloat(hoursPerWeek.value) || 40;
+        
+        let otH = enableOvertime.checked ? (parseFloat(otHours.value) || 0) : 0;
+        let otR = enableOvertime.checked ? (parseFloat(otRate.value) || 1.5) : 1.5;
+        
+        let bonusYearly = parseFloat(bonuses.value) || 0;
+        
+        let tPercent = parseFloat(taxPercent.value) || 0;
+        let rPercent = parseFloat(retirementPercent.value) || 0;
+        let hFixedYearly = parseFloat(healthFixed.value) || 0;
+        
+        // Normalize Base Salary to Yearly and Hourly
+        let yearlyBaseGross = 0;
+        let hourlyRate = 0;
+
+        if (period === 'year') {
+            yearlyBaseGross = base;
+            hourlyRate = base / (52 * hpw);
+        } else if (period === 'month') {
+            yearlyBaseGross = base * 12;
+            hourlyRate = yearlyBaseGross / (52 * hpw);
+        } else if (period === 'week') {
+            yearlyBaseGross = base * 52;
+            hourlyRate = base / hpw;
+        } else if (period === 'hour') {
+            hourlyRate = base;
+            yearlyBaseGross = base * hpw * 52;
+        }
+
+        // Calculate Overtime Yearly
+        let yearlyOvertime = otH * (hourlyRate * otR) * 52;
+
+        let totalYearlyGross = yearlyBaseGross + yearlyOvertime + bonusYearly;
+
+        // Calculate Deductions
+        let yearlyTax = totalYearlyGross * (tPercent / 100);
+        let yearlyRetirement = totalYearlyGross * (rPercent / 100);
+        
+        let totalYearlyDeduction = yearlyTax + yearlyRetirement + hFixedYearly;
+        
+        // Prevent negative net pay
+        if (totalYearlyDeduction > totalYearlyGross) {
+            totalYearlyDeduction = totalYearlyGross;
+            yearlyTax = totalYearlyGross - hFixedYearly; // Rough adjustment for chart
+        }
+        
+        let yearlyNet = totalYearlyGross - totalYearlyDeduction;
+
+        // Divider based on selected period
+        let divider = 1;
+        let periodLabel = "Per Year";
+        if (period === 'month') { divider = 12; periodLabel = "Per Month"; }
+        if (period === 'week') { divider = 52; periodLabel = "Per Week"; }
+        if (period === 'hour') { divider = (52 * hpw); periodLabel = "Per Hour"; } // Rough estimate for hour net
+
+        let currentGross = totalYearlyGross / divider;
+        let currentDeduct = totalYearlyDeduction / divider;
+        let currentNet = yearlyNet / divider;
+        let currentExtra = (yearlyOvertime + bonusYearly) / divider;
+
+        // Update Text
+        lblNetPeriod.innerText = periodLabel;
+        resNetPay.innerText = formatCurrency(Math.round(currentNet));
+        resGross.innerText = "₹" + formatCurrency(Math.round(currentGross));
+        resExtra.innerText = "₹" + formatCurrency(Math.round(currentExtra));
+        resDeductions.innerText = "₹" + formatCurrency(Math.round(currentDeduct));
+        
+        renderFrequencies(totalYearlyGross, totalYearlyDeduction, yearlyNet);
+        renderChart(yearlyNet, yearlyTax, yearlyRetirement, hFixedYearly);
+    }
+
+    function renderFrequencies(gross, deduct, net) {
+        frequencyBody.innerHTML = '';
+        const periods = [
+            { name: 'Yearly', div: 1 },
+            { name: 'Monthly', div: 12 },
+            { name: 'Bi-Weekly', div: 26 },
+            { name: 'Weekly', div: 52 },
+            { name: 'Daily', div: 260 }
+        ];
+        
+        periods.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="fw-bold px-3">${p.name}</td>
+                <td class="font-mono px-3">₹${formatCurrency(gross / p.div)}</td>
+                <td class="font-mono text-danger px-3">₹${formatCurrency(deduct / p.div)}</td>
+                <td class="font-mono fw-bold text-success px-3">₹${formatCurrency(net / p.div)}</td>
+            `;
+            frequencyBody.appendChild(tr);
+        });
+    }
+
+    function renderChart(net, tax, retirement, health) {
+        const ctx = document.getElementById('salaryChart').getContext('2d');
+        const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const textColor = isDarkMode ? '#adb5bd' : '#6c757d';
+
+        const dataVals = [net, tax, retirement, health];
+        const labels = ['Take-Home Pay', 'Income Tax', 'Retirement / PF', 'Health Insurance'];
+        const colors = [
+            '#198754', // Success (Net)
+            '#dc3545', // Danger (Tax)
+            '#fd7e14', // Orange (Retirement)
+            '#0dcaf0'  // Info (Health)
+        ];
+
+        if (chartInstance) {
+            chartInstance.data.datasets[0].data = dataVals;
+            chartInstance.options.plugins.legend.labels.color = textColor;
+            chartInstance.update();
+        } else {
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: dataVals,
+                        backgroundColor: colors,
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: textColor,
+                                font: {
+                                    family: "'Inter', sans-serif"
+                                },
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += '₹' + formatCurrency(context.parsed);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    salaryForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        calculateSalary();
+    });
+
+    copyBtn.addEventListener('click', () => {
+        let period = salaryPeriod.options[salaryPeriod.selectedIndex].text;
+        const txt = `Salary Breakdown (${period}):\nGross Pay: ${resGross.innerText}\nBonuses/OT: ${resExtra.innerText}\nTotal Deductions: ${resDeductions.innerText}\nNet Take-Home Pay: ₹${resNetPay.innerText}`;
+        navigator.clipboard.writeText(txt).then(() => {
+            const og = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Copied';
+            setTimeout(() => copyBtn.innerHTML = og, 2000);
+        });
+    });
+
+    // Initial calc
+    calculateSalary();
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
+    <h2 class="fs-3 fw-bold mb-4">Understand Your Paycheck with Our Free Salary Calculator</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-money-check-dollar text-primary me-2"></i> Gross vs Net Pay</h3>
+            <p class="text-theme-muted"><strong>Gross Pay</strong> is the total money you make before any taxes or deductions are taken out. <strong>Net Pay (Take-Home Pay)</strong> is the actual money you get in your bank account to spend or save.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-scissors text-danger me-2"></i> What are Deductions?</h3>
+            <p class="text-theme-muted">Deductions are amounts taken out of your gross pay. This usually includes income taxes, provident fund (PF), health insurance, and other benefits. Our tool lets you add these easily as a percentage or a fixed amount.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-business-time text-warning me-2"></i> Hourly & Overtime</h3>
+            <p class="text-theme-muted">If you are paid by the hour, you can easily switch the calculator to "Per Hour" mode. You can also turn on the "Overtime" feature to see exactly how much extra money you make when working longer hours.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-chart-pie text-success me-2"></i> Visual Breakdown</h3>
+            <p class="text-theme-muted">It is easier to plan your budget when you know exactly where your money is going. Our advanced doughnut chart splits your salary into Take-Home Pay, Income Tax, Retirement, and Insurance so you can see the big picture.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.5s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    How do I calculate my take-home pay?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    To find your take-home pay, simply enter your base salary into our calculator. Then, add any bonuses or overtime you receive. Finally, enter the percentage or fixed amount that gets deducted for taxes and insurance. The calculator will instantly show your final take-home pay.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    Why is my net pay much lower than my salary?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    When you are hired, companies quote your <strong>gross salary</strong>. However, the law requires companies to deduct income taxes, and sometimes retirement contributions (like PF or 401k), before paying you. The money left over is your net pay.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    How does overtime work in the calculator?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    If you enable overtime, the tool figures out your hourly rate (based on your salary and standard hours). It then multiplies your overtime hours by your overtime rate (usually 1.5x) to add the extra money to your total gross pay.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                    Is this salary calculator free to use?
+                </button>
+            </h3>
+            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Yes! Our tool is completely free to use as many times as you like. You do not need to sign up or create an account to use it.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Advanced Salary Calculator",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "INR"
+            },
+            "description": "Find out your exact take-home pay with our easy salary calculator. See your net income after deductions, overtime, and taxes instantly."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "How do I calculate my take-home pay?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Enter your base salary, add any bonuses, and enter the amount deducted for taxes. The calculator will instantly show your take-home pay."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Why is my net pay much lower than my salary?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Companies quote your gross salary, but they must deduct income taxes and retirement contributions before paying you. The money left over is your net pay."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "How does overtime work in the calculator?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "The tool figures out your hourly rate and multiplies your overtime hours by your overtime rate (like 1.5x) to add the extra money to your total pay."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Is this salary calculator free to use?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Yes! Our tool is completely free to use as many times as you like with no sign-up required."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+
+{% endblock %}

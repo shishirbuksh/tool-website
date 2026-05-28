@@ -1,0 +1,693 @@
+{% extends "base.html" %}
+
+{% block title %}Debt Snowball & Avalanche Payoff Calculator{% endblock %}
+{% block meta_description %}Calculate your exact debt-free date. Compare the Debt Snowball vs Avalanche methods and see how extra side-hustle cash can help you get out of debt years faster.{% endblock %}
+{% block meta_keywords %}debt snowball vs avalanche calculator, how to pay off multiple credit cards fast, does the debt snowball method really work, extra payment debt calculator, side hustle debt payoff{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/debt-calculator{% endblock %}
+{% block og_tags %}
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.storybrainai.com/tool/debt-calculator">
+<meta property="og:site_name" content="StoryBrain AI">
+<meta property="og:title" content="Debt Snowball Payoff Calculator">
+<meta property="og:description" content="Calculate your exact debt-free date. Compare the Debt Snowball vs Avalanche methods instantly.">
+<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Debt Payoff Calculator">
+<meta name="twitter:description" content="Find out exactly when you will be 100% debt-free.">
+{% endblock %}
+
+{% block head %}
+<style>
+    .amount-display {
+        font-family: var(--font-display);
+        font-size: 2.5rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+    
+    .snowball-card {
+        background: linear-gradient(135deg, rgba(var(--bs-warning-rgb), 0.1), rgba(var(--bs-warning-rgb), 0.02));
+        border: 1px solid rgba(var(--bs-warning-rgb), 0.3);
+    }
+    .avalanche-card {
+        background: linear-gradient(135deg, rgba(var(--bs-danger-rgb), 0.1), rgba(var(--bs-danger-rgb), 0.02));
+        border: 1px solid rgba(var(--bs-danger-rgb), 0.3);
+    }
+    
+    /* Hide number arrows */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+    
+    .debt-row {
+        background-color: rgba(255,255,255,0.02);
+        border: 1px solid var(--sb-border);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.2s ease;
+    }
+    .debt-row:hover {
+        background-color: rgba(255,255,255,0.05);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-lg mx-auto" style="max-width: 1200px;">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-20 px-4 py-2 mb-4">
+            <i class="fa-solid fa-fire me-2"></i> Debt Destroyer Tool
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">DEBT SNOWBALL <span class="gradient-text italic text-danger">CALCULATOR</span></h1>
+        <p class="text-white-50 fs-5 mx-auto text-center" style="max-width: 800px;">
+            Find out exactly when you will be 100% debt-free. Compare the Snowball vs. Avalanche methods and use our Side Hustle Injector to crush your debt years faster.
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-4 reveal" style="animation-delay: 0.2s;">
+        
+        <!-- Calculator Inputs -->
+        <div class="col-lg-6">
+            <div class="glass-card p-4 p-md-5 h-100 d-flex flex-column border-theme position-relative">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="fs-4 fw-bold text-danger mb-0"><i class="fa-solid fa-credit-card me-2"></i> Your Debts</h3>
+                    
+                    <select id="currency" class="form-select form-select-sm bg-theme-surface border-theme text-theme fw-bold w-auto">
+                        <option value="usd" selected>USD ($)</option>
+                        <option value="eur">EUR (€)</option>
+                        <option value="gbp">GBP (£)</option>
+                        <option value="inr">INR (₹)</option>
+                        <option value="aud">AUD ($)</option>
+                        <option value="cad">CAD ($)</option>
+                    </select>
+                </div>
+                
+                <p class="small text-theme-muted mb-3">List all your debts (Credit Cards, Car Loans, Student Loans, etc.). Do not include your mortgage.</p>
+                
+                <div id="debtContainer">
+                    <!-- Debt rows will be injected here via JS -->
+                </div>
+                
+                <button id="addDebtBtn" class="btn btn-outline-danger btn-sm rounded-pill fw-bold mb-4 py-2"><i class="fa-solid fa-plus me-1"></i> Add Another Debt</button>
+
+                <div class="pt-3 border-top border-theme">
+                    <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Extra Monthly Payment (The Snowball)</label>
+                    <div class="input-group mb-3 w-50">
+                        <span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">$</span>
+                        <input type="number" id="extraMonthly" class="form-control bg-theme-surface border-theme text-theme fw-bold" value="200" min="0">
+                    </div>
+                    <small class="text-theme-muted d-block" style="font-size: 0.75rem;">This is the extra cash you can throw at your debts every month ON TOP of all minimum payments.</small>
+                </div>
+
+                <!-- Market Gap 1: Strategy Toggle -->
+                <div class="pt-4 border-top border-theme mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <label class="small fw-bold tracking-widest text-uppercase text-warning">Snowball vs Avalanche</label>
+                        <span class="badge bg-warning text-dark">Market Gap</span>
+                    </div>
+                    <select id="strategy" class="form-select bg-theme-surface border-theme text-theme fw-bold mb-2">
+                        <option value="snowball" selected>Debt Snowball (Lowest Balance First) - Best for Motivation</option>
+                        <option value="avalanche">Debt Avalanche (Highest Interest First) - Saves the Most Money</option>
+                    </select>
+                </div>
+
+                <!-- Market Gap 2: Side Hustle Injector -->
+                <div class="pt-4 border-top border-theme mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <label class="small fw-bold tracking-widest text-uppercase text-success">Side Hustle / Windfall Injector</label>
+                        <span class="badge bg-success text-white">Market Gap</span>
+                    </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" role="switch" id="hustleToggle">
+                        <label class="form-check-label small fw-bold text-theme-muted" for="hustleToggle">I am getting a one-time lump sum (Tax Refund, Bonus)</label>
+                    </div>
+                    <div id="hustleInputBox" style="display: none;">
+                        <div class="input-group input-group-sm w-50 mt-2">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">$</span>
+                            <input type="number" id="hustleAmount" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end" value="1000" min="0">
+                        </div>
+                        <small class="text-theme-muted d-block mt-1" style="font-size: 0.75rem;">This lump sum will instantly pay down your current priority debt.</small>
+                    </div>
+                </div>
+
+                <!-- Market Gap 3: Interest Rate Stress Test -->
+                <div class="pt-4 border-top border-theme mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <label class="small fw-bold tracking-widest text-uppercase text-danger">Interest Rate Stress Test</label>
+                        <span class="badge bg-danger text-white">Market Gap</span>
+                    </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" role="switch" id="stressToggle">
+                        <label class="form-check-label small fw-bold text-theme-muted" for="stressToggle">Simulate Federal Reserve Rate Hike</label>
+                    </div>
+                    <div id="stressInputBox" style="display: none;">
+                        <div class="input-group input-group-sm w-50 mt-2">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted">+</span>
+                            <input type="number" id="stressAmount" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end" value="2.0" step="0.1">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted">%</span>
+                        </div>
+                        <small class="text-theme-muted d-block mt-1" style="font-size: 0.75rem;">Instantly increases the interest rate on ALL your debts.</small>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div class="col-lg-6">
+            <div class="glass-card shadow-lg p-4 p-md-5 h-100 d-flex flex-column">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-theme flex-wrap gap-2">
+                    <h3 class="fs-4 fw-bold mb-0 text-danger"><i class="fa-solid fa-flag-checkered me-2"></i> Debt Freedom Report</h3>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-md-12">
+                        <div class="p-4 rounded-4 text-center position-relative overflow-hidden" style="background-color: rgba(var(--bs-danger-rgb), 0.1); border: 1px solid rgba(var(--bs-danger-rgb), 0.3);">
+                            <span class="small fw-black tracking-widest text-uppercase d-block mb-1 text-danger">You Will Be Debt Free In</span>
+                            <h2 id="resFreedomDate" class="amount-display m-0 text-danger my-2">Oct 2028</h2>
+                            
+                            <div class="d-flex justify-content-center gap-3 mt-3">
+                                <div>
+                                    <span class="small text-theme-muted d-block">Time to Payoff</span>
+                                    <span id="resMonths" class="fw-bold text-white">0 Months</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center">
+                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Total Debt</span>
+                            <div class="d-flex justify-content-center align-items-center">
+                                <span class="small opacity-50 currency-sym me-1">$</span>
+                                <h4 id="resTotalDebt" class="fw-bold text-theme mb-0 font-mono">0</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center">
+                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Total Interest Paid</span>
+                            <div class="d-flex justify-content-center align-items-center">
+                                <span class="small opacity-50 currency-sym me-1">$</span>
+                                <h4 id="resTotalInterest" class="fw-bold text-warning mb-0 font-mono">0</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Market Gap: Strategy Comparison -->
+                <div id="comparisonCard" class="mt-auto p-4 rounded-4 position-relative" style="background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.1), rgba(var(--bs-primary-rgb), 0.02)); border: 1px solid rgba(var(--bs-primary-rgb), 0.3);">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <h4 class="fs-5 fw-bold mb-0 text-primary"><i class="fa-solid fa-scale-balanced me-2"></i> Strategy Reality Check</h4>
+                        <span class="badge bg-primary text-white">Market Gap</span>
+                    </div>
+                    <p class="small text-theme-muted mb-3" id="compareText">If you switched to the Avalanche method, you would save X months and $Y in interest.</p>
+                </div>
+
+                <!-- Market Gap 4: Minimum Payment Trap Alert -->
+                <div id="trapAlert" class="mt-4 p-4 rounded-4 position-relative d-none" style="background: linear-gradient(135deg, rgba(var(--bs-danger-rgb), 0.2), rgba(var(--bs-danger-rgb), 0.05)); border: 1px solid rgba(var(--bs-danger-rgb), 0.5);">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fa-solid fa-triangle-exclamation text-danger fs-4"></i>
+                        <h4 class="fs-5 fw-bold mb-0 text-danger">Minimum Payment Trap</h4>
+                    </div>
+                    <p class="small text-danger fw-bold mb-0" id="trapText">Warning: Your minimum payment is lower than the interest charge.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function formatCurrency(val) {
+    return val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    
+    // Default Debts
+    let debts = [
+        { id: 1, name: "Credit Card 1", balance: 2500, rate: 22.9, min: 75 },
+        { id: 2, name: "Car Loan", balance: 14000, rate: 6.5, min: 350 },
+        { id: 3, name: "Student Loan", balance: 8000, rate: 5.0, min: 150 }
+    ];
+    let nextId = 4;
+
+    const debtContainer = document.getElementById('debtContainer');
+    const addDebtBtn = document.getElementById('addDebtBtn');
+    
+    const extraMonthlyInput = document.getElementById('extraMonthly');
+    const strategySel = document.getElementById('strategy');
+    
+    const hustleToggle = document.getElementById('hustleToggle');
+    const hustleInputBox = document.getElementById('hustleInputBox');
+    const hustleAmount = document.getElementById('hustleAmount');
+    
+    const stressToggle = document.getElementById('stressToggle');
+    const stressInputBox = document.getElementById('stressInputBox');
+    const stressAmount = document.getElementById('stressAmount');
+    
+    const currencySel = document.getElementById('currency');
+    
+    // Outputs
+    const resFreedomDate = document.getElementById('resFreedomDate');
+    const resMonths = document.getElementById('resMonths');
+    const resTotalDebt = document.getElementById('resTotalDebt');
+    const resTotalInterest = document.getElementById('resTotalInterest');
+    const compareText = document.getElementById('compareText');
+    const comparisonCard = document.getElementById('comparisonCard');
+    
+    const trapAlert = document.getElementById('trapAlert');
+    const trapText = document.getElementById('trapText');
+
+    let currentSym = "$";
+
+    function renderDebts() {
+        debtContainer.innerHTML = '';
+        debts.forEach((debt, index) => {
+            const row = document.createElement('div');
+            row.className = 'debt-row';
+            row.innerHTML = `
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="small fw-bold text-theme-muted mb-1">Debt Name</label>
+                        <input type="text" class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold debt-name" data-id="${debt.id}" value="${debt.name}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold text-theme-muted mb-1">Current Balance</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">${currentSym}</span>
+                            <input type="number" class="form-control bg-theme-surface border-theme text-theme fw-bold debt-balance" data-id="${debt.id}" value="${debt.balance}" min="1">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="small fw-bold text-theme-muted mb-1">Int Rate</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control bg-theme-surface border-theme text-theme fw-bold debt-rate" data-id="${debt.id}" value="${debt.rate}" min="0" step="0.1">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted">%</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small fw-bold text-theme-muted mb-1">Min Payment</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">${currentSym}</span>
+                            <input type="number" class="form-control bg-theme-surface border-theme text-theme fw-bold debt-min" data-id="${debt.id}" value="${debt.min}" min="1">
+                        </div>
+                    </div>
+                    <div class="col-md-1 text-end">
+                        <button class="btn btn-sm btn-outline-danger border-0 delete-btn" data-id="${debt.id}"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `;
+            debtContainer.appendChild(row);
+        });
+        
+        attachRowListeners();
+    }
+
+    function attachRowListeners() {
+        document.querySelectorAll('.debt-name').forEach(el => el.addEventListener('input', updateDebtData));
+        document.querySelectorAll('.debt-balance').forEach(el => el.addEventListener('input', updateDebtData));
+        document.querySelectorAll('.debt-rate').forEach(el => el.addEventListener('input', updateDebtData));
+        document.querySelectorAll('.debt-min').forEach(el => el.addEventListener('input', updateDebtData));
+        
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(e.currentTarget.getAttribute('data-id'));
+                debts = debts.filter(d => d.id !== id);
+                renderDebts();
+                calculate();
+            });
+        });
+    }
+
+    function updateDebtData(e) {
+        const id = parseInt(e.target.getAttribute('data-id'));
+        const cls = e.target.className;
+        const val = e.target.value;
+        
+        const debt = debts.find(d => d.id === id);
+        if(debt) {
+            if(cls.includes('debt-name')) debt.name = val;
+            if(cls.includes('debt-balance')) debt.balance = parseFloat(val) || 0;
+            if(cls.includes('debt-rate')) debt.rate = parseFloat(val) || 0;
+            if(cls.includes('debt-min')) debt.min = parseFloat(val) || 0;
+        }
+        calculate();
+    }
+
+    addDebtBtn.addEventListener('click', () => {
+        debts.push({ id: nextId++, name: `Debt ${debts.length + 1}`, balance: 1000, rate: 10.0, min: 50 });
+        renderDebts();
+        calculate();
+    });
+
+    extraMonthlyInput.addEventListener('input', calculate);
+    strategySel.addEventListener('change', calculate);
+    
+    hustleToggle.addEventListener('change', () => {
+        hustleInputBox.style.display = hustleToggle.checked ? 'block' : 'none';
+        calculate();
+    });
+    hustleAmount.addEventListener('input', calculate);
+
+    stressToggle.addEventListener('change', () => {
+        stressInputBox.style.display = stressToggle.checked ? 'block' : 'none';
+        calculate();
+    });
+    stressAmount.addEventListener('input', calculate);
+
+    currencySel.addEventListener('change', () => {
+        currentSym = "$";
+        const c = currencySel.value;
+        if(c === 'inr') currentSym = "₹";
+        if(c === 'eur') currentSym = "€";
+        if(c === 'gbp') currentSym = "£";
+        
+        document.querySelectorAll('.currency-sym').forEach(el => el.innerText = currentSym);
+        calculate();
+    });
+
+    // Amortization Core Logic
+    function runSimulation(debtList, strategy, extraMonthly, lumpSum, rateHike) {
+        // Deep copy to avoid mutating original state during simulation
+        let simDebts = JSON.parse(JSON.stringify(debtList));
+        
+        let totalInterestPaid = 0;
+        let monthsElapsed = 0;
+        let trapDetected = null;
+        
+        // Apply lump sum windfall to the first priority debt if it exists
+        if (lumpSum > 0 && simDebts.length > 0) {
+            sortDebts(simDebts, strategy);
+            let remainingLump = lumpSum;
+            
+            for(let i=0; i < simDebts.length; i++) {
+                if(remainingLump <= 0) break;
+                if(simDebts[i].balance <= remainingLump) {
+                    remainingLump -= simDebts[i].balance;
+                    simDebts[i].balance = 0;
+                } else {
+                    simDebts[i].balance -= remainingLump;
+                    remainingLump = 0;
+                }
+            }
+            // Remove paid off debts
+            simDebts = simDebts.filter(d => d.balance > 0);
+        }
+
+        // Monthly Loop
+        // Safety break at 1200 months (100 years)
+        while (simDebts.length > 0 && monthsElapsed < 1200) {
+            monthsElapsed++;
+            
+            // Sort to determine priority for extra snowball cash
+            sortDebts(simDebts, strategy);
+            
+            let totalAvailableCash = extraMonthly;
+            
+            // First, process standard interest and minimum payments
+            for(let i = 0; i < simDebts.length; i++) {
+                const d = simDebts[i];
+                
+                // Market Gap: Stress Test Rate Hike
+                const effectiveRate = d.rate + rateHike;
+                
+                // Add Monthly Interest
+                const monthlyIntRate = (effectiveRate / 100) / 12;
+                const interestCharge = d.balance * monthlyIntRate;
+                totalInterestPaid += interestCharge;
+                d.balance += interestCharge;
+                
+                // Minimum Payment Trap Detection (Only detect on month 1)
+                if (monthsElapsed === 1 && d.min < interestCharge && d.balance > 0) {
+                    trapDetected = d.name;
+                }
+                
+                // Process Minimum Payment
+                // If minimum payment is less than interest, the debt will grow forever.
+                let payment = Math.min(d.min, d.balance);
+                d.balance -= payment;
+            }
+            
+            // Remove paid off debts and add their minimums to the snowball (The Snowball Effect!)
+            let initialLength = simDebts.length;
+            let i = 0;
+            while(i < simDebts.length) {
+                if (simDebts[i].balance <= 0) {
+                    // This debt is paid off! Its minimum payment now becomes part of the snowball forever.
+                    extraMonthly += simDebts[i].min;
+                    simDebts.splice(i, 1);
+                } else {
+                    i++;
+                }
+            }
+
+            // Now apply the snowball (totalAvailableCash) to the highest priority debt
+            if (simDebts.length > 0 && totalAvailableCash > 0) {
+                let remainingSnowball = totalAvailableCash;
+                
+                for(let j = 0; j < simDebts.length; j++) {
+                    if (remainingSnowball <= 0) break;
+                    
+                    let target = simDebts[j];
+                    if (target.balance <= remainingSnowball) {
+                        remainingSnowball -= target.balance;
+                        target.balance = 0;
+                        // Debt paid off via snowball, add its min payment to permanent snowball
+                        extraMonthly += target.min;
+                    } else {
+                        target.balance -= remainingSnowball;
+                        remainingSnowball = 0;
+                    }
+                }
+                
+                // Clean up any debts paid off by the snowball
+                simDebts = simDebts.filter(d => d.balance > 0);
+            }
+        }
+        
+        return {
+            months: monthsElapsed,
+            interest: totalInterestPaid,
+            trap: trapDetected
+        };
+    }
+    
+    function sortDebts(list, strategy) {
+        if(strategy === 'snowball') {
+            // Lowest balance first
+            list.sort((a, b) => a.balance - b.balance);
+        } else {
+            // Highest interest first
+            list.sort((a, b) => b.rate - a.rate);
+        }
+    }
+
+    function calculate() {
+        if(debts.length === 0) {
+            resTotalDebt.innerText = "0";
+            resTotalInterest.innerText = "0";
+            resMonths.innerText = "0 Months";
+            resFreedomDate.innerText = "Today";
+            comparisonCard.classList.add('d-none');
+            return;
+        }
+
+        const extraMonthly = parseFloat(extraMonthlyInput.value) || 0;
+        const activeStrategy = strategySel.value;
+        const lumpSum = hustleToggle.checked ? (parseFloat(hustleAmount.value) || 0) : 0;
+        const rateHike = stressToggle.checked ? (parseFloat(stressAmount.value) || 0) : 0;
+        
+        const totalStartingDebt = debts.reduce((sum, d) => sum + d.balance, 0);
+        resTotalDebt.innerText = formatCurrency(totalStartingDebt);
+
+        // Run chosen strategy
+        const result = runSimulation(debts, activeStrategy, extraMonthly, lumpSum, rateHike);
+        
+        if (result.trap && extraMonthly === 0 && lumpSum === 0) {
+            trapText.innerHTML = `Warning: Your minimum payment on <strong>'${result.trap}'</strong> is lower than the monthly interest charge. This debt will grow FOREVER unless you add an Extra Monthly Payment!`;
+            trapAlert.classList.remove('d-none');
+        } else {
+            trapAlert.classList.add('d-none');
+        }
+        
+        if (result.months >= 1200) {
+            resFreedomDate.innerText = "Never";
+            resMonths.innerText = "Minimum payments are too low!";
+            resTotalInterest.innerText = "Infinite";
+            comparisonCard.classList.add('d-none');
+            return;
+        }
+
+        resTotalInterest.innerText = formatCurrency(result.interest);
+        
+        const years = Math.floor(result.months / 12);
+        const mos = result.months % 12;
+        let timeStr = "";
+        if(years > 0) timeStr += `${years} Yrs `;
+        timeStr += `${mos} Mos`;
+        resMonths.innerText = timeStr;
+        
+        // Date math
+        const now = new Date();
+        now.setMonth(now.getMonth() + result.months);
+        const options = { month: 'short', year: 'numeric' };
+        resFreedomDate.innerText = now.toLocaleDateString('en-US', options);
+        
+        // Market Gap 1: Snowball vs Avalanche Reality Check
+        const altStrategy = activeStrategy === 'snowball' ? 'avalanche' : 'snowball';
+        const altResult = runSimulation(debts, altStrategy, extraMonthly, lumpSum, rateHike);
+        
+        const interestDiff = Math.abs(result.interest - altResult.interest);
+        const monthDiff = Math.abs(result.months - altResult.months);
+        
+        if (interestDiff > 5 || monthDiff > 0) {
+            const betterStr = altStrategy === 'snowball' ? 'Snowball' : 'Avalanche';
+            compareText.innerHTML = `If you switched to the <strong>${betterStr} Method</strong>, you would save an additional <strong>${monthDiff} months</strong> and <strong class="text-success">${currentSym}${formatCurrency(interestDiff)}</strong> in interest!`;
+            comparisonCard.classList.remove('d-none');
+        } else {
+            // Both methods result in the same math (e.g. only 1 debt, or they happen to align perfectly)
+            compareText.innerHTML = `Both Snowball and Avalanche methods give you the exact same payoff date. Great job, just keep paying!`;
+            comparisonCard.classList.remove('d-none');
+        }
+    }
+
+    // Initialize
+    renderDebts();
+    calculate();
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
+    <h2 class="fs-3 fw-bold mb-4">How to pay off multiple credit cards fast</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-scale-balanced text-danger me-2"></i> Debt Snowball vs Avalanche Calculator</h3>
+            <p class="text-theme-muted">People always wonder whether they should pay off their smallest balance first (Snowball) or their highest interest rate first (Avalanche). Our smart calculator instantly runs thousands of simulations in the background and shows you exactly how much time and money you save by choosing one method over the other.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-warning me-2"></i> The Side Hustle / Windfall Injector</h3>
+            <p class="text-theme-muted">What happens if you get a $1,000 tax refund? Or what if you start a side hustle? Use our <strong>Windfall Injector</strong> to apply a one-time lump sum payment. Watch in real-time as your "Debt Free Date" shrinks, proving exactly how many months or years of your life you just bought back!</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-triangle-exclamation text-danger me-2"></i> Avoid the Minimum Payment Trap (Market Gap)</h3>
+            <p class="text-theme-muted">This is a unique reality check tool. If your minimum payment is $25, but your monthly interest charge is $30, your debt will literally grow forever! Our calculator's intelligent engine automatically detects if you are caught in the <strong>Minimum Payment Trap</strong> and flashes a warning so you can escape the cycle.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-temperature-arrow-up text-primary me-2"></i> Interest Rate Stress Test (Market Gap)</h3>
+            <p class="text-theme-muted">Most credit cards have variable rates tied to the Federal Reserve. What happens if the Fed hikes rates by 2% next month? Use our <strong>Interest Rate Stress Test</strong> slider to simulate an instant rate hike across all your debts, showing exactly how much extra time and money a bad economy will cost you.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.5s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    Which is better: Debt Snowball or Debt Avalanche?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Mathematically, the <strong>Avalanche method</strong> is better because paying off high-interest debt first saves you the most money. However, psychologically, the <strong>Snowball method</strong> is often better because clearing small debts quickly gives you the emotional motivation to stick to your budget and actually finish the journey.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    How do I pay off 5 credit cards fast?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    First, stop using the cards. Second, continue paying the minimum payment on all 5 cards. Third, take any extra cash you have (from a side hustle or cutting expenses) and put all of it toward a single target card (either the smallest balance or the highest rate). Once that card is dead, roll its payment into the next card!
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    What happens if I only pay the minimum payment?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    If you only make minimum payments, your credit card company will charge you massive amounts of interest every month. It can literally take 15 to 20 years to pay off a single credit card if you only make the minimum payment! You must add an "Extra Monthly Payment" to make real progress.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Debt Snowball & Avalanche Payoff Calculator",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            },
+            "description": "Learn how to pay off multiple credit cards fast. Calculate your exact debt-free date and compare the Debt Snowball vs Avalanche methods instantly."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "Which is better: Debt Snowball or Debt Avalanche?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Mathematically, the Avalanche method is better because it saves the most interest money. Psychologically, the Snowball method is better because getting quick wins keeps you highly motivated."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "How do I pay off 5 credit cards fast?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Pay the minimum on all cards, then throw every extra dollar you have at one single target card until it is dead. Roll its payment into the next card. This is called the debt snowball."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "What happens if I only pay the minimum payment?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "If you only make minimum payments, massive interest charges mean it can take 15 to 20 years to pay off a single credit card."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+
+{% endblock %}

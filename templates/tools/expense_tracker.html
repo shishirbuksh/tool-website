@@ -1,0 +1,883 @@
+{% extends "base.html" %}
+
+{% block title %}Advanced Expense Tracker | Smart Budgeting & Insights{% endblock %}
+{% block meta_description %}Use our free advanced expense tracker with AI-style insights. Auto-fill from bank SMS, track 50/30/20 budget rules, and find hidden subscription costs.{% endblock %}
+{% block meta_keywords %}expense tracker, smart budget planner, bank sms parser, 50 30 20 rule calculator, subscription tracker, personal finance tool{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/expense-tracker{% endblock %}
+{% block og_tags %}
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.storybrainai.com/tool/expense-tracker">
+<meta property="og:site_name" content="StoryBrain AI">
+<meta property="og:title" content="Advanced Expense Tracker | Smart Budgeting & Insights">
+<meta property="og:description" content="Manage money smarter. Auto-fill expenses from Bank SMS, track your 50/30/20 budget health, and detect hidden subscription costs.">
+<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Advanced Expense Tracker | Smart Budgeting">
+<meta name="twitter:description" content="Manage money smarter. Auto-fill expenses from Bank SMS, track your 50/30/20 budget health, and detect hidden subscription costs.">
+{% endblock %}
+
+{% block head %}
+<style>
+    .amount-display {
+        font-family: var(--font-display);
+        font-size: 2.5rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+    .expense-list {
+        max-height: 450px;
+        overflow-y: auto;
+    }
+    .expense-item {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    html[data-bs-theme="light"] .expense-item {
+        background: rgba(0,0,0,0.02);
+        border-color: rgba(0,0,0,0.05);
+    }
+    .expense-item:hover {
+        background: rgba(var(--sb-accent-rgb), 0.1);
+        border-color: rgba(var(--sb-accent-rgb), 0.3);
+    }
+    .cat-badge {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.6rem;
+        border-radius: 2rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    /* Hide number arrows */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+    
+    .type-toggle .btn {
+        border-color: var(--sb-border);
+        color: var(--sb-text-muted);
+    }
+    .type-toggle .btn-check:checked + .btn-outline-success {
+        background-color: rgba(25, 135, 84, 0.2);
+        border-color: var(--bs-success);
+        color: var(--bs-success);
+    }
+    .type-toggle .btn-check:checked + .btn-outline-danger {
+        background-color: rgba(220, 53, 69, 0.2);
+        border-color: var(--bs-danger);
+        color: var(--bs-danger);
+    }
+    .insights-card {
+        background: linear-gradient(135deg, rgba(var(--sb-accent-rgb), 0.05), rgba(var(--sb-accent-rgb), 0.15));
+        border: 1px solid rgba(var(--sb-accent-rgb), 0.3);
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-lg mx-auto" style="max-width: 1200px;">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning border-opacity-20 px-4 py-2 mb-4">
+            <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Smart Money Tools
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">SMART <span class="gradient-text italic">MONEY TRACKER</span></h1>
+        <p class="text-white-50 fs-5 mx-auto text-center" style="max-width: 700px;">
+            The only expense tracker you need. Auto-fill transactions from your Bank SMS and get automated AI-style insights on your spending habits.
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-4 reveal" style="animation-delay: 0.2s;">
+        
+        <!-- Top Summary Cards -->
+        <div class="col-12">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="glass-card p-4 text-center border-success border-opacity-25 bg-success bg-opacity-10 h-100">
+                        <span class="small fw-bold text-success tracking-widest text-uppercase d-block mb-2">Total Income</span>
+                        <h3 id="totalIncome" class="amount-display text-success mb-0">₹0</h3>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="glass-card p-4 text-center border-danger border-opacity-25 bg-danger bg-opacity-10 h-100">
+                        <span class="small fw-bold text-danger tracking-widest text-uppercase d-block mb-2">Total Expenses</span>
+                        <h3 id="totalExpenses" class="amount-display text-danger mb-0">₹0</h3>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="glass-card p-4 text-center border-theme h-100" id="balanceCard">
+                        <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-2" id="balanceLabel">Net Savings (Balance)</span>
+                        <h3 id="remainingBalance" class="amount-display text-theme mb-0">₹0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Transaction Form -->
+        <div class="col-lg-5">
+            <div class="glass-card p-4 p-md-5 h-100 d-flex flex-column border-theme position-relative">
+                <h3 class="fs-4 fw-bold mb-4"><i class="fa-solid fa-plus-circle text-primary me-2"></i> Add Transaction</h3>
+                
+                <!-- Magic SMS Parser (Market Gap Feature) -->
+                <div class="mb-4">
+                    <button type="button" class="btn btn-sm btn-outline-warning rounded-pill w-100 mb-2" id="btnSmartPasteToggle">
+                        <i class="fa-solid fa-wand-magic-sparkles me-2"></i> Auto-Fill from Bank SMS
+                    </button>
+                    <div id="smsInputContainer" style="display: none; opacity: 0; transition: opacity 0.3s ease;" class="p-3 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 mt-2">
+                        <label class="small fw-bold text-warning mb-2">Paste Bank SMS Here</label>
+                        <textarea id="smsText" class="form-control bg-theme-surface border-warning border-opacity-25 text-theme mb-2" rows="2" placeholder="e.g. Debited Rs.450.00 from A/C at Zomato..."></textarea>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-sm btn-warning fw-bold text-dark" id="btnParseSms">Extract Details</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <form id="transactionForm" class="flex-grow-1">
+                    
+                    <!-- Type Toggle -->
+                    <div class="mb-4">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Transaction Type</label>
+                        <div class="btn-group w-100 type-toggle" role="group">
+                            <input type="radio" class="btn-check" name="transType" id="typeExpense" value="expense" checked>
+                            <label class="btn btn-outline-danger fw-bold py-2" for="typeExpense"><i class="fa-solid fa-arrow-down me-2"></i>Expense</label>
+
+                            <input type="radio" class="btn-check" name="transType" id="typeIncome" value="income">
+                            <label class="btn btn-outline-success fw-bold py-2" for="typeIncome"><i class="fa-solid fa-arrow-up me-2"></i>Income</label>
+                        </div>
+                    </div>
+
+                    <!-- Details -->
+                    <div class="mb-4">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Description</label>
+                        <input type="text" id="transName" class="form-control form-control-lg bg-theme-surface border-theme py-2 fw-bold text-theme" placeholder="e.g. Salary, Groceries, Rent" required>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted">₹</span>
+                                <input type="number" id="transAmount" class="form-control form-control-lg bg-theme-surface border-theme py-2 fw-bold text-theme" placeholder="0" min="1" step="1" required>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Date</label>
+                            <input type="date" id="transDate" class="form-control form-control-lg bg-theme-surface border-theme py-2 fw-bold text-theme" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-4" id="categoryGroup">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Category</label>
+                        <select id="transCategory" class="form-select form-select-lg bg-theme-surface border-theme text-theme py-2 fw-bold">
+                            <!-- Populated dynamically based on type -->
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-premium w-100 py-3 fs-6 mt-2" id="submitBtn">
+                        <i class="fa-solid fa-plus me-2"></i> ADD EXPENSE
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Chart & List -->
+        <div class="col-lg-7">
+            <div class="glass-card shadow-lg p-4 p-md-5 h-100 d-flex flex-column">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-theme flex-wrap gap-3">
+                    <ul class="nav nav-pills gap-2" id="trackerTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active rounded-pill fw-bold" id="list-tab" data-bs-toggle="pill" data-bs-target="#list-view" type="button" role="tab"><i class="fa-solid fa-list me-2"></i> History</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link rounded-pill fw-bold" id="chart-tab" data-bs-toggle="pill" data-bs-target="#chart-view" type="button" role="tab"><i class="fa-solid fa-chart-pie me-2"></i> Chart</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link rounded-pill fw-bold text-warning" id="insights-tab" data-bs-toggle="pill" data-bs-target="#insights-view" type="button" role="tab"><i class="fa-solid fa-lightbulb me-2"></i> Insights</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="d-flex gap-2">
+                        <select id="monthFilter" class="form-select form-select-sm bg-theme-surface border-theme text-theme rounded-pill px-3 fw-bold" style="width: auto;">
+                            <option value="all">All Time</option>
+                            <!-- Dynamic months will be added here -->
+                        </select>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end bg-theme-surface border-theme shadow-lg">
+                                <li><button class="dropdown-item text-theme" id="exportCsvBtn"><i class="fa-solid fa-file-csv me-2 text-success"></i> Export to CSV</button></li>
+                                <li><hr class="dropdown-divider border-theme"></li>
+                                <li><button class="dropdown-item text-danger" id="clearAllBtn"><i class="fa-solid fa-trash me-2"></i> Delete All Data</button></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-content flex-grow-1" id="trackerTabContent">
+                    <!-- List Tab -->
+                    <div class="tab-pane fade show active h-100" id="list-view" role="tabpanel">
+                        <div id="listEmptyState" class="text-center py-5 text-theme-muted">
+                            <i class="fa-solid fa-receipt fs-1 mb-3 opacity-50"></i>
+                            <h5>No transactions found</h5>
+                            <p class="small">Add your first income or expense using the form to see it here.</p>
+                        </div>
+                        <div id="transactionList" class="expense-list pe-2" style="display: none;">
+                            <!-- Dynamic items will go here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Chart Tab -->
+                    <div class="tab-pane fade h-100" id="chart-view" role="tabpanel">
+                        <div id="chartEmptyState" class="text-center py-5 text-theme-muted" style="display: none;">
+                            <i class="fa-solid fa-chart-pie fs-1 mb-3 opacity-50"></i>
+                            <h5>No expenses to show</h5>
+                            <p class="small">Add an expense to see the visual breakdown.</p>
+                        </div>
+                        <div id="chartContainer" class="d-flex align-items-center justify-content-center h-100" style="min-height: 300px;">
+                            <div style="height: 300px; width: 100%; position: relative;">
+                                <canvas id="expenseChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Smart Insights Tab (Market Gap Feature) -->
+                    <div class="tab-pane fade h-100" id="insights-view" role="tabpanel">
+                        <div id="insightsEmptyState" class="text-center py-5 text-theme-muted" style="display: none;">
+                            <i class="fa-solid fa-lightbulb fs-1 mb-3 opacity-50"></i>
+                            <h5>Need more data</h5>
+                            <p class="small">Add your income and a few expenses to unlock smart financial insights.</p>
+                        </div>
+                        <div id="insightsContent" style="display: none;">
+                            
+                            <!-- 50/30/20 Rule -->
+                            <div class="glass-card insights-card p-4 rounded-4 mb-4">
+                                <h5 class="fw-bold text-theme mb-3"><i class="fa-solid fa-scale-balanced text-primary me-2"></i> 50/30/20 Budget Health</h5>
+                                <p class="small text-theme-muted mb-3">The golden rule recommends splitting your income: 50% on Needs, 30% on Wants, and 20% on Savings.</p>
+                                
+                                <div class="progress-stacked mb-3" style="height: 1.5rem; border-radius: 1rem; background-color: rgba(255,255,255,0.05);">
+                                    <div id="barNeeds" class="progress-bar bg-info" style="width: 0%" title="Needs"></div>
+                                    <div id="barWants" class="progress-bar bg-warning" style="width: 0%" title="Wants"></div>
+                                    <div id="barSavings" class="progress-bar bg-success" style="width: 0%" title="Savings"></div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between small fw-bold mb-3">
+                                    <span class="text-info">Needs (<span id="lblNeeds">0</span>%)</span>
+                                    <span class="text-warning">Wants (<span id="lblWants">0</span>%)</span>
+                                    <span class="text-success">Savings (<span id="lblSavings">0</span>%)</span>
+                                </div>
+                                
+                                <div class="p-3 rounded-3 bg-theme-surface border border-theme">
+                                    <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">AI Budget Advice</span>
+                                    <p id="budgetAdvice" class="mb-0 fw-bold text-theme fs-6"></p>
+                                </div>
+                            </div>
+
+                            <!-- Subscription Warning -->
+                            <div class="glass-card p-4 border-danger border-opacity-25 bg-danger bg-opacity-10 rounded-4">
+                                <h6 class="fw-bold text-danger fs-5 mb-2"><i class="fa-solid fa-repeat me-2"></i> Hidden Subscription Costs</h6>
+                                <p class="text-theme-muted mb-0" id="subscriptionWarning" style="line-height: 1.6;"></p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function formatCurrency(val) {
+    return parseFloat(val).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
+    const resIncome = document.getElementById('totalIncome');
+    const resExpenses = document.getElementById('totalExpenses');
+    const resBalance = document.getElementById('remainingBalance');
+    const balanceCard = document.getElementById('balanceCard');
+    
+    const transactionForm = document.getElementById('transactionForm');
+    const typeRadios = document.getElementsByName('transType');
+    const transName = document.getElementById('transName');
+    const transAmount = document.getElementById('transAmount');
+    const transDate = document.getElementById('transDate');
+    const transCategory = document.getElementById('transCategory');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Smart SMS feature
+    const btnSmartPasteToggle = document.getElementById('btnSmartPasteToggle');
+    const smsInputContainer = document.getElementById('smsInputContainer');
+    const smsText = document.getElementById('smsText');
+    const btnParseSms = document.getElementById('btnParseSms');
+    
+    const listEmptyState = document.getElementById('listEmptyState');
+    const transactionList = document.getElementById('transactionList');
+    const chartEmptyState = document.getElementById('chartEmptyState');
+    const chartContainer = document.getElementById('chartContainer');
+    
+    const monthFilter = document.getElementById('monthFilter');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const exportCsvBtn = document.getElementById('exportCsvBtn');
+    
+    // State
+    let transactions = []; // {id, type, name, amount, category, date (YYYY-MM-DD)}
+    let chartInstance = null;
+    let currentFilter = 'all'; // 'all' or 'YYYY-MM'
+    
+    // Set default date to today
+    const today = new Date();
+    transDate.value = today.toISOString().split('T')[0];
+    
+    // Categories
+    const expenseCategories = ['Housing', 'Food', 'Transport', 'Utilities', 'Health', 'Entertainment', 'Shopping', 'Other'];
+    const incomeCategories = ['Salary', 'Business', 'Investments', 'Freelance', 'Gift', 'Other'];
+    
+    const categoryColors = {
+        'Housing': '#6610f2', 'Food': '#fd7e14', 'Transport': '#0dcaf0', 'Utilities': '#ffc107',
+        'Health': '#dc3545', 'Entertainment': '#d63384', 'Shopping': '#20c997', 'Other': '#6c757d',
+        'Salary': '#198754', 'Business': '#0d6efd', 'Investments': '#6f42c1', 'Freelance': '#0dcaf0', 'Gift': '#ffc107'
+    };
+
+    // Initialize Categories
+    function updateCategoryDropdown() {
+        const type = document.querySelector('input[name="transType"]:checked').value;
+        const cats = type === 'expense' ? expenseCategories : incomeCategories;
+        
+        transCategory.innerHTML = '';
+        cats.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.innerText = cat;
+            transCategory.appendChild(opt);
+        });
+        
+        // Update button text
+        submitBtn.innerHTML = type === 'expense' ? '<i class="fa-solid fa-plus me-2"></i> ADD EXPENSE' : '<i class="fa-solid fa-plus me-2"></i> ADD INCOME';
+    }
+    
+    Array.from(typeRadios).forEach(r => {
+        r.addEventListener('change', updateCategoryDropdown);
+    });
+    updateCategoryDropdown();
+
+    // Load Data
+    function loadData() {
+        const savedData = localStorage.getItem('sb_adv_transactions');
+        if (savedData) {
+            try {
+                transactions = JSON.parse(savedData);
+            } catch(e) {
+                transactions = [];
+            }
+        }
+        updateMonthFilterOptions();
+        updateUI();
+    }
+
+    // Save Data
+    function saveData() {
+        localStorage.setItem('sb_adv_transactions', JSON.stringify(transactions));
+        updateMonthFilterOptions();
+    }
+
+    // Month Filter Logic
+    function updateMonthFilterOptions() {
+        const months = new Set();
+        transactions.forEach(t => {
+            const ym = t.date.substring(0, 7); // YYYY-MM
+            months.add(ym);
+        });
+        
+        const currentSel = monthFilter.value;
+        monthFilter.innerHTML = '<option value="all">All Time</option>';
+        Array.from(months).sort().reverse().forEach(ym => {
+            const dateObj = new Date(ym + '-01');
+            const label = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            const opt = document.createElement('option');
+            opt.value = ym;
+            opt.innerText = label;
+            monthFilter.appendChild(opt);
+        });
+        
+        if (months.has(currentSel)) monthFilter.value = currentSel;
+        else { monthFilter.value = 'all'; currentFilter = 'all'; }
+    }
+    
+    monthFilter.addEventListener('change', (e) => {
+        currentFilter = e.target.value;
+        updateUI();
+    });
+
+    // SMART SMS LOGIC
+    btnSmartPasteToggle.addEventListener('click', () => {
+        if(smsInputContainer.style.display === 'none') {
+            smsInputContainer.style.display = 'block';
+            setTimeout(() => { smsInputContainer.style.opacity = '1'; }, 10);
+            smsText.focus();
+        } else {
+            smsInputContainer.style.opacity = '0';
+            setTimeout(() => { smsInputContainer.style.display = 'none'; }, 300);
+        }
+    });
+
+    btnParseSms.addEventListener('click', () => {
+        const text = smsText.value;
+        if(!text) return;
+        
+        // Amount extraction (e.g. Rs. 450.00, INR 5,000, ₹1000)
+        const amountMatch = text.match(/(?:Rs\.?|INR|₹)\s?(\d+(?:,\d+)*(?:\.\d+)?)/i);
+        if(amountMatch) {
+            let amt = amountMatch[1].replace(/,/g, '');
+            transAmount.value = parseFloat(amt);
+        }
+        
+        // Type detection
+        if(text.toLowerCase().includes('credited') || text.toLowerCase().includes('deposited')) {
+            document.getElementById('typeIncome').checked = true;
+        } else {
+            document.getElementById('typeExpense').checked = true;
+        }
+        updateCategoryDropdown();
+        
+        // Merchant detection (simple heuristics)
+        let foundName = '';
+        const nameMatch = text.match(/at\s+([A-Za-z0-9\s]+?)(?:\.| on | val | txn)/i) || text.match(/to\s+([A-Za-z0-9\s]+?)(?:\.| on | ref)/i);
+        if(nameMatch) {
+            foundName = nameMatch[1].trim();
+            transName.value = foundName;
+        }
+
+        // Auto category mapping
+        const lowerText = (text + ' ' + foundName).toLowerCase();
+        let cat = 'Other';
+        if(lowerText.match(/zomato|swiggy|restaurant|cafe|mcdonalds|kfc|pizza/)) cat = 'Food';
+        if(lowerText.match(/uber|ola|petrol|fuel|irctc|metro/)) cat = 'Transport';
+        if(lowerText.match(/amazon|flipkart|myntra|zara|h&m/)) cat = 'Shopping';
+        if(lowerText.match(/netflix|spotify|prime|hotstar/)) cat = 'Entertainment';
+        if(lowerText.match(/hospital|pharmacy|apollo|medplus/)) cat = 'Health';
+        if(lowerText.match(/electricity|bill|jio|airtel|recharge/)) cat = 'Utilities';
+        if(lowerText.match(/salary|payroll/)) cat = 'Salary';
+        
+        transCategory.value = cat;
+        
+        // Close container and highlight success
+        smsInputContainer.style.opacity = '0';
+        setTimeout(() => { smsInputContainer.style.display = 'none'; }, 300);
+        smsText.value = '';
+        
+        // Flash animation to show fields populated
+        transName.classList.add('bg-warning', 'bg-opacity-25');
+        transAmount.classList.add('bg-warning', 'bg-opacity-25');
+        setTimeout(() => {
+            transName.classList.remove('bg-warning', 'bg-opacity-25');
+            transAmount.classList.remove('bg-warning', 'bg-opacity-25');
+        }, 1000);
+    });
+
+    // Add Transaction
+    transactionForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const type = document.querySelector('input[name="transType"]:checked').value;
+        const newTrans = {
+            id: Date.now().toString(),
+            type: type,
+            name: transName.value.trim(),
+            amount: parseFloat(transAmount.value),
+            category: transCategory.value,
+            date: transDate.value
+        };
+        transactions.unshift(newTrans);
+        transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        saveData();
+        updateUI();
+        
+        transName.value = '';
+        transAmount.value = '';
+        transName.focus();
+    });
+
+    // Delete Transaction
+    window.deleteTransaction = function(id) {
+        transactions = transactions.filter(t => t.id !== id);
+        saveData();
+        updateUI();
+    };
+
+    // Clear All
+    clearAllBtn.addEventListener('click', () => {
+        if(confirm("Are you sure you want to delete ALL your financial data? This cannot be undone.")) {
+            transactions = [];
+            saveData();
+            updateUI();
+        }
+    });
+
+    // Export to CSV
+    exportCsvBtn.addEventListener('click', () => {
+        if (transactions.length === 0) return alert("No data to export.");
+        let csvContent = "data:text/csv;charset=utf-8,Date,Type,Description,Category,Amount\n";
+        transactions.forEach(t => {
+            const desc = t.name.replace(/,/g, " ");
+            csvContent += `${t.date},${t.type},${desc},${t.category},${t.amount}\n`;
+        });
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "smart_expense_tracker.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+
+    // Update UI
+    function updateUI() {
+        let filteredTrans = transactions;
+        if (currentFilter !== 'all') {
+            filteredTrans = transactions.filter(t => t.date.startsWith(currentFilter));
+        }
+        
+        let totalInc = 0; let totalExp = 0;
+        filteredTrans.forEach(t => {
+            if (t.type === 'income') totalInc += t.amount;
+            if (t.type === 'expense') totalExp += t.amount;
+        });
+        
+        let remBalance = totalInc - totalExp;
+        
+        resIncome.innerText = "₹" + formatCurrency(totalInc);
+        resExpenses.innerText = "₹" + formatCurrency(totalExp);
+        resBalance.innerText = (remBalance < 0 ? "-₹" : "₹") + formatCurrency(Math.abs(remBalance));
+        
+        if (remBalance < 0) {
+            balanceCard.className = "glass-card p-4 text-center border-danger border-opacity-25 bg-danger bg-opacity-10 h-100";
+            resBalance.className = "amount-display text-danger mb-0";
+        } else if (remBalance > 0) {
+            balanceCard.className = "glass-card p-4 text-center border-success border-opacity-25 bg-success bg-opacity-10 h-100";
+            resBalance.className = "amount-display text-success mb-0";
+        } else {
+            balanceCard.className = "glass-card p-4 text-center border-theme h-100";
+            resBalance.className = "amount-display text-theme mb-0";
+        }
+        
+        renderList(filteredTrans);
+        renderChart(filteredTrans);
+        renderSmartInsights(filteredTrans, totalInc, totalExp);
+    }
+
+    function renderList(filteredTrans) {
+        if (filteredTrans.length === 0) {
+            listEmptyState.style.display = 'block';
+            transactionList.style.display = 'none';
+            return;
+        }
+        listEmptyState.style.display = 'none';
+        transactionList.style.display = 'block';
+        transactionList.innerHTML = '';
+        
+        filteredTrans.forEach(t => {
+            const div = document.createElement('div');
+            div.className = 'expense-item d-flex justify-content-between align-items-center';
+            const badgeBg = categoryColors[t.category] || categoryColors['Other'];
+            const displayDate = new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const isInc = t.type === 'income';
+            
+            div.innerHTML = `
+                <div class="d-flex align-items-center gap-3">
+                    <div class="cat-badge text-white" style="background-color: ${badgeBg}; width: 80px; text-align: center;" title="${t.category}">${t.category.length > 8 ? t.category.substring(0,8)+'..' : t.category}</div>
+                    <div>
+                        <h6 class="mb-0 fw-bold text-theme">${t.name}</h6>
+                        <small class="text-theme-muted">${displayDate}</small>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fw-bold font-mono ${isInc ? 'text-success' : 'text-danger'}">${isInc ? '+' : '-'}₹${formatCurrency(t.amount)}</span>
+                    <button class="btn btn-sm text-theme-muted hover-danger p-1" onclick="deleteTransaction('${t.id}')" title="Delete">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+            `;
+            transactionList.appendChild(div);
+        });
+    }
+
+    function renderChart(filteredTrans) {
+        const expensesOnly = filteredTrans.filter(t => t.type === 'expense');
+        if (expensesOnly.length === 0) {
+            chartEmptyState.style.display = 'block';
+            chartContainer.style.display = 'none';
+            return;
+        }
+        chartEmptyState.style.display = 'none';
+        chartContainer.style.display = 'flex';
+        
+        const aggregated = {};
+        expensesOnly.forEach(exp => {
+            if (!aggregated[exp.category]) aggregated[exp.category] = 0;
+            aggregated[exp.category] += exp.amount;
+        });
+        
+        const labels = Object.keys(aggregated);
+        const dataVals = Object.values(aggregated);
+        const bgColors = labels.map(label => categoryColors[label]);
+
+        const ctx = document.getElementById('expenseChart').getContext('2d');
+        const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const textColor = isDarkMode ? '#adb5bd' : '#6c757d';
+
+        if (chartInstance) {
+            chartInstance.data.labels = labels;
+            chartInstance.data.datasets[0].data = dataVals;
+            chartInstance.data.datasets[0].backgroundColor = bgColors;
+            chartInstance.options.plugins.legend.labels.color = textColor;
+            chartInstance.options.plugins.title.color = textColor;
+            chartInstance.update();
+        } else {
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: dataVals, backgroundColor: bgColors, borderWidth: 0, hoverOffset: 4 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '70%',
+                    plugins: {
+                        legend: { position: 'right', labels: { color: textColor, font: { family: "'Inter', sans-serif" }, usePointStyle: true, padding: 20 } },
+                        title: { display: true, text: 'Expense Breakdown', color: textColor, font: { size: 16, family: "'Inter', sans-serif" } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed !== null) label += '₹' + formatCurrency(context.parsed);
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // SMART INSIGHTS LOGIC
+    function renderSmartInsights(filteredTrans, totalInc, totalExp) {
+        if(totalInc === 0 && totalExp === 0) {
+            document.getElementById('insightsEmptyState').style.display = 'block';
+            document.getElementById('insightsContent').style.display = 'none';
+            return;
+        }
+        
+        document.getElementById('insightsEmptyState').style.display = 'none';
+        document.getElementById('insightsContent').style.display = 'block';
+
+        let needs = 0; let wants = 0;
+        let subscriptions = 0; let subNames = new Set();
+        
+        filteredTrans.forEach(t => {
+            if(t.type === 'expense') {
+                // 50/30/20 grouping
+                if(['Housing', 'Utilities', 'Health', 'Transport'].includes(t.category)) {
+                    needs += t.amount;
+                } else if (['Entertainment', 'Shopping'].includes(t.category)) {
+                    wants += t.amount;
+                } else if (t.category === 'Food') {
+                    needs += t.amount * 0.6; // Assuming 60% groceries
+                    wants += t.amount * 0.4; // Assuming 40% dining out
+                } else {
+                    wants += t.amount;
+                }
+
+                // Subscription detection
+                const nameL = t.name.toLowerCase();
+                if(nameL.match(/netflix|spotify|prime|hotstar|gym|membership|apple|google/)) {
+                    subscriptions += t.amount;
+                    subNames.add(t.name);
+                }
+            }
+        });
+
+        // Calculate Percentages based on Income (or Expenses if no income)
+        const savings = totalInc - totalExp;
+        const base = totalInc > 0 ? totalInc : totalExp;
+        
+        if(base > 0) {
+            let pNeeds = Math.min(100, Math.round((needs / base) * 100));
+            let pWants = Math.min(100, Math.round((wants / base) * 100));
+            let pSavings = totalInc > 0 ? Math.max(0, Math.round((savings / totalInc) * 100)) : 0;
+            
+            if(totalInc === 0) pSavings = 0; // Can't save what you don't earn
+            
+            document.getElementById('barNeeds').style.width = pNeeds + '%';
+            document.getElementById('barWants').style.width = pWants + '%';
+            document.getElementById('barSavings').style.width = pSavings + '%';
+            
+            document.getElementById('lblNeeds').innerText = pNeeds;
+            document.getElementById('lblWants').innerText = pWants;
+            document.getElementById('lblSavings').innerText = pSavings;
+            
+            let advice = "";
+            if(totalInc === 0) advice = "Add your Income to see how much you are saving.";
+            else if(pSavings < 20) advice = "You are saving less than the recommended 20%. Look at your 'Wants' category for things you can cut back on.";
+            else if(pSavings >= 20 && pNeeds <= 50) advice = "Excellent! You are perfectly following the golden 50/30/20 budgeting rule.";
+            else advice = "Good job tracking! Focus on keeping your 'Needs' below 50% of your total income.";
+            
+            document.getElementById('budgetAdvice').innerText = advice;
+        }
+
+        // Subscriptions Update
+        const subWarn = document.getElementById('subscriptionWarning');
+        if(subscriptions > 0) {
+            let yearly = subscriptions * (currentFilter === 'all' ? 1 : 12);
+            subWarn.innerHTML = `You are spending <strong>₹${formatCurrency(subscriptions)}</strong> on subscriptions (like <em>${Array.from(subNames).join(', ')}</em>). This equals roughly <strong>₹${formatCurrency(yearly)} per year</strong>. Consider cancelling unused ones!`;
+        } else {
+            subWarn.innerHTML = "We didn't detect any common recurring subscriptions (like Netflix or Gym memberships) in your recent expenses.";
+        }
+    }
+
+    // Init
+    loadData();
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
+    <h2 class="fs-3 fw-bold mb-4">The Most Advanced Smart Budget Tracker</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-wand-magic-sparkles text-primary me-2"></i> Auto-Fill from Bank SMS</h3>
+            <p class="text-theme-muted">Tired of typing everything manually? Simply paste the transaction SMS from your bank. Our tool uses smart keyword matching to instantly detect the <strong>amount, merchant, and category</strong> for you!</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-scale-balanced text-success me-2"></i> The 50/30/20 Budget Rule</h3>
+            <p class="text-theme-muted">The best way to build wealth is the 50/30/20 rule: 50% on Needs, 30% on Wants, and 20% on Savings. Our <strong>Smart Insights</strong> tab automatically categorizes your expenses to show you if your budget is healthy.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-magnifying-glass-dollar text-danger me-2"></i> Find Hidden Subscriptions</h3>
+            <p class="text-theme-muted">Are you paying for Netflix or Gym memberships you don't use? The tracker automatically detects common recurring subscriptions and calculates how much they cost you every single year.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-warning me-2"></i> 100% Private Data</h3>
+            <p class="text-theme-muted">Even with these advanced AI-style insights, your data never leaves your computer. The SMS parser and budgeting tools run completely securely in your browser's local storage.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.5s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    How does the Bank SMS auto-fill work?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Click the "Auto-Fill from Bank SMS" button, paste your transaction message, and click Extract. Our tool scans the text to find the amount (like "Rs. 450"), detects if it was credited or debited, and guesses the category (e.g. mapping "Zomato" to "Food").
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    What is the 50/30/20 rule?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    It is a popular personal finance rule that suggests dividing your after-tax income into three categories: 50% for Needs (Housing, Utilities), 30% for Wants (Entertainment, Shopping), and 20% for Savings or paying off debt.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    Is it safe to paste my bank SMS?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Yes! It is 100% safe. The SMS text is processed entirely on your own device. We do not use any servers, so your financial data is never sent over the internet or saved by anyone else.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Smart Budget Tracker",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "INR"
+            },
+            "description": "Auto-fill your expenses from Bank SMS, track your 50/30/20 budget health, and detect hidden subscriptions with our Smart Money Tracker."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "How does the Bank SMS auto-fill work?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Paste your bank SMS and the tool scans the text to extract the amount, detect the merchant, and automatically assign the correct expense category."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "What is the 50/30/20 rule?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "It is a budgeting rule that suggests dividing your income into 50% for Needs, 30% for Wants, and 20% for Savings."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Is it safe to paste my bank SMS?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Yes, 100% safe. The SMS is processed entirely on your local device and is never sent to any server."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+
+{% endblock %}

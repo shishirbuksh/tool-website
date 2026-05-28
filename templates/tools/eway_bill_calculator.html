@@ -1,0 +1,562 @@
+{% extends "base.html" %}
+
+{% block title %}Global Freight & Logistics Calculator | Transit Time & Fuel Cost{% endblock %}
+{% block meta_description %}Calculate global zip-to-zip distance, estimate true legal transit time based on driver rest laws, and calculate freight fuel costs instantly.{% endblock %}
+{% block meta_keywords %}freight distance calculator, global shipping time calculator, legal transit time, truck driver hours of service calculator, freight fuel cost calculator, eway bill distance{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/eway-bill-calculator{% endblock %}
+{% block og_tags %}
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.storybrainai.com/tool/eway-bill-calculator">
+<meta property="og:site_name" content="StoryBrain AI">
+<meta property="og:title" content="Global Freight & E-Way Bill Calculator">
+<meta property="og:description" content="Calculate global freight distances, legal transit times with driver rest laws, and truck fuel costs. Includes GST E-Way Bill limits for India.">
+<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Global Freight Calculator">
+<meta name="twitter:description" content="Calculate global zip-to-zip freight distances, driver rest transit times, and fuel costs.">
+{% endblock %}
+
+{% block head %}
+<style>
+    .amount-display {
+        font-family: var(--font-display);
+        font-size: 2.5rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+
+    .market-gap-card {
+        background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.1), rgba(var(--bs-primary-rgb), 0.02));
+        border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
+    }
+    .transit-card {
+        background: linear-gradient(135deg, rgba(var(--bs-warning-rgb), 0.1), rgba(var(--bs-warning-rgb), 0.02));
+        border: 1px solid rgba(var(--bs-warning-rgb), 0.3);
+    }
+    .fuel-card {
+        background: linear-gradient(135deg, rgba(var(--bs-success-rgb), 0.1), rgba(var(--bs-success-rgb), 0.02));
+        border: 1px solid rgba(var(--bs-success-rgb), 0.3);
+    }
+    .india-card {
+        background: linear-gradient(135deg, rgba(var(--bs-danger-rgb), 0.1), rgba(var(--bs-danger-rgb), 0.02));
+        border: 1px solid rgba(var(--bs-danger-rgb), 0.3);
+    }
+    
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+
+    .loader-spinner {
+        display: none;
+        width: 1.5rem;
+        height: 1.5rem;
+        border: 3px solid rgba(255,255,255,0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-lg mx-auto" style="max-width: 1200px;">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 mb-4">
+            <i class="fa-solid fa-earth-americas me-2"></i> Global Logistics Tool
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">GLOBAL <span class="gradient-text italic text-primary">FREIGHT CALCULATOR</span></h1>
+        <p class="text-white-50 fs-5 mx-auto text-center" style="max-width: 800px;">
+            Calculate zip-to-zip distance anywhere in the world. Estimate true legal transit time based on driver laws, and predict exact fuel costs for your shipment.
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-4 reveal" style="animation-delay: 0.2s;">
+        
+        <!-- Calculator Inputs -->
+        <div class="col-lg-5">
+            <div class="glass-card p-4 p-md-5 h-100 d-flex flex-column border-theme position-relative">
+                <h3 class="fs-4 fw-bold mb-4 text-primary"><i class="fa-solid fa-map-location-dot me-2"></i> Trip Details</h3>
+                
+                <form id="freightForm" class="flex-grow-1">
+                    
+                    <!-- Country Selector -->
+                    <div class="mb-4">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">Select Country</label>
+                        <select id="country" class="form-select form-select-lg bg-theme-surface border-theme text-theme py-2 fw-bold">
+                            <option value="us">United States (US)</option>
+                            <option value="ca">Canada (CA)</option>
+                            <option value="gb">United Kingdom (UK)</option>
+                            <option value="au">Australia (AU)</option>
+                            <option value="de">Germany (DE)</option>
+                            <option value="fr">France (FR)</option>
+                            <option value="in" selected>India (IN) - With E-Way Bill</option>
+                        </select>
+                    </div>
+
+                    <!-- Zip/PIN Codes -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">From Zip/PIN</label>
+                            <input type="text" id="fromZip" class="form-control form-control-lg bg-theme-surface border-theme text-theme fw-bold" placeholder="Origin" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2">To Zip/PIN</label>
+                            <input type="text" id="toZip" class="form-control form-control-lg bg-theme-surface border-theme text-theme fw-bold" placeholder="Destination" required>
+                        </div>
+                    </div>
+
+                    <!-- Market Gap 1: Driver Logic -->
+                    <div class="mb-4 pt-3 border-top border-theme">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="small fw-bold tracking-widest text-uppercase text-warning">Legal Transit Time check</label>
+                            <span class="badge bg-warning text-dark">Market Gap</span>
+                        </div>
+                        <p class="small text-theme-muted mb-2">Standard tools ignore truck driver sleep laws. We calculate real delivery time.</p>
+                        
+                        <label class="small fw-bold text-theme-muted mb-2">Number of Drivers</label>
+                        <select id="drivers" class="form-select bg-theme-surface border-theme text-theme fw-bold mb-3">
+                            <option value="solo" selected>Solo Driver (Max 11 hours/day)</option>
+                            <option value="team">Team Drivers (Continuous driving)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Market Gap 2: Fuel Costs -->
+                    <div class="mb-4 pt-3 border-top border-theme">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="small fw-bold tracking-widest text-uppercase text-success">Fuel Cost Predictor</label>
+                            <span class="badge bg-success text-white">Market Gap</span>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <label class="small fw-bold text-theme-muted mb-1">Fuel Price</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-theme-surface border-theme text-theme-muted px-2 py-1" id="currencySymbolInput">$</span>
+                                    <input type="number" id="fuelPrice" class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold" value="4.00" step="0.01">
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <label class="small fw-bold text-theme-muted mb-1">Truck MPG / kmL</label>
+                                <input type="number" id="truckMpg" class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold" value="6.5" step="0.1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" id="calcBtn" class="btn btn-primary w-100 py-3 fw-bold mt-2 rounded-3 d-flex justify-content-center align-items-center gap-2">
+                        <span>Calculate Global Freight</span>
+                        <div class="loader-spinner" id="btnLoader"></div>
+                    </button>
+                    
+                    <div id="errorMsg" class="alert alert-danger mt-3 d-none small fw-bold"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div class="col-lg-7">
+            <div class="glass-card shadow-lg p-4 p-md-5 h-100 d-flex flex-column">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-theme flex-wrap gap-2">
+                    <h3 class="fs-4 fw-bold mb-0 text-primary"><i class="fa-solid fa-earth-americas me-2"></i> Logistics Report</h3>
+                </div>
+
+                <!-- Distance Card -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <div class="p-4 rounded-4 text-center position-relative overflow-hidden h-100" style="background-color: rgba(var(--bs-primary-rgb), 0.1); border: 1px solid rgba(var(--bs-primary-rgb), 0.3);">
+                            <span class="small fw-black tracking-widest text-uppercase d-block mb-1 text-primary">Distance (Miles)</span>
+                            <h3 id="resMiles" class="amount-display m-0 text-primary">0</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-4 rounded-4 text-center position-relative overflow-hidden h-100" style="background-color: rgba(255, 255, 255, 0.05); border: 1px solid var(--sb-border);">
+                            <span class="small fw-black tracking-widest text-uppercase d-block mb-1 text-theme-muted">Distance (Kilometers)</span>
+                            <h3 id="resKm" class="amount-display m-0 text-theme-muted fs-2">0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mt-auto">
+                    <!-- Market Gap 1: Legal Transit Time -->
+                    <div class="col-md-6">
+                        <div class="transit-card rounded-4 p-4 h-100 position-relative">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="fw-bold mb-0 text-warning"><i class="fa-solid fa-clock me-2"></i> Legal Transit Time</h5>
+                            </div>
+                            <p class="small text-theme-muted mb-3">Calculated using commercial truck driver rest laws (HOS limits).</p>
+                            
+                            <div class="mb-3">
+                                <span class="small fw-bold text-theme-muted d-block">Estimated Drive Time</span>
+                                <h4 id="resDriveHours" class="fw-bold text-white mb-0">0 Hours</h4>
+                            </div>
+                            
+                            <div class="p-2 rounded-3 bg-warning bg-opacity-25 border border-warning border-opacity-50 text-center">
+                                <span class="small fw-bold text-warning tracking-widest text-uppercase d-block mb-1">True Delivery Time</span>
+                                <h5 id="resDeliveryDays" class="fw-bold text-white mb-0">0 Days</h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Market Gap 2: Fuel Cost Estimator -->
+                    <div class="col-md-6">
+                        <div class="fuel-card rounded-4 p-4 h-100 position-relative">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h4 class="fs-5 fw-bold mb-0 text-success"><i class="fa-solid fa-gas-pump me-2"></i> Fuel Cost</h4>
+                            </div>
+                            <p class="small text-theme-muted mb-3">Knowing your fuel cost helps you negotiate better freight rates.</p>
+                            
+                            <div class="mb-3">
+                                <span class="small fw-bold text-theme-muted d-block">Gallons / Liters Needed</span>
+                                <h4 id="resFuelVolume" class="fw-bold text-success mb-0">0</h4>
+                            </div>
+                            
+                            <div class="p-2 rounded-3 bg-success bg-opacity-25 border border-success border-opacity-50 text-center">
+                                <span class="small fw-bold text-success tracking-widest text-uppercase d-block mb-1">Total Fuel Cost</span>
+                                <h5 id="resFuelCost" class="fw-bold text-white mb-0">$0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- India E-Way Bill Section (Only visible when India is selected) -->
+                    <div class="col-md-12 d-none" id="indiaEwaySection">
+                        <div class="india-card rounded-4 p-4 position-relative mt-2">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h4 class="fs-5 fw-bold mb-0 text-danger"><i class="fa-solid fa-shield-halved me-2"></i> India GST E-Way Bill Rules</h4>
+                            </div>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <span class="small fw-bold text-theme-muted d-block mb-1">Portal Max Safety Limit</span>
+                                    <h4 id="resMaxDist" class="fw-bold text-danger mb-0">0 KM</h4>
+                                    <small class="text-theme-muted">You can legally enter up to +10% extra distance on the portal.</small>
+                                </div>
+                                <div class="col-sm-6 mt-3 mt-sm-0">
+                                    <span class="small fw-bold text-theme-muted d-block mb-1">Validity (Normal Cargo)</span>
+                                    <h4 id="resIndiaDays" class="fw-bold text-danger mb-0">0 Days</h4>
+                                    <small class="text-theme-muted">1 day per 200km. Expires at midnight.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Haversine formula
+function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+    var R = 6371; // Radius of the earth in km
+    var dLat = deg2rad(lat2-lat1);  
+    var dLon = deg2rad(lon2-lon1); 
+    var a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2); 
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    return R * c; 
+}
+function deg2rad(deg) { return deg * (Math.PI/180); }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const calcBtn = document.getElementById('calcBtn');
+    const btnLoader = document.getElementById('btnLoader');
+    const btnText = calcBtn.querySelector('span');
+    const errorMsg = document.getElementById('errorMsg');
+    
+    const countrySel = document.getElementById('country');
+    const indiaEwaySection = document.getElementById('indiaEwaySection');
+
+    // Show/Hide E-Way Bill specific box and update currency symbol based on country
+    countrySel.addEventListener('change', () => {
+        const cCode = countrySel.value;
+        
+        let sym = "$";
+        if(cCode === 'gb') sym = "£";
+        if(cCode === 'de' || cCode === 'fr') sym = "€";
+        if(cCode === 'in') sym = "₹";
+        
+        document.getElementById('currencySymbolInput').innerText = sym;
+
+        if(cCode === 'in') {
+            indiaEwaySection.classList.remove('d-none');
+        } else {
+            indiaEwaySection.classList.add('d-none');
+        }
+    });
+
+    calcBtn.addEventListener('click', async () => {
+        const cCode = countrySel.value;
+        const pin1 = document.getElementById('fromZip').value.trim();
+        const pin2 = document.getElementById('toZip').value.trim();
+        const driverType = document.getElementById('drivers').value;
+        const fuelPrice = parseFloat(document.getElementById('fuelPrice').value) || 0;
+        const truckMpg = parseFloat(document.getElementById('truckMpg').value) || 1;
+
+        if(!pin1 || !pin2) {
+            showError("Please enter both origin and destination zip/postal codes.");
+            return;
+        }
+
+        hideError();
+        setLoading(true);
+
+        try {
+            // Zippopotamus API for global zip codes
+            const [res1, res2] = await Promise.all([
+                fetch(`https://api.zippopotam.us/${cCode}/${pin1}`),
+                fetch(`https://api.zippopotam.us/${cCode}/${pin2}`)
+            ]);
+
+            if(!res1.ok) throw new Error(`Could not find location for Origin Zip: ${pin1}. Is it valid in this country?`);
+            if(!res2.ok) throw new Error(`Could not find location for Destination Zip: ${pin2}. Is it valid in this country?`);
+
+            const data1 = await res1.json();
+            const data2 = await res2.json();
+
+            const lat1 = parseFloat(data1.places[0].latitude);
+            const lon1 = parseFloat(data1.places[0].longitude);
+            const lat2 = parseFloat(data2.places[0].latitude);
+            const lon2 = parseFloat(data2.places[0].longitude);
+
+            // Straight line distance
+            const straightDistanceKm = getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2);
+            
+            // To estimate real road distance, we multiply straight line by a routing factor (~1.35)
+            let roadDistanceKm = straightDistanceKm * 1.35;
+            if(pin1 === pin2) roadDistanceKm = 0;
+            if(roadDistanceKm === 0 && pin1 !== pin2) roadDistanceKm = 1;
+            
+            const roadDistanceMiles = roadDistanceKm * 0.621371;
+
+            updateDashboard(roadDistanceMiles, roadDistanceKm, driverType, fuelPrice, truckMpg, cCode);
+
+        } catch (err) {
+            showError(err.message || "Failed to calculate distance. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    });
+
+    function updateDashboard(miles, km, driverType, fuelPrice, truckMpg, countryCode) {
+        miles = Math.floor(miles);
+        km = Math.floor(km);
+        
+        // 1. Distances
+        document.getElementById('resMiles').innerText = miles.toLocaleString('en-US');
+        document.getElementById('resKm').innerText = km.toLocaleString('en-US');
+
+        // 2. Legal Transit Time (Market Gap Feature)
+        // Average commercial truck speed = 50 mph.
+        const driveHours = miles / 50;
+        
+        let deliveryDays = 0;
+        if(miles > 0) {
+            if(driverType === 'solo') {
+                // Solo drivers can legally drive ~10-11 hours per day depending on jurisdiction. Let's use 10.5 average.
+                deliveryDays = Math.ceil(driveHours / 10.5);
+            } else {
+                // Team drivers can drive up to 22 hours a day (swapping out).
+                deliveryDays = Math.ceil(driveHours / 22);
+            }
+        }
+        
+        document.getElementById('resDriveHours').innerText = Math.round(driveHours * 10) / 10 + " Hours";
+        document.getElementById('resDeliveryDays').innerText = deliveryDays + (deliveryDays === 1 ? " Day" : " Days");
+
+        // 3. Fuel Cost Estimator
+        // We use Miles and MPG by default, but if someone enters Km and Km/L they can still use it logically.
+        // Assuming the math is Distance / FuelEfficiency * FuelPrice
+        // For simplicity, we just use the numbers as provided. If they provide US data, it's miles/mpg. 
+        let fuelNeeded = 0;
+        if (countryCode === 'us' || countryCode === 'gb') {
+            fuelNeeded = miles / truckMpg; // gallons
+        } else {
+            fuelNeeded = km / truckMpg; // liters
+        }
+        
+        let totalFuelCost = fuelNeeded * fuelPrice;
+        
+        document.getElementById('resFuelVolume').innerText = (Math.round(fuelNeeded * 10) / 10).toLocaleString('en-US');
+        
+        // Currency symbol formatting
+        let sym = "$";
+        if(countryCode === 'gb') sym = "£";
+        if(countryCode === 'de' || countryCode === 'fr') sym = "€";
+        if(countryCode === 'in') sym = "₹";
+        
+        document.getElementById('resFuelCost').innerText = sym + formatCurrency(Math.round(totalFuelCost));
+        
+        // 4. India E-Way Bill specific updates
+        if(countryCode === 'in') {
+            const maxDist = Math.floor(km * 1.10);
+            document.getElementById('resMaxDist').innerText = maxDist.toLocaleString('en-US') + " KM";
+            
+            let validDays = Math.ceil(km / 200.0);
+            if (km === 0) validDays = 1;
+            document.getElementById('resIndiaDays').innerText = validDays + (validDays === 1 ? " Day" : " Days");
+        }
+    }
+    
+    function formatCurrency(val) {
+        return val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    function showError(msg) {
+        errorMsg.innerText = msg;
+        errorMsg.classList.remove('d-none');
+    }
+    function hideError() {
+        errorMsg.classList.add('d-none');
+    }
+    function setLoading(isLoading) {
+        if(isLoading) {
+            btnText.classList.add('d-none');
+            btnLoader.style.display = 'block';
+            calcBtn.disabled = true;
+        } else {
+            btnText.classList.remove('d-none');
+            btnLoader.style.display = 'none';
+            calcBtn.disabled = false;
+        }
+    }
+    
+    // Initial trigger for UI state
+    countrySel.dispatchEvent(new Event('change'));
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
+    <h2 class="fs-3 fw-bold mb-4">The Most Advanced Global Freight Calculator</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-clock text-warning me-2"></i> Legal Transit Time Engine</h3>
+            <p class="text-theme-muted"><strong>This is our global market-gap feature.</strong> Standard map apps tell you a 1,000-mile trip takes 15 hours. But commercial truck drivers are legally required to sleep! Our engine uses real truck driving laws (Hours of Service) to tell you exactly how many days the freight will take to deliver.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-gas-pump text-success me-2"></i> Truck Fuel Cost Predictor</h3>
+            <p class="text-theme-muted">Fuel is the biggest expense in logistics. Whether you use MPG or Km/L, our smart calculator instantly predicts exactly how much fuel the truck will burn and how much it will cost you. This helps businesses negotiate fair shipping rates.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-earth-americas text-primary me-2"></i> Global Zip Code Routing</h3>
+            <p class="text-theme-muted">We support major logistics hubs including the United States (US), Canada, United Kingdom, Europe, Australia, and India. Simply enter the origin and destination postal codes and we calculate the estimated road distance instantly.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-danger me-2"></i> India GST E-Way Bill Integration</h3>
+            <p class="text-theme-muted">If you select India, the tool automatically turns into an E-Way Bill validity calculator. It shows you the mandatory +10% portal safety limit and calculates exact government validity days (1 day per 200 km) for your invoices.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.5s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    Why does transit time take so long for trucks?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    In most countries (like the US and Europe), it is illegal for a commercial truck driver to drive 24 hours straight. A solo driver is usually limited to about 10-11 hours of driving per day. This means a 30-hour drive actually takes 3 full days of transit time!
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    What is a Team Driver in logistics?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    A team driver setup means there are two drivers in the truck. While one driver sleeps in the back, the other drives. This allows the truck to move almost 22 hours a day, cutting transit times in half. Our calculator has a "Team Driver" option to estimate this!
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    How do I calculate E-Way bill distance for India?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Just select "India" in the country dropdown above, enter your two 6-digit PIN codes, and hit calculate. The tool will show you your PIN-to-PIN distance, the maximum distance allowed on the GST portal, and the legal validity days.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Global Freight & Logistics Calculator",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            },
+            "description": "Calculate global freight distances, legal transit times with driver rest laws, and truck fuel costs. Includes GST E-Way Bill limits for India."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "Why does transit time take so long for trucks?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Commercial truck drivers are legally required to rest. A solo driver is limited to 10-11 hours of driving per day, meaning a 30-hour drive takes 3 full days."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "What is a Team Driver in logistics?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Team driving involves two drivers taking shifts. The truck can keep moving up to 22 hours a day while one driver sleeps, greatly reducing transit time."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "How do I calculate E-Way bill distance for India?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Select India from the dropdown, enter your PIN codes, and the tool will calculate the exact distance and GST portal safety limits."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+
+{% endblock %}

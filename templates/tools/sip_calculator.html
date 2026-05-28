@@ -1,0 +1,689 @@
+{% extends "base.html" %}
+
+{% block title %}Free Advanced SIP Calculator Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Free and easy SIP calculator. Calculate your mutual fund returns, plan your future wealth, and see how your money grows over time.{% endblock %}
+{% block meta_keywords %}sip calculator, easy sip calculator, mutual fund calculator, return on investment, step up sip, invest money{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/sip-calculator{% endblock %}
+{% block og_tags %}
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.storybrainai.com/tool/sip-calculator">
+<meta property="og:site_name" content="StoryBrain AI">
+<meta property="og:title" content="Easy SIP Calculator - Free Online Tool | StoryBrain AI">
+<meta property="og:description" content="Calculate your mutual fund SIP returns easily. See how your money grows over time with our free investment calculator.">
+<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Easy SIP Calculator - Free Online | StoryBrain AI">
+<meta name="twitter:description" content="Calculate your mutual fund SIP returns easily. See how your money grows over time with our free investment calculator.">
+{% endblock %}
+
+{% block head %}
+<style>
+    .amortization-table th, .amortization-table td {
+        background-color: transparent !important;
+        border-color: var(--sb-border) !important;
+        color: var(--sb-text) !important;
+        vertical-align: middle;
+    }
+    .amortization-table th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--sb-text-muted) !important;
+    }
+    .breakdown-card {
+        background: rgba(var(--sb-accent-rgb), 0.05);
+        border: 1px solid rgba(var(--sb-accent-rgb), 0.2);
+        border-radius: 1rem;
+        padding: 1.5rem;
+    }
+    .amount-display {
+        font-family: var(--font-display);
+        font-size: 2.5rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+    .progress-stacked {
+        height: 1.5rem;
+        border-radius: 1rem;
+        overflow: hidden;
+        background-color: var(--sb-border);
+    }
+    .progress-invested {
+        background: var(--sb-accent);
+    }
+    .progress-returns {
+        background: var(--bs-success);
+    }
+</style>
+<!-- Include Chart.js for the projection chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-lg mx-auto" style="max-width: 1200px;">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-success bg-opacity-10 text-success border border-success border-opacity-20 px-4 py-2 mb-4">
+            <i class="fa-solid fa-chart-line me-2"></i> Wealth Builder Series
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">ADVANCED <span class="gradient-text italic">SIP CALCULATOR</span></h1>
+        <p class="text-white-50 fs-5 mx-auto text-center" style="max-width: 700px;">
+            Easily calculate how your mutual fund investments will grow. Includes Step-Up SIP (increase every year) and simple charts to help you plan your future wealth.
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-4 reveal" style="animation-delay: 0.2s;">
+        
+        <!-- Calculator Inputs -->
+        <div class="col-lg-5">
+            <div class="glass-card p-4 p-md-5 h-100 d-flex flex-column border-theme position-relative">
+                <h3 class="fs-4 fw-bold mb-4"><i class="fa-solid fa-sliders text-primary me-2"></i> Investment Details</h3>
+                
+                <form id="sipForm" class="flex-grow-1">
+                    <!-- Monthly Investment -->
+                    <div class="mb-4">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2 d-flex justify-content-between">
+                            <span>Monthly Investment</span>
+                            <span class="text-theme" id="valAmountDisplay">₹ 10,000</span>
+                        </label>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted">₹</span>
+                            <input type="number" id="monthlyInvestment" class="form-control form-control-lg py-2 fw-bold" value="10000" min="500" step="500" required>
+                        </div>
+                        <input type="range" class="form-range" id="monthlyInvestmentRange" min="500" max="1000000" step="500" value="10000">
+                    </div>
+
+                    <!-- Expected Return Rate -->
+                    <div class="mb-4">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2 d-flex justify-content-between">
+                            <span>Expected Return (Annual)</span>
+                            <span class="text-theme" id="valRateDisplay">12.0 %</span>
+                        </label>
+                        <div class="input-group mb-2">
+                            <input type="number" id="expectedReturn" class="form-control form-control-lg py-2 fw-bold" value="12" step="0.1" min="1" max="50" required>
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted">%</span>
+                        </div>
+                        <input type="range" class="form-range" id="expectedReturnRange" min="1" max="30" step="0.1" value="12">
+                    </div>
+
+                    <!-- Time Period -->
+                    <div class="mb-4">
+                        <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2 d-flex justify-content-between">
+                            <span>Time Period</span>
+                            <span class="text-theme" id="valTenureDisplay">10 Years</span>
+                        </label>
+                        <div class="input-group mb-2">
+                            <input type="number" id="investmentTenure" class="form-control form-control-lg py-2 fw-bold" value="10" min="1" max="50" required>
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted">Years</span>
+                        </div>
+                        <input type="range" class="form-range" id="investmentTenureRange" min="1" max="50" step="1" value="10">
+                    </div>
+
+                    <!-- Step Up (Advanced) -->
+                    <div class="mb-4 pt-3 border-top border-theme">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" role="switch" id="enableStepUp">
+                            <label class="form-check-label small fw-bold text-theme-muted tracking-widest text-uppercase" for="enableStepUp">Enable Step-Up SIP</label>
+                        </div>
+                        <div id="stepUpContainer" style="display: none; opacity: 0; transition: opacity 0.3s ease;">
+                            <label class="small fw-bold text-theme-muted tracking-widest text-uppercase mb-2 d-flex justify-content-between mt-3">
+                                <span>Annual Step-up Rate</span>
+                                <span class="text-theme" id="valStepUpDisplay">10 %</span>
+                            </label>
+                            <div class="input-group mb-2">
+                                <input type="number" id="stepUpRate" class="form-control form-control-lg py-2 fw-bold" value="10" step="1" min="1" max="100">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted">%</span>
+                            </div>
+                            <input type="range" class="form-range" id="stepUpRateRange" min="1" max="50" step="1" value="10">
+                            <small class="text-theme-muted" style="font-size: 0.75rem;">Increases your monthly investment by this percentage every year.</small>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-premium w-100 py-3 fs-6 mt-2">
+                        CALCULATE RETURNS
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div class="col-lg-7">
+            <div class="glass-card shadow-lg p-4 p-md-5 h-100 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-theme">
+                    <h3 class="fs-4 fw-bold mb-0"><i class="fa-solid fa-vault text-success me-2"></i> Wealth Projection</h3>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="copyBtn"><i class="fa-regular fa-copy me-1"></i> Copy Details</button>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-md-12">
+                        <div class="p-4 rounded-4 bg-success bg-opacity-10 border border-success border-opacity-25 text-center position-relative overflow-hidden">
+                            <span class="small fw-black text-success tracking-widest text-uppercase d-block mb-1">Total Value (Wealth)</span>
+                            <div class="d-flex justify-content-center align-items-center gap-2">
+                                <span class="fs-4 text-theme-muted">₹</span>
+                                <span id="resTotalValue" class="amount-display text-theme m-0">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center">
+                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Total Invested</span>
+                            <h4 id="resInvested" class="fw-bold text-accent mb-0 font-mono">₹0</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="col-6">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center">
+                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Est. Returns</span>
+                            <h4 id="resReturns" class="fw-bold text-success mb-0 font-mono">₹0</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Breakdown -->
+                <div class="breakdown-card mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold m-0 text-theme"><i class="fa-solid fa-chart-pie text-accent me-2"></i> Investment vs Returns</h6>
+                    </div>
+                    
+                    <div class="d-flex progress-stacked w-100 mb-3">
+                        <div id="barInvested" class="progress-invested" style="width: 50%" data-bs-toggle="tooltip" title="Total Invested"></div>
+                        <div id="barReturns" class="progress-returns" style="width: 50%" data-bs-toggle="tooltip" title="Estimated Returns"></div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between small fw-bold">
+                        <div class="d-flex align-items-center text-theme-muted">
+                            <span class="d-inline-block rounded-circle me-2" style="width: 10px; height: 10px; background: var(--sb-accent);"></span>
+                            Invested (<span id="pctInvested">50</span>%)
+                        </div>
+                        <div class="d-flex align-items-center text-theme-muted">
+                            <span class="d-inline-block rounded-circle me-2" style="width: 10px; height: 10px; background: var(--bs-success);"></span>
+                            Returns (<span id="pctReturns">50</span>%)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Growth Chart -->
+                <div class="flex-grow-1" style="min-height: 250px; position: relative;">
+                    <canvas id="growthChart"></canvas>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    
+    <!-- Year-by-Year Schedule -->
+    <div class="mt-5 glass-card p-4 p-md-5 reveal" style="animation-delay: 0.3s;" id="scheduleSection">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
+            <div>
+                <h3 class="fs-4 fw-bold mb-1"><i class="fa-solid fa-calendar-days text-info me-2"></i> Year-by-Year Growth</h3>
+                <p class="text-theme-muted small mb-0">Detailed breakdown of how your wealth compounds annually.</p>
+            </div>
+        </div>
+        
+        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+            <table class="table amortization-table text-theme table-hover border-top border-theme position-relative">
+                <thead class="sticky-top bg-theme border-bottom border-theme" style="z-index: 1;">
+                    <tr>
+                        <th width="10%">Year</th>
+                        <th width="20%">Monthly SIP</th>
+                        <th width="20%">Total Invested</th>
+                        <th width="25%">Wealth Gained</th>
+                        <th width="25%">End Value</th>
+                    </tr>
+                </thead>
+                <tbody id="scheduleBody">
+                    <!-- Dynamic Rows -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Format Currency Indian Style
+function formatCurrency(val) {
+    return parseFloat(val).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const sipForm = document.getElementById('sipForm');
+    
+    // Inputs
+    const monthlyInvestment = document.getElementById('monthlyInvestment');
+    const monthlyInvestmentRange = document.getElementById('monthlyInvestmentRange');
+    const valAmountDisplay = document.getElementById('valAmountDisplay');
+    
+    const expectedReturn = document.getElementById('expectedReturn');
+    const expectedReturnRange = document.getElementById('expectedReturnRange');
+    const valRateDisplay = document.getElementById('valRateDisplay');
+    
+    const investmentTenure = document.getElementById('investmentTenure');
+    const investmentTenureRange = document.getElementById('investmentTenureRange');
+    const valTenureDisplay = document.getElementById('valTenureDisplay');
+
+    // Step up
+    const enableStepUp = document.getElementById('enableStepUp');
+    const stepUpContainer = document.getElementById('stepUpContainer');
+    const stepUpRate = document.getElementById('stepUpRate');
+    const stepUpRateRange = document.getElementById('stepUpRateRange');
+    const valStepUpDisplay = document.getElementById('valStepUpDisplay');
+    
+    // Results
+    const resTotalValue = document.getElementById('resTotalValue');
+    const resInvested = document.getElementById('resInvested');
+    const resReturns = document.getElementById('resReturns');
+    const copyBtn = document.getElementById('copyBtn');
+    
+    // Progress Bar
+    const barInvested = document.getElementById('barInvested');
+    const barReturns = document.getElementById('barReturns');
+    const pctInvestedNode = document.getElementById('pctInvested');
+    const pctReturnsNode = document.getElementById('pctReturns');
+    
+    // Schedule
+    const scheduleBody = document.getElementById('scheduleBody');
+    let growthChartInstance = null;
+
+    // Toggle Step Up
+    enableStepUp.addEventListener('change', (e) => {
+        if(e.target.checked) {
+            stepUpContainer.style.display = 'block';
+            setTimeout(() => { stepUpContainer.style.opacity = '1'; }, 10);
+        } else {
+            stepUpContainer.style.opacity = '0';
+            setTimeout(() => { stepUpContainer.style.display = 'none'; }, 300);
+        }
+        calculateSIP();
+    });
+
+    // Sync Input & Ranges
+    function syncValue(input, range, display, formatter) {
+        input.addEventListener('input', () => {
+            range.value = input.value;
+            display.innerText = formatter(input.value);
+            calculateSIP();
+        });
+        range.addEventListener('input', () => {
+            input.value = range.value;
+            display.innerText = formatter(range.value);
+            calculateSIP();
+        });
+    }
+
+    syncValue(monthlyInvestment, monthlyInvestmentRange, valAmountDisplay, v => '₹ ' + formatCurrency(v));
+    syncValue(expectedReturn, expectedReturnRange, valRateDisplay, v => parseFloat(v).toFixed(1) + ' %');
+    syncValue(investmentTenure, investmentTenureRange, valTenureDisplay, v => v + ' Years');
+    syncValue(stepUpRate, stepUpRateRange, valStepUpDisplay, v => v + ' %');
+
+    // Core Calculation
+    function calculateSIP() {
+        const monthly = parseFloat(monthlyInvestment.value) || 0;
+        const rateAnnual = parseFloat(expectedReturn.value) || 0;
+        const years = parseInt(investmentTenure.value) || 0;
+        const isStepUp = enableStepUp.checked;
+        const stepUpPct = isStepUp ? (parseFloat(stepUpRate.value) || 0) : 0;
+        
+        if (monthly <= 0 || rateAnnual <= 0 || years <= 0) {
+            resetUI();
+            return;
+        }
+
+        let totalInvested = 0;
+        let futureValue = 0;
+        let currentMonthlySIP = monthly;
+        const monthlyRate = rateAnnual / 12 / 100;
+        
+        const schedule = [];
+        const chartLabels = [];
+        const chartInvestedData = [];
+        const chartWealthData = [];
+
+        for (let year = 1; year <= years; year++) {
+            let yearInvested = 0;
+            
+            for (let month = 1; month <= 12; month++) {
+                totalInvested += currentMonthlySIP;
+                yearInvested += currentMonthlySIP;
+                futureValue = (futureValue + currentMonthlySIP) * (1 + monthlyRate);
+            }
+            
+            schedule.push({
+                year: year,
+                monthlySIP: currentMonthlySIP,
+                totalInvested: totalInvested,
+                wealthGained: futureValue - totalInvested,
+                endValue: futureValue
+            });
+
+            chartLabels.push('Year ' + year);
+            chartInvestedData.push(totalInvested);
+            chartWealthData.push(futureValue);
+
+            // Apply step up at the end of the year
+            if (isStepUp && stepUpPct > 0) {
+                currentMonthlySIP = currentMonthlySIP * (1 + (stepUpPct / 100));
+            }
+        }
+
+        const totalReturns = futureValue - totalInvested;
+
+        // Update Text
+        resTotalValue.innerText = formatCurrency(Math.round(futureValue));
+        resInvested.innerText = "₹ " + formatCurrency(Math.round(totalInvested));
+        resReturns.innerText = "₹ " + formatCurrency(Math.round(totalReturns));
+
+        // Update Progress Bar
+        const pctI = Math.round((totalInvested / futureValue) * 100);
+        const pctR = 100 - pctI;
+        
+        barInvested.style.width = pctI + '%';
+        barReturns.style.width = pctR + '%';
+        pctInvestedNode.innerText = pctI;
+        pctReturnsNode.innerText = pctR;
+        
+        renderSchedule(schedule);
+        renderChart(chartLabels, chartInvestedData, chartWealthData);
+    }
+
+    function resetUI() {
+        resTotalValue.innerText = "0";
+        resInvested.innerText = "₹ 0";
+        resReturns.innerText = "₹ 0";
+        barInvested.style.width = '50%';
+        barReturns.style.width = '50%';
+        pctInvestedNode.innerText = "50";
+        pctReturnsNode.innerText = "50";
+        scheduleBody.innerHTML = '<tr><td colspan="5" class="text-center text-theme-muted py-4">Enter investment details to view growth schedule.</td></tr>';
+        if(growthChartInstance) {
+            growthChartInstance.destroy();
+            growthChartInstance = null;
+        }
+    }
+
+    // Render Schedule UI
+    function renderSchedule(schedule) {
+        scheduleBody.innerHTML = '';
+        schedule.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="fw-bold">Year ${row.year}</td>
+                <td class="font-mono text-theme-muted">₹${formatCurrency(row.monthlySIP)}</td>
+                <td class="font-mono text-accent">₹${formatCurrency(row.totalInvested)}</td>
+                <td class="font-mono text-success">₹${formatCurrency(row.wealthGained)}</td>
+                <td class="font-mono fw-bold">₹${formatCurrency(row.endValue)}</td>
+            `;
+            scheduleBody.appendChild(tr);
+        });
+    }
+
+    function renderChart(labels, investedData, wealthData) {
+        const ctx = document.getElementById('growthChart').getContext('2d');
+        
+        const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+        const textColor = isDarkMode ? '#adb5bd' : '#6c757d';
+
+        if (growthChartInstance) {
+            growthChartInstance.data.labels = labels;
+            growthChartInstance.data.datasets[0].data = investedData;
+            growthChartInstance.data.datasets[1].data = wealthData;
+            growthChartInstance.options.scales.x.ticks.color = textColor;
+            growthChartInstance.options.scales.y.ticks.color = textColor;
+            growthChartInstance.options.scales.y.grid.color = gridColor;
+            growthChartInstance.update();
+        } else {
+            growthChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Total Invested',
+                            data: investedData,
+                            borderColor: '#e94057',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Total Wealth',
+                            data: wealthData,
+                            borderColor: '#198754',
+                            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: textColor,
+                                font: {
+                                    family: "'Inter', sans-serif"
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += '₹' + formatCurrency(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                maxTicksLimit: 10
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: gridColor,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: textColor,
+                                callback: function(value) {
+                                    if (value >= 10000000) return '₹' + (value / 10000000).toFixed(1) + ' Cr';
+                                    if (value >= 100000) return '₹' + (value / 100000).toFixed(1) + ' L';
+                                    if (value >= 1000) return '₹' + (value / 1000).toFixed(0) + ' K';
+                                    return '₹' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    sipForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        calculateSIP();
+        document.getElementById('scheduleSection').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    copyBtn.addEventListener('click', () => {
+        const txt = `SIP Calculation:\nMonthly Investment: ₹${formatCurrency(monthlyInvestment.value)}\nExpected Return: ${expectedReturn.value}%\nTenure: ${investmentTenure.value} Years\n${enableStepUp.checked ? 'Annual Step-Up: ' + stepUpRate.value + '%\n' : ''}\nTotal Invested: ${resInvested.innerText}\nEstimated Returns: ${resReturns.innerText}\nTotal Wealth: ₹${resTotalValue.innerText}`;
+        navigator.clipboard.writeText(txt).then(() => {
+            const og = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Copied';
+            setTimeout(() => copyBtn.innerHTML = og, 2000);
+        });
+    });
+
+    // Initial calc
+    calculateSIP();
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
+    <h2 class="fs-3 fw-bold mb-4">Plan Your Wealth with Our Free SIP Calculator</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-chart-line text-success me-2"></i> What is a SIP?</h3>
+            <p class="text-theme-muted">A Systematic Investment Plan (SIP) lets you invest a small amount of money every month in mutual funds. It is an easy way to save money regularly without worrying about the stock market going up or down.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-arrow-trend-up text-success me-2"></i> How Your Money Grows</h3>
+            <p class="text-theme-muted">When you invest, your money earns profit. Then, that profit earns more profit. Over time, your small monthly savings can grow into a huge amount of money. The earlier you start, the more money you make.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-success me-2"></i> Step-Up SIP (Increase Every Year)</h3>
+            <p class="text-theme-muted">As you earn more money each year, you should invest more. The "Step-Up SIP" feature lets you automatically increase your monthly investment every year. This is the fastest way to build your wealth.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-chart-area text-success me-2"></i> Easy to Understand Charts</h3>
+            <p class="text-theme-muted">Our tool shows you exactly how much money you invested and how much profit you made. You can clearly see your money grow year by year with our simple and visual charts.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.5s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    How does the calculator work?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    The calculator uses a standard math formula for compound interest. You just need to enter your monthly amount, expected return, and time. The tool does all the hard math for you instantly.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    What is a normal return rate?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    In the long term (like 7 to 10 years), equity mutual funds often give about <strong>10% to 15% return per year</strong>. For safe planning, you can expect around 10% to 12% as a good estimate.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    Why should I use Step-Up SIP?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    <strong>It is highly recommended.</strong> If your salary increases every year, your savings should too. Adding just 10% more to your SIP every year can make your final amount much bigger over a long time.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                    Is the final amount guaranteed?
+                </button>
+            </h3>
+            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    No. The calculator gives you a good <strong>estimate</strong> based on your numbers. Real mutual fund returns change depending on the stock market. But this tool is a great way to plan your future financial goals.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "SoftwareApplication",
+            "name": "Easy SIP Calculator",
+            "applicationCategory": "FinanceApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "INR"
+            },
+            "description": "Calculate your mutual fund SIP returns easily. See how your money grows over time with our free investment calculator."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "How does the calculator work?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "The calculator uses a standard math formula for compound interest. You just enter your monthly amount, expected return, and time, and it calculates the final value."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "What is a normal return rate?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "In the long term, equity mutual funds often give about 10% to 15% return per year. For safe planning, you can expect around 10% to 12%."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Why should I use Step-Up SIP?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "If your salary increases every year, your savings should too. Adding just 10% more to your SIP every year can make your final amount much bigger."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "Is the final amount guaranteed?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "No. The calculator gives you a good estimate. Real mutual fund returns change depending on the stock market, but it is great for planning."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+
+{% endblock %}
