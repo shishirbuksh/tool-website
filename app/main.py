@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import FileResponse
 
 from app.core.config import settings
 from app.api.routes import pages, tools
@@ -48,3 +49,7 @@ app.mount("/static", CachedStaticFiles(directory=settings.STATIC_DIR), name="sta
 # Include routers
 app.include_router(tools.router)
 app.include_router(pages.router)
+
+@app.get('/favicon.ico', include_in_schema=False)
+async def favicon():
+    return FileResponse(os.path.join(settings.STATIC_DIR, "favicon.svg"))

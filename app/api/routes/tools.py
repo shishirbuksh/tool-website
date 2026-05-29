@@ -2,6 +2,9 @@ import io
 import base64
 import os
 import traceback
+import socket
+import ipaddress
+from urllib.parse import urlparse
 from datetime import timedelta
 
 from fastapi import APIRouter, Form, UploadFile, File, Response
@@ -68,6 +71,21 @@ async def generate_qr(data: str = Form(...)):
 async def proxy_request(req: ProxyRequest):
     import time
     try:
+        # --- SSRF Mitigation ---
+        parsed_url = urlparse(req.url)
+        hostname = parsed_url.hostname
+        if not hostname:
+            return {"status": "error", "detail": "Invalid URL"}
+        
+        try:
+            ip = socket.gethostbyname(hostname)
+            ip_obj = ipaddress.ip_address(ip)
+            if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local:
+                return {"status": "error", "detail": "Access to internal networks is forbidden."}
+        except Exception:
+            return {"status": "error", "detail": "Could not resolve hostname"}
+        # -----------------------
+
         start_time = time.time()
         
         # Determine if we should parse the body as JSON to send it properly
@@ -130,8 +148,7 @@ async def remove_background(image: UploadFile = File(...)):
         # Prevent permission denied issues on VPS by using /tmp
         os.environ["U2NET_HOME"] = "/tmp/.u2net"
         
-        input_bytes = await image.read()
-        input_img = Image.open(io.BytesIO(input_bytes)).convert("RGBA")
+        input_img = Image.open(image.file).convert("RGBA")
         
         # Use u2netp (lightweight model) to prevent Out of Memory (OOM) Killer on low-RAM VPS
         try:
@@ -153,6 +170,18 @@ async def remove_background(image: UploadFile = File(...)):
 @router.post("/remove-watermark")
 async def remove_watermark(image: UploadFile = File(...), mask: UploadFile = File(...)):
     try:
+        # Enforce 10MB limit
+        image.file.seek(0, os.SEEK_END)
+        img_size = image.file.tell()
+        image.file.seek(0)
+        
+        mask.file.seek(0, os.SEEK_END)
+        mask_size = mask.file.tell()
+        mask.file.seek(0)
+        
+        if img_size > 10 * 1024 * 1024 or mask_size > 10 * 1024 * 1024:
+            return Response(content="File size exceeds 10MB limit.", status_code=413)
+
         img_bytes = await image.read()
         mask_bytes = await mask.read()
 
@@ -179,11 +208,10 @@ async def remove_watermark(image: UploadFile = File(...), mask: UploadFile = Fil
 @router.post("/convert-to-pdf")
 async def convert_to_pdf(file: UploadFile = File(...)):
     try:
-        file_bytes = await file.read()
         filename = file.filename.lower()
         
         if filename.endswith(('.png', '.jpg', '.jpeg', '.webp', '.bmp')):
-            image = Image.open(io.BytesIO(file_bytes)).convert("RGB")
+            image = Image.open(file.file).convert("RGB")
             pdf_buf = io.BytesIO()
             image.save(pdf_buf, format="PDF", resolution=100.0)
             pdf_buf.seek(0)
@@ -194,6 +222,14 @@ async def convert_to_pdf(file: UploadFile = File(...)):
             )
             
         elif filename.endswith('.txt'):
+            # Enforce 5MB limit
+            file.file.seek(0, os.SEEK_END)
+            size = file.file.tell()
+            file.file.seek(0)
+            if size > 5 * 1024 * 1024:
+                return Response(content="Text file size exceeds 5MB limit.", status_code=413)
+
+            file_bytes = await file.read()
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", size=12)
