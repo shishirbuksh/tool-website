@@ -91,5 +91,20 @@ async def get_page(request: Request, page_name: str):
     valid_pages = [f[:-5] for f in os.listdir(pages_dir) if f.endswith('.html')] if os.path.exists(pages_dir) else []
     
     if page_name in valid_pages:
-        return templates.TemplateResponse(request=request, name=f"pages/{page_name}.html", context={"title": page_name.title()})
+        return templates.TemplateResponse(request=request, name=f"pages/{page_name}.html", context={"title": page_name.replace('-', ' ').title()})
     return HTMLResponse(status_code=404, content="Page not found")
+
+@router.get("/blog/{post_slug}", response_class=HTMLResponse)
+async def get_blog_post(request: Request, post_slug: str):
+    blog_dir = os.path.join(settings.TEMPLATES_DIR, "blog")
+    if not os.path.exists(blog_dir):
+        return HTMLResponse(status_code=404, content="Blog not found")
+        
+    valid_posts = [f[:-5] for f in os.listdir(blog_dir) if f.endswith('.html')]
+    if post_slug in valid_posts:
+        return templates.TemplateResponse(
+            request=request, 
+            name=f"blog/{post_slug}.html", 
+            context={"title": post_slug.replace('-', ' ').title()}
+        )
+    return HTMLResponse(status_code=404, content="Post not found")

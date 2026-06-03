@@ -100,9 +100,31 @@
         <div class="col-lg-6">
             <div class="glass-card p-4 p-md-5 h-100">
                 <form id="qrForm">
-                    <div class="mb-4">
+                    <div class="mb-4 d-flex gap-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="qrType" id="qrText" value="text" checked>
+                            <label class="form-check-label text-white-50 fw-bold" for="qrText">Text/URL</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="qrType" id="qrUpi" value="upi">
+                            <label class="form-check-label text-white-50 fw-bold" for="qrUpi">UPI Payment</label>
+                        </div>
+                    </div>
+
+                    <div id="textInputGroup" class="mb-4">
                         <label class="form-label small fw-black tracking-widest text-white-50 text-uppercase mb-3">ENTER TEXT OR URL</label>
                         <textarea id="qrData" class="form-control custom-textarea" rows="6" placeholder="https://storybrain.ai/" required></textarea>
+                    </div>
+
+                    <div id="upiInputGroup" class="mb-4 d-none">
+                        <label class="form-label small fw-black tracking-widest text-white-50 text-uppercase mb-2">UPI ID (VPA)</label>
+                        <input type="text" id="upiId" class="form-control custom-textarea mb-3" placeholder="name@bank" style="padding: 1rem; border-radius: 1rem;">
+                        
+                        <label class="form-label small fw-black tracking-widest text-white-50 text-uppercase mb-2">Payee Name</label>
+                        <input type="text" id="upiName" class="form-control custom-textarea mb-3" placeholder="John Doe" style="padding: 1rem; border-radius: 1rem;">
+                        
+                        <label class="form-label small fw-black tracking-widest text-white-50 text-uppercase mb-2">Amount (Optional)</label>
+                        <input type="number" id="upiAmount" class="form-control custom-textarea" placeholder="100.00" step="0.01" style="padding: 1rem; border-radius: 1rem;">
                     </div>
                     
                     <button type="submit" class="btn-premium w-100 py-3 fw-black rounded-3 shadow-sm" id="generateBtn">
@@ -158,9 +180,42 @@
 </div>
 
 <script>
+document.querySelectorAll('input[name="qrType"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        if(e.target.value === 'upi') {
+            document.getElementById('textInputGroup').classList.add('d-none');
+            document.getElementById('upiInputGroup').classList.remove('d-none');
+            document.getElementById('qrData').required = false;
+        } else {
+            document.getElementById('upiInputGroup').classList.add('d-none');
+            document.getElementById('textInputGroup').classList.remove('d-none');
+            document.getElementById('qrData').required = true;
+        }
+    });
+});
+
 document.getElementById('qrForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const data = document.getElementById('qrData').value.trim();
+    
+    const type = document.querySelector('input[name="qrType"]:checked').value;
+    let data = "";
+    
+    if (type === 'upi') {
+        const upiId = document.getElementById('upiId').value.trim();
+        const upiName = document.getElementById('upiName').value.trim();
+        const upiAmount = document.getElementById('upiAmount').value.trim();
+        if(!upiId || !upiName) {
+            alert("Please provide both UPI ID and Payee Name.");
+            return;
+        }
+        data = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(upiName)}`;
+        if (upiAmount) {
+            data += `&am=${encodeURIComponent(upiAmount)}`;
+        }
+    } else {
+        data = document.getElementById('qrData').value.trim();
+    }
+    
     if(!data) return;
 
     const btn = document.getElementById('generateBtn');

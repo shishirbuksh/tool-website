@@ -1,0 +1,626 @@
+{% extends "base.html" %}
+
+{% block title %}Advanced CAC Calculator | LTV, CPL & Channel Matrix{% endblock %}
+{% block meta_description %}Learn how to calculate customer acquisition cost formula instantly. Our advanced calculator tracks CPL, CRC, Net LTV, and CAC by channel.{% endblock %}
+{% block meta_keywords %}how to calculate customer acquisition cost formula, free blended cac vs paid cac calculator, what is a good ltv to cac ratio for saas, cost per lead calculator, customer retention cost formula{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/cac-calculator{% endblock %}
+{% block og_tags %}
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.storybrainai.com/tool/cac-calculator">
+<meta property="og:site_name" content="StoryBrain AI">
+<meta property="og:title" content="Ultra-Advanced Customer Acquisition Cost Calculator">
+<meta property="og:description" content="Calculate your Blended CAC, Net LTV, Cost Per Lead (CPL), and break down CAC by Ad Channel.">
+<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Advanced CAC Calculator">
+<meta name="twitter:description" content="Calculate your Blended vs Paid Customer Acquisition Cost, CPL, and Net LTV instantly.">
+{% endblock %}
+
+{% block head %}
+<style>
+    .amount-display {
+        font-family: var(--font-display);
+        font-size: 2.5rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+    .amount-display-lg {
+        font-family: var(--font-display);
+        font-size: 3rem;
+        font-weight: 900;
+        letter-spacing: -1.5px;
+    }
+    
+    .paid-card {
+        background: linear-gradient(135deg, rgba(var(--bs-warning-rgb), 0.1), rgba(var(--bs-warning-rgb), 0.02));
+        border: 1px solid rgba(var(--bs-warning-rgb), 0.3);
+    }
+    .blended-card {
+        background: linear-gradient(135deg, rgba(var(--bs-success-rgb), 0.1), rgba(var(--bs-success-rgb), 0.02));
+        border: 1px solid rgba(var(--bs-success-rgb), 0.3);
+    }
+    .ltv-card {
+        background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.1), rgba(var(--bs-primary-rgb), 0.02));
+        border: 1px solid rgba(var(--bs-primary-rgb), 0.3);
+    }
+    .funnel-card {
+        background: linear-gradient(135deg, rgba(var(--bs-info-rgb), 0.1), rgba(var(--bs-info-rgb), 0.02));
+        border: 1px solid rgba(var(--bs-info-rgb), 0.3);
+    }
+    
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+        -webkit-appearance: none; 
+        margin: 0; 
+    }
+    input[type=number] {
+        -moz-appearance: textfield;
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- Back link -->
+<div class="mb-5 reveal">
+    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
+        <i class="fa-solid fa-arrow-left me-2"></i> All Tools
+    </a>
+</div>
+
+<div class="container-lg mx-auto" style="max-width: 1300px;">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-20 px-4 py-2 mb-4">
+            <i class="fa-solid fa-crown me-2"></i> Ultra-Advanced Edition
+        </div>
+        <h1 class="display-3 fw-black mb-3 text-center">CAC <span class="gradient-text italic text-warning">CALCULATOR</span></h1>
+        <p class="text-white-50 fs-5 mx-auto text-center" style="max-width: 800px;">
+            The ultimate tool for tracking <strong>Cost Per Lead (CPL)</strong>, Net LTV, and Channel-Specific Acquisition Costs.
+        </p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-4 reveal" style="animation-delay: 0.2s;">
+        
+        <!-- Calculator Inputs -->
+        <div class="col-lg-5">
+            <div class="glass-card p-4 p-md-5 h-100 d-flex flex-column border-theme position-relative">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="fs-4 fw-bold mb-0 text-warning"><i class="fa-solid fa-sliders me-2"></i> Engine Inputs</h3>
+                    <select id="currency" class="form-select form-select-sm bg-theme-surface border-theme text-theme fw-bold w-auto">
+                        <option value="usd" selected>USD ($)</option>
+                        <option value="eur">EUR (€)</option>
+                        <option value="gbp">GBP (£)</option>
+                        <option value="inr">INR (₹)</option>
+                    </select>
+                </div>
+                
+                <form id="calcForm" class="flex-grow-1">
+
+                    <!-- Funnel Math -->
+                    <h4 class="fs-6 fw-bold text-info mb-3">1. Funnel Math</h4>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted mb-1">Total Leads Generated</label>
+                            <input type="number" id="totalLeads" class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold text-end calc-input" value="1000" min="1">
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted mb-1">Total New Customers</label>
+                            <input type="number" id="totalCustomers" class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold text-end calc-input" value="50" min="1">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="small fw-bold text-theme-muted mb-1">% From Paid Channels</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="paidPercentage" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end calc-input" value="80" min="0" max="100">
+                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted p-1">%</span>
+                        </div>
+                    </div>
+
+                    <!-- Acquisition Expenses -->
+                    <h4 class="fs-6 fw-bold text-theme mb-3 border-top border-theme pt-3">2. Acquisition Expenses</h4>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted mb-1">Google Ads Spend</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">$</span>
+                                <input type="number" id="googleSpend" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end calc-input" value="2500" min="0">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted mb-1">Meta Ads Spend</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">$</span>
+                                <input type="number" id="metaSpend" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end calc-input" value="3500" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted mb-1">Other Mktg (Agency/Tools)</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">$</span>
+                                <input type="number" id="otherMktg" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end calc-input" value="1500" min="0">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted mb-1">Sales Team (Salaries)</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">$</span>
+                                <input type="number" id="salesSpend" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end calc-input" value="4000" min="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Channel Matrix -->
+                    <h4 class="fs-6 fw-bold text-warning mb-3 border-top border-theme pt-3">3. Channel Matrix</h4>
+                    <p class="small text-theme-muted mb-3">To find CAC by channel, enter how many paid customers came from each platform.</p>
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted mb-1">Google Customers</label>
+                            <input type="number" id="googleCustomers" class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold text-end calc-input" value="15" min="0">
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted mb-1">Meta Customers</label>
+                            <input type="number" id="metaCustomers" class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold text-end calc-input" value="20" min="0">
+                        </div>
+                    </div>
+
+                    <!-- Retention & Unit Economics -->
+                    <h4 class="fs-6 fw-bold text-primary mb-3 border-top border-theme pt-3">4. Retention & Economics</h4>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted mb-1">Cust. Success Spend <i class="fa-solid fa-circle-question ms-1" title="Customer Retention Cost (CRC): Support team salaries and tools"></i></label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">$</span>
+                                <input type="number" id="successSpend" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end calc-input" value="2000" min="0">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted mb-1">Monthly Churn Rate</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" id="churnInput" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end calc-input" value="4.0" min="0.1" step="0.1">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted p-1">%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted mb-1">ARPU (Revenue/User)</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">$</span>
+                                <input type="number" id="arpuInput" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end calc-input" value="150" min="0">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="small fw-bold text-theme-muted mb-1">Gross Margin</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" id="marginInput" class="form-control bg-theme-surface border-theme text-theme fw-bold text-end calc-input" value="80" min="1" max="100">
+                                <span class="input-group-text bg-theme-surface border-theme text-theme-muted p-1">%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div class="col-lg-7">
+            <div class="glass-card shadow-lg p-4 p-md-5 h-100 d-flex flex-column">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-theme flex-wrap gap-2">
+                    <h3 class="fs-4 fw-bold mb-0 text-warning"><i class="fa-solid fa-chart-pie me-2"></i> Advanced Dashboard</h3>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="copyBtn"><i class="fa-regular fa-copy me-1"></i> Copy Report</button>
+                </div>
+
+                <!-- Top Row: CAC & Funnel -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="blended-card rounded-4 p-3 text-center position-relative overflow-hidden h-100">
+                            <span class="small fw-black tracking-widest text-uppercase d-block mb-1 text-success">Blended CAC</span>
+                            <div class="d-flex justify-content-center align-items-center gap-1">
+                                <span class="fs-5 opacity-75 text-success currency-sym">$</span>
+                                <span id="resBlendedCAC" class="fs-2 font-display fw-bold text-success">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="paid-card rounded-4 p-3 text-center position-relative overflow-hidden h-100">
+                            <span class="small fw-black tracking-widest text-uppercase d-block mb-1 text-warning">Paid CAC</span>
+                            <div class="d-flex justify-content-center align-items-center gap-1">
+                                <span class="fs-5 opacity-75 text-warning currency-sym">$</span>
+                                <span id="resPaidCAC" class="fs-2 font-display fw-bold text-warning">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="funnel-card rounded-4 p-3 text-center position-relative overflow-hidden h-100">
+                            <span class="small fw-black tracking-widest text-uppercase d-block mb-1 text-info">Cost Per Lead</span>
+                            <div class="d-flex justify-content-center align-items-center gap-1">
+                                <span class="fs-5 opacity-75 text-info currency-sym">$</span>
+                                <span id="resCPL" class="fs-2 font-display fw-bold text-info">0</span>
+                            </div>
+                            <small class="text-theme-muted d-block mt-1" style="font-size:0.65rem;">Conv Rate: <strong id="resConvRate" class="text-info">0%</strong></small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle Row: Charts -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme h-100 d-flex flex-column">
+                            <h4 class="fs-6 fw-bold mb-2 text-theme text-center">Expense Breakdown</h4>
+                            <div style="position: relative; height:180px; width:100%" class="mt-auto">
+                                <canvas id="expenseChart"></canvas>
+                            </div>
+                            <div class="text-center mt-2 small fw-bold text-theme-muted">
+                                Total Cash Burn: <span id="resTotalBurn" class="text-danger currency-sym">$</span><span id="resTotalBurnVal" class="text-danger">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-4 bg-theme-surface border border-theme h-100 d-flex flex-column">
+                            <h4 class="fs-6 fw-bold mb-2 text-theme text-center">Channel Acquisition Cost</h4>
+                            <div style="position: relative; height:180px; width:100%" class="mt-auto">
+                                <canvas id="channelChart"></canvas>
+                            </div>
+                            <div class="text-center mt-2 small text-theme-muted d-none" id="channelWarning">
+                                <i class="fa-solid fa-triangle-exclamation text-warning me-1"></i> Missing channel allocation
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Row: Net Unit Economics -->
+                <div class="ltv-card rounded-4 p-4 position-relative">
+                    <h4 class="fs-6 fw-bold mb-4 text-primary"><i class="fa-solid fa-scale-balanced me-2"></i> Net Unit Economics</h4>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-3 col-6 text-center">
+                            <span class="small text-theme-muted d-block mb-1">CRC / User</span>
+                            <div class="d-flex justify-content-center align-items-center">
+                                <span class="fs-6 text-theme-muted currency-sym me-1">$</span>
+                                <span id="resCRC" class="fs-4 font-mono fw-bold text-theme">0</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 text-center border-start border-theme border-opacity-50">
+                            <span class="small text-theme-muted d-block mb-1">Net LTV</span>
+                            <div class="d-flex justify-content-center align-items-center">
+                                <span class="fs-6 text-success currency-sym me-1">$</span>
+                                <span id="resNetLTV" class="fs-4 font-mono fw-bold text-success">0</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 text-center border-start border-theme border-opacity-50">
+                            <span class="small text-theme-muted d-block mb-1">LTV:CAC</span>
+                            <span id="resLTVCAC" class="fs-4 font-mono fw-bold text-primary">0:1</span>
+                        </div>
+                        <div class="col-md-3 col-6 text-center border-start border-theme border-opacity-50">
+                            <span class="small text-theme-muted d-block mb-1">Payback</span>
+                            <span id="resPayback" class="fs-4 font-mono fw-bold text-warning">0 Mo</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3 text-center border-top border-theme pt-3">
+                        <small id="healthVerdict" class="fw-bold"></small>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function formatCurrency(val) { return val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+function formatDecimal(val) { return val.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Elements
+    const els = {
+        leads: document.getElementById('totalLeads'),
+        custs: document.getElementById('totalCustomers'),
+        paidPct: document.getElementById('paidPercentage'),
+        
+        gSpend: document.getElementById('googleSpend'),
+        mSpend: document.getElementById('metaSpend'),
+        oMktg: document.getElementById('otherMktg'),
+        sales: document.getElementById('salesSpend'),
+        
+        gCust: document.getElementById('googleCustomers'),
+        mCust: document.getElementById('metaCustomers'),
+        
+        succSpend: document.getElementById('successSpend'),
+        churn: document.getElementById('churnInput'),
+        arpu: document.getElementById('arpuInput'),
+        margin: document.getElementById('marginInput'),
+        
+        currency: document.getElementById('currency'),
+        syms: document.querySelectorAll('.currency-sym')
+    };
+
+    let expChart = null;
+    let chChart = null;
+
+    Object.values(els).forEach(el => {
+        if(el !== els.syms) el.addEventListener('input', calculate);
+    });
+
+    els.currency.addEventListener('change', () => {
+        let s = "$";
+        if(els.currency.value === 'eur') s = "€";
+        if(els.currency.value === 'gbp') s = "£";
+        if(els.currency.value === 'inr') s = "₹";
+        els.syms.forEach(el => el.innerText = s);
+        calculate();
+    });
+
+    function drawCharts(gs, ms, om, sl, sc, gcac, mcac, pcac) {
+        const ctxE = document.getElementById('expenseChart').getContext('2d');
+        const ctxC = document.getElementById('channelChart').getContext('2d');
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const txtC = isDark ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)';
+        const sym = els.currency.options[els.currency.selectedIndex].text.match(/\((.*?)\)/)[1];
+
+        // Expense Doughnut
+        if(expChart) {
+            expChart.data.datasets[0].data = [gs, ms, om, sl, sc];
+            expChart.options.plugins.legend.labels.color = txtC;
+            expChart.update();
+        } else {
+            Chart.defaults.font.family = 'Inter, sans-serif';
+            expChart = new Chart(ctxE, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Google Ads', 'Meta Ads', 'Other Mktg', 'Sales Team', 'Cust Success'],
+                    datasets: [{
+                        data: [gs, ms, om, sl, sc],
+                        backgroundColor: ['#4285F4', '#1877F2', '#fcd34d', '#10b981', '#8b5cf6'],
+                        borderWidth: 0, hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '70%',
+                    plugins: {
+                        legend: { display: true, position: 'right', labels: { color: txtC, boxWidth: 10, font: {size: 10} } },
+                        tooltip: { callbacks: { label: (c) => ` ${sym}${formatCurrency(c.parsed)}` } }
+                    }
+                }
+            });
+        }
+
+        // Channel Bar Chart
+        if(chChart) {
+            chChart.data.datasets[0].data = [gcac, mcac, pcac];
+            chChart.options.scales.x.ticks.color = txtC;
+            chChart.options.scales.y.ticks.color = txtC;
+            chChart.update();
+        } else {
+            chChart = new Chart(ctxC, {
+                type: 'bar',
+                data: {
+                    labels: ['Google', 'Meta', 'Avg Paid'],
+                    datasets: [{
+                        label: 'CAC',
+                        data: [gcac, mcac, pcac],
+                        backgroundColor: ['#4285F4', '#1877F2', '#f59e0b'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => ` ${sym}${formatCurrency(c.parsed.y)}` } } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(128,128,128,0.1)' }, ticks: { color: txtC } },
+                        x: { grid: { display: false }, ticks: { color: txtC } }
+                    }
+                }
+            });
+        }
+    }
+
+    function calculate() {
+        const v = (id) => parseFloat(document.getElementById(id).value) || 0;
+        
+        const leads = v('totalLeads') || 1;
+        const custs = v('totalCustomers') || 1;
+        let paidPct = v('paidPercentage');
+        if(paidPct>100) paidPct=100; if(paidPct<0) paidPct=0;
+        
+        const gs = v('googleSpend');
+        const ms = v('metaSpend');
+        const om = v('otherMktg');
+        const sl = v('salesSpend');
+        const sc = v('successSpend'); // CRC
+
+        const gCust = v('googleCustomers');
+        const mCust = v('metaCustomers');
+        
+        const arpu = v('arpuInput');
+        const margin = v('marginInput')/100;
+        const churn = v('churnInput')/100;
+
+        // Funnel Math
+        const convRate = (custs / leads) * 100;
+        const totalAcqSpend = gs + ms + om + sl; // Exclude Customer Success (CRC) from CAC
+        const totalBurn = totalAcqSpend + sc; // Total cash burn
+        const cpl = totalAcqSpend / leads;
+
+        // CAC Math
+        const paidCusts = custs * (paidPct/100);
+        const blendedCAC = totalAcqSpend / custs;
+        const paidCAC = paidCusts > 0 ? (totalAcqSpend / paidCusts) : 0;
+        
+        // Channel Matrix
+        const googleCAC = gCust > 0 ? (gs / gCust) : 0;
+        const metaCAC = mCust > 0 ? (ms / mCust) : 0;
+
+        // CRC & Net Economics
+        const crcPerUser = sc / custs; // Cost to support each new customer (simplified cohort model)
+        const netProfitPerUserPerMonth = (arpu * margin) - crcPerUser;
+        
+        let netLTV = 0;
+        if(churn > 0 && netProfitPerUserPerMonth > 0) {
+            netLTV = netProfitPerUserPerMonth / churn;
+        }
+
+        let ltvCacRatio = blendedCAC > 0 ? (netLTV / blendedCAC) : 0;
+        let payback = (netProfitPerUserPerMonth > 0 && blendedCAC > 0) ? (blendedCAC / netProfitPerUserPerMonth) : 0;
+
+        // UI Updates
+        document.getElementById('resCPL').innerText = formatDecimal(cpl);
+        document.getElementById('resConvRate').innerText = formatDecimal(convRate) + '%';
+        
+        document.getElementById('resBlendedCAC').innerText = formatCurrency(blendedCAC);
+        document.getElementById('resPaidCAC').innerText = formatCurrency(paidCAC);
+        document.getElementById('resTotalBurnVal').innerText = formatCurrency(totalBurn);
+        
+        document.getElementById('resCRC').innerText = formatCurrency(crcPerUser);
+        document.getElementById('resNetLTV').innerText = formatCurrency(netLTV);
+        
+        const lRatio = document.getElementById('resLTVCAC');
+        lRatio.innerText = formatDecimal(ltvCacRatio) + ':1';
+        lRatio.className = 'fs-4 font-mono fw-bold ' + (ltvCacRatio >= 3 ? 'text-success' : (ltvCacRatio >= 1 ? 'text-warning' : 'text-danger'));
+        
+        const pBack = document.getElementById('resPayback');
+        pBack.innerText = payback > 0 ? (formatDecimal(payback) + ' Mo') : 'Never';
+        pBack.className = 'fs-4 font-mono fw-bold ' + (payback > 0 && payback <= 12 ? 'text-success' : (payback > 0 && payback <= 24 ? 'text-warning' : 'text-danger'));
+
+        const verdict = document.getElementById('healthVerdict');
+        if (ltvCacRatio >= 3 && payback <= 12) {
+            verdict.innerText = "Exceptional Net Unit Economics! Ready to scale.";
+            verdict.className = "text-success";
+        } else if (ltvCacRatio < 1 || netProfitPerUserPerMonth <= 0) {
+            verdict.innerText = "Danger: You are losing money on every customer acquired.";
+            verdict.className = "text-danger";
+        } else {
+            verdict.innerText = "Warning: Margins are tight. Work on reducing CAC or CRC.";
+            verdict.className = "text-warning";
+        }
+
+        drawCharts(gs, ms, om, sl, sc, googleCAC, metaCAC, paidCAC);
+    }
+
+    calculate();
+    new MutationObserver(calculate).observe(document.documentElement, { attributes: true, attributeFilter: ['data-bs-theme'] });
+});
+</script>
+
+<!-- SEO Content Section -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
+    <h2 class="fs-3 fw-bold mb-4">Mastering Advanced Customer Acquisition Cost (CAC)</h2>
+    <div class="row g-4 text-start">
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-calculator text-success me-2"></i> How to calculate customer acquisition cost formula</h3>
+            <p class="text-theme-muted">The core <strong>customer acquisition cost formula</strong> divides Total Sales & Marketing Expenses by New Customers. However, standard calculators fail to separate Organic vs. Paid traffic. Our <strong>free blended cac vs paid cac calculator</strong> isolates these metrics. Blended CAC shows overall efficiency, while Paid CAC reveals the harsh reality of how expensive your ads actually are.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-filter text-info me-2"></i> Using a Cost Per Lead Calculator</h3>
+            <p class="text-theme-muted">CAC is the end result, but CPL (Cost Per Lead) is the start. By entering your Total Leads into our <strong>cost per lead calculator</strong>, you can instantly find your funnel conversion rate. If your CPL is low but your CAC is high, your sales team (or landing page) is failing to convert leads into paying customers.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-users text-primary me-2"></i> The Customer Retention Cost Formula</h3>
+            <p class="text-theme-muted">Most founders ignore the <strong>customer retention cost formula (CRC)</strong>. Getting a customer is only half the battle; supporting them costs money too. By factoring in Customer Success salaries, our engine calculates your <em>Net LTV</em>. This guarantees your Payback Period is 100% accurate and prevents you from running out of cash.</p>
+        </div>
+        <div class="col-md-6">
+            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-scale-balanced text-warning me-2"></i> What is a good LTV to CAC ratio for SaaS?</h3>
+            <p class="text-theme-muted">So, <strong>what is a good LTV to CAC ratio for SaaS?</strong> Investors look for a 3:1 ratio based on Net LTV. This means your customer generates three times more profit than they cost to acquire and support. If your ratio is lower, you must learn <strong>how to reduce customer acquisition cost in ecommerce</strong> or SaaS by optimizing your ad channels.</p>
+        </div>
+    </div>
+</div>
+
+<!-- FAQ Section for SEO -->
+<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.5s;">
+    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
+    <div class="accordion accordion-flush" id="faqAccordion">
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                    How do I use the Channel Matrix?
+                </button>
+            </h3>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Enter your spend for Google Ads and Meta Ads separately, then input how many customers specifically came from each platform. The bar chart will instantly compare your CAC per channel, showing you exactly which ad network is burning your money and which one you should scale.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                    Why is Net LTV lower than standard LTV?
+                </button>
+            </h3>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    Standard LTV only subtracts the cost of goods sold (Gross Margin). Net LTV also subtracts the Customer Retention Cost (CRC), such as customer support salaries and infrastructure. Net LTV is a brutally honest metric that prevents SaaS companies from accidentally going bankrupt.
+                </div>
+            </div>
+        </div>
+        <div class="accordion-item bg-transparent border-theme border-bottom-0">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                    What is the customer retention cost formula?
+                </button>
+            </h3>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                <div class="accordion-body text-theme-muted">
+                    The customer retention cost formula divides your total Customer Success expenses (salaries, onboarding tools, retention software) by your total active customers. We automate this in our tool to give you a precise CRC per user.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@graph": [
+        {
+            "@type": "WebApplication",
+            "name": "Ultra-Advanced Customer Acquisition Cost (CAC) Calculator",
+            "applicationCategory": "BusinessApplication",
+            "operatingSystem": "Web browser",
+            "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+            },
+            "description": "Calculate Blended CAC, Net LTV, Cost Per Lead (CPL), and break down your CAC by ad channel (Google vs Meta)."
+        },
+        {
+            "@type": "FAQPage",
+            "mainEntity": [
+                {
+                    "@type": "Question",
+                    "name": "How to calculate customer acquisition cost formula?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "The formula is Total Sales & Marketing Spend divided by Total New Customers. For accuracy, separate your organic and paid traffic."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "What is a good LTV to CAC ratio for SaaS?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "A good LTV to CAC ratio is 3:1 using Net LTV. This ensures your customer generates 3x more profit than it costs to acquire and support them."
+                    }
+                },
+                {
+                    "@type": "Question",
+                    "name": "What is the customer retention cost formula?",
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "The customer retention cost formula divides your total Customer Success expenses by your total active customers to find the CRC per user."
+                    }
+                }
+            ]
+        }
+    ]
+}
+</script>
+
+{% endblock %}
