@@ -82,7 +82,59 @@ async def sitemap():
 
 @router.get("/robots.txt")
 async def robots():
-    txt = "User-agent: *\nAllow: /\n\nSitemap: https://www.storybrainai.com/sitemap.xml"
+    txt = """User-agent: *
+Allow: /
+Allow: /static/
+Disallow: /api/
+Disallow: /docs
+Disallow: /redoc
+Disallow: /openapi.json
+
+# Block AI Scrapers to conserve server resources
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+Sitemap: https://www.storybrainai.com/sitemap.xml"""
+    return Response(content=txt, media_type="text/plain")
+
+@router.get("/llms.txt")
+async def llms_txt():
+    txt = "# StoryBrain AI\n\n> StoryBrain AI provides a suite of free advanced online tools including SEO generators, crypto tools, image processing utilities, calculators, and more.\n\n## Available Tools\n\n"
+    
+    tools_dir = os.path.join(settings.TEMPLATES_DIR, "tools")
+    if os.path.exists(tools_dir):
+        tools = [f[:-5] for f in os.listdir(tools_dir) if f.endswith(".html")]
+        for t in sorted(tools):
+            name = t.replace('_', ' ').title()
+            slug = t.replace('_', '-')
+            txt += f"- [{name}](https://www.storybrainai.com/tool/{slug})\n"
+            
+    txt += "\n## Other Pages\n\n"
+    pages_dir = os.path.join(settings.TEMPLATES_DIR, "pages")
+    if os.path.exists(pages_dir):
+        pages = [f[:-5] for f in os.listdir(pages_dir) if f.endswith(".html")]
+        for p in sorted(pages):
+            name = p.replace('-', ' ').title()
+            txt += f"- [{name}](https://www.storybrainai.com/{p})\n"
+            
+    txt += "\n## Technical Details\n\n"
+    txt += "All tools are accessible via the frontend interface. The `/api/` routes are intended for internal frontend consumption and are restricted from standard bot access.\n"
+    
     return Response(content=txt, media_type="text/plain")
 
 @router.get("/{page_name}", response_class=HTMLResponse)
@@ -94,17 +146,3 @@ async def get_page(request: Request, page_name: str):
         return templates.TemplateResponse(request=request, name=f"pages/{page_name}.html", context={"title": page_name.replace('-', ' ').title()})
     return HTMLResponse(status_code=404, content="Page not found")
 
-@router.get("/blog/{post_slug}", response_class=HTMLResponse)
-async def get_blog_post(request: Request, post_slug: str):
-    blog_dir = os.path.join(settings.TEMPLATES_DIR, "blog")
-    if not os.path.exists(blog_dir):
-        return HTMLResponse(status_code=404, content="Blog not found")
-        
-    valid_posts = [f[:-5] for f in os.listdir(blog_dir) if f.endswith('.html')]
-    if post_slug in valid_posts:
-        return templates.TemplateResponse(
-            request=request, 
-            name=f"blog/{post_slug}.html", 
-            context={"title": post_slug.replace('-', ' ').title()}
-        )
-    return HTMLResponse(status_code=404, content="Post not found")

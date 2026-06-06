@@ -273,6 +273,8 @@ async def predict_crypto(symbol: str = "BTC-USD"):
         if df.empty:
             return Response(status_code=404, content='{"detail": "Symbol not found or no data available"}', media_type="application/json")
         
+        df = df.dropna()
+        
         # Handle multi-level columns if yfinance returns them
         if isinstance(df.columns, pd.MultiIndex):
             close_prices = df['Close'][symbol].values
@@ -337,6 +339,8 @@ async def analyze_crypto_trend(symbol: str = "BTC-USD"):
         df = yf.download(symbol, period="4mo", interval="1d", progress=False)
         if df.empty:
             return Response(status_code=404, content='{"detail": "Symbol not found or no data available"}', media_type="application/json")
+        
+        df = df.dropna()
         
         if isinstance(df.columns, pd.MultiIndex):
             close_prices = df['Close'][symbol].values
