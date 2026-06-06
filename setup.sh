@@ -12,7 +12,7 @@ echo "------------------------------------------------"
 # 1. Update System
 echo "[1/5] Updating system packages..."
 sudo apt-get update
-sudo apt-get install -y build-essential curl libgl1-mesa-glx libglib2.0-0 pkg-config git python3-venv python3-dev
+sudo apt-get install -y build-essential curl libgl1 libglib2.0-0 pkg-config git python3-venv python3-dev
 
 # 2. Install Rust (Required for rust_predictor)
 if ! command -v rustc &> /dev/null; then
