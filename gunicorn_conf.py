@@ -6,7 +6,7 @@ import os
 
 # Server Socket
 host = os.getenv("HOST", "0.0.0.0")
-port = os.getenv("PORT", "8000")
+port = os.getenv("PORT", "8090")
 bind = f"{host}:{port}"
 
 # Worker Processes
