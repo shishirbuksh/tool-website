@@ -14,7 +14,7 @@ bind = f"{host}:{port}"
 cores = multiprocessing.cpu_count()
 workers_per_core = float(os.getenv("WORKERS_PER_CORE", "1"))
 default_web_concurrency = workers_per_core * cores
-web_concurrency = int(os.getenv("WEB_CONCURRENCY", str(default_web_concurrency)))
+web_concurrency = int(float(os.getenv("WEB_CONCURRENCY", str(default_web_concurrency))))
 
 # Minimum of 2 workers to prevent single-worker blocking
 workers = max(int(web_concurrency), 2)
