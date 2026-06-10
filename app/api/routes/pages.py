@@ -118,7 +118,8 @@ async def html_sitemap(request: Request):
         "unit-converter": ("Productivity & Utilities", "Convert length, mass, volume, temperature, and other units"),
         "timezone-converter": ("Productivity & Utilities", "Compare and convert time zones around the world"),
         "random-number-generator": ("Productivity & Utilities", "Generate random integers within a custom range"),
-        "expense-tracker": ("Productivity & Utilities", "Track daily expenses and monitor personal budget metrics")
+        "expense-tracker": ("Productivity & Utilities", "Track daily expenses and monitor personal budget metrics"),
+        "love-calculator": ("Productivity & Utilities", "Calculate love compatibility and name matching percentages online")
     }
 
     categorized_tools = {}
