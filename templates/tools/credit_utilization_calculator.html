@@ -177,198 +177,15 @@
 </div>
 
 <script>
-function formatCurrency(val) {
-    return val.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    
-    // Default Cards
-    let cards = [
-        { id: 1, name: "Visa Card", limit: 5000, balance: 2500 },
-        { id: 2, name: "Store Card", limit: 1000, balance: 800 }
-    ];
-    let nextId = 3;
-
-    const cardContainer = document.getElementById('cardContainer');
-    const addCardBtn = document.getElementById('addCardBtn');
-    
-    const targetGoalSel = document.getElementById('targetGoal');
-    const limitHackToggle = document.getElementById('limitHackToggle');
-    const limitHackInfo = document.getElementById('limitHackInfo');
-    
-    const currencySel = document.getElementById('currency');
-    
-    // Outputs
-    const resRatio = document.getElementById('resRatio');
-    const resHealthStatus = document.getElementById('resHealthStatus');
-    const resTotalLimit = document.getElementById('resTotalLimit');
-    const resTotalBalance = document.getElementById('resTotalBalance');
-    
-    const targetCard = document.getElementById('targetCard');
-    const targetText = document.getElementById('targetText');
-    
-    const hackResultCard = document.getElementById('hackResultCard');
-    const hackText = document.getElementById('hackText');
-    
-    const penaltyCard = document.getElementById('penaltyCard');
-    const penaltyText = document.getElementById('penaltyText');
-
-    let currentSym = "$";
-
-    function renderCards() {
-        cardContainer.innerHTML = '';
-        cards.forEach((card) => {
-            const row = document.createElement('div');
-            row.className = 'card-row';
-            row.innerHTML = `
-                <div class="row g-2 align-items-end">
-                    <div class="col-md-4">
-                        <label class="small fw-bold text-theme-muted mb-1">Card Name</label>
-                        <input type="text" class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold card-name" data-id="${card.id}" value="${card.name}">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="small fw-bold text-theme-muted mb-1">Max Credit Limit</label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">${currentSym}</span>
-                            <input type="number" class="form-control bg-theme-surface border-theme text-theme fw-bold card-limit" data-id="${card.id}" value="${card.limit}" min="1">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="small fw-bold text-theme-muted mb-1">Current Balance</label>
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">${currentSym}</span>
-                            <input type="number" class="form-control bg-theme-surface border-theme text-theme fw-bold card-balance" data-id="${card.id}" value="${card.balance}" min="0">
-                        </div>
-                    </div>
-                    <div class="col-md-2 text-end">
-                        <button class="btn btn-sm btn-outline-danger border-0 delete-btn w-100" data-id="${card.id}"><i class="bi bi-trash"></i></button>
-                    </div>
-                </div>
-            `;
-            cardContainer.appendChild(row);
-        });
-        
-        attachRowListeners();
-    }
-
-    function attachRowListeners() {
-        document.querySelectorAll('.card-name').forEach(el => el.addEventListener('input', updateCardData));
-        document.querySelectorAll('.card-limit').forEach(el => el.addEventListener('input', updateCardData));
-        document.querySelectorAll('.card-balance').forEach(el => el.addEventListener('input', updateCardData));
-        
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = parseInt(e.currentTarget.getAttribute('data-id'));
-                cards = cards.filter(d => d.id !== id);
-                renderCards();
-                calculate();
-            });
-        });
-    }
-
-    function updateCardData(e) {
-        const id = parseInt(e.target.getAttribute('data-id'));
-        const cls = e.target.className;
-        const val = e.target.value;
-        
-        const card = cards.find(d => d.id === id);
-        if(card) {
-            if(cls.includes('card-name')) card.name = val;
-            if(cls.includes('card-limit')) card.limit = parseFloat(val) || 0;
-            if(cls.includes('card-balance')) card.balance = parseFloat(val) || 0;
-        }
-        calculate();
-    }
-
-    addCardBtn.addEventListener('click', () => {
-        cards.push({ id: nextId++, name: `Credit Card ${cards.length + 1}`, limit: 2000, balance: 500 });
-        renderCards();
-        calculate();
-    });
-
-    targetGoalSel.addEventListener('change', calculate);
-    
-    limitHackToggle.addEventListener('change', () => {
-        limitHackInfo.style.display = limitHackToggle.checked ? 'block' : 'none';
-        calculate();
-    });
-
-    currencySel.addEventListener('change', () => {
-        currentSym = "$";
-        const c = currencySel.value;
-        if(c === 'inr') currentSym = "₹";
-        if(c === 'eur') currentSym = "€";
-        if(c === 'gbp') currentSym = "£";
-        
-        document.querySelectorAll('.currency-sym').forEach(el => el.innerText = currentSym);
-        calculate();
-    });
-
-    function calculate() {
-        if(cards.length === 0) {
-            resTotalLimit.innerText = "0";
-            resTotalBalance.innerText = "0";
-            resRatio.innerText = "0%";
-            resRatio.className = "amount-display m-0 my-2";
-            resHealthStatus.innerText = "No Cards";
-            targetCard.classList.add('d-none');
-            hackResultCard.classList.add('d-none');
-            return;
-        }
-
-        const totalLimit = cards.reduce((sum, c) => sum + Math.max(c.limit, 0.01), 0); // avoid div by 0
-        const totalBalance = cards.reduce((sum, c) => sum + Math.max(c.balance, 0), 0);
-        
-        const ratio = (totalBalance / totalLimit) * 100;
-        
-        resTotalLimit.innerText = formatCurrency(totalLimit);
-        resTotalBalance.innerText = formatCurrency(totalBalance);
-        resRatio.innerText = ratio.toFixed(1) + "%";
-        
-        // Color coding
-        resRatio.classList.remove('ratio-green', 'ratio-yellow', 'ratio-red');
-        resHealthStatus.classList.remove('text-success', 'text-warning', 'text-danger');
-        
-        if (ratio > 30) {
-            resRatio.classList.add('ratio-red');
-            resHealthStatus.innerText = "Bad for Credit Score";
-            resHealthStatus.classList.add('text-danger');
-        } else if (ratio > 10) {
-            resRatio.classList.add('ratio-yellow');
-            resHealthStatus.innerText = "Good (Safe Zone)";
-            resHealthStatus.classList.add('text-warning');
-        } else {
-            resRatio.classList.add('ratio-green');
-            resHealthStatus.innerText = "Excellent for Credit Score";
-            resHealthStatus.classList.add('text-success');
-        }
-
-        // Market Gap 1: Action Plan / Target Math
-        const targetPercent = parseFloat(targetGoalSel.value) / 100;
-        const targetAllowedBalance = totalLimit * targetPercent;
-        const amountToPayoff = totalBalance - targetAllowedBalance;
-        
-        if (amountToPayoff > 0) {
-            targetText.innerHTML = `To reach a ${targetGoalSel.value}% ratio, you need to pay exactly <span class="fs-5 text-warning fw-black mx-1">${currentSym}${formatCurrency(amountToPayoff)}</span> toward your debt right now.`;
-            targetCard.classList.remove('d-none');
-        } else {
-            targetText.innerHTML = `You are already below the ${targetGoalSel.value}% target! Great job!`;
-            targetCard.classList.remove('d-none');
-        }
-
-        // Market Gap 2: Zero Dollar Hack
-        if(limitHackToggle.checked) {
-            if (ratio > parseFloat(targetGoalSel.value)) {
-                // To achieve target percent without changing balance:
-                // NewLimit = totalBalance / targetPercent
-                const requiredLimit = totalBalance / targetPercent;
-                const limitIncreaseNeeded = requiredLimit - totalLimit;
-                
-                hackText.innerHTML = `Call your bank and ask them to increase your total credit limit by <strong class="fs-5 text-success mx-1">${currentSym}${formatCurrency(limitIncreaseNeeded)}</strong>. Your ratio will instantly drop to ${targetGoalSel.value}% and you pay $0 today!`;
-                hackResultCard.classList.remove('d-none');
-            } else {
-                hackText.innerHTML = `You don't need a limit increase to hit your goal! You are already there.`;
+function formatCurrency(val){return val.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});}
+document.addEventListener('DOMContentLoaded',()=>{let cards=[{id:1,name:"Visa Card",limit:5000,balance:2500},{id:2,name:"Store Card",limit:1000,balance:800}];let nextId=3;const cardContainer=document.getElementById('cardContainer');const addCardBtn=document.getElementById('addCardBtn');const targetGoalSel=document.getElementById('targetGoal');const limitHackToggle=document.getElementById('limitHackToggle');const limitHackInfo=document.getElementById('limitHackInfo');const currencySel=document.getElementById('currency');const resRatio=document.getElementById('resRatio');const resHealthStatus=document.getElementById('resHealthStatus');const resTotalLimit=document.getElementById('resTotalLimit');const resTotalBalance=document.getElementById('resTotalBalance');const targetCard=document.getElementById('targetCard');const targetText=document.getElementById('targetText');const hackResultCard=document.getElementById('hackResultCard');const hackText=document.getElementById('hackText');const penaltyCard=document.getElementById('penaltyCard');const penaltyText=document.getElementById('penaltyText');let currentSym="$";function renderCards(){cardContainer.innerHTML='';cards.forEach((card)=>{const row=document.createElement('div');row.className='card-row';row.innerHTML=`<div class="row g-2 align-items-end"><div class="col-md-4"><label class="small fw-bold text-theme-muted mb-1">Card Name</label><input type="text"class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold card-name"data-id="${card.id}"value="${card.name}"></div><div class="col-md-3"><label class="small fw-bold text-theme-muted mb-1">Max Credit Limit</label><div class="input-group input-group-sm"><span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">${currentSym}</span><input type="number"class="form-control bg-theme-surface border-theme text-theme fw-bold card-limit"data-id="${card.id}"value="${card.limit}"min="1"></div></div><div class="col-md-3"><label class="small fw-bold text-theme-muted mb-1">Current Balance</label><div class="input-group input-group-sm"><span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">${currentSym}</span><input type="number"class="form-control bg-theme-surface border-theme text-theme fw-bold card-balance"data-id="${card.id}"value="${card.balance}"min="0"></div></div><div class="col-md-2 text-end"><button class="btn btn-sm btn-outline-danger border-0 delete-btn w-100"data-id="${card.id}"><i class="bi bi-trash"></i></button></div></div>`;cardContainer.appendChild(row);});attachRowListeners();}
+function attachRowListeners(){document.querySelectorAll('.card-name').forEach(el=>el.addEventListener('input',updateCardData));document.querySelectorAll('.card-limit').forEach(el=>el.addEventListener('input',updateCardData));document.querySelectorAll('.card-balance').forEach(el=>el.addEventListener('input',updateCardData));document.querySelectorAll('.delete-btn').forEach(btn=>{btn.addEventListener('click',(e)=>{const id=parseInt(e.currentTarget.getAttribute('data-id'));cards=cards.filter(d=>d.id!==id);renderCards();calculate();});});}
+function updateCardData(e){const id=parseInt(e.target.getAttribute('data-id'));const cls=e.target.className;const val=e.target.value;const card=cards.find(d=>d.id===id);if(card){if(cls.includes('card-name'))card.name=val;if(cls.includes('card-limit'))card.limit=parseFloat(val)||0;if(cls.includes('card-balance'))card.balance=parseFloat(val)||0;}
+calculate();}
+addCardBtn.addEventListener('click',()=>{cards.push({id:nextId++,name:`Credit Card ${cards.length+1}`,limit:2000,balance:500});renderCards();calculate();});targetGoalSel.addEventListener('change',calculate);limitHackToggle.addEventListener('change',()=>{limitHackInfo.style.display=limitHackToggle.checked?'block':'none';calculate();});currencySel.addEventListener('change',()=>{currentSym="$";const c=currencySel.value;if(c==='inr')currentSym="₹";if(c==='eur')currentSym="€";if(c==='gbp')currentSym="£";document.querySelectorAll('.currency-sym').forEach(el=>el.innerText=currentSym);calculate();});function calculate(){if(cards.length===0){resTotalLimit.innerText="0";resTotalBalance.innerText="0";resRatio.innerText="0%";resRatio.className="amount-display m-0 my-2";resHealthStatus.innerText="No Cards";targetCard.classList.add('d-none');hackResultCard.classList.add('d-none');return;}
+const totalLimit=cards.reduce((sum,c)=>sum+Math.max(c.limit,0.01),0);const totalBalance=cards.reduce((sum,c)=>sum+Math.max(c.balance,0),0);const ratio=(totalBalance/totalLimit)*100;resTotalLimit.innerText=formatCurrency(totalLimit);resTotalBalance.innerText=formatCurrency(totalBalance);resRatio.innerText=ratio.toFixed(1)+"%";resRatio.classList.remove('ratio-green','ratio-yellow','ratio-red');resHealthStatus.classList.remove('text-success','text-warning','text-danger');if(ratio>30){resRatio.classList.add('ratio-red');resHealthStatus.innerText="Bad for Credit Score";resHealthStatus.classList.add('text-danger');}else if(ratio>10){resRatio.classList.add('ratio-yellow');resHealthStatus.innerText="Good (Safe Zone)";resHealthStatus.classList.add('text-warning');}else{resRatio.classList.add('ratio-green');resHealthStatus.innerText="Excellent for Credit Score";resHealthStatus.classList.add('text-success');}
+const targetPercent=parseFloat(targetGoalSel.value)/100;const targetAllowedBalance=totalLimit*targetPercent;const amountToPayoff=totalBalance-targetAllowedBalance;if(amountToPayoff>0){targetText.innerHTML=`To reach a ${targetGoalSel.value}%ratio,you need to pay exactly<span class="fs-5 text-warning fw-black mx-1">${currentSym}${formatCurrency(amountToPayoff)}</span>toward your debt right now.`;targetCard.classList.remove('d-none');}else{targetText.innerHTML=`You are already below the ${targetGoalSel.value}%target!Great job!`;targetCard.classList.remove('d-none');}
+if(limitHackToggle.checked){if(ratio>parseFloat(targetGoalSel.value)){const requiredLimit=totalBalance/targetPercent;const limitIncreaseNeeded=requiredLimit-totalLimit;hackText.innerHTML=`Call your bank and ask them to increase your total credit limit by<strong class="fs-5 text-success mx-1">${currentSym}${formatCurrency(limitIncreaseNeeded)}</strong>.Your ratio will instantly drop to ${targetGoalSel.value}%and you pay $0 today!`;hackResultCard.classList.remove('d-none');}else{hackText.innerHTML=`You don't need a limit increase to hit your goal! You are already there.`;
                 hackResultCard.classList.remove('d-none');
             }
         } else {
@@ -393,14 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
             penaltyText.innerHTML = `Warning! Your <strong>${maxedCard}</strong> is at ${maxedRatio.toFixed(0)}% capacity. The credit bureaus heavily penalize you for maxing out a single card, even if your total ratio is good. Pay this card down immediately!`;
             penaltyCard.classList.remove('d-none');
         } else {
-            penaltyCard.classList.add('d-none');
-        }
-    }
-
-    // Initialize
-    renderCards();
-    calculate();
-});
+            penaltyCard.classList.add('d-none'
 </script>
 
 <!-- SEO Content Section -->

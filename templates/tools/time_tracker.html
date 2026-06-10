@@ -214,270 +214,23 @@
 </main>
 
 <script>
-    // State
-    let startTime = 0;
-    let elapsedTime = 0;
-    let timerInterval = null;
-    let isRunning = false;
-    let history = [];
-
-    // DOM Elements
-    const display = document.getElementById('timerDisplay');
-    const msDisplay = document.getElementById('timerMs');
-    const btnPlay = document.getElementById('btnPlay');
-    const btnPause = document.getElementById('btnPause');
-    const btnStop = document.getElementById('btnStop');
-    const recIndicator = document.getElementById('recIndicator');
-    const tableBody = document.getElementById('historyTableBody');
-    const emptyState = document.getElementById('emptyState');
-    const totalEarningsDisplay = document.getElementById('totalEarningsDisplay');
-
-    // Init
-    document.addEventListener('DOMContentLoaded', () => {
-        loadHistory();
-        renderTable();
-    });
-
-    // Core Timer Logic
-    function startTimer() {
-        if (isRunning) return;
-        
-        isRunning = true;
-        startTime = Date.now() - elapsedTime;
-        timerInterval = setInterval(updateDisplay, 10); // Update every 10ms
-        
-        // UI Updates
-        btnPlay.classList.add('d-none');
-        btnPause.classList.remove('d-none');
-        btnStop.disabled = false;
-        btnStop.style.opacity = '1';
-        recIndicator.classList.add('active');
-        display.classList.add('recording');
-    }
-
-    function pauseTimer() {
-        if (!isRunning) return;
-        
-        isRunning = false;
-        clearInterval(timerInterval);
-        
-        // UI Updates
-        btnPause.classList.add('d-none');
-        btnPlay.classList.remove('d-none');
-        recIndicator.classList.remove('active');
-        display.classList.remove('recording');
-    }
-
-    function stopTimer() {
-        if (elapsedTime === 0 && !isRunning) return;
-        
-        pauseTimer();
-        
-        // Capture data
-        saveSession();
-        
-        // Reset
-        elapsedTime = 0;
-        formatTimeDisplay(0);
-        
-        // UI Updates
-        btnStop.disabled = true;
-        btnStop.style.opacity = '0.5';
-        document.getElementById('taskInput').value = '';
-    }
-
-    function updateDisplay() {
-        elapsedTime = Date.now() - startTime;
-        formatTimeDisplay(elapsedTime);
-    }
-
-    function formatTimeDisplay(ms) {
-        const totalSeconds = Math.floor(ms / 1000);
-        const hours = Math.floor(totalSeconds / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-        const seconds = totalSeconds % 60;
-        const milliseconds = Math.floor((ms % 1000) / 10); // 2 digits
-
-        const h = String(hours).padStart(2, '0');
-        const m = String(minutes).padStart(2, '0');
-        const s = String(seconds).padStart(2, '0');
-        const msec = String(milliseconds).padStart(2, '0');
-
-        display.innerHTML = `${h}:${m}:${s}<span class="timer-ms">.${msec}</span>`;
-    }
-
-    // Data Management
-    function saveSession() {
-        const task = document.getElementById('taskInput').value.trim() || 'Untitled Task';
-        const project = document.getElementById('projectInput').value.trim() || 'General';
-        const rate = parseFloat(document.getElementById('rateInput').value) || 0;
-        
-        // Calculate earnings (hours * rate)
-        const hoursDecimal = elapsedTime / (1000 * 60 * 60);
-        const earnings = hoursDecimal * rate;
-
-        // Format duration string
-        const totalSeconds = Math.floor(elapsedTime / 1000);
-        const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
-        const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
-        const s = String(totalSeconds % 60).padStart(2, '0');
-        const durationStr = `${h}:${m}:${s}`;
-
-        const entry = {
-            id: 'entry_' + Date.now(),
-            date: new Date().toISOString(),
-            task: task,
-            project: project,
-            durationMs: elapsedTime,
-            durationStr: durationStr,
-            rate: rate,
-            earnings: earnings
-        };
-
-        history.unshift(entry); // Add to top
-        saveHistory();
-        renderTable();
-    }
-
-    function toggleManualEntry() {
-        const form = document.getElementById('manualEntryForm');
-        form.classList.toggle('d-none');
-        if(!form.classList.contains('d-none')) {
-            document.getElementById('manDate').valueAsDate = new Date();
-        }
-    }
-
-    function saveManualEntry() {
-        const h = parseInt(document.getElementById('manHours').value) || 0;
-        const m = parseInt(document.getElementById('manMinutes').value) || 0;
-        if(h === 0 && m === 0) return alert("Please enter a valid time duration.");
-        
-        const dateVal = document.getElementById('manDate').value;
-        const dateObj = dateVal ? new Date(dateVal + "T12:00:00") : new Date();
-        
-        const task = document.getElementById('taskInput').value.trim() || 'Manual Entry';
-        const project = document.getElementById('projectInput').value.trim() || 'General';
-        const rate = parseFloat(document.getElementById('rateInput').value) || 0;
-        
-        const totalMs = (h * 3600000) + (m * 60000);
-        const hoursDecimal = totalMs / 3600000;
-        const earnings = hoursDecimal * rate;
-        
-        const durationStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
-
-        const entry = {
-            id: 'entry_' + Date.now(),
-            date: dateObj.toISOString(),
-            task: task,
-            project: project,
-            durationMs: totalMs,
-            durationStr: durationStr,
-            rate: rate,
-            earnings: earnings
-        };
-
-        history.unshift(entry);
-        saveHistory();
-        renderTable();
-        
-        // Reset manual form
-        document.getElementById('manualEntryForm').classList.add('d-none');
-        document.getElementById('manHours').value = '';
-        document.getElementById('manMinutes').value = '';
-    }
-
-    function deleteEntry(id) {
-        if(confirm("Delete this time entry?")) {
-            history = history.filter(item => item.id !== id);
-            saveHistory();
-            renderTable();
-        }
-    }
-
-    function clearHistory() {
-        if(history.length === 0) return;
-        if(confirm("Are you sure you want to delete ALL timesheet records? This cannot be undone.")) {
-            history = [];
-            saveHistory();
-            renderTable();
-        }
-    }
-
-    function loadHistory() {
-        const saved = localStorage.getItem('sb_time_tracker');
-        if (saved) {
-            try {
-                history = JSON.parse(saved);
-            } catch(e) {
-                console.error("Failed to parse history");
-            }
-        }
-    }
-
-    function saveHistory() {
-        localStorage.setItem('sb_time_tracker', JSON.stringify(history));
-    }
-
-    function renderTable() {
-        tableBody.innerHTML = '';
-        let totalEarnings = 0;
-        let totalMsTracked = 0;
-
-        if (history.length === 0) {
-            emptyState.classList.remove('d-none');
-            tableBody.parentElement.classList.add('d-none');
-        } else {
-            emptyState.classList.add('d-none');
-            tableBody.parentElement.classList.remove('d-none');
-
-            history.forEach(entry => {
-                totalEarnings += entry.earnings;
-                totalMsTracked += entry.durationMs;
-                
-                const dateObj = new Date(entry.date);
-                const dateStr = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-                const earnStr = entry.earnings > 0 ? `$${entry.earnings.toFixed(2)}` : '-';
-                
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="text-theme-muted">${dateStr}</td>
-                    <td><span class="project-badge">${entry.project}</span></td>
-                    <td class="fw-bold">${entry.task}</td>
-                    <td class="font-monospace">${entry.durationStr}</td>
-                    <td class="earnings-col">${earnStr}</td>
-                    <td class="text-end">
-                        <button class="btn btn-sm text-theme-muted hover-text-danger" onclick="deleteEntry('${entry.id}')" title="Delete Entry">
-                            <i class="bi bi-x"></i>
-                        </button>
-                    </td>
-                `;
-                tableBody.appendChild(tr);
-            });
-        }
-        
-        totalEarningsDisplay.innerText = `$${totalEarnings.toFixed(2)}`;
-        
-        const totalH = Math.floor(totalMsTracked / 3600000);
-        const totalM = Math.floor((totalMsTracked % 3600000) / 60000);
-        document.getElementById('totalTimeDisplay').innerText = `${totalH}h ${totalM}m`;
-    }
-
-    // Export CSV
-    function exportCSV() {
-        if (history.length === 0) {
-            alert("No data to export.");
-            return;
-        }
-
-        let csvContent = "data:text/csv;charset=utf-8,";
-        // CSV Header
-        csvContent += "Date,Project,Task Description,Duration (HH:MM:SS),Hourly Rate,Earnings\n";
-
-        history.forEach(entry => {
-            const dateStr = new Date(entry.date).toLocaleDateString();
-            // Escape quotes in strings
-            const safeTask = `"${entry.task.replace(/"/g, '""')}"`;
-            const safeProject = `"${entry.project.replace(/"/g, '""')}"`;
+let startTime=0;let elapsedTime=0;let timerInterval=null;let isRunning=false;let history=[];const display=document.getElementById('timerDisplay');const msDisplay=document.getElementById('timerMs');const btnPlay=document.getElementById('btnPlay');const btnPause=document.getElementById('btnPause');const btnStop=document.getElementById('btnStop');const recIndicator=document.getElementById('recIndicator');const tableBody=document.getElementById('historyTableBody');const emptyState=document.getElementById('emptyState');const totalEarningsDisplay=document.getElementById('totalEarningsDisplay');document.addEventListener('DOMContentLoaded',()=>{loadHistory();renderTable();});function startTimer(){if(isRunning)return;isRunning=true;startTime=Date.now()-elapsedTime;timerInterval=setInterval(updateDisplay,10);btnPlay.classList.add('d-none');btnPause.classList.remove('d-none');btnStop.disabled=false;btnStop.style.opacity='1';recIndicator.classList.add('active');display.classList.add('recording');}
+function pauseTimer(){if(!isRunning)return;isRunning=false;clearInterval(timerInterval);btnPause.classList.add('d-none');btnPlay.classList.remove('d-none');recIndicator.classList.remove('active');display.classList.remove('recording');}
+function stopTimer(){if(elapsedTime===0&&!isRunning)return;pauseTimer();saveSession();elapsedTime=0;formatTimeDisplay(0);btnStop.disabled=true;btnStop.style.opacity='0.5';document.getElementById('taskInput').value='';}
+function updateDisplay(){elapsedTime=Date.now()-startTime;formatTimeDisplay(elapsedTime);}
+function formatTimeDisplay(ms){const totalSeconds=Math.floor(ms/1000);const hours=Math.floor(totalSeconds/3600);const minutes=Math.floor((totalSeconds%3600)/60);const seconds=totalSeconds%60;const milliseconds=Math.floor((ms%1000)/10);const h=String(hours).padStart(2,'0');const m=String(minutes).padStart(2,'0');const s=String(seconds).padStart(2,'0');const msec=String(milliseconds).padStart(2,'0');display.innerHTML=`${h}:${m}:${s}<span class="timer-ms">.${msec}</span>`;}
+function saveSession(){const task=document.getElementById('taskInput').value.trim()||'Untitled Task';const project=document.getElementById('projectInput').value.trim()||'General';const rate=parseFloat(document.getElementById('rateInput').value)||0;const hoursDecimal=elapsedTime/(1000*60*60);const earnings=hoursDecimal*rate;const totalSeconds=Math.floor(elapsedTime/1000);const h=String(Math.floor(totalSeconds/3600)).padStart(2,'0');const m=String(Math.floor((totalSeconds%3600)/60)).padStart(2,'0');const s=String(totalSeconds%60).padStart(2,'0');const durationStr=`${h}:${m}:${s}`;const entry={id:'entry_'+Date.now(),date:new Date().toISOString(),task:task,project:project,durationMs:elapsedTime,durationStr:durationStr,rate:rate,earnings:earnings};history.unshift(entry);saveHistory();renderTable();}
+function toggleManualEntry(){const form=document.getElementById('manualEntryForm');form.classList.toggle('d-none');if(!form.classList.contains('d-none')){document.getElementById('manDate').valueAsDate=new Date();}}
+function saveManualEntry(){const h=parseInt(document.getElementById('manHours').value)||0;const m=parseInt(document.getElementById('manMinutes').value)||0;if(h===0&&m===0)return alert("Please enter a valid time duration.");const dateVal=document.getElementById('manDate').value;const dateObj=dateVal?new Date(dateVal+"T12:00:00"):new Date();const task=document.getElementById('taskInput').value.trim()||'Manual Entry';const project=document.getElementById('projectInput').value.trim()||'General';const rate=parseFloat(document.getElementById('rateInput').value)||0;const totalMs=(h*3600000)+(m*60000);const hoursDecimal=totalMs/3600000;const earnings=hoursDecimal*rate;const durationStr=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:00`;const entry={id:'entry_'+Date.now(),date:dateObj.toISOString(),task:task,project:project,durationMs:totalMs,durationStr:durationStr,rate:rate,earnings:earnings};history.unshift(entry);saveHistory();renderTable();document.getElementById('manualEntryForm').classList.add('d-none');document.getElementById('manHours').value='';document.getElementById('manMinutes').value='';}
+function deleteEntry(id){if(confirm("Delete this time entry?")){history=history.filter(item=>item.id!==id);saveHistory();renderTable();}}
+function clearHistory(){if(history.length===0)return;if(confirm("Are you sure you want to delete ALL timesheet records? This cannot be undone.")){history=[];saveHistory();renderTable();}}
+function loadHistory(){const saved=localStorage.getItem('sb_time_tracker');if(saved){try{history=JSON.parse(saved);}catch(e){console.error("Failed to parse history");}}}
+function saveHistory(){localStorage.setItem('sb_time_tracker',JSON.stringify(history));}
+function renderTable(){tableBody.innerHTML='';let totalEarnings=0;let totalMsTracked=0;if(history.length===0){emptyState.classList.remove('d-none');tableBody.parentElement.classList.add('d-none');}else{emptyState.classList.add('d-none');tableBody.parentElement.classList.remove('d-none');history.forEach(entry=>{totalEarnings+=entry.earnings;totalMsTracked+=entry.durationMs;const dateObj=new Date(entry.date);const dateStr=dateObj.toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'});const earnStr=entry.earnings>0?`$${entry.earnings.toFixed(2)}`:'-';const tr=document.createElement('tr');tr.innerHTML=`<td class="text-theme-muted">${dateStr}</td><td><span class="project-badge">${entry.project}</span></td><td class="fw-bold">${entry.task}</td><td class="font-monospace">${entry.durationStr}</td><td class="earnings-col">${earnStr}</td><td class="text-end"><button class="btn btn-sm text-theme-muted hover-text-danger"onclick="deleteEntry('${entry.id}')"title="Delete Entry"><i class="bi bi-x"></i></button></td>`;tableBody.appendChild(tr);});}
+totalEarningsDisplay.innerText=`$${totalEarnings.toFixed(2)}`;const totalH=Math.floor(totalMsTracked/3600000);const totalM=Math.floor((totalMsTracked%3600000)/60000);document.getElementById('totalTimeDisplay').innerText=`${totalH}h ${totalM}m`;}
+function exportCSV(){if(history.length===0){alert("No data to export.");return;}
+let csvContent="data:text/csv;charset=utf-8,";csvContent+="Date,Project,Task Description,Duration (HH:MM:SS),Hourly Rate,Earnings\n";history.forEach(entry=>{const dateStr=new Date(entry.date).toLocaleDateString();const safeTask=`"${entry.task.replace(/"/g,'""')}"`;
+            const safeProject = `"${entry.project.replace(/"/g,'""')}"`;
             
             const row = `${dateStr},${safeProject},${safeTask},${entry.durationStr},${entry.rate.toFixed(2)},${entry.earnings.toFixed(2)}`;
             csvContent += row + "\n";
@@ -486,12 +239,7 @@
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `timesheet_export_${new Date().toLocaleDateString().replace(/\//g, '-')}.csv`);
-        document.body.appendChild(link); // Required for Firefox
-        
-        link.click();
-        document.body.removeChild(link);
-    }
+        link.setAttribute("download"
 </script>
 
 

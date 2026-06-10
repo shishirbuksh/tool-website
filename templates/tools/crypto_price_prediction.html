@@ -145,102 +145,11 @@
 </div>
 
 <script>
-    let predictionChart = null;
-    let globalHistoryData = [];
-    let globalPredictionData = [];
-    let currentAssetPrice = 0;
-
-    async function runPrediction() {
-        const symbol = document.getElementById('cryptoSelector').value;
-        const loader = document.getElementById('aiLoader');
-        const sliderGroup = document.getElementById('sliderControlGroup');
-
-        loader.classList.remove('d-none');
-        document.getElementById('predictBtn').disabled = true;
-        sliderGroup.classList.add('opacity-50', 'pe-none');
-
-        try {
-            const response = await fetch(`/api/predict-crypto?symbol=${symbol}`);
-            const data = await response.json();
-
-            if (!response.ok) throw new Error(data.detail || 'Prediction failed');
-
-            globalHistoryData = data.history;
-            globalPredictionData = data.predictions;
-            currentAssetPrice = globalHistoryData[globalHistoryData.length - 1].price;
-
-            document.getElementById('weightSlider').value = 50;
-            document.getElementById('currentPrice').innerText = formatMoney(currentAssetPrice);
-            sliderGroup.classList.remove('opacity-50', 'pe-none');
-
-            handleSliderChange(true);
-            document.getElementById('chartEmpty').classList.add('d-none');
-
-        } catch (error) {
-            alert("Error: " + error.message);
-        } finally {
-            loader.classList.add('d-none');
-            document.getElementById('predictBtn').disabled = false;
-        }
-    }
-
-    function formatMoney(v) { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v); }
-
-    function handleSliderChange(isInitial = false) {
-        if (!globalPredictionData?.length) return;
-
-        const val = parseInt(document.getElementById('weightSlider').value);
-        const rustWeight = val / 100.0, prophetWeight = 1.0 - rustWeight;
-
-        document.getElementById('sliderValueText').innerText = `${Math.round(prophetWeight * 100)} / ${Math.round(rustWeight * 100)}`;
-
-        const blended = globalPredictionData.map(item => ({
-            date: item.date,
-            price: (item.prophet_price * prophetWeight) + (item.rust_price * rustWeight)
-        }));
-
-        const finalPrice = blended[blended.length - 1].price;
-        const diffPercent = ((finalPrice - currentAssetPrice) / currentAssetPrice) * 100;
-
-        document.getElementById('targetPrice').innerText = formatMoney(finalPrice);
-        const tIcon = document.getElementById('trendIcon'), tText = document.getElementById('trendText');
-
-        if (finalPrice > currentAssetPrice) {
-            tIcon.className = "flex-shrink-0 w-12 h-12 rounded-3 bg-success bg-opacity-10 d-flex align-items-center justify-content-center border border-success border-opacity-20 text-success shadow-lg";
-            tIcon.innerHTML = `<i class="bi bi-rocket"></i>`;
-            tText.innerHTML = `UPTREND <span class="text-success ms-1">+${diffPercent.toFixed(2)}%</span>`;
-        } else {
-            tIcon.className = "flex-shrink-0 w-12 h-12 rounded-3 bg-danger bg-opacity-10 d-flex align-items-center justify-content-center border border-danger border-opacity-20 text-danger shadow-lg";
-            tIcon.innerHTML = `<i class="bi bi-star"></i>`;
-            tText.innerHTML = `RISK <span class="text-danger ms-1">${diffPercent.toFixed(2)}%</span>`;
-        }
-
-        const histSeries = globalHistoryData.slice(-60).map(i => ({ x: i.date, y: parseFloat(i.price.toFixed(2)) }));
-        const predSeries = [{ x: histSeries[histSeries.length-1].x, y: histSeries[histSeries.length-1].y }, 
-                            ...blended.map(i => ({ x: i.date, y: parseFloat(i.price.toFixed(2)) }))];
-
-        if (isInitial || !predictionChart) renderChart(histSeries, predSeries);
-        else predictionChart.updateSeries([{ name: 'Historical', data: histSeries }, { name: 'Projection', data: predSeries }]);
-    }
-
-    function renderChart(h, p) {
-        const options = {
-            series: [{ name: 'Historical', data: h }, { name: 'Projection', data: p }],
-            chart: { type: 'area', height: '100%', background: 'transparent', toolbar: { show: false }, animations: { speed: 400 } },
-            colors: ['#0ea5e9', '#10b981'],
-            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.05, stops: [0, 100] } },
-            dataLabels: { enabled: false },
-            stroke: { curve: 'smooth', width: [3, 4], dashArray: [0, 8] },
-            xaxis: { type: 'datetime', labels: { style: { colors: 'rgba(255,255,255,0.4)', fontWeight: 600 } }, axisBorder: { show: false }, axisTicks: { show: false } },
-            yaxis: { labels: { style: { colors: 'rgba(255,255,255,0.4)', fontWeight: 600 }, formatter: v => "$" + v.toLocaleString() } },
-            grid: { borderColor: 'rgba(255,255,255,0.05)', strokeDashArray: 5 },
-            theme: { mode: 'dark' },
-            legend: { position: 'top', horizontalAlign: 'right', labels: { colors: 'rgba(255,255,255,0.4)' } },
-            tooltip: { theme: 'dark', y: { formatter: v => "$" + Number(v).toLocaleString() } }
-        };
-        predictionChart = new ApexCharts(document.querySelector("#chartContainer"), options);
-        predictionChart.render();
-    }
+let predictionChart=null;let globalHistoryData=[];let globalPredictionData=[];let currentAssetPrice=0;async function runPrediction(){const symbol=document.getElementById('cryptoSelector').value;const loader=document.getElementById('aiLoader');const sliderGroup=document.getElementById('sliderControlGroup');loader.classList.remove('d-none');document.getElementById('predictBtn').disabled=true;sliderGroup.classList.add('opacity-50','pe-none');try{const response=await fetch(`/api/predict-crypto?symbol=${symbol}`);const data=await response.json();if(!response.ok)throw new Error(data.detail||'Prediction failed');globalHistoryData=data.history;globalPredictionData=data.predictions;currentAssetPrice=globalHistoryData[globalHistoryData.length-1].price;document.getElementById('weightSlider').value=50;document.getElementById('currentPrice').innerText=formatMoney(currentAssetPrice);sliderGroup.classList.remove('opacity-50','pe-none');handleSliderChange(true);document.getElementById('chartEmpty').classList.add('d-none');}catch(error){alert("Error: "+error.message);}finally{loader.classList.add('d-none');document.getElementById('predictBtn').disabled=false;}}
+function formatMoney(v){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(v);}
+function handleSliderChange(isInitial=false){if(!globalPredictionData?.length)return;const val=parseInt(document.getElementById('weightSlider').value);const rustWeight=val/100.0,prophetWeight=1.0-rustWeight;document.getElementById('sliderValueText').innerText=`${Math.round(prophetWeight*100)}/${Math.round(rustWeight*100)}`;const blended=globalPredictionData.map(item=>({date:item.date,price:(item.prophet_price*prophetWeight)+(item.rust_price*rustWeight)}));const finalPrice=blended[blended.length-1].price;const diffPercent=((finalPrice-currentAssetPrice)/currentAssetPrice)*100;document.getElementById('targetPrice').innerText=formatMoney(finalPrice);const tIcon=document.getElementById('trendIcon'),tText=document.getElementById('trendText');if(finalPrice>currentAssetPrice){tIcon.className="flex-shrink-0 w-12 h-12 rounded-3 bg-success bg-opacity-10 d-flex align-items-center justify-content-center border border-success border-opacity-20 text-success shadow-lg";tIcon.innerHTML=`<i class="bi bi-rocket"></i>`;tText.innerHTML=`UPTREND<span class="text-success ms-1">+${diffPercent.toFixed(2)}%</span>`;}else{tIcon.className="flex-shrink-0 w-12 h-12 rounded-3 bg-danger bg-opacity-10 d-flex align-items-center justify-content-center border border-danger border-opacity-20 text-danger shadow-lg";tIcon.innerHTML=`<i class="bi bi-star"></i>`;tText.innerHTML=`RISK<span class="text-danger ms-1">${diffPercent.toFixed(2)}%</span>`;}
+const histSeries=globalHistoryData.slice(-60).map(i=>({x:i.date,y:parseFloat(i.price.toFixed(2))}));const predSeries=[{x:histSeries[histSeries.length-1].x,y:histSeries[histSeries.length-1].y},...blended.map(i=>({x:i.date,y:parseFloat(i.price.toFixed(2))}))];if(isInitial||!predictionChart)renderChart(histSeries,predSeries);else predictionChart.updateSeries([{name:'Historical',data:histSeries},{name:'Projection',data:predSeries}]);}
+function renderChart(h,p){const options={series:[{name:'Historical',data:h},{name:'Projection',data:p}],chart:{type:'area',height:'100%',background:'transparent',toolbar:{show:false},animations:{speed:400}},colors:['#0ea5e9','#10b981'],fill:{type:'gradient',gradient:{shadeIntensity:1,opacityFrom:0.3,opacityTo:0.05,stops:[0,100]}},dataLabels:{enabled:false},stroke:{curve:'smooth',width:[3,4],dashArray:[0,8]},xaxis:{type:'datetime',labels:{style:{colors:'rgba(255,255,255,0.4)',fontWeight:600}},axisBorder:{show:false},axisTicks:{show:false}},yaxis:{labels:{style:{colors:'rgba(255,255,255,0.4)',fontWeight:600},formatter:v=>"$"+v.toLocaleString()}},grid:{borderColor:'rgba(255,255,255,0.05)',strokeDashArray:5},theme:{mode:'dark'},legend:{position:'top',horizontalAlign:'right',labels:{colors:'rgba(255,255,255,0.4)'}},tooltip:{theme:'dark',y:{formatter:v=>"$"+Number(v).toLocaleString()}}};predictionChart=new ApexCharts(document.querySelector("#chartContainer"),options);predictionChart.render();}
 </script>
 
 <!-- SEO Content Section -->

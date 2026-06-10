@@ -296,253 +296,30 @@
 </div>
 
 <script>
-    let cv = {
-        themeColor: '#2563eb', font: "'Inter', sans-serif", lh: 1.5, sg: 2.5,
-        personal: {
-            name: 'SHISHIR BUKSH', title: 'Elite Software Architect',
-            email: 'contact@storybrain.ai', phone: '+1 555 000 1111',
-            location: 'San Francisco, CA', website: 'storybrainai.com',
-            photo: null,
-            summary: 'Results-driven professional with over 8 years of experience in building high-performance systems. Expert in full-stack architecture, team leadership, and product strategy. Proven track record of delivering scalable solutions that drive business growth and operational efficiency.'
-        },
-        visibility: { projects: false, awards: false, languages: false },
-        exp: [], edu: [], skill: [], projects: [], awards: [], languages: []
-    };
-
-    function genId() { return Math.random().toString(36).substr(2, 9); }
-
-    function applyTheme(c) {
-        cv.themeColor = c;
-        document.documentElement.style.setProperty('--resume-theme', c);
-        document.getElementById('themeColorPicker').value = c;
-        document.getElementById('themeColorHex').innerText = c;
-        persist();
-    }
-
-    function applyFont(f) {
-        cv.font = f;
-        document.getElementById('paper').style.fontFamily = f;
-        persist();
-    }
-
-    function updateSpacing(type, val) {
-        cv[type] = val;
-        if(type === 'lh') document.documentElement.style.setProperty('--resume-line-height', val);
-        else document.documentElement.style.setProperty('--resume-section-gap', val + 'rem');
-        persist();
-    }
-
-    function toggleSec(s) {
-        cv.visibility[s] = !cv.visibility[s];
-        syncVisibility();
-        persist();
-    }
-
-    function syncVisibility() {
-        ['projects', 'awards', 'languages'].forEach(s => {
-            const el = document.getElementById('s-' + s);
-            const btn = document.getElementById('btn-' + s);
-            if(cv.visibility[s]) {
-                el.style.display = 'block';
-                btn.classList.add('bg-primary', 'text-white', 'border-primary');
-                btn.classList.remove('btn-studio-outline');
-            } else {
-                el.style.display = 'none';
-                btn.classList.remove('bg-primary', 'text-white', 'border-primary');
-                btn.classList.add('btn-studio-outline');
-            }
-        });
-    }
-
-    function addItem(type, data = null) {
-        const id = data?.id || genId();
-        const item = data || defaultItem(type, id);
-        if(!data) cv[type].push(item);
-
-        const ctrl = document.createElement('div');
-        ctrl.className = 'sidebar-card p-2 d-flex align-items-center gap-2 mb-2 bg-theme-surface border-theme';
-        ctrl.id = `c-${type}-${id}`;
-        ctrl.innerHTML = `
-            <div class="flex-fill small fw-bold text-theme opacity-75 text-truncate ps-2" title="${(type === 'skill' || type === 'languages') ? item.name : item.t1}">${(type === 'skill' || type === 'languages') ? item.name : item.t1}</div>
-            <button class="btn btn-sm p-1 text-theme opacity-50 hover-text-primary transition-all" onclick="move('${type}', '${id}', -1)"><i class="bi bi-chevron-up"></i></button>
-            <button class="btn btn-sm p-1 text-theme opacity-50 hover-text-primary transition-all" onclick="move('${type}', '${id}', 1)"><i class="bi bi-chevron-down"></i></button>
-            <button class="btn btn-sm p-1 text-danger opacity-75 hover-opacity-100 transition-all" onclick="rem('${type}', '${id}')"><i class="bi bi-trash"></i></button>
-        `;
-        document.getElementById(type + 'Ctrls')?.appendChild(ctrl);
-
-        const prev = document.createElement('div');
-        prev.id = `p-${type}-${id}`;
-        if(type === 'skill' || type === 'languages') {
-            prev.className = 'skill-bar-wrap mb-3';
-            prev.innerHTML = `
-                <div class="skill-info">
-                    <span class="editable" contenteditable="true" oninput="syncT('${type}','${id}','name',this)" spellcheck="false">${item.name}</span>
-                    <span class="small opacity-50"><span class="editable" contenteditable="true" oninput="syncT('${type}','${id}','val',this)" spellcheck="false">${item.val}</span>%</span>
-                </div>
-                <div class="skill-track"><div class="skill-fill" style="width:${item.val}%"></div></div>
-            `;
-            document.getElementById(`p-${type}-list`).appendChild(prev);
-        } else {
-            prev.className = 'res-entry';
-            prev.innerHTML = `
-                <div class="res-entry-head">
-                    <div class="res-entry-title editable" contenteditable="true" oninput="syncT('${type}','${id}','t1',this)" spellcheck="false">${item.t1}</div>
-                    <div class="res-entry-meta editable" contenteditable="true" oninput="syncT('${type}','${id}','meta',this)" spellcheck="false">${item.meta}</div>
-                </div>
-                <div class="res-entry-sub editable" contenteditable="true" oninput="syncT('${type}','${id}','t2',this)" spellcheck="false">${item.t2}</div>
-                ${type === 'edu' ? `<div class="small fw-bold text-primary mb-2 opacity-75">Result: <span class="editable" contenteditable="true" oninput="syncT('edu','${id}','grade',this)" spellcheck="false">${item.grade || 'Grade/GPA'}</span></div>` : ''}
-                <div class="res-entry-desc editable" contenteditable="true" oninput="syncT('${type}','${id}','desc',this)" spellcheck="false">${item.desc}</div>
-            `;
-            document.getElementById(`p-${type}-list`).appendChild(prev);
-        }
-        persist();
-    }
-
-    function defaultItem(type, id) {
-        if(type === 'exp') return { id, t1: 'Job Role / Position', t2: 'Company / Organization Name', meta: 'Month YYYY - Present', desc: '• Accomplished X using Y resulting in Z\n• Managed high-scale production systems\n• Led cross-functional team of engineers' };
-        if(type === 'edu') return { id, t1: 'Degree / Academic Level', t2: 'Institution / School Name', meta: '20XX - 20XX', grade: 'GPA: 4.0 / 90%', desc: '• Major in Computer Science\n• Dean\'s List for 4 consecutive semesters' };
-        if(type === 'projects') return { id, t1: 'Project Title', t2: 'Technologies Used: React, Node.js', meta: 'YYYY', desc: 'Developed a full-stack web application that solved problem X for user base Y.' };
-        if(type === 'awards') return { id, t1: 'Award Title', t2: 'Issuing Organization', meta: 'YYYY', desc: 'Recognized for outstanding achievement in field Z.' };
-        if(type === 'skill') return { id, name: 'Core Skill', val: 90 };
-        return { id, name: 'Language', val: 100 };
-    }
-
-    function syncT(type, id, key, el) {
-        const item = cv[type].find(x => x.id === id);
-        if(item) {
-            item[key] = (key === 'val') ? parseInt(el.innerText) || 0 : el.innerText;
-            if(key === 't1' || key === 'name') {
-                const ctrlTitle = document.querySelector(`#c-${type}-${id} div`);
-                if(ctrlTitle) {
-                    ctrlTitle.innerText = item[key];
-                    ctrlTitle.title = item[key];
-                }
-            }
-            if(key === 'val') redraw();
-        }
-        persist();
-    }
-
-    function move(type, id, dir) {
-        const idx = cv[type].findIndex(x => x.id === id);
-        if((dir === -1 && idx > 0) || (dir === 1 && idx < cv[type].length - 1)) {
-            const tmp = cv[type][idx];
-            cv[type].splice(idx, 1); cv[type].splice(idx + dir, 0, tmp);
-            redraw();
-        }
-    }
-
-    function rem(type, id) { cv[type] = cv[type].filter(x => x.id !== id); redraw(); }
-
-    function handlePhoto(input) {
-        if(input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => { cv.personal.photo = e.target.result; redraw(); persist(); };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
-    function removePhoto() { cv.personal.photo = null; redraw(); persist(); }
-
-    function redraw() {
-        ['exp','edu','skill','projects','awards','languages'].forEach(t => {
-            const ctrl = document.getElementById(t + 'Ctrls');
-            const list = document.getElementById('p-' + t + '-list');
-            if(ctrl) ctrl.innerHTML = ''; if(list) list.innerHTML = '';
-            cv[t].forEach(item => addItem(t, item));
-        });
-        
-        ['name','title','summary'].forEach(k => {
-            const elId = 'p-' + k;
-            const el = document.getElementById(elId);
-            if(el) el.innerText = cv.personal[k];
-        });
-
-        const icons = {
-            'email': '<i class="bi bi-envelope"></i> ',
-            'phone': '<i class="bi bi-telephone"></i> ',
-            'location': '<i class="bi bi-geo-alt"></i> ',
-            'website': '<i class="bi bi-globe"></i> '
-        };
-
-        ['email','phone','location','website'].forEach(k => {
-            const elId = 'p-' + (k === 'location' ? 'loc' : (k === 'website' ? 'web' : k));
-            const el = document.getElementById(elId);
-            if(el) el.innerHTML = icons[k] + cv.personal[k];
-        });
-
-        const photoWrap = document.getElementById('p-photo-wrap');
-        const photoEl = document.getElementById('p-photo-el');
-        const sidePhoto = document.getElementById('sidebar-photo-preview');
-        if(cv.personal.photo) {
-            photoWrap.style.display = 'block';
-            photoEl.style.backgroundImage = `url(${cv.personal.photo})`;
-            sidePhoto.style.backgroundImage = `url(${cv.personal.photo})`;
-            sidePhoto.innerHTML = '';
-            sidePhoto.classList.remove('border');
-        } else {
-            photoWrap.style.display = 'none';
-            sidePhoto.style.backgroundImage = 'none';
-            sidePhoto.innerHTML = '<i class="bi bi-camera"></i>';
-            sidePhoto.classList.add('border');
-        }
-        
-        applyTheme(cv.themeColor); 
-        
-        const fontSelect = document.querySelector('select[onchange="applyFont(this.value)"]');
-        if(fontSelect) fontSelect.value = cv.font;
-        applyFont(cv.font);
-        
-        document.querySelector('input[oninput="updateSpacing(\'lh\', this.value)"]').value = cv.lh;
-        document.querySelector('input[oninput="updateSpacing(\'sg\', this.value)"]').value = cv.sg;
-        updateSpacing('lh', cv.lh); updateSpacing('sg', cv.sg);
-        syncVisibility();
-    }
-
-    function persist() { localStorage.setItem('elite_resume_state', JSON.stringify(cv)); }
-
-    function exportJSON() {
-        const blob = new Blob([JSON.stringify(cv, null, 2)], {type: 'application/json'});
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = `resume_backup_${new Date().toLocaleDateString()}.json`; a.click();
-    }
-
-    function importJSON(input) {
-        if(input.files && input.files[0]) {
-            const r = new FileReader();
-            r.onload = (e) => { try { cv = JSON.parse(e.target.result); redraw(); } catch(err) { alert('Invalid Backup File!'); } };
-            r.readAsText(input.files[0]);
-        }
-    }
-
-    function factoryReset() { if(confirm("Are you sure? This will delete all your local resume data permanently.")) { localStorage.removeItem('elite_resume_state'); location.reload(); } }
-
-    ['p-name', 'p-title', 'p-summary', 'p-email', 'p-phone', 'p-loc', 'p-web'].forEach(id => {
-        document.getElementById(id).addEventListener('input', function() {
-            const key = id.split('-')[1];
-            const realKey = key === 'loc' ? 'location' : (key === 'web' ? 'website' : key);
-            // Don't save the icon HTML if editing contact info
-            if(['email', 'phone', 'loc', 'web'].includes(key)) {
-                // We extract text content safely, ignoring the <i> element
-                const clone = this.cloneNode(true);
-                const iEl = clone.querySelector('i');
-                if(iEl) iEl.remove();
-                cv.personal[realKey] = clone.textContent.trim();
-            } else {
-                cv.personal[realKey] = this.innerText; 
-            }
-            persist(); 
-        });
-    });
-
-    window.onload = () => {
-        const s = localStorage.getItem('elite_resume_state');
-        if(s) { cv = JSON.parse(s); redraw(); } else {
-            addItem('exp'); addItem('edu');
-            ['Full Stack Architecture', 'Product Leadership', 'Cloud Infrastructure'].forEach(n => addItem('skill', {id:genId(), name:n, val:95}));
-            redraw();
-        }
-    };
+let cv={themeColor:'#2563eb',font:"'Inter', sans-serif",lh:1.5,sg:2.5,personal:{name:'SHISHIR BUKSH',title:'Elite Software Architect',email:'contact@storybrain.ai',phone:'+1 555 000 1111',location:'San Francisco, CA',website:'storybrainai.com',photo:null,summary:'Results-driven professional with over 8 years of experience in building high-performance systems. Expert in full-stack architecture, team leadership, and product strategy. Proven track record of delivering scalable solutions that drive business growth and operational efficiency.'},visibility:{projects:false,awards:false,languages:false},exp:[],edu:[],skill:[],projects:[],awards:[],languages:[]};function genId(){return Math.random().toString(36).substr(2,9);}
+function applyTheme(c){cv.themeColor=c;document.documentElement.style.setProperty('--resume-theme',c);document.getElementById('themeColorPicker').value=c;document.getElementById('themeColorHex').innerText=c;persist();}
+function applyFont(f){cv.font=f;document.getElementById('paper').style.fontFamily=f;persist();}
+function updateSpacing(type,val){cv[type]=val;if(type==='lh')document.documentElement.style.setProperty('--resume-line-height',val);else document.documentElement.style.setProperty('--resume-section-gap',val+'rem');persist();}
+function toggleSec(s){cv.visibility[s]=!cv.visibility[s];syncVisibility();persist();}
+function syncVisibility(){['projects','awards','languages'].forEach(s=>{const el=document.getElementById('s-'+s);const btn=document.getElementById('btn-'+s);if(cv.visibility[s]){el.style.display='block';btn.classList.add('bg-primary','text-white','border-primary');btn.classList.remove('btn-studio-outline');}else{el.style.display='none';btn.classList.remove('bg-primary','text-white','border-primary');btn.classList.add('btn-studio-outline');}});}
+function addItem(type,data=null){const id=data?.id||genId();const item=data||defaultItem(type,id);if(!data)cv[type].push(item);const ctrl=document.createElement('div');ctrl.className='sidebar-card p-2 d-flex align-items-center gap-2 mb-2 bg-theme-surface border-theme';ctrl.id=`c-${type}-${id}`;ctrl.innerHTML=`<div class="flex-fill small fw-bold text-theme opacity-75 text-truncate ps-2"title="${(type === 'skill' || type === 'languages') ? item.name : item.t1}">${(type==='skill'||type==='languages')?item.name:item.t1}</div><button class="btn btn-sm p-1 text-theme opacity-50 hover-text-primary transition-all"onclick="move('${type}', '${id}', -1)"><i class="bi bi-chevron-up"></i></button><button class="btn btn-sm p-1 text-theme opacity-50 hover-text-primary transition-all"onclick="move('${type}', '${id}', 1)"><i class="bi bi-chevron-down"></i></button><button class="btn btn-sm p-1 text-danger opacity-75 hover-opacity-100 transition-all"onclick="rem('${type}', '${id}')"><i class="bi bi-trash"></i></button>`;document.getElementById(type+'Ctrls')?.appendChild(ctrl);const prev=document.createElement('div');prev.id=`p-${type}-${id}`;if(type==='skill'||type==='languages'){prev.className='skill-bar-wrap mb-3';prev.innerHTML=`<div class="skill-info"><span class="editable"contenteditable="true"oninput="syncT('${type}','${id}','name',this)"spellcheck="false">${item.name}</span><span class="small opacity-50"><span class="editable"contenteditable="true"oninput="syncT('${type}','${id}','val',this)"spellcheck="false">${item.val}</span>%</span></div><div class="skill-track"><div class="skill-fill"style="width:${item.val}%"></div></div>`;document.getElementById(`p-${type}-list`).appendChild(prev);}else{prev.className='res-entry';prev.innerHTML=`<div class="res-entry-head"><div class="res-entry-title editable"contenteditable="true"oninput="syncT('${type}','${id}','t1',this)"spellcheck="false">${item.t1}</div><div class="res-entry-meta editable"contenteditable="true"oninput="syncT('${type}','${id}','meta',this)"spellcheck="false">${item.meta}</div></div><div class="res-entry-sub editable"contenteditable="true"oninput="syncT('${type}','${id}','t2',this)"spellcheck="false">${item.t2}</div>${type==='edu'?`<div class="small fw-bold text-primary mb-2 opacity-75">Result:<span class="editable"contenteditable="true"oninput="syncT('edu','${id}','grade',this)"spellcheck="false">${item.grade||'Grade/GPA'}</span></div>`:''}<div class="res-entry-desc editable"contenteditable="true"oninput="syncT('${type}','${id}','desc',this)"spellcheck="false">${item.desc}</div>`;document.getElementById(`p-${type}-list`).appendChild(prev);}
+persist();}
+function defaultItem(type,id){if(type==='exp')return{id,t1:'Job Role / Position',t2:'Company / Organization Name',meta:'Month YYYY - Present',desc:'• Accomplished X using Y resulting in Z\n• Managed high-scale production systems\n• Led cross-functional team of engineers'};if(type==='edu')return{id,t1:'Degree / Academic Level',t2:'Institution / School Name',meta:'20XX - 20XX',grade:'GPA: 4.0 / 90%',desc:'• Major in Computer Science\n• Dean\'s List for 4 consecutive semesters'};if(type==='projects')return{id,t1:'Project Title',t2:'Technologies Used: React, Node.js',meta:'YYYY',desc:'Developed a full-stack web application that solved problem X for user base Y.'};if(type==='awards')return{id,t1:'Award Title',t2:'Issuing Organization',meta:'YYYY',desc:'Recognized for outstanding achievement in field Z.'};if(type==='skill')return{id,name:'Core Skill',val:90};return{id,name:'Language',val:100};}
+function syncT(type,id,key,el){const item=cv[type].find(x=>x.id===id);if(item){item[key]=(key==='val')?parseInt(el.innerText)||0:el.innerText;if(key==='t1'||key==='name'){const ctrlTitle=document.querySelector(`#c-${type}-${id}div`);if(ctrlTitle){ctrlTitle.innerText=item[key];ctrlTitle.title=item[key];}}
+if(key==='val')redraw();}
+persist();}
+function move(type,id,dir){const idx=cv[type].findIndex(x=>x.id===id);if((dir===-1&&idx>0)||(dir===1&&idx<cv[type].length-1)){const tmp=cv[type][idx];cv[type].splice(idx,1);cv[type].splice(idx+dir,0,tmp);redraw();}}
+function rem(type,id){cv[type]=cv[type].filter(x=>x.id!==id);redraw();}
+function handlePhoto(input){if(input.files&&input.files[0]){const reader=new FileReader();reader.onload=(e)=>{cv.personal.photo=e.target.result;redraw();persist();};reader.readAsDataURL(input.files[0]);}}
+function removePhoto(){cv.personal.photo=null;redraw();persist();}
+function redraw(){['exp','edu','skill','projects','awards','languages'].forEach(t=>{const ctrl=document.getElementById(t+'Ctrls');const list=document.getElementById('p-'+t+'-list');if(ctrl)ctrl.innerHTML='';if(list)list.innerHTML='';cv[t].forEach(item=>addItem(t,item));});['name','title','summary'].forEach(k=>{const elId='p-'+k;const el=document.getElementById(elId);if(el)el.innerText=cv.personal[k];});const icons={'email':'<i class="bi bi-envelope"></i> ','phone':'<i class="bi bi-telephone"></i> ','location':'<i class="bi bi-geo-alt"></i> ','website':'<i class="bi bi-globe"></i> '};['email','phone','location','website'].forEach(k=>{const elId='p-'+(k==='location'?'loc':(k==='website'?'web':k));const el=document.getElementById(elId);if(el)el.innerHTML=icons[k]+cv.personal[k];});const photoWrap=document.getElementById('p-photo-wrap');const photoEl=document.getElementById('p-photo-el');const sidePhoto=document.getElementById('sidebar-photo-preview');if(cv.personal.photo){photoWrap.style.display='block';photoEl.style.backgroundImage=`url(${cv.personal.photo})`;sidePhoto.style.backgroundImage=`url(${cv.personal.photo})`;sidePhoto.innerHTML='';sidePhoto.classList.remove('border');}else{photoWrap.style.display='none';sidePhoto.style.backgroundImage='none';sidePhoto.innerHTML='<i class="bi bi-camera"></i>';sidePhoto.classList.add('border');}
+applyTheme(cv.themeColor);const fontSelect=document.querySelector('select[onchange="applyFont(this.value)"]');if(fontSelect)fontSelect.value=cv.font;applyFont(cv.font);document.querySelector('input[oninput="updateSpacing(\'lh\', this.value)"]').value=cv.lh;document.querySelector('input[oninput="updateSpacing(\'sg\', this.value)"]').value=cv.sg;updateSpacing('lh',cv.lh);updateSpacing('sg',cv.sg);syncVisibility();}
+function persist(){localStorage.setItem('elite_resume_state',JSON.stringify(cv));}
+function exportJSON(){const blob=new Blob([JSON.stringify(cv,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`resume_backup_${new Date().toLocaleDateString()}.json`;a.click();}
+function importJSON(input){if(input.files&&input.files[0]){const r=new FileReader();r.onload=(e)=>{try{cv=JSON.parse(e.target.result);redraw();}catch(err){alert('Invalid Backup File!');}};r.readAsText(input.files[0]);}}
+function factoryReset(){if(confirm("Are you sure? This will delete all your local resume data permanently.")){localStorage.removeItem('elite_resume_state');location.reload();}}
+['p-name','p-title','p-summary','p-email','p-phone','p-loc','p-web'].forEach(id=>{document.getElementById(id).addEventListener('input',function(){const key=id.split('-')[1];const realKey=key==='loc'?'location':(key==='web'?'website':key);if(['email','phone','loc','web'].includes(key)){const clone=this.cloneNode(true);const iEl=clone.querySelector('i');if(iEl)iEl.remove();cv.personal[realKey]=clone.textContent.trim();}else{cv.personal[realKey]=this.innerText;}
+persist();});});window.onload=()=>{const s=localStorage.getItem('elite_resume_state');if(s){cv=JSON.parse(s);redraw();}else{addItem('exp');addItem('edu');['Full Stack Architecture','Product Leadership','Cloud Infrastructure'].forEach(n=>addItem('skill',{id:genId(),name:n,val:95}));redraw();}};
 </script>
 
 <!-- Schema.org Markup for SEO -->

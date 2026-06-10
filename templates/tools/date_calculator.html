@@ -132,178 +132,19 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Set today's date as default
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('diff_start').value = today;
-    document.getElementById('diff_end').value = today;
-    document.getElementById('shift_start').value = today;
-    
-    // Auto calculate on input change
-    document.querySelectorAll('#diff_start, #diff_end, #include_end_day').forEach(el => {
-        el.addEventListener('input', calcDifference);
-    });
-    
-    document.querySelectorAll('#shift_start, #shift_action, #shift_y, #shift_m, #shift_w, #shift_d').forEach(el => {
-        el.addEventListener('input', calcShift);
-    });
-    
-    // Initial calculate
-    calcDifference();
-    calcShift();
-});
-
-function addMonthsToDate(year, month, day, monthsToAdd) {
-    let totalMonths = month + monthsToAdd;
-    let newYear = year + Math.floor(totalMonths / 12);
-    let newMonth = totalMonths % 12;
-    if (newMonth < 0) {
-        newMonth += 12;
-    }
-    let lastDay = new Date(newYear, newMonth + 1, 0).getDate();
-    let d = new Date(newYear, newMonth, Math.min(day, lastDay), 12, 0, 0);
-    d.setFullYear(newYear); // Fix JS year 0-99 bug
-    return d;
-}
-
-function isLeapYear(year) {
-    return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
-}
-
-function calcDifference() {
-    const startInput = document.getElementById('diff_start').value;
-    const endInput = document.getElementById('diff_end').value;
-    const res = document.getElementById('diff_res');
-    const includeEnd = document.getElementById('include_end_day').checked;
-
-    if (!startInput || !endInput) {
-        res.innerHTML = '<span class="text-danger small fw-bold">PLEASE SELECT BOTH DATES</span>';
-        return;
-    }
-
-    let startParts = startInput.split('-');
-    let endParts = endInput.split('-');
-    // Use noon to avoid timezone and DST edge cases
-    let d1 = new Date(startParts[0], startParts[1] - 1, startParts[2], 12, 0, 0);
-    let d2 = new Date(endParts[0], endParts[1] - 1, endParts[2], 12, 0, 0);
-    
-    let isNegative = false;
-    if (d1 > d2) {
-        let temp = d1;
-        d1 = d2;
-        d2 = temp;
-        isNegative = true;
-    }
-
-    const msPerDay = 1000 * 60 * 60 * 24;
-    let totalDays = Math.round((d2 - d1) / msPerDay);
-    if (includeEnd) {
-        totalDays += 1;
-        d2.setDate(d2.getDate() + 1);
-    }
-
-    // Exact difference logic using absolute month addition to prevent "memory loss" bug
-    let startYear = d1.getFullYear();
-    let startMonth = d1.getMonth();
-    let startDay = d1.getDate();
-    
-    let years = 0;
-    while(true) {
-        let nextYear = addMonthsToDate(startYear, startMonth, startDay, (years + 1) * 12);
-        if (nextYear <= d2) {
-            years++;
-        } else {
-            break;
-        }
-    }
-
-    let months = 0;
-    while(true) {
-        let nextMonth = addMonthsToDate(startYear, startMonth, startDay, (years * 12) + months + 1);
-        if (nextMonth <= d2) {
-            months++;
-        } else {
-            break;
-        }
-    }
-
-    let d1Temp = addMonthsToDate(startYear, startMonth, startDay, (years * 12) + months);
-    let days = Math.round((d2 - d1Temp) / msPerDay);
-    
-    // Output string
-    let resultText = [];
-    if (years > 0) resultText.push(`${years} ${years === 1 ? 'Year' : 'Years'}`);
-    if (months > 0) resultText.push(`${months} ${months === 1 ? 'Month' : 'Months'}`);
-    if (days > 0 || resultText.length === 0) resultText.push(`${days} ${days === 1 ? 'Day' : 'Days'}`);
-    
-    let primaryText = resultText.join(', ');
-    if(isNegative && totalDays > 0) primaryText = "- " + primaryText;
-    
-    let secondaryText = `${isNegative ? '-' : ''}${totalDays} total days`;
-    
-    res.innerHTML = `
-        <span class="res-val" style="color: #f59e0b; text-shadow: 0 0 15px rgba(245, 158, 11, 0.3);">${primaryText}</span>
-        <span class="res-subval">or ${secondaryText}</span>
-    `;
-    popAnimation(res);
-}
-
-function calcShift() {
-    const startInput = document.getElementById('shift_start').value;
-    const action = document.getElementById('shift_action').value;
-    const res = document.getElementById('shift_res');
-    
-    if (!startInput) {
-        res.innerHTML = '<span class="text-danger small fw-bold">PLEASE SELECT START DATE</span>';
-        return;
-    }
-
-    const y = parseInt(document.getElementById('shift_y').value) || 0;
-    const m = parseInt(document.getElementById('shift_m').value) || 0;
-    const w = parseInt(document.getElementById('shift_w').value) || 0;
-    const d = parseInt(document.getElementById('shift_d').value) || 0;
-    
-    let startParts = startInput.split('-');
-    let year = parseInt(startParts[0]);
-    let month = parseInt(startParts[1]) - 1;
-    let day = parseInt(startParts[2]);
-    
-    let mult = action === 'add' ? 1 : -1;
-    
-    // Safely add months/years
-    let totalMonths = month + (m * mult) + (y * 12 * mult);
-    
-    year += Math.floor(totalMonths / 12);
-    month = totalMonths % 12;
-    if (month < 0) {
-        month += 12;
-    }
-    
-    let lastDayOfTargetMonth = new Date(year, month + 1, 0).getDate();
-    let targetDay = Math.min(day, lastDayOfTargetMonth);
-    
-    let date = new Date(year, month, targetDay, 12, 0, 0);
-    date.setFullYear(year); // Safely enforce exact year logic
-    
-    // Add weeks and days
-    date.setDate(date.getDate() + ((w * 7) * mult) + (d * mult));
-    
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const formatted = date.toLocaleDateString('en-US', options);
-    
-    res.innerHTML = `
-        <span class="res-val">${formatted}</span>
-        <span class="res-subval">${action === 'add' ? 'After' : 'Before'} ${startInput}</span>
-    `;
-    popAnimation(res);
-}
-
-function popAnimation(el) {
-    el.style.transform = 'scale(1.05)';
-    setTimeout(() => {
-        el.style.transform = 'scale(1)';
-    }, 200);
-}
+document.addEventListener('DOMContentLoaded',()=>{const today=new Date().toISOString().split('T')[0];document.getElementById('diff_start').value=today;document.getElementById('diff_end').value=today;document.getElementById('shift_start').value=today;document.querySelectorAll('#diff_start, #diff_end, #include_end_day').forEach(el=>{el.addEventListener('input',calcDifference);});document.querySelectorAll('#shift_start, #shift_action, #shift_y, #shift_m, #shift_w, #shift_d').forEach(el=>{el.addEventListener('input',calcShift);});calcDifference();calcShift();});function addMonthsToDate(year,month,day,monthsToAdd){let totalMonths=month+monthsToAdd;let newYear=year+Math.floor(totalMonths/12);let newMonth=totalMonths%12;if(newMonth<0){newMonth+=12;}
+let lastDay=new Date(newYear,newMonth+1,0).getDate();let d=new Date(newYear,newMonth,Math.min(day,lastDay),12,0,0);d.setFullYear(newYear);return d;}
+function isLeapYear(year){return(year%4===0&&year%100!==0)||(year%400===0);}
+function calcDifference(){const startInput=document.getElementById('diff_start').value;const endInput=document.getElementById('diff_end').value;const res=document.getElementById('diff_res');const includeEnd=document.getElementById('include_end_day').checked;if(!startInput||!endInput){res.innerHTML='<span class="text-danger small fw-bold">PLEASE SELECT BOTH DATES</span>';return;}
+let startParts=startInput.split('-');let endParts=endInput.split('-');let d1=new Date(startParts[0],startParts[1]-1,startParts[2],12,0,0);let d2=new Date(endParts[0],endParts[1]-1,endParts[2],12,0,0);let isNegative=false;if(d1>d2){let temp=d1;d1=d2;d2=temp;isNegative=true;}
+const msPerDay=1000*60*60*24;let totalDays=Math.round((d2-d1)/msPerDay);if(includeEnd){totalDays+=1;d2.setDate(d2.getDate()+1);}
+let startYear=d1.getFullYear();let startMonth=d1.getMonth();let startDay=d1.getDate();let years=0;while(true){let nextYear=addMonthsToDate(startYear,startMonth,startDay,(years+1)*12);if(nextYear<=d2){years++;}else{break;}}
+let months=0;while(true){let nextMonth=addMonthsToDate(startYear,startMonth,startDay,(years*12)+months+1);if(nextMonth<=d2){months++;}else{break;}}
+let d1Temp=addMonthsToDate(startYear,startMonth,startDay,(years*12)+months);let days=Math.round((d2-d1Temp)/msPerDay);let resultText=[];if(years>0)resultText.push(`${years}${years===1?'Year':'Years'}`);if(months>0)resultText.push(`${months}${months===1?'Month':'Months'}`);if(days>0||resultText.length===0)resultText.push(`${days}${days===1?'Day':'Days'}`);let primaryText=resultText.join(', ');if(isNegative&&totalDays>0)primaryText="- "+primaryText;let secondaryText=`${isNegative?'-':''}${totalDays}total days`;res.innerHTML=`<span class="res-val"style="color: #f59e0b; text-shadow: 0 0 15px rgba(245, 158, 11, 0.3);">${primaryText}</span><span class="res-subval">or ${secondaryText}</span>`;popAnimation(res);}
+function calcShift(){const startInput=document.getElementById('shift_start').value;const action=document.getElementById('shift_action').value;const res=document.getElementById('shift_res');if(!startInput){res.innerHTML='<span class="text-danger small fw-bold">PLEASE SELECT START DATE</span>';return;}
+const y=parseInt(document.getElementById('shift_y').value)||0;const m=parseInt(document.getElementById('shift_m').value)||0;const w=parseInt(document.getElementById('shift_w').value)||0;const d=parseInt(document.getElementById('shift_d').value)||0;let startParts=startInput.split('-');let year=parseInt(startParts[0]);let month=parseInt(startParts[1])-1;let day=parseInt(startParts[2]);let mult=action==='add'?1:-1;let totalMonths=month+(m*mult)+(y*12*mult);year+=Math.floor(totalMonths/12);month=totalMonths%12;if(month<0){month+=12;}
+let lastDayOfTargetMonth=new Date(year,month+1,0).getDate();let targetDay=Math.min(day,lastDayOfTargetMonth);let date=new Date(year,month,targetDay,12,0,0);date.setFullYear(year);date.setDate(date.getDate()+((w*7)*mult)+(d*mult));const options={weekday:'long',year:'numeric',month:'long',day:'numeric'};const formatted=date.toLocaleDateString('en-US',options);res.innerHTML=`<span class="res-val">${formatted}</span><span class="res-subval">${action==='add'?'After':'Before'}${startInput}</span>`;popAnimation(res);}
+function popAnimation(el){el.style.transform='scale(1.05)';setTimeout(()=>{el.style.transform='scale(1)';},200);}
 </script>
 
 <!-- SEO Content Section -->

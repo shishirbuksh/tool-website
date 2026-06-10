@@ -202,128 +202,15 @@
 </main>
 
 <script>
-    // Set PDF.js worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-
-    // File Upload Handler
-    async function handleFileUpload(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const textarea = document.getElementById('resumeText');
-        textarea.value = "Extracting text, please wait...";
-        
-        try {
-            if (file.type === "application/pdf" || file.name.endsWith('.pdf')) {
-                const arrayBuffer = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                let fullText = "";
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const content = await page.getTextContent();
-                    const strings = content.items.map(item => item.str);
-                    fullText += strings.join(" ") + "\n";
-                }
-                textarea.value = fullText;
-                analyzeResume(); // Auto analyze after upload
-            } else if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) {
-                const arrayBuffer = await file.arrayBuffer();
-                const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
-                textarea.value = result.value;
-                analyzeResume(); // Auto analyze after upload
-            } else {
-                textarea.value = "Unsupported file type. Please upload a PDF or Word Document (.docx).";
-            }
-        } catch (error) {
-            console.error(error);
-            textarea.value = "Error extracting text. Please make sure the file is not password protected or corrupted.";
-        }
-        
-        // Reset file input so the same file can be uploaded again if needed
-        event.target.value = '';
-    }
-
-    // ATS Analysis Engine (Client-Side)
-    const ACTION_VERBS = [
-        "achieved", "improved", "trained", "mentored", "managed", "created", "resolved", "volunteered",
-        "influenced", "increased", "decreased", "negotiated", "launched", "revenue", "profits", "spearheaded",
-        "engineered", "architected", "developed", "designed", "orchestrated", "implemented", "optimized",
-        "transformed", "streamlined", "budgeted", "coordinated", "directed", "executed", "generated", "maximized"
-    ];
-
-    const CLICHES = [
-        "hard worker", "hardworking", "team player", "detail oriented", "detail-oriented",
-        "synergy", "think outside the box", "thought leader", "results driven", "results-driven",
-        "go-getter", "dynamic", "self-starter", "self motivated", "proactive"
-    ];
-
-    function analyzeResume() {
-        const text = document.getElementById('resumeText').value.trim();
-        const btn = document.getElementById('analyzeBtn');
-        
-        if (!text) {
-            alert('Please paste your resume text first.');
-            return;
-        }
-
-        // UI Loading State
-        btn.innerHTML = '<i class="bi bi-arrow-clockwise bi-arrow-repeat me-2"></i> Analyzing...';
-        btn.disabled = true;
-
-        setTimeout(() => {
-            performAnalysis(text.toLowerCase(), text);
-            
-            // Show Results
-            document.getElementById('resultsSection').classList.remove('d-none');
-            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            
-            // Reset Btn
-            btn.innerHTML = '<i class="bi bi-arrow-clockwise me-2"></i> Re-Analyze';
-            btn.disabled = false;
-        }, 800);
-    }
-
-    function performAnalysis(lowerText, rawText) {
-        let score = 100;
-        let feedback = [];
-        
-        // 1. Length Check
-        const words = rawText.split(/\s+/).filter(w => w.length > 0);
-        const wordCount = words.length;
-        document.getElementById('wordCountVal').innerText = wordCount;
-        
-        if (wordCount < 300) {
-            score -= 15;
-            feedback.push({ type: 'error', title: 'Resume is too short', desc: 'Aim for at least 400 words to provide enough context for ATS and recruiters.' });
-        } else if (wordCount > 1000) {
-            score -= 10;
-            feedback.push({ type: 'warning', title: 'Resume is too long', desc: 'Over 1000 words can dilute your impact. Consider editing down to your most relevant achievements.' });
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";async function handleFileUpload(event){const file=event.target.files[0];if(!file)return;const textarea=document.getElementById('resumeText');textarea.value="Extracting text, please wait...";try{if(file.type==="application/pdf"||file.name.endsWith('.pdf')){const arrayBuffer=await file.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;let fullText="";for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);const content=await page.getTextContent();const strings=content.items.map(item=>item.str);fullText+=strings.join(" ")+"\n";}
+textarea.value=fullText;analyzeResume();}else if(file.name.endsWith('.doc')||file.name.endsWith('.docx')){const arrayBuffer=await file.arrayBuffer();const result=await mammoth.extractRawText({arrayBuffer:arrayBuffer});textarea.value=result.value;analyzeResume();}else{textarea.value="Unsupported file type. Please upload a PDF or Word Document (.docx).";}}catch(error){console.error(error);textarea.value="Error extracting text. Please make sure the file is not password protected or corrupted.";}
+event.target.value='';}
+const ACTION_VERBS=["achieved","improved","trained","mentored","managed","created","resolved","volunteered","influenced","increased","decreased","negotiated","launched","revenue","profits","spearheaded","engineered","architected","developed","designed","orchestrated","implemented","optimized","transformed","streamlined","budgeted","coordinated","directed","executed","generated","maximized"];const CLICHES=["hard worker","hardworking","team player","detail oriented","detail-oriented","synergy","think outside the box","thought leader","results driven","results-driven","go-getter","dynamic","self-starter","self motivated","proactive"];function analyzeResume(){const text=document.getElementById('resumeText').value.trim();const btn=document.getElementById('analyzeBtn');if(!text){alert('Please paste your resume text first.');return;}
+btn.innerHTML='<i class="bi bi-arrow-clockwise bi-arrow-repeat me-2"></i> Analyzing...';btn.disabled=true;setTimeout(()=>{performAnalysis(text.toLowerCase(),text);document.getElementById('resultsSection').classList.remove('d-none');document.getElementById('resultsSection').scrollIntoView({behavior:'smooth',block:'start'});btn.innerHTML='<i class="bi bi-arrow-clockwise me-2"></i> Re-Analyze';btn.disabled=false;},800);}
+function performAnalysis(lowerText,rawText){let score=100;let feedback=[];const words=rawText.split(/\s+/).filter(w=>w.length>0);const wordCount=words.length;document.getElementById('wordCountVal').innerText=wordCount;if(wordCount<300){score-=15;feedback.push({type:'error',title:'Resume is too short',desc:'Aim for at least 400 words to provide enough context for ATS and recruiters.'});}else if(wordCount>1000){score-=10;feedback.push({type:'warning',title:'Resume is too long',desc:'Over 1000 words can dilute your impact. Consider editing down to your most relevant achievements.'});}else{feedback.push({type:'success',title:'Optimal Word Count',desc:'Your resume length is right in the sweet spot (400-800 words).'});}
+let sectionsFound=0;const requiredSections=[{terms:["experience","employment","work history"],name:"Experience"},{terms:["education","academic","degree"],name:"Education"},{terms:["skills","technologies","expertise","competencies"],name:"Skills"}];let missingSections=[];requiredSections.forEach(sec=>{const found=sec.terms.some(t=>lowerText.includes(t));if(found)sectionsFound++;else missingSections.push(sec.name);});document.getElementById('sectionsVal').innerText=`${sectionsFound}/3`;if(sectionsFound<3){score-=(3-sectionsFound)*10;feedback.push({type:'error',title:'Missing Core Sections',desc:`ATS parsers look for standard headings.We couldn't find clear headings for: ${missingSections.join(',')}.` });
         } else {
-            feedback.push({ type: 'success', title: 'Optimal Word Count', desc: 'Your resume length is right in the sweet spot (400-800 words).' });
-        }
-
-        // 2. Core Sections Check
-        let sectionsFound = 0;
-        const requiredSections = [
-            { terms: ["experience", "employment", "work history"], name: "Experience" },
-            { terms: ["education", "academic", "degree"], name: "Education" },
-            { terms: ["skills", "technologies", "expertise", "competencies"], name: "Skills" }
-        ];
-
-        let missingSections = [];
-        requiredSections.forEach(sec => {
-            const found = sec.terms.some(t => lowerText.includes(t));
-            if (found) sectionsFound++;
-            else missingSections.push(sec.name);
-        });
-
-        document.getElementById('sectionsVal').innerText = `${sectionsFound}/3`;
-        
-        if (sectionsFound < 3) {
-            score -= (3 - sectionsFound) * 10;
-            feedback.push({ type: 'error', title: 'Missing Core Sections', desc: `ATS parsers look for standard headings. We couldn't find clear headings for: ${missingSections.join(', ')}.` });
-        } else {
-            feedback.push({ type: 'success', title: 'Strong Structure', desc: 'All core sections (Experience, Education, Skills) were detected.' });
+            feedback.push({ type: 'success', title: 'Strong Structure', desc: 'All core sections(Experience,Education,Skills)were detected.' });
         }
 
         // 3. Action Verbs Check
@@ -338,7 +225,7 @@
         
         if (verbsCount < 5) {
             score -= 15;
-            feedback.push({ type: 'warning', title: 'Needs More Action Verbs', desc: 'We only found a few strong action verbs. Use words like "Spearheaded", "Optimized", or "Generated" to start bullet points.' });
+            feedback.push({ type: 'warning', title: 'Needs More Action Verbs', desc: 'We only found a few strong action verbs.Use words like"Spearheaded","Optimized",or"Generated"to start bullet points.' });
         } else if (verbsCount >= 10) {
             feedback.push({ type: 'success', title: 'Excellent Action Verbs', desc: 'You used a great variety of strong action verbs to describe your achievements.' });
         }
@@ -423,10 +310,7 @@
             }
             
             scoreEl.innerText = Math.round(currentScore);
-            circleEl.style.setProperty('--score-deg', `${(currentScore / 100) * 360}deg`);
-            
-        }, stepTime);
-    }
+            circleEl.style.setProperty('--score-deg'
 </script>
 
 

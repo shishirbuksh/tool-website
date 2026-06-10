@@ -125,250 +125,29 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    const uuidForm = document.getElementById('uuidForm');
-    const inpVersion = document.getElementById('inpVersion');
-    const inpQty = document.getElementById('inpQty');
-    const inpFormat = document.getElementById('inpFormat');
-    const caseRadios = document.getElementsByName('inpCase');
-    const generateBtn = document.getElementById('generateBtn');
-    
-    const resultsContainer = document.getElementById('resultsContainer');
-    const statCount = document.getElementById('statCount');
-    const speedStat = document.getElementById('speedStat');
-    const statTime = document.getElementById('statTime');
-    
-    const copyListBtn = document.getElementById('copyListBtn');
-    const copyCsvBtn = document.getElementById('copyCsvBtn');
-    
-    let currentResults = [];
-
-    // UUID V1 Generator Logic (Timestamp based)
-    // Simulates MAC address since JS cannot access hardware MAC
-    const _nodeId = new Uint8Array(6);
-    crypto.getRandomValues(_nodeId);
-    _nodeId[0] |= 0x01; // Multicast bit set to 1 to indicate simulated node
-
-    let _clockseq = crypto.getRandomValues(new Uint16Array(1))[0] & 0x3fff;
-    let _lastMSecs = 0;
-    let _lastNSecs = 0;
-
-    function generateV1() {
-        let msecs = Date.now();
-        let nsecs = _lastNSecs + 1;
-        
-        const dt = (msecs - _lastMSecs) + (nsecs - _lastNSecs)/10000;
-
-        if (dt < 0 && msecs > _lastMSecs) {
-            // Clock regression
-            _clockseq = _clockseq + 1 & 0x3FFF;
-        }
-
-        if ((dt < 0 || msecs > _lastMSecs)) {
-            nsecs = 0;
-        }
-
-        if (msecs === _lastMSecs && nsecs >= 10000) {
-            // Out of nsecs
-            msecs += 1;
-            nsecs = 0;
-        }
-
-        _lastMSecs = msecs;
-        _lastNSecs = nsecs;
-
-        msecs += 12219292800000; // Offset from Gregorian Epoch
-
-        const tl = ((msecs & 0xfffffff) * 10000 + nsecs) % 0x100000000;
-        const b = new Uint8Array(16);
-        
-        // Time Low
-        b[0] = tl >>> 24 & 0xff;
-        b[1] = tl >>> 16 & 0xff;
-        b[2] = tl >>> 8 & 0xff;
-        b[3] = tl & 0xff;
-
-        // Time Mid
-        const tmh = (msecs / 0x100000000 * 10000) & 0xfffffff;
-        b[4] = tmh >>> 8 & 0xff;
-        b[5] = tmh & 0xff;
-
-        // Time High and Version (1)
-        b[6] = tmh >>> 24 & 0xf | 0x10;
-        b[7] = tmh >>> 16 & 0xff;
-
-        // Clock Sequence
-        b[8] = _clockseq >>> 8 | 0x80; // Variant 10xx
-        b[9] = _clockseq & 0xff;
-
-        // Node
-        for (let n = 0; n < 6; ++n) {
-            b[10 + n] = _nodeId[n];
-        }
-
-        return bytesToUuid(b);
-    }
-
-    const byteToHex = [];
-    for (let i = 0; i < 256; ++i) {
-        byteToHex[i] = (i + 0x100).toString(16).substring(1);
-    }
-
-    function bytesToUuid(b) {
-        return byteToHex[b[0]] + byteToHex[b[1]] + byteToHex[b[2]] + byteToHex[b[3]] + '-' +
-               byteToHex[b[4]] + byteToHex[b[5]] + '-' +
-               byteToHex[b[6]] + byteToHex[b[7]] + '-' +
-               byteToHex[b[8]] + byteToHex[b[9]] + '-' +
-               byteToHex[b[10]] + byteToHex[b[11]] + byteToHex[b[12]] +
-               byteToHex[b[13]] + byteToHex[b[14]] + byteToHex[b[15]];
-    }
-
-    // UUID V4 Generator (Native)
-    function generateV4() {
-        return crypto.randomUUID();
-    }
-
-    // Formatting
-    function formatUuid(uuid, format, casing) {
-        let str = uuid;
-        if (format === 'stripped') {
-            str = str.replace(/-/g, '');
-        } else if (format === 'braces') {
-            str = `{${str}}`;
-        } else if (format === 'brackets') {
-            str = `[${str}]`;
-        }
-        
-        return casing === 'upper' ? str.toUpperCase() : str.toLowerCase();
-    }
-
-    // Main Generation Engine
-    function processGeneration() {
-        const qty = parseInt(inpQty.value) || 1;
-        if (qty < 1 || qty > 10000) {
-            alert("Please enter a quantity between 1 and 10,000.");
-            return;
-        }
-
-        const ver = inpVersion.value;
-        const fmt = inpFormat.value;
-        let casing = 'lower';
-        caseRadios.forEach(r => { if(r.checked) casing = r.value; });
-
-        generateBtn.disabled = true;
-        generateBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> GENERATING...';
-
-        // Set small timeout so UI can repaint loading state before blocking thread
-        setTimeout(() => {
-            const t0 = performance.now();
-            const results = new Array(qty);
-            
-            try {
-                if (ver === '4') {
-                    for (let i = 0; i < qty; i++) {
-                        results[i] = formatUuid(generateV4(), fmt, casing);
-                    }
-                } else {
-                    for (let i = 0; i < qty; i++) {
-                        results[i] = formatUuid(generateV1(), fmt, casing);
-                    }
-                }
-                
-                const t1 = performance.now();
-                
-                currentResults = results;
-                renderResults(t1 - t0);
-                
-            } catch(e) {
-                console.error(e);
-                alert("Generation failed.");
-            } finally {
-                generateBtn.disabled = false;
-                generateBtn.innerHTML = 'GENERATE';
-            }
-        }, 10);
-    }
-
-    // Render Engine
-    function renderResults(timeElapsedMs) {
-        resultsContainer.innerHTML = '';
-        if (currentResults.length === 0) return;
-        
-        statCount.innerText = currentResults.length.toLocaleString();
-        
-        if (timeElapsedMs !== undefined) {
-            speedStat.classList.remove('d-none');
-            statTime.innerText = Math.round(timeElapsedMs);
-        }
-        
-        if (currentResults.length === 1) {
-            const div = document.createElement('div');
-            div.className = 'single-uuid';
-            div.innerText = currentResults[0];
-            resultsContainer.appendChild(div);
-        } else {
-            const grid = document.createElement('div');
-            grid.className = 'result-grid w-100 custom-scrollbar pe-2';
-            
-            // Render first 1000 max to prevent DOM lag
-            const limit = Math.min(currentResults.length, 1000);
-            
-            for (let i = 0; i < limit; i++) {
-                const box = document.createElement('div');
-                box.className = 'uuid-box';
-                box.style.animationDelay = `${(i % 50) * 0.005}s`; // Stagger
-                
-                box.innerHTML = `
-                    <span class="uuid-text">${currentResults[i]}</span>
-                    <i class="bi bi-copy ms-2 opacity-50 text-theme-muted"></i>
-                `;
-                
-                // Click to copy single UUID
-                box.addEventListener('click', () => {
-                    navigator.clipboard.writeText(currentResults[i]);
-                    const icon = box.querySelector('i');
-                    icon.className = 'fa-solid fa-check text-success ms-2';
-                    setTimeout(() => icon.className = 'fa-regular fa-clone text-theme-muted opacity-50 ms-2', 1500);
-                });
-                
-                grid.appendChild(box);
-            }
-            
-            resultsContainer.appendChild(grid);
-            
-            if (currentResults.length > 1000) {
-                const warn = document.createElement('div');
-                warn.className = 'text-warning small mt-3 fw-bold';
-                warn.innerText = `Visual display limited to 1000 items. Click "Copy All" to grab all ${currentResults.length.toLocaleString()} UUIDs.`;
-                resultsContainer.appendChild(warn);
-            }
-        }
-    }
-
-    uuidForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        processGeneration();
-    });
-
-    // Copy handlers
-    function setupCopy(btn, formatter) {
-        btn.addEventListener('click', () => {
-            if (currentResults.length === 0) return;
-            const text = formatter(currentResults);
-            navigator.clipboard.writeText(text).then(() => {
-                const og = btn.innerHTML;
-                btn.innerHTML = '<i class="bi bi-check-lg"></i> Copied';
-                setTimeout(() => btn.innerHTML = og, 2000);
-            });
-        });
-    }
-
-    setupCopy(copyListBtn, arr => arr.join('\n'));
-    setupCopy(copyCsvBtn, arr => arr.join(','));
-
-    // Trigger initial load
-    processGeneration();
-});
+document.addEventListener('DOMContentLoaded',()=>{const uuidForm=document.getElementById('uuidForm');const inpVersion=document.getElementById('inpVersion');const inpQty=document.getElementById('inpQty');const inpFormat=document.getElementById('inpFormat');const caseRadios=document.getElementsByName('inpCase');const generateBtn=document.getElementById('generateBtn');const resultsContainer=document.getElementById('resultsContainer');const statCount=document.getElementById('statCount');const speedStat=document.getElementById('speedStat');const statTime=document.getElementById('statTime');const copyListBtn=document.getElementById('copyListBtn');const copyCsvBtn=document.getElementById('copyCsvBtn');let currentResults=[];const _nodeId=new Uint8Array(6);crypto.getRandomValues(_nodeId);_nodeId[0]|=0x01;let _clockseq=crypto.getRandomValues(new Uint16Array(1))[0]&0x3fff;let _lastMSecs=0;let _lastNSecs=0;function generateV1(){let msecs=Date.now();let nsecs=_lastNSecs+1;const dt=(msecs-_lastMSecs)+(nsecs-_lastNSecs)/10000;if(dt<0&&msecs>_lastMSecs){_clockseq=_clockseq+1&0x3FFF;}
+if((dt<0||msecs>_lastMSecs)){nsecs=0;}
+if(msecs===_lastMSecs&&nsecs>=10000){msecs+=1;nsecs=0;}
+_lastMSecs=msecs;_lastNSecs=nsecs;msecs+=12219292800000;const tl=((msecs&0xfffffff)*10000+nsecs)%0x100000000;const b=new Uint8Array(16);b[0]=tl>>>24&0xff;b[1]=tl>>>16&0xff;b[2]=tl>>>8&0xff;b[3]=tl&0xff;const tmh=(msecs/0x100000000*10000)&0xfffffff;b[4]=tmh>>>8&0xff;b[5]=tmh&0xff;b[6]=tmh>>>24&0xf|0x10;b[7]=tmh>>>16&0xff;b[8]=_clockseq>>>8|0x80;b[9]=_clockseq&0xff;for(let n=0;n<6;++n){b[10+n]=_nodeId[n];}
+return bytesToUuid(b);}
+const byteToHex=[];for(let i=0;i<256;++i){byteToHex[i]=(i+0x100).toString(16).substring(1);}
+function bytesToUuid(b){return byteToHex[b[0]]+byteToHex[b[1]]+byteToHex[b[2]]+byteToHex[b[3]]+'-'+
+byteToHex[b[4]]+byteToHex[b[5]]+'-'+
+byteToHex[b[6]]+byteToHex[b[7]]+'-'+
+byteToHex[b[8]]+byteToHex[b[9]]+'-'+
+byteToHex[b[10]]+byteToHex[b[11]]+byteToHex[b[12]]+
+byteToHex[b[13]]+byteToHex[b[14]]+byteToHex[b[15]];}
+function generateV4(){return crypto.randomUUID();}
+function formatUuid(uuid,format,casing){let str=uuid;if(format==='stripped'){str=str.replace(/-/g,'');}else if(format==='braces'){str=`{${str}}`;}else if(format==='brackets'){str=`[${str}]`;}
+return casing==='upper'?str.toUpperCase():str.toLowerCase();}
+function processGeneration(){const qty=parseInt(inpQty.value)||1;if(qty<1||qty>10000){alert("Please enter a quantity between 1 and 10,000.");return;}
+const ver=inpVersion.value;const fmt=inpFormat.value;let casing='lower';caseRadios.forEach(r=>{if(r.checked)casing=r.value;});generateBtn.disabled=true;generateBtn.innerHTML='<i class="bi bi-arrow-repeat"></i> GENERATING...';setTimeout(()=>{const t0=performance.now();const results=new Array(qty);try{if(ver==='4'){for(let i=0;i<qty;i++){results[i]=formatUuid(generateV4(),fmt,casing);}}else{for(let i=0;i<qty;i++){results[i]=formatUuid(generateV1(),fmt,casing);}}
+const t1=performance.now();currentResults=results;renderResults(t1-t0);}catch(e){console.error(e);alert("Generation failed.");}finally{generateBtn.disabled=false;generateBtn.innerHTML='GENERATE';}},10);}
+function renderResults(timeElapsedMs){resultsContainer.innerHTML='';if(currentResults.length===0)return;statCount.innerText=currentResults.length.toLocaleString();if(timeElapsedMs!==undefined){speedStat.classList.remove('d-none');statTime.innerText=Math.round(timeElapsedMs);}
+if(currentResults.length===1){const div=document.createElement('div');div.className='single-uuid';div.innerText=currentResults[0];resultsContainer.appendChild(div);}else{const grid=document.createElement('div');grid.className='result-grid w-100 custom-scrollbar pe-2';const limit=Math.min(currentResults.length,1000);for(let i=0;i<limit;i++){const box=document.createElement('div');box.className='uuid-box';box.style.animationDelay=`${(i%50)*0.005}s`;box.innerHTML=`<span class="uuid-text">${currentResults[i]}</span><i class="bi bi-copy ms-2 opacity-50 text-theme-muted"></i>`;box.addEventListener('click',()=>{navigator.clipboard.writeText(currentResults[i]);const icon=box.querySelector('i');icon.className='fa-solid fa-check text-success ms-2';setTimeout(()=>icon.className='fa-regular fa-clone text-theme-muted opacity-50 ms-2',1500);});grid.appendChild(box);}
+resultsContainer.appendChild(grid);if(currentResults.length>1000){const warn=document.createElement('div');warn.className='text-warning small mt-3 fw-bold';warn.innerText=`Visual display limited to 1000 items.Click"Copy All"to grab all ${currentResults.length.toLocaleString()}UUIDs.`;resultsContainer.appendChild(warn);}}}
+uuidForm.addEventListener('submit',(e)=>{e.preventDefault();processGeneration();});function setupCopy(btn,formatter){btn.addEventListener('click',()=>{if(currentResults.length===0)return;const text=formatter(currentResults);navigator.clipboard.writeText(text).then(()=>{const og=btn.innerHTML;btn.innerHTML='<i class="bi bi-check-lg"></i> Copied';setTimeout(()=>btn.innerHTML=og,2000);});});}
+setupCopy(copyListBtn,arr=>arr.join('\n'));setupCopy(copyCsvBtn,arr=>arr.join(','));processGeneration();});
 </script>
 
 <!-- SEO Content Section -->
