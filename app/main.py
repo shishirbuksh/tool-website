@@ -6,7 +6,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 
 from app.core.config import settings
-from app.api.routes import pages, tools
+from app.api.routes import pages, tools, seo
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -58,6 +58,7 @@ class CachedStaticFiles(StaticFiles):
 app.mount("/static", CachedStaticFiles(directory=settings.STATIC_DIR), name="static")
 
 # Include routers
+app.include_router(seo.router)
 app.include_router(tools.router)
 app.include_router(pages.router)
 

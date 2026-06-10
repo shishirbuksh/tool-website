@@ -16,10 +16,28 @@ echo "[2/4] Running setup and building Rust extensions..."
 bash setup.sh
 
 echo "[3/4] Registering/Updating the Systemd Service..."
-# Copy the service file to the systemd directory
-sudo cp storybrain.service /etc/systemd/system/storybrain.service
+# Dynamically generate the systemd service file with correct paths
+CURRENT_DIR=$(pwd)
+cat <<EOF > storybrain.service
+[Unit]
+Description=StoryBrainAI Production Server
+After=network.target
 
-# Reload systemd to pick up any changes made to the service file
+[Service]
+Type=simple
+User=root
+WorkingDirectory=${CURRENT_DIR}
+Environment=PORT=8090
+Environment=PATH=${CURRENT_DIR}/venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=${CURRENT_DIR}/venv/bin/gunicorn -c ${CURRENT_DIR}/gunicorn_conf.py main:app
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo cp storybrain.service /etc/systemd/system/storybrain.service
 sudo systemctl daemon-reload
 
 echo "[4/4] Restarting the Production Server..."

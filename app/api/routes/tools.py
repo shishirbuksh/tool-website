@@ -12,7 +12,7 @@ from fastapi.responses import StreamingResponse
 
 import qrcode
 import rembg
-from PIL import Image
+from PIL import Image, ImageColor
 import cv2
 import numpy as np
 from fpdf import FPDF
@@ -49,23 +49,35 @@ class FractalParams(BaseModel):
 router = APIRouter(prefix="/api", tags=["Tools"])
 
 @router.post("/generate-qr")
-async def generate_qr(data: str = Form(...)):
+async def generate_qr(
+    data: str = Form(...),
+    fg_color: str = Form("black"),
+    bg_color: str = Form("white"),
+    error_correction: str = Form("L")
+):
+    ec_map = {
+        "L": qrcode.constants.ERROR_CORRECT_L,
+        "M": qrcode.constants.ERROR_CORRECT_M,
+        "Q": qrcode.constants.ERROR_CORRECT_Q,
+        "H": qrcode.constants.ERROR_CORRECT_H,
+    }
+    ec_level = ec_map.get(error_correction.upper(), qrcode.constants.ERROR_CORRECT_L)
+
     qr = qrcode.QRCode(
         version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        error_correction=ec_level,
         box_size=10,
         border=4,
     )
     qr.add_data(data)
     qr.make(fit=True)
 
-    img = qr.make_image(fill_color="black", back_color="white")
+    img = qr.make_image(fill_color=fg_color, back_color=bg_color)
     
     buf = io.BytesIO()
     img.save(buf, format='PNG')
-    buf.seek(0)
     
-    return StreamingResponse(buf, media_type="image/png")
+    return Response(content=buf.getvalue(), media_type="image/png")
 
 @router.post("/proxy-request")
 async def proxy_request(req: ProxyRequest):
@@ -143,32 +155,55 @@ async def base64_decode(text: str = Form(...)):
         return {"error": "Invalid Base64 string"}
 
 @router.post("/remove-background")
-async def remove_background(image: UploadFile = File(...)):
+async def remove_background(
+    image: UploadFile = File(...),
+    bg_color: str = Form(""),
+    smooth_edges: bool = Form(False)
+):
     try:
         # Prevent permission denied issues on VPS by using /tmp
         os.environ["U2NET_HOME"] = "/tmp/.u2net"
         
         input_img = Image.open(image.file).convert("RGBA")
         
+        # Optimize: Resize excessively large images to prevent OOM (Out Of Memory) errors
+        # alpha_matting (smooth_edges) requires ~1.5GB of RAM per megapixel! 
+        max_dim = 800 if smooth_edges else 2048
+        if input_img.width > max_dim or input_img.height > max_dim:
+            input_img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+        
         # Use u2netp (lightweight model) to prevent Out of Memory (OOM) Killer on low-RAM VPS
         try:
             from rembg import new_session
             session = new_session("u2netp")
-            output_img = rembg.remove(input_img, session=session)
+            output_img = rembg.remove(input_img, session=session, alpha_matting=smooth_edges)
         except Exception as session_err:
             print(f"Fallback to default model due to session error: {session_err}")
-            output_img = rembg.remove(input_img)
+            output_img = rembg.remove(input_img, alpha_matting=smooth_edges)
+
+        if bg_color and bg_color.strip() != "transparent":
+            try:
+                rgb_color = ImageColor.getrgb(bg_color)
+                bg_img = Image.new("RGBA", output_img.size, rgb_color + (255,))
+                bg_img.paste(output_img, (0, 0), output_img)
+                output_img = bg_img
+            except Exception as e:
+                print(f"Color error: {e}")
 
         buf = io.BytesIO()
         output_img.save(buf, format="PNG")
-        buf.seek(0)
-        return StreamingResponse(buf, media_type="image/png")
+        
+        return Response(content=buf.getvalue(), media_type="image/png")
     except Exception as e:
         traceback.print_exc()
         return Response(content=f"Error processing image: {str(e)}", status_code=500)
 
 @router.post("/remove-watermark")
-async def remove_watermark(image: UploadFile = File(...), mask: UploadFile = File(...)):
+async def remove_watermark(
+    image: UploadFile = File(...),
+    mask: UploadFile = File(...),
+    algorithm: str = Form("telea")
+):
     try:
         # Enforce 10MB limit
         image.file.seek(0, os.SEEK_END)
@@ -191,15 +226,24 @@ async def remove_watermark(image: UploadFile = File(...), mask: UploadFile = Fil
         np_mask = np.frombuffer(mask_bytes, np.uint8)
         mask_cv2 = cv2.imdecode(np_mask, cv2.IMREAD_GRAYSCALE)
 
-        restored = cv2.inpaint(img_cv2, mask_cv2, inpaintRadius=3, flags=cv2.INPAINT_TELEA)
+        # Optimize: Prevent massive OOM/hang by scaling down image to max 2048px before inpaint
+        max_dim = 2048
+        h, w = img_cv2.shape[:2]
+        if max(h, w) > max_dim:
+            scale = max_dim / float(max(h, w))
+            new_w, new_h = int(w * scale), int(h * scale)
+            img_cv2 = cv2.resize(img_cv2, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            mask_cv2 = cv2.resize(mask_cv2, (new_w, new_h), interpolation=cv2.INTER_NEAREST)
+
+        flag = cv2.INPAINT_NS if algorithm == "ns" else cv2.INPAINT_TELEA
+        restored = cv2.inpaint(img_cv2, mask_cv2, inpaintRadius=3, flags=flag)
 
         is_success, buffer = cv2.imencode(".png", restored)
         if not is_success:
             return Response(content="Failed to encode image", status_code=500)
 
         io_buf = io.BytesIO(buffer)
-        io_buf.seek(0)
-        return StreamingResponse(io_buf, media_type="image/png")
+        return Response(content=io_buf.getvalue(), media_type="image/png")
         
     except Exception as e:
         traceback.print_exc()

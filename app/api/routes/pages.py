@@ -34,108 +34,133 @@ async def get_tool(request: Request, tool_name: str):
         context={"tool_name": tool_name.replace('-', ' ').title()}
     )
 
-@router.get("/sitemap.xml")
-async def sitemap():
-    base_url = "https://www.storybrainai.com"
-    
-    def get_lastmod(file_path: str) -> str:
-        try:
-            full_path = os.path.join(settings.BASE_DIR, file_path)
-            return datetime.datetime.fromtimestamp(os.path.getmtime(full_path)).strftime("%Y-%m-%d")
-        except:
-            return datetime.datetime.now().strftime("%Y-%m-%d")
+@router.get("/sitemap", response_class=HTMLResponse)
+async def html_sitemap(request: Request):
+    category_map = {
+        # AI & Crypto
+        "crypto-price-prediction": ("AI & Crypto", "Forecast future crypto token prices using AI models"),
+        "crypto-trend-analyzer": ("AI & Crypto", "Analyze market trends and token sentiment"),
+        "nft-generator-ai": ("AI & Crypto", "Create custom NFT art using AI generators"),
+        "crypto-fear-greed-index-tracker": ("AI & Crypto", "Track real-time crypto market fear and greed index"),
+        "crypto-profit-calculator": ("AI & Crypto", "Calculate potential gains and profits on crypto trades"),
+        "crypto-tax-calculator": ("AI & Crypto", "Estimate capital gains taxes for cryptocurrency transactions"),
+        "crypto-password-generator": ("AI & Crypto", "Generate cryptographically secure passwords and keys"),
+        "wallet-address-tracker": ("AI & Crypto", "Track wallet balances and transaction histories"),
+        "meme-coin-detector": ("AI & Crypto", "Scan and identify high-risk meme coin contracts"),
+        "airdrop-finder": ("AI & Crypto", "Find active and upcoming cryptocurrency airdrops"),
+        "crypto-halving-countdown": ("AI & Crypto", "Track countdown to the next Bitcoin halving event"),
+        "crypto-mining-calculator": ("AI & Crypto", "Estimate mining profitability based on hash rate and power"),
+        "crypto-dca-calculator": ("AI & Crypto", "Simulate Dollar Cost Average strategies for crypto"),
+        "crypto-scam-checker": ("AI & Crypto", "Check crypto addresses and projects for scams"),
+        "crypto-price-converter": ("AI & Crypto", "Convert real-time prices between cryptocurrencies and fiat"),
+        
+        # Image Tools
+        "image-background-remover": ("Image Processing", "Remove backgrounds from images instantly online"),
+        "image-compressor": ("Image Processing", "Reduce image file size while maintaining high quality"),
+        "image-converter": ("Image Processing", "Convert images between PNG, JPG, WebP, and other formats"),
+        "meme-generator": ("Image Processing", "Create and share custom memes using premium layouts"),
+        "watermark-remover": ("Image Processing", "Remove watermarks from photos cleanly online"),
+        
+        # Calculators
+        "scientific-calculator": ("Calculators", "Solve advanced mathematical and scientific equations online"),
+        "calculator": ("Calculators", "Simple, fast standard calculator for everyday math"),
+        "percentage-calculator": ("Calculators", "Calculate percentages, increases, decreases, and fractions"),
+        "age-calculator": ("Calculators", "Calculate your exact age in years, months, weeks, and days"),
+        "profit-margin-calculator": ("Calculators", "Determine sales revenue, profit margin, and markup"),
+        "mrr-calculator": ("Calculators", "Calculate SaaS Monthly Recurring Revenue growth metrics"),
+        "cac-calculator": ("Calculators", "Calculate Customer Acquisition Cost for marketing campaigns"),
+        "burn-rate-calculator": ("Calculators", "Track cash runway and monthly cash burn rates for startups"),
+        "gst-calculator": ("Calculators", "Calculate Goods and Services Tax (GST) for products and services"),
+        "emi-calculator": ("Calculators", "Estimate monthly loan repayments (Equated Monthly Installment)"),
+        "adsense-calculator": ("Calculators", "Estimate Google AdSense earnings based on page views and CTR"),
+        "instagram-calculator": ("Calculators", "Calculate Instagram engagement rates and post earnings"),
+        "youtube-calculator": ("Calculators", "Estimate YouTube channel earnings based on views and RPM"),
+        "compound-calculator": ("Calculators", "Calculate compound interest gains over time"),
+        "credit-utilization-calculator": ("Calculators", "Determine credit utilization ratio for credit cards"),
+        "loan-affordability-calculator": ("Calculators", "Calculate maximum loan amounts based on monthly budget"),
+        "mortgage-overpayment-calculator": ("Calculators", "Calculate interest savings from mortgage overpayments"),
+        "debt-calculator": ("Calculators", "Create customized debt payoff schedules and strategies"),
+        "salary-calculator": ("Calculators", "Convert hourly wage to weekly, monthly, and annual salary"),
+        "fd-calculator": ("Calculators", "Calculate Fixed Deposit interest earnings and maturity amounts"),
+        "date-calculator": ("Calculators", "Add or subtract days, weeks, months, or years from a date"),
+        "eway-bill-calculator": ("Calculators", "Calculate E-Way Bill distance limits and validity criteria"),
+        "sip-calculator": ("Calculators", "Calculate mutual fund SIP returns and maturity values"),
+        
+        # Developer & SEO
+        "api-tester": ("Developer & SEO", "Test REST APIs and HTTP requests directly from your browser"),
+        "base64-tool": ("Developer & SEO", "Encode and decode text and files using Base64 format"),
+        "uuid-generator": ("Developer & SEO", "Generate random UUID v1 and v4 strings for development"),
+        "qr-generator": ("Developer & SEO", "Generate high-quality custom QR codes online"),
+        "meta-tag-generator": ("Developer & SEO", "Create SEO-friendly meta tags for websites"),
+        "open-graph-generator": ("Developer & SEO", "Generate Open Graph meta tags for social media previews"),
+        "robots-txt-generator": ("Developer & SEO", "Create custom robots.txt files for search engine crawlers"),
+        "schema-generator": ("Developer & SEO", "Generate structured JSON-LD schema markup for SEO"),
+        "sitemap-generator": ("Developer & SEO", "Generate XML sitemaps for search engine indexing"),
+        
+        # Business & Operations
+        "invoice-generator": ("Business & Operations", "Create and download professional PDF invoices online"),
+        "receipt-generator": ("Business & Operations", "Generate custom POS and sales receipts instantly"),
+        "purchase-order-generator": ("Business & Operations", "Create official PDF Purchase Orders for business transactions"),
+        "sales-order-generator": ("Business & Operations", "Generate professional PDF Sales Orders for sales tracking"),
+        "job-card-generator": ("Business & Operations", "Create and track service repair job cards for mechanics"),
+        "service-order-generator": ("Business & Operations", "Generate custom PDF service orders for contractors"),
+        "work-order-generator": ("Business & Operations", "Create official business work orders and service requests"),
+        
+        # Productivity & Utilities
+        "password-generator": ("Productivity & Utilities", "Create strong, secure random passwords for accounts"),
+        "pdf-converter": ("Productivity & Utilities", "Convert images and office files to and from PDF format"),
+        "resume-analyzer": ("Productivity & Utilities", "Analyze your resume against ATS tracking algorithms"),
+        "resume-generator": ("Productivity & Utilities", "Build a professional, modern resume using premium templates"),
+        "task-manager": ("Productivity & Utilities", "Organize tasks and projects using a Kanban board"),
+        "time-tracker": ("Productivity & Utilities", "Track work hours and generate simple invoice logs"),
+        "note-organizer": ("Productivity & Utilities", "Write, save, and organize notes locally in your browser"),
+        "text-case-converter": ("Productivity & Utilities", "Convert text to uppercase, lowercase, titlecase, and more"),
+        "unit-converter": ("Productivity & Utilities", "Convert length, mass, volume, temperature, and other units"),
+        "timezone-converter": ("Productivity & Utilities", "Compare and convert time zones around the world"),
+        "random-number-generator": ("Productivity & Utilities", "Generate random integers within a custom range"),
+        "expense-tracker": ("Productivity & Utilities", "Track daily expenses and monitor personal budget metrics")
+    }
 
-    pages = [
-        {"url": "/", "file": "templates/index.html", "freq": "weekly", "pri": "1.0"},
-    ]
-    
-    # Dynamically inject tools
+    categorized_tools = {}
     tools_dir = os.path.join(settings.TEMPLATES_DIR, "tools")
     if os.path.exists(tools_dir):
         for f in os.listdir(tools_dir):
             if f.endswith(".html"):
-                tool_name = f[:-5].replace('_', '-')
-                pages.append({"url": f"/tool/{tool_name}", "file": f"templates/tools/{f}", "freq": "monthly", "pri": "0.8"})
-    
-    # Dynamically inject static pages
+                slug = f[:-5].replace('_', '-')
+                name = slug.replace('-', ' ').title()
+                category, desc = category_map.get(slug, ("Other Utilities", f"Free online {name} utility"))
+                
+                if category not in categorized_tools:
+                    categorized_tools[category] = []
+                categorized_tools[category].append({
+                    "name": name,
+                    "url": f"/tool/{slug}",
+                    "desc": desc
+                })
+
+    sorted_categorized = {}
+    for cat in sorted(categorized_tools.keys()):
+        sorted_categorized[cat] = sorted(categorized_tools[cat], key=lambda x: x["name"])
+
+    static_pages = []
     pages_dir = os.path.join(settings.TEMPLATES_DIR, "pages")
     if os.path.exists(pages_dir):
         for f in os.listdir(pages_dir):
-            if f.endswith(".html"):
-                page_name = f[:-5]
-                # Lower priority for generic static pages like privacy, terms, disclaimer
-                pri = "0.2" if page_name in ["privacy", "terms", "disclaimer"] else "0.4"
-                pages.append({"url": f"/{page_name}", "file": f"templates/pages/{f}", "freq": "yearly", "pri": pri})
-    
-    url_tags = []
-    for p in pages:
-        lastmod = get_lastmod(p["file"])
-        url_tags.append(f'    <url><loc>{base_url}{p["url"]}</loc><lastmod>{lastmod}</lastmod><changefreq>{p["freq"]}</changefreq><priority>{p["pri"]}</priority></url>')
-        
-    xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
-    xml_content += '<?xml-stylesheet type="text/xsl" href="/static/sitemap.xsl"?>\n'
-    xml_content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    xml_content += "\n".join(url_tags)
-    xml_content += '\n</urlset>'
-    
-    return Response(content=xml_content, media_type="application/xml")
+            if f.endswith(".html") and f != "sitemap.html":
+                name = f[:-5].replace('-', ' ').title()
+                static_pages.append({"name": name, "url": f"/{f[:-5]}"})
+    static_pages.sort(key=lambda x: x["name"])
 
-@router.get("/robots.txt")
-async def robots():
-    txt = """User-agent: *
-Allow: /
-Allow: /static/
-Disallow: /api/
-Disallow: /docs
-Disallow: /redoc
-Disallow: /openapi.json
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/sitemap.html",
+        context={
+            "title": "HTML Sitemap — StoryBrain AI",
+            "categories": sorted_categorized,
+            "static_pages": static_pages
+        }
+    )
 
-# Block AI Scrapers to conserve server resources
-User-agent: GPTBot
-Disallow: /
-
-User-agent: ChatGPT-User
-Disallow: /
-
-User-agent: anthropic-ai
-Disallow: /
-
-User-agent: Claude-Web
-Disallow: /
-
-User-agent: Google-Extended
-Disallow: /
-
-User-agent: CCBot
-Disallow: /
-
-Sitemap: https://www.storybrainai.com/sitemap.xml"""
-    return Response(content=txt, media_type="text/plain")
-
-@router.get("/llms.txt")
-async def llms_txt():
-    txt = "# StoryBrain AI\n\n> StoryBrain AI provides a suite of free advanced online tools including SEO generators, crypto tools, image processing utilities, calculators, and more.\n\n## Available Tools\n\n"
-    
-    tools_dir = os.path.join(settings.TEMPLATES_DIR, "tools")
-    if os.path.exists(tools_dir):
-        tools = [f[:-5] for f in os.listdir(tools_dir) if f.endswith(".html")]
-        for t in sorted(tools):
-            name = t.replace('_', ' ').title()
-            slug = t.replace('_', '-')
-            txt += f"- [{name}](https://www.storybrainai.com/tool/{slug})\n"
-            
-    txt += "\n## Other Pages\n\n"
-    pages_dir = os.path.join(settings.TEMPLATES_DIR, "pages")
-    if os.path.exists(pages_dir):
-        pages = [f[:-5] for f in os.listdir(pages_dir) if f.endswith(".html")]
-        for p in sorted(pages):
-            name = p.replace('-', ' ').title()
-            txt += f"- [{name}](https://www.storybrainai.com/{p})\n"
-            
-    txt += "\n## Technical Details\n\n"
-    txt += "All tools are accessible via the frontend interface. The `/api/` routes are intended for internal frontend consumption and are restricted from standard bot access.\n"
-    
-    return Response(content=txt, media_type="text/plain")
 
 @router.get("/{page_name}", response_class=HTMLResponse)
 async def get_page(request: Request, page_name: str):
