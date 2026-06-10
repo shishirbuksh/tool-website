@@ -53,6 +53,7 @@ async def html_sitemap(request: Request):
         "crypto-dca-calculator": ("AI & Crypto", "Simulate Dollar Cost Average strategies for crypto"),
         "crypto-scam-checker": ("AI & Crypto", "Check crypto addresses and projects for scams"),
         "crypto-price-converter": ("AI & Crypto", "Convert real-time prices between cryptocurrencies and fiat"),
+        "crypto-portfolio-analyzer": ("AI & Crypto", "Analyze your cryptocurrency holdings, cost basis, allocation weights, and ROI"),
         
         # Image Tools
         "image-background-remover": ("Image Processing", "Remove backgrounds from images instantly online"),
@@ -96,6 +97,7 @@ async def html_sitemap(request: Request):
         "robots-txt-generator": ("Developer & SEO", "Create custom robots.txt files for search engine crawlers"),
         "schema-generator": ("Developer & SEO", "Generate structured JSON-LD schema markup for SEO"),
         "sitemap-generator": ("Developer & SEO", "Generate XML sitemaps for search engine indexing"),
+        "keyword-data-analyzer": ("Developer & SEO", "Analyze keyword density ratios, cluster search terms, and detect keyword stuffing warnings"),
         
         # Business & Operations
         "invoice-generator": ("Business & Operations", "Create and download professional PDF invoices online"),

@@ -1,34 +1,50 @@
 {% extends "base.html" %}
 
-{% block title %}Free Crypto Tax Calculator Online | StoryBrain AI{% endblock %}
-{% block meta_description %}Use our free online Crypto Tax Calculator tool. Fast, secure, and private. Try the best crypto tax calculator today with no sign-up required.{% endblock %}
-{% block meta_keywords %}crypto tax calculator, bitcoin tax calculator, cryptocurrency tax estimator, capital gains crypto, crypto tax report{% endblock %}
+{% block title %}Free Crypto Tax Calculator Online | FIFO & LIFO Gains | StoryBrain AI{% endblock %}
+{% block meta_description %}Calculate your cryptocurrency capital gains taxes for free. Use FIFO, LIFO, or HIFO inventory methods, model tax-loss harvesting, and check country brackets. Private & secure.{% endblock %}
+{% block meta_keywords %}crypto tax calculator, crypto tax loss harvesting tool, FIFO capital gains calculator, crypto tax estimation by country, tax offset calculator, calculate short term vs long term tax, how to report crypto on taxes, calculate crypto cost basis FIFO LIFO HIFO, crypto tax write off calculator, how to avoid crypto tax legally, FIFO capital gains tax calculator for bitcoin, free online crypto tax calculator no signup, wash sale rule crypto{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/crypto-tax-calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/crypto-tax-calculator">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Crypto Tax Calculator - Free Online Tool | StoryBrain AI">
-<meta property="og:description" content="Calculate your cryptocurrency taxes quickly and accurately. Estimate capital gains, losses, and tax obligations for free.">
+<meta property="og:title" content="Advanced Crypto Tax Calculator & FIFO Capital Gains Estimator | StoryBrain AI">
+<meta property="og:description" content="Calculate short-term and long-term cryptocurrency capital gains taxes. Supports FIFO, LIFO, and HIFO matching methods. Local browser calculation.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Crypto Tax Calculator - Free Online | StoryBrain AI">
-<meta name="twitter:description" content="Calculate your cryptocurrency taxes quickly and accurately. Estimate capital gains, losses, and tax obligations for free.">
+<meta name="twitter:title" content="Advanced Cryptocurrency Tax Calculator | StoryBrain AI">
+<meta name="twitter:description" content="Simulate tax-loss harvesting, calculate FIFO cost basis, check USA/Canada/India brackets, and minimize tax liability. Private and free.">
 {% endblock %}
 
-
-
 {% block head %}
-<!-- ApexCharts -->
+<!-- ApexCharts for Tax Yield Breakdown Visualization -->
 <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <style>
-    .tax-result-card {
-        padding: 2.5rem;
-        border-radius: 2rem;
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.05);
+    .tax-card {
+        background: var(--sb-card);
+        border: 1px solid var(--sb-border);
+        border-radius: 1.5rem;
         position: relative;
         overflow: hidden;
+    }
+    .tax-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(239, 68, 68, 0.03) 0%, transparent 60%);
+        pointer-events: none;
+    }
+    .tax-result-card {
+        padding: 2rem;
+        border-radius: 1.5rem;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid var(--sb-border);
+        position: relative;
+        overflow: hidden;
+        text-align: center;
     }
     .tax-result-card::after {
         content: '';
@@ -37,29 +53,102 @@
         right: -50px;
         width: 150px;
         height: 150px;
-        background: var(--sb-accent);
+        background: var(--sb-pink);
         filter: blur(80px);
         opacity: 0.1;
     }
-    .field-wrapper {
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    .table-container {
+        border: 1px solid var(--sb-border);
+        border-radius: 1.25rem;
+        overflow: hidden;
+        background: var(--sb-surface);
     }
-    .rule-box {
-        background: rgba(124, 58, 237, 0.05);
-        border: 1px solid rgba(124, 58, 237, 0.1);
-        border-radius: 1rem;
-        padding: 1rem;
-        font-size: 0.8rem;
-        font-weight: 500;
-        color: rgba(255, 255, 255, 0.6);
+    .transaction-row {
+        transition: all 0.2s ease;
+    }
+    .transaction-row:hover {
+        background: rgba(255, 255, 255, 0.02);
+    }
+    .text-profit { color: var(--sb-teal) !important; }
+    .text-loss { color: var(--sb-pink) !important; }
+    .bg-profit { background: rgba(20, 184, 166, 0.1) !important; border-color: rgba(20, 184, 166, 0.2) !important; }
+    .bg-loss { background: rgba(219, 39, 119, 0.1) !important; border-color: rgba(219, 39, 119, 0.2) !important; }
+    
+    /* Custom tab navigation inside cards */
+    .nav-pills-custom {
+        display: flex;
+        gap: 0.5rem;
+        background: rgba(0, 0, 0, 0.15);
+        padding: 0.35rem;
+        border-radius: 0.75rem;
+        border: 1px solid var(--sb-border);
+    }
+    .nav-pills-custom .nav-link {
+        flex: 1;
+        text-align: center;
+        border-radius: 0.5rem;
+        color: var(--sb-text-muted);
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0.5rem;
+        transition: all 0.2s ease;
+        border: none;
+        background: none;
+    }
+    .nav-pills-custom .nav-link:hover {
+        color: var(--sb-text);
+        background: rgba(255, 255, 255, 0.02);
+    }
+    .nav-pills-custom .nav-link.active {
+        color: #fff;
+        background: var(--sb-accent);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
     }
 
-    /* Mobile Responsive Injection */
-    @media (max-width: 768px) {
-        .display-3, .display-4, .hero-title { font-size: 2.25rem !important; }
-        .glass-card { padding: 1.5rem !important; }
-        .row.g-4 { gap: 1rem !important; }
-        .metrics-grid, .grid-layout { grid-template-columns: 1fr !important; }
+    .nav-tabs-custom {
+        border-bottom: 1px solid var(--sb-border);
+        display: flex;
+        gap: 1.5rem;
+    }
+    .nav-tabs-custom button {
+        background: none;
+        border: none;
+        color: var(--sb-text-muted);
+        font-weight: 700;
+        font-size: 0.9rem;
+        padding: 0.75rem 0.25rem;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+    .nav-tabs-custom button:hover {
+        color: var(--sb-text);
+    }
+    .nav-tabs-custom button.active {
+        color: var(--sb-accent);
+    }
+    .nav-tabs-custom button.active::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--sb-accent);
+        border-radius: 2px;
+    }
+    
+    .dropzone-container {
+        border: 2px dashed var(--sb-border);
+        border-radius: 1rem;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.2s ease;
+        background: rgba(0,0,0,0.05);
+        cursor: pointer;
+    }
+    .dropzone-container:hover, .dropzone-container.dragover {
+        border-color: var(--sb-accent);
+        background: rgba(239, 68, 68, 0.02);
     }
 </style>
 {% endblock %}
@@ -72,124 +161,415 @@
     </a>
 </div>
 
-<div class="container-xl mx-auto">
+<div class="container-xl mx-auto reveal">
     <!-- Header -->
-    <div class="text-center mb-5 reveal">
-        <div class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-20 px-4 py-2 mb-4">
-            <i class="fa-solid fa-scale-balanced me-2"></i> Compliance Engine
+    <div class="text-center mb-5">
+        <div class="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger border-opacity-20 px-4 py-2 mb-3">
+            <i class="fa-solid fa-scale-balanced me-2"></i> Multi-Asset Compliance & Yield Engine
         </div>
-        <h1 class="display-3 fw-black mb-3 text-center">FREE CRYPTO <span class="gradient-text italic">TAX CALCULATOR</span></h1>
-        <p class="text-white-50 fs-5 mx-auto text-center" style="max-width: 700px;">
-        Our free online crypto tax calculator is fast, secure, and easy to use. Get instant results right in your browser.
-    </p>
+        <h1 class="display-4 fw-black mb-3 text-center">ADVANCED CRYPTO <span class="gradient-text italic" style="background: linear-gradient(135deg, #ef4444, var(--sb-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">TAX CALCULATOR</span></h1>
+        <p class="text-theme-muted lead max-width-600 mx-auto">Calculate multi-cryptocurrency gains, track FIFO/LIFO cost basis matching details, simulate tax-loss harvesting, and export logs.</p>
     </div>
 
-    <!-- Main Content -->
-    <div class="row g-4 reveal" style="animation-delay: 0.2s;">
-        <!-- Configuration Form -->
-        <div class="col-lg-7">
-            <div class="glass-card p-4 p-md-5">
-                <div class="d-flex align-items-center gap-2 mb-4 pb-2 border-bottom border-white border-opacity-5">
-                    <i class="fa-solid fa-sliders text-primary"></i>
-                    <span class="small fw-black text-white-50 tracking-widest text-uppercase">Tax Configuration</span>
+    <!-- Main Workspace -->
+    <div class="row g-4 mb-5">
+        <!-- Left Column: Tabs for Adding Transactions, Config, and Import/Export -->
+        <div class="col-lg-5 col-xl-4">
+            <div class="tax-card glass-card p-4 mb-4">
+                <nav class="nav pills-custom nav-pills-custom mb-4" id="formTabs" role="tablist">
+                    <button class="nav-link active" id="add-tab" data-bs-toggle="pill" data-bs-target="#form-add" type="button" role="tab">Add Order</button>
+                    <button class="nav-link" id="settings-tab" data-bs-toggle="pill" data-bs-target="#form-settings" type="button" role="tab">Settings</button>
+                    <button class="nav-link" id="portability-tab" data-bs-toggle="pill" data-bs-target="#form-portability" type="button" role="tab">Import/Export</button>
+                </nav>
+
+                <div class="tab-content" id="formTabContent">
+                    <!-- Tab 1: Add Transaction Order -->
+                    <div class="tab-pane fade show active" id="form-add" role="tabpanel">
+                        <h4 class="fs-6 fw-bold text-theme mb-3"><i class="fa-solid fa-plus-circle text-primary me-2"></i> Add Transaction Order</h4>
+                        <form id="addTxForm" onsubmit="return false;">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-theme-muted text-uppercase tracking-wider">Asset (Symbol)</label>
+                                <input type="text" id="txAsset" list="assetSuggestions" class="form-control text-uppercase" placeholder="e.g. BTC" value="BTC" required>
+                                <datalist id="assetSuggestions">
+                                    <option value="BTC">Bitcoin</option>
+                                    <option value="ETH">Ethereum</option>
+                                    <option value="SOL">Solana</option>
+                                    <option value="ADA">Cardano</option>
+                                    <option value="USDT">Tether</option>
+                                    <option value="DOGE">Dogecoin</option>
+                                    <option value="XRP">XRP</option>
+                                </datalist>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-theme-muted text-uppercase tracking-wider">Order Type</label>
+                                    <select id="txType" class="form-select bg-white bg-opacity-5 text-theme">
+                                        <option value="buy" selected>Buy Asset (Cost Basis)</option>
+                                        <option value="sell">Sell Asset (Proceeds)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-theme-muted text-uppercase tracking-wider">Date of Order</label>
+                                    <input type="date" id="txDate" class="form-control" required>
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-4">
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold text-theme-muted text-uppercase tracking-wider">Quantity</label>
+                                    <input type="number" id="txQty" class="form-control" placeholder="e.g. 0.5" step="any" min="0.000001" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold text-theme-muted text-uppercase tracking-wider">Price per Token ($)</label>
+                                    <input type="number" id="txPrice" class="form-control" placeholder="e.g. 40000" step="any" min="0.01" required>
+                                </div>
+                            </div>
+                            <button type="button" id="addTxBtn" class="btn-love w-100 py-3 rounded-3 shadow-sm d-flex align-items-center justify-content-center gap-2" style="background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);">
+                                <i class="fa-solid fa-circle-plus"></i> ADD TO LEDGER
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Tab 2: Configurations & Tax Settings -->
+                    <div class="tab-pane fade" id="form-settings" role="tabpanel">
+                        <h4 class="fs-6 fw-bold text-theme mb-3"><i class="fa-solid fa-sliders text-primary me-2"></i> Configuration & Brackets</h4>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold text-theme-muted text-uppercase tracking-wider">Jurisdiction</label>
+                                <select id="jurisdiction" class="form-select bg-white bg-opacity-5 text-theme py-2 fw-bold">
+                                    <option value="usa" selected>United States</option>
+                                    <option value="canada">Canada</option>
+                                    <option value="india">India (Section 115BBH rules)</option>
+                                    <option value="custom">Custom Flat Rate</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-theme-muted text-uppercase tracking-wider">Tax Year</label>
+                                <select id="taxYear" class="form-select bg-white bg-opacity-5 text-theme py-2 fw-bold">
+                                    <option value="2024" selected>2024 Brackets</option>
+                                    <option value="2025">2025 Brackets</option>
+                                    <option value="2026">2026 (Projected)</option>
+                                </select>
+                            </div>
+                            <div class="col-6" id="wrapper-filing-status">
+                                <label class="form-label small fw-bold text-theme-muted text-uppercase tracking-wider">Filing Status</label>
+                                <select id="filingStatus" class="form-select bg-white bg-opacity-5 text-theme py-2 fw-bold">
+                                    <option value="single" selected>Single</option>
+                                    <option value="married">Married (Jointly)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-12" id="wrapper-annual-income">
+                                <label class="form-label small fw-bold text-theme-muted text-uppercase tracking-wider">Annual Taxable Income ($)</label>
+                                <input type="number" id="annualIncome" class="form-control" placeholder="e.g. 75000" value="75000">
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold text-theme-muted text-uppercase tracking-wider">Matching Method</label>
+                                <select id="matchingMethod" class="form-select bg-white bg-opacity-5 text-theme py-2 fw-bold">
+                                    <option value="FIFO" selected>FIFO (First In First Out)</option>
+                                    <option value="LIFO">LIFO (Last In First Out)</option>
+                                    <option value="HIFO">HIFO (Highest In First Out)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3 d-none" id="wrapper-custom-rate">
+                            <div class="col-md-12">
+                                <label class="form-label small fw-bold text-theme-muted text-uppercase tracking-wider">Custom Tax Rate (%)</label>
+                                <input type="number" id="customRate" class="form-control" placeholder="e.g. 20" value="20">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: CSV/JSON Data Portability -->
+                    <div class="tab-pane fade" id="form-portability" role="tabpanel">
+                        <h4 class="fs-6 fw-bold text-theme mb-3"><i class="fa-solid fa-file-export text-primary me-2"></i> Import & Export Data</h4>
+                        <div class="dropzone-container mb-3" id="dropzone">
+                            <i class="fa-solid fa-cloud-arrow-up fs-3 text-secondary mb-2"></i>
+                            <p class="small text-theme mb-1 fw-bold">Drag & Drop CSV or JSON File</p>
+                            <span class="text-theme-muted small" style="font-size: 0.75rem;">Or click here to browse</span>
+                            <input type="file" id="fileImport" class="d-none" accept=".csv,.json">
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <button type="button" id="exportJSON" class="btn btn-sm btn-outline-secondary w-100 py-2"><i class="fa-solid fa-file-code me-1"></i> Export JSON</button>
+                            </div>
+                            <div class="col-6">
+                                <button type="button" id="exportCSV" class="btn btn-sm btn-outline-secondary w-100 py-2"><i class="fa-solid fa-file-excel me-1"></i> Export CSV</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
-                <form id="taxForm">
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Jurisdiction</label>
-                            <select id="jurisdiction" class="form-select bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 fw-bold">
-                                <option value="usa" selected>United States (2024)</option>
-                                <option value="canada">Canada (Federal 2024)</option>
-                                <option value="india">India (Sec 115BBH)</option>
-                                <option value="custom">Custom Flat Rate</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 field-wrapper" id="wrapper-filing-status">
-                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Filing Status</label>
-                            <select id="filingStatus" class="form-select bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 fw-bold">
-                                <option value="single" selected>Single (Individual)</option>
-                                <option value="married">Married Filing Jointly</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6 field-wrapper" id="wrapper-annual-income">
-                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Annual Income ($)</label>
-                            <input type="number" id="annualIncome" class="form-control bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 font-mono fw-bold" placeholder="75000">
-                        </div>
-                        <div class="col-md-6 field-wrapper" id="wrapper-holding-period">
-                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Holding Period</label>
-                            <select id="holdingPeriod" class="form-select bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 fw-bold">
-                                <option value="short" selected>Short-Term (&lt; 1 Year)</option>
-                                <option value="long">Long-Term (&gt; 1 Year)</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 field-wrapper d-none" id="wrapper-custom-rate">
-                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Custom Tax Rate (%)</label>
-                            <input type="number" id="customRate" class="form-control bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 font-mono fw-bold" placeholder="20">
-                        </div>
-                    </div>
-
-                    <hr class="border-white border-opacity-5 my-5">
-
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Cost Basis ($)</label>
-                            <input type="number" id="costBasis" class="form-control bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 font-mono fw-bold fs-5" placeholder="10000" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="small fw-black text-white-50 tracking-widest text-uppercase mb-2 d-block">Sale Value ($)</label>
-                            <input type="number" id="saleValue" class="form-control bg-white bg-opacity-5 border-white border-opacity-10 text-white py-3 font-mono fw-bold fs-5" placeholder="50000" required>
-                        </div>
-                    </div>
-
-                    <div class="rule-box mb-5">
-                        <i class="fa-solid fa-circle-info text-primary me-2"></i>
-                        <span id="rule-notes-text">Select a jurisdiction to view tax rules.</span>
-                    </div>
-
-                    <button type="button" id="calculateBtn" class="btn btn-premium w-100 py-4 fs-4 fw-black">
-                        COMPUTE TAX ESTIMATE
-                    </button>
-                </form>
+            </div>
+            
+            <!-- Ledger warning info for India Section 115BBH -->
+            <div id="indiaWarningBox" class="alert alert-warning border border-warning border-opacity-20 bg-warning bg-opacity-5 p-3 rounded-4 d-none">
+                <i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>
+                <small class="text-theme-muted">
+                    <strong>India Tax Rule (115BBH):</strong> Crypto losses cannot be offset against gains. Each profitable sell order is taxed at a flat 31.2%, and losing sell orders cannot decrease your tax liability.
+                </small>
             </div>
         </div>
 
-        <!-- Results Dashboard -->
-        <div class="col-lg-5">
-            <div class="d-flex flex-column h-100 gap-4">
-                <div class="tax-result-card text-center">
-                    <p class="small fw-black text-white-50 tracking-widest text-uppercase mb-2">Estimated Tax Owed</p>
-                    <h2 id="taxOwed" class="display-3 fw-black font-mono tracking-tighter text-danger mb-0">$0.00</h2>
-                </div>
-
-                <div class="row g-3">
-                    <div class="col-6">
-                        <div class="glass-card p-4 text-center">
-                            <p class="small fw-black text-white-50 tracking-widest text-uppercase mb-1" style="font-size: 0.6rem;">Gross Gain</p>
-                            <h4 id="grossGain" class="fw-black font-mono mb-0">$0.00</h4>
+        <!-- Right Column: Interactive Visuals, Statistics, and Detailed Output Tabs -->
+        <div class="col-lg-7 col-xl-8">
+            <div class="d-flex flex-column gap-4 h-100">
+                <!-- Tax Result Top Stats Card -->
+                <div class="tax-result-card glass-card">
+                    <div class="row align-items-center">
+                        <div class="col-md-6 border-end border-theme border-opacity-10 py-2">
+                            <p class="small fw-black text-theme-muted tracking-widest text-uppercase mb-1">Estimated Tax Liability</p>
+                            <h2 id="taxOwed" class="display-4 fw-black font-monospace text-loss mb-0">$0.00</h2>
+                            <span id="effectiveTaxBadge" class="badge bg-secondary rounded-pill px-3 py-1 small fw-bold mt-2 d-none">0.0% Effective Rate</span>
+                        </div>
+                        <div class="col-md-6 py-2">
+                            <div class="row text-start px-md-3">
+                                <div class="col-6 mb-2">
+                                    <span class="small fw-bold text-theme-muted text-uppercase tracking-wider">Short-Term Gains</span>
+                                    <h5 id="stGainsVal" class="font-monospace fw-bold mb-0 text-theme">$0.00</h5>
+                                </div>
+                                <div class="col-6 mb-2">
+                                    <span class="small fw-bold text-theme-muted text-uppercase tracking-wider">Long-Term Gains</span>
+                                    <h5 id="ltGainsVal" class="font-monospace fw-bold mb-0 text-theme">$0.00</h5>
+                                </div>
+                                <div class="col-6">
+                                    <span class="small fw-bold text-theme-muted text-uppercase tracking-wider">Realized Net Profit</span>
+                                    <h5 id="netGainsVal" class="font-monospace fw-bold mb-0">$0.00</h5>
+                                </div>
+                                <div class="col-6">
+                                    <span class="small fw-bold text-theme-muted text-uppercase tracking-wider">Unrealized Value</span>
+                                    <h5 id="unrealizedGainsVal" class="font-monospace fw-bold mb-0">$0.00</h5>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-6">
-                        <div class="glass-card p-4 text-center border-bottom border-success border-4 border-opacity-20">
-                            <p class="small fw-black text-white-50 tracking-widest text-uppercase mb-1" style="font-size: 0.6rem;">Net Total Yield</p>
-                            <h4 id="netProfit" class="fw-black font-mono text-success mb-0">$0.00</h4>
+                </div>
+
+                <!-- Detailed Workspace Tabs -->
+                <div class="table-container p-4">
+                    <nav class="nav nav-tabs-custom mb-3" id="dataTabs" role="tablist">
+                        <button class="active" id="portfolio-tab" data-bs-toggle="tab" data-bs-target="#tab-portfolio" type="button" role="tab">Portfolio Summary</button>
+                        <button id="ledger-tab" data-bs-toggle="tab" data-bs-target="#tab-ledger" type="button" role="tab">Transactions Ledger</button>
+                        <button id="matching-tab" data-bs-toggle="tab" data-bs-target="#tab-matching" type="button" role="tab">Cost Basis Matches</button>
+                        <button id="harvesting-tab" data-bs-toggle="tab" data-bs-target="#tab-harvesting" type="button" role="tab">Tax-Loss Harvesting</button>
+                    </nav>
+
+                    <div class="tab-content" id="dataTabContent">
+                        <!-- Tab A: Portfolio Summary (Assets table + Donut chart) -->
+                        <div class="tab-pane fade show active" id="tab-portfolio" role="tabpanel">
+                            <div class="row g-4 align-items-center">
+                                <div class="col-lg-7">
+                                    <div class="table-responsive">
+                                        <table class="table align-middle text-theme mb-0">
+                                            <thead>
+                                                <tr class="text-theme-muted small fw-bold" style="border-bottom: 1px solid var(--sb-border);">
+                                                    <th class="border-0">Asset</th>
+                                                    <th class="border-0">Balance Held</th>
+                                                    <th class="border-0">Cost Basis</th>
+                                                    <th class="border-0">Realized Profit</th>
+                                                    <th class="border-0 text-end">Est. Tax</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="portfolioBody">
+                                                <tr>
+                                                    <td colspan="5" class="text-center py-4 text-theme-muted small">Awaiting transactions ledger entries. Add buys/sells.</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="col-lg-5">
+                                    <div id="donutChart" class="d-flex align-items-center justify-content-center" style="min-height: 220px;">
+                                        <span class="text-white-50 opacity-20 small fw-bold text-uppercase tracking-widest">Awaiting Analysis...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab B: Transactions Ledger (Searchable table) -->
+                        <div class="tab-pane fade" id="tab-ledger" role="tabpanel">
+                            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
+                                <div class="d-flex gap-2 flex-grow-1">
+                                    <input type="text" id="ledgerSearch" class="form-control form-control-sm bg-white bg-opacity-5 text-theme rounded-2" placeholder="Search by Asset..." style="max-width: 200px;">
+                                    <select id="ledgerFilterType" class="form-select form-select-sm bg-white bg-opacity-5 text-theme rounded-2" style="max-width: 120px;">
+                                        <option value="all">All Orders</option>
+                                        <option value="buy">Buys Only</option>
+                                        <option value="sell">Sells Only</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger px-3 rounded-pill align-self-start align-self-sm-auto" id="clearLedgerBtn" style="font-size: 0.75rem;">Clear Ledger</button>
+                            </div>
+                            <div class="table-responsive max-height-300 overflow-y-auto">
+                                <table class="table align-middle text-theme mb-0">
+                                    <thead>
+                                        <tr class="text-theme-muted small fw-bold" style="border-bottom: 1px solid var(--sb-border);">
+                                            <th scope="col" class="border-0">Asset</th>
+                                            <th scope="col" class="border-0">Type</th>
+                                            <th scope="col" class="border-0">Date</th>
+                                            <th scope="col" class="border-0">Quantity</th>
+                                            <th scope="col" class="border-0">Price per Token</th>
+                                            <th scope="col" class="border-0 text-end">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ledgerBody">
+                                        <!-- Filled via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab C: Cost Basis Matches Audit Log -->
+                        <div class="tab-pane fade" id="tab-matching" role="tabpanel">
+                            <div class="table-responsive max-height-300 overflow-y-auto">
+                                <table class="table align-middle text-theme mb-0">
+                                    <thead>
+                                        <tr class="text-theme-muted small fw-bold" style="border-bottom: 1px solid var(--sb-border);">
+                                            <th scope="col" class="border-0">Asset</th>
+                                            <th scope="col" class="border-0">Matched Lots & Holding Dates</th>
+                                            <th scope="col" class="border-0">Matched Qty</th>
+                                            <th scope="col" class="border-0">Realized Gain/Loss</th>
+                                            <th scope="col" class="border-0 text-end">Tax Type</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="matchingBody">
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4 text-theme-muted small">No lots matched. Sell transactions will generate cost-basis matches here.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab D: Interactive Tax-Loss Harvesting Module -->
+                        <div class="tab-pane fade" id="tab-harvesting" role="tabpanel">
+                            <!-- Live market values input panel -->
+                            <div class="mb-4 p-3 rounded-3" style="background: rgba(255,255,255,0.01); border: 1px solid var(--sb-border);">
+                                <h6 class="small fw-bold text-theme mb-3"><i class="fa-solid fa-sack-dollar text-primary me-2"></i> Current Market Value Valuation</h6>
+                                <div class="row g-2" id="harvestingPricesContainer">
+                                    <!-- Asset price inputs populated dynamically -->
+                                    <div class="col-12 py-1 text-center text-theme-muted small">No assets detected. Add buy orders to enable current valuation tracking.</div>
+                                </div>
+                            </div>
+
+                            <h6 class="small fw-bold text-theme mb-2"><i class="fa-solid fa-seedling text-teal me-2"></i> Harvestable Losses (Unsold Lots in Paper Loss)</h6>
+                            <div class="table-responsive max-height-200 overflow-y-auto">
+                                <table class="table align-middle text-theme mb-0">
+                                    <thead>
+                                        <tr class="text-theme-muted small fw-bold" style="border-bottom: 1px solid var(--sb-border);">
+                                            <th scope="col" class="border-0">Asset</th>
+                                            <th scope="col" class="border-0">Buy Date & Cost Basis Price</th>
+                                            <th scope="col" class="border-0">Available Balance</th>
+                                            <th scope="col" class="border-0">Paper Loss</th>
+                                            <th scope="col" class="border-0 text-end">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="harvestingBody">
+                                        <!-- Filled via JS -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Visualization -->
-                <div class="glass-card p-4 p-md-5 flex-grow-1">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <span class="small fw-black text-white-50 tracking-widest text-uppercase">
-                            <i class="fa-solid fa-chart-pie text-secondary me-2"></i> Yield Breakdown
-                        </span>
-                        <span id="effectiveRateBadge" class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 opacity-0 px-3 py-2">Eff: 0%</span>
+    <!-- SEO Optimized Text & LSI Section -->
+    <div class="mt-5 pt-5 border-top border-theme reveal">
+        <h2 class="fs-3 fw-bold mb-4"><i class="fa-solid fa-circle-nodes text-primary me-2"></i> Minimize Capital Gains Liabilities: Crypto Tax Loss Harvesting Tool</h2>
+        <p class="text-theme-muted lh-lg fs-6 mb-4">
+            Calculating your cryptocurrency tax obligations can be complex, but with our free online <strong>crypto tax calculator</strong>, you can estimate capital gains taxes easily and securely. Running directly in your browser, this tool ensures complete privacy for your financial transaction history. We do not require any signup, email, or CSV uploads to third-party databases. It supports advanced cost basis matching engines including FIFO, LIFO, and HIFO. By grouping calculations on an asset-by-asset level, it provides accurate tax estimations reflecting actual capital proceeds and holding offsets.
+        </p>
+
+        <h2 class="fs-3 fw-bold mb-4"><i class="fa-solid fa-shield-halved text-success me-2"></i> How to Avoid Crypto Tax Legally & Save Money</h2>
+        <p class="text-theme-muted lh-lg fs-6 mb-4">
+            Understanding the tax guidelines allows you to use legal strategies to lower your tax liability. One of the most effective methods is **crypto tax loss harvesting**, which means selling off specific coins that are currently worth less than what you paid for them. These realized paper losses can offset your total capital gains for the tax year. In jurisdictions like the United States, you can offset your capital gains completely, and write off up to $3,000 of ordinary income each year, rolling over any extra losses to future tax cycles. Our interactive tax offset calculator scans your ledger to find which coins are in a paper loss, showing you exactly how much cash you can save.
+        </p>
+
+        <div class="row g-4 text-start mb-5">
+            <div class="col-md-6">
+                <h3 class="fs-5 fw-bold text-theme">Short-Term vs. Long-Term Capital Gains Crypto</h3>
+                <p class="text-theme-muted small">
+                    Holding an asset for more than 365 days qualifies you for long-term capital gains tax brackets. These brackets offer preferential rates of 0%, 15%, or 20% in the US, compared to short-term gains which are taxed at standard ordinary income rates. Our calculator automatically counts the holding period in days for every matched lot to apply the correct progressive tax rates.
+                </p>
+            </div>
+            <div class="col-md-6">
+                <h3 class="fs-5 fw-bold text-theme">Understanding the Wash Sale Rule in Crypto Taxes</h3>
+                <p class="text-theme-muted small">
+                    The wash sale rule prevents you from claiming a capital loss on an asset if you buy back a "substantially identical" asset within 30 days before or after the sale. Currently, IRS wash sale rules apply to stocks and securities, but the treatment of crypto continues to evolve. Staying compliant is crucial to avoid penalty interest and optimize offsets legally.
+                </p>
+            </div>
+        </div>
+
+        <h2 class="fs-3 fw-bold mb-4">Step-by-Step Guide: How to Report Crypto on Taxes</h2>
+        <div class="row g-4 text-start mb-5">
+            <div class="col-md-4">
+                <div class="p-4 bg-theme-surface border border-theme rounded-4 h-100">
+                    <div class="text-danger fw-black fs-1 mb-2 opacity-30">01</div>
+                    <h3 class="fs-5 fw-bold text-theme">Choose matching method</h3>
+                    <p class="text-theme-muted small">Select your calculation method: **FIFO** matches oldest buys first, **LIFO** matches newest buys first, and **HIFO** matches highest cost buys first to lower your current tax bill.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4 bg-theme-surface border border-theme rounded-4 h-100">
+                    <div class="text-danger fw-black fs-1 mb-2 opacity-30">02</div>
+                    <h3 class="fs-5 fw-bold text-theme">Input transactions</h3>
+                    <p class="text-theme-muted small">Add buy and sell orders for each asset symbol. You can easily drag and drop your CSV or JSON files to load transaction histories instantly.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-4 bg-theme-surface border border-theme rounded-4 h-100">
+                    <div class="text-danger fw-black fs-1 mb-2 opacity-30">03</div>
+                    <h3 class="fs-5 fw-bold text-theme">Download reports</h3>
+                    <p class="text-theme-muted small">Review the matched lots, audit trails, and harvesting opportunities. Export your ledger to keep records safe for filing your tax return.</p>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions (FAQ)</h2>
+        <div class="accordion accordion-flush" id="taxFaqAccordion">
+            <div class="accordion-item bg-transparent border-white border-opacity-10">
+                <h3 class="accordion-header">
+                    <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                        Is this a free online crypto tax calculator with no signup?
+                    </button>
+                </h3>
+                <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#taxFaqAccordion">
+                    <div class="accordion-body text-theme-muted">
+                        Yes! This tool is 100% free and runs entirely client-side. Your financial transactions, trades, and capital proceeds are processed inside your browser and are never uploaded to our servers, keeping your information completely private.
                     </div>
-                    <div id="donut-chart" class="d-flex align-items-center justify-content-center" style="min-height: 300px;">
-                        <span class="text-white-50 opacity-20 small fw-bold text-uppercase tracking-widest">Awaiting Analysis...</span>
+                </div>
+            </div>
+            <div class="accordion-item bg-transparent border-white border-opacity-10">
+                <h3 class="accordion-header">
+                    <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                        How does a crypto tax write off calculator help me save?
+                    </button>
+                </h3>
+                <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#taxFaqAccordion">
+                    <div class="accordion-body text-theme-muted">
+                        A tax write-off calculator identifies assets that have lost value relative to their original cost basis. By realizing these losses (selling the asset), you create offsets that reduce your taxable income and capital gains, lowering the overall tax you owe.
+                    </div>
+                </div>
+            </div>
+            <div class="accordion-item bg-transparent border-white border-opacity-10">
+                <h3 class="accordion-header">
+                    <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                        How does FIFO capital gains tax calculator for bitcoin match sales?
+                    </button>
+                </h3>
+                <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#taxFaqAccordion">
+                    <div class="accordion-body text-theme-muted">
+                        Under First-In-First-Out (FIFO), the oldest bitcoin you purchased is assumed to be the first one you sell. The cost basis is calculated from that oldest purchase date. If you hold it for over a year (365 days), the gains qualify for long-term capital gains brackets instead of ordinary tax rates.
                     </div>
                 </div>
             </div>
@@ -199,296 +579,903 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const jSel = document.getElementById('jurisdiction'), fStatus = document.getElementById('filingStatus'), hPeriod = document.getElementById('holdingPeriod');
-    const iIncome = document.getElementById('annualIncome'), iCost = document.getElementById('costBasis'), iSale = document.getElementById('saleValue'), iCustom = document.getElementById('customRate');
-    
-    const wStatus = document.getElementById('wrapper-filing-status'), wIncome = document.getElementById('wrapper-annual-income'), wHolding = document.getElementById('wrapper-holding-period'), wCustom = document.getElementById('wrapper-custom-rate');
-    const rNotes = document.getElementById('rule-notes-text');
-
-    const outTax = document.getElementById('taxOwed'), outGross = document.getElementById('grossGain'), outNet = document.getElementById('netProfit'), bEff = document.getElementById('effectiveRateBadge');
-
+    let transactions = [];
     let donutChart = null;
+    let assetMarketPrices = {};
 
+    // Load transactions from LocalStorage
+    const savedTxs = localStorage.getItem('sb_crypto_txs');
+    if (savedTxs) {
+        try {
+            transactions = JSON.parse(savedTxs);
+            // Ensure all loaded transactions have an asset symbol
+            transactions.forEach(tx => {
+                if (!tx.asset) tx.asset = 'BTC';
+                else tx.asset = tx.asset.toUpperCase().trim();
+            });
+        } catch (e) {
+            transactions = [];
+        }
+    }
+
+    // Load persisted market prices
+    const savedPrices = localStorage.getItem('sb_crypto_market_prices');
+    if (savedPrices) {
+        try {
+            assetMarketPrices = JSON.parse(savedPrices);
+        } catch (e) {
+            assetMarketPrices = {};
+        }
+    }
+
+    // UI elements
+    const jurisdiction = document.getElementById('jurisdiction');
+    const taxYear = document.getElementById('taxYear');
+    const filingStatus = document.getElementById('filingStatus');
+    const annualIncome = document.getElementById('annualIncome');
+    const matchingMethod = document.getElementById('matchingMethod');
+    const customRate = document.getElementById('customRate');
+
+    // Add order elements
+    const txAsset = document.getElementById('txAsset');
+    const txType = document.getElementById('txType');
+    const txDate = document.getElementById('txDate');
+    const txQty = document.getElementById('txQty');
+    const txPrice = document.getElementById('txPrice');
+    const addTxBtn = document.getElementById('addTxBtn');
+    
+    // Ledger management elements
+    const clearLedgerBtn = document.getElementById('clearLedgerBtn');
+    const ledgerSearch = document.getElementById('ledgerSearch');
+    const ledgerFilterType = document.getElementById('ledgerFilterType');
+    const ledgerBody = document.getElementById('ledgerBody');
+    const matchingBody = document.getElementById('matchingBody');
+    const portfolioBody = document.getElementById('portfolioBody');
+    const harvestingBody = document.getElementById('harvestingBody');
+    const harvestingPricesContainer = document.getElementById('harvestingPricesContainer');
+    const indiaWarningBox = document.getElementById('indiaWarningBox');
+
+    // Summary displays
+    const outTax = document.getElementById('taxOwed');
+    const outStGains = document.getElementById('stGainsVal');
+    const outLtGains = document.getElementById('ltGainsVal');
+    const outNetGains = document.getElementById('netGainsVal');
+    const outUnrealizedGains = document.getElementById('unrealizedGainsVal');
+    const bEff = document.getElementById('effectiveTaxBadge');
+
+    // Set today's date in input
+    txDate.value = new Date().toISOString().split('T')[0];
+
+    // Tax brackets configuration
     const usBrackets = {
-        single: {
-            ordinary: [{ max: 11600, rate: 0.10 }, { max: 47150, rate: 0.12 }, { max: 100525, rate: 0.22 }, { max: 191950, rate: 0.24 }, { max: 243725, rate: 0.32 }, { max: 609350, rate: 0.35 }, { max: Infinity, rate: 0.37 }],
-            longterm: [{ max: 47025, rate: 0.00 }, { max: 518900, rate: 0.15 }, { max: Infinity, rate: 0.20 }]
+        2024: {
+            single: {
+                ordinary: [{ max: 11600, rate: 0.10 }, { max: 47150, rate: 0.12 }, { max: 100525, rate: 0.22 }, { max: 191950, rate: 0.24 }, { max: 243725, rate: 0.32 }, { max: 609350, rate: 0.35 }, { max: Infinity, rate: 0.37 }],
+                longterm: [{ max: 47025, rate: 0.00 }, { max: 518900, rate: 0.15 }, { max: Infinity, rate: 0.20 }]
+            },
+            married: {
+                ordinary: [{ max: 23200, rate: 0.10 }, { max: 94300, rate: 0.12 }, { max: 201050, rate: 0.22 }, { max: 383900, rate: 0.24 }, { max: 487450, rate: 0.32 }, { max: 731200, rate: 0.35 }, { max: Infinity, rate: 0.37 }],
+                longterm: [{ max: 94050, rate: 0.00 }, { max: 583750, rate: 0.15 }, { max: Infinity, rate: 0.20 }]
+            }
         },
-        married: {
-            ordinary: [{ max: 23200, rate: 0.10 }, { max: 94300, rate: 0.12 }, { max: 201050, rate: 0.22 }, { max: 383900, rate: 0.24 }, { max: 487450, rate: 0.32 }, { max: 731200, rate: 0.35 }, { max: Infinity, rate: 0.37 }],
-            longterm: [{ max: 94050, rate: 0.00 }, { max: 583750, rate: 0.15 }, { max: Infinity, rate: 0.20 }]
+        2025: {
+            single: {
+                ordinary: [{ max: 11925, rate: 0.10 }, { max: 48475, rate: 0.12 }, { max: 103350, rate: 0.22 }, { max: 197300, rate: 0.24 }, { max: 250525, rate: 0.32 }, { max: 626350, rate: 0.35 }, { max: Infinity, rate: 0.37 }],
+                longterm: [{ max: 48350, rate: 0.00 }, { max: 533400, rate: 0.15 }, { max: Infinity, rate: 0.20 }]
+            },
+            married: {
+                ordinary: [{ max: 23850, rate: 0.10 }, { max: 96950, rate: 0.12 }, { max: 206700, rate: 0.22 }, { max: 394600, rate: 0.24 }, { max: 501050, rate: 0.32 }, { max: 751600, rate: 0.35 }, { max: Infinity, rate: 0.37 }],
+                longterm: [{ max: 96700, rate: 0.00 }, { max: 600050, rate: 0.15 }, { max: Infinity, rate: 0.20 }]
+            }
+        },
+        2026: {
+            single: {
+                ordinary: [{ max: 12250, rate: 0.10 }, { max: 49800, rate: 0.12 }, { max: 106200, rate: 0.22 }, { max: 202700, rate: 0.24 }, { max: 257400, rate: 0.32 }, { max: 643500, rate: 0.35 }, { max: Infinity, rate: 0.37 }],
+                longterm: [{ max: 49700, rate: 0.00 }, { max: 54800, rate: 0.15 }, { max: Infinity, rate: 0.20 }]
+            },
+            married: {
+                ordinary: [{ max: 24500, rate: 0.10 }, { max: 99600, rate: 0.12 }, { max: 212400, rate: 0.22 }, { max: 405400, rate: 0.24 }, { max: 514800, rate: 0.32 }, { max: 772200, rate: 0.35 }, { max: Infinity, rate: 0.37 }],
+                longterm: [{ max: 99400, rate: 0.00 }, { max: 616500, rate: 0.15 }, { max: Infinity, rate: 0.20 }]
+            }
         }
     };
 
-    const caFedBrackets = [{ max: 55867, rate: 0.15 }, { max: 111733, rate: 0.205 }, { max: 173205, rate: 0.26 }, { max: 246302, rate: 0.29 }, { max: Infinity, rate: 0.33 }];
+    const caFederalBrackets = {
+        2024: [{ max: 55867, rate: 0.15 }, { max: 111733, rate: 0.205 }, { max: 173205, rate: 0.26 }, { max: 246306, rate: 0.29 }, { max: Infinity, rate: 0.33 }],
+        2025: [{ max: 57375, rate: 0.15 }, { max: 114750, rate: 0.205 }, { max: 177882, rate: 0.26 }, { max: 252956, rate: 0.29 }, { max: Infinity, rate: 0.33 }],
+        2026: [{ max: 58900, rate: 0.15 }, { max: 117800, rate: 0.205 }, { max: 182600, rate: 0.26 }, { max: 259600, rate: 0.29 }, { max: Infinity, rate: 0.33 }]
+    };
 
+    // Configuration Event Listeners
+    jurisdiction.addEventListener('change', () => {
+        const j = jurisdiction.value;
+        document.getElementById('wrapper-filing-status').style.display = j === 'usa' ? 'block' : 'none';
+        document.getElementById('wrapper-annual-income').style.display = (j === 'usa' || j === 'canada') ? 'block' : 'none';
+        document.getElementById('wrapper-custom-rate').style.display = j === 'custom' ? 'block' : 'none';
+        
+        if (j === 'india') {
+            indiaWarningBox.classList.remove('d-none');
+        } else {
+            indiaWarningBox.classList.add('d-none');
+        }
+        calculateTax();
+    });
+
+    [taxYear, filingStatus, annualIncome, matchingMethod, customRate].forEach(el => {
+        el.addEventListener('input', calculateTax);
+    });
+
+    // Filtering transaction ledger list
+    [ledgerSearch, ledgerFilterType].forEach(el => {
+        el.addEventListener('input', renderLedger);
+    });
+
+    // Add Order Trigger
+    addTxBtn.addEventListener('click', () => {
+        const asset = txAsset.value.toUpperCase().trim();
+        const type = txType.value;
+        const date = txDate.value;
+        const qty = parseFloat(txQty.value);
+        const price = parseFloat(txPrice.value);
+
+        if (!asset || !date || isNaN(qty) || isNaN(price)) {
+            alert("Please fill in all transaction ledger fields correctly.");
+            return;
+        }
+
+        transactions.push({ asset, type, date, qty, price });
+        
+        // Setup initial default market price for asset if not yet tracked
+        if (!assetMarketPrices[asset]) {
+            assetMarketPrices[asset] = price;
+            localStorage.setItem('sb_crypto_market_prices', JSON.stringify(assetMarketPrices));
+        }
+
+        saveTransactions();
+        renderLedger();
+        
+        // Reset inputs
+        txQty.value = '';
+        txPrice.value = '';
+    });
+
+    clearLedgerBtn.addEventListener('click', () => {
+        if (confirm("Clear all transactions from the ledger?")) {
+            transactions = [];
+            assetMarketPrices = {};
+            saveTransactions();
+            localStorage.setItem('sb_crypto_market_prices', JSON.stringify(assetMarketPrices));
+            renderLedger();
+        }
+    });
+
+    function saveTransactions() {
+        localStorage.setItem('sb_crypto_txs', JSON.stringify(transactions));
+    }
+
+    // Multi-Format Data Portability
+    document.getElementById('exportJSON').addEventListener('click', () => {
+        if (transactions.length === 0) {
+            alert("Ledger is empty.");
+            return;
+        }
+        const blob = new Blob([JSON.stringify(transactions, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `crypto_tax_ledger_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+    });
+
+    document.getElementById('exportCSV').addEventListener('click', () => {
+        if (transactions.length === 0) {
+            alert("Ledger is empty.");
+            return;
+        }
+        let csv = "Asset,Type,Date,Quantity,Price\n";
+        transactions.forEach(t => {
+            csv += `"${t.asset}","${t.type}","${t.date}",${t.qty},${t.price}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `crypto_tax_ledger_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+    });
+
+    // Import drag & drop and file pick logic
+    const dropzone = document.getElementById('dropzone');
+    const fileImport = document.getElementById('fileImport');
+
+    dropzone.addEventListener('click', () => fileImport.click());
+    
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('dragover');
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    fileImport.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFile(e.target.files[0]);
+        }
+    });
+
+    function handleFile(file) {
+        const reader = new FileReader();
+        const extension = file.name.split('.').pop().toLowerCase();
+        
+        reader.onload = function(e) {
+            const text = e.target.result;
+            let imported = [];
+            
+            if (extension === 'json') {
+                try {
+                    imported = JSON.parse(text);
+                    if (!Array.isArray(imported)) throw new Error("Format is not a JSON Array");
+                    imported.forEach(tx => {
+                        if (!tx.asset || !tx.type || !tx.date || isNaN(tx.qty) || isNaN(tx.price)) {
+                            throw new Error("Missing required transaction fields in JSON");
+                        }
+                        tx.asset = tx.asset.toUpperCase().trim();
+                    });
+                } catch(err) {
+                    alert("Error parsing JSON: " + err.message);
+                    return;
+                }
+            } else if (extension === 'csv') {
+                imported = parseCSV(text);
+            } else {
+                alert("Unsupported file format. Please upload a .csv or .json file.");
+                return;
+            }
+
+            if (imported.length > 0) {
+                if (confirm(`Successfully parsed ${imported.length} transactions. Add them to current ledger?`)) {
+                    transactions = transactions.concat(imported);
+                    // Add default market prices
+                    imported.forEach(t => {
+                        if (!assetMarketPrices[t.asset]) {
+                            assetMarketPrices[t.asset] = t.price;
+                        }
+                    });
+                    localStorage.setItem('sb_crypto_market_prices', JSON.stringify(assetMarketPrices));
+                    saveTransactions();
+                    renderLedger();
+                }
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function parseCSV(text) {
+        const lines = text.split(/\r?\n/);
+        if (lines.length < 2) return [];
+        
+        const headers = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/['"]/g, ''));
+        const assetIdx = headers.findIndex(h => h.includes('asset') || h.includes('symbol') || h.includes('coin'));
+        const typeIdx = headers.findIndex(h => h.includes('type') || h.includes('side') || h.includes('order'));
+        const dateIdx = headers.findIndex(h => h.includes('date') || h.includes('time'));
+        const qtyIdx = headers.findIndex(h => h.includes('qty') || h.includes('quantity') || h.includes('amount'));
+        const priceIdx = headers.findIndex(h => h.includes('price') || h.includes('rate') || h.includes('value'));
+        
+        if (typeIdx === -1 || dateIdx === -1 || qtyIdx === -1 || priceIdx === -1) {
+            alert("Invalid CSV format. Must contain columns: Type, Date, Quantity, Price, (optional Asset)");
+            return [];
+        }
+        
+        const parsed = [];
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+            const cols = line.split(',').map(c => c.trim().replace(/['"]/g, ''));
+            
+            const asset = assetIdx !== -1 && cols[assetIdx] ? cols[assetIdx].toUpperCase() : 'BTC';
+            const type = cols[typeIdx].toLowerCase().includes('sell') ? 'sell' : 'buy';
+            const date = cols[dateIdx];
+            const qty = parseFloat(cols[qtyIdx]);
+            const price = parseFloat(cols[priceIdx]);
+            
+            if (date && !isNaN(qty) && !isNaN(price)) {
+                parsed.push({ asset, type, date, qty, price });
+            }
+        }
+        return parsed;
+    }
+
+    // Render elements of the transaction ledger list
+    function renderLedger() {
+        ledgerBody.innerHTML = '';
+        const search = ledgerSearch.value.toUpperCase().trim();
+        const typeFilter = ledgerFilterType.value;
+
+        // Sort chronologically
+        transactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        const filtered = transactions.filter(t => {
+            const matchesSearch = !search || t.asset.includes(search);
+            const matchesType = typeFilter === 'all' || t.type === typeFilter;
+            return matchesSearch && matchesType;
+        });
+
+        if (filtered.length === 0) {
+            ledgerBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-theme-muted small">No matching ledger transactions found.</td>
+                </tr>
+            `;
+            calculateTax();
+            return;
+        }
+
+        filtered.forEach((tx, index) => {
+            const globalIndex = transactions.indexOf(tx);
+            const row = document.createElement('tr');
+            row.className = 'transaction-row';
+            row.innerHTML = `
+                <td class="py-2 fw-bold text-theme">${tx.asset}</td>
+                <td class="py-2">
+                    <span class="badge ${tx.type === 'buy' ? 'bg-success bg-opacity-10 text-success' : 'bg-primary bg-opacity-10 text-primary'} text-uppercase small fw-bold">
+                        ${tx.type}
+                    </span>
+                </td>
+                <td class="py-2 text-theme-muted small">${tx.date}</td>
+                <td class="py-2 font-monospace">${tx.qty}</td>
+                <td class="py-2 font-monospace">$${tx.price.toFixed(2)}</td>
+                <td class="py-2 text-end">
+                    <button class="btn btn-sm btn-link text-danger p-0 delete-tx-btn" data-index="${globalIndex}">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            `;
+            ledgerBody.appendChild(row);
+        });
+
+        document.querySelectorAll('.delete-tx-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = parseInt(btn.getAttribute('data-index'));
+                transactions.splice(idx, 1);
+                saveTransactions();
+                renderLedger();
+            });
+        });
+
+        calculateTax();
+    }
+
+    // Core tax math routines
     const calcMarginal = (base, added, brackets) => {
         let tax = 0, remaining = added, current = base;
         for (let b of brackets) {
             if (current >= b.max) continue;
             let space = b.max - current;
-            if (remaining <= space || b.max === Infinity) { tax += remaining * b.rate; break; }
-            tax += space * b.rate; remaining -= space; current += space;
+            if (remaining <= space || b.max === Infinity) { 
+                tax += remaining * b.rate; 
+                break; 
+            }
+            tax += space * b.rate; 
+            remaining -= space; 
+            current += space;
         }
         return tax;
     };
 
-    const updateUIState = () => {
-        const j = jSel.value;
-        wStatus.classList.add('d-none'); wIncome.classList.add('d-none'); wHolding.classList.add('d-none'); wCustom.classList.add('d-none');
+    function calculateTax() {
+        const j = jurisdiction.value;
+        const year = taxYear.value;
+        const method = matchingMethod.value;
+        const baseIncome = parseFloat(annualIncome.value) || 0;
+        const flatRate = parseFloat(customRate.value) || 0;
 
-        if (j === 'usa') {
-            wStatus.classList.remove('d-none'); wIncome.classList.remove('d-none'); wHolding.classList.remove('d-none');
-            rNotes.innerHTML = "<strong>USA (2024):</strong> Short-term taxed as ordinary income. Long-term (>1yr) enjoys 0/15/20% rates.";
-        } else if (j === 'canada') {
-            wIncome.classList.remove('d-none');
-            rNotes.innerHTML = "<strong>Canada (Fed 2024):</strong> 50% of capital gains are included in taxable income at federal rates.";
-        } else if (j === 'india') {
-            rNotes.innerHTML = "<strong>India (Sec 115BBH):</strong> Flat 31.2% effective tax on all crypto gains. No losses set-off.";
-        } else if (j === 'custom') {
-            wCustom.classList.remove('d-none');
-            rNotes.innerHTML = "<strong>Custom Rate:</strong> Applies a fixed percentage directly to the gross capital gain.";
+        // Group transactions by asset
+        const assetMap = {};
+        transactions.forEach(t => {
+            if (!assetMap[t.asset]) {
+                assetMap[t.asset] = [];
+            }
+            assetMap[t.asset].push({ ...t });
+        });
+
+        let globalStGains = 0;
+        let globalLtGains = 0;
+        let globalRealizedProfit = 0;
+        let globalEstTax = 0;
+        let globalCostBasis = 0;
+        let globalRealizedProceeds = 0;
+        
+        const matchedLots = [];
+        const unsoldPositions = [];
+        const assetPortfolioData = {};
+
+        // Run calculations asset-by-asset to enforce multi-cryptocurrency tracking rules
+        Object.keys(assetMap).forEach(symbol => {
+            const assetTxs = assetMap[symbol].sort((a, b) => new Date(a.date) - new Date(b.date));
+            const buys = [];
+            
+            let assetStGains = 0;
+            let assetLtGains = 0;
+            let assetRealizedProfit = 0;
+            let assetCostBasis = 0;
+            let assetRealizedProceeds = 0;
+            let assetBalanceHeld = 0;
+
+            assetTxs.forEach(t => {
+                if (t.type === 'buy') {
+                    buys.push({ ...t, remainingQty: t.qty });
+                    assetBalanceHeld += t.qty;
+                } else {
+                    let sellQty = t.qty;
+                    assetBalanceHeld -= t.qty;
+                    assetRealizedProceeds += t.qty * t.price;
+
+                    while (sellQty > 0) {
+                        let buyIdx = -1;
+
+                        if (method === 'FIFO') {
+                            buyIdx = buys.findIndex(b => b.remainingQty > 0);
+                        } else if (method === 'LIFO') {
+                            for (let i = buys.length - 1; i >= 0; i--) {
+                                if (buys[i].remainingQty > 0) { buyIdx = i; break; }
+                            }
+                        } else if (method === 'HIFO') {
+                            let maxPrice = -1;
+                            for (let i = 0; i < buys.length; i++) {
+                                if (buys[i].remainingQty > 0 && buys[i].price > maxPrice) {
+                                    maxPrice = buys[i].price;
+                                    buyIdx = i;
+                                }
+                            }
+                        }
+
+                        // Short Sale or Incomplete buy ledger entry
+                        if (buyIdx === -1) {
+                            const proceeds = sellQty * t.price;
+                            assetCostBasis += 0; // $0 cost basis fallback
+                            assetStGains += proceeds; // Default to short-term
+                            
+                            matchedLots.push({
+                                asset: symbol,
+                                buyDate: 'N/A (Missing Buy)',
+                                buyPrice: 0,
+                                sellDate: t.date,
+                                sellPrice: t.price,
+                                qty: sellQty,
+                                gain: proceeds,
+                                holdDays: 0,
+                                unmatched: true
+                            });
+                            sellQty = 0;
+                            break;
+                        }
+
+                        const buy = buys[buyIdx];
+                        const matchQty = Math.min(sellQty, buy.remainingQty);
+                        
+                        const cost = matchQty * buy.price;
+                        const proceeds = matchQty * t.price;
+                        const gain = proceeds - cost;
+
+                        assetCostBasis += cost;
+                        
+                        const holdDays = (new Date(t.date) - new Date(buy.date)) / (1000 * 60 * 60 * 24);
+                        const isLongTerm = holdDays >= 365;
+
+                        if (isLongTerm) {
+                            assetLtGains += gain;
+                        } else {
+                            assetStGains += gain;
+                        }
+
+                        matchedLots.push({
+                            asset: symbol,
+                            buyDate: buy.date,
+                            buyPrice: buy.price,
+                            sellDate: t.date,
+                            sellPrice: t.price,
+                            qty: matchQty,
+                            gain,
+                            holdDays,
+                            unmatched: false
+                        });
+
+                        buy.remainingQty -= matchQty;
+                        sellQty -= matchQty;
+
+                        if (buy.remainingQty <= 0) {
+                            buys.splice(buyIdx, 1);
+                        }
+                    }
+                }
+            });
+
+            // Gather remaining unsold cost basis entries (Unsold tax lots)
+            buys.forEach(b => {
+                if (b.remainingQty > 0) {
+                    unsoldPositions.push({
+                        asset: symbol,
+                        date: b.date,
+                        price: b.price,
+                        qty: b.remainingQty
+                    });
+                }
+            });
+
+            assetRealizedProfit = assetStGains + assetLtGains;
+
+            // Calculate estimated tax per asset
+            let assetEstTax = 0;
+            if (assetRealizedProfit > 0) {
+                if (j === 'usa') {
+                    const status = filingStatus.value;
+                    const ordinaryBrackets = usBrackets[year][status].ordinary;
+                    const longtermBrackets = usBrackets[year][status].longterm;
+                    const stTax = calcMarginal(baseIncome, Math.max(0, assetStGains), ordinaryBrackets);
+                    const ltTax = calcMarginal(baseIncome + Math.max(0, assetStGains), Math.max(0, assetLtGains), longtermBrackets);
+                    assetEstTax = stTax + ltTax;
+                } else if (j === 'canada') {
+                    const brackets = caFederalBrackets[year];
+                    // Canada inclusion rule: 50% inclusion for profits <= 250,000, 66.67% inclusion for profits above that limit.
+                    let taxableGains = 0;
+                    if (assetRealizedProfit <= 250000) {
+                        taxableGains = assetRealizedProfit * 0.50;
+                    } else {
+                        taxableGains = (250000 * 0.50) + ((assetRealizedProfit - 250000) * 0.6667);
+                    }
+                    assetEstTax = calcMarginal(baseIncome, taxableGains, brackets);
+                } else if (j === 'india') {
+                    // India flat 31.2% tax under 115BBH rules
+                    assetEstTax = assetRealizedProfit * 0.312;
+                } else if (j === 'custom') {
+                    assetEstTax = assetRealizedProfit * (flatRate / 100);
+                }
+            }
+
+            // India compliance check: Section 115BBH forbids loss offsets. Profitable assets taxed, losses ignored.
+            if (j === 'india') {
+                globalEstTax += assetEstTax;
+            }
+
+            assetPortfolioData[symbol] = {
+                balance: Math.max(0, assetBalanceHeld),
+                costBasis: buys.reduce((acc, curr) => acc + (curr.remainingQty * curr.price), 0),
+                realizedProfit: assetRealizedProfit,
+                stGains: assetStGains,
+                ltGains: assetLtGains,
+                tax: assetEstTax
+            };
+
+            globalStGains += assetStGains;
+            globalLtGains += assetLtGains;
+            globalCostBasis += assetCostBasis;
+            globalRealizedProceeds += assetRealizedProceeds;
+        });
+
+        // Compute global values
+        globalRealizedProfit = globalStGains + globalLtGains;
+
+        if (j !== 'india') {
+            if (globalRealizedProfit > 0) {
+                if (j === 'usa') {
+                    const status = filingStatus.value;
+                    const ordinaryBrackets = usBrackets[year][status].ordinary;
+                    const longtermBrackets = usBrackets[year][status].longterm;
+                    const stTax = calcMarginal(baseIncome, Math.max(0, globalStGains), ordinaryBrackets);
+                    const ltTax = calcMarginal(baseIncome + Math.max(0, globalStGains), Math.max(0, globalLtGains), longtermBrackets);
+                    globalEstTax = stTax + ltTax;
+                } else if (j === 'canada') {
+                    const brackets = caFederalBrackets[year];
+                    let taxableGains = 0;
+                    if (globalRealizedProfit <= 250000) {
+                        taxableGains = globalRealizedProfit * 0.50;
+                    } else {
+                        taxableGains = (250000 * 0.50) + ((globalRealizedProfit - 250000) * 0.6667);
+                    }
+                    globalEstTax = calcMarginal(baseIncome, taxableGains, brackets);
+                } else if (j === 'custom') {
+                    globalEstTax = globalRealizedProfit * (flatRate / 100);
+                }
+            } else {
+                globalEstTax = 0; // Losses realized
+            }
         }
-        calculate();
-    };
 
-    const format = (v) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+        // Render Outputs
+        outStGains.textContent = `$${globalStGains.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        outLtGains.textContent = `$${globalLtGains.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        outNetGains.textContent = `$${globalRealizedProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        outTax.textContent = `$${globalEstTax.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
-    const renderChart = (cost, net, tax) => {
-        const opts = {
+        // Highlight losses on net profit display
+        if (globalRealizedProfit < 0) {
+            outNetGains.className = 'font-monospace fw-bold mb-0 text-loss';
+        } else {
+            outNetGains.className = 'font-monospace fw-bold mb-0 text-profit';
+        }
+
+        if (globalRealizedProfit > 0) {
+            const effRate = (globalEstTax / globalRealizedProfit) * 100;
+            bEff.textContent = `Eff Tax: ${effRate.toFixed(1)}%`;
+            bEff.classList.remove('d-none');
+        } else {
+            bEff.classList.add('d-none');
+        }
+
+        // Current price inputs container updates
+        renderHarvestingInputs(Object.keys(assetPortfolioData));
+
+        // Calculate unrealized holding metrics
+        let totalUnrealizedValue = 0;
+        let totalUnrealizedGains = 0;
+        
+        Object.keys(assetPortfolioData).forEach(symbol => {
+            const data = assetPortfolioData[symbol];
+            const currentPrice = assetMarketPrices[symbol] || 0;
+            const marketVal = data.balance * currentPrice;
+            const costBasisRemaining = data.costBasis;
+            const unrealized = marketVal - costBasisRemaining;
+            
+            totalUnrealizedValue += marketVal;
+            totalUnrealizedGains += unrealized;
+        });
+        
+        outUnrealizedGains.textContent = `$${totalUnrealizedGains.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        if (totalUnrealizedGains < 0) {
+            outUnrealizedGains.className = 'font-monospace fw-bold mb-0 text-loss';
+        } else {
+            outUnrealizedGains.className = 'font-monospace fw-bold mb-0 text-profit';
+        }
+
+        // Render detailed output tables
+        renderPortfolioTable(assetPortfolioData);
+        renderMatchesTable(matchedLots);
+        renderHarvestingTable(unsoldPositions);
+
+        renderDonutChart(globalCostBasis, Math.max(0, globalRealizedProfit - globalEstTax), globalEstTax);
+    }
+
+    function renderHarvestingInputs(assets) {
+        if (assets.length === 0) {
+            harvestingPricesContainer.innerHTML = `<div class="col-12 py-1 text-center text-theme-muted small">No assets detected. Add buy orders to enable current valuation tracking.</div>`;
+            return;
+        }
+
+        // Only redraw if the assets list changed to avoid focus loss
+        const existingInputIds = Array.from(harvestingPricesContainer.querySelectorAll('input')).map(i => i.id.replace('price-', ''));
+        const isIdentical = existingInputIds.length === assets.length && existingInputIds.every(val => assets.includes(val));
+        
+        if (isIdentical) return;
+
+        harvestingPricesContainer.innerHTML = '';
+        assets.forEach(symbol => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'col-6 col-sm-4 col-md-3 mb-2';
+            
+            const price = assetMarketPrices[symbol] || 0;
+            wrapper.innerHTML = `
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white bg-opacity-5 border-theme border-opacity-10 text-theme fw-bold" style="font-size: 0.75rem;">${symbol}</span>
+                    <input type="number" id="price-${symbol}" class="form-control bg-white bg-opacity-5 text-theme price-tracker-input" value="${price}" step="any" min="0" style="font-size: 0.75rem;">
+                </div>
+            `;
+            harvestingPricesContainer.appendChild(wrapper);
+        });
+
+        // Trigger updates when pricing input changes
+        harvestingPricesContainer.querySelectorAll('.price-tracker-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const sym = e.target.id.replace('price-', '');
+                const val = parseFloat(e.target.value) || 0;
+                assetMarketPrices[sym] = val;
+                localStorage.setItem('sb_crypto_market_prices', JSON.stringify(assetMarketPrices));
+                calculateTax();
+            });
+        });
+    }
+
+    function renderPortfolioTable(portfolio) {
+        portfolioBody.innerHTML = '';
+        const assets = Object.keys(portfolio);
+        if (assets.length === 0) {
+            portfolioBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-theme-muted small">Awaiting transactions ledger entries. Add buys/sells.</td>
+                </tr>
+            `;
+            return;
+        }
+
+        assets.forEach(sym => {
+            const data = portfolio[sym];
+            const row = document.createElement('tr');
+            row.className = 'transaction-row';
+            row.innerHTML = `
+                <td class="py-2 fw-bold text-theme">${sym}</td>
+                <td class="py-2 font-monospace">${data.balance.toFixed(4)}</td>
+                <td class="py-2 font-monospace">$${data.costBasis.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                <td class="py-2 font-monospace ${data.realizedProfit >= 0 ? 'text-profit' : 'text-loss'}">
+                    $${data.realizedProfit.toLocaleString(undefined, {maximumFractionDigits: 2})}
+                </td>
+                <td class="py-2 text-end font-monospace text-loss">$${data.tax.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+            `;
+            portfolioBody.appendChild(row);
+        });
+    }
+
+    function renderMatchesTable(matches) {
+        matchingBody.innerHTML = '';
+        if (matches.length === 0) {
+            matchingBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-theme-muted small">No matched transactions log found. Realized gains will appear here.</td>
+                </tr>
+            `;
+            return;
+        }
+
+        matches.forEach(m => {
+            const row = document.createElement('tr');
+            row.className = 'transaction-row';
+            
+            let holdingDetails = '';
+            if (m.unmatched) {
+                holdingDetails = `<span class="text-danger small"><i class="fa-solid fa-triangle-exclamation"></i> Unmatched proceeds ($0 cost basis applied)</span>`;
+            } else {
+                holdingDetails = `<span class="text-theme-muted small">${m.buyDate} to ${m.sellDate}</span> <span class="badge bg-secondary rounded-pill font-monospace" style="font-size: 0.65rem;">${m.holdDays.toFixed(0)} days</span>`;
+            }
+
+            row.innerHTML = `
+                <td class="py-2 fw-bold text-theme">${m.asset}</td>
+                <td class="py-2">${holdingDetails}</td>
+                <td class="py-2 font-monospace">${m.qty.toFixed(4)}</td>
+                <td class="py-2 font-monospace ${m.gain >= 0 ? 'text-profit' : 'text-loss'}">
+                    $${m.gain.toLocaleString(undefined, {maximumFractionDigits: 2})}
+                </td>
+                <td class="py-2 text-end">
+                    <span class="badge ${m.holdDays >= 365 ? 'bg-success' : 'bg-primary'} rounded-pill" style="font-size: 0.7rem;">
+                        ${m.unmatched ? 'N/A' : (m.holdDays >= 365 ? 'Long-Term' : 'Short-Term')}
+                    </span>
+                </td>
+            `;
+            matchingBody.appendChild(row);
+        });
+    }
+
+    function renderHarvestingTable(unsoldLots) {
+        harvestingBody.innerHTML = '';
+        
+        // Find which lots are currently under value (current price < buy price)
+        const lossLots = [];
+        unsoldLots.forEach(lot => {
+            const currentPrice = assetMarketPrices[lot.asset] || 0;
+            const paperLoss = (currentPrice - lot.price) * lot.qty;
+            if (paperLoss < 0) {
+                lossLots.push({ ...lot, paperLoss, currentPrice });
+            }
+        });
+
+        if (lossLots.length === 0) {
+            harvestingBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center py-4 text-theme-muted small">No harvestable paper losses detected. When current price drops below cost basis, suggestions will appear.</td>
+                </tr>
+            `;
+            return;
+        }
+
+        lossLots.sort((a, b) => a.paperLoss - b.paperLoss); // show largest loss first
+
+        lossLots.forEach((lot, idx) => {
+            const row = document.createElement('tr');
+            row.className = 'transaction-row';
+            row.innerHTML = `
+                <td class="py-2 fw-bold text-theme">${lot.asset}</td>
+                <td class="py-2 small text-theme-muted">${lot.date} (Buy price: $${lot.price.toFixed(2)})</td>
+                <td class="py-2 font-monospace">${lot.qty.toFixed(4)}</td>
+                <td class="py-2 text-loss font-monospace">-$${Math.abs(lot.paperLoss).toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                <td class="py-2 text-end">
+                    <button class="btn btn-sm btn-outline-teal px-3 rounded-pill harvest-sim-btn" data-asset="${lot.asset}" data-qty="${lot.qty}" data-price="${lot.currentPrice}" style="font-size: 0.7rem; border-color: rgba(20, 184, 166, 0.4); color: var(--sb-teal);">
+                        Simulate Sale
+                    </button>
+                </td>
+            `;
+            harvestingBody.appendChild(row);
+        });
+
+        document.querySelectorAll('.harvest-sim-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const asset = btn.getAttribute('data-asset');
+                const qty = parseFloat(btn.getAttribute('data-qty'));
+                const price = parseFloat(btn.getAttribute('data-price'));
+                
+                if (confirm(`Simulate tax offset harvesting sale of ${qty} ${asset} at current valuation price of $${price}? (This adds a mock SELL transaction date today)`)) {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    transactions.push({
+                        asset,
+                        type: 'sell',
+                        date: todayStr,
+                        qty,
+                        price
+                    });
+                    saveTransactions();
+                    renderLedger();
+                    
+                    // Switch to Lot matching tab to show gains/losses matched
+                    const matchingTabBtn = document.getElementById('matching-tab');
+                    if (matchingTabBtn) {
+                        const tab = new bootstrap.Tab(matchingTabBtn);
+                        tab.show();
+                    }
+                }
+            });
+        });
+    }
+
+    function renderDonutChart(cost, net, tax) {
+        const donutEl = document.querySelector("#donutChart");
+        if (transactions.length === 0) {
+            donutEl.innerHTML = `<span class="text-white-50 opacity-20 small fw-bold text-uppercase tracking-widest">Awaiting Analysis...</span>`;
+            donutChart = null;
+            return;
+        }
+
+        donutEl.innerHTML = '';
+        const chartDiv = document.createElement('div');
+        donutEl.appendChild(chartDiv);
+
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const formatUSD = (v) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+
+        const options = {
             series: [parseFloat(cost.toFixed(2)), parseFloat(net.toFixed(2)), parseFloat(tax.toFixed(2))],
             labels: ['Cost Basis', 'Net Profit', 'Taxes Owed'],
-            colors: ['#3f3f46', '#22c55e', '#ef4444'],
-            chart: { type: 'donut', height: 350, background: 'transparent' },
+            colors: ['#3f3f46', '#10b981', '#ef4444'],
+            chart: {
+                type: 'donut',
+                height: 220,
+                background: 'transparent',
+                foreColor: isDark ? '#a1a1aa' : '#52525b'
+            },
             plotOptions: {
                 pie: {
                     donut: {
                         size: '75%',
                         labels: {
                             show: true,
-                            name: { show: true, fontSize: '12px', color: 'rgba(255,255,255,0.4)', fontWeight: 800 },
-                            value: { show: true, fontSize: '24px', fontWeight: 900, color: '#fff', formatter: v => format(v) },
-                            total: { show: true, label: 'TOTAL VALUE', color: 'rgba(255,255,255,0.4)', formatter: w => format(w.globals.seriesTotals.reduce((a, b) => a + b, 0)) }
+                            name: { show: true, fontSize: '11px', fontWeight: 700 },
+                            value: { show: true, fontSize: '18px', fontWeight: 900, formatter: v => formatUSD(v) },
+                            total: { 
+                                show: true, 
+                                label: 'TOTAL VALUATION', 
+                                formatter: w => formatUSD(w.globals.seriesTotals.reduce((a, b) => a + b, 0)) 
+                            }
                         }
                     }
                 }
             },
             dataLabels: { enabled: false },
-            legend: { position: 'bottom', labels: { colors: '#fff' } },
+            legend: { position: 'bottom', horizontalAlign: 'center' },
             stroke: { show: false },
-            theme: { mode: 'dark' }
+            theme: { mode: isDark ? 'dark' : 'light' }
         };
-        if (!donutChart) {
-            document.querySelector("#donut-chart").innerHTML = "";
-            donutChart = new ApexCharts(document.querySelector("#donut-chart"), opts);
-            donutChart.render();
-        } else donutChart.updateOptions(opts);
-    };
 
-    const calculate = () => {
-        const cost = parseFloat(iCost.value), sale = parseFloat(iSale.value), j = jSel.value, inc = parseFloat(iIncome.value) || 0;
-        if (isNaN(cost) || isNaN(sale)) return;
+        donutChart = new ApexCharts(chartDiv, options);
+        donutChart.render();
+    }
 
-        const gross = sale - cost;
-        let tax = 0;
-        if (gross > 0) {
-            if (j === 'usa') tax = calcMarginal(inc, gross, hPeriod.value === 'short' ? usBrackets[fStatus.value].ordinary : usBrackets[fStatus.value].longterm);
-            else if (j === 'canada') tax = calcMarginal(inc, gross * 0.5, caFedBrackets);
-            else if (j === 'india') tax = gross * 0.30 * 1.04;
-            else if (j === 'custom') tax = gross * ((parseFloat(iCustom.value) || 0) / 100);
-        }
-
-        const net = gross - tax;
-        outGross.innerText = (gross >= 0 ? '+' : '') + format(gross);
-        outGross.className = `fw-black font-mono mb-0 text-${gross >= 0 ? 'success' : 'danger'}`;
-        outNet.innerText = format(cost + Math.max(0, net));
-        outTax.innerText = format(tax);
-        
-        if (gross > 0) {
-            bEff.innerText = `Eff Tax: ${((tax/gross)*100).toFixed(1)}%`;
-            bEff.classList.remove('opacity-0');
-        } else bEff.classList.add('opacity-0');
-
-        renderChart(gross < 0 ? sale : cost, gross < 0 ? 0 : net, tax);
-    };
-
-    jSel.addEventListener('change', updateUIState);
-    [fStatus, hPeriod, iIncome, iCost, iSale, iCustom].forEach(e => e.addEventListener('input', calculate));
-    document.getElementById('calculateBtn').addEventListener('click', calculate);
-    
-    updateUIState();
+    // Initialize layout ledger rendering
+    renderLedger();
 });
 </script>
-
-<!-- SEO Content Section -->
-<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
-    <h2 class="fs-3 fw-bold mb-4">About the Free Crypto Tax Calculator Tool</h2>
-    <div class="row g-4 text-start">
-        <div class="col-md-6">
-            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-bolt text-primary me-2"></i> High Performance</h3>
-            <p class="text-theme-muted">Multi-jurisdiction capital gains compliance calculator for the modern trader.</p>
-        </div>
-        <div class="col-md-6">
-            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-shield-halved text-primary me-2"></i> Secure & Private</h3>
-            <p class="text-theme-muted">Engineered by StoryBrain AI to ensure your data remains completely private. Zero server-side logging for total peace of mind.</p>
-        </div>
-        <div class="col-md-6">
-            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-layer-group text-primary me-2"></i> Capital Gains</h3>
-            <p class="text-theme-muted">Optimized specifically for high-speed capital gains natively in your browser using modern Web APIs.</p>
-        </div>
-        <div class="col-md-6">
-            <h3 class="fs-5 fw-bold text-theme"><i class="fa-solid fa-microchip text-primary me-2"></i> Tax Strategy</h3>
-            <p class="text-theme-muted">Leveraging advanced techniques in tax strategy to deliver precision results every single time.</p>
-        </div>
-    </div>
-</div>
-
-
-<!-- FAQ Section for SEO -->
-<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
-    <h2 class="fs-3 fw-bold mb-4">Frequently Asked Questions</h2>
-    <div class="accordion accordion-flush" id="faqAccordion">
-        <div class="accordion-item bg-transparent border-white border-opacity-10">
-            <h3 class="accordion-header">
-                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                    Is the Crypto Tax Calculator free to use?
-                </button>
-            </h3>
-            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body text-theme-muted">
-                    Yes, our Crypto Tax Calculator is completely free to use. There are no hidden fees or subscriptions required. StoryBrain AI provides these premium utilities at no cost to help accelerate your workflow.
-                </div>
-            </div>
-        </div>
-        <div class="accordion-item bg-transparent border-white border-opacity-10">
-            <h3 class="accordion-header">
-                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                    Do I need to sign up to use the Crypto Tax Calculator?
-                </button>
-            </h3>
-            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body text-theme-muted">
-                    No sign-up or registration is required. You can use the Crypto Tax Calculator instantly directly from your browser without providing any personal information or creating an account.
-                </div>
-            </div>
-        </div>
-        <div class="accordion-item bg-transparent border-white border-opacity-10 border-bottom-0">
-            <h3 class="accordion-header">
-                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                    Is my data secure when using the Crypto Tax Calculator?
-                </button>
-            </h3>
-            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body text-theme-muted">
-                    Absolutely. All processing happens locally in your browser or through secure encrypted channels, ensuring your data remains private. We do not store or log your queries on our servers.
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script type="application/ld+json">
-{
-    "@context": "https://schema.org",
-    "@graph": [
-        {
-            "@type": "SoftwareApplication",
-            "name": "Crypto Tax Calculator",
-            "applicationCategory": "UtilitiesApplication",
-            "operatingSystem": "Web browser",
-            "offers": {
-                "@type": "Offer",
-                "price": "0",
-                "priceCurrency": "USD"
-            },
-            "description": "Use the free Crypto Tax Calculator online to calculate cryptocurrency taxes. No sign-up required."
-        },
-        {
-            "@type": "FAQPage",
-            "mainEntity": [
-                {
-                    "@type": "Question",
-                    "name": "Is the Crypto Tax Calculator free to use?",
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "Yes, our Crypto Tax Calculator is completely free to use. There are no hidden fees or subscriptions required."
-                    }
-                },
-                {
-                    "@type": "Question",
-                    "name": "Do I need to sign up to use the Crypto Tax Calculator?",
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "No sign-up or registration is required. You can use the tool instantly directly from your browser."
-                    }
-                },
-                {
-                    "@type": "Question",
-                    "name": "Is my data secure when using the Crypto Tax Calculator?",
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "Absolutely. All processing happens locally in your browser or through secure encrypted channels, ensuring your data remains private and is never stored on our servers."
-                    }
-                }
-            ]
-        }
-    ]
-}
-</script>
-
-
-
-<!-- How to Use Section -->
-<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.2s;">
-    <h2 class="fs-3 fw-bold mb-4">How to Use {{ tool_name | default('this Tool') }}</h2>
-    <div class="row g-4 text-start">
-        <div class="col-md-4">
-            <div class="p-4 bg-theme-surface border border-theme rounded-4 h-100">
-                <div class="text-primary fw-black fs-1 mb-3 opacity-50">01</div>
-                <h3 class="fs-5 fw-bold text-theme">Input Data</h3>
-                <p class="text-theme-muted small">Provide the necessary inputs, files, or configurations required for the tool to process your request securely.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="p-4 bg-theme-surface border border-theme rounded-4 h-100">
-                <div class="text-primary fw-black fs-1 mb-3 opacity-50">02</div>
-                <h3 class="fs-5 fw-bold text-theme">Process</h3>
-                <p class="text-theme-muted small">Click the action button. The tool will process your data instantly using optimized algorithms.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="p-4 bg-theme-surface border border-theme rounded-4 h-100">
-                <div class="text-primary fw-black fs-1 mb-3 opacity-50">03</div>
-                <h3 class="fs-5 fw-bold text-theme">Get Results</h3>
-                <p class="text-theme-muted small">View, copy, or download your results immediately. Your data remains private and secure.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-<!-- SEO Article Section -->
-<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;">
-
-    <h2 class="fs-3 fw-bold mb-4">Understanding the Crypto Tax Calculator</h2>
-    <p class="text-theme-muted mb-4 fs-6 lh-lg">The Crypto Tax Calculator is a powerful and free calculator that makes complex math easy. Whether you are planning your personal finances, tracking business growth, or checking a loan, getting accurate numbers is extremely important. This tool gives you instant, correct results to help you make smart choices with your money and time.</p>
-    
-    <h3 class="fs-4 fw-bold mb-3 mt-5">Why Use This Calculator?</h3>
-    <div class="row g-4 text-start mb-2">
-        <div class="col-md-6">
-            <ul class="list-unstyled">
-                <li class="mb-3 d-flex"><i class="fa-solid fa-chart-line text-success me-3 mt-1"></i> <div><strong>Clear Answers:</strong> Turn confusing numbers into simple, easy- results.</div></li>
-                <li class="mb-3 d-flex"><i class="fa-solid fa-calculator text-primary me-3 mt-1"></i> <div><strong>Perfect Accuracy:</strong> Avoid costly human errors when dealing with money or math formulas.</div></li>
-            </ul>
-        </div>
-        <div class="col-md-6">
-            <ul class="list-unstyled">
-                <li class="mb-3 d-flex"><i class="fa-solid fa-clock-rotate-left text-warning me-3 mt-1"></i> <div><strong>Instant Updates:</strong> Change your numbers and see the new results right away.</div></li>
-                <li class="mb-3 d-flex"><i class="fa-solid fa-lock text-info me-3 mt-1"></i> <div><strong>Completely Private:</strong> Your numbers are calculated securely on your device, not saved online.</div></li>
-            </ul>
-        </div>
-    </div>
-</div>
-
 {% endblock %}
