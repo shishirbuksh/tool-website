@@ -116,6 +116,7 @@ async def html_sitemap(request: Request):
         "task-manager": ("Productivity & Utilities", "Organize tasks and projects using a Kanban board"),
         "time-tracker": ("Productivity & Utilities", "Track work hours and generate simple invoice logs"),
         "note-organizer": ("Productivity & Utilities", "Write, save, and organize notes locally in your browser"),
+        "habit-tracker": ("Productivity & Utilities", "Track daily routines and build positive habits"),
         "text-case-converter": ("Productivity & Utilities", "Convert text to uppercase, lowercase, titlecase, and more"),
         "unit-converter": ("Productivity & Utilities", "Convert length, mass, volume, temperature, and other units"),
         "timezone-converter": ("Productivity & Utilities", "Compare and convert time zones around the world"),
