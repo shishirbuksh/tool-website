@@ -60,7 +60,12 @@ async def sitemap():
 
 @router.get("/robots.txt", include_in_schema=False)
 async def robots_txt():
-    content = f"""User-agent: *
+    content = f"""# ==========================================
+# Optimized robots.txt for StoryBrain AI
+# ==========================================
+
+# Global Rules
+User-agent: *
 Allow: /
 Allow: /static/
 Disallow: /api/
@@ -68,26 +73,57 @@ Disallow: /docs
 Disallow: /redoc
 Disallow: /openapi.json
 
-# Block AI Scrapers to conserve server resources
-User-agent: GPTBot
+# Explicitly Allow Major Search Engines
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+
+User-agent: Googlebot-Image
+Allow: /static/
+
+User-agent: bingbot
+Allow: /
+Disallow: /api/
+
+# Block Resource-Heavy SEO Scrapers
+User-agent: AhrefsBot
 Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+# Explicitly Allow AI Crawlers
+User-agent: GPTBot
+Allow: /
 
 User-agent: ChatGPT-User
-Disallow: /
+Allow: /
 
 User-agent: anthropic-ai
-Disallow: /
+Allow: /
 
 User-agent: Claude-Web
-Disallow: /
+Allow: /
 
 User-agent: Google-Extended
-Disallow: /
+Allow: /
 
-User-agent: CCBot
-Disallow: /
-
+# Sitemaps and AI Context
 Sitemap: {BASE_URL}/sitemap.xml
+# AI crawlers can read our structured data at:
+# {BASE_URL}/llms.txt
 """
     return Response(content=content, media_type="text/plain")
 
