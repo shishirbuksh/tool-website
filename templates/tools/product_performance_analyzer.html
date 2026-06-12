@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+
+{% block title %}Product Performance Analyzer - Calculate Profit Margin, Break-Even & ROI{% endblock %}
+{% block meta_description %}Free online Product Performance Analyzer. Calculate gross margin, net profit margin, break-even volume, return rates, and e-commerce ROI with our advanced profit calculator.{% endblock %}
+{% block meta_keywords %}product performance analyzer, profit margin calculator, ecommerce ROI analyzer, break even calculator for dropshipping, net profit margin calculator, return rate benchmark, COGS calculator, e-commerce profit tracker{% endblock %}
+
+{% block head %}
+<style>
+/* Modern styling for the analyzer */
+.analyzer-box {
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.analyzer-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--bs-primary), var(--bs-info));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.analyzer-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+}
+
+.analyzer-box:hover::before {
+    opacity: 1;
+}
+
+.metric-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--bs-secondary);
+}
+
+.metric-value {
+    font-size: 2.25rem;
+    font-weight: 900;
+    font-family: var(--font-mono);
+    line-height: 1.2;
+    margin-top: 0.5rem;
+    color: var(--bs-body-color);
+}
+
+.status-indicator {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    font-size: 1.5rem;
+    opacity: 0.2;
+}
+
+.form-control-custom {
+    background-color: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    color: var(--bs-body-color);
+    padding: 0.8rem 1rem;
+    border-radius: 0.75rem;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.form-control-custom:focus {
+    background-color: var(--bs-body-bg);
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.15);
+    color: var(--bs-body-color);
+}
+
+.input-label {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--bs-secondary);
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.verdict-panel {
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.verdict-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(circle at top right, rgba(var(--bs-primary-rgb), 0.05), transparent);
+    pointer-events: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="text-center mb-5 reveal">
+        <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill mb-3 fw-bold tracking-widest text-uppercase" style="font-size: 0.75rem;">
+            <i class="bi bi-box-seam me-2"></i> Advanced E-Commerce Analytics
+        </div>
+        <h1 class="display-4 fw-black mb-3 text-body">Product Performance Analyzer</h1>
+        <p class="lead text-secondary fw-bold mx-auto" style="max-width: 700px;">
+            Calculate gross margins, net profit, break-even volume, and analyze the true profitability of your e-commerce products instantly.
+        </p>
+    </div>
+
+    <div class="row g-4 mb-5 reveal">
+        <!-- Inputs Column -->
+        <div class="col-lg-5">
+            <div class="glass-panel rounded-5 p-4 p-md-5 h-100">
+                <h3 class="fs-4 fw-black mb-4"><i class="bi bi-sliders me-2 text-primary"></i> Product Data</h3>
+                
+                <form id="productForm" onsubmit="event.preventDefault(); calculateMetrics();">
+                    
+                    <div class="mb-4">
+                        <label class="input-label">Product Category / Industry</label>
+                        <select class="form-select form-control-custom" id="productIndustry">
+                            <option value="apparel">Apparel & Fashion</option>
+                            <option value="electronics">Consumer Electronics</option>
+                            <option value="health">Health & Beauty</option>
+                            <option value="home">Home & Furniture</option>
+                            <option value="toys">Toys & Hobbies</option>
+                            <option value="sports">Sports & Outdoors</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="input-label">Selling Price (per unit) $</label>
+                        <input type="number" step="0.01" class="form-control form-control-custom" id="valPrice" placeholder="e.g. 99.99" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="input-label">Cost of Goods Sold (COGS per unit) $</label>
+                        <input type="number" step="0.01" class="form-control form-control-custom" id="valCogs" placeholder="e.g. 25.00" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="input-label">Shipping & Fulfillment (per unit) $</label>
+                        <input type="number" step="0.01" class="form-control form-control-custom" id="valShipping" placeholder="e.g. 8.50" required>
+                    </div>
+                    
+                    <hr class="my-4 border-secondary opacity-10">
+
+                    <div class="mb-4">
+                        <label class="input-label">Total Units Sold</label>
+                        <input type="number" class="form-control form-control-custom" id="valUnits" placeholder="e.g. 150" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="input-label">Total Returns / Refunds (units)</label>
+                        <input type="number" class="form-control form-control-custom" id="valReturns" placeholder="e.g. 5" required>
+                    </div>
+                    <div class="mb-5">
+                        <label class="input-label">Total Marketing / Ad Spend $</label>
+                        <input type="number" step="0.01" class="form-control form-control-custom" id="valMarketing" placeholder="e.g. 1200" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-3 fw-black fs-6 tracking-widest text-uppercase rounded-3 shadow-lg" style="transition: all 0.2s; box-shadow: 0 8px 20px rgba(var(--bs-primary-rgb), 0.3) !important;">
+                        <i class="bi bi-calculator me-2"></i> Analyze Performance
+                    </button>
+                    <button type="button" onclick="resetForm()" class="btn btn-light border w-100 py-3 fw-bold mt-3 rounded-3 tracking-widest text-uppercase text-secondary" style="background: var(--bs-tertiary-bg);">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i> Reset Data
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Outputs Column -->
+        <div class="col-lg-7">
+            <div class="row g-3 h-100">
+                <!-- Gross Margin -->
+                <div class="col-sm-6">
+                    <div class="analyzer-box h-100">
+                        <span class="metric-label">Gross Profit Margin</span>
+                        <div class="metric-value" id="outGrossMargin">0.00%</div>
+                        <div class="status-indicator"><i class="bi bi-percent text-secondary"></i></div>
+                        <p class="small text-secondary fw-bold mt-3 mb-0">Profit before shipping & ads.</p>
+                    </div>
+                </div>
+                <!-- Net Margin -->
+                <div class="col-sm-6">
+                    <div class="analyzer-box h-100" style="border-top: 4px solid var(--bs-primary);">
+                        <span class="metric-label">Net Profit Margin</span>
+                        <div class="metric-value text-primary" id="outNetMargin">0.00%</div>
+                        <div class="status-indicator"><i class="bi bi-piggy-bank text-primary"></i></div>
+                        <p class="small text-secondary fw-bold mt-3 mb-0">True bottom-line margin.</p>
+                    </div>
+                </div>
+                <!-- Total Net Profit -->
+                <div class="col-sm-6">
+                    <div class="analyzer-box h-100" style="border-top: 4px solid #10b981;">
+                        <span class="metric-label">Total Net Profit</span>
+                        <div class="metric-value text-success" id="outTotalNet">$0.00</div>
+                        <div class="status-indicator"><i class="bi bi-cash-coin text-success"></i></div>
+                        <p class="small text-secondary fw-bold mt-3 mb-0">Total cash generated.</p>
+                    </div>
+                </div>
+                <!-- Return Rate -->
+                <div class="col-sm-6">
+                    <div class="analyzer-box h-100">
+                        <span class="metric-label">Return Rate</span>
+                        <div class="metric-value" id="outReturnRate">0.00%</div>
+                        <div class="status-indicator"><i class="bi bi-arrow-return-left text-secondary"></i></div>
+                        <p class="small text-secondary fw-bold mt-3 mb-0">Percentage of units returned.</p>
+                    </div>
+                </div>
+                <!-- Break-Even -->
+                <div class="col-sm-6">
+                    <div class="analyzer-box h-100">
+                        <span class="metric-label">Break-Even Volume</span>
+                        <div class="metric-value" id="outBreakEven">0</div>
+                        <div class="status-indicator"><i class="bi bi-box-seam text-secondary"></i></div>
+                        <p class="small text-secondary fw-bold mt-3 mb-0">Units to cover ad spend.</p>
+                    </div>
+                </div>
+                <!-- ROAS -->
+                <div class="col-sm-6">
+                    <div class="analyzer-box h-100">
+                        <span class="metric-label">Marketing ROAS</span>
+                        <div class="metric-value" id="outRoas">0.00x</div>
+                        <div class="status-indicator"><i class="bi bi-megaphone text-secondary"></i></div>
+                        <p class="small text-secondary fw-bold mt-3 mb-0">Return on ad spend.</p>
+                    </div>
+                </div>
+                
+                <!-- Verdict Card -->
+                <div class="col-12 mt-2">
+                    <div class="verdict-panel rounded-4 p-4 p-md-5 text-center shadow-sm h-100 d-flex flex-column justify-content-center">
+                        <h4 class="fw-black mb-3 tracking-widest text-uppercase fs-6">AI Product Verdict</h4>
+                        <div id="verdictText" class="text-secondary fs-5 lh-base fw-bold">Enter your product and sales data to receive an instant performance verdict.</div>
+                    </div>
+                </div>
+
+                <!-- Market Gap Analysis -->
+                <div class="col-12 mt-2" id="marketGapSection" style="display: none;">
+                    <div class="verdict-panel rounded-4 p-4 p-md-5 shadow-sm h-100">
+                        <h4 class="fw-black mb-4 tracking-widest text-uppercase fs-6 text-center"><i class="bi bi-radar me-2 text-primary"></i>Market Gap Analysis</h4>
+                        <p class="text-secondary text-center small mb-4 fw-bold">Comparing your product metrics against industry averages to find performance gaps.</p>
+                        <div class="row g-3" id="marketGapContent">
+                            <!-- Generated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function formatCurrency(val) {
+    if(!isFinite(val) || isNaN(val)) return "$0.00";
+    return (val < 0 ? "-" : "") + "$" + Math.abs(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatPercent(val) {
+    if(!isFinite(val) || isNaN(val)) return "0.00%";
+    return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + "%";
+}
+
+const industryBenchmarks = {
+    apparel: { name: "Apparel & Fashion", grossMargin: 65, netMargin: 10, returnRate: 20, roas: 3.5 },
+    electronics: { name: "Consumer Electronics", grossMargin: 35, netMargin: 8, returnRate: 5, roas: 4.5 },
+    health: { name: "Health & Beauty", grossMargin: 75, netMargin: 15, returnRate: 8, roas: 2.5 },
+    home: { name: "Home & Furniture", grossMargin: 60, netMargin: 12, returnRate: 10, roas: 4.0 },
+    toys: { name: "Toys & Hobbies", grossMargin: 50, netMargin: 10, returnRate: 6, roas: 3.0 },
+    sports: { name: "Sports & Outdoors", grossMargin: 55, netMargin: 11, returnRate: 8, roas: 3.2 }
+};
+
+function renderGapCard(title, uVal, bVal, diff, isPositiveGood, description) {
+    const isAdvantage = (diff > 0 && isPositiveGood) || (diff < 0 && !isPositiveGood);
+    const sign = diff > 0 ? "+" : "";
+    const diffStr = sign + diff.toFixed(2) + (title === "Marketing ROAS" ? "x" : "%");
+    const formattedUVal = title === "Marketing ROAS" ? uVal.toFixed(2) + "x" : uVal.toFixed(2) + "%";
+    const formattedBVal = title === "Marketing ROAS" ? bVal.toFixed(2) + "x" : bVal.toFixed(2) + "%";
+    
+    const colorClass = isAdvantage ? "text-success" : "text-danger";
+    const badgeHtml = isAdvantage ? '<span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 tracking-widest text-uppercase" style="font-size:0.6rem;">Advantage</span>' : '<span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 tracking-widest text-uppercase animate-pulse" style="font-size:0.6rem;">Market Gap</span>';
+    
+    return `
+        <div class="col-sm-6">
+            <div class="p-3 border border-secondary border-opacity-25 rounded-4 bg-body h-100 position-relative overflow-hidden transition" style="box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fw-bold small text-uppercase text-secondary tracking-widest" style="font-size:0.7rem;">${title} Gap</span>
+                    ${badgeHtml}
+                </div>
+                <div class="d-flex justify-content-between align-items-end mb-1">
+                    <div class="fs-3 fw-black ${colorClass} font-mono" style="line-height:1;">${diffStr}</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top border-secondary border-opacity-10">
+                    <span class="small fw-bold" style="font-size:0.75rem;">Your: <span class="text-body">${formattedUVal}</span></span>
+                    <span class="small fw-bold" style="font-size:0.75rem;">Avg: <span class="text-secondary">${formattedBVal}</span></span>
+                </div>
+                <p class="small text-secondary fw-bold mt-2 mb-0" style="font-size:0.75rem;">${description}</p>
+            </div>
+        </div>
+    `;
+}
+
+function calculateMetrics() {
+    const price = parseFloat(document.getElementById('valPrice').value) || 0;
+    const cogs = parseFloat(document.getElementById('valCogs').value) || 0;
+    const shipping = parseFloat(document.getElementById('valShipping').value) || 0;
+    const units = parseFloat(document.getElementById('valUnits').value) || 0;
+    const returns = parseFloat(document.getElementById('valReturns').value) || 0;
+    const marketing = parseFloat(document.getElementById('valMarketing').value) || 0;
+
+    // Gross Profit Margin = (Price - COGS) / Price
+    const grossProfitPerUnit = price - cogs;
+    const grossMargin = (price > 0) ? (grossProfitPerUnit / price) * 100 : 0;
+
+    // Return calculations
+    const returnRate = (units > 0) ? (returns / units) * 100 : 0;
+    const netUnitsSold = Math.max(0, units - returns);
+    
+    // Revenue & COGS for net units
+    const totalRevenue = netUnitsSold * price;
+    const totalCogs = netUnitsSold * cogs;
+    const totalShipping = units * shipping; // Usually you pay shipping even if they return, plus maybe return shipping, but let's just count initial shipping for all sent units
+
+    // Net Profit = Revenue - COGS - Shipping - Marketing
+    const totalNetProfit = totalRevenue - totalCogs - totalShipping - marketing;
+    const netMargin = (totalRevenue > 0) ? (totalNetProfit / totalRevenue) * 100 : 0;
+
+    // Break Even Volume = Marketing / (Gross Profit - Shipping)
+    const unitContribution = price - cogs - shipping;
+    const breakEven = (unitContribution > 0) ? Math.ceil(marketing / unitContribution) : 0;
+
+    // ROAS
+    const roas = (marketing > 0) ? (totalRevenue / marketing) : 0;
+
+    // Update UI
+    document.getElementById('outGrossMargin').innerText = formatPercent(grossMargin);
+    document.getElementById('outReturnRate').innerText = formatPercent(returnRate);
+    document.getElementById('outBreakEven').innerText = breakEven + (breakEven === 1 ? " unit" : " units");
+    document.getElementById('outRoas').innerText = roas.toFixed(2) + "x";
+    
+    const outNetMargin = document.getElementById('outNetMargin');
+    outNetMargin.innerText = formatPercent(netMargin);
+    outNetMargin.className = "metric-value " + (netMargin > 15 ? "text-success" : (netMargin > 0 ? "text-primary" : "text-danger"));
+
+    const outTotalNet = document.getElementById('outTotalNet');
+    outTotalNet.innerText = formatCurrency(totalNetProfit);
+    outTotalNet.className = "metric-value " + (totalNetProfit > 0 ? "text-success" : "text-danger");
+
+    // Verdict Logic
+    const verdictEl = document.getElementById('verdictText');
+    if (price === 0 || units === 0) {
+        verdictEl.innerHTML = "Please enter valid pricing and units sold to begin analysis.";
+        verdictEl.className = "text-secondary fs-5 lh-base fw-bold";
+        return;
+    }
+
+    let verdictHtml = "";
+    if (totalNetProfit < 0) {
+        verdictHtml = `<div class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 fs-6 px-4 py-2 animate-pulse mb-3 tracking-widest text-uppercase"><i class="bi bi-exclamation-triangle me-2"></i> Cash Bleeder</div><br><span>This product is losing money. You are in the red. Check your ad spend, reduce COGS, or consider raising the selling price immediately.</span>`;
+    } else if (returnRate > 15) {
+        verdictHtml = `<div class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-50 fs-6 px-4 py-2 mb-3 tracking-widest text-uppercase"><i class="bi bi-activity me-2"></i> High Return Risk</div><br><span>Your margins are positive, but your return rate is dangerously high (${returnRate.toFixed(1)}%). Investigate product quality or listing descriptions to stop the bleeding.</span>`;
+    } else if (netMargin >= 25) {
+        verdictHtml = `<div class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 fs-6 px-4 py-2 animate-pulse mb-3 tracking-widest text-uppercase"><i class="bi bi-rocket-takeoff me-2"></i> Highly Profitable Winner</div><br><span>Incredible performance! This product yields a ${netMargin.toFixed(1)}% net margin. Consider scaling your ad spend to drive more volume.</span>`;
+    } else if (netMargin > 10) {
+        verdictHtml = `<div class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 fs-6 px-4 py-2 mb-3 tracking-widest text-uppercase"><i class="bi bi-graph-up me-2"></i> Solid Performer</div><br><span>This is a stable, profitable product. Focus on optimizing shipping costs and tweaking ad campaigns to boost your bottom line.</span>`;
+    } else {
+        verdictHtml = `<div class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-50 fs-6 px-4 py-2 mb-3 tracking-widest text-uppercase"><i class="bi bi-activity me-2"></i> Low Margin / Tight Squeeze</div><br><span>You are barely profitable. This is a volume game. You need to sell a massive amount of units, or find ways to cut fulfillment and ad costs.</span>`;
+    }
+    
+    verdictEl.innerHTML = verdictHtml;
+    verdictEl.className = "fs-5 lh-base fw-bold";
+
+    // Market Gap Analysis Logic
+    const industryKey = document.getElementById('productIndustry').value;
+    const bench = industryBenchmarks[industryKey];
+    
+    const diffGross = grossMargin - bench.grossMargin;
+    const diffNet = netMargin - bench.netMargin; 
+    const diffReturn = returnRate - bench.returnRate;
+    const diffRoas = roas - bench.roas;
+
+    const grossDesc = (diffGross > 0) ? "Your sourcing costs are highly optimized." : "COGS is eating your profit. Renegotiate with suppliers.";
+    const netDesc = (diffNet > 0) ? "Excellent overall operational efficiency." : "Hidden costs are draining your bottom line.";
+    const returnDesc = (diffReturn < 0) ? "Great product quality and accurate listing." : "High return rate compared to industry. Inspect quality.";
+    const roasDesc = (diffRoas > 0) ? "Marketing campaigns outperforming the market." : "Ad performance lagging behind competitors.";
+
+    let gapHtml = "";
+    gapHtml += renderGapCard("Gross Margin", grossMargin, bench.grossMargin, diffGross, true, grossDesc);
+    gapHtml += renderGapCard("Net Margin", netMargin, bench.netMargin, diffNet, true, netDesc);
+    gapHtml += renderGapCard("Return Rate", returnRate, bench.returnRate, diffReturn, false, returnDesc);
+    gapHtml += renderGapCard("Marketing ROAS", roas, bench.roas, diffRoas, true, roasDesc);
+
+    document.getElementById('marketGapContent').innerHTML = gapHtml;
+    document.getElementById('marketGapSection').style.display = 'block';
+}
+
+function resetForm() {
+    document.getElementById('productForm').reset();
+    document.getElementById('outGrossMargin').innerText = "0.00%";
+    document.getElementById('outNetMargin').innerText = "0.00%";
+    document.getElementById('outNetMargin').className = "metric-value text-primary";
+    document.getElementById('outTotalNet').innerText = "$0.00";
+    document.getElementById('outTotalNet').className = "metric-value text-success";
+    document.getElementById('outReturnRate').innerText = "0.00%";
+    document.getElementById('outBreakEven').innerText = "0";
+    document.getElementById('outRoas').innerText = "0.00x";
+    
+    document.getElementById('verdictText').innerHTML = "Enter your product and sales data to receive an instant performance verdict.";
+    document.getElementById('verdictText').className = "text-secondary fs-5 lh-base fw-bold";
+    document.getElementById('marketGapSection').style.display = 'none';
+}
+</script>
+
+<!-- SEO FAQ Section -->
+<article class="container mt-5 pt-5 border-top border-theme reveal" style="max-width: 900px;" itemscope itemtype="https://schema.org/Article">
+    <header class="mb-5 text-center">
+        <h2 class="fs-2 fw-black mb-3" itemprop="headline">About the Product Performance Analyzer</h2>
+        <p class="lead text-theme-muted">
+            The free online <strong>Product Performance Analyzer</strong> is a powerful profit margin calculator and ecommerce ROI estimator. Whether you are running a Shopify dropshipping store, selling on Amazon FBA, or managing an independent retail brand, this tool helps you find out exactly how much real cash you are making after all hidden costs like shipping and ad spend.
+        </p>
+    </header>
+    
+    <div class="row g-5">
+        <!-- How to Calculate Section -->
+        <section class="col-12">
+            <h3 class="fs-4 fw-bold d-flex align-items-center mb-3"><i class="bi bi-calculator me-2 text-primary"></i> How to Calculate Product Profit Margins</h3>
+            <p class="text-theme-muted lh-lg">
+                Calculating your true ecommerce profit is more than just subtracting your product cost from your selling price. To get an accurate picture of your <strong>product profitability</strong>, our tool uses simple but powerful formulas:
+            </p>
+            <ul class="text-theme-muted lh-lg">
+                <li><strong>Gross Profit Margin:</strong> We take your Selling Price and subtract the Cost of Goods Sold (COGS). This gives you the base markup percentage before any extra expenses.</li>
+                <li><strong>Net Profit Margin:</strong> This is the most important metric. We subtract the COGS, the average shipping/fulfillment fees, and the marketing ad spend from your total revenue. This reveals your true bottom-line profit.</li>
+                <li><strong>Break-Even Volume:</strong> To find your break-even point, we divide your total advertising cost by the gross profit of a single unit. This tells you the exact number of units you need to sell just to cover your ads.</li>
+            </ul>
+        </section>
+
+        <!-- What is Important Section -->
+        <section class="col-12">
+            <h3 class="fs-4 fw-bold d-flex align-items-center mb-3"><i class="bi bi-exclamation-triangle me-2 text-warning"></i> What is Important for Ecommerce Success?</h3>
+            <p class="text-theme-muted lh-lg">
+                When running an online store, tracking revenue isn't enough. You must monitor your hidden costs. The most important factors for success are keeping your <strong>customer acquisition cost (CAC)</strong> low and your <strong>Return on Ad Spend (ROAS)</strong> high. Additionally, your product return rate is critical. A high return rate will quickly eat away your profits. By comparing your metrics against our built-in industry benchmarks, you can easily spot market gaps and adjust your pricing strategy or supply chain before you lose money.
+            </p>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="col-12">
+            <h3 class="fs-4 fw-bold d-flex align-items-center mb-4"><i class="bi bi-question-circle me-2 text-success"></i> Frequently Asked Questions (FAQ)</h3>
+            
+            <div class="mb-4">
+                <h4 class="fs-5 fw-bold">What is the difference between gross profit and net profit?</h4>
+                <p class="text-theme-muted">Gross profit is the money left over after paying the supplier for the item (COGS). Net profit is the actual cash in your pocket after paying for the item, shipping fees, packaging, and marketing advertisements. Our <em>net profit margin calculator</em> automatically figures this out for you.</p>
+            </div>
+            
+            <div class="mb-4">
+                <h4 class="fs-5 fw-bold">What is a good return rate for a Shopify store?</h4>
+                <p class="text-theme-muted">A healthy return rate benchmark is generally under 10%. However, this varies by industry. For example, the clothing and apparel industry often sees return rates as high as 20% to 30%, while consumer electronics sit around 5%. If your return rate is too high, you risk becoming a cash bleeder.</p>
+            </div>
+            
+            <div class="mb-4">
+                <h4 class="fs-5 fw-bold">How do I fix a low profit margin?</h4>
+                <p class="text-theme-muted">To fix a low margin, you can use several alternative strategies: increase your retail selling price, negotiate a cheaper wholesale price (COGS) from your supplier, reduce your shipping expenses, or optimize your Facebook and Google ads to improve your ROAS.</p>
+            </div>
+
+            <div class="mb-4">
+                <h4 class="fs-5 fw-bold">Is this ecommerce ROI estimator free to use?</h4>
+                <p class="text-theme-muted">Yes! Our online product performance tracker is completely free. You do not need to download any software, sign up, or provide your email. It runs entirely in your web browser securely and instantly.</p>
+            </div>
+        </section>
+    </div>
+</article>
+
+{% endblock %}

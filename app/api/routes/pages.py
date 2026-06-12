@@ -107,6 +107,8 @@ async def html_sitemap(request: Request):
         "job-card-generator": ("Business & Operations", "Create and track service repair job cards for mechanics"),
         "service-order-generator": ("Business & Operations", "Generate custom PDF service orders for contractors"),
         "work-order-generator": ("Business & Operations", "Create official business work orders and service requests"),
+        "ad-performance-analyzer": ("Business & Operations", "Analyze ad campaigns metrics like ROAS, CTR, CPC, and ROI online"),
+        "product-performance-analyzer": ("Business & Operations", "Analyze ecommerce product profit margins and break-even ROI"),
         
         # Productivity & Utilities
         "password-generator": ("Productivity & Utilities", "Create strong, secure random passwords for accounts"),
