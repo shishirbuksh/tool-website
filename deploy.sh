@@ -144,8 +144,11 @@ setup_env_file() {
     if [ ! -f "$APP_DIR/.env" ]; then
         if [ -f "$APP_DIR/.env.example" ]; then
             cp "$APP_DIR/.env.example" "$APP_DIR/.env"
-            log_warn ".env created from .env.example"
-            log_warn "  Edit it: nano $APP_DIR/.env"
+            SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))" 2>/dev/null || echo "change-me")
+            if command -v python3 >/dev/null 2>&1; then
+                sed -i "s|^SECRET_KEY=.*|SECRET_KEY=$SECRET|" "$APP_DIR/.env"
+            fi
+            log_warn ".env created — edit it: nano $APP_DIR/.env"
             log_warn "  Set: ALLOWED_HOSTS=www.storybrainai.com,storybrainai.com"
             log_warn "  Set: CORS_ORIGINS=https://www.storybrainai.com,https://storybrainai.com"
         fi
