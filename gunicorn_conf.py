@@ -13,8 +13,8 @@ web_concurrency = int(float(os.getenv("WORKERS", str(default_web_concurrency))))
 workers = max(int(web_concurrency), 2)
 
 worker_class = "uvicorn.workers.UvicornWorker"
+loglevel = os.getenv("LOG_LEVEL", "info").lower()
 
-loglevel = os.getenv("LOG_LEVEL", "info")
 accesslog = "-"
 errorlog = "-"
 
@@ -22,13 +22,10 @@ timeout = int(os.getenv("TIMEOUT", "120"))
 keepalive = int(os.getenv("KEEP_ALIVE", "5"))
 
 forwarded_allow_ips = "*"
-proxy_protocol = True
 proxy_allow_ips = "*"
 
 logging.basicConfig(level=logging.INFO)
 logging.info(
-    "Starting server: %s | workers=%d | loglevel=%s",
-    bind,
-    workers,
-    loglevel,
+    "Starting server: %s | workers=%d | loglevel=%s | timeout=%s",
+    bind, workers, loglevel, timeout,
 )
