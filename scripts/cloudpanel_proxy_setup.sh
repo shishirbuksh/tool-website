@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# CloudPanel Reverse Proxy Setup for StoryBrain AI
+# CloudPanel Setup for StoryBrain AI
 # Run AFTER app is running on port 8090.
 #
 # Usage:
@@ -8,10 +8,6 @@
 #   cd /opt/storybrain-ai
 #   bash run.sh                              # First: install & start app
 #   bash scripts/cloudpanel_proxy_setup.sh yourdomain.com  # Then: configure proxy
-#
-# Two methods (Method 1 is recommended):
-#   1. Vhost Editor — paste config into CloudPanel web UI
-#   2. CLI — uses clpctl to create reverse proxy site
 # ============================================================
 set -euo pipefail
 
@@ -22,11 +18,7 @@ if [ -z "$DOMAIN" ]; then
     echo ""
     echo "Usage: bash scripts/cloudpanel_proxy_setup.sh yourdomain.com"
     echo ""
-    echo "This sets up a CloudPanel NGINX reverse proxy from your domain to localhost:$APP_PORT"
-    echo ""
-    echo "Two methods available:"
-    echo "  1. CloudPanel Web UI (recommended) — copy the Vhost config below"
-    echo "  2. CLI via clpctl — automated setup"
+    echo "Sets up CloudPanel (NGINX) reverse proxy from your domain to localhost:$APP_PORT"
     exit 1
 fi
 
@@ -35,7 +27,15 @@ log_info()  { echo -e "${GREEN}[INFO]${NC}  $1"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC}  $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-# ─── Vhost config template for CloudPanel ───────────────────
+echo ""
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║   CloudPanel Setup — StoryBrain AI                      ║"
+echo "║   Domain: $DOMAIN"
+echo "║   Proxy : http://127.0.0.1:$APP_PORT"
+echo "╚══════════════════════════════════════════════════════════╝"
+echo ""
+
+# ─── Vhost config template ───────────────────────────────────
 VHOST_CONFIG=$(cat <<NGINX
 server {
   listen 80;
@@ -96,58 +96,69 @@ server {
 NGINX
 )
 
-# ─── Method 1: Show Vhost config for Web UI ────────────────
+# ─── Method A: Reverse Proxy (recommended) ──────────────────
 echo ""
-log_info "=== Method 1: CloudPanel Web UI (recommended) ==="
+log_info "=== Method A: Reverse Proxy (simplest, app stays at /opt/storybrain-ai) ==="
 echo ""
-log_info "1. Log into CloudPanel at https://<your-server-ip>:8443"
-log_info "2. Go to Sites → Add Site → Create Reverse Proxy"
-log_info "3. Set Domain: $DOMAIN, Forward URL: http://127.0.0.1:$APP_PORT"
-log_info "4. After creation, go to Sites → Manage → Vhost Editor"
-log_info "5. Replace the location / block with the enhanced config below"
-log_info "6. Enable SSL: Sites → Manage → SSL/TLS → Issue Let's Encrypt"
+log_info "CloudPanel Web UI:"
+log_info "  1. Login at https://<your-server-ip>:8443"
+log_info "  2. Sites → Add Site → Create Reverse Proxy"
+log_info "  3. Domain: $DOMAIN"
+log_info "  4. Forward URL: http://127.0.0.1:$APP_PORT"
+log_info "  5. After creation: Sites → Manage → Vhost Editor"
+log_info "  6. Replace everything with the config below"
+log_info "  7. Sites → $DOMAIN → SSL/TLS → Issue Let's Encrypt"
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "      Enhanced Vhost Config (paste in Vhost Editor)"
+echo "  Paste this in Vhost Editor (replaces all)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
 echo "$VHOST_CONFIG"
-echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# ─── Method B: Python Site ──────────────────────────────────
 echo ""
-
-# ─── Method 2: Automatic via clpctl ───────────────────────
+log_info "=== Method B: Python Site (CloudPanel manages everything) ==="
+echo ""
+log_info "This moves the app into CloudPanel's site structure."
+log_info "Only use if you want CloudPanel to manage the app process too."
+echo ""
+log_info "Steps:"
+log_info "  1. Create Python site via CLI or Web UI"
+echo ""
 if command -v clpctl >/dev/null 2>&1; then
+    SITE_USER="${DOMAIN//./_}"
+    SITE_PASS=$(python3 -c "import secrets; print(secrets.token_urlsafe(16))" 2>/dev/null || echo "ChangeMe123!")
+    echo "     clpctl site:add:python \\"
+    echo "       --domainName=\"$DOMAIN\" \\"
+    echo "       --pythonVersion=\"3.11\" \\"
+    echo "       --appPort=\"$APP_PORT\" \\"
+    echo "       --siteUser=\"$SITE_USER\" \\"
+    echo "       --siteUserPassword=\"$SITE_PASS\""
     echo ""
-    log_info "=== Method 2: Automated CLI setup ==="
+    log_info "  2. Move app to CloudPanel directory:"
+    echo "     sudo rsync -a /opt/storybrain-ai/ /home/$SITE_USER/htdocs/$DOMAIN/"
+    echo "     sudo chown -R $SITE_USER:$SITE_USER /home/$SITE_USER/htdocs/$DOMAIN/"
     echo ""
-    log_warn "clpctl detected! Attempting automated reverse proxy setup..."
-
-    SITE_USER="cloudpanel"
-    SITE_PASS=$(python3 -c "import secrets; print(secrets.token_urlsafe(16))" 2>/dev/null || echo "changethis123!")
-
-    if sudo clpctl site:add:reverse-proxy \
-        --domainName="$DOMAIN" \
-        --reverseProxyUrl="http://127.0.0.1:$APP_PORT" \
-        --siteUser="$SITE_USER" \
-        --siteUserPassword="$SITE_PASS" 2>/dev/null; then
-
-        log_info "Reverse proxy site created in CloudPanel."
-        log_info "Now enable SSL in CloudPanel: Sites → $DOMAIN → SSL/TLS → Issue Let's Encrypt"
-    else
-        log_warn "clpctl command failed. Use Method 1 (Web UI) instead."
-    fi
+    log_info "  3. Set up systemd service (see storybrain-ai.service)"
+    log_info "  4. Enable SSL: Sites → $DOMAIN → SSL/TLS → Issue Let's Encrypt"
+else
+    log_info "  (clpctl not found — use Web UI: Sites → Add Site → Create Python Site)"
+    log_info "    Domain: $DOMAIN, Python Version: 3.11, App Port: $APP_PORT"
 fi
 
 # ─── Final instructions ────────────────────────────────────
 echo ""
-log_info "=== After setting up the reverse proxy ==="
-echo ""
-log_info "1. Make sure the app is running:  curl http://127.0.0.1:$APP_PORT/healthz"
-log_info "2. Enable Let's Encrypt SSL in CloudPanel UI"
-log_info "3. Visit https://$DOMAIN to verify"
-log_info "4. To check NGINX config:  sudo nginx -t"
-log_info "5. To reload NGINX:        sudo systemctl reload cloudpanel-nginx"
-echo ""
-log_info "App logs:   journalctl -u storybrain-ai -n 50 --no-pager"
-log_info "NGINX logs: sudo tail -50 /var/log/nginx/${DOMAIN}.error.log"
+echo "╔══════════════════════════════════════════════════════════╗"
+echo "║  After setup:                                           ║"
+echo "║                                                          ║"
+echo "║  1. Verify app is running:                               ║"
+echo "║     curl http://127.0.0.1:$APP_PORT/healthz              ║"
+echo "║                                                          ║"
+echo "║  2. Visit https://$DOMAIN in browser            ║"
+echo "║                                                          ║"
+echo "║  3. App logs:                                            ║"
+echo "║     journalctl -u storybrain-ai -n 50 --no-pager         ║"
+echo "║                                                          ║"
+echo "║  4. NGINX reload if needed:                              ║"
+echo "║     sudo systemctl reload cloudpanel-nginx               ║"
+echo "╚══════════════════════════════════════════════════════════╝"
