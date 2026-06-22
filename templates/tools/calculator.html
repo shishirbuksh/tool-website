@@ -1,4 +1,5 @@
-{% extends "base.html" %}
+{% extends"base.html" %}
+{% from "components/tool_layout.html" import tool_back_link %}
 
 {% block title %}Free Online Calculator | Simple Math & Standard Calculator Tool{% endblock %}
 {% block meta_description %}Use our free online calculator for quick math. This simple standard calculator is fast, easy to use, and works on any device with no download needed.{% endblock %}
@@ -16,237 +17,101 @@
 <meta name="twitter:description" content="A fast, simple, and beautifully designed standard math calculator you can use directly from your web browser.">
 {% endblock %}
 
-
-
-{% block head %}
-<style>
-.calc-chassis{max-width:360px;margin:0 auto}.oled-display{background:#080808;border-radius:1.5rem;padding:2rem;margin-bottom:1.5rem;border:1px solid rgba(255,255,255,0.05);box-shadow:inset 0 4px 15px rgba(0,0,0,0.5);text-align:right;min-height:120px;display:flex;flex-direction:column;justify-content:flex-end}.main-val{font-size:2.75rem;font-weight:900;font-family:'JetBrains Mono',monospace;letter-spacing:-1.5px;color:#fff;line-height:1;transition:all 0.1s ease}.history-val{font-size:0.85rem;color:var(--sb-accent);opacity:0.5;font-family:'JetBrains Mono',monospace;margin-bottom:0.5rem;min-height:1.2rem;letter-spacing:1px}.calc-btn{height:70px;border-radius:1.2rem;border:1px solid rgba(255,255,255,0.05);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.7);font-weight:800;font-size:1.25rem;transition:all 0.2s cubic-bezier(0.4,0,0.2,1);display:flex;align-items:center;justify-content:center}.calc-btn:hover{background:rgba(255,255,255,0.08);color:#fff;border-color:rgba(255,255,255,0.1);transform:translateY(-2px)}.calc-btn:active{transform:translateY(0) scale(0.95)}.btn-num{background:rgba(255,255,255,0.05);color:#fff}.btn-op{background:var(--sb-accent);color:#000 !important;font-size:1.5rem;border:none}.btn-op:hover{background:var(--sb-accent);filter:brightness(1.2)}.btn-ac{background:rgba(239,68,68,0.1);color:#ef4444;font-size:1rem}.btn-equal{background:var(--sb-accent);color:#fff;font-size:1.75rem}.btn-zero{grid-column:span 2}@media (max-width:768px){.display-3,.display-4,.hero-title{font-size:2.25rem !important}.glass-card{padding:1.5rem !important}.row.g-4{gap:1rem !important}.metrics-grid,.grid-layout{grid-template-columns:1fr !important}}
-</style>
-{% endblock %}
-
 {% block content %}
-<!-- Back link -->
-<div class="mb-5 reveal">
-    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
-        <i class="bi bi-arrow-left me-2"></i> All Tools
-    </a>
-</div>
+<div class="mb-8 reveal">{{ tool_back_link() }}</div>
 
-<div class="calc-chassis reveal">
-    <div class="text-center mb-5">
-        <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 mb-3">
-            <i class="bi bi-calculator me-2"></i> Standard
-        </div>
-        <h1 class="display-3 fw-black mb-3 text-center">FREE STANDARD <span class="gradient-text italic">CALCULATOR</span></h1>
-        <p class="text-white-50 small text-uppercase tracking-widest fw-bold">Daily Math Simplified</p>
+<div class="max-w-[400px] mx-auto w-full reveal">
+  <!-- Hero -->
+  <div class="text-center mb-8">
+    <div class="inline-flex items-center gap-2 px-5 py-3 glass-cinematic rounded-2xl border-primary/20 text-primary font-mono text-xs font-bold uppercase tracking-widest mb-4">
+      {{ lucide_icon("calculator","w-4 h-4", 16) | safe }} Standard
+    </div>
+    <h1 class="text-4xl md:text-5xl font-black mb-3 tracking-tighter">
+      FREE STANDARD <span class="gradient-text italic">CALCULATOR</span>
+    </h1>
+    <p class="text-base-content/50 text-sm uppercase tracking-widest font-bold">Daily Math Simplified</p>
+  </div>
+
+  <!-- Calculator Card -->
+  <div class="card-premium p-6 md:p-8">
+    <!-- OLED Display -->
+    <div class="glass-cinematic rounded-2xl p-6 mb-5 text-right min-h-[130px] flex flex-col justify-end">
+      <div id="calc-history" class="text-xs font-mono text-primary/50 mb-2 min-h-[1.2rem] tracking-wider"></div>
+      <div id="calc-display" class="text-5xl md:text-6xl font-black font-mono tracking-tighter text-base-content leading-none">0</div>
     </div>
 
-    <!-- Calculator Card -->
-    <div class="glass-card p-4 rounded-5 shadow-lg">
-        <!-- OLED Display -->
-        <div class="oled-display">
-            <div id="calc-history" class="history-val"></div>
-            <div id="calc-display" class="main-val">0</div>
-        </div>
+    <!-- Keypad -->
+    <div class="grid grid-cols-4 gap-3" id="calcKeypad">
+      <button data-calc="clear" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-sm bg-error/10 text-error border border-error/20 hover:bg-error/20 btn-ac">AC</button>
+      <button data-calc="negate" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-base glass-cinematic">+/-</button>
+      <button data-calc="percent" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-base glass-cinematic">%</button>
+      <button data-calc="op:/" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-xl" style="background:var(--color-primary);color:var(--color-primary-content);border:none">&divide;</button>
 
-        <!-- Keypad -->
-        <div class="grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
-            <button onclick="clearCalc()" class="calc-btn btn-ac">AC</button>
-            <button onclick="toggleSign()" class="calc-btn">+/-</button>
-            <button onclick="inputPercent()" class="calc-btn">%</button>
-            <button onclick="setOperator('/')" class="calc-btn btn-op">&divide;</button>
+      <button data-calc="7" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">7</button>
+      <button data-calc="8" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">8</button>
+      <button data-calc="9" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">9</button>
+      <button data-calc="op:*" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-xl" style="background:var(--color-primary);color:var(--color-primary-content);border:none" aria-label="Multiply">&times;</button>
 
-            <button onclick="inputDigit('7')" class="calc-btn btn-num">7</button>
-            <button onclick="inputDigit('8')" class="calc-btn btn-num">8</button>
-            <button onclick="inputDigit('9')" class="calc-btn btn-num">9</button>
-            <button onclick="setOperator('*')" class="calc-btn btn-op">&times;</button>
+      <button data-calc="4" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">4</button>
+      <button data-calc="5" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">5</button>
+      <button data-calc="6" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">6</button>
+      <button data-calc="op:-" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-xl" style="background:var(--color-primary);color:var(--color-primary-content);border:none">&minus;</button>
 
-            <button onclick="inputDigit('4')" class="calc-btn btn-num">4</button>
-            <button onclick="inputDigit('5')" class="calc-btn btn-num">5</button>
-            <button onclick="inputDigit('6')" class="calc-btn btn-num">6</button>
-            <button onclick="setOperator('-')" class="calc-btn btn-op">&minus;</button>
+      <button data-calc="1" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">1</button>
+      <button data-calc="2" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">2</button>
+      <button data-calc="3" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">3</button>
+      <button data-calc="op:+" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-xl" style="background:var(--color-primary);color:var(--color-primary-content);border:none">+</button>
 
-            <button onclick="inputDigit('1')" class="calc-btn btn-num">1</button>
-            <button onclick="inputDigit('2')" class="calc-btn btn-num">2</button>
-            <button onclick="inputDigit('3')" class="calc-btn btn-num">3</button>
-            <button onclick="setOperator('+')" class="calc-btn btn-op">+</button>
-
-            <button onclick="inputDigit('0')" class="calc-btn btn-num btn-zero">0</button>
-            <button onclick="inputDecimal()" class="calc-btn btn-num">.</button>
-            <button onclick="calculateResult()" class="calc-btn btn-equal">=</button>
-        </div>
+      <button data-calc="0" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic col-span-2">0</button>
+      <button data-calc="decimal" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">.</button>
+      <button data-calc="equals" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-2xl shadow-glow" style="background:var(--color-primary);color:var(--color-primary-content);border:none">=</button>
     </div>
+  </div>
 </div>
 
 <script>
-let displayValue='0';let firstOperand=null;let waitingForSecondOperand=false;let operator=null;let historyStr='';const displayElement=document.getElementById('calc-display');const historyElement=document.getElementById('calc-history');function updateDisplay(pop=false){let showVal=displayValue;if(showVal.length>12){const num=parseFloat(showVal);if(!isNaN(num))showVal=num.toPrecision(8).replace(/(?:\.0+|(\.\d+?)0+)$/,'$1');}
-displayElement.textContent=showVal;historyElement.textContent=historyStr;if(pop){displayElement.style.transform='scale(1.05)';displayElement.style.color='var(--sb-accent)';setTimeout(()=>{displayElement.style.transform='scale(1)';displayElement.style.color='#fff';},100);}}
-function inputDigit(digit){if(waitingForSecondOperand){displayValue=digit;waitingForSecondOperand=false;}
+(function(){'use strict';let displayValue='0';let firstOperand=null;let waitingForSecondOperand=false;let operator=null;let historyStr='';const displayElement=document.getElementById('calc-display');const historyElement=document.getElementById('calc-history');function updateDisplay(pop=false){let showVal=displayValue;if(showVal.length>12){const num=parseFloat(showVal);if(!isNaN(num))showVal=num.toPrecision(8).replace(/(?:\.0+|(\.\d+?)0+)$/,'$1');}
+displayElement.textContent=showVal;historyElement.textContent=historyStr;if(pop){displayElement.style.transform='scale(1.05)';displayElement.style.color='var(--color-primary)';setTimeout(()=>{displayElement.style.transform='scale(1)';displayElement.style.color='';},100);}}
+function inputDigit(digit){if(displayValue==='Error'){displayValue=digit;waitingForSecondOperand=false;return updateDisplay();}
+if(waitingForSecondOperand){displayValue=digit;waitingForSecondOperand=false;}
 else displayValue=displayValue==='0'?digit:displayValue+digit;updateDisplay();}
-function inputDecimal(){if(waitingForSecondOperand){displayValue='0.';waitingForSecondOperand=false;return updateDisplay();}
+function inputDecimal(){if(displayValue==='Error'){displayValue='0.';waitingForSecondOperand=false;return updateDisplay();}
+if(waitingForSecondOperand){displayValue='0.';waitingForSecondOperand=false;return updateDisplay();}
 if(!displayValue.includes('.'))displayValue+='.';updateDisplay();}
-function setOperator(nextOp){const val=parseFloat(displayValue);if(operator&&waitingForSecondOperand){operator=nextOp;historyStr=historyStr.replace(/[+\-*/]$/,operator);updateDisplay();return;}
+function setOperator(nextOp){const val=parseFloat(displayValue);if(operator&&waitingForSecondOperand){operator=nextOp;historyStr=historyStr.slice(0,-1)+opSymbol(nextOp);updateDisplay();return;}
 if(firstOperand==null&&!isNaN(val))firstOperand=val;else if(operator){const res=calculate(firstOperand,val,operator);displayValue=`${parseFloat(res.toFixed(10))}`;firstOperand=res;}
-waitingForSecondOperand=true;operator=nextOp;const sym=nextOp==='*'?'×':nextOp==='/'?'÷':nextOp==='+'?'+':'−';historyStr=`${firstOperand}${sym}`;updateDisplay();}
+waitingForSecondOperand=true;operator=nextOp;historyStr=`${firstOperand}${opSymbol(nextOp)}`;updateDisplay();}
 function calculate(f,s,op){if(op==='+')return f+s;if(op==='-')return f-s;if(op==='*')return f*s;if(op==='/')return s===0?NaN:f/s;return s;}
+function opSymbol(op){return op==='*'?'×':op==='/'?'÷':op==='+'?'+':'−';}
 function calculateResult(){if(!operator||waitingForSecondOperand)return;const val=parseFloat(displayValue);let res=calculate(firstOperand,val,operator);if(isNaN(res)||!isFinite(res)){displayValue="Error";historyStr='';}
 else{historyStr+=`${displayValue}=`;displayValue=`${parseFloat(res.toFixed(10))}`;}
 firstOperand=null;operator=null;waitingForSecondOperand=true;updateDisplay(true);}
 function clearCalc(){displayValue='0';firstOperand=null;waitingForSecondOperand=false;operator=null;historyStr='';updateDisplay();}
-function toggleSign(){if(["0","0.","Error"].includes(displayValue))return;displayValue=displayValue.charAt(0)==='-'?displayValue.slice(1):'-'+displayValue;updateDisplay();}
-function inputPercent(){if(displayValue==='Error')return;displayValue=`${parseFloat(displayValue)/100}`;updateDisplay();}
+function toggleSign(){if(displayValue==='Error'||displayValue==='0')return;displayValue=displayValue.charAt(0)==='-'?displayValue.slice(1):'-'+displayValue;updateDisplay();}
+function inputPercent(){if(displayValue==='Error'){clearCalc();return;}displayValue=`${parseFloat(displayValue)/100}`;updateDisplay();}
+document.getElementById('calcKeypad').addEventListener('click',function(e){var btn=e.target.closest('[data-calc]');if(!btn)return;var action=btn.getAttribute('data-calc');if(action==='clear')clearCalc();else if(action==='negate')toggleSign();else if(action==='percent')inputPercent();else if(action==='decimal')inputDecimal();else if(action==='equals')calculateResult();else if(action.indexOf('op:')===0)setOperator(action.slice(3));else inputDigit(action);});
 document.addEventListener('keydown',(e)=>{if(e.key>='0'&&e.key<='9')inputDigit(e.key);if(e.key==='.')inputDecimal();if(e.key==='='||e.key==='Enter'){e.preventDefault();calculateResult();}
-if(e.key==='Backspace'){displayValue=displayValue.length>1?displayValue.slice(0,-1):'0';updateDisplay();}
-if(e.key==='Escape')clearCalc();if(['+','-','*','/'].includes(e.key))setOperator(e.key);});
+if(e.key==='Backspace'){if(displayValue==='Error')clearCalc();else displayValue=displayValue.length>1?displayValue.slice(0,-1):'0';updateDisplay();}
+if(e.key==='Escape')clearCalc();if(['+','-','*','/'].includes(e.key))setOperator(e.key);});})();
 </script>
-
-<!-- FAQ Section for SEO -->
-<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.4s;">
-    <h2 class="fs-3 fw-bold mb-4" itemprop="headline">Frequently Asked Questions</h2>
-    <div class="accordion accordion-flush" id="faqAccordion">
-        <div class="accordion-item bg-transparent border-white border-opacity-10">
-            <h3 class="accordion-header">
-                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                    Is the Standard Calculator free to use?
-                </button>
-            </h3>
-            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body text-theme-muted">
-                    Yes, our Standard Calculator is completely free to use. There are no hidden fees or subscriptions required. StoryBrain AI provides these premium utilities at no cost to help accelerate your workflow.
-                </div>
-            </div>
-        </div>
-        <div class="accordion-item bg-transparent border-white border-opacity-10">
-            <h3 class="accordion-header">
-                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                    Do I need to sign up to use the Standard Calculator?
-                </button>
-            </h3>
-            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body text-theme-muted">
-                    No sign-up or registration is required. You can use the Standard Calculator instantly directly from your browser without providing any personal information or creating an account.
-                </div>
-            </div>
-        </div>
-        <div class="accordion-item bg-transparent border-white border-opacity-10 border-bottom-0">
-            <h3 class="accordion-header">
-                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                    Is my data secure when using the Standard Calculator?
-                </button>
-            </h3>
-            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body text-theme-muted">
-                    Absolutely. All processing happens locally in your browser or through secure encrypted channels, ensuring your data remains private. We do not store or log your queries on our servers.
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script type="application/ld+json">
 {
-    "@context": "https://schema.org",
-    "@graph": [
-        {
-            "@type": "SoftwareApplication",
-            "name": "Standard Calculator",
-            "applicationCategory": "UtilitiesApplication",
-            "operatingSystem": "Web browser",
-            "offers": {
-                "@type": "Offer",
-                "price": "0",
-                "priceCurrency": "USD"
-            },
-            "description": "Use the free Standard Calculator online to perform basic math calculations. No sign-up required."
-        },
-        {
-            "@type": "FAQPage",
-            "mainEntity": [
-                {
-                    "@type": "Question",
-                    "name": "Is the Standard Calculator free to use?",
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "Yes, our Standard Calculator is completely free to use. There are no hidden fees or subscriptions required."
-                    }
-                },
-                {
-                    "@type": "Question",
-                    "name": "Do I need to sign up to use the Standard Calculator?",
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "No sign-up or registration is required. You can use the tool instantly directly from your browser."
-                    }
-                },
-                {
-                    "@type": "Question",
-                    "name": "Is my data secure when using the Standard Calculator?",
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "Absolutely. All processing happens locally in your browser or through secure encrypted channels, ensuring your data remains private and is never stored on our servers."
-                    }
-                }
-            ]
-        }
-    ]
+"@context":"https://schema.org",
+"@graph": [
+ {
+"@type":"SoftwareApplication",
+"name":"Standard Calculator",
+"applicationCategory":"UtilitiesApplication",
+"operatingSystem":"Web browser",
+"offers": {
+"@type":"Offer",
+"price":"0",
+"priceCurrency":"USD"
+ },
+"description":"Use the free Standard Calculator online to perform basic math calculations. No sign-up required."
+ }
+ ]
 }
 </script>
-
-
-
-<!-- How to Use Section -->
-<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.2s;">
-    <h2 class="fs-3 fw-bold mb-4" itemprop="headline">How to Use {{ tool_name | default('this Tool') }}</h2>
-    <div class="row g-4 text-start">
-        <div class="col-md-4">
-            <div class="p-4 bg-theme-surface border border-theme rounded-4 h-100">
-                <div class="text-primary fw-black fs-1 mb-3 opacity-50">01</div>
-                <h3 class="fs-5 fw-bold text-theme">Input Data</h3>
-                <p class="text-theme-muted small">Provide the necessary inputs, files, or configurations required for the tool to process your request securely.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="p-4 bg-theme-surface border border-theme rounded-4 h-100">
-                <div class="text-primary fw-black fs-1 mb-3 opacity-50">02</div>
-                <h3 class="fs-5 fw-bold text-theme">Process</h3>
-                <p class="text-theme-muted small">Click the action button. The tool will process your data instantly using optimized algorithms.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="p-4 bg-theme-surface border border-theme rounded-4 h-100">
-                <div class="text-primary fw-black fs-1 mb-3 opacity-50">03</div>
-                <h3 class="fs-5 fw-bold text-theme">Get Results</h3>
-                <p class="text-theme-muted small">View, copy, or download your results immediately. Your data remains private and secure.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- SEO Article Section -->
-<article class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;" itemscope itemtype="https://schema.org/Article">
-    <header>
-        <h2 class="fs-3 fw-bold mb-4" itemprop="headline">How to Use the Free Online Calculator</h2>
-        <p class="text-theme-muted mb-4 fs-6 lh-lg" itemprop="articleBody">If you need to <strong>solve math problems online</strong> quickly and easily, our <strong>free online calculator</strong> is the perfect solution. Designed as a reliable <strong>standard calculator tool</strong>, it handles all basic arithmetic like addition, subtraction, multiplication, and division. Whether you are balancing a budget, doing homework, or calculating expenses, this <em>simple math calculator</em> gets the job done instantly directly in your browser.</p>
-    </header>
-    
-    <h3 class="fs-4 fw-bold mb-3 mt-5">Why Choose Our Simple Math Calculator?</h3>
-    <section class="row g-4 text-start mb-2">
-        <div class="col-md-6">
-            <ul class="list-unstyled">
-                <li class="mb-3 d-flex"><i class="bi bi-check-circle me-3 mt-1 text-success"></i> <div itemprop="name"><strong>Fast and Easy:</strong> A basic calculator app free from complex buttons. Focus only on the standard math functions you need most.</div></li>
-                <li class="mb-3 d-flex"><i class="bi bi-bullseye me-3 mt-1 text-primary"></i> <div itemprop="name"><strong>Works on Any Device:</strong> Whether on a desktop or mobile phone, this easy online calculator scales perfectly to your screen.</div></li>
-            </ul>
-        </div>
-        <div class="col-md-6">
-            <ul class="list-unstyled">
-                <li class="mb-3 d-flex"><i class="bi bi-lightning-fill me-3 mt-1 text-warning"></i> <div itemprop="name"><strong>Keyboard Support:</strong> Quickly type out your math equations using your computer keyboard for maximum efficiency.</div></li>
-                <li class="mb-3 d-flex"><i class="bi bi-shield-shaded me-3 mt-1 text-info"></i> <div itemprop="name"><strong>100% Secure & Private:</strong> The best calculator without sign up. Your math calculations are performed locally and never saved.</div></li>
-            </ul>
-        </div>
-    </section>
-</article>
-
-
-
-
 {% endblock %}

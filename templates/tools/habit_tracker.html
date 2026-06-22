@@ -1,908 +1,545 @@
-{% extends "base.html" %}
+{% extends"base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_input_group %}
 
 {% block title %}Free Online Daily Habit Tracker App (No Signup) | Advanced Analytics{% endblock %}
 {% block meta_description %}The best free online daily habit tracker website featuring advanced yearly heatmaps, monthly tracking, and atomic habits metrics. No signup required.{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/habit-tracker{% endblock %}
 
-{% block head %}
-<style>
-/* ── Theme Sync ── */
-:root, [data-bs-theme="light"] {
-    --sb-glass-bg: rgba(255, 255, 255, 0.8);
-    --sb-glass-border: rgba(0, 0, 0, 0.1);
-    --sb-input-bg: rgba(255, 255, 255, 0.9);
-    --sb-border: rgba(0, 0, 0, 0.15);
-    --sb-text: #1e293b;
-    --sb-text-muted: #64748b;
-    --sb-text-faint: #94a3b8;
-    --sb-accent: #3b82f6;
-    --sb-card-hover: rgba(248, 250, 252, 0.8);
-}
-
-[data-bs-theme="dark"] {
-    --sb-glass-bg: rgba(30, 41, 59, 0.7);
-    --sb-glass-border: rgba(255, 255, 255, 0.1);
-    --sb-input-bg: rgba(15, 23, 42, 0.6);
-    --sb-border: rgba(255, 255, 255, 0.15);
-    --sb-text: #f8fafc;
-    --sb-text-muted: #94a3b8;
-    --sb-text-faint: #64748b;
-    --sb-accent: #3b82f6;
-    --sb-card-hover: rgba(30, 41, 59, 0.8);
-}
-
-.habit-tracker-wrapper {
-    padding: 1rem 0;
-    margin-top: 1rem;
-    font-family: inherit;
-}
-
-.habit-dashboard {
-    background: var(--sb-glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--sb-glass-border);
-    border-radius: 1.5rem;
-    padding: 2rem;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
-}
-[data-bs-theme="dark"] .habit-dashboard {
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-}
-
-.habit-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.habit-stat-box {
-    background: var(--sb-input-bg);
-    border: 1px solid var(--sb-glass-border);
-    border-radius: 1rem;
-    padding: 1.25rem 1rem;
-    text-align: center;
-    flex: 1;
-    min-width: 120px;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.habit-stat-box:hover {
-    transform: translateY(-5px);
-}
-.habit-stat-box h4 {
-    margin: 0;
-    font-size: 2.2rem;
-    font-weight: 800;
-    color: var(--sb-text);
-}
-.habit-stat-box span {
-    font-size: 0.8rem;
-    color: var(--sb-text-muted);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 600;
-}
-
-.progress-container {
-    background: var(--sb-input-bg);
-    border-radius: 1rem;
-    height: 14px;
-    width: 100%;
-    margin-bottom: 2rem;
-    overflow: hidden;
-    border: 1px solid var(--sb-border);
-}
-.progress-bar-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--sb-accent), #db2777);
-    width: 0%;
-    transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-    border-radius: 1rem;
-}
-.progress-text {
-    font-size: 0.95rem;
-    color: var(--sb-text-muted);
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-}
-
-.custom-input {
-    background-color: var(--sb-input-bg) !important;
-    border: 1px solid var(--sb-border) !important;
-    color: var(--sb-text) !important;
-}
-.custom-input::placeholder {
-    color: var(--sb-text-faint) !important;
-}
-
-/* ── Modern Flexbox Card Row Layout ── */
-.habit-list-container {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    margin-top: 1rem;
-}
-
-.habit-card-wrapper {
-    background: var(--sb-input-bg);
-    border: 1px solid var(--sb-border);
-    border-radius: 1rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
-}
-.habit-card-wrapper:hover {
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(139, 92, 246, 0.3);
-}
-
-.habit-card-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.25rem 1.5rem;
-    flex-wrap: wrap; 
-    gap: 1.5rem;
-}
-
-.habit-card-main { flex: 1 1 200px; display: flex; align-items: center; gap: 1rem; }
-.habit-card-progress { flex: 1 1 180px; display: flex; justify-content: center; }
-.habit-card-history { flex: 1 1 200px; display: flex; justify-content: center; }
-.habit-card-actions { flex: 0 1 auto; display: flex; gap: 0.5rem; justify-content: flex-end; }
-
-.habit-list-header {
-    display: flex;
-    justify-content: space-between;
-    padding: 0 1.5rem;
-    margin-bottom: 0.5rem;
-    color: var(--sb-text-muted);
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    font-weight: 700;
-}
-.hl-main { flex: 1 1 200px; }
-.hl-progress { flex: 1 1 180px; text-align: center; }
-.hl-history { flex: 1 1 200px; text-align: center; }
-.hl-actions { flex: 0 1 80px; text-align: right; }
-
-@media (max-width: 768px) {
-    .habit-list-header { display: none; }
-    .habit-card-progress, .habit-card-history { justify-content: flex-start; }
-}
-
-.habit-color-indicator { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
-.habit-name { font-weight: 700; margin: 0; font-size: 1.1rem; color: var(--sb-text); }
-.habit-streak { font-size: 0.8rem; color: var(--sb-text-muted); margin: 0; display: flex; align-items: center; gap: 0.3rem; }
-
-/* Checkbox */
-.big-checkbox {
-    width: 32px; height: 32px; appearance: none; -webkit-appearance: none;
-    background-color: var(--sb-input-bg); border: 2px solid var(--sb-border);
-    border-radius: 0.5rem; cursor: pointer; position: relative; transition: all 0.2s;
-    display: flex; align-items: center; justify-content: center;
-}
-.big-checkbox:checked { border-color: transparent; }
-.big-checkbox:checked::after {
-    content: '\F26A'; font-family: 'bootstrap-icons'; color: white; font-size: 1.2rem; font-weight: bold;
-}
-.big-checkbox:hover { border-color: var(--sb-accent); }
-.tick-label { font-weight: 600; color: var(--sb-text); cursor: pointer; }
-
-/* Progress */
-.progress-input-group {
-    display: flex; align-items: center; gap: 0.5rem; justify-content: center;
-    background: var(--sb-input-bg); padding: 0.3rem 0.5rem; border-radius: 0.75rem;
-    border: 1px solid var(--sb-border);
-}
-.progress-input {
-    width: 60px; background: transparent; border: 1px solid var(--sb-border);
-    color: var(--sb-text); border-radius: 0.5rem; padding: 0.3rem; text-align: center; font-weight: 700;
-}
-.progress-input:focus { outline: none; border-color: var(--sb-accent); }
-.progress-unit { color: var(--sb-text-muted); font-size: 0.9rem; font-weight: 600; }
-.achieved-badge {
-    display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1.25rem;
-    border-radius: 2rem; font-weight: 700; font-size: 0.9rem; color: white !important;
-    cursor: pointer; transition: transform 0.2s;
-}
-.achieved-badge:hover { transform: scale(1.05); }
-
-/* Weekly View */
-.weekly-history { display: flex; flex-direction: row; gap: 0.4rem; justify-content: center; flex-wrap: nowrap; }
-.day-box { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; min-width: 20px; }
-.day-box-label { font-size: 0.65rem; color: var(--sb-text-muted); text-transform: uppercase; font-weight: 700; }
-.day-box-indicator {
-    width: 20px; height: 20px; border-radius: 4px; background: var(--sb-input-bg);
-    border: 1px solid var(--sb-border); display: flex; align-items: center; justify-content: center;
-    transition: all 0.3s ease;
-}
-.day-box-indicator.done i { color: white; font-size: 0.75rem; }
-
-/* Buttons */
-.btn-stats-habit {
-    padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--sb-border);
-    background: var(--sb-input-bg); color: var(--sb-text-muted); font-size: 0.85rem;
-    font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 0.4rem;
-}
-.btn-stats-habit:hover { color: var(--sb-accent); border-color: var(--sb-accent); }
-
-.btn-delete-habit {
-    width: 36px; height: 36px; border-radius: 0.5rem; border: 1px solid var(--sb-border);
-    background: var(--sb-input-bg); color: #ef4444; display: flex; align-items: center;
-    justify-content: center; cursor: pointer; transition: all 0.2s;
-}
-.btn-delete-habit:hover { background: #ef4444; color: white; }
-
-/* Color Picker */
-.color-picker-group { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; height: 100%; }
-.color-option { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s; }
-.color-option:hover { transform: scale(1.15); }
-.color-option.selected { border-color: var(--sb-text); box-shadow: 0 0 0 3px var(--sb-glass-bg); }
-
-/* Heatmap & Expandable Area */
-.expandable-details {
-    border-top: 1px solid var(--sb-border);
-    background: rgba(0,0,0,0.02);
-    padding: 1.5rem;
-}
-[data-bs-theme="dark"] .expandable-details {
-    background: rgba(255,255,255,0.02);
-}
-
-.heatmap-scroll-container { width: 100%; overflow-x: auto; padding-bottom: 1rem; }
-.heatmap-grid { display: grid; grid-template-rows: repeat(7, 1fr); grid-auto-flow: column; gap: 4px; width: max-content; }
-.heatmap-cell { width: 14px; height: 14px; border-radius: 3px; background-color: var(--sb-border); position: relative; }
-.heatmap-cell[data-title]:hover::after {
-    content: attr(data-title); position: absolute; bottom: 100%; left: 50%;
-    transform: translateX(-50%) translateY(-5px); background: var(--sb-text); color: var(--sb-bg);
-    padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; white-space: nowrap; z-index: 10; pointer-events: none;
-}
-</style>
-{% endblock %}
+{% block head %}{% endblock %}
 
 {% block content %}
-<section class="container text-center pt-5 pb-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8 reveal">
-            <div class="d-inline-block px-3 py-1 rounded-pill mb-3" style="background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.2);">
-                <i class="bi bi-calendar-check me-2"></i>Productivity Tool
-            </div>
-            <h1 class="display-4 fw-black mb-3 gradient-text">Daily Habit Tracker</h1>
-            <p class="lead text-theme-muted mb-4">An advanced daily routine tracker featuring numeric goals, yearly heatmaps, and streaks.</p>
-        </div>
-    </div>
-</section>
+{{ tool_hero_section("calendar-check", "Productivity Tool", "DAILY HABIT", "TRACKER", "Track your daily habits with yearly heatmaps, streaks, and progress tracking.") }}
 
-<section class="container pb-5 reveal">
-    <div class="habit-tracker-wrapper px-4 mx-auto" style="max-width: 1000px;">
-        <div class="habit-dashboard">
-            
-            <div class="habit-header">
-                <div>
-                    <h3 class="fw-bold mb-0" style="color: var(--sb-text);" id="currentDateDisplay">Today</h3>
-                    <p class="small mb-0" style="color: var(--sb-text-muted);">Consistency builds mastery. Keep going.</p>
-                </div>
-                <div class="d-flex gap-3 flex-wrap">
-                    <div class="habit-stat-box">
-                        <h4 id="longestStreakStat">0</h4>
-                        <span>Best Streak</span>
-                    </div>
-                    <div class="habit-stat-box">
-                        <h4 id="completedTodayStat" style="color: #10b981;">0</h4>
-                        <span>Done Today</span>
-                    </div>
-                </div>
-            </div>
+<section class="max-w-5xl mx-auto px-4 pb-5 reveal">
+<div class="max-w-5xl mx-auto w-full">
+ <div class="habit-tracker-wrapper px-4 mx-auto" style="max-width: 1000px;">
+ <div class="habit-dashboard">
+ 
+ <div class="habit-header">
+ <div>
+ <h2 class="font-bold mb-0" style="color: var(--color-base-content);" id="currentDateDisplay">Today</h2>
+ </h3>
+<p class="text-sm mb-0 text-base-content/50">Consistency builds mastery. Keep going.</p>
+ </div>
+ <div class="flex gap-3 flex-wrap">
+ <div class="habit-stat-box">
+ <h4 id="longestStreakStat">0</h4>
+ <span>Best Streak</span>
+ </div>
+ <div class="habit-stat-box">
+ <h4 id="completedTodayStat" style="color: #10b981;">0</h4>
+ <span>Done Today</span>
+ </div>
+ </div>
+ </div>
 
-            <div class="progress-text d-flex justify-content-between">
-                <span>Daily Goal Progress</span>
-                <span id="progressPercentage">0%</span>
-            </div>
-            <div class="progress-container">
-                <div class="progress-bar-fill" id="dailyProgressBar"></div>
-            </div>
+<div class="flex justify-between items-center mb-1">
+ <span class="text-sm font-bold text-base-content/60">Daily Goal Progress</span>
+ <span class="text-sm font-bold text-primary" id="progressPercentage">0%</span>
+</div>
+<div class="h-2 bg-base-300/30 rounded-full overflow-hidden">
+ <div class="h-full bg-gradient-to-r from-primary to-pink-500 rounded-full transition-all duration-700 ease-out" id="dailyProgressBar" style="width:0%"></div>
+</div>
 
-            <div class="p-4 mb-5 position-relative" style="border: 1px solid var(--sb-border); background: var(--sb-input-bg); border-radius: 1rem;">
-                <h6 class="fw-bold mb-3" style="color: var(--sb-text);"><i class="bi bi-plus-circle me-2"></i>Add New Habit</h6>
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label small fw-bold" style="color: var(--sb-text-muted);">Habit Name</label>
-                        <input type="text" class="form-control form-control-sm custom-input" id="habitInput" placeholder="e.g. Read, Water">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small fw-bold" style="color: var(--sb-text-muted);">Target #</label>
-                        <input type="number" class="form-control form-control-sm custom-input" id="goalTarget" placeholder="e.g. 1 (blank)">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small fw-bold" style="color: var(--sb-text-muted);">Unit</label>
-                        <input type="text" class="form-control form-control-sm custom-input" id="goalUnit" placeholder="e.g. pages (blank)">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label small fw-bold" style="color: var(--sb-text-muted);">Theme</label>
-                        <div class="color-picker-group" id="colorPicker">
-                            <div class="color-option selected" style="background-color: #3b82f6;" data-color="#3b82f6"></div>
-                            <div class="color-option" style="background-color: #10b981;" data-color="#10b981"></div>
-                            <div class="color-option" style="background-color: #f59e0b;" data-color="#f59e0b"></div>
-                            <div class="color-option" style="background-color: #ef4444;" data-color="#ef4444"></div>
-                            <div class="color-option" style="background-color: #8b5cf6;" data-color="#8b5cf6"></div>
-                        </div>
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button class="btn btn-primary w-100 fw-bold" id="addHabitBtn">Add</button>
-                    </div>
-                </div>
-            </div>
+ <div class="p-4 mb-5 relative" style="border: 1px solid var(--color-base-300); background: var(--color-base-200); border-radius: 1rem;">
+ <h6 class="font-bold mb-3" style="color: var(--color-base-content);">{{ lucide_icon("plus-circle","w-5 h-5", 20) | safe }} Add New Habit</h6>
+ <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+ <div class="md:w-1/4">
+ <label class="label-cinematic text-base-content/50" for="habitInput">Habit Name</label>
+ <input type="text" class="input input-sm input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" id="habitInput" placeholder="e.g. Read, Water">
+ </div>
+ <div class="md:w-1/6">
+ <label class="label-cinematic text-base-content/50" for="goalTarget">Target #</label>
+ <input type="number" class="input input-sm input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" id="goalTarget" placeholder="e.g. 1 (blank)">
+ </div>
+ <div class="md:w-1/6">
+ <label class="label-cinematic text-base-content/50" for="goalUnit">Unit</label>
+ <input type="text" class="input input-sm input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" id="goalUnit" placeholder="e.g. pages (blank)">
+ </div>
+ <div class="md:w-1/4">
+ <label class="label-cinematic text-base-content/50">Theme</label>
+ <div class="color-picker-group" id="colorPicker">
+ <div class="color-option selected" style="background-color: #3b82f6;" data-color="#3b82f6"></div>
+ <div class="color-option" style="background-color: #10b981;" data-color="#10b981"></div>
+ <div class="color-option" style="background-color: #f59e0b;" data-color="#f59e0b"></div>
+ <div class="color-option" style="background-color: #ef4444;" data-color="#ef4444"></div>
+ <div class="color-option" style="background-color: #8b5cf6;" data-color="#8b5cf6"></div>
+ </div>
+ </div>
+ <div class="md:w-1/6 flex items-end">
+ <button class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl" id="addHabitBtn">Add</button>
+ </div>
+ </div>
+ </div>
 
-            <div id="habitListWrapper" class="d-none">
-                <div class="habit-list-header">
-                    <div class="hl-main">Habit Detail</div>
-                    <div class="hl-progress">Today's Progress</div>
-                    <div class="hl-history">Last 7 Days</div>
-                    <div class="hl-actions">Actions</div>
-                </div>
-                <div class="habit-list-container" id="habitContainer">
-                </div>
-            </div>
+ <div id="habitListWrapper" class="hidden">
+ <div class="habit-list-header">
+ <div class="hl-main">Habit Detail</div>
+ <div class="hl-progress">Today's Progress</div>
+ <div class="hl-history">Last 7 Days</div>
+ <div class="hl-actions">Actions</div>
+ </div>
+ <div class="habit-list-max-w-5xl mx-auto px-4-site-site" id="habitContainer">
+ </div>
+ </div>
 
-            <div id="emptyState" class="text-center py-5">
-                <i class="bi bi-calendar-plus mb-3" style="font-size: 3rem; color: var(--sb-text-faint);"></i>
-                <h5 class="fw-bold" style="color: var(--sb-text);">Your dashboard is empty</h5>
-                <p style="color: var(--sb-text-muted);">Create your first daily habit above to begin tracking your journey.</p>
-            </div>
+ <div id="emptyState" class="text-center py-5">
+ <i class="text-5xl text-base-content/40 block mb-3">{{ lucide_icon("calendar-plus","w-5 h-5", 20) | safe }}</i>
+ <h5 class="font-bold" style="color: var(--color-base-content);">Your dashboard is empty</h5>
+ <p class="text-base-content/50">Create your first daily habit above to begin tracking your journey.</p>
+ </div>
 
-            <div class="d-flex justify-content-between align-items-center mt-5">
-                <span class="small" style="color: var(--sb-text-muted);"><i class="bi bi-shield-check text-success me-1"></i> 100% Private (No data leaves your device)</span>
-                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="exportDataBtn"><i class="bi bi-download me-2"></i>Backup Data</button>
-            </div>
+ <div class="flex justify-between items-center mt-5">
+ <span class="text-sm text-base-content/50">{{ lucide_icon("shield-check","w-5 h-5", 20) | safe }} 100% Private (No data leaves your device)</span>
+ <button class="btn btn-cinematic py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl" id="exportDataBtn">{{ lucide_icon("download","w-5 h-5", 20) | safe }} Backup Data</button>
+ </div>
 
-        </div>
-    </div>
+ </div>
+ </div>
+</div>
 </section>
 
 <!-- JavaScript Logic -->
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-    const habitInput = document.getElementById("habitInput");
-    const goalTargetInput = document.getElementById("goalTarget");
-    const goalUnitInput = document.getElementById("goalUnit");
-    const addHabitBtn = document.getElementById("addHabitBtn");
-    const colorOptions = document.querySelectorAll(".color-option");
-    
-    const habitListWrapper = document.getElementById("habitListWrapper");
-    const habitContainer = document.getElementById("habitContainer");
-    const emptyState = document.getElementById("emptyState");
-    
-    const currentDateDisplay = document.getElementById("currentDateDisplay");
-    const longestStreakStat = document.getElementById("longestStreakStat");
-    const completedTodayStat = document.getElementById("completedTodayStat");
-    const dailyProgressBar = document.getElementById("dailyProgressBar");
-    const progressPercentage = document.getElementById("progressPercentage");
+(function(){
+'use strict';
+document.addEventListener("DOMContentLoaded", function() {
+ const habitInput = document.getElementById("habitInput");
+ const goalTargetInput = document.getElementById("goalTarget");
+ const goalUnitInput = document.getElementById("goalUnit");
+ const addHabitBtn = document.getElementById("addHabitBtn");
+ const colorOptions = document.querySelectorAll(".color-option");
+ 
+ const habitListWrapper = document.getElementById("habitListWrapper");
+ const habitContainer = document.getElementById("habitContainer");
+ const emptyState = document.getElementById("emptyState");
+ 
+ const currentDateDisplay = document.getElementById("currentDateDisplay");
+ const longestStreakStat = document.getElementById("longestStreakStat");
+ const completedTodayStat = document.getElementById("completedTodayStat");
+ const dailyProgressBar = document.getElementById("dailyProgressBar");
+ const progressPercentage = document.getElementById("progressPercentage");
 
-    let habits = JSON.parse(localStorage.getItem("sb_habits_v2")) || [];
-    let selectedColor = "#3b82f6";
+ let habits = JSON.parse(localStorage.getItem("sb_habits_v2")) || [];
+ let selectedColor ="#3b82f6";
 
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const todayString = getLocalDateString(today);
-    
-    const last7Days = [];
-    for(let i=6; i>=0; i--) {
-        let d = new Date(today);
-        d.setDate(d.getDate() - i);
-        last7Days.push({
-            dateString: getLocalDateString(d),
-            dayLabel: d.toLocaleDateString('en-US', { weekday: 'short' })
-        });
+ const today = new Date();
+ today.setHours(0,0,0,0);
+ const todayString = getLocalDateString(today);
+ 
+ const last7Days = [];
+ for(let i=6; i>=0; i--) {
+ let d = new Date(today);
+ d.setDate(d.getDate() - i);
+ last7Days.push({
+ dateString: getLocalDateString(d),
+ dayLabel: d.toLocaleDateString('en-US', { weekday: 'short' })
+ });
+ }
+
+ const options = { weekday: 'long', month: 'long', day: 'numeric' };
+ currentDateDisplay.textContent = today.toLocaleDateString('en-US', options);
+
+  colorOptions.forEach(function(option) {
+  option.addEventListener("click", function() {
+  colorOptions.forEach(function(opt){opt.classList.remove("selected");});
+  option.classList.add("selected");
+  selectedColor = option.dataset.color;
+  });
+  });
+
+  addHabitBtn.addEventListener("click", function() {
+  var name = habitInput.value.trim();
+  var target = parseFloat(goalTargetInput.value.trim()) || 1; 
+  var unit = goalUnitInput.value.trim();
+  if (!name) return;
+
+  var newHabit = {
+  id: Date.now().toString(),
+  name: name,
+  goalTarget: target,
+  goalUnit: unit,
+  color: selectedColor,
+  created: todayString,
+  completedDates: [],
+  progressRecords: {}
+  };
+
+  habits.push(newHabit);
+  saveHabits();
+  renderHabits();
+  updateStats();
+  habitInput.value ="";
+  goalTargetInput.value ="";
+  goalUnitInput.value ="";
+  });
+
+ function saveHabits() {
+ localStorage.setItem("sb_habits_v2", JSON.stringify(habits));
+ }
+ 
+ function isCompleted(habit, dateStr) {
+ if (habit.completedDates && habit.completedDates.includes(dateStr)) return true;
+ if (habit.progressRecords && habit.progressRecords[dateStr] !== undefined) {
+ const target = habit.goalTarget || 1;
+ if (habit.progressRecords[dateStr]>= target) return true;
+ }
+ return false;
+ }
+
+ function getTodayProgress(habit) {
+ if (habit.progressRecords && habit.progressRecords[todayString] !== undefined) {
+ return habit.progressRecords[todayString];
+ }
+ if (habit.completedDates && habit.completedDates.includes(todayString)) {
+ return habit.goalTarget || 1;
+ }
+ return 0;
+ }
+
+ function getLocalDateString(dateObj) {
+ const year = dateObj.getFullYear();
+ const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+ const day = String(dateObj.getDate()).padStart(2, '0');
+ return `${year}-${month}-${day}`;
+ }
+
+ function calculateStreaks(habit) {
+ const allDoneDates = [];
+ if (habit.completedDates) allDoneDates.push(...habit.completedDates);
+ if (habit.progressRecords) {
+ for (const [date, val] of Object.entries(habit.progressRecords)) {
+ if (val>= (habit.goalTarget || 1) && !allDoneDates.includes(date)) {
+ allDoneDates.push(date);
+ }
+ }
+ }
+
+ if (allDoneDates.length === 0) return { current: 0, best: 0, total: 0 };
+ const sorted = [...new Set(allDoneDates)].sort();
+ 
+ let best = 1;
+ let currentRun = 1;
+ 
+ for(let i=1; i<sorted.length; i++) {
+ const prev = new Date(sorted[i-1]);
+ const curr = new Date(sorted[i]);
+ const diffDays = Math.round((curr - prev) / (1000 * 60 * 60 * 24)); 
+ 
+ if(diffDays === 1) {
+ currentRun++;
+ if(currentRun> best) best = currentRun;
+ } else if(diffDays> 1) {
+ currentRun = 1;
+ }
+ }
+ 
+ const reverseSorted = [...sorted].reverse();
+ let currentStreak = 0;
+ let checkDate = new Date(today);
+ 
+ const hasToday = reverseSorted.includes(todayString);
+ if (!hasToday) {
+ let yesterday = new Date(checkDate);
+ yesterday.setDate(yesterday.getDate() - 1);
+ if (!reverseSorted.includes(getLocalDateString(yesterday))) {
+ return { current: 0, best: best, total: sorted.length };
+ } else {
+ checkDate = yesterday;
+ }
+ }
+
+ for (let i = 0; i <365; i++) {
+ if (reverseSorted.includes(getLocalDateString(checkDate))) {
+ currentStreak++;
+ checkDate.setDate(checkDate.getDate() - 1);
+ } else {
+ break;
+ }
+ }
+ 
+ if (currentStreak> best) best = currentStreak;
+ return { current: currentStreak, best: best, total: sorted.length };
+ }
+
+ function generateHeatmap(habit) {
+ let html = '';
+ let dDate = new Date(today);
+ dDate.setDate(dDate.getDate() - 364); 
+ 
+ for(let i=0; i<365; i++) {
+ const dateStr = getLocalDateString(dDate);
+ const isDone = isCompleted(habit, dateStr);
+ const bg = isDone ? habit.color : 'var(--color-base-300)';
+ const opacity = isDone ? '0.9' : '1';
+ 
+ html += `<div class="heatmap-cell" data-title="${dateStr}" style="background-color: ${bg}; opacity: ${opacity};"></div>`;
+ dDate.setDate(dDate.getDate() + 1);
+ }
+ return html;
+ }
+
+  function updateProgress(id, value) {
+  var habit = null;
+  for (var i=0;i<habits.length;i++){if(habits[i].id===id){habit=habits[i];break;}}
+  if (habit) {
+  if (!habit.progressRecords) habit.progressRecords = {};
+  habit.progressRecords[todayString] = parseFloat(value) || 0;
+  saveHabits();
+  renderHabits();
+  updateStats();
+  }
+  }
+
+  function toggleCheckbox(id, checked) {
+  var habit = null;
+  for (var i=0;i<habits.length;i++){if(habits[i].id===id){habit=habits[i];break;}}
+  if (habit) {
+  if (checked) {
+  if (!habit.progressRecords) habit.progressRecords = {};
+  habit.progressRecords[todayString] = habit.goalTarget || 1;
+  if (!habit.completedDates) habit.completedDates = [];
+  if (!habit.completedDates.includes(todayString)) {
+  habit.completedDates.push(todayString);
+  }
+  } else {
+  if (habit.progressRecords) habit.progressRecords[todayString] = 0;
+  if (habit.completedDates) {
+  var index = habit.completedDates.indexOf(todayString);
+  if (index > -1) habit.completedDates.splice(index, 1);
+  }
+  }
+  saveHabits();
+  renderHabits();
+  updateStats();
+  }
+  }
+
+ function renderHabits() {
+ habitContainer.innerHTML ="";
+ 
+ if (habits.length === 0) {
+ emptyState.classList.remove("hidden");
+ habitListWrapper.classList.add("hidden");
+ return;
+ } else {
+ emptyState.classList.add("hidden");
+ habitListWrapper.classList.remove("hidden");
+ }
+
+  habits.forEach(function(habit) {
+  var target = habit.goalTarget || 1;
+  var unit = habit.goalUnit || '';
+  var todayVal = getTodayProgress(habit);
+  var isDoneToday = isCompleted(habit, todayString);
+  var streaks = calculateStreaks(habit);
+  var heatmapHtml = generateHeatmap(habit);
+ 
+ let historyHtml = '';
+  last7Days.forEach(function(day) {
+  var isDone = isCompleted(habit, day.dateString);
+  var bgStyle = isDone ? 'background-color: ' + habit.color + '; border-color: ' + habit.color + ';' : '';
+  var iconHtml = isDone ? __lucide("check",16) : '';
+ 
+ historyHtml += `
+ <div class="day-box">
+ <span class="day-box-label">${day.dayLabel[0]}</span>
+ <div class="day-box-indicator ${isDone ? 'done' : ''}" style="${bgStyle}" title="${day.dateString}">
+ ${iconHtml}
+ </div>
+ </div>
+ `;
+ });
+
+ let statusHtml = '';
+  if (target === 1 && !unit) {
+  statusHtml = `
+  <div class="flex items-center gap-2">
+  <input type="checkbox" class="big-checkbox" data-action="toggle" data-habit-id="${habit.id}" 
+  ${isDoneToday ? 'checked' : ''} 
+  style="${isDoneToday ? 'background-color: ' + habit.color + ';' : ''}">
+  <label class="tick-label m-0">${isDoneToday ? 'Achieved!' : 'Mark Done'}</label>
+  </div>
+  `;
+  } else {
+  if (isDoneToday) {
+  statusHtml = `
+  <div class="achieved-badge badge-soft badge-primary" data-action="undo" data-habit-id="${habit.id}" style="background-color: ${habit.color};">
+  ${__lucide("check-circle-2",16)} Achieved!
+  </div>
+  `;
+  } else {
+  statusHtml = `
+  <div class="h-2 bg-muted rounded-full progress-bar-fill">
+  <input type="number" class="h-2 bg-muted rounded-full progress-bar-fill" value="${todayVal}" min="0" data-action="progress" data-habit-id="${habit.id}">
+  <span class="h-2 bg-muted rounded-full progress-bar-fill">/ ${target} ${unit}</span>
+  <button class="btn btn-sm text-base-content ml-2" style="background: ${habit.color}; border-radius: 0.5rem;" data-action="mark" data-habit-id="${habit.id}" aria-label="Mark habit as achieved">
+  {{ lucide_icon("check","w-5 h-5", 20) | safe }} </button>
+  </div>
+  `;
+  }
+  }
+
+ const wrapper = document.createElement("div");
+ wrapper.className ="habit-card-wrapper";
+ 
+ // Generate standard card row, plus the new native Collapse for the details!
+ wrapper.innerHTML = `
+ <div class="habit-card-row">
+ <div class="habit-card-main">
+ <div class="habit-color-indicator" style="background-color: ${habit.color}; box-shadow: 0 0 12px ${habit.color}60;"></div>
+ <div>
+ <p class="habit-name">${habit.name}</p>
+ <p class="habit-streak">{{ lucide_icon("flame","w-5 h-5", 20) | safe }} ${streaks.current} Day Streak</p>
+ </div>
+ </div>
+ 
+ <div class="habit-card-progress">
+ ${statusHtml}
+ </div>
+ 
+ <div class="habit-card-history">
+ <div class="weekly-history">${historyHtml}</div>
+ </div>
+ 
+ <div class="habit-card-actions">
+ <!-- Replaced Stats modal button with native Collapse toggle -->
+ <button class="btn-stats-habit" type="button" aria-expanded="false" aria-controls="collapse-${habit.id}">
+ {{ lucide_icon("chevron-down","w-5 h-5", 20) | safe }} Details
+ </button>
+ <button class="btn-delete-habit" data-id="${habit.id}" aria-label="Delete habit">
+ {{ lucide_icon("trash-2","w-5 h-5", 20) | safe }} </button>
+ </div>
+ </div>
+ 
+ <!-- Expandable Accordion Content -->
+ <div class="collapse" id="collapse-${habit.id}">
+ <div class="expandable-details">
+ <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+ 
+ <div class="flex justify-between border-b pb-2 mb-2" style="border-color: var(--color-base-300) !important;">
+ <span style="color: color-mix(in oklab, var(--color-base-content) 50%, transparent); font-weight: 600;">Target Goal</span>
+ <strong style="color: var(--color-base-content);">${target} ${unit} / day</strong>
+ 
+ <div class="flex justify-between border-b pb-2 mb-2" style="border-color: var(--color-base-300) !important;">
+ <span style="color: color-mix(in oklab, var(--color-base-content) 50%, transparent); font-weight: 600;">Current Streak</span>
+ <strong style="color: var(--color-base-content);">${streaks.current} Days</strong>
+ </div>
+ </div>
+ 
+ <div class="flex justify-between border-b pb-2 mb-2" style="border-color: var(--color-base-300) !important;">
+ <span style="color: color-mix(in oklab, var(--color-base-content) 50%, transparent); font-weight: 600;">Best Streak</span>
+ <strong style="color: var(--color-base-content);">${streaks.best} Days</strong>
+ 
+ <div class="flex justify-between border-b pb-2 mb-2" style="border-color: var(--color-base-300) !important;">
+ <span style="color: color-mix(in oklab, var(--color-base-content) 50%, transparent); font-weight: 600;">Total Completions</span>
+ <strong style="color: #10b981;">${streaks.total} Times</strong>
+ </div>
+ </div>
+ </div>
+ 
+ <h6 class="font-bold mb-3" style="color: var(--color-base-content);">Yearly Contributions (365 Days)</h6>
+ <div class="heatmap-scroll-max-w-5xl mx-auto px-4-site-site">
+ <div class="heatmap-grid">${heatmapHtml}</div>
+ </div>
+ </div>
+ </div>
+ `;
+ habitContainer.appendChild(wrapper);
+ });
+
+  document.querySelectorAll(".btn-delete-habit").forEach(function(btn) {
+  btn.addEventListener("click", function(e) {
+  if (confirm("Delete this habit? All data will be lost.")) {
+  habits = habits.filter(function(h){return h.id !== e.currentTarget.dataset.id;});
+  saveHabits();
+  renderHabits();
+  updateStats();
+  }
+  });
+  });
+ }
+
+ function updateStats() {
+ if (habits.length === 0) {
+ longestStreakStat.textContent ="0";
+ completedTodayStat.textContent ="0 / 0";
+ dailyProgressBar.style.width ="0%";
+ progressPercentage.textContent ="0%";
+ return;
+ }
+
+ let maxStreak = 0;
+ let completedCount = 0;
+
+  habits.forEach(function(habit) {
+  var streaks = calculateStreaks(habit);
+  if(streaks.best> maxStreak) maxStreak = streaks.best;
+  if(isCompleted(habit, todayString)) completedCount++;
+  });
+
+ longestStreakStat.textContent = maxStreak;
+ completedTodayStat.textContent = `${completedCount} / ${habits.length}`;
+ 
+ const percentage = Math.round((completedCount / habits.length) * 100);
+ dailyProgressBar.style.width = `${percentage}%`;
+ progressPercentage.textContent = `${percentage}%`;
+ 
+ if (percentage === 100) {
+ dailyProgressBar.style.background ="linear-gradient(90deg, var(--color-success), color-mix(in oklab, var(--color-success) 80%, #fff))";
+ } else {
+ dailyProgressBar.style.background ="linear-gradient(90deg, var(--color-primary), var(--color-secondary))";
+ }
+ }
+
+  renderHabits();
+  updateStats();
+
+  document.getElementById("habitContainer").addEventListener("change", function(e) {
+    var action = e.target.getAttribute("data-action");
+    var habitId = e.target.getAttribute("data-habit-id");
+    if (!action || !habitId) return;
+    if (action === "toggle") {
+      toggleCheckbox(habitId, e.target.checked);
+    } else if (action === "progress") {
+      updateProgress(habitId, e.target.value);
     }
+  });
 
-    const options = { weekday: 'long', month: 'long', day: 'numeric' };
-    currentDateDisplay.textContent = today.toLocaleDateString('en-US', options);
-
-    colorOptions.forEach(option => {
-        option.addEventListener("click", () => {
-            colorOptions.forEach(opt => opt.classList.remove("selected"));
-            option.classList.add("selected");
-            selectedColor = option.dataset.color;
-        });
-    });
-
-    addHabitBtn.addEventListener("click", () => {
-        const name = habitInput.value.trim();
-        const target = parseFloat(goalTargetInput.value.trim()) || 1; 
-        const unit = goalUnitInput.value.trim();
-        if (!name) return;
-
-        const newHabit = {
-            id: Date.now().toString(),
-            name: name,
-            goalTarget: target,
-            goalUnit: unit,
-            color: selectedColor,
-            created: todayString,
-            completedDates: [],
-            progressRecords: {}
-        };
-
-        habits.push(newHabit);
-        saveHabits();
-        renderHabits();
-        updateStats();
-        habitInput.value = "";
-        goalTargetInput.value = "";
-        goalUnitInput.value = "";
-    });
-
-    function saveHabits() {
-        localStorage.setItem("sb_habits_v2", JSON.stringify(habits));
+  document.getElementById("habitContainer").addEventListener("click", function(e) {
+    var target = e.target.closest("[data-action]");
+    if (!target) return;
+    var action = target.getAttribute("data-action");
+    var habitId = target.getAttribute("data-habit-id");
+    if (!action || !habitId) return;
+    if (action === "undo") {
+      toggleCheckbox(habitId, false);
+    } else if (action === "mark") {
+      toggleCheckbox(habitId, true);
     }
-    
-    function isCompleted(habit, dateStr) {
-        if (habit.completedDates && habit.completedDates.includes(dateStr)) return true;
-        if (habit.progressRecords && habit.progressRecords[dateStr] !== undefined) {
-            const target = habit.goalTarget || 1;
-            if (habit.progressRecords[dateStr] >= target) return true;
-        }
-        return false;
-    }
-
-    function getTodayProgress(habit) {
-        if (habit.progressRecords && habit.progressRecords[todayString] !== undefined) {
-            return habit.progressRecords[todayString];
-        }
-        if (habit.completedDates && habit.completedDates.includes(todayString)) {
-            return habit.goalTarget || 1;
-        }
-        return 0;
-    }
-
-    function getLocalDateString(dateObj) {
-        const year = dateObj.getFullYear();
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
-
-    function calculateStreaks(habit) {
-        const allDoneDates = [];
-        if (habit.completedDates) allDoneDates.push(...habit.completedDates);
-        if (habit.progressRecords) {
-            for (const [date, val] of Object.entries(habit.progressRecords)) {
-                if (val >= (habit.goalTarget || 1) && !allDoneDates.includes(date)) {
-                    allDoneDates.push(date);
-                }
-            }
-        }
-
-        if (allDoneDates.length === 0) return { current: 0, best: 0, total: 0 };
-        const sorted = [...new Set(allDoneDates)].sort();
-        
-        let best = 1;
-        let currentRun = 1;
-        
-        for(let i=1; i<sorted.length; i++) {
-            const prev = new Date(sorted[i-1]);
-            const curr = new Date(sorted[i]);
-            const diffDays = Math.round((curr - prev) / (1000 * 60 * 60 * 24)); 
-            
-            if(diffDays === 1) {
-                currentRun++;
-                if(currentRun > best) best = currentRun;
-            } else if(diffDays > 1) {
-                currentRun = 1;
-            }
-        }
-        
-        const reverseSorted = [...sorted].reverse();
-        let currentStreak = 0;
-        let checkDate = new Date(today);
-        
-        const hasToday = reverseSorted.includes(todayString);
-        if (!hasToday) {
-            let yesterday = new Date(checkDate);
-            yesterday.setDate(yesterday.getDate() - 1);
-            if (!reverseSorted.includes(getLocalDateString(yesterday))) {
-                return { current: 0, best: best, total: sorted.length };
-            } else {
-                checkDate = yesterday;
-            }
-        }
-
-        for (let i = 0; i < 365; i++) {
-            if (reverseSorted.includes(getLocalDateString(checkDate))) {
-                currentStreak++;
-                checkDate.setDate(checkDate.getDate() - 1);
-            } else {
-                break;
-            }
-        }
-        
-        if (currentStreak > best) best = currentStreak;
-        return { current: currentStreak, best: best, total: sorted.length };
-    }
-
-    function generateHeatmap(habit) {
-        let html = '';
-        let dDate = new Date(today);
-        dDate.setDate(dDate.getDate() - 364); 
-        
-        for(let i=0; i<365; i++) {
-            const dateStr = getLocalDateString(dDate);
-            const isDone = isCompleted(habit, dateStr);
-            const bg = isDone ? habit.color : 'var(--sb-border)';
-            const opacity = isDone ? '0.9' : '1';
-            
-            html += `<div class="heatmap-cell" data-title="${dateStr}" style="background-color: ${bg}; opacity: ${opacity};"></div>`;
-            dDate.setDate(dDate.getDate() + 1);
-        }
-        return html;
-    }
-
-    window.updateProgress = function(id, value) {
-        const habit = habits.find(h => h.id === id);
-        if (habit) {
-            if (!habit.progressRecords) habit.progressRecords = {};
-            habit.progressRecords[todayString] = parseFloat(value) || 0;
-            saveHabits();
-            renderHabits();
-            updateStats();
-        }
-    };
-
-    window.toggleCheckbox = function(id, checked) {
-        const habit = habits.find(h => h.id === id);
-        if (habit) {
-            if (checked) {
-                if (!habit.progressRecords) habit.progressRecords = {};
-                habit.progressRecords[todayString] = habit.goalTarget || 1;
-                if (!habit.completedDates) habit.completedDates = [];
-                if (!habit.completedDates.includes(todayString)) {
-                    habit.completedDates.push(todayString);
-                }
-            } else {
-                if (habit.progressRecords) habit.progressRecords[todayString] = 0;
-                if (habit.completedDates) {
-                    const index = habit.completedDates.indexOf(todayString);
-                    if (index > -1) habit.completedDates.splice(index, 1);
-                }
-            }
-            saveHabits();
-            renderHabits();
-            updateStats();
-        }
-    };
-
-    window.markAchieved = function(id) { toggleCheckbox(id, true); };
-    window.undoAchieved = function(id) { toggleCheckbox(id, false); }
-
-    function renderHabits() {
-        habitContainer.innerHTML = "";
-        
-        if (habits.length === 0) {
-            emptyState.classList.remove("d-none");
-            habitListWrapper.classList.add("d-none");
-            return;
-        } else {
-            emptyState.classList.add("d-none");
-            habitListWrapper.classList.remove("d-none");
-        }
-
-        habits.forEach(habit => {
-            const target = habit.goalTarget || 1;
-            const unit = habit.goalUnit || '';
-            const todayVal = getTodayProgress(habit);
-            const isDoneToday = isCompleted(habit, todayString);
-            const streaks = calculateStreaks(habit);
-            const heatmapHtml = generateHeatmap(habit);
-            
-            let historyHtml = '';
-            last7Days.forEach(day => {
-                const isDone = isCompleted(habit, day.dateString);
-                const bgStyle = isDone ? `background-color: ${habit.color}; border-color: ${habit.color};` : '';
-                const iconHtml = isDone ? '<i class="bi bi-check"></i>' : '';
-                
-                historyHtml += `
-                    <div class="day-box">
-                        <span class="day-box-label">${day.dayLabel[0]}</span>
-                        <div class="day-box-indicator ${isDone ? 'done' : ''}" style="${bgStyle}" title="${day.dateString}">
-                            ${iconHtml}
-                        </div>
-                    </div>
-                `;
-            });
-
-            let statusHtml = '';
-            if (target === 1 && !unit) {
-                statusHtml = `
-                    <div class="d-flex align-items-center gap-2">
-                        <input type="checkbox" class="big-checkbox" id="check-${habit.id}" 
-                            ${isDoneToday ? 'checked' : ''} 
-                            style="${isDoneToday ? 'background-color: ' + habit.color + ';' : ''}"
-                            onchange="toggleCheckbox('${habit.id}', this.checked)">
-                        <label for="check-${habit.id}" class="tick-label m-0">${isDoneToday ? 'Achieved!' : 'Mark Done'}</label>
-                    </div>
-                `;
-            } else {
-                if (isDoneToday) {
-                    statusHtml = `
-                        <div class="achieved-badge" style="background-color: ${habit.color};" onclick="undoAchieved('${habit.id}')">
-                            <i class="bi bi-check-circle-fill"></i> Achieved!
-                        </div>
-                    `;
-                } else {
-                    statusHtml = `
-                        <div class="progress-input-group">
-                            <input type="number" class="progress-input" value="${todayVal}" min="0" 
-                                onchange="updateProgress('${habit.id}', this.value)">
-                            <span class="progress-unit">/ ${target} ${unit}</span>
-                            <button class="btn btn-sm text-white ms-2" style="background: ${habit.color}; border-radius: 0.5rem;" onclick="markAchieved('${habit.id}')">
-                                <i class="bi bi-check2"></i>
-                            </button>
-                        </div>
-                    `;
-                }
-            }
-
-            const wrapper = document.createElement("div");
-            wrapper.className = "habit-card-wrapper";
-            
-            // Generate standard card row, plus the new native Bootstrap Collapse for the details!
-            wrapper.innerHTML = `
-                <div class="habit-card-row">
-                    <div class="habit-card-main">
-                        <div class="habit-color-indicator" style="background-color: ${habit.color}; box-shadow: 0 0 12px ${habit.color}60;"></div>
-                        <div>
-                            <p class="habit-name">${habit.name}</p>
-                            <p class="habit-streak"><i class="bi bi-fire text-warning"></i> ${streaks.current} Day Streak</p>
-                        </div>
-                    </div>
-                    
-                    <div class="habit-card-progress">
-                        ${statusHtml}
-                    </div>
-                    
-                    <div class="habit-card-history">
-                        <div class="weekly-history">${historyHtml}</div>
-                    </div>
-                    
-                    <div class="habit-card-actions">
-                        <!-- Replaced Stats modal button with native Collapse toggle -->
-                        <button class="btn-stats-habit" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-${habit.id}" aria-expanded="false" aria-controls="collapse-${habit.id}">
-                            <i class="bi bi-chevron-down"></i> Details
-                        </button>
-                        <button class="btn-delete-habit" data-id="${habit.id}" aria-label="Delete habit">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Expandable Accordion Content -->
-                <div class="collapse" id="collapse-${habit.id}">
-                    <div class="expandable-details">
-                        <div class="row g-4 mb-4">
-                            <div class="col-md-6">
-                                <div class="d-flex justify-content-between border-bottom pb-2 mb-2" style="border-color: var(--sb-border) !important;">
-                                    <span style="color: var(--sb-text-muted); font-weight: 600;">Target Goal</span>
-                                    <strong style="color: var(--sb-text);">${target} ${unit} / day</strong>
-                                </div>
-                                <div class="d-flex justify-content-between border-bottom pb-2 mb-2" style="border-color: var(--sb-border) !important;">
-                                    <span style="color: var(--sb-text-muted); font-weight: 600;">Current Streak</span>
-                                    <strong style="color: var(--sb-text);">${streaks.current} Days</strong>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="d-flex justify-content-between border-bottom pb-2 mb-2" style="border-color: var(--sb-border) !important;">
-                                    <span style="color: var(--sb-text-muted); font-weight: 600;">Best Streak</span>
-                                    <strong style="color: var(--sb-text);">${streaks.best} Days</strong>
-                                </div>
-                                <div class="d-flex justify-content-between border-bottom pb-2 mb-2" style="border-color: var(--sb-border) !important;">
-                                    <span style="color: var(--sb-text-muted); font-weight: 600;">Total Completions</span>
-                                    <strong style="color: #10b981;">${streaks.total} Times</strong>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <h6 class="fw-bold mb-3" style="color: var(--sb-text);">Yearly Contributions (365 Days)</h6>
-                        <div class="heatmap-scroll-container">
-                            <div class="heatmap-grid">${heatmapHtml}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            habitContainer.appendChild(wrapper);
-        });
-
-        document.querySelectorAll(".btn-delete-habit").forEach(btn => {
-            btn.addEventListener("click", (e) => {
-                if (confirm("Delete this habit? All data will be lost.")) {
-                    habits = habits.filter(h => h.id !== e.currentTarget.dataset.id);
-                    saveHabits();
-                    renderHabits();
-                    updateStats();
-                }
-            });
-        });
-    }
-
-    function updateStats() {
-        if (habits.length === 0) {
-            longestStreakStat.textContent = "0";
-            completedTodayStat.textContent = "0 / 0";
-            dailyProgressBar.style.width = "0%";
-            progressPercentage.textContent = "0%";
-            return;
-        }
-
-        let maxStreak = 0;
-        let completedCount = 0;
-
-        habits.forEach(habit => {
-            const streaks = calculateStreaks(habit);
-            if(streaks.best > maxStreak) maxStreak = streaks.best;
-            if(isCompleted(habit, todayString)) completedCount++;
-        });
-
-        longestStreakStat.textContent = maxStreak;
-        completedTodayStat.textContent = `${completedCount} / ${habits.length}`;
-        
-        const percentage = Math.round((completedCount / habits.length) * 100);
-        dailyProgressBar.style.width = `${percentage}%`;
-        progressPercentage.textContent = `${percentage}%`;
-        
-        if (percentage === 100) {
-            dailyProgressBar.style.background = "linear-gradient(90deg, #10b981, #34d399)";
-        } else {
-            dailyProgressBar.style.background = "linear-gradient(90deg, var(--sb-accent), #db2777)";
-        }
-    }
-
-    renderHabits();
-    updateStats();
+  });
 });
+})();
 </script>
 
-<!-- Dynamic JSON-LD Schema for Software & FAQ -->
 <script type="application/ld+json">
 {
-    "@context": "https://schema.org",
-    "@graph": [
-        {
-            "@type": "SoftwareApplication",
-            "name": "Daily Habit Tracker",
-            "applicationCategory": "HealthApplication",
-            "operatingSystem": "Web browser",
-            "offers": {
-                "@type": "Offer",
-                "price": "0",
-                "priceCurrency": "USD"
-            },
-            "description": "An advanced daily routine tracker featuring numeric goals, yearly heatmaps, and streaks."
-        },
-        {
-            "@type": "FAQPage",
-            "mainEntity": [
-                {
-                    "@type": "Question",
-                    "name": "Is my habit data stored on your servers?",
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "Absolutely not. This app is 100% private. All of your habits, daily progress logs, and streak history are stored locally within your browser's LocalStorage. No data is ever transmitted to a server or stored in a remote database."
-                    }
-                },
-                {
-                    "@type": "Question",
-                    "name": "What happens if I clear my browser history?",
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "Because this app is completely private and uses LocalStorage, clearing your browser's site data or cache will erase your habits. We highly recommend using the 'Backup Data' button at the bottom of the dashboard regularly to save your progress."
-                    }
-                }
-            ]
-        }
-    ]
+"@context":"https://schema.org",
+"@graph": [
+ {
+"@type":"SoftwareApplication",
+"name":"Daily Habit Tracker",
+"applicationCategory":"HealthApplication",
+"operatingSystem":"Web browser",
+"offers": {
+"@type":"Offer",
+"price":"0",
+"priceCurrency":"USD"
+  },
+"description":"An advanced daily routine tracker featuring numeric goals, yearly heatmaps, and streaks."
+  }
+  ]
 }
 </script>
-
-<!-- SEO Article Section -->
-<article class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;" itemscope itemtype="https://schema.org/Article">
-    <header class="mb-5">
-        <h2 class="fs-3 fw-bold mb-4" itemprop="headline">Comprehensive Guide to the Daily Habit Tracker</h2>
-        <p class="text-theme-muted mb-4 fs-6 lh-lg" itemprop="articleBody">Our Daily Habit Tracker is a free, privacy-first online web application designed to help you build consistency, track numeric goals, and monitor your long-term progress. Featuring advanced 365-day heatmaps and streak calculations, it gives you the analytical power of a premium app without requiring a signup or subscription.</p>
-    </header>
-
-    <h3 class="fs-4 fw-bold mb-3 mt-5">How to Use the Daily Habit Tracker</h3>
-    <section class="mb-5 text-start">
-        <ol class="list-group list-group-numbered list-group-flush border-0 bg-transparent">
-            <li class="list-group-item bg-transparent text-theme border-theme border-opacity-10 py-3"><strong>Create a Habit:</strong> Enter your habit name (e.g., "Reading"), set a numeric target (e.g., "10"), and a unit (e.g., "pages"). Choose a custom color theme and click Add.</li>
-            <li class="list-group-item bg-transparent text-theme border-theme border-opacity-10 py-3"><strong>Log Daily Progress:</strong> For binary goals (like "Drink Water"), simply click the large Checkbox. For numeric goals, type your exact progress into the daily input field. The system automatically marks it "Achieved!" when you hit your target.</li>
-            <li class="list-group-item bg-transparent text-theme border-theme border-opacity-10 py-3"><strong>Monitor Weekly History:</strong> Review the 7-day calendar view on each card to visually track your consistency over the past week.</li>
-            <li class="list-group-item bg-transparent text-theme border-theme border-opacity-10 py-3"><strong>Analyze Deep Stats:</strong> Click the "Details" accordion on any habit card to instantly reveal your Best Streak, Total Completions, and an advanced 365-day Yearly Heatmap.</li>
-        </ol>
-    </section>
-
-    <h3 class="fs-4 fw-bold mb-3 mt-5">How We Calculate Your Progress</h3>
-    <section class="row g-4 text-start mb-5">
-        <div class="col-md-6">
-            <div class="p-4 rounded-4 border border-theme h-100" style="background: rgba(255, 255, 255, 0.02);">
-                <h4 class="fs-5 fw-bold mb-3" style="color: var(--sb-teal);"><i class="bi bi-fire me-2"></i> Current & Best Streaks</h4>
-                <p class="text-theme-muted small m-0">The algorithm calculates your <strong>Current Streak</strong> by counting backwards from today (or yesterday, if today is incomplete) until it finds a missed day. Your <strong>Best Streak</strong> is the longest continuous chain of days you have ever achieved since creating the habit.</p>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="p-4 rounded-4 border border-theme h-100" style="background: rgba(255, 255, 255, 0.02);">
-                <h4 class="fs-5 fw-bold mb-3" style="color: var(--sb-teal);"><i class="bi bi-grid-3x3 me-2"></i> 365-Day Heatmap</h4>
-                <p class="text-theme-muted small m-0">Similar to developer contribution graphs, our <strong>Yearly Heatmap</strong> generates exactly 365 visual blocks representing the past year. Days you successfully hit your numeric target are colored brightly, while missed days remain muted, giving you an instant visual of your long-term consistency.</p>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="p-4 rounded-4 border border-theme h-100" style="background: rgba(255, 255, 255, 0.02);">
-                <h4 class="fs-5 fw-bold mb-3" style="color: var(--sb-teal);"><i class="bi bi-123 me-2"></i> Numeric Goal Tracking</h4>
-                <p class="text-theme-muted small m-0">Instead of simple pass/fail options, you can track exact numbers (e.g., 5 out of 10 pages). The system stores your fractional progress daily and only calculates a "completion" towards your streak if your logged number meets or exceeds your set target.</p>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="p-4 rounded-4 border border-theme h-100" style="background: rgba(255, 255, 255, 0.02);">
-                <h4 class="fs-5 fw-bold mb-3" style="color: var(--sb-teal);"><i class="bi bi-pie-chart me-2"></i> Daily Dashboard Progress</h4>
-                <p class="text-theme-muted small m-0">Your master progress bar at the top of the dashboard calculates the percentage of total habits completed today. It dynamically updates as you mark items done, turning into a satisfying green gradient when you reach 100%.</p>
-            </div>
-        </div>
-    </section>
-
-    <h3 class="fs-4 fw-bold mb-4 mt-5">Frequently Asked Questions (FAQ)</h3>
-    <section class="text-start mb-4">
-        <div class="accordion" id="faqAccordion">
-            <div class="accordion-item bg-transparent border-theme border-opacity-10 mb-3 rounded-3 overflow-hidden">
-                <h2 class="accordion-header" id="faq1">
-                    <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFaq1" aria-expanded="false" aria-controls="collapseFaq1">
-                        Is my habit data stored on your servers?
-                    </button>
-                </h2>
-                <div id="collapseFaq1" class="accordion-collapse collapse" aria-labelledby="faq1" data-bs-parent="#faqAccordion">
-                    <div class="accordion-body text-theme-muted small border-top border-theme border-opacity-10">
-                        Absolutely not. This app is 100% private. All of your habits, daily progress logs, and streak history are stored locally within your browser's LocalStorage. No data is ever transmitted to a server or stored in a remote database.
-                    </div>
-                </div>
-            </div>
-            
-            <div class="accordion-item bg-transparent border-theme border-opacity-10 mb-3 rounded-3 overflow-hidden">
-                <h2 class="accordion-header" id="faq2">
-                    <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFaq2" aria-expanded="false" aria-controls="collapseFaq2">
-                        What happens if I clear my browser history?
-                    </button>
-                </h2>
-                <div id="collapseFaq2" class="accordion-collapse collapse" aria-labelledby="faq2" data-bs-parent="#faqAccordion">
-                    <div class="accordion-body text-theme-muted small border-top border-theme border-opacity-10">
-                        Because this app is completely private and uses LocalStorage, clearing your browser's site data or cache will erase your habits. We highly recommend using the "Backup Data" button at the bottom of the dashboard regularly to save your progress to a secure file on your device.
-                    </div>
-                </div>
-            </div>
-
-            <div class="accordion-item bg-transparent border-theme border-opacity-10 mb-3 rounded-3 overflow-hidden">
-                <h2 class="accordion-header" id="faq3">
-                    <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFaq3" aria-expanded="false" aria-controls="collapseFaq3">
-                        Does the app support dark mode and light mode?
-                    </button>
-                </h2>
-                <div id="collapseFaq3" class="accordion-collapse collapse" aria-labelledby="faq3" data-bs-parent="#faqAccordion">
-                    <div class="accordion-body text-theme-muted small border-top border-theme border-opacity-10">
-                        Yes! The dashboard uses advanced CSS variables to instantly sync with your system's theme preference. It seamlessly transforms between a sleek Glassmorphism dark mode and a crisp, readable light mode without breaking the layout.
-                    </div>
-                </div>
-            </div>
-
-            <div class="accordion-item bg-transparent border-theme border-opacity-10 mb-3 rounded-3 overflow-hidden">
-                <h2 class="accordion-header" id="faq4">
-                    <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFaq4" aria-expanded="false" aria-controls="collapseFaq4">
-                        Can I change a habit's target number later?
-                    </button>
-                </h2>
-                <div id="collapseFaq4" class="accordion-collapse collapse" aria-labelledby="faq4" data-bs-parent="#faqAccordion">
-                    <div class="accordion-body text-theme-muted small border-top border-theme border-opacity-10">
-                        Currently, habit targets are set upon creation to ensure historical streak accuracy. If your goals change drastically, we recommend deleting the old habit and creating a new one to track your new baseline properly.
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-</article>
 
 {% endblock %}

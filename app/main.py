@@ -1,20 +1,53 @@
 import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.api.routes import pages, tools, seo
+from app.core.exceptions import register_exception_handlers
+from app.core.log import setup_logging
+from app.core.metrics import MetricsMiddleware
+from app.core.middleware import RequestIDMiddleware
+
+setup_logging()
+from app.api.routes import (
+    analytics,
+    health,
+    pages,
+    seo,
+    tools_b64,
+    tools_crypto,
+    tools_image,
+    tools_nft,
+    tools_pdf,
+    tools_proxy,
+    tools_qr,
+)
+from app.api.routes import jobs as jobs_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    docs_url=None,  # Disabled for production
-    redoc_url=None  # Disabled for production
+    docs_url=None,
+    redoc_url=None,
+    lifespan=lifespan,
 )
 
-# Security Headers Middleware
+app.add_middleware(RequestIDMiddleware)
+app.add_middleware(MetricsMiddleware)
+
+register_exception_handlers(app)
+
+
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -22,32 +55,38 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Content-Security-Policy"] = "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval';"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "img-src 'self' data: blob:; "
+        "connect-src 'self' http://localhost:*; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
     return response
 
-# Production Middlewares
+
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://www.storybrainai.com",
-        "https://storybrainai.com",
-        "http://localhost:8000",
-    ],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Ensure directories exist
 try:
     os.makedirs(os.path.join(settings.STATIC_DIR, "css"), exist_ok=True)
     os.makedirs(os.path.join(settings.STATIC_DIR, "js"), exist_ok=True)
     os.makedirs(os.path.join(settings.TEMPLATES_DIR, "tools"), exist_ok=True)
 except OSError:
-    pass  # Allow serverless/read-only production environments to proceed
+    pass
 
-# Mount static folder with caching headers
+
 class CachedStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope):
         response = await super().get_response(path, scope)
@@ -55,13 +94,23 @@ class CachedStaticFiles(StaticFiles):
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         return response
 
+
 app.mount("/static", CachedStaticFiles(directory=settings.STATIC_DIR), name="static")
 
-# Include routers
+app.include_router(health.router)
 app.include_router(seo.router)
-app.include_router(tools.router)
 app.include_router(pages.router)
+app.include_router(tools_qr.router)
+app.include_router(tools_image.router)
+app.include_router(tools_pdf.router)
+app.include_router(tools_crypto.router)
+app.include_router(tools_proxy.router)
+app.include_router(tools_nft.router)
+app.include_router(tools_b64.router)
+app.include_router(analytics.router)
+app.include_router(jobs_router.router)
 
-@app.get('/favicon.ico', include_in_schema=False)
+
+@app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return FileResponse(os.path.join(settings.STATIC_DIR, "favicon.svg"))

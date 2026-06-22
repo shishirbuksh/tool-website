@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_json_ld %}
 
 {% block title %}Credit Utilization Calculator | Fix Your Credit Score Fast{% endblock %}
 {% block meta_description %}Calculate your exact credit card utilization ratio. Use our smart simulator to find out exactly how much debt to pay off, or how to lower your ratio without paying a dime.{% endblock %}
@@ -17,349 +18,150 @@
 {% endblock %}
 
 {% block head %}
-<style>
-.amount-display{font-family:var(--font-display);font-size:3rem;font-weight:800;letter-spacing:-1px}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield}.card-row{background-color:rgba(255,255,255,0.02);border:1px solid var(--sb-border);border-radius:0.5rem;padding:1rem;margin-bottom:1rem;transition:all 0.2s ease}.card-row:hover{background-color:rgba(255,255,255,0.05)}.ratio-green{color:#22c55e}.ratio-yellow{color:#eab308}.ratio-red{color:#ef4444}
-</style>
 {% endblock %}
 
 {% block content %}
-<!-- Back link -->
-<div class="mb-5 reveal">
-    <a href="/" class="btn btn-dark btn-sm rounded-pill px-3 border border-white border-opacity-10">
-        <i class="bi bi-arrow-left me-2"></i> All Tools
-    </a>
-</div>
+{{ tool_hero_section("id-card", "Credit Score Helper Tool", "CREDIT UTILIZATION", "CALCULATOR", "Find out exactly what your credit card ratio is right now, then use smart tools to drop below the safe 30% zone.") }}
 
-<div class="container-lg mx-auto" style="max-width: 1200px;">
-    <!-- Header -->
-    <div class="text-center mb-5 reveal">
-        <div class="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20 px-4 py-2 mb-4">
-            <i class="bi bi-person-vcard me-2"></i> Credit Score Helper Tool
+  <!-- Main Content -->
+  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+
+    <!-- Inputs -->
+    <div class="lg:w-5/12">
+      <div class="card-premium p-6 md:p-8">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-xl font-black tracking-tight flex items-center gap-3">
+            {{ lucide_icon("credit-card","w-5 h-5", 20) | safe }} Your Credit Cards
+          </h2>
+          <select id="currency" class="input input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm w-auto" aria-label="Currency">
+            <option value="usd" selected>USD ($)</option>
+            <option value="eur">EUR (&euro;)</option>
+            <option value="gbp">GBP (&pound;)</option>
+            <option value="inr">INR (&#8377;)</option>
+            <option value="aud">AUD ($)</option>
+            <option value="cad">CAD ($)</option>
+          </select>
         </div>
-        <h1 class="display-3 fw-black mb-3 text-center">CREDIT UTILIZATION <span class="gradient-text italic text-primary">CALCULATOR</span></h1>
-        <p class="text-white-50 fs-5 mx-auto text-center" style="max-width: 800px;">
-            Find out exactly what your credit card ratio is right now. Then, use our smart tools to find the fastest way to drop your ratio below the safe 30% zone.
-        </p>
+
+        <p class="text-sm text-base-content/50 mb-4">List all your active credit cards. Do not include home loans or car loans here.</p>
+
+        <div id="cardContainer"></div>
+
+        <button id="addCardBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm rounded-xl mb-6">
+          {{ lucide_icon("plus","w-5 h-5", 20) | safe }} Add Another Credit Card
+        </button>
+
+        <div class="divider-cinematic"></div>
+
+        <!-- Target Ratio Strategy -->
+        <div class="card-premium p-4" style="border-color:color-mix(in oklab, var(--color-warning) 25%, transparent)">
+          <div class="flex justify-between items-center mb-3">
+            <label class="label-cinematic" style="color:var(--color-warning)">The Target Ratio Strategy</label>
+            <span class="pill-cinematic text-xs" style="background:var(--color-warning);color:white;border-color:var(--color-warning)">Market Gap</span>
+          </div>
+          <p class="text-xs text-base-content/50 mb-2">Select a target goal below, and we will tell you exactly how much cash you need to pay down today.</p>
+          <select id="targetGoal" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl">
+            <option value="30">Target 30% Ratio (Good Credit)</option>
+            <option value="10">Target 10% Ratio (Excellent Credit)</option>
+            <option value="1">Target 1% Ratio (Perfect Score Zone)</option>
+          </select>
+        </div>
+
+        <!-- Zero-Dollar Strategy -->
+        <div class="card-premium p-4" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
+          <div class="flex justify-between items-center mb-3">
+            <label class="label-cinematic" style="color:var(--color-success)">The Zero-Dollar Strategy</label>
+            <span class="pill-cinematic text-xs" style="background:var(--color-success);color:white;border-color:var(--color-success)">Market Gap</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="checkbox" role="switch" id="limitHackToggle" class="toggle toggle-sm">
+            <label class="text-xs text-base-content/50 font-bold tracking-wider uppercase" for="limitHackToggle">I don't have cash. How do I fix my ratio for free?</label>
+          </div>
+          <div id="limitHackInfo" class="hidden mt-3">
+            <p class="text-xs font-bold" style="color:var(--color-success)">Instead of paying down debt, we will calculate exactly how much you need to ask the bank to INCREASE your credit limit by to instantly fix your score.</p>
+          </div>
+        </div>
+
+      </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="row g-4 reveal" style="animation-delay: 0.2s;">
-        
-        <!-- Calculator Inputs -->
-        <div class="col-lg-6">
-            <div class="glass-card p-4 p-md-5 h-100 d-flex flex-column border-theme position-relative">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h3 class="fs-4 fw-bold text-primary mb-0"><i class="bi bi-credit-card me-2"></i> Your Credit Cards</h3>
-                    
-                    <select id="currency" class="form-select form-select-sm bg-theme-surface border-theme text-theme fw-bold w-auto">
-                        <option value="usd" selected>USD ($)</option>
-                        <option value="eur">EUR (€)</option>
-                        <option value="gbp">GBP (£)</option>
-                        <option value="inr">INR (₹)</option>
-                        <option value="aud">AUD ($)</option>
-                        <option value="cad">CAD ($)</option>
-                    </select>
-                </div>
-                
-                <p class="small text-theme-muted mb-3">List all your active credit cards. Do not include home loans or car loans here.</p>
-                
-                <div id="cardContainer">
-                    <!-- Card rows will be injected here via JS -->
-                </div>
-                
-                <button id="addCardBtn" class="btn btn-outline-primary btn-sm rounded-pill fw-bold mb-4 py-2"><i class="bi bi-plus me-1"></i> Add Another Credit Card</button>
-
-                <!-- Market Gap 1: Action Plan Simulator -->
-                <div class="pt-4 border-top border-theme mt-2">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <label class="small fw-bold tracking-widest text-uppercase text-warning">The Target Ratio Strategy</label>
-                        <span class="badge bg-warning text-dark">Market Gap</span>
-                    </div>
-                    <p class="small text-theme-muted mb-2">Want a perfect credit score? Select a target goal below, and we will tell you exactly how much cash you need to pay down today.</p>
-                    <select id="targetGoal" class="form-select bg-theme-surface border-theme text-theme fw-bold mb-2">
-                        <option value="30" selected>Target 30% Ratio (Good Credit)</option>
-                        <option value="10">Target 10% Ratio (Excellent Credit)</option>
-                        <option value="1">Target 1% Ratio (Perfect Score Zone)</option>
-                    </select>
-                </div>
-
-                <!-- Market Gap 2: Credit Limit Strategy -->
-                <div class="pt-4 border-top border-theme mt-4">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <label class="small fw-bold tracking-widest text-uppercase text-success">The Zero-Dollar Strategy</label>
-                        <span class="badge bg-success text-white">Market Gap</span>
-                    </div>
-                    <div class="form-check form-switch mb-2">
-                        <input class="form-check-input" type="checkbox" role="switch" id="limitHackToggle">
-                        <label class="form-check-label small fw-bold text-theme-muted" for="limitHackToggle">I don't have cash. How do I fix my ratio for free?</label>
-                    </div>
-                    <div id="limitHackInfo" style="display: none;">
-                        <p class="small text-success mt-2 mb-0 fw-bold">Instead of paying down debt, we will calculate exactly how much you need to ask the bank to INCREASE your credit limit by to instantly fix your score.</p>
-                    </div>
-                </div>
-
-            </div>
+    <!-- Results -->
+    <div class="lg:w-7/12">
+      <div class="card-premium p-6 md:p-8">
+        <div class="flex justify-between items-center mb-6 pb-4 border-b border-base-content/10 flex-wrap gap-3">
+          <h3 class="text-xl font-black tracking-tight flex items-center gap-3">
+            {{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Your Credit Health
+          </h3>
         </div>
 
-        <!-- Results Dashboard -->
-        <div class="col-lg-6">
-            <div class="glass-card shadow-lg p-4 p-md-5 h-100 d-flex flex-column">
-                
-                <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-theme flex-wrap gap-2">
-                    <h3 class="fs-4 fw-bold mb-0 text-primary"><i class="bi bi-bar-chart me-2"></i> Your Credit Health</h3>
-                </div>
-
-                <div class="row g-4 mb-4">
-                    <div class="col-md-12">
-                        <div class="p-4 rounded-4 text-center position-relative overflow-hidden" style="background-color: rgba(var(--bs-primary-rgb), 0.1); border: 1px solid rgba(var(--bs-primary-rgb), 0.3);">
-                            <span class="small fw-black tracking-widest text-uppercase d-block mb-1 text-primary">Your Total Utilization Ratio</span>
-                            
-                            <h2 id="resRatio" class="amount-display m-0 my-2">0%</h2>
-                            
-                            <div class="d-flex justify-content-center gap-3 mt-2">
-                                <div>
-                                    <span id="resHealthStatus" class="fw-bold fs-5">Excellent</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-6">
-                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center">
-                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Total Credit Limit</span>
-                            <div class="d-flex justify-content-center align-items-center">
-                                <span class="small opacity-50 currency-sym me-1">$</span>
-                                <h4 id="resTotalLimit" class="fw-bold text-theme mb-0 font-mono">0</h4>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-6">
-                        <div class="p-3 rounded-4 bg-theme-surface border border-theme text-center">
-                            <span class="small fw-bold text-theme-muted tracking-widest text-uppercase d-block mb-1">Total Balance (Debt)</span>
-                            <div class="d-flex justify-content-center align-items-center">
-                                <span class="small opacity-50 currency-sym me-1">$</span>
-                                <h4 id="resTotalBalance" class="fw-bold text-danger mb-0 font-mono">0</h4>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Market Gap 1: Target Action Plan -->
-                <div id="targetCard" class="mt-2 p-4 rounded-4 position-relative" style="background: rgba(var(--bs-warning-rgb); border: 1px solid rgba(var(--bs-warning-rgb), 0.3);">
-                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                        <h4 class="fs-5 fw-bold mb-0 text-warning"><i class="bi bi-bullseye me-2"></i> The Action Plan</h4>
-                        <span class="badge bg-warning text-dark">Market Gap</span>
-                    </div>
-                    <p class="small text-white fw-bold mb-0" id="targetText">To reach a 30% utilization ratio, you need to pay exactly <span class="text-warning">$500</span> toward your debt right now.</p>
-                </div>
-
-                <!-- Market Gap 2: Zero Dollar Strategy Result -->
-                <div id="hackResultCard" class="mt-4 p-4 rounded-4 position-relative d-none" style="background: rgba(var(--bs-success-rgb); border: 1px solid rgba(var(--bs-success-rgb), 0.3);">
-                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                        <h4 class="fs-5 fw-bold mb-0 text-success"><i class="bi bi-unlock me-2"></i> The Zero-Dollar Fix</h4>
-                        <span class="badge bg-success text-white">Market Gap</span>
-                    </div>
-                    <p class="small text-white fw-bold mb-0" id="hackText">Call your bank and ask them to increase your total credit limit to <span class="text-success">$10,000</span>. Your score will jump, and you pay $0 today.</p>
-                </div>
-
-                <!-- Market Gap 3: Individual Card Penalty -->
-                <div id="penaltyCard" class="mt-4 p-4 rounded-4 position-relative d-none" style="background: rgba(var(--bs-danger-rgb); border: 1px solid rgba(var(--bs-danger-rgb), 0.3);">
-                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                        <h4 class="fs-5 fw-bold mb-0 text-danger"><i class="bi bi-exclamation-triangle me-2"></i> Individual Card Penalty</h4>
-                        <span class="badge bg-danger text-white">Market Gap</span>
-                    </div>
-                    <p class="small text-danger fw-bold mb-0" id="penaltyText">Warning: Your card is maxed out!</p>
-                </div>
-            </div>
+        <!-- Ratio -->
+        <div class="card-premium p-6 text-center mb-6" style="border-color:color-mix(in oklab, var(--color-primary) 25%, transparent)">
+          <span class="label-cinematic block mb-2">Your Total Utilization Ratio</span>
+          <output id="resRatio" class="metric-cinematic metric-cinematic--xl text-primary block mb-2">0%</output>
+          <span id="resHealthStatus" class="pill-cinematic text-xs" style="background:var(--color-success);color:white;border-color:var(--color-success)">Excellent</span>
         </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div class="stat-cinematic text-center">
+            <span class="label-cinematic block mb-2">Total Credit Limit</span>
+            <div class="flex justify-center items-center">
+              <span class="text-sm opacity-50 currency-sym mr-1">$</span>
+              <output id="resTotalLimit" class="metric-cinematic metric-cinematic--sm font-mono">0</output>
+            </div>
+          </div>
+          <div class="stat-cinematic text-center">
+            <span class="label-cinematic block mb-2">Total Balance (Debt)</span>
+            <div class="flex justify-center items-center">
+              <span class="text-sm opacity-50 currency-sym mr-1">$</span>
+              <output id="resTotalBalance" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-error)">0</output>
+            </div>
+          </div>
+        </div>
+
+        <!-- Target Action Plan -->
+        <div id="targetCard" class="card-premium p-5 mb-4 hidden" style="border-color:color-mix(in oklab, var(--color-warning) 25%, transparent)">
+          <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+            <h4 class="text-lg font-black tracking-tight flex items-center gap-2" style="color:var(--color-warning)">
+              {{ lucide_icon("crosshair","w-5 h-5", 20) | safe }} The Action Plan
+            </h4>
+            <span class="pill-cinematic text-xs" style="background:var(--color-warning);color:white;border-color:var(--color-warning)">Market Gap</span>
+          </div>
+          <p class="text-sm font-bold" id="targetText"></p>
+        </div>
+
+        <!-- Zero-Dollar Fix -->
+        <div id="hackResultCard" class="card-premium p-5 mb-4 hidden" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
+          <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+            <h4 class="text-lg font-black tracking-tight flex items-center gap-2" style="color:var(--color-success)">
+              {{ lucide_icon("unlock","w-5 h-5", 20) | safe }} The Zero-Dollar Fix
+            </h4>
+            <span class="pill-cinematic text-xs" style="background:var(--color-success);color:white;border-color:var(--color-success)">Market Gap</span>
+          </div>
+          <p class="text-sm font-bold" id="hackText"></p>
+        </div>
+
+        <!-- Individual Card Penalty -->
+        <div id="penaltyCard" class="card-premium p-5 hidden" style="border-color:color-mix(in oklab, var(--color-error) 25%, transparent)">
+          <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
+            <h4 class="text-lg font-black tracking-tight flex items-center gap-2" style="color:var(--color-error)">
+              {{ lucide_icon("alert-triangle","w-5 h-5", 20) | safe }} Individual Card Penalty
+            </h4>
+            <span class="pill-cinematic text-xs" style="background:var(--color-error);color:white;border-color:var(--color-error)">Market Gap</span>
+          </div>
+          <p class="text-sm font-bold" style="color:var(--color-error)" id="penaltyText"></p>
+        </div>
+
+      </div>
     </div>
+  </div>
 </div>
 
 <script>
 function formatCurrency(val){return val.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});}
-document.addEventListener('DOMContentLoaded',()=>{let cards=[{id:1,name:"Visa Card",limit:5000,balance:2500},{id:2,name:"Store Card",limit:1000,balance:800}];let nextId=3;const cardContainer=document.getElementById('cardContainer');const addCardBtn=document.getElementById('addCardBtn');const targetGoalSel=document.getElementById('targetGoal');const limitHackToggle=document.getElementById('limitHackToggle');const limitHackInfo=document.getElementById('limitHackInfo');const currencySel=document.getElementById('currency');const resRatio=document.getElementById('resRatio');const resHealthStatus=document.getElementById('resHealthStatus');const resTotalLimit=document.getElementById('resTotalLimit');const resTotalBalance=document.getElementById('resTotalBalance');const targetCard=document.getElementById('targetCard');const targetText=document.getElementById('targetText');const hackResultCard=document.getElementById('hackResultCard');const hackText=document.getElementById('hackText');const penaltyCard=document.getElementById('penaltyCard');const penaltyText=document.getElementById('penaltyText');let currentSym="$";function renderCards(){cardContainer.innerHTML='';cards.forEach((card)=>{const row=document.createElement('div');row.className='card-row';row.innerHTML=`<div class="row g-2 align-items-end"><div class="col-md-4"><label class="small fw-bold text-theme-muted mb-1">Card Name</label><input type="text"class="form-control form-control-sm bg-theme-surface border-theme text-theme fw-bold card-name"data-id="${card.id}"value="${card.name}"></div><div class="col-md-3"><label class="small fw-bold text-theme-muted mb-1">Max Credit Limit</label><div class="input-group input-group-sm"><span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">${currentSym}</span><input type="number"class="form-control bg-theme-surface border-theme text-theme fw-bold card-limit"data-id="${card.id}"value="${card.limit}"min="1"></div></div><div class="col-md-3"><label class="small fw-bold text-theme-muted mb-1">Current Balance</label><div class="input-group input-group-sm"><span class="input-group-text bg-theme-surface border-theme text-theme-muted currency-sym">${currentSym}</span><input type="number"class="form-control bg-theme-surface border-theme text-theme fw-bold card-balance"data-id="${card.id}"value="${card.balance}"min="0"></div></div><div class="col-md-2 text-end"><button class="btn btn-sm btn-outline-danger border-0 delete-btn w-100"data-id="${card.id}"><i class="bi bi-trash"></i></button></div></div>`;cardContainer.appendChild(row);});attachRowListeners();}
-function attachRowListeners(){document.querySelectorAll('.card-name').forEach(el=>el.addEventListener('input',updateCardData));document.querySelectorAll('.card-limit').forEach(el=>el.addEventListener('input',updateCardData));document.querySelectorAll('.card-balance').forEach(el=>el.addEventListener('input',updateCardData));document.querySelectorAll('.delete-btn').forEach(btn=>{btn.addEventListener('click',(e)=>{const id=parseInt(e.currentTarget.getAttribute('data-id'));cards=cards.filter(d=>d.id!==id);renderCards();calculate();});});}
-function updateCardData(e){const id=parseInt(e.target.getAttribute('data-id'));const cls=e.target.className;const val=e.target.value;const card=cards.find(d=>d.id===id);if(card){if(cls.includes('card-name'))card.name=val;if(cls.includes('card-limit'))card.limit=parseFloat(val)||0;if(cls.includes('card-balance'))card.balance=parseFloat(val)||0;}
-calculate();}
-addCardBtn.addEventListener('click',()=>{cards.push({id:nextId++,name:`Credit Card ${cards.length+1}`,limit:2000,balance:500});renderCards();calculate();});targetGoalSel.addEventListener('change',calculate);limitHackToggle.addEventListener('change',()=>{limitHackInfo.style.display=limitHackToggle.checked?'block':'none';calculate();});currencySel.addEventListener('change',()=>{currentSym="$";const c=currencySel.value;if(c==='inr')currentSym="₹";if(c==='eur')currentSym="€";if(c==='gbp')currentSym="£";document.querySelectorAll('.currency-sym').forEach(el=>el.innerText=currentSym);calculate();});function calculate(){if(cards.length===0){resTotalLimit.innerText="0";resTotalBalance.innerText="0";resRatio.innerText="0%";resRatio.className="amount-display m-0 my-2";resHealthStatus.innerText="No Cards";targetCard.classList.add('d-none');hackResultCard.classList.add('d-none');return;}
-const totalLimit=cards.reduce((sum,c)=>sum+Math.max(c.limit,0.01),0);const totalBalance=cards.reduce((sum,c)=>sum+Math.max(c.balance,0),0);const ratio=(totalBalance/totalLimit)*100;resTotalLimit.innerText=formatCurrency(totalLimit);resTotalBalance.innerText=formatCurrency(totalBalance);resRatio.innerText=ratio.toFixed(1)+"%";resRatio.classList.remove('ratio-green','ratio-yellow','ratio-red');resHealthStatus.classList.remove('text-success','text-warning','text-danger');if(ratio>30){resRatio.classList.add('ratio-red');resHealthStatus.innerText="Bad for Credit Score";resHealthStatus.classList.add('text-danger');}else if(ratio>10){resRatio.classList.add('ratio-yellow');resHealthStatus.innerText="Good (Safe Zone)";resHealthStatus.classList.add('text-warning');}else{resRatio.classList.add('ratio-green');resHealthStatus.innerText="Excellent for Credit Score";resHealthStatus.classList.add('text-success');}
-const targetPercent=parseFloat(targetGoalSel.value)/100;const targetAllowedBalance=totalLimit*targetPercent;const amountToPayoff=totalBalance-targetAllowedBalance;if(amountToPayoff>0){targetText.innerHTML=`To reach a ${targetGoalSel.value}%ratio,you need to pay exactly<span class="fs-5 text-warning fw-black mx-1">${currentSym}${formatCurrency(amountToPayoff)}</span>toward your debt right now.`;targetCard.classList.remove('d-none');}else{targetText.innerHTML=`You are already below the ${targetGoalSel.value}%target!Great job!`;targetCard.classList.remove('d-none');}
-if(limitHackToggle.checked){if(ratio>parseFloat(targetGoalSel.value)){const requiredLimit=totalBalance/targetPercent;const limitIncreaseNeeded=requiredLimit-totalLimit;hackText.innerHTML=`Call your bank and ask them to increase your total credit limit by<strong class="fs-5 text-success mx-1">${currentSym}${formatCurrency(limitIncreaseNeeded)}</strong>.Your ratio will instantly drop to ${targetGoalSel.value}%and you pay $0 today!`;hackResultCard.classList.remove('d-none');}else{hackText.innerHTML=`You don't need a limit increase to hit your goal! You are already there.`;
-                hackResultCard.classList.remove('d-none');
-            }
-        } else {
-            hackResultCard.classList.add('d-none');
-        }
-
-        // Market Gap 3: Individual Card Penalty
-        let maxedCard = null;
-        let maxedRatio = 0;
-        
-        cards.forEach(c => {
-            if (c.limit > 0) {
-                const r = (c.balance / c.limit) * 100;
-                if (r >= 80 && r > maxedRatio) {
-                    maxedRatio = r;
-                    maxedCard = c.name;
-                }
-            }
-        });
-        
-        if (maxedCard) {
-            penaltyText.innerHTML = `Warning! Your <strong>${maxedCard}</strong> is at ${maxedRatio.toFixed(0)}% capacity. The credit bureaus heavily penalize you for maxing out a single card, even if your total ratio is good. Pay this card down immediately!`;
-            penaltyCard.classList.remove('d-none');
-        } else {
-            penaltyCard.classList.add('d-none'
+document.addEventListener('DOMContentLoaded',()=>{let cards=[{id:1,name:'Visa Card',limit:5000,balance:2500},{id:2,name:'Store Card',limit:1000,balance:800}];let nextId=3;const cardContainer=document.getElementById('cardContainer');const addCardBtn=document.getElementById('addCardBtn');const targetGoalSel=document.getElementById('targetGoal');const limitHackToggle=document.getElementById('limitHackToggle');const limitHackInfo=document.getElementById('limitHackInfo');const currencySel=document.getElementById('currency');const resRatio=document.getElementById('resRatio');const resHealthStatus=document.getElementById('resHealthStatus');const resTotalLimit=document.getElementById('resTotalLimit');const resTotalBalance=document.getElementById('resTotalBalance');const targetCard=document.getElementById('targetCard');const targetText=document.getElementById('targetText');const hackResultCard=document.getElementById('hackResultCard');const hackText=document.getElementById('hackText');const penaltyCard=document.getElementById('penaltyCard');const penaltyText=document.getElementById('penaltyText');let currentSym='$';function renderCards(){cardContainer.innerHTML='';cards.forEach((card)=>{const row=document.createElement('div');row.className='glass-cinematic rounded-2xl p-4 mb-3';row.innerHTML='<div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end"><div><label class="label-cinematic mb-1 block">Card Name</label><input type="text" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl card-name" data-id="'+card.id+'" value="'+card.name+'"></div><div class="flex gap-2"><div><label class="label-cinematic mb-1 block">Limit</label><div class="flex"><span class="inline-flex items-center px-2 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/50 text-xs rounded-xl rounded-r-none currency-sym">'+currentSym+'</span><input type="number" class="input w-24 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl rounded-l-none card-limit" data-id="'+card.id+'" value="'+card.limit+'" min="1"></div></div><div><label class="label-cinematic mb-1 block">Balance</label><div class="flex"><span class="inline-flex items-center px-2 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/50 text-xs rounded-xl rounded-r-none currency-sym">'+currentSym+'</span><input type="number" class="input w-24 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl rounded-l-none card-balance" data-id="'+card.id+'" value="'+card.balance+'" min="0"></div></div><button class="btn btn-cinematic text-xs py-1 px-2 self-end delete-btn" data-id="'+card.id+'">'+'X'+'</button></div></div>';cardContainer.appendChild(row);});attachRowListeners();}function attachRowListeners(){document.querySelectorAll('.card-name').forEach(el=>el.addEventListener('input',updateCardData));document.querySelectorAll('.card-limit').forEach(el=>el.addEventListener('input',updateCardData));document.querySelectorAll('.card-balance').forEach(el=>el.addEventListener('input',updateCardData));document.querySelectorAll('.delete-btn').forEach(btn=>{btn.addEventListener('click',(e)=>{const id=parseInt(e.currentTarget.getAttribute('data-id'));cards=cards.filter(d=>d.id!==id);renderCards();calculate();});});}function updateCardData(e){const id=parseInt(e.target.getAttribute('data-id'));const cls=e.target.className;const val=e.target.value;const card=cards.find(d=>d.id===id);if(card){if(cls.includes('card-name'))card.name=val;if(cls.includes('card-limit'))card.limit=parseFloat(val)||0;if(cls.includes('card-balance'))card.balance=parseFloat(val)||0;}calculate();}addCardBtn.addEventListener('click',()=>{cards.push({id:nextId++,name:'Credit Card '+(cards.length+1),limit:2000,balance:500});renderCards();calculate();});targetGoalSel.addEventListener('change',calculate);limitHackToggle.addEventListener('change',()=>{if(limitHackToggle.checked){limitHackInfo.classList.remove('hidden');}else{limitHackInfo.classList.add('hidden');}calculate();});currencySel.addEventListener('change',()=>{currentSym='$';const c=currencySel.value;if(c==='inr')currentSym='\u20b9';if(c==='eur')currentSym='\u20ac';if(c==='gbp')currentSym='\u00a3';renderCards();calculate();});function calculate(){if(cards.length===0){resTotalLimit.innerText='0';resTotalBalance.innerText='0';resRatio.innerText='0%';resHealthStatus.innerText='No Cards';targetCard.classList.add('hidden');hackResultCard.classList.add('hidden');penaltyCard.classList.add('hidden');return;}const totalLimit=cards.reduce((sum,c)=>sum+Math.max(c.limit,0.01),0);const totalBalance=cards.reduce((sum,c)=>sum+Math.max(c.balance,0),0);const ratio=(totalBalance/totalLimit)*100;resTotalLimit.innerText=formatCurrency(totalLimit);resTotalBalance.innerText=formatCurrency(totalBalance);resRatio.innerText=ratio.toFixed(1)+'%';if(ratio>30){resHealthStatus.innerText='Bad for Credit Score';resHealthStatus.className='pill-cinematic text-xs';resHealthStatus.style.background='var(--color-error)';resHealthStatus.style.color='white';}else if(ratio>10){resHealthStatus.innerText='Good (Safe Zone)';resHealthStatus.className='pill-cinematic text-xs';resHealthStatus.style.background='var(--color-warning)';resHealthStatus.style.color='white';}else{resHealthStatus.innerText='Excellent for Credit Score';resHealthStatus.className='pill-cinematic text-xs';resHealthStatus.style.background='var(--color-success)';resHealthStatus.style.color='white';}const targetPercent=parseFloat(targetGoalSel.value)/100;const targetAllowedBalance=totalLimit*targetPercent;const amountToPayoff=totalBalance-targetAllowedBalance;if(amountToPayoff>0){targetText.innerHTML='To reach a '+targetGoalSel.value+'% ratio, you need to pay exactly <strong class="text-lg" style="color:var(--color-warning)">'+currentSym+formatCurrency(amountToPayoff)+'</strong> toward your debt right now.';targetCard.classList.remove('hidden');}else{targetText.innerHTML='You are already below the '+targetGoalSel.value+'% target! Great job!';targetCard.classList.remove('hidden');}if(limitHackToggle.checked){if(ratio>parseFloat(targetGoalSel.value)){const requiredLimit=totalBalance/targetPercent;const limitIncreaseNeeded=requiredLimit-totalLimit;hackText.innerHTML='Call your bank and ask them to increase your total credit limit by <strong class="text-lg" style="color:var(--color-success)">'+currentSym+formatCurrency(limitIncreaseNeeded)+'</strong>. Your ratio will instantly drop to '+targetGoalSel.value+'% and you pay $0 today!';hackResultCard.classList.remove('hidden');}else{hackText.innerHTML='You don\'t need a limit increase to hit your goal! You are already there.';hackResultCard.classList.remove('hidden');}}else{hackResultCard.classList.add('hidden');}let maxedCard=null;let maxedRatio=0;cards.forEach(c=>{if(c.limit>0){const r=(c.balance/c.limit)*100;if(r>=80&&r>maxedRatio){maxedRatio=r;maxedCard=c.name;}}});if(maxedCard){penaltyText.innerHTML='Warning! Your <strong>'+maxedCard+'</strong> is at '+maxedRatio.toFixed(0)+'% capacity. Pay this card down immediately!';penaltyCard.classList.remove('hidden');}else{penaltyCard.classList.add('hidden');}}renderCards();calculate();});
 </script>
 
-<!-- FAQ Section for SEO -->
-<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.5s;">
-    <h2 class="fs-3 fw-bold mb-4" itemprop="headline">Frequently Asked Questions</h2>
-    <div class="accordion accordion-flush" id="faqAccordion">
-        <div class="accordion-item bg-transparent border-theme">
-            <h3 class="accordion-header">
-                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                    How much should I pay down to get 30 percent utilization?
-                </button>
-            </h3>
-            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body text-theme-muted">
-                    It depends on your total credit limit. Simply enter your credit cards into our calculator above and set the target to 30%. It will do all the heavy math for you and tell you the exact dollar amount you need to pay to the bank today!
-                </div>
-            </div>
-        </div>
-        <div class="accordion-item bg-transparent border-theme">
-            <h3 class="accordion-header">
-                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                    Does paying off a credit card in full hurt your credit score?
-                </button>
-            </h3>
-            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body text-theme-muted">
-                    No! Paying off your credit card in full is the smartest thing you can do. It drops your utilization ratio to 0%, which is fantastic for your credit score, and you never have to pay the bank any interest money.
-                </div>
-            </div>
-        </div>
-        <div class="accordion-item bg-transparent border-theme border-bottom-0">
-            <h3 class="accordion-header">
-                <button class="accordion-button collapsed bg-transparent text-theme fw-bold shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                    Should I close old credit cards I don't use?
-                </button>
-            </h3>
-            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body text-theme-muted">
-                    Usually, no! If you close an old credit card, you lose its credit limit. This instantly makes your total credit limit smaller, which makes your utilization ratio shoot up. Keep old, free cards open and throw them in a drawer.
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script type="application/ld+json">
-{
-    "@context": "https://schema.org",
-    "@graph": [
-        {
-            "@type": "SoftwareApplication",
-            "name": "Credit Utilization Ratio Calculator",
-            "applicationCategory": "FinanceApplication",
-            "operatingSystem": "Web browser",
-            "offers": {
-                "@type": "Offer",
-                "price": "0",
-                "priceCurrency": "USD"
-            },
-            "description": "Learn how to lower credit utilization fast without paying. Calculate your exact ratio and find out how much you should pay down to get 30 percent utilization."
-        },
-        {
-            "@type": "FAQPage",
-            "mainEntity": [
-                {
-                    "@type": "Question",
-                    "name": "How much should I pay down to get 30 percent utilization?",
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "Enter your credit cards into our calculator and set the target goal to 30%. The tool will calculate the exact dollar amount you need to pay."
-                    }
-                },
-                {
-                    "@type": "Question",
-                    "name": "Does paying off a credit card in full hurt your credit score?",
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "No, paying off a card drops your utilization to 0%, which boosts your credit score and saves you interest money."
-                    }
-                },
-                {
-                    "@type": "Question",
-                    "name": "Should I close old credit cards I don't use?",
-                    "acceptedAnswer": {
-                        "@type": "Answer",
-                        "text": "No, closing an old card lowers your total credit limit, which causes your credit utilization ratio to go up and hurts your score."
-                    }
-                }
-            ]
-        }
-    ]
-}
-</script>
-
-
-
-<!-- How to Use Section -->
-<div class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.2s;">
-    <h2 class="fs-3 fw-bold mb-4" itemprop="headline">How to Use {{ tool_name | default('this Tool') }}</h2>
-    <div class="row g-4 text-start">
-        <div class="col-md-4">
-            <div class="p-4 bg-theme-surface border border-theme rounded-4 h-100">
-                <div class="text-primary fw-black fs-1 mb-3 opacity-50">01</div>
-                <h3 class="fs-5 fw-bold text-theme">Input Data</h3>
-                <p class="text-theme-muted small">Provide the necessary inputs, files, or configurations required for the tool to process your request securely.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="p-4 bg-theme-surface border border-theme rounded-4 h-100">
-                <div class="text-primary fw-black fs-1 mb-3 opacity-50">02</div>
-                <h3 class="fs-5 fw-bold text-theme">Process</h3>
-                <p class="text-theme-muted small">Click the action button. The tool will process your data instantly using optimized algorithms.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="p-4 bg-theme-surface border border-theme rounded-4 h-100">
-                <div class="text-primary fw-black fs-1 mb-3 opacity-50">03</div>
-                <h3 class="fs-5 fw-bold text-theme">Get Results</h3>
-                <p class="text-theme-muted small">View, copy, or download your results immediately. Your data remains private and secure.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- SEO Article Section -->
-<article class="mt-5 pt-5 border-top border-theme reveal" style="animation-delay: 0.3s;" itemscope itemtype="https://schema.org/Article">
-    <header>
-        <h2 class="fs-3 fw-bold mb-4" itemprop="headline">How Our Credit Utilization Calculator Helps You</h2>
-        <p class="text-theme-muted mb-4 fs-6 lh-lg" itemprop="articleBody">The Credit Utilization Calculator is a powerful and free tool that makes calculating numbers easy. Instead of guessing or doing math by hand, you get instant and accurate results. Whether for business, finance, or daily use, this calculator gives you exactly what you need without any confusing steps.</p>
-    </header>
-    
-    <h3 class="fs-4 fw-bold mb-3 mt-5">Why Choose Our Free Credit Utilization Calculator?</h3>
-    <section class="row g-4 text-start mb-2">
-        <div class="col-md-6">
-            <ul class="list-unstyled">
-                <li class="mb-3 d-flex"><i class="bi bi-check-circle me-3 mt-1 text-success"></i> <div itemprop="name"><strong>Clear Answers:</strong> Turn confusing numbers into simple, easy-to-read results instantly.</div></li>
-                <li class="mb-3 d-flex"><i class="bi bi-bullseye me-3 mt-1 text-primary"></i> <div itemprop="name"><strong>Perfect Accuracy:</strong> Avoid costly human errors when dealing with important formulas.</div></li>
-            </ul>
-        </div>
-        <div class="col-md-6">
-            <ul class="list-unstyled">
-                <li class="mb-3 d-flex"><i class="bi bi-lightning-fill me-3 mt-1 text-warning"></i> <div itemprop="name"><strong>Instant Updates:</strong> Change your numbers and see the new results right away.</div></li>
-                <li class="mb-3 d-flex"><i class="bi bi-shield-shaded me-3 mt-1 text-info"></i> <div itemprop="name"><strong>100% Private:</strong> Your numbers are calculated securely on your device, never saved online.</div></li>
-            </ul>
-        </div>
-    </section>
-</article>
-
-
-
-
+{{ tool_json_ld({
+"@type":"SoftwareApplication","name":"Credit Utilization Ratio Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Web browser","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Learn how to lower credit utilization fast without paying. Calculate your exact ratio and find out how much you should pay down to get 30 percent utilization."}
+) }}
 {% endblock %}

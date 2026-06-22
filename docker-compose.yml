@@ -1,0 +1,44 @@
+services:
+  app:
+    build: .
+    container_name: storybrain-ai
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8090}:${PORT:-8090}"
+    environment:
+      - PROJECT_NAME=${PROJECT_NAME:-StoryBrain AI}
+      - HOST=0.0.0.0
+      - PORT=${PORT:-8090}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - WORKERS=${WORKERS:-0}
+      - TIMEOUT=${TIMEOUT:-120}
+      - KEEP_ALIVE=${KEEP_ALIVE:-5}
+      - REDIS_URL=${REDIS_URL:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
+    env_file:
+      - path: .env
+        required: false
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:${PORT:-8090}/healthz')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: storybrain-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  caddy_data:
+  caddy_config:

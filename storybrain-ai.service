@@ -1,0 +1,29 @@
+[Unit]
+Description=StoryBrain AI — Multi-Tool Website
+After=network.target
+Wants=redis.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/storybrain-ai
+
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+ExecStartPre=/usr/bin/pip3 install -q -r /opt/storybrain-ai/requirements.txt
+ExecStartPre=/usr/bin/npm ci --silent --prefix /opt/storybrain-ai
+ExecStartPre=/bin/bash -c 'cd /opt/storybrain-ai/rust_predictor && pip3 install -q -e .'
+ExecStartPre=/usr/bin/npm --prefix /opt/storybrain-ai run build
+
+ExecStart=/usr/local/bin/gunicorn app.main:app -c /opt/storybrain-ai/gunicorn_conf.py
+
+Restart=always
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
