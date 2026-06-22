@@ -51,8 +51,12 @@ fix_service_paths() {
 }
 
 install_python() {
-    log_info "Installing Python dependencies..."
+    log_info "Installing Python core dependencies..."
     pip install -q --no-cache-dir -r "$APP_DIR/requirements.txt"
+    log_info "Installing optional heavy dependencies (may warn, not fatal)..."
+    for pkg in "rembg[cpu]" "opencv-python-headless" "prophet"; do
+        pip install -q "$pkg" 2>/dev/null || log_warn "Optional dep skipped: $pkg"
+    done
 }
 
 install_node() {
@@ -63,7 +67,8 @@ install_node() {
 build_rust() {
     if [ -f "$APP_DIR/rust_predictor/Cargo.toml" ]; then
         log_info "Building Rust extension..."
-        pip install -q -e "$APP_DIR/rust_predictor" 2>/dev/null || log_warn "Rust build skipped"
+        pip install -q maturin 2>/dev/null || true
+        pip install -q -e "$APP_DIR/rust_predictor" 2>/dev/null && log_info "Rust extension built" || log_warn "Rust build skipped"
     fi
 }
 
