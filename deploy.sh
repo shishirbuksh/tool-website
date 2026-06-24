@@ -26,16 +26,12 @@ fi
 
 ensure_system_deps() {
     local missing=""
-    for cmd in python3 pip3 node npm; do
+    for cmd in python3 pip3; do
         command -v "$cmd" >/dev/null 2>&1 || missing="$missing $cmd"
     done
     if [ -n "$missing" ]; then
         log_info "Installing missing system deps: $missing"
         command -v python3 >/dev/null 2>&1 || sudo apt-get install -y -qq python3 python3-pip python3-venv
-        if ! command -v node >/dev/null 2>&1; then
-            curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-            sudo apt-get install -y -qq nodejs
-        fi
     fi
 }
 
@@ -53,15 +49,6 @@ fix_service_paths() {
 install_python() {
     log_info "Installing Python core dependencies..."
     pip install -q --no-cache-dir -r "$APP_DIR/requirements.txt"
-    log_info "Installing optional heavy dependencies (may warn, not fatal)..."
-    for pkg in "rembg[cpu]" "opencv-python-headless" "prophet"; do
-        pip install -q "$pkg" 2>/dev/null || log_warn "Optional dep skipped: $pkg"
-    done
-}
-
-install_node() {
-    log_info "Installing Node.js dependencies..."
-    npm ci --silent --prefix "$APP_DIR" 2>/dev/null || npm install --silent --prefix "$APP_DIR"
 }
 
 build_rust() {
@@ -69,13 +56,6 @@ build_rust() {
         log_info "Building Rust extension..."
         pip install -q maturin 2>/dev/null || true
         pip install -q -e "$APP_DIR/rust_predictor" 2>/dev/null && log_info "Rust extension built" || log_warn "Rust build skipped"
-    fi
-}
-
-build_frontend() {
-    if [ -f "$APP_DIR/package.json" ]; then
-        log_info "Building frontend assets..."
-        npm --prefix "$APP_DIR" run build 2>/dev/null || log_warn "Frontend build skipped"
     fi
 }
 
@@ -208,9 +188,7 @@ if [ "${1:-}" = "--setup" ]; then
     source "$APP_DIR/venv/bin/activate"
     setup_env_file
     install_python
-    install_node
     build_rust
-    build_frontend
     setup_systemd
     setup_caddy
     health_check
@@ -229,9 +207,7 @@ setup_env_file
 pull_latest
 backup_current
 install_python
-install_node
 build_rust
-build_frontend
 setup_caddy
 restart_service
 health_check
