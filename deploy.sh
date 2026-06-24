@@ -171,6 +171,23 @@ setup_systemd() {
     rm -f "$fixed"
 }
 
+setup_caddy() {
+    log_info "Setting up Caddy..."
+    if ! command -v caddy >/dev/null 2>&1; then
+        log_info "Installing Caddy from official repository..."
+        sudo apt-get install -y -qq debian-keyring debian-archive-keyring apt-transport-https
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+        curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list >/dev/null
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq caddy
+    fi
+    if [ -f "$APP_DIR/Caddyfile" ]; then
+        log_info "Applying Caddyfile configuration..."
+        sudo cp "$APP_DIR/Caddyfile" /etc/caddy/Caddyfile
+        sudo systemctl reload caddy || sudo systemctl restart caddy
+    fi
+}
+
 cleanup_backup() {
     if [ -d "$BACKUP_DIR" ]; then
         log_warn "Deploy failed — rolling back..."
@@ -195,6 +212,7 @@ if [ "${1:-}" = "--setup" ]; then
     build_rust
     build_frontend
     setup_systemd
+    setup_caddy
     health_check
     log_info "=== Setup complete! ==="
     exit 0
@@ -214,6 +232,7 @@ install_python
 install_node
 build_rust
 build_frontend
+setup_caddy
 restart_service
 health_check
 
