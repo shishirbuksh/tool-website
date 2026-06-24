@@ -1,218 +1,220 @@
-{% extends"base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section %}
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
 
-{% block title %}Free Crypto Portfolio Analyzer | StoryBrain AI{% endblock %}
-{% block meta_description %}Track and analyze your cryptocurrency portfolio for free. View asset allocation charts, manage holdings, check ROI. Private & secure.{% endblock %}
-{% block meta_keywords %}crypto portfolio analyzer, cryptocurrency portfolio tracker, crypto asset manager, profit and loss tracker{% endblock %}
+{% block title %}Crypto Portfolio Analyzer | Track Holdings & P&L{% endblock %}
+{% block meta_description %}Analyze your crypto portfolio. Enter your holdings, buy prices, and current prices to see total value, P&L, and allocation breakdown.{% endblock %}
+{% block meta_keywords %}crypto portfolio tracker, cryptocurrency portfolio, P&L calculator, crypto allocation, portfolio analyzer, ROI calculator crypto{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/crypto-portfolio-analyzer{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/crypto-portfolio-analyzer">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Crypto Portfolio Analyzer - Free Online | StoryBrain AI">
-<meta property="og:description" content="Track and analyze your cryptocurrency portfolio. View allocation charts, P&L, and rebalancing targets.">
+<meta property="og:title" content="Crypto Portfolio Analyzer">
+<meta property="og:description" content="Analyze your crypto portfolio. Track holdings, P&L, and allocation breakdown with our free portfolio analyzer.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Crypto Portfolio Analyzer - Free Online | StoryBrain AI">
-<meta name="twitter:description" content="Track and analyze your cryptocurrency portfolio. View allocation charts, P&L, and rebalancing targets.">
 {% endblock %}
 
 {% block head %}
-<script src="/static/js/vendor/apexcharts.min.js"></script>
 <style>
-.crypto-badge{width:32px;height:32px;border-radius:50%;background:rgba(124,58,237,0.1);color:var(--color-primary);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.85rem;box-shadow:0 0 20px color-mix(in oklab,var(--color-primary)12%,transparent)}
-.text-profit{color:var(--color-success)!important;text-shadow:0 0 20px color-mix(in oklab, var(--color-success) 30%, transparent)}.text-loss{color:var(--color-error)!important;text-shadow:0 0 20px color-mix(in oklab, var(--color-error) 30%, transparent)}
-.bg-profit{background:color-mix(in oklab, var(--color-success) 10%, transparent)!important;box-shadow:inset 0 0 20px color-mix(in oklab, var(--color-success) 10%, transparent)}.bg-loss{background:color-mix(in oklab, var(--color-error) 10%, transparent)!important;box-shadow:inset 0 0 20px color-mix(in oklab, var(--color-error) 10%, transparent)}
+.stat-cinematic:hover{transform:none !important}
+.asset-row{transition:all .2s ease}
+.asset-row:hover{background:color-mix(in oklab,var(--color-primary) 5%,transparent)}
+.port-table{width:100%;border-collapse:collapse;font-size:.75rem}
+.port-table th{text-align:left;padding:.5rem .75rem;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--color-base-content);opacity:.55;border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 10%,transparent)}
+.port-table td{padding:.5rem .75rem;font-family:ui-monospace,monospace;font-weight:700;border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 5%,transparent)}
+.port-table tr:last-child td{border-bottom:none}
+.port-table tr:hover td{background:color-mix(in oklab,var(--color-primary) 4%,transparent)}
+.allo-bar{height:3px;border-radius:999px;overflow:hidden;background:color-mix(in oklab,var(--color-base-content) 8%,transparent);max-width:80px}
+.allo-fill{height:100%;border-radius:999px}
 </style>
 {% endblock %}
 
 {% block content %}
-{{ tool_hero_section("wallet", "Portfolio Analytics Suite", "PORTFOLIO", "ANALYZER", "Track balances, verify allocation weights, and model rebalancing targets.") }}
+{{ tool_hero_section("pie-chart", "Portfolio Tool", "CRYPTO PORTFOLIO", "ANALYZER", "Track your crypto holdings. Enter amounts, buy prices, and current prices to see total value, P&L, and allocation breakdown.") }}
 
-  <!-- Summary -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 reveal" style="animation-delay:0.1s">
-    <div class="stat-cinematic"><span class="label-cinematic">Total Value</span><h2 id="totalValue" class="metric-cinematic metric-cinematic--md mt-2">$0.00</h2></div>
-    <div class="stat-cinematic"><span class="label-cinematic">Cost Basis</span><h3 id="totalCost" class="metric-cinematic metric-cinematic--md mt-2">$0.00</h3></div>
-    <div class="stat-cinematic"><span class="label-cinematic">Profit / Loss</span><h3 id="totalProfit" class="metric-cinematic metric-cinematic--md mt-2">$0.00</h3><span id="totalProfitPct" class="badge badge-sm border-0 font-bold text-[10px] mt-1">0.00%</span></div>
-    <div class="stat-cinematic"><span class="label-cinematic">Diversity</span><h3 id="diversityLabel" class="metric-cinematic metric-cinematic--md mt-2">0 Coins</h3></div>
-  </div>
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
 
-  <!-- Status -->
-  <div id="statusBanner" class="hidden items-center justify-between p-3 rounded-xl mb-6 border text-sm" style="display:none!important">
-    <span class="text-sm font-semibold">{{ lucide_icon("repeat","w-4 h-4", 16) | safe }} Fetching prices...</span>
-    <button class="btn btn-ghost btn-sm text-xs font-bold" id="refreshPricesBtn">{{ lucide_icon("refresh-cw","w-4 h-4", 16) | safe }} Refresh</button>
-  </div>
+  <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
 
-  <!-- Main -->
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <!-- Left: Add + Chart -->
-    <div class="lg:w-5/12 flex flex-col gap-6">
-      <div class="card-premium p-6">
-        <h3 class="text-lg font-black mb-4 flex items-center gap-2 relative z-10">{{ lucide_icon("plus-circle","w-5 h-5", 20) | safe }} Add Asset</h3>
-        <form id="assetForm" onsubmit="return false;">
-          <div class="mb-4">
-            <label class="label-cinematic mb-2 block">Coin</label>
-            <select id="coinSelect" class="select w-full input-cinematic bg-base-300/50 border-base-content/20 text-base-content rounded-xl h-11">
-              <option value="bitcoin" data-symbol="BTC">Bitcoin (BTC)</option>
-              <option value="ethereum" data-symbol="ETH">Ethereum (ETH)</option>
-              <option value="binancecoin" data-symbol="BNB">BNB</option>
-              <option value="solana" data-symbol="SOL">Solana (SOL)</option>
-              <option value="ripple" data-symbol="XRP">XRP</option>
-              <option value="cardano" data-symbol="ADA">Cardano (ADA)</option>
-              <option value="dogecoin" data-symbol="DOGE">Dogecoin (DOGE)</option>
-              <option value="polkadot" data-symbol="DOT">Polkadot (DOT)</option>
-              <option value="avalanche-2" data-symbol="AVAX">Avalanche (AVAX)</option>
-              <option value="chainlink" data-symbol="LINK">Chainlink (LINK)</option>
-            </select>
-          </div>
-          <div class="grid grid-cols-2 gap-3 mb-4">
-            <div><label class="label-cinematic mb-2 block">Quantity</label><input type="number" id="coinQty" class="input w-full input-cinematic bg-base-300/50 border-base-content/20 text-base-content rounded-xl h-11" step="any" min="0.00000001" placeholder="0.5"></div>
-            <div><label class="label-cinematic mb-2 block">Buy Price ($)</label><input type="number" id="coinBuyPrice" class="input w-full input-cinematic bg-base-300/50 border-base-content/20 text-base-content rounded-xl h-11" step="any" min="0.00000001" placeholder="62000"></div>
-          </div>
-          <div class="mb-4"><label class="label-cinematic mb-2 block">Target Weight (%)</label><input type="number" id="targetWeight" class="input w-full input-cinematic bg-base-300/50 border-base-content/20 text-base-content rounded-xl h-11" min="0" max="100" value="0" placeholder="35"></div>
-          <button type="submit" class="btn btn-primary w-full h-12 text-xs font-black tracking-widest uppercase rounded-xl btn-cinematic">{{ lucide_icon("plus","w-4 h-4", 16) | safe }} Add to Portfolio</button>
-        </form>
-      </div>
-
-      <div class="card-premium p-6">
-        <h3 class="text-lg font-black mb-4 flex items-center gap-2 relative z-10">{{ lucide_icon("pie-chart","w-5 h-5", 20) | safe }} Allocation</h3>
-        <div id="allocationChart" class="min-h-[250px] relative z-10"><div class="text-center py-8 text-base-content/50 text-sm">Add cryptos to view chart.</div></div>
+    <div class="card-premium p-6">
+      <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("plus-circle","w-4 h-4",16)|safe }} Add Asset</h2>
+      <p class="text-xs text-base-content/60 mb-4">Enter each crypto you hold with amount, buy price, and current price.</p>
+      <div id="assetContainer" class="space-y-3"></div>
+      <div class="flex gap-3 mt-4">
+        <button id="addAssetBtn" style="background:var(--color-primary);color:var(--color-primary-content);display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1.5rem;border-radius:9999px;font-size:.75rem;font-weight:900;letter-spacing:.1em;border:none;cursor:pointer;transition:all .2s ease;line-height:1;flex:1">{{ lucide_icon("plus","w-3.5 h-3.5",14)|safe }} Add Asset</button>
+        <button id="resetBtn" class="btn btn-primary" aria-label="Reset to defaults" style="padding:.75rem 1rem;border-radius:9999px;font-size:.75rem;font-weight:900;letter-spacing:.1em;border:none;cursor:pointer;transition:all .2s ease;line-height:1">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }}</button>
       </div>
     </div>
 
-    <!-- Right: Table + Rebalancing -->
-    <div class="lg:w-7/12 flex flex-col gap-6">
-      <div class="card-premium p-6">
-        <div class="flex items-center justify-between mb-4 pb-3 border-b border-base-content/10 relative z-10">
-          <h3 class="text-lg font-black flex items-center gap-2">{{ lucide_icon("list","w-5 h-5", 20) | safe }} Holdings</h3>
-          <button class="btn btn-ghost btn-sm text-xs font-bold text-error" id="clearAllBtn">Clear All</button>
-        </div>
-        <div class="overflow-x-auto relative z-10">
-          <table class="w-full text-sm">
-            <thead><tr class="text-base-content/50 text-[10px] font-bold uppercase tracking-widest border-b border-base-content/10"><th class="py-3 text-left">Asset</th><th class="py-3 text-left">Weight</th><th class="py-3 text-left">Cost / Value</th><th class="py-3 text-right">P&L</th><th class="py-3 text-right w-10"></th></tr></thead>
-            <tbody id="assetsTableBody"><tr><td colspan="5" class="text-center py-8 text-base-content/50 text-sm">No holdings tracked.</td></tr></tbody>
-          </table>
-        </div>
-      </div>
+  </div>
 
-      <div class="card-premium p-6">
-        <h3 class="text-lg font-black mb-4 flex items-center gap-2 relative z-10">{{ lucide_icon("repeat","w-5 h-5", 20) | safe }} Rebalancing Engine</h3>
-        <div id="rebalanceSuggestionBox" class="relative z-10"><p class="text-base-content/50 text-sm">Add assets and set target weights to see rebalancing suggestions.</p></div>
+  <div class="flex-1 min-w-0 space-y-6">
+
+    <div class="card-premium p-6">
+      <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Portfolio Summary</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Invested</span><output id="resInvested" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-base-content)">$0</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Current Value</span><output id="resValue" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-success)">$0</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total P&L</span><output id="resPL" class="metric-cinematic metric-cinematic--sm font-mono">$0</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Return</span><output id="resRet" class="metric-cinematic metric-cinematic--sm font-mono">0%</output></div>
       </div>
     </div>
+
+    <div class="card-premium p-6">
+      <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("list","w-4 h-4",16)|safe }} Asset Breakdown</h2>
+      <div class="overflow-x-auto">
+        <table class="port-table" role="table">
+          <thead><tr><th scope="col">Asset</th><th scope="col">Amount</th><th scope="col">Invested</th><th scope="col">Value</th><th scope="col">P&L</th><th scope="col">Alloc</th></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div id="emptyMsg" class="text-center py-8 text-xs text-base-content/30">Add assets to see your portfolio breakdown.</div>
+    </div>
+
+    <div class="card-premium p-6">
+      <h2 class="text-sm font-black mb-3 flex items-center gap-2">{{ lucide_icon("shield","w-4 h-4",16)|safe }} Diversification Tips</h2>
+      <ul class="space-y-2 text-xs text-base-content/60 leading-relaxed">
+        <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span><strong class="text-base-content">Spread your risk:</strong> Avoid putting more than 20-30% of your portfolio into a single crypto. Diversification helps protect against volatile swings.</span></li>
+        <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span><strong class="text-base-content">Track cost basis:</strong> Knowing your average buy price helps you make informed decisions about when to take profits or cut losses.</span></li>
+        <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span><strong class="text-base-content">Rebalance periodically:</strong> As prices move, your allocation shifts. Review and rebalance every few months to maintain your target allocation.</span></li>
+      </ul>
+    </div>
+
   </div>
+
 </div>
 
+{% set seo = {
+  "faqs": [
+    {"q": "What is a crypto portfolio analyzer?", "a": "A crypto portfolio analyzer helps you track all your cryptocurrency holdings in one place. You enter each asset, its amount, buy price, and current price to see your total invested value, current value, profit or loss, and allocation percentages."},
+    {"q": "How do I calculate crypto P&L?", "a": "P&L (Profit and Loss) is calculated as (current price - buy price) × amount held. A positive number means profit, negative means loss. This tool also shows total portfolio P&L and percentage return."},
+    {"q": "What is allocation percentage?", "a": "Allocation percentage shows how much of your total portfolio value each cryptocurrency represents. For example, if Bitcoin is 60% of your portfolio value and Ethereum is 20%, those are your allocation percentages."},
+    {"q": "Why is diversification important in crypto?", "a": "Crypto markets are highly volatile. Diversifying across different assets reduces your risk because losses in one coin may be offset by gains in another. A balanced portfolio typically includes 5-10 different assets."},
+    {"q": "How often should I update my portfolio?", "a": "You should update your portfolio whenever you buy or sell crypto. Reviewing your P&L and allocation monthly helps you stay on top of your investments and make informed rebalancing decisions."}
+  ],
+  "howto_steps": [
+    {"title": "Add your assets", "desc": "Enter each cryptocurrency you hold with the amount, buy price, and current market price."},
+    {"title": "Review portfolio summary", "desc": "See your total invested, current value, overall P&L, and percentage return at a glance."},
+    {"title": "Check asset breakdown", "desc": "The table shows each asset's performance and allocation percentage with visual bars."},
+    {"title": "Adjust and rebalance", "desc": "Add or remove assets and update prices anytime to track your portfolio over time."}
+  ],
+  "howto_calculate": "For each asset: invested = amount × buy price, current value = amount × current price, P&L = current value - invested, return % = (P&L / invested) × 100. Total metrics sum across all assets. Allocation % = (asset value / total value) × 100."
+} %}
+{{ tool_seo_all(seo) }}
+{% endblock %}
+
+{% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded',()=>{
-  let prices={bitcoin:68000,ethereum:3550,binancecoin:580,solana:155,ripple:0.52,cardano:0.45,dogecoin:0.14,polkadot:6.2,"avalanche-2":32,chainlink:15.5};
-  let portfolio=[];let chart=null;
-  try{const s=localStorage.getItem('sb_crypto_portfolio');if(s)portfolio=JSON.parse(s);}catch{}
-  fetchPrices();
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const F = v => (v >= 0 ? '' : '') + '$' + Math.round(v).toLocaleString('en-US');
+  const FP = v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+  let assetId = 0;
 
-  const $=(id)=>document.getElementById(id);
-
-  $('assetForm').addEventListener('submit',function(e){
-    e.preventDefault();
-    const sel=$('coinSelect');const opt=sel.options[sel.selectedIndex];
-    const id=sel.value,sym=opt.dataset.symbol,nm=opt.text.split(' (')[0];
-    const qty=parseFloat($('coinQty').value),bp=parseFloat($('coinBuyPrice').value),tw=parseFloat($('targetWeight').value)||0;
-    if(isNaN(qty)||isNaN(bp))return;
-    const ex=portfolio.findIndex(a=>a.id===id);
-    if(ex!==-1){
-      const o=portfolio[ex];const tc=o.qty*o.avgBuyPrice+qty*bp;const tq=o.qty+qty;
-      portfolio[ex]={...o,qty:tq,avgBuyPrice:tc/tq,targetWeight:tw};
-    } else {portfolio.push({id,symbol:sym,name:nm,qty,avgBuyPrice:bp,targetWeight:tw});}
-    save();render();$('assetForm').reset();
-  });
-
-  $('clearAllBtn').onclick=()=>{if(confirm('Clear entire portfolio?')){portfolio=[];save();render();}};
-  $('refreshPricesBtn').onclick=()=>fetchPrices();
-
-  function save(){localStorage.setItem('sb_crypto_portfolio',JSON.stringify(portfolio));}
-
-  async function fetchPrices(){
-    const sb=$('statusBanner');sb.style.display='flex';sb.querySelector('span').innerHTML='{{ lucide_icon("repeat","w-4 h-4", 16) | safe }} Fetching live prices...';
-    try{
-      const ids=Object.keys(prices).join(',');
-      const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
-      if(!r.ok)throw 1;
-      const d=await r.json();
-      for(const id in d)if(d[id]?.usd)prices[id]=d[id].usd;
-      sb.className='flex items-center justify-between p-3 rounded-xl mb-6 border text-sm bg-success/10 border-success/20';
-      sb.querySelector('span').innerHTML='{{ lucide_icon("check-circle","w-4 h-4", 16) | safe }} Prices updated!';
-      setTimeout(()=>sb.style.display='none',3000);
-    }catch{
-      sb.className='flex items-center justify-between p-3 rounded-xl mb-6 border text-sm bg-warning/10 border-warning/20';
-      sb.querySelector('span').innerHTML='{{ lucide_icon("alert-triangle","w-4 h-4", 16) | safe }} Using cached prices.';
-    }
-    render();
+  function assetRow(id, name, amt, buyP, curP){
+    return '<div class="asset-row rounded-xl p-3 border" style="border-color:color-mix(in oklab,var(--color-base-content) 8%,transparent)" data-id="' + id + '">' +
+      '<div class="grid grid-cols-2 gap-2">' +
+      '<div class="col-span-2"><label class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="an' + id + '">Asset</label><input type="text" id="an' + id + '" class="input-cinematic w-full text-xs font-bold" value="' + name + '"></div>' +
+      '<div><label class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="aa' + id + '">Amount</label><input type="number" id="aa' + id + '" class="input-cinematic w-full text-xs font-mono font-bold hide-spinner" value="' + amt + '" min="0" step="any"></div>' +
+      '<div><label class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="ab' + id + '">Buy Price ($)</label><input type="number" id="ab' + id + '" class="input-cinematic w-full text-xs font-mono font-bold hide-spinner" value="' + buyP + '" min="0" step="any"></div>' +
+      '<div class="col-span-2"><label class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="ac' + id + '">Current Price ($)</label><div class="flex gap-2"><input type="number" id="ac' + id + '" class="input-cinematic flex-1 text-xs font-mono font-bold hide-spinner" value="' + curP + '" min="0" step="any"><button class="text-error font-bold text-xs px-1.5 py-1 rounded-lg hover:bg-error/10 transition-colors remove-asset-btn" data-rid="' + id + '" aria-label="Remove asset">✕</button></div></div>' +
+      '</div></div>';
   }
 
-  function render(){
-    const tb=$('assetsTableBody');tb.innerHTML='';
-    if(!portfolio.length){tb.innerHTML='<tr><td colspan="5" class="text-center py-8 text-base-content/50 text-sm">No holdings tracked.</td></tr>';updateStats(0,0,0,0);renderChart([],[]);$('rebalanceSuggestionBox').innerHTML='<p class="text-base-content/50 text-sm">Add assets to see suggestions.</p>';return;}
-    let tv=0,tc=0,ttw=0;
-    portfolio.forEach(a=>{const cp=prices[a.id]||a.avgBuyPrice;tv+=a.qty*cp;tc+=a.qty*a.avgBuyPrice;ttw+=a.targetWeight||0;});
-    let labs=[],vals=[],sugs=[];
-
-    portfolio.forEach((a,i)=>{
-      const cp=prices[a.id]||a.avgBuyPrice,cost=a.qty*a.avgBuyPrice,val=a.qty*cp;
-      const cw=tv>0?(val/tv)*100:0,tw=a.targetWeight||0;
-      labs.push(`${a.symbol} ($${val.toFixed(0)})`);vals.push(val);
-      const pl=val-cost,plp=cost>0?(pl/cost)*100:0;
-      const cls=pl>=0?'text-profit':'text-loss';
-
-      if(tw>0){
-        const tgt=(tw/100)*tv,diff=tgt-val;
-        if(Math.abs(diff)<10)sugs.push(`<div class="flex justify-between p-2 rounded border border-base-300/25 mb-2"><span class="font-bold text-sm">${a.symbol}</span><span class="text-success text-sm font-bold">{{ lucide_icon("check","w-4 h-4", 16) | safe }} Balanced</span></div>`);
-        else if(diff>0){const bq=diff/cp;sugs.push(`<div class="flex justify-between p-2 rounded border border-base-300/25 mb-2 bg-profit"><span class="font-bold text-sm">${a.symbol}</span><span class="text-profit text-sm font-bold">{{ lucide_icon("arrow-up","w-4 h-4", 16) | safe }} Buy ${bq.toFixed(4)} ($${diff.toFixed(2)})</span></div>`);}
-        else{const sq=Math.abs(diff)/cp;sugs.push(`<div class="flex justify-between p-2 rounded border border-base-300/25 mb-2 bg-loss"><span class="font-bold text-sm">${a.symbol}</span><span class="text-loss text-sm font-bold">{{ lucide_icon("arrow-down","w-4 h-4", 16) | safe }} Sell ${sq.toFixed(4)} ($${Math.abs(diff).toFixed(2)})</span></div>`);}
-      }
-
-      tb.innerHTML+=`<tr class="border-b border-base-content/5"><td class="py-3"><div class="flex items-center gap-3"><div class="crypto-badge">${a.symbol.slice(0,2)}</div><div><span class="font-bold block text-sm">${a.name}</span><span class="text-[10px] text-base-content/50">${a.symbol}</span></div></div></td><td class="py-3"><div class="flex items-center gap-2 mb-1"><span class="text-sm font-bold">${cw.toFixed(1)}%</span><span class="text-[10px] text-base-content/50">Target: ${tw}%</span></div><div class="h-1.5 bg-base-300/50 rounded-full overflow-hidden"><div class="h-full bg-primary rounded-full" style="width:${Math.min(cw,100)}%"></div></div>${tw>0?`<div class="mt-1">${Math.abs(diff)<10?'{{ lucide_icon("check","w-3 h-3", 12) | safe }} Balanced':(diff>0?'{{ lucide_icon("arrow-up","w-3 h-3", 12) | safe }} Underweight':'{{ lucide_icon("arrow-down","w-3 h-3", 12) | safe }} Overweight')}</div>`:''}</td><td class="py-3"><span class="text-[10px] block text-base-content/50">Cost: $${cost.toFixed(2)}</span><span class="text-sm font-bold">Val: $${val.toFixed(2)}</span></td><td class="py-3 text-right ${cls}"><span class="font-bold block text-sm">${pl>=0?'+':''}$${pl.toFixed(2)}</span><span class="text-[10px] font-bold">${pl>=0?'+':''}${plp.toFixed(2)}%</span></td><td class="py-3 text-right"><button class="btn btn-ghost btn-xs text-error p-0 delete-btn" data-index="${i}">{{ lucide_icon("trash-2","w-4 h-4", 16) | safe }}</button></td></tr>`;
+  function getAssets(){
+    const rows = document.querySelectorAll('#assetContainer > div');
+    const assets = [];
+    rows.forEach(function(r){
+      const id = r.getAttribute('data-id');
+      const name = $('an' + id)?.value.trim() || '';
+      const amt = parseFloat($('aa' + id)?.value) || 0;
+      const buyP = parseFloat($('ab' + id)?.value) || 0;
+      const curP = parseFloat($('ac' + id)?.value) || 0;
+      if(name && amt > 0 && buyP > 0 && curP > 0) assets.push({name, amt, buyP, curP});
     });
-    document.querySelectorAll('.delete-btn').forEach(b=>b.addEventListener('click',function(){const idx=parseInt(this.dataset.index);portfolio.splice(idx,1);save();render();}));
-
-    const tp=tv-tc,pp=tc>0?(tp/tc)*100:0;
-    updateStats(tv,tc,tp,pp);renderChart(labs,vals);
-    $('rebalanceSuggestionBox').innerHTML=sugs.length?sugs.join(''):'<p class="text-base-content/50 text-sm">Set target weights to see suggestions.</p>';
+    return assets;
   }
 
-  function updateStats(v,c,pl,plp){
-    $('totalValue').textContent='$'+v.toFixed(2);
-    $('totalCost').textContent='$'+c.toFixed(2);
-    const pe=$('totalProfit'),ppe=$('totalProfitPct');
-    pe.textContent=(pl>=0?'+':'')+'$'+pl.toFixed(2);
-    ppe.textContent=(pl>=0?'+':'')+plp.toFixed(2)+'%';
-    if(pl>=0){pe.className='text-2xl font-black mt-2 text-profit';ppe.className='badge badge-sm border-0 font-bold text-[10px] bg-profit text-profit';}
-    else{pe.className='text-2xl font-black mt-2 text-loss';ppe.className='badge badge-sm border-0 font-bold text-[10px] bg-loss text-loss';}
-    $('diversityLabel').textContent=portfolio.length+' Coin'+(portfolio.length===1?'':'s');
+  function calculate(){
+    const assets = getAssets();
+    const tbody = $('tableBody');
+    const emptyMsg = $('emptyMsg');
+
+    if(assets.length === 0){
+      emptyMsg.style.display = 'block';
+      tbody.innerHTML = '';
+      $('resInvested').textContent = '$0';
+      $('resValue').textContent = '$0';
+      $('resPL').textContent = '$0';
+      $('resRet').textContent = '0%';
+      $('resInvested').style.color = 'var(--color-base-content)';
+      $('resValue').style.color = 'var(--color-base-content)';
+      $('resPL').style.color = 'var(--color-base-content)';
+      $('resRet').style.color = 'var(--color-base-content)';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+
+    let totalInvested = 0, totalValue = 0;
+    const rows = assets.map(function(a){
+      const invested = a.amt * a.buyP;
+      const value = a.amt * a.curP;
+      totalInvested += invested;
+      totalValue += value;
+      return {name: a.name, amt: a.amt, invested: invested, value: value, pl: value - invested};
+    });
+
+    const totalPL = totalValue - totalInvested;
+    const totalRet = totalInvested > 0 ? (totalPL / totalInvested) * 100 : 0;
+
+    $('resInvested').textContent = F(totalInvested);
+    $('resInvested').style.color = 'var(--color-base-content)';
+    $('resValue').textContent = F(totalValue);
+    $('resValue').style.color = 'var(--color-success)';
+    $('resPL').textContent = (totalPL >= 0 ? '+' : '') + F(Math.abs(totalPL));
+    $('resPL').style.color = totalPL >= 0 ? 'var(--color-success)' : 'var(--color-error)';
+    $('resRet').textContent = FP(totalRet);
+    $('resRet').style.color = totalPL >= 0 ? 'var(--color-success)' : 'var(--color-error)';
+
+    const colors = ['var(--color-primary)','var(--color-secondary)','var(--color-success)','var(--color-warning)','var(--color-error)','var(--color-info)','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+    tbody.innerHTML = rows.map(function(r, i){
+      const c = colors[i % colors.length];
+      const alloPct = totalValue > 0 ? (r.value / totalValue) * 100 : 0;
+      const plColor = r.pl >= 0 ? 'var(--color-success)' : 'var(--color-error)';
+      return '<tr><td style="font-weight:800;color:' + c + '">' + r.name + '</td><td>' + r.amt.toLocaleString('en-US', {maximumFractionDigits:4}) + '</td><td>' + F(r.invested) + '</td><td>' + F(r.value) + '</td><td style="color:' + plColor + '">' + (r.pl >= 0 ? '+' : '') + F(Math.abs(r.pl)) + '</td><td><div class="flex items-center gap-2"><div class="allo-bar"><div class="allo-fill" style="width:' + alloPct + '%;background:' + c + '"></div></div><span class="text-[10px] font-mono font-bold">' + alloPct.toFixed(1) + '%</span></div></td></tr>';
+    }).join('');
   }
 
-  function renderChart(labels,values){
-    const ct=$('allocationChart');
-    if(!labels.length){ct.innerHTML='<div class="text-center py-8 text-base-content/50 text-sm">Add cryptos to view chart.</div>';if(chart)chart.destroy();chart=null;return;}
-    ct.innerHTML='';const div=document.createElement('div');ct.appendChild(div);
-    const isNight=document.documentElement.getAttribute('data-theme')==='night';const opts={series:values,chart:{type:'donut',height:250},labels:labels,stroke:{colors:[isNight?'#333':'#111']},dataLabels:{enabled:false},legend:{position:'bottom',horizontalAlign:'center'},colors:['#7c3aed','#10b981','#f59e0b','#3b82f6','#ec4899','#14b8a6','#f43f5e','#10b981'],theme:{mode:isNight?'dark':'light'}};
-    chart=new ApexCharts(div,opts);chart.render();
+  function addAsset(name, amt, buyP, curP){
+    const id = ++assetId;
+    const container = $('assetContainer');
+    const div = document.createElement('div');
+    div.innerHTML = assetRow(id, name, amt, buyP, curP);
+    while(div.children.length > 0) container.appendChild(div.firstChild);
+    const row = container.querySelector('[data-id="' + id + '"]');
+    row.querySelectorAll('input').forEach(function(el){ el.addEventListener('input', calculate); });
+    row.querySelector('.remove-asset-btn').addEventListener('click', function(){
+      this.closest('[data-id]').remove();
+      calculate();
+    });
+    calculate();
   }
 
-  render();
-});
+  function resetAssets(){
+    $('assetContainer').innerHTML = '';
+    assetId = 0;
+    addAsset('BTC', 0.5, 42000, 67500);
+    addAsset('ETH', 5, 2200, 3450);
+    addAsset('SOL', 20, 95, 145);
+    calculate();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    resetAssets();
+    $('addAssetBtn').addEventListener('click', function(){ addAsset('', 0, 0, 0); });
+    $('resetBtn').addEventListener('click', resetAssets);
+  });
+})();
 </script>
-
-{% set faq = [
-  ("Is the Portfolio Analyzer free?", "Yes, 100% free. No sign-up or limits on tokens tracked."),
-  ("Do I need to connect my wallet?", "No. For your security, this tool relies on manual input only."),
-  ("Will clearing cache delete my data?", "Yes, portfolio data is saved in LocalStorage. Keep a backup of your records."),
-  ("How often should I rebalance?", "Most investors rebalance quarterly or when allocations drift 5-10% from target.")
-] %}
-
-{% set steps = [
-  {"title": "Add Holdings", "desc": "Select a coin, enter quantity and average buy price, then add to portfolio."},
-  {"title": "Review Allocation", "desc": "Check the pie chart and weight table to understand your distribution."},
-  {"title": "Optimize with Rebalancing", "desc": "Set target weights for each asset and get buy/sell suggestions."}
-] %}
-
 {% endblock %}

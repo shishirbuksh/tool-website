@@ -1,173 +1,380 @@
-{% extends"base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section %}
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
 
-{% block title %}Free Crypto Fear and Greed Index Online | StoryBrain AI{% endblock %}
-{% block meta_description %}Track the real-time Crypto Fear & Greed Index. Understand market sentiment and make better trading decisions.{% endblock %}
-{% block meta_keywords %}crypto fear and greed index, bitcoin sentiment, market emotions tracker, crypto market index{% endblock %}
+{% block title %}Crypto Fear & Greed Index Tracker | Market Sentiment Tool{% endblock %}
+{% block meta_description %}Track live crypto market sentiment with the Fear & Greed Index. Real-time data, 30-day history chart, and buy/sell signals.{% endblock %}
+{% block meta_keywords %}crypto fear and greed index, market sentiment, bitcoin fear greed, crypto market mood, extreme fear crypto{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/crypto-fear-greed-index-tracker{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/crypto-fear-greed-index-tracker">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Crypto Fear & Greed Index - Free Online | StoryBrain AI">
-<meta property="og:description" content="Track the real-time Crypto Fear & Greed Index. Understand market sentiment live.">
+<meta property="og:title" content="Crypto Fear & Greed Index Tracker">
+<meta property="og:description" content="Track live crypto market sentiment with the Fear & Greed Index. Real-time data, 30-day history chart, and buy/sell signals.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Crypto Fear & Greed Index - Free Online | StoryBrain AI">
-<meta name="twitter:description" content="Track the real-time Crypto Fear & Greed Index.">
 {% endblock %}
 
 {% block head %}
-<script src="/static/js/vendor/apexcharts.min.js"></script>
 <style>
-.gauge-glow{position:absolute;top:0;left:0;width:100%;height:100%;filter:blur(100px);opacity:0.15;pointer-events:none;border-radius:50%;transition:all 1.2s cubic-bezier(0.4,0,0.2,1)}
-.gauge-value{font-weight:900;line-height:1;letter-spacing:-0.04em;transition:color 0.6s cubic-bezier(0.4,0,0.2,1);text-shadow:0 0 40px color-mix(in oklab, currentColor 20%, transparent)}
+.stat-cinematic:hover{transform:none !important}
+.health-ring{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:900;font-family:ui-monospace,monospace;position:relative;flex-shrink:0}
+.health-ring::before{content:"";position:absolute;inset:0;border-radius:50%;padding:3px;background:conic-gradient(var(--_pct) 0deg, color-mix(in oklab, var(--color-base-content) 8%, transparent) 0deg);-webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.sentiment-bar{height:6px;border-radius:999px;transition:all .3s ease}
+.preset-btn{cursor:pointer;padding:.3rem .75rem;border-radius:999px;font-size:.6rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;transition:all .2s ease;border:1px solid color-mix(in oklab,var(--color-base-content) 15%,transparent);background:transparent;color:var(--color-base-content);opacity:.7}
+.preset-btn:hover,.preset-btn.active{opacity:1;border-color:var(--color-primary);background:color-mix(in oklab,var(--color-primary) 10%,transparent);color:var(--color-primary)}
+.chart-bar{transition:height .4s ease;border-radius:2px 2px 0 0;min-height:2px}
+.hist-tooltip{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);padding:2px 6px;border-radius:4px;font-size:.55rem;font-weight:700;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s ease;z-index:10}
+.hist-bar-wrap:hover .hist-tooltip{opacity:1}
+.hist-bar-wrap{cursor:pointer}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
 </style>
 {% endblock %}
 
 {% block content %}
-{{ tool_hero_section("trending-up", "Real-time Sentiment Analysis", "FEAR", "& GREED INDEX", "Gauge market psychology instantly. Fear is opportunity, greed is caution.") }}
+{{ tool_hero_section("activity", "Market Mood Tracker", "FEAR & GREED", "INDEX", "Live crypto market sentiment powered by Alternative.me data. Track real-time fear & greed with 30-day history.") }}
 
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <!-- Left: Gauge -->
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8 relative overflow-hidden h-full">
-        <div id="gaugeGlow" class="gauge-glow" style="background:var(--color-primary)"></div>
-        <div class="relative z-10 flex flex-col h-full">
-          <div class="flex items-center gap-3 mb-5 pb-4 border-b border-base-content/10">
-            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">{{ lucide_icon("gauge","w-5 h-5", 20) | safe }}</div>
-            <h3 class="text-xl font-black text-base-content tracking-tight">Current Pulse</h3>
-            <span class="ml-auto"><span class="pulse-dot pulse-dot--success"></span></span>
-          </div>
-          <div class="flex-1 flex flex-col items-center justify-center">
-            <div class="w-full max-w-[220px] mx-auto relative my-6">
-              <svg viewBox="0 0 120 120" class="w-full h-full drop-shadow-lg">
-                <circle cx="60" cy="60" r="54" fill="none" stroke="color-mix(in oklab, var(--color-base-content) 8%, transparent)" stroke-width="8"/>
-                <circle cx="60" cy="60" r="54" fill="none" stroke="url(#gaugeGrad)" stroke-width="8" stroke-linecap="round" stroke-dasharray="339.292" stroke-dashoffset="339.292" id="gaugeArc" transform="rotate(-90 60 60)" style="transition: stroke-dashoffset 1.5s cubic-bezier(0.4,0,0.2,1)"/>
-                <defs><linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#ef4444"/><stop offset="33%" stop-color="#f59e0b"/><stop offset="66%" stop-color="#22c55e"/><stop offset="100%" stop-color="#22c55e"/></linearGradient></defs>
-              </svg>
-              <div class="absolute inset-0 flex flex-col items-center justify-center">
-                <span id="gaugeValue" class="gauge-value text-5xl md:text-6xl font-black text-base-content font-mono tracking-tighter">--</span>
-                <span id="gaugeLabel" class="label-cinematic mt-1">Loading</span>
-              </div>
-            </div>
-            <div class="text-center mt-4 mb-6">
-              <div id="fngClass" class="text-2xl md:text-3xl font-black uppercase tracking-tight text-base-content">Loading...</div>
-            </div>
-            <div class="inline-flex items-center gap-2 px-4 py-2 bg-base-300/60 border border-base-content/10 rounded-xl text-[10px] text-base-content/50 font-mono font-bold" id="nextUpdate">
-              <span class="loading loading-spinner loading-xs"></span> Syncing...
-            </div>
-          </div>
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+
+  <!-- ===== LEFT COLUMN ===== -->
+  <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
+
+    <div class="card-premium p-6">
+      <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-4 h-4",16)|safe }} Market Sentiment</h2>
+      <p class="text-xs text-base-content/60 mb-4">Adjust the score to explore what-if scenarios, or click <strong>Refresh</strong> to fetch the latest live data.</p>
+      <div class="space-y-4">
+        <div>
+          <label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="fgScore">Index Score (0–100)</label>
+          <input type="number" id="fgScore" class="input input-cinematic w-full text-sm font-mono font-bold hide-spinner" value="45" min="0" max="100">
+          <input type="range" id="fgRange" class="slider-cinematic w-full mt-2" value="45" min="0" max="100" aria-label="Fear and Greed index slider">
         </div>
-      </div>
-
-      <!-- Insight -->
-      <div class="card-premium p-5 border-l-4 border-primary mt-6 relative overflow-hidden">
-        <div class="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent"></div>
-        <div class="relative z-10">
-          <h6 class="label-cinematic text-primary mb-2 flex items-center gap-2">{{ lucide_icon("cpu","w-3 h-3", 12) | safe }} System Insight</h6>
-          <p id="marketInsight" class="text-sm font-bold text-base-content/70 leading-relaxed min-h-[2.5rem]">Analyzing sentiment...</p>
+        <div>
+          <span class="text-[10px] font-bold text-base-content/60 block mb-2 uppercase tracking-wider">Quick Presets</span>
+          <div class="flex flex-wrap gap-1.5">
+            <button class="preset-btn" data-val="15">Extreme Fear</button>
+            <button class="preset-btn" data-val="30">Fear</button>
+            <button class="preset-btn active" data-val="45">Neutral</button>
+            <button class="preset-btn" data-val="65">Greed</button>
+            <button class="preset-btn" data-val="85">Extreme Greed</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Right: History -->
-    <div class="lg:w-7/12 flex flex-col gap-6">
-      <!-- Comparison -->
-      <div class="grid grid-cols-3 gap-4">
-        <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Yesterday</span><div id="statYesterdayVal" class="metric-cinematic metric-cinematic--md mb-2 text-base-content">--</div><span id="statYesterdayClass" class="badge badge-sm border-0 font-bold uppercase tracking-widest text-[10px]">--</span></div>
-        <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Last Week</span><div id="statWeekVal" class="metric-cinematic metric-cinematic--md mb-2 text-base-content">--</div><span id="statWeekClass" class="badge badge-sm border-0 font-bold uppercase tracking-widest text-[10px]">--</span></div>
-        <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Last Month</span><div id="statMonthVal" class="metric-cinematic metric-cinematic--md mb-2 text-base-content">--</div><span id="statMonthClass" class="badge badge-sm border-0 font-bold uppercase tracking-widest text-[10px]">--</span></div>
+    <div class="card-premium p-6" id="livePanel">
+      <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("radio","w-4 h-4",16)|safe }} Live Data</h2>
+      <div id="liveLoading" class="flex items-center gap-2 text-xs text-base-content/50">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--color-primary);animation:pulse-dot 1.5s ease-in-out infinite"></span>
+        Loading live data...
       </div>
-
-      <!-- Chart -->
-      <div class="card-premium p-6 flex-1 flex flex-col">
-        <div class="flex items-center gap-3 mb-5 pb-4 border-b border-base-content/10">
-          <div class="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center text-info">{{ lucide_icon("activity","w-5 h-5", 20) | safe }}</div>
-          <h3 class="text-xl font-black text-base-content tracking-tight">30-Day Trend Matrix</h3>
+      <div id="liveError" class="hidden text-xs" style="color:var(--color-error)">
+        <p class="font-bold">Failed to load live data</p>
+        <p id="liveErrorMsg" class="text-base-content/50 mt-1"></p>
+      </div>
+      <div id="liveContent" class="hidden space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="health-ring" id="liveHealthRing" style="--_pct:162deg">—</div>
+            <div>
+              <output id="liveValue" class="text-2xl font-black font-mono">—</output>
+              <span id="liveLabel" class="text-xs font-black block uppercase tracking-widest">—</span>
+            </div>
+          </div>
+          <span id="liveChange" class="text-xs font-black font-mono flex items-center gap-1"></span>
         </div>
-        <div class="flex-1 min-h-[300px]" id="historyChart"></div>
+        <div class="flex items-center justify-between text-[10px] text-base-content/40">
+          <span id="liveTimestamp">—</span>
+          <button id="refreshBtn" class="btn btn-ghost btn-xs gap-1 text-[10px] font-bold" onclick="void(0)">
+            {{ lucide_icon("refresh-cw","w-3 h-3",12)|safe }} Refresh
+          </button>
+        </div>
       </div>
     </div>
+
   </div>
+
+  <!-- ===== RIGHT COLUMN ===== -->
+  <div class="flex-1 min-w-0 space-y-6">
+
+    <div class="card-premium p-6">
+      <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("gauge","w-4 h-4",16)|safe }} Current Sentiment</h2>
+      <div class="flex items-center gap-5">
+        <div class="health-ring" id="healthRing" style="--_pct:162deg">45</div>
+        <div>
+          <output id="fgDisplay" class="text-2xl font-black font-mono" style="color:var(--color-warning)">45</output>
+          <span id="fgLabel" class="text-xs font-black block uppercase tracking-widest" style="color:var(--color-warning)">Neutral</span>
+        </div>
+      </div>
+      <p id="fgDesc" class="text-xs text-base-content/55 mt-4 leading-relaxed">The market is balanced. Neither fear nor greed dominates.</p>
+      <div class="grid grid-cols-2 gap-3 mt-5">
+        <div><span class="text-[9px] font-bold text-base-content/40 block uppercase tracking-wider">Volatility</span><div class="flex items-center gap-2 mt-1"><div class="sentiment-bar flex-1" style="width:25%;background:color-mix(in oklab,var(--color-primary) 40%,transparent)"></div><span class="text-[10px] font-mono font-bold text-base-content/50">25%</span></div></div>
+        <div><span class="text-[9px] font-bold text-base-content/40 block uppercase tracking-wider">Momentum</span><div class="flex items-center gap-2 mt-1"><div class="sentiment-bar flex-1" style="width:25%;background:color-mix(in oklab,var(--color-success) 40%,transparent)"></div><span class="text-[10px] font-mono font-bold text-base-content/50">25%</span></div></div>
+        <div><span class="text-[9px] font-bold text-base-content/40 block uppercase tracking-wider">Social Media</span><div class="flex items-center gap-2 mt-1"><div class="sentiment-bar flex-1" style="width:15%;background:color-mix(in oklab,var(--color-info) 40%,transparent)"></div><span class="text-[10px] font-mono font-bold text-base-content/50">15%</span></div></div>
+        <div><span class="text-[9px] font-bold text-base-content/40 block uppercase tracking-wider">Dominance</span><div class="flex items-center gap-2 mt-1"><div class="sentiment-bar flex-1" style="width:10%;background:color-mix(in oklab,var(--color-warning) 40%,transparent)"></div><span class="text-[10px] font-mono font-bold text-base-content/50">10%</span></div></div>
+      </div>
+    </div>
+
+    <div class="card-premium p-6">
+      <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} 30-Day History</h2>
+      <div id="histLoading" class="flex items-center gap-2 text-xs text-base-content/50">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--color-primary);animation:pulse-dot 1.5s ease-in-out infinite"></span>
+        Loading chart...
+      </div>
+      <div id="histError" class="hidden text-xs" style="color:var(--color-error)">
+        Unable to load history data.
+      </div>
+      <div id="histContent" class="hidden">
+        <div id="histBars" class="flex items-end gap-[2px] h-28" style="border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 10%,transparent)">
+        </div>
+        <div class="flex justify-between text-[9px] text-base-content/40 mt-1 font-mono">
+          <span id="histEarliest">—</span>
+          <span class="font-bold">← Older</span>
+          <span id="histLatest">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-premium p-6">
+      <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("info","w-4 h-4",16)|safe }} Scale Guide</h2>
+      <div class="space-y-3">
+        <div class="flex items-center gap-3 p-3 rounded-xl" style="background:color-mix(in oklab,var(--color-error) 10%,transparent)"><div class="w-1 h-8 rounded-full shrink-0" style="background:var(--color-error)"></div><div><span class="text-xs font-black block" style="color:var(--color-error)">0–24 Extreme Fear</span><span class="text-[10px] text-base-content/50">Panic selling, bearish sentiment — historically a buying opportunity for long-term investors.</span></div></div>
+        <div class="flex items-center gap-3 p-3 rounded-xl" style="background:color-mix(in oklab,var(--color-warning) 10%,transparent)"><div class="w-1 h-8 rounded-full shrink-0" style="background:var(--color-warning)"></div><div><span class="text-xs font-black block" style="color:var(--color-warning)">25–44 Fear</span><span class="text-[10px] text-base-content/50">Caution dominates. Investors are uncertain about the market direction.</span></div></div>
+        <div class="flex items-center gap-3 p-3 rounded-xl" style="background:color-mix(in oklab,var(--color-base-content) 5%,transparent)"><div class="w-1 h-8 rounded-full shrink-0" style="background:var(--color-base-content)"></div><div><span class="text-xs font-black block" style="color:var(--color-base-content)">45–54 Neutral</span><span class="text-[10px] text-base-content/50">Balanced sentiment. Neither fear nor greed dominates — typical during consolidation.</span></div></div>
+        <div class="flex items-center gap-3 p-3 rounded-xl" style="background:color-mix(in oklab,var(--color-primary) 10%,transparent)"><div class="w-1 h-8 rounded-full shrink-0" style="background:var(--color-primary)"></div><div><span class="text-xs font-black block" style="color:var(--color-primary)">55–74 Greed</span><span class="text-[10px] text-base-content/50">Bullish sentiment. Investors are confident and buying. Market momentum is strong.</span></div></div>
+        <div class="flex items-center gap-3 p-3 rounded-xl" style="background:color-mix(in oklab,var(--color-success) 10%,transparent)"><div class="w-1 h-8 rounded-full shrink-0" style="background:var(--color-success)"></div><div><span class="text-xs font-black block" style="color:var(--color-success)">75–100 Extreme Greed</span><span class="text-[10px] text-base-content/50">FOMO driving the market. Overbought conditions — may signal a market top.</span></div></div>
+      </div>
+    </div>
+
+  </div>
+
 </div>
 
+{% set seo = {
+  "faqs": [
+    {"q": "What is the Crypto Fear & Greed Index?", "a": "The Crypto Fear and Greed Index measures market sentiment on a scale of 0 to 100. A low score means investors are fearful (bearish), while a high score means they are greedy (bullish). It is updated daily by Alternative.me using volatility, volume, social media, and other data."},
+    {"q": "How is the Fear & Greed Index calculated?", "a": "The index uses six weighted factors: Volatility (25%), Market Momentum/Volume (25%), Social Media Sentiment (15%), Surveys (15%), Bitcoin Dominance (10%), and Google Trends (10%). Each factor is scored and combined into a single daily number from 0 to 100."},
+    {"q": "What does Extreme Fear mean?", "a": "Extreme Fear (0–24) means investors are panicking and selling. Historically, extreme fear levels have been buying opportunities for long-term investors because the market is oversold and due for a rebound."},
+    {"q": "What does Extreme Greed mean?", "a": "Extreme Greed (75–100) means FOMO is driving the market higher. When everyone is greedy, there may be few buyers left, which can signal a market top. It is often a sign to take profits or be cautious."},
+    {"q": "How can I use the Fear & Greed Index?", "a": "Use the index as a contrarian signal: buy when fear is high and prices are low, sell or hold when greed is extreme. Combine it with other analysis tools for better entry and exit timing in crypto markets."}
+  ],
+  "howto_steps": [
+    {"title": "Check live sentiment", "desc": "The Live Data panel fetches the current Fear & Greed Index and shows the latest value with change direction."},
+    {"title": "Explore history", "desc": "The 30-day bar chart shows the past month of sentiment. Hover each bar for the exact value and date."},
+    {"title": "Adjust the score", "desc": "Use the slider or number input to set a Fear & Greed value and see how sentiment shifts."},
+    {"title": "Use presets quickly", "desc": "Click any preset button to jump to a classic sentiment level instantly."}
+  ],
+  "howto_calculate": "The Crypto Fear and Greed Index is calculated by Alternative.me using six weighted factors. Volatility (25%) measures market swings. Momentum and volume (25%) tracks buying pressure. Social media activity (15%) gauges public sentiment. Surveys (15%) collect trader opinions. Bitcoin dominance (10%) tracks risk appetite. Google Trends (10%) measures public interest. Each factor is normalized to a 0-100 scale and combined into the final daily score, which is updated once per day."
+} %}
+{{ tool_seo_all(seo) }}
+{% endblock %}
+
+{% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded',()=>{
-  const circumference=339.292;
-  function getColor(v){if(v<=25)return{cl:'var(--color-error)',nm:'Extreme Fear'};if(v<=46)return{cl:'var(--color-warning)',nm:'Fear'};if(v<=54)return{cl:'var(--color-neutral)',nm:'Neutral'};if(v<=75)return{cl:'var(--color-success)',nm:'Greed'};return{cl:'var(--color-success)',nm:'Extreme Greed'};}
-  function getInsight(v){if(v<=25)return"Extreme fear. Historically a prime contrarian buying opportunity.";if(v<=46)return"Moderate fear. Market participants are cautious.";if(v<=54)return"Neutral. Consolidation before a potential breakout.";if(v<=75)return"Greed rising. Evaluate resistance levels.";return"Extreme greed. Overbought — correction may be imminent.";}
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
 
-  async function fetchFNG(){
+  const ZONES = [
+    {max:24, label:'Extreme Fear', color:'var(--color-error)', desc:'Panic selling. Historically a buying opportunity for long-term investors as the market is oversold.'},
+    {max:44, label:'Fear', color:'var(--color-warning)', desc:'Caution dominates. Investors are uncertain about near-term direction.'},
+    {max:54, label:'Neutral', color:'var(--color-base-content)', desc:'The market is balanced. Neither fear nor greed dominates — often signals consolidation.'},
+    {max:74, label:'Greed', color:'var(--color-primary)', desc:'Bullish momentum. Investors are confident and actively buying into the market.'},
+    {max:100, label:'Extreme Greed', color:'var(--color-success)', desc:'FOMO is driving prices higher. May signal overbought conditions and a potential market top.'},
+  ];
+
+  function getZone(val){
+    val = Math.max(0, Math.min(100, val));
+    for(const z of ZONES){ if(val <= z.max) return z; }
+    return ZONES[4];
+  }
+
+  function setScore(val){
+    val = Math.max(0, Math.min(100, Math.round(val)));
+    $('fgScore').value = val;
+    $('fgRange').value = val;
+    const pct = val / 100 * 360;
+    $('healthRing').style.setProperty('--_pct', pct + 'deg');
+    $('fgDisplay').innerText = val;
+    const zone = getZone(val);
+    $('fgDisplay').style.color = zone.color;
+    $('fgLabel').innerText = zone.label;
+    $('fgLabel').style.color = zone.color;
+    $('fgDesc').innerText = zone.desc;
+    $('healthRing').style.color = zone.color;
+    document.querySelectorAll('.preset-btn').forEach(b => {
+      b.classList.toggle('active', parseInt(b.getAttribute('data-val')) === val);
+    });
+  }
+
+  async function fetchLive(histBarsEl){
+    const liveLoading = $('liveLoading');
+    const liveError = $('liveError');
+    const liveErrorMsg = $('liveErrorMsg');
+    const liveContent = $('liveContent');
+    const histLoading = $('histLoading');
+    const histError = $('histError');
+    const histContent = $('histContent');
+    const histBars = histBarsEl || $('histBars');
+
+    liveLoading.classList.remove('hidden');
+    liveError.classList.add('hidden');
+    liveContent.classList.add('hidden');
+    if(!histBarsEl){
+      histLoading.classList.remove('hidden');
+      histError.classList.add('hidden');
+      histContent.classList.add('hidden');
+    }
+
     try{
-      const r=await fetch('https://api.alternative.me/fng/?limit=32');
-      const d=await r.json();
-      if(d?.data?.length>0)process(d.data);
-    }catch{ document.getElementById('fngClass').textContent='API Error'; }
+      const resp = await fetch('/api/fng?limit=31');
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      const json = await resp.json();
+      const dataArr = json.data;
+      if(!dataArr || !dataArr.length) throw new Error('No data received');
+
+      // Live value = most recent entry
+      const latest = dataArr[0];
+      const val = parseInt(latest.value, 10);
+
+      // Yesterday value for change arrow
+      let prevVal = val;
+      if(dataArr.length > 1){
+        prevVal = parseInt(dataArr[1].value, 10);
+      }
+
+      const zone = getZone(val);
+      const diff = val - prevVal;
+      const changeEl = $('liveChange');
+      if(diff > 0){
+        changeEl.innerHTML = '{{ lucide_icon("trending-up","w-3.5 h-3.5",14)|safe }} +' + diff;
+        changeEl.style.color = 'var(--color-success)';
+      } else if(diff < 0){
+        changeEl.innerHTML = '{{ lucide_icon("trending-down","w-3.5 h-3.5",14)|safe }} ' + diff;
+        changeEl.style.color = 'var(--color-error)';
+      } else {
+        changeEl.innerHTML = '{{ lucide_icon("minus","w-3.5 h-3.5",14)|safe }} 0';
+        changeEl.style.color = 'var(--color-base-content)';
+      }
+
+      // Update health ring
+      const lhr = $('liveHealthRing');
+      lhr.style.setProperty('--_pct', (val / 100 * 360) + 'deg');
+      lhr.style.color = zone.color;
+      lhr.innerText = val;
+      $('liveValue').innerText = val;
+      $('liveValue').style.color = zone.color;
+      $('liveLabel').innerText = zone.label;
+      $('liveLabel').style.color = zone.color;
+
+      // Timestamp
+      const ts = latest.timestamp ? parseInt(latest.timestamp, 10) * 1000 : Date.now();
+      $('liveTimestamp').innerText = 'Updated: ' + new Date(ts).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+
+      liveLoading.classList.add('hidden');
+      liveContent.classList.remove('hidden');
+
+      // Also update slider/gauge to live value
+      setScore(val);
+
+      // 30-day history bars
+      if(!histBarsEl){
+        renderHistoryBars(dataArr);
+      }
+
+    } catch(e){
+      liveLoading.classList.add('hidden');
+      liveError.classList.remove('hidden');
+      liveErrorMsg.innerText = e.message || 'Unknown error';
+      if(!histBarsEl){
+        histLoading.classList.add('hidden');
+        histError.classList.remove('hidden');
+      }
+    }
   }
 
-  function process(all){
-    const cur=all[0],val=parseInt(cur.value),{cl,nm}=getColor(val);
-    const arc=document.getElementById('gaugeArc');
-    const offset=circumference-((val/100)*circumference);
-    arc.style.strokeDashoffset=offset;
-    document.getElementById('gaugeValue').textContent=val;
-    document.getElementById('gaugeLabel').textContent=nm;
-    document.getElementById('fngClass').textContent=nm;
-    document.getElementById('fngClass').style.color=cl;
-    document.getElementById('gaugeValue').style.color=cl;
-    document.getElementById('marketInsight').textContent=getInsight(val);
-    document.getElementById('gaugeGlow').style.background=cl;
+  function renderHistoryBars(dataArr){
+    const histBars = $('histBars');
+    const histLoading = $('histLoading');
+    const histError = $('histError');
+    const histContent = $('histContent');
+    const histEarliest = $('histEarliest');
+    const histLatest = $('histLatest');
 
-    if(all[1])updStat('Yesterday',all[1]);
-    if(all[7])updStat('Week',all[7]);
-    if(all[30])updStat('Month',all[30]);
-    renderChart(all.slice(0,30).reverse());
-    startCountdown(cur.time_until_update);
+    histBars.innerHTML = '';
+    const bars = dataArr.slice().reverse(); // oldest first
+
+    bars.forEach((d, i) => {
+      const v = parseInt(d.value, 10);
+      const zone = getZone(v);
+      const pct = v / 100;
+      const h = Math.max(2, pct * 108);
+      const date = d.timestamp
+        ? new Date(parseInt(d.timestamp, 10) * 1000)
+        : null;
+      const label = date
+        ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : '';
+      const wrap = document.createElement('div');
+      wrap.className = 'hist-bar-wrap relative flex-1 flex flex-col justify-end';
+      const bar = document.createElement('div');
+      bar.className = 'chart-bar w-full';
+      bar.style.height = h + 'px';
+      bar.style.background = zone.color;
+      const tip = document.createElement('div');
+      tip.className = 'hist-tooltip';
+      tip.style.background = 'color-mix(in oklab, var(--color-base-content) 85%, transparent)';
+      tip.style.color = '#fff';
+      tip.innerText = v + ' — ' + label;
+      wrap.appendChild(tip);
+      wrap.appendChild(bar);
+      histBars.appendChild(wrap);
+    });
+
+    if(bars.length){
+      const first = bars[0];
+      const last = bars[bars.length - 1];
+      histEarliest.innerText = first.timestamp
+        ? new Date(parseInt(first.timestamp, 10) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : '';
+      histLatest.innerText = last.timestamp
+        ? new Date(parseInt(last.timestamp, 10) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        : '';
+    }
+
+    histLoading.classList.add('hidden');
+    histContent.classList.remove('hidden');
   }
 
-  function updStat(label,data){
-    const v=parseInt(data.value),{cl,nm}=getColor(v);
-    const prefix={Yesterday:'statYesterday',Week:'statWeek',Month:'statMonth'}[label];
-    document.getElementById(prefix+'Val').textContent=v;
-    const badge=document.getElementById(prefix+'Class');
-    badge.textContent=nm;badge.style.backgroundColor=cl;badge.style.color='white';
+  function init(){
+    // First render with default 45
+    setScore(45);
+
+    // Wire slider/input/presets
+    $('fgScore').addEventListener('input', function(){ setScore(this.value); });
+    $('fgRange').addEventListener('input', function(){ setScore(this.value); });
+    document.querySelectorAll('.preset-btn').forEach(b => {
+      b.addEventListener('click', function(){ setScore(parseInt(this.getAttribute('data-val'))); });
+    });
+
+    // Fetch live data
+    fetchLive();
+
+    // Refresh button
+    $('refreshBtn').addEventListener('click', function(){
+      const icon = this.querySelector('svg');
+      if(icon) icon.style.animation = 'spin 1s linear infinite';
+      fetchLive().finally(function(){
+        if(icon) icon.style.animation = '';
+      });
+    });
   }
 
-  function renderChart(data){
-    const el=document.getElementById('historyChart');
-    if(!data.length){el.innerHTML='<div class="text-center py-8 text-base-content/40 text-sm">No chart data</div>';return;}
-    const isNight=document.documentElement.getAttribute('data-theme')==='night';const options={series:[{name:'FnG',data:data.map(d=>parseInt(d.value))}],chart:{type:'area',height:'100%',foreColor:isNight?'#a1a1aa':'#52525b',toolbar:{show:false},sparkline:{enabled:true}},stroke:{curve:'smooth',width:2,colors:['#8b5cf6']},fill:{type:'gradient',gradient:{shadeIntensity:1,opacityFrom:0.4,opacityTo:0.05}},xaxis:{categories:data.map(d=>new Date(parseInt(d.timestamp)*1000).toLocaleDateString()),labels:{show:false}},yaxis:{labels:{show:false}},grid:{show:false},tooltip:{enabled:true,theme:isNight?'dark':'light'}};
-    const chart=new ApexCharts(el,options);chart.render();
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
   }
-
-  function startCountdown(secs){
-    const el=document.getElementById('nextUpdate');
-    const tick=()=>{
-      if(secs<=0){el.innerHTML='{{ lucide_icon("refresh-cw","w-3 h-3", 12) | safe }} Syncing...';fetchFNG();return;}
-      const h=Math.floor(secs/3600).toString().padStart(2,'0');
-      const m=Math.floor((secs%3600)/60).toString().padStart(2,'0');
-      const s=Math.floor(secs%60).toString().padStart(2,'0');
-      el.innerHTML=`{{ lucide_icon("clock","w-3 h-3", 12) | safe }} ${h}:${m}:${s}`;
-      secs--;
-    };
-    tick();setInterval(tick,1000);
-  }
-  fetchFNG();
-});
+})();
 </script>
-
-{% set faq = [
-  ("Is the Fear and Greed Index free?", "Yes, completely free. No sign-up required."),
-  ("How often does it update?", "The index updates once per day from market data."),
-  ("Should I trade based on this?", "The index is a supplementary tool. Always perform your own analysis."),
-  ("Is my data secure?", "Yes. No data is stored or logged.")
-] %}
-
-{% set steps = [
-  {"title": "View Index", "desc": "The current Fear & Greed Index displays with a color-coded gauge."},
-  {"title": "Compare History", "desc": "Check yesterday, last week, and last month values for trend context."},
-  {"title": "Analyze Trend", "desc": "The 30-day chart shows sentiment evolution over the past month."}
-] %}
-
 {% endblock %}

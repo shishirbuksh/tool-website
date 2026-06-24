@@ -1,6 +1,6 @@
-// StoryBrain AI Service Worker v1.0.0
-const CACHE_NAME = 'storybrain-v1';
-const STATIC_CACHE = 'storybrain-static-v1';
+// StoryBrain AI Service Worker v1.0.1
+const CACHE_NAME = 'storybrain-v25';
+const STATIC_CACHE = 'storybrain-static-v23';
 
 // Assets to pre-cache on install
 const PRECACHE_URLS = [
@@ -12,10 +12,6 @@ const PRECACHE_URLS = [
   '/offline',
   '/static/js/app.js',
   '/static/js/tools.utils.js',
-  '/static/fonts/QGYvz_MVcBeNP4NJtEtq.woff2',
-  '/static/fonts/QGYvz_MVcBeNP4NJuktqQ4E.woff2',
-  '/static/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2',
-  '/static/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7SUc.woff2',
 ];
 
 // Install: cache static assets
@@ -59,6 +55,9 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests and non-http protocols
   if (request.method !== 'GET') return;
   if (!url.protocol.startsWith('http')) return;
+
+  // Skip cross-origin requests (CDN fonts, external APIs, etc.)
+  if (url.origin !== location.origin) return;
 
   // Static assets: cache-first (CSS, JS, fonts, images)
   if (

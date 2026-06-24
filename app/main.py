@@ -21,6 +21,7 @@ from app.api.routes import (
     seo,
     tools_b64,
     tools_crypto,
+    tools_fng,
     tools_image,
     tools_nft,
     tools_pdf,
@@ -104,6 +105,7 @@ app.include_router(tools_qr.router)
 app.include_router(tools_image.router)
 app.include_router(tools_pdf.router)
 app.include_router(tools_crypto.router)
+app.include_router(tools_fng.router)
 app.include_router(tools_proxy.router)
 app.include_router(tools_nft.router)
 app.include_router(tools_b64.router)

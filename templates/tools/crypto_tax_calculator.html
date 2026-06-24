@@ -1,1002 +1,241 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
 
-{% block title %}Advanced Crypto Tax Calculator | FIFO/LIFO/HIFO + Scenario Engine{% endblock %}
-{% block meta_description %}Advanced crypto tax calculator with what-if scenario sliders, gain distribution histogram, Form 8949 export, FIFO/LIFO/HIFO cost basis. Free no signup.{% endblock %}
+{% block title %}Crypto Tax Calculator | Estimate Capital Gains Tax{% endblock %}
+{% block meta_description %}Estimate your cryptocurrency capital gains tax. Enter cost basis, sale proceeds, holding period, and income to see estimated tax owed.{% endblock %}
+{% block meta_keywords %}crypto tax calculator, cryptocurrency tax, capital gains tax, short term capital gains, long term capital gains, crypto tax estimate{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/crypto-tax-calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/crypto-tax-calculator">
-<meta property="og:title" content="Advanced Crypto Tax Calculator — Scenario Engine + Form 8949">
-<meta property="og:description" content="Advanced crypto tax calculator with what-if scenario sliders, gain distribution histogram, Form 8949 export, FIFO/LIFO/HIFO cost basis.">
+<meta property="og:site_name" content="StoryBrain AI">
+<meta property="og:title" content="Crypto Tax Calculator">
+<meta property="og:description" content="Estimate your cryptocurrency capital gains tax. Enter cost basis, sale proceeds, holding period, and income to see estimated tax owed.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Advanced Crypto Tax Calculator | StoryBrain AI">
-<meta name="twitter:description" content="Free advanced crypto tax tool with scenario sliders, gain histogram, and Form 8949 export.">
 {% endblock %}
 
 {% block head %}
-<style media="print">body{background:#fff!important}.navbar,#main-content>div>.reveal:first-child{display:none!important}button,.btn,.hide-print{display:none!important}.no-print{display:none!important}@page{size:landscape;margin:8mm}.card-premium{box-shadow:none!important;border:1px solid #ccc!important}.tab-content:not(.hidden){display:block!important}</style>
-{% endblock %}
-
-{% block faq_schema %}
+<style>
+.stat-cinematic:hover{transform:none !important}
+.toggle-group{display:flex;gap:.25rem;padding:.25rem;border-radius:9999px;background:color-mix(in oklab,var(--color-base-content) 6%,transparent)}
+.toggle-opt{padding:.3rem .9rem;border-radius:9999px;font-size:.6rem;font-weight:800;letter-spacing:.04em;cursor:pointer;transition:all .2s ease;border:none;background:transparent;color:var(--color-base-content);opacity:.6}
+.toggle-opt.active{opacity:1;background:var(--color-primary);color:var(--color-primary-content);box-shadow:0 2px 8px color-mix(in oklab,var(--color-primary) 30%,transparent)}
+.tax-table{width:100%;border-collapse:collapse;font-size:.75rem}
+.tax-table th{text-align:left;padding:.5rem .75rem;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--color-base-content);opacity:.55;border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 10%,transparent)}
+.tax-table td{padding:.5rem .75rem;font-family:ui-monospace,monospace;font-weight:700;border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 5%,transparent)}
+.tax-table tr:last-child td{border-bottom:none}
+.tax-table tr:hover td{background:color-mix(in oklab,var(--color-primary) 4%,transparent)}
+</style>
 {% endblock %}
 
 {% block content %}
-{{ tool_hero_section("landmark", "Tax Engine", "CRYPTO", "TAX CALCULATOR", "Advanced tax engine with scenario sliders, gain histograms, and Form 8949 export. Multi-country support.") }}
+{{ tool_hero_section("file-text", "Tax Tool", "CRYPTO TAX", "CALCULATOR", "Estimate your cryptocurrency capital gains tax. Enter cost basis, sale proceeds, holding period, and income for a quick tax estimate.") }}
 
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 reveal" style="animation-delay:.2s">
-    <div class="lg:col-span-7 space-y-4">
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
 
-      <div class="card-premium rounded-2xl p-5 shadow-premium">
-        <div class="flex items-center gap-2 mb-4">
-          <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">{{ lucide_icon("settings","w-3 h-3", 16) | safe }}</div>
-          <h3 class="text-base font-black tracking-tight">Tax Settings</h3>
-        </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div>
-            <label class="label-cinematic mb-1.5 block" for="jurisdiction">Jurisdiction</label>
-            <select id="jurisdiction" class="select w-full input-cinematic font-mono text-xs font-bold bg-base-300/30 border-base-content/20 text-base-content rounded-xl py-2.5">
-              <option value="US">United States</option>
-              <option value="UK">United Kingdom</option>
-              <option value="CA">Canada</option>
-              <option value="IN">India</option>
-            </select>
-          </div>
-          <div>
-            <label class="label-cinematic mb-1.5 block" for="taxYear">Tax Year</label>
-            <select id="taxYear" class="select w-full input-cinematic font-mono text-xs font-bold bg-base-300/30 border-base-content/20 text-base-content rounded-xl py-2.5">
-              <option value="2024">2024-2025</option>
-              <option value="2025">2025-2026</option>
-              <option value="2026" selected>2026-2027</option>
-            </select>
-          </div>
-          <div id="filingStatusGroup">
-            <label class="label-cinematic mb-1.5 block" for="filingStatus">Filing</label>
-            <select id="filingStatus" class="select w-full input-cinematic font-mono text-xs font-bold bg-base-300/30 border-base-content/20 text-base-content rounded-xl py-2.5">
-              <option value="single">Single</option>
-              <option value="married">Married Joint</option>
-              <option value="hh">Head Household</option>
-            </select>
-          </div>
-          <div>
-            <label class="label-cinematic mb-1.5 block tooltip" for="annualIncome" data-tip="Used for tax bracket lookup">Income</label>
-            <input type="number" id="annualIncome" class="input w-full input-cinematic font-mono text-xs font-bold bg-base-300/30 border-base-content/20 text-base-content rounded-xl" value="50000" required min="0">
-          </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-          <div>
-            <label class="label-cinematic mb-1.5 block">Cost Basis Method</label>
-            <div class="flex gap-1 p-0.5 rounded-lg bg-base-300/15 border border-base-content/10">
-              <input type="radio" class="peer-hidden" name="costMethod" id="mFIFO" value="FIFO" checked>
-              <label class="btn-cinematic flex-1 py-1.5 text-center text-[9px] font-black tracking-widest uppercase rounded-md cursor-pointer focus-ring" for="mFIFO" tabindex="0">FIFO</label>
-              <input type="radio" class="peer-hidden" name="costMethod" id="mLIFO" value="LIFO">
-              <label class="btn-cinematic flex-1 py-1.5 text-center text-[9px] font-black tracking-widest uppercase rounded-md cursor-pointer focus-ring" for="mLIFO" tabindex="0">LIFO</label>
-              <input type="radio" class="peer-hidden" name="costMethod" id="mHIFO" value="HIFO">
-              <label class="btn-cinematic flex-1 py-1.5 text-center text-[9px] font-black tracking-widest uppercase rounded-md cursor-pointer focus-ring" for="mHIFO" tabindex="0">HIFO</label>
-            </div>
-          </div>
-          <div class="flex items-end">
-            <label class="label-cinematic cursor-pointer flex items-center gap-2 tooltip focus-ring" data-tip="Compare all three methods side by side" for="compareToggle" tabindex="0">
-              <input type="checkbox" id="compareToggle" class="toggle toggle-sm toggle-primary"> Compare Methods
-            </label>
-          </div>
-        </div>
-      </div>
+  <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
 
-      <div class="card-premium rounded-2xl p-5 shadow-premium">
-        <div class="flex items-center gap-2 mb-3">
-          <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">{{ lucide_icon("book","w-3 h-3", 16) | safe }}</div>
-          <h3 class="text-base font-black tracking-tight flex-1">Transaction Ledger</h3>
-          <span class="pill-cinematic text-xs font-mono" id="txCount">0</span>
-        </div>
-
-        <div class="flex flex-wrap gap-1.5 mb-2">
-          <button type="button" id="addTxBtn" class="btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg focus-ring">{{ lucide_icon("plus","w-3 h-3", 12) | safe }} Add</button>
-          <button type="button" id="importBtn" class="btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg focus-ring">{{ lucide_icon("upload","w-3 h-3", 12) | safe }} Import</button>
-          <div class="relative">
-            <button type="button" id="presetBtn" class="btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg focus-ring">{{ lucide_icon("database","w-3 h-3", 12) | safe }} Preset</button>
-            <div id="presetDropdown" class="hidden absolute top-full left-0 mt-1 z-10 w-44 rounded-xl p-1.5 shadow-2xl border border-base-content/10" style="background:color-mix(in oklab,var(--color-base-200)95%,transparent);backdrop-filter:blur(24px)">
-              <button class="preset-option block w-full text-left px-3 py-2 text-[10px] font-bold rounded-lg hover:bg-primary/10 focus-ring" data-preset="coinbase">Coinbase CSV</button>
-              <button class="preset-option block w-full text-left px-3 py-2 text-[10px] font-bold rounded-lg hover:bg-primary/10 focus-ring" data-preset="binance">Binance CSV</button>
-              <button class="preset-option block w-full text-left px-3 py-2 text-[10px] font-bold rounded-lg hover:bg-primary/10 focus-ring" data-preset="generic">Generic CSV</button>
-            </div>
-          </div>
-          <button type="button" id="exportBtn" class="btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg focus-ring">{{ lucide_icon("download","w-3 h-3", 12) | safe }} Export</button>
-          <a href="#" id="templateBtn" class="btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg focus-ring">{{ lucide_icon("file-text","w-3 h-3", 12) | safe }} Template</a>
-          <button type="button" id="deleteSelectedBtn" class="btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg hide-print focus-ring" style="display:none;background:linear-gradient(135deg,var(--color-error),color-mix(in oklab, var(--color-error) 80%, #000))">{{ lucide_icon("trash-2","w-3 h-3", 12) | safe }} Delete</button>
-          <input type="file" id="fileInput" class="hidden" accept=".csv,.json" aria-label="Import file">
-        </div>
-
-        <div class="flex gap-2 mb-2">
-          <div class="flex-1 flex items-center rounded-lg border border-base-content/10 bg-base-300/10 px-2.5">
-            <span class="text-base-content/40 mr-1.5 shrink-0">{{ lucide_icon("search","w-3 h-3", 12) | safe }}</span>
-            <input type="text" id="txSearch" class="bg-transparent border-0 outline-none text-xs font-mono py-1.5 w-full" placeholder="Filter by asset..." aria-label="Search transactions">
-          </div>
-          <label class="flex items-center gap-1.5 text-[10px] font-bold text-base-content/50 cursor-pointer shrink-0 focus-ring" for="selectAllTx" tabindex="0">
-            <input type="checkbox" id="selectAllTx" class="checkbox checkbox-xs"> All
-          </label>
-        </div>
-
-        <div class="rounded-xl border border-base-content/10 overflow-hidden" id="txList">
-          <div class="text-center py-6" id="emptyState">
-            <div class="text-base-content/30 mb-2">{{ lucide_icon("inbox","w-7 h-7", 14) | safe }}</div>
-            <p class="font-bold text-xs">No transactions yet</p>
-            <p class="text-[10px] text-base-content/50">Add a transaction or import a CSV/JSON file</p>
+    <div class="card-premium p-6">
+      <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-4 h-4",16)|safe }} Tax Details</h2>
+      <p class="text-xs text-base-content/60 mb-4">Enter your trade and income details for an estimated tax calculation.</p>
+      <div class="space-y-4">
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxCostBasis">Cost Basis ($)</label><input type="number" id="taxCostBasis" class="input input-cinematic w-full text-sm font-mono font-bold hide-spinner" value="42000" min="0" step="any"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxProceeds">Sale Proceeds ($)</label><input type="number" id="taxProceeds" class="input input-cinematic w-full text-sm font-mono font-bold hide-spinner" value="67500" min="0" step="any"></div>
+        <div>
+          <span class="text-[10px] font-bold text-base-content/60 block mb-2 uppercase tracking-wider">Holding Period</span>
+          <div class="toggle-group" role="radiogroup" aria-label="Holding period">
+            <button class="toggle-opt active" data-tax-period="short" role="radio" aria-checked="true">Short Term (&lt;1 yr)</button>
+            <button class="toggle-opt" data-tax-period="long" role="radio" aria-checked="false">Long Term (&gt;1 yr)</button>
           </div>
         </div>
-
-        <div class="flex items-center gap-3 mt-2">
-          <label class="flex items-center gap-1.5 text-[10px] text-base-content/50 cursor-pointer focus-ring" for="includeUnrealized" tabindex="0">
-            <input type="checkbox" id="includeUnrealized" class="checkbox checkbox-xs">
-            <span class="tooltip" data-tip="Fetch live prices from CoinGecko">Include unrealized gains</span>
-          </label>
-          <div class="ml-auto text-[10px] text-base-content/50" id="priceStatus"></div>
-        </div>
-
-        <button type="button" id="calculateBtn" class="btn-cinematic w-full py-3 text-xs font-black tracking-widest uppercase rounded-xl shadow-glow mt-4 focus-ring">
-          <span id="calcBtnText">CALCULATE TAX</span>
-          <span id="calcBtnSpinner" class="loading loading-spinner loading-xs" style="display:none"></span>
-        </button>
-        <div class="text-[9px] text-base-content/30 text-center mt-1.5 tracking-widest font-mono">Enter/Shift+Enter to calculate &middot; / to search</div>
-      </div>
-
-      <div class="card-premium rounded-2xl p-5 shadow-premium">
-        <div class="flex items-center gap-2 mb-3">
-          <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">{{ lucide_icon("folder","w-3 h-3", 16) | safe }}</div>
-          <h3 class="text-base font-black tracking-tight flex-1">Portfolio &amp; What-If</h3>
-        </div>
-        <div class="flex flex-wrap gap-2 items-center mb-3">
-          <select id="portfolioSelect" class="select flex-1 min-w-0 input-cinematic font-mono text-xs font-bold bg-base-300/30 border-base-content/20 text-base-content rounded-xl py-2.5">
-            <option value="default">Default Portfolio</option>
-          </select>
-          <button type="button" id="savePortfolioBtn" class="btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg tooltip focus-ring" data-tip="Save current portfolio" aria-label="Save current portfolio">{{ lucide_icon("save","w-3 h-3", 12) | safe }}</button>
-          <button type="button" id="historyBtn" class="btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg tooltip focus-ring" data-tip="Restore previous version" aria-label="Portfolio history">{{ lucide_icon("history","w-3 h-3", 12) | safe }}</button>
-          <button type="button" id="deletePortfolioBtn" class="btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg tooltip focus-ring" data-tip="Delete selected portfolio" aria-label="Delete selected portfolio" style="background:linear-gradient(135deg,var(--color-error),color-mix(in oklab, var(--color-error) 80%, #000))">{{ lucide_icon("trash-2","w-3 h-3", 12) | safe }}</button>
-          <button type="button" id="printBtn" class="btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg tooltip hide-print focus-ring" data-tip="Print report" aria-label="Print report">{{ lucide_icon("printer","w-3 h-3", 12) | safe }}</button>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label class="label-cinematic mb-1.5 flex justify-between" for="scenarioIncome">
-              <span>What-if Income</span>
-              <span class="text-base-content font-mono font-bold" id="scenarioIncomeVal">$50,000</span>
-            </label>
-            <input type="range" id="scenarioIncome" class="range slider-cinematic w-full" min="0" max="500000" step="1000" value="50000" aria-label="Scenario income slider">
-          </div>
-          <div>
-            <label class="label-cinematic mb-1.5 flex justify-between" for="scenarioSellPct">
-              <span>What-if Sell %</span>
-              <span class="text-base-content font-mono font-bold" id="scenarioSellPctVal">0%</span>
-            </label>
-            <input type="range" id="scenarioSellPct" class="range slider-cinematic w-full" min="0" max="100" step="5" value="0" aria-label="Scenario sell percentage slider">
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxIncome">Annual Taxable Income ($)</label><input type="number" id="taxIncome" class="input input-cinematic w-full text-sm font-mono font-bold hide-spinner" value="60000" min="0" step="any"></div>
+        <div>
+          <span class="text-[10px] font-bold text-base-content/60 block mb-2 uppercase tracking-wider">Filing Status</span>
+          <div class="toggle-group" role="radiogroup" aria-label="Filing status">
+            <button class="toggle-opt active" data-tax-status="single" role="radio" aria-checked="true">Single</button>
+            <button class="toggle-opt" data-tax-status="married" role="radio" aria-checked="false">Married Joint</button>
           </div>
         </div>
+        <button id="resetBtn" class="btn btn-primary w-full mt-2" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
       </div>
     </div>
 
-    <div class="lg:col-span-5 space-y-4">
-      <div class="card-premium rounded-2xl p-5 shadow-premium">
-        <div id="resultsPlaceholder" class="flex flex-col items-center justify-center py-8 text-base-content/50">
-          <div class="text-base-content/20 mb-3">{{ lucide_icon("calculator","w-12 h-12", 48) | safe }}</div>
-          <p class="text-xs font-bold">Add transactions and click Calculate</p>
-        </div>
-
-        <div id="resultsContent" style="display:none">
-          <div class="stat-cinematic mb-3">
-            <div class="label-cinematic flex items-center gap-1 mb-1">
-              Total Capital Gain / Loss
-              <span class="pill-cinematic text-[9px] font-mono" id="methodIndicator">FIFO</span>
-            </div>
-            <div class="text-2xl font-black font-mono" id="totalGain" aria-live="polite">$0.00</div>
-            <div class="flex gap-3 text-[10px] text-base-content/50 mt-1">
-              <span>Proceeds: <strong id="totalProceeds">$0</strong></span>
-              <span>Cost: <strong id="totalCostBasis">$0</strong></span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2 mb-3">
-            <div class="rounded-xl border border-base-content/10 p-2.5 text-center">
-              <div class="label-cinematic mb-0.5">Est. Tax Owed</div>
-              <div class="text-lg font-black font-mono text-warning" id="taxOwed" aria-live="polite">$0.00</div>
-            </div>
-            <div class="rounded-xl border border-base-content/10 p-2.5 text-center">
-              <div class="label-cinematic mb-0.5">Eff. Tax Rate</div>
-              <div class="text-lg font-black font-mono" id="taxRate">0.00%</div>
-            </div>
-            <div class="rounded-xl border border-base-content/10 p-2.5 text-center">
-              <div class="label-cinematic mb-0.5">Short-Term Gain</div>
-              <div class="text-sm font-black font-mono" id="shortTermGain">$0.00</div>
-            </div>
-            <div class="rounded-xl border border-base-content/10 p-2.5 text-center">
-              <div class="label-cinematic mb-0.5">Long-Term Gain</div>
-              <div class="text-sm font-black font-mono" id="longTermGain">$0.00</div>
-            </div>
-          </div>
-
-          <div class="flex gap-1.5 mb-3 overflow-x-auto">
-            <button class="tab-btn btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg focus-ring active" data-tab="gains">Gains</button>
-            <button class="tab-btn btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg focus-ring" data-tab="lots">Lots</button>
-            <button class="tab-btn btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg focus-ring" data-tab="assets">Assets</button>
-            <button class="tab-btn btn-cinematic px-2.5 py-1.5 text-[9px] font-black tracking-widest uppercase rounded-lg focus-ring" data-tab="export">Export</button>
-          </div>
-
-          <div id="tabGains" class="tab-content">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
-              <div class="rounded-xl border border-base-content/10 p-2.5">
-                <canvas id="histogramCanvas" width="260" height="160"></canvas>
-              </div>
-              <div class="rounded-xl border border-base-content/10 p-2.5">
-                <canvas id="donutCanvas" class="max-w-[140px] mx-auto" width="140" height="140"></canvas>
-              </div>
-            </div>
-            <div id="bracketInfo" class="rounded-xl border border-base-content/10 p-2.5 text-[10px] mb-2" style="display:none"></div>
-            <div id="harvestSection" class="rounded-xl p-2.5 mb-2" style="display:none;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.15)">
-              <p class="text-[10px] font-black text-success tracking-widest uppercase mb-1.5">{{ lucide_icon("leaf","w-3 h-3", 12) | safe }} Tax-Loss Harvesting</p>
-              <div id="harvestList" class="text-[10px] space-y-1"></div>
-            </div>
-            <div class="rounded-xl border border-base-content/10 p-2.5">
-              <div class="flex justify-between text-[10px] py-0.5"><span class="font-bold">Total Proceeds</span><span id="dProceeds" class="font-mono">$0</span></div>
-              <div class="flex justify-between text-[10px] py-0.5"><span class="font-bold">Cost Basis</span><span id="dCost" class="font-mono">$0</span></div>
-              <div class="flex justify-between text-[10px] py-0.5"><span class="font-bold">Fees Paid</span><span id="dFees" class="font-mono text-warning">$0</span></div>
-              <div class="flex justify-between text-[10px] py-0.5"><span class="font-bold">Est. Tax</span><span id="dTax" class="font-mono text-error">$0</span></div>
-              <div class="border-t border-base-content/10 mt-1 pt-1 flex justify-between text-[10px] font-bold"><span>Net Gain</span><span id="dNet" class="font-mono">$0</span></div>
-            </div>
-          </div>
-
-          <div id="tabLots" class="tab-content hidden">
-            <div id="lotsSection" class="flex items-center gap-2 mb-2">
-              <span class="label-cinematic">Matched Lots</span>
-              <span class="pill-cinematic text-[9px] font-mono" id="lotsCount">0</span>
-            </div>
-            <ul class="timeline timeline-vertical timeline-snap-icon max-h-64 overflow-y-auto text-[10px]" id="lotsTimeline"></ul>
-          </div>
-
-          <div id="tabAssets" class="tab-content hidden">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="label-cinematic">Per-Asset Breakdown</span>
-              <span class="pill-cinematic text-[9px] font-mono" id="assetCount">0</span>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="assetGrid"></div>
-          </div>
-
-          <div id="tabExport" class="tab-content hidden">
-            <div class="space-y-2">
-              <button type="button" id="exportForm8949Btn" class="btn-cinematic w-full py-2 text-[10px] font-black tracking-widest uppercase rounded-lg focus-ring" style="background:linear-gradient(135deg,var(--color-success),color-mix(in oklab, var(--color-success) 80%, #000))">{{ lucide_icon("file-spreadsheet","w-3 h-3", 12) | safe }} Download Form 8949 CSV</button>
-              <button type="button" id="exportDetailBtn" class="btn-cinematic w-full py-2 text-[10px] font-black tracking-widest uppercase rounded-lg focus-ring">{{ lucide_icon("download","w-3 h-3", 12) | safe }} Export Full Report CSV</button>
-              <div id="annualSummary" class="rounded-xl border border-base-content/10 p-2.5 text-[10px]"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="comparisonSection" style="display:none">
-        <div class="card-premium rounded-2xl p-5 shadow-premium">
-          <h3 class="text-sm font-black tracking-widest uppercase flex items-center gap-2 mb-3">{{ lucide_icon("bar-chart-3","w-3 h-3", 14) | safe }} Method Comparison</h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-2" id="comparisonGrid"></div>
-        </div>
-      </div>
-
-      <div id="historyDialog" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.6)">
-        <div class="card-premium rounded-2xl p-5 w-full max-w-md max-h-[70vh] overflow-y-auto">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-black tracking-tight">Portfolio History</h3>
-            <button type="button" id="closeHistory" class="btn-cinematic px-2 py-1 text-xs rounded-lg focus-ring">{{ lucide_icon("x","w-3 h-3", 12) | safe }}</button>
-          </div>
-          <div id="historyList" class="space-y-1.5 text-[10px]"></div>
-        </div>
-      </div>
-
-      <div id="shortcutsDialog" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.6)">
-        <div class="card-premium rounded-2xl p-5 w-full max-w-xs">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-black tracking-tight">Keyboard Shortcuts</h3>
-            <button type="button" id="closeShortcuts" class="btn-cinematic px-2 py-1 text-xs rounded-lg focus-ring">{{ lucide_icon("x","w-3 h-3", 12) | safe }}</button>
-          </div>
-          <div class="space-y-2 text-[10px]">
-            <div class="flex justify-between"><kbd class="kbd kbd-xs">Enter</kbd><span>Calculate tax</span></div>
-            <div class="flex justify-between"><kbd class="kbd kbd-xs">/</kbd><span>Search transactions</span></div>
-            <div class="flex justify-between"><kbd class="kbd kbd-xs">Escape</kbd><span>Close dialogs</span></div>
-            <div class="flex justify-between"><kbd class="kbd kbd-xs">?</kbd><span>This help</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
+
+  <div class="flex-1 min-w-0 space-y-6">
+
+    <div class="card-premium p-6">
+      <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Tax Summary</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Gain</span><output id="resGain" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-success)">+$25,500</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Estimated Tax</span><output id="resTax" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-error)">$3,060</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">After-Tax Profit</span><output id="resAfterTax" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-success)">+$22,440</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Effective Rate</span><output id="resRate" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-base-content)">12.0%</output></div>
+      </div>
+    </div>
+
+    <div class="card-premium p-6">
+      <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("list","w-4 h-4",16)|safe }} Tax Breakdown</h2>
+      <div class="overflow-x-auto">
+        <table class="tax-table" role="table">
+          <thead><tr><th scope="col">Category</th><th scope="col">Amount</th></tr></thead>
+          <tbody id="tableBody">
+            <tr><td style="font-weight:800">Cost Basis</td><td id="tbCost">$42,000.00</td></tr>
+            <tr><td style="font-weight:800">Sale Proceeds</td><td id="tbProceeds">$67,500.00</td></tr>
+            <tr><td style="font-weight:800">Capital Gain</td><td id="tbGain" style="color:var(--color-success)">+$25,500.00</td></tr>
+            <tr><td style="font-weight:800">Gain Type</td><td id="tbType">Short-Term</td></tr>
+            <tr><td style="font-weight:800">Tax Rate</td><td id="tbRate">12.0%</td></tr>
+            <tr><td style="font-weight:800">Estimated Tax Owed</td><td id="tbTax" style="color:var(--color-error)">$3,060.00</td></tr>
+            <tr style="background:color-mix(in oklab,var(--color-primary) 5%,transparent)"><td style="font-weight:900;color:var(--color-primary)">After-Tax Profit</td><td id="tbAfterTax" style="font-weight:900;color:var(--color-success)">+$22,440.00</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card-premium p-6">
+      <h2 class="text-sm font-black mb-3 flex items-center gap-2">{{ lucide_icon("info","w-4 h-4",16)|safe }} How to Reduce Crypto Taxes</h2>
+      <ul class="space-y-2 text-xs text-base-content/60 leading-relaxed">
+        <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span><strong class="text-base-content">Hold for over one year:</strong> Long-term gains are taxed at 0%, 15%, or 20% instead of your ordinary income rate. Holding for 12+ months can cut your tax bill significantly.</span></li>
+        <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span><strong class="text-base-content">Tax-loss harvest:</strong> Sell losing positions to offset your gains. Losses can offset unlimited gains and up to $3,000 of ordinary income per year. Just avoid wash sales.</span></li>
+        <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span><strong class="text-base-content">Contribute to retirement accounts:</strong> Some platforms offer crypto IRAs that let your investments grow tax-free or tax-deferred. This is one of the best ways to avoid capital gains taxes.</span></li>
+      </ul>
+    </div>
+
+  </div>
+
 </div>
 
-<div class="container-site px-4 max-w-5xl mx-auto">
-
-</div>
+{% set seo = {
+  "faqs": [
+    {"q": "How are crypto taxes calculated?", "a": "Crypto taxes are calculated as capital gains: sale proceeds minus cost basis. Short-term gains (held under 1 year) are taxed at your ordinary income rate. Long-term gains (held over 1 year) have lower rates of 0%, 15%, or 20% depending on your income."},
+    {"q": "What is the difference between short-term and long-term capital gains?", "a": "Short-term gains are from assets held less than one year and are taxed at your regular income tax rate (10-37%). Long-term gains are from assets held more than one year and are taxed at 0%, 15%, or 20%. Long-term rates are much lower."},
+    {"q": "What is cost basis in crypto?", "a": "Cost basis is what you paid for the cryptocurrency, including any purchase fees. When you sell, your gain or loss is the difference between the sale price and your cost basis. Keeping accurate records of your cost basis is essential for tax reporting."},
+    {"q": "How can I reduce my crypto taxes?", "a": "Hold for over one year to qualify for lower long-term rates. Harvest tax losses by selling underperforming assets to offset gains. Consider donating crypto to charity or using a crypto IRA for tax-advantaged investing."},
+    {"q": "Do I need to report crypto on my taxes?", "a": "In most countries, yes. In the US, the IRS considers crypto as property, so sales, trades, and even crypto-to-crypto transactions are taxable events. You must report them on your tax return regardless of the amount."}
+  ],
+  "howto_steps": [
+    {"title": "Enter cost basis", "desc": "Enter the total amount you paid for the crypto, including fees."},
+    {"title": "Enter sale proceeds", "desc": "Enter the total amount you received when you sold the crypto."},
+    {"title": "Select holding period", "desc": "Choose short-term (under 1 year) or long-term (over 1 year) for the correct tax rate."},
+    {"title": "Review tax estimate", "desc": "See your estimated capital gains tax, effective rate, and after-tax profit."}
+  ],
+  "howto_calculate": "The calculator determines your capital gain as sale proceeds minus cost basis. It applies the short-term ordinary income tax brackets or long-term capital gains rates based on holding period and filing status. The gain is stacked on top of your annual income to find the marginal tax rate. This is an estimate only. Consult a tax professional for your specific situation."
+} %}
+{{ tool_seo_all(seo) }}
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded',()=>{
+(function(){
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const F = v => (v >= 0 ? '+' : '') + '$' + Math.abs(v).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const FP = v => v.toFixed(1) + '%';
 
-let txns=[];
-let txIdCounter=0;
-let portfolios=loadPortfolios();
-let portfolioHistory=loadHistory();
-let currentPortfolio='default';
-let priceCache={};
+  // 2024 US tax brackets (simplified)
+  const BRACKETS_SINGLE_ST = [10, 12, 22, 24, 32, 35, 37];
+  const BRACKETS_SINGLE_ST_TOPS = [11600, 47150, 100525, 191950, 243725, 609350, Infinity];
+  const BRACKETS_MARRIED_ST = [10, 12, 22, 24, 32, 35, 37];
+  const BRACKETS_MARRIED_ST_TOPS = [23200, 94300, 201050, 383900, 487450, 731200, Infinity];
 
-const $=id=>document.getElementById(id);
-const txList=$('txList'); const emptyState=$('emptyState');
-const txSearch=$('txSearch'); const selectAll=$('selectAllTx');
-const addBtn=$('addTxBtn'); const importBtn=$('importBtn');
-const fileInput=$('fileInput'); const exportBtn=$('exportBtn');
-const templateBtn=$('templateBtn'); const deleteSelectedBtn=$('deleteSelectedBtn');
-const calcBtn=$('calculateBtn'); const calcBtnText=$('calcBtnText');
-const calcBtnSpinner=$('calcBtnSpinner'); const jurisdiction=$('jurisdiction');
-const filingStatus=$('filingStatus'); const filingStatusGroup=$('filingStatusGroup');
-const annualIncome=$('annualIncome'); const txCount=$('txCount');
-const costMethods=document.querySelectorAll('input[name="costMethod"]');
-const compareToggle=$('compareToggle'); const comparisonSection=$('comparisonSection');
-const includeUnrealized=$('includeUnrealized'); const priceStatus=$('priceStatus');
-const portfolioSelect=$('portfolioSelect'); const savePortfolioBtn=$('savePortfolioBtn');
-const deletePortfolioBtn=$('deletePortfolioBtn'); const printBtn=$('printBtn');
-const scenarioIncome=$('scenarioIncome'); const scenarioSellPct=$('scenarioSellPct');
-const scenarioIncomeVal=$('scenarioIncomeVal'); const scenarioSellPctVal=$('scenarioSellPctVal');
-const historyBtn=$('historyBtn'); const historyDialog=$('historyDialog');
-const closeHistory=$('closeHistory'); const historyList=$('historyList');
-const closeShortcuts=$('closeShortcuts'); const shortcutsDialog=$('shortcutsDialog');
-const exportForm8949Btn=$('exportForm8949Btn'); const exportDetailBtn=$('exportDetailBtn');
-const presetBtn=$('presetBtn'); const presetDropdown=$('presetDropdown');
-const annualSummary=$('annualSummary');
+  const BRACKETS_SINGLE_LT = [0, 15, 20];
+  const BRACKETS_SINGLE_LT_TOPS = [47025, 518900, Infinity];
+  const BRACKETS_MARRIED_LT = [0, 15, 20];
+  const BRACKETS_MARRIED_LT_TOPS = [94050, 583750, Infinity];
 
-const placeholder=$('resultsPlaceholder');
-const resultsContent=$('resultsContent');
-const outGain=$('totalGain'); const outProceeds=$('totalProceeds');
-const outCost=$('totalCostBasis'); const outST=$('shortTermGain');
-const outLT=$('longTermGain'); const outTax=$('taxOwed');
-const outRate=$('taxRate'); const methodIndicator=$('methodIndicator');
-const donutCanvas=$('donutCanvas'); const histogramCanvas=$('histogramCanvas');
-const bracketInfo=$('bracketInfo');
-const harvestSection=$('harvestSection'); const harvestList=$('harvestList');
-const lotsSection=$('lotsSection'); const lotsTimeline=$('lotsTimeline');
-const lotsCount=$('lotsCount'); const assetSection=$('assetSection');
-const assetGrid=$('assetGrid'); const assetCount=$('assetCount');
-const comparisonGrid=$('comparisonGrid');
-const dProceeds=$('dProceeds'); const dCost=$('dCost'); const dFees=$('dFees');
-const dTax=$('dTax'); const dNet=$('dNet');
-
-const fmt=(n,pref)=>pref+new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Math.abs(n));
-const sign=(n)=>n<0?'-':'+';
-const fmtSigned=(n,pref)=>sign(n)+fmt(n,pref);
-const fmtC=(n)=>new Intl.NumberFormat('en-US',{minimumFractionDigits:0,maximumFractionDigits:8}).format(n);
-
-const SVG_ICONS = {
-  "trash-2":'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>',
-  "check":'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
-  "loader":'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="2" y2="6"/><line x1="12" x2="12" y1="18" y2="22"/><line x1="4.93" x2="7.76" y1="4.93" y2="7.76"/><line x1="16.24" x2="19.07" y1="16.24" y2="19.07"/><line x1="2" x2="6" y1="12" y2="12"/><line x1="18" x2="22" y1="12" y2="12"/><line x1="4.93" x2="7.76" y1="19.07" y2="16.24"/><line x1="16.24" x2="19.07" y1="7.76" y2="4.93"/></svg>'
-};
-function lucideIcon(name,cls,size){
-  const svg=SVG_ICONS[name]||'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>';
-  return svg.replace('<svg','<svg class="'+cls+'" width="'+size+'" height="'+size+'" aria-hidden="true" focusable="false"');
-}
-
-function loadPortfolios(){
-  try{return JSON.parse(localStorage.getItem('ctp'))||{default:[]}}catch{return{default:[]}}
-}
-function loadHistory(){
-  try{return JSON.parse(localStorage.getItem('ctp_history'))||{}}catch{return{}}
-}
-function saveHistory(){
-  localStorage.setItem('ctp_history',JSON.stringify(portfolioHistory));
-}
-function pushHistory(){
-  const snapshot=JSON.parse(JSON.stringify(txns.map(({id,...t})=>t)));
-  if(!portfolioHistory[currentPortfolio])portfolioHistory[currentPortfolio]=[];
-  portfolioHistory[currentPortfolio].unshift({time:Date.now(),data:snapshot});
-  if(portfolioHistory[currentPortfolio].length>5)portfolioHistory[currentPortfolio].pop();
-  saveHistory();
-}
-function savePortfolios(){
-  localStorage.setItem('ctp',JSON.stringify(portfolios));
-  renderPortfolioSelect();
-}
-function renderPortfolioSelect(){
-  const val=portfolioSelect.value;
-  portfolioSelect.innerHTML=Object.keys(portfolios).map(k=>`<option value="${k}"${k===val?' selected':''}>${k}</option>`).join('');
-}
-function saveCurrentPortfolio(name){
-  portfolios[name]=JSON.parse(JSON.stringify(txns.map(({id,...t})=>t)));
-  pushHistory();
-  savePortfolios();
-}
-function loadPortfolio(name){
-  const data=portfolios[name]||[];
-  txns=[]; txIdCounter=0; txList.querySelectorAll('[data-tx-row]').forEach(el=>el.remove());
-  data.forEach(t=>addTx(t.asset,t.type,t.date,t.qty,t.price,t.fees));
-  localStorage.setItem('ctp_active',name);
-}
-function deletePortfolio(name){
-  if(name==='default')return;
-  delete portfolios[name];
-  if(portfolioHistory[name])delete portfolioHistory[name];
-  if(currentPortfolio===name){currentPortfolio='default';loadPortfolio('default')}
-  savePortfolios(); saveHistory();
-}
-
-function addTx(asset,type,date,qty,price,fees){
-  const id=++txIdCounter;
-  txns.push({id,asset,type,date,qty:parseFloat(qty)||0,price:parseFloat(price)||0,fees:parseFloat(fees)||0,selected:false});
-  renderTxRow(txns[txns.length-1]);
-  updateTxCount(); updateEmptyState(); saveCurrentPortfolio(currentPortfolio);
-}
-function removeTx(id){
-  txns=txns.filter(t=>t.id!==id);
-  const row=txList.querySelector(`[data-tx-row="${id}"]`);
-  if(row)row.remove();
-  updateTxCount(); updateEmptyState(); saveCurrentPortfolio(currentPortfolio);
-}
-function updateTx(id,field,val){
-  const t=txns.find(x=>x.id===id);
-  if(!t)return;
-  if(field==='qty'||field==='price'||field==='fees')t[field]=parseFloat(val)||0;
-  else t[field]=val;
-  saveCurrentPortfolio(currentPortfolio);
-}
-function toggleSelectTx(id){
-  const t=txns.find(x=>x.id===id);
-  if(!t)return;
-  t.selected=!t.selected;
-  const row=txList.querySelector(`[data-tx-row="${id}"]`);
-  if(row)row.style.opacity=t.selected?'0.5':'1';
-  updateDeleteSelectedBtn();
-}
-function selectAllTxns(sel){
-  txns.forEach(t=>{t.selected=sel});
-  txList.querySelectorAll('[data-tx-row]').forEach(row=>{
-    row.style.opacity=sel?'0.5':'1';
-    const cb=row.querySelector('.tx-select');
-    if(cb)cb.checked=sel;
-  });
-  updateDeleteSelectedBtn();
-}
-function deleteSelected(){
-  const ids=txns.filter(t=>t.selected).map(t=>t.id);
-  ids.forEach(id=>removeTx(id));
-}
-function updateDeleteSelectedBtn(){
-  const count=txns.filter(t=>t.selected).length;
-  deleteSelectedBtn.style.display=count?'inline-flex':'none';
-  deleteSelectedBtn.innerHTML=`${lucideIcon('trash-2','w-3 h-3',12)} Delete ${count}`;
-}
-function updateTxCount(){txCount.textContent=txns.length;}
-function updateEmptyState(){
-  emptyState.style.display=txns.length?'none':'flex';
-}
-
-function renderTxRow(tx){
-  const row=document.createElement('div');
-  row.className='tx-row grid grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_auto_auto_auto] gap-1.5 px-2.5 py-2 text-[10px] hover:bg-base-300/10 transition-all duration-200 border-b border-base-content/5 last:border-0 items-center';
-  row.dataset.txRow=tx.id;
-  row.innerHTML=`
-    <input type="checkbox" class="checkbox checkbox-xs tx-select self-center" data-txid="${tx.id}">
-    <input class="bg-transparent border-0 text-base-content font-mono text-[10px] p-0 h-4 w-full min-w-0 outline-none" value="${esc(tx.asset)}" data-field="asset" data-txid="${tx.id}" placeholder="BTC">
-    <select class="bg-transparent border-0 text-base-content font-mono text-[10px] p-0 h-4 outline-none" data-field="type" data-txid="${tx.id}">
-      <option ${tx.type==='Buy'?'selected':''}>Buy</option>
-      <option ${tx.type==='Sell'?'selected':''}>Sell</option>
-    </select>
-    <input class="bg-transparent border-0 text-base-content font-mono text-[10px] p-0 h-4 w-[72px] outline-none" value="${tx.date}" data-field="date" data-txid="${tx.id}" placeholder="2025-01-15">
-    <input class="bg-transparent border-0 text-base-content font-mono text-[10px] p-0 h-4 w-14 text-right outline-none" value="${fmtC(tx.qty)}" data-field="qty" data-txid="${tx.id}" placeholder="1">
-    <input class="bg-transparent border-0 text-base-content font-mono text-[10px] p-0 h-4 w-[68px] text-right outline-none" value="${tx.price.toFixed(2)}" data-field="price" data-txid="${tx.id}" placeholder="45000">
-    <input class="bg-transparent border-0 text-base-content font-mono text-[10px] p-0 h-4 w-14 text-right outline-none" value="${tx.fees.toFixed(2)}" data-field="fees" data-txid="${tx.id}" placeholder="0">
-    <button class="btn-cinematic text-red-400 hover:text-error p-0.5 w-5 h-5 flex items-center justify-center" data-del="${tx.id}" aria-label="Delete">${lucideIcon('trash-2','w-3 h-3',12)}</button>
-  `;
-  row.querySelectorAll('[data-field]').forEach(el=>{
-    el.addEventListener('change',()=>updateTx(parseInt(el.dataset.txid),el.dataset.field,el.value));
-  });
-  row.querySelector('.tx-select').addEventListener('change',e=>{
-    toggleSelectTx(parseInt(e.target.dataset.txid));
-  });
-  row.querySelector('[data-del]').addEventListener('click',()=>removeTx(parseInt(row.querySelector('[data-del]').dataset.del)));
-  if(txns.length===1)txList.appendChild(row);
-  else txList.insertBefore(row,txList.querySelector('[data-tx-row]:last-child').nextSibling);
-  updateEmptyState();
-}
-
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-
-function getMethod(){
-  for(const r of costMethods)if(r.checked)return r.value;
-  return 'FIFO';
-}
-
-const TAX_BRACKETS={
-  US:{single:{st:[[11925,.1],[48475,.12],[103350,.22],[197300,.24],[250525,.32],[626350,.35],[Infinity,.37]],
-        lt:[[0,0],[47025,0],[533125,.15],[Infinity,.2]]},
-       married:{st:[[23850,.1],[96950,.12],[206700,.22],[394600,.24],[501050,.32],[751600,.35],[Infinity,.37]],
-        lt:[[0,0],[94050,0],[583750,.15],[Infinity,.2]]},
-       hh:{st:[[17000,.1],[64850,.12],[103350,.22],[197300,.24],[250500,.32],[626350,.35],[Infinity,.37]],
-        lt:[[0,0],[62950,0],[533125,.15],[Infinity,.2]]}},
-  UK:{allowance:3000,basicBand:50270,basicRate:.18,higherRate:.24},
-  CA:{inclusion:.5,thresholds:[57375,114750,177882],rates:[.15,.205,.26,.33]},
-  IN:{rate:.312}
-};
-
-function runMethod(buys,sells,method){
-  const lots=[]; let totalProceeds=0,totalCost=0,totalFees=0,stGain=0,ltGain=0;
-  const bpool=buys.map(b=>({...b,remaining:b.qty})).sort((a,b)=>new Date(a.date)-new Date(b.date));
-  const spool=sells.map(s=>({...s})).sort((a,b)=>new Date(a.date)-new Date(b.date));
-  for(const sell of spool){
-    let rem=sell.qty; const sp=sell.qty*sell.price;
-    totalProceeds+=sp; totalFees+=sell.fees||0;
-    let pool=bpool.filter(b=>b.remaining>0.000001);
-    if(method==='FIFO')pool.sort((a,b)=>new Date(a.date)-new Date(b.date));
-    else if(method==='LIFO')pool.sort((a,b)=>new Date(b.date)-new Date(a.date));
-    else if(method==='HIFO')pool.sort((a,b)=>b.price-a.price);
-    for(const buy of pool){
-      if(rem<0.000001)break;
-      const mat=Math.min(rem,buy.remaining);
-      if(mat<0.000001)continue;
-      const cp=mat*buy.price; totalCost+=cp;
-      const gain=sp*(mat/sell.qty)-cp;
-      const days=(new Date(sell.date)-new Date(buy.date))/86400000;
-      const isLT=days>=365;
-      if(isLT)ltGain+=gain;else stGain+=gain;
-      lots.push({buyDate:buy.date,sellDate:sell.date,qty:mat,gain,term:isLT?'LT':'ST',buyPrice:buy.price,sellPrice:sell.price,asset:sell.asset,days:Math.round(days)});
-      buy.remaining-=mat; rem-=mat;
+  function getBrackets(isLong, isMarried){
+    if(isLong){
+      return isMarried
+        ? {rates: BRACKETS_MARRIED_LT, tops: BRACKETS_MARRIED_LT_TOPS}
+        : {rates: BRACKETS_SINGLE_LT, tops: BRACKETS_SINGLE_LT_TOPS};
     }
+    return isMarried
+      ? {rates: BRACKETS_MARRIED_ST, tops: BRACKETS_MARRIED_ST_TOPS}
+      : {rates: BRACKETS_SINGLE_ST, tops: BRACKETS_SINGLE_ST_TOPS};
   }
-  return {totalGain:stGain+ltGain,stGain,ltGain,totalProceeds,totalCost,totalFees,lots};
-}
 
-function calcTax(gain,stGain,ltGain,jur,income,status){
-  if(gain<=0)return {tax:0,rate:0,bracket:null};
-  let tax=0,bracket=null;
-  if(jur==='US'){
-    const s=status||'single'; const bk=TAX_BRACKETS.US[s]||TAX_BRACKETS.US.single;
-    let rST=Math.max(0,stGain),stTax=0;
-    for(const [lim,rate] of bk.st){
-      if(rST<=0)break;
-      const ch=Math.min(rST,Math.max(0,lim-(bk.st[0][0]||0)));
-      if(ch>0){stTax+=ch*rate;rST-=ch}
+  function getMarginalRate(income, brackets){
+    for(let i = 0; i < brackets.tops.length; i++){
+      if(income <= brackets.tops[i]) return brackets.rates[i];
     }
-    let rLT=Math.max(0,ltGain),ltTax=0;
-    for(const [lim,rate] of bk.lt){
-      if(rLT<=0)break;
-      if(lim===0)continue;
-      const th=Math.max(0,lim-income);
-      const ch=Math.min(rLT,th);
-      if(ch>0){ltTax+=ch*rate;rLT-=ch}
-    }
-    if(rLT>0)ltTax+=rLT*0.2;
-    if(income+stGain>200000){stTax+=stGain*0.038;ltTax+=ltGain*0.038}
-    tax=stTax+ltTax;
-    const stRate=bk.st.find(([l])=>income<=l)?.[1]*100||37;
-    const ltRate=bk.lt.slice(1).find(([l])=>income<=l)?.[1]*100||20;
-    bracket=`ST: ${stRate}% bracket, LT: ${ltRate}% bracket`;
-  }else if(jur==='UK'){
-    const tf=3000; const txb=Math.max(0,gain-tf); const bb=50270;
-    const rb=Math.max(0,bb-income); const ab=Math.min(txb,rb); const ah=Math.max(0,txb-rb);
-    tax=ab*.18+ah*.24;
-    bracket=`UK CGT: ${ab>0?'18% basic rate ':''}${ah>0?'+ 24% higher rate':''}`;
-  }else if(jur==='CA'){
-    const txg=gain*.5;
-    const r=income<=57375?.15:(income<=114750?.205:(income<=177882?.26:.33));
-    tax=txg*r; bracket=`CA inclusion: 50%, marginal rate: ${r*100}%`;
-  }else if(jur==='IN'){
-    tax=gain*.312; bracket=`IN Section 115BBH: flat 31.2%`;
+    return brackets.rates[brackets.rates.length - 1];
   }
-  return {tax,rate:gain>0?tax/gain*100:0,bracket};
-}
 
-function runScenario(buys,sells,method,sellPct,income){
-  if(sellPct<=0)return runMethod(buys,sells,method);
-  const sellsCopy=sells.map(s=>({...s,qty:s.qty*(1+sellPct/100)}));
-  const result=runMethod(buys,sellsCopy,method);
-  const jur=jurisdiction.value;
-  const status=filingStatus.value;
-  const taxInfo=calcTax(result.totalGain,result.stGain,result.ltGain,jur,income,status);
-  return {result,taxInfo};
-}
+  function calculate(){
+    const costBasis = parseFloat($('taxCostBasis').value) || 0;
+    const proceeds = parseFloat($('taxProceeds').value) || 0;
+    const income = parseFloat($('taxIncome').value) || 0;
 
-function calculate(){
-  const buys=txns.filter(t=>t.type==='Buy');
-  const sells=txns.filter(t=>t.type==='Sell');
-  if(!buys.length||!sells.length){alert('Need at least one Buy and one Sell transaction.');return}
-  placeholder.style.display='none'; resultsContent.style.display='block';
-  calcBtnText.textContent='CALCULATING...';
-  calcBtnSpinner.style.display='inline-block';
-  setTimeout(()=>{
-    calcBtnText.textContent='CALCULATE TAX';
-    calcBtnSpinner.style.display='none';
-    const method=getMethod();
-    const income=parseFloat(annualIncome.value)||0;
-    const status=filingStatus.value; const jur=jurisdiction.value;
-    const sellPct=parseFloat(scenarioSellPct.value)||0;
-    const scenario=runScenario(buys,sells,method,sellPct,income);
-    const r=scenario.result; const t=scenario.taxInfo;
-    renderResults(r,t,method);
-    renderComparison(buys,sells,jur,income,status);
-    renderLots(r.lots);
-    renderAssets(buys,sells,method);
-    renderDonut(r,t.tax,method);
-    renderHistogram(r.lots);
-  },100);
-}
+    const isLong = document.querySelector('.toggle-opt[data-tax-period="long"].active') !== null;
+    const isMarried = document.querySelector('.toggle-opt[data-tax-status="married"].active') !== null;
 
-function renderResults(r,t,method){
-  const isPos=r.totalGain>=0;
-  outGain.textContent=fmtSigned(r.totalGain,'$'); outGain.style.color=isPos?'var(--color-success)':'var(--color-error)';
-  outProceeds.textContent=fmt(r.totalProceeds,'$');
-  outCost.textContent=fmt(r.totalCost,'$');
-  outST.textContent=fmtSigned(r.stGain,'$'); outST.style.color=r.stGain>=0?'var(--color-success)':'var(--color-error)';
-  outLT.textContent=fmtSigned(r.ltGain,'$'); outLT.style.color=r.ltGain>=0?'var(--color-success)':'var(--color-error)';
-  outTax.textContent=fmt(t.tax,'$');
-  outRate.textContent=t.rate.toFixed(2)+'%';
-  methodIndicator.innerHTML=`<span class="pill-cinematic text-[9px] font-mono">${method}</span>`;
-  if(t.bracket){bracketInfo.style.display='block'; bracketInfo.innerHTML=`<span class="font-bold">${t.bracket}</span>`}
-  else bracketInfo.style.display='none';
-  dProceeds.textContent=fmt(r.totalProceeds,'$');
-  dCost.textContent=fmt(r.totalCost,'$');
-  dFees.textContent=fmt(r.totalFees,'$');
-  dTax.textContent=fmt(t.tax,'$');
-  dNet.textContent=fmtSigned(r.totalGain,'$');
-  harvestSection.style.display='none'; harvestList.innerHTML='';
-  if(r.totalGain<0){
-    harvestSection.style.display='block';
-    harvestList.innerHTML=`<p class="text-success">Net loss of ${fmt(r.totalGain,'$')}. Losses can offset other gains or up to $3,000 ordinary income (US).</p>`;
-  }else if(r.totalGain>0){
-    const buys=txns.filter(t=>t.type==='Buy'); const totalBuys=buys.reduce((s,b)=>s+b.qty*b.price,0);
-    const sells=txns.filter(t=>t.type==='Sell'); const totalSells=sells.reduce((s,b)=>s+b.qty*b.price,0);
-    if(totalSells>0){
-      harvestSection.style.display='block';
-      const loss=Math.max(0,totalBuys-totalSells);
-      harvestList.innerHTML=loss>0
-        ? `<p>Unsold positions may have paper losses. ${fmt(loss,'$')} in total cost unsold.</p>`
-        : `<p>No clear harvesting opportunities. All assets appear profitable.</p>`;
-    }
+    const gain = proceeds - costBasis;
+    const absGain = Math.abs(gain);
+    const isProfit = gain >= 0;
+
+    const brackets = getBrackets(isLong, isMarried);
+    const totalIncome = income + Math.max(0, gain);
+    const rate = getMarginalRate(totalIncome, brackets);
+    const tax = gain > 0 ? gain * (rate / 100) : 0;
+    const afterTax = gain - tax;
+    const effRate = gain > 0 ? (tax / gain) * 100 : 0;
+
+    const gainColor = isProfit ? 'var(--color-success)' : 'var(--color-error)';
+    const gainSign = isProfit ? '+' : '';
+    const typeLabel = isLong ? 'Long-Term' : 'Short-Term';
+
+    $('resGain').textContent = gainSign + '$' + absGain.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    $('resGain').style.color = gainColor;
+    $('resTax').textContent = '$' + tax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    $('resAfterTax').textContent = (afterTax >= 0 ? '+' : '') + '$' + afterTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    $('resAfterTax').style.color = afterTax >= 0 ? 'var(--color-success)' : 'var(--color-error)';
+    $('resRate').textContent = FP(effRate);
+
+    $('tbCost').textContent = '$' + costBasis.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    $('tbProceeds').textContent = '$' + proceeds.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    $('tbGain').textContent = gainSign + '$' + absGain.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    $('tbGain').style.color = gainColor;
+    $('tbType').textContent = typeLabel;
+    $('tbRate').textContent = FP(rate);
+    $('tbTax').textContent = '$' + tax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    $('tbAfterTax').textContent = (afterTax >= 0 ? '+' : '') + '$' + afterTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    $('tbAfterTax').style.color = afterTax >= 0 ? 'var(--color-success)' : 'var(--color-error)';
   }
-  renderAnnualSummary(r,t);
-}
 
-function renderAnnualSummary(r,t){
-  const years=[...new Set(txns.map(tx=>tx.date.slice(0,4)))].sort();
-  if(years.length<2){annualSummary.innerHTML=`<p class="text-base-content/50 py-2 text-center">Add transactions across multiple years to see annual summary.</p>`;return}
-  let html='<div class="label-cinematic mb-1.5">Annual Summary</div><table class="w-full text-[10px]"><tr class="text-base-content/50 border-b border-base-content/10"><th class="text-left py-1">Year</th><th class="text-right">Gain</th><th class="text-right">Tax</th><th class="text-right">Rate</th></tr>';
-  years.forEach(y=>{
-    const yTxns=txns.filter(tx=>tx.date.startsWith(y));
-    const yBuys=yTxns.filter(t=>t.type==='Buy'); const ySells=yTxns.filter(t=>t.type==='Sell');
-    if(!yBuys.length||!ySells.length)return;
-    const yr=runMethod(yBuys,ySells,getMethod());
-    const yt=calcTax(yr.totalGain,yr.stGain,yr.ltGain,jurisdiction.value,parseFloat(annualIncome.value)||0,filingStatus.value);
-    html+=`<tr><td class="py-1">${y}</td><td class="text-right font-mono ${yr.totalGain>=0?'text-success':'text-error'}">${fmtSigned(yr.totalGain,'$')}</td><td class="text-right font-mono text-warning">${fmt(yt.tax,'$')}</td><td class="text-right font-mono">${yt.rate.toFixed(1)}%</td></tr>`;
-  });
-  html+=`<tr class="border-t border-base-content/10 font-bold"><td class="py-1">Total</td><td class="text-right font-mono ${r.totalGain>=0?'text-success':'text-error'}">${fmtSigned(r.totalGain,'$')}</td><td class="text-right font-mono text-warning">${fmt(t.tax,'$')}</td><td class="text-right font-mono">${t.rate.toFixed(1)}%</td></tr></table>`;
-  annualSummary.innerHTML=html;
-}
-
-function renderComparison(buys,sells,jur,income,status){
-  if(!compareToggle.checked){comparisonSection.style.display='none';return}
-  comparisonSection.style.display='block';
-  const methods=['FIFO','LIFO','HIFO'];
-  let best='FIFO',bestTax=Infinity;
-  const results=methods.map(m=>{
-    const r=runMethod(buys,sells,m); const t=calcTax(r.totalGain,r.stGain,r.ltGain,jur,income,status);
-    if(t.tax<bestTax){bestTax=t.tax;best=m}
-    return {method:m,result:r,tax:t};
-  });
-  comparisonGrid.innerHTML=results.map(({method,result,tax})=>`
-    <div class="rounded-xl p-3 border border-base-content/10${method===best?' border-success/30 bg-success/5':''}">
-      <div class="flex items-center gap-1.5 mb-1.5">
-        <span class="pill-cinematic text-[9px] font-mono">${method}</span>
-        ${method===best?'<span class="pill-cinematic text-[9px] border-success/30 text-success bg-success/10">Best</span>':''}
-      </div>
-      <div class="text-base font-black font-mono ${result.totalGain>=0?'text-success':'text-error'}">${fmtSigned(result.totalGain,'$')}</div>
-      <div class="text-[10px] text-base-content/50 mt-1">Tax: <strong class="text-warning">${fmt(tax.tax,'$')}</strong> | Rate: ${tax.rate.toFixed(1)}%</div>
-      <div class="text-[10px] text-base-content/50">ST: ${fmtSigned(result.stGain,'$')} | LT: ${fmtSigned(result.ltGain,'$')}</div>
-    </div>
-  `).join('');
-}
-
-function getCSSVar(name){
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()||'#e2e8f0';
-}
-function renderDonut(r,tax,method){
-  const ctx=donutCanvas.getContext('2d');
-  if(!ctx)return;
-  const w=donutCanvas.width,h=donutCanvas.height,cx=w/2,cy=h/2,outer=50,inner=32;
-  ctx.clearRect(0,0,w,h);
-  const segments=[
-    {label:'Gain',value:r.totalGain>0?r.totalGain:0,color:'#22c55e'},
-    {label:'Fees',value:r.totalFees,color:'#f59e0b'},
-    {label:'Tax',value:tax,color:'#ef4444'},
-    {label:'Loss',value:r.totalGain<0?Math.abs(r.totalGain):0,color:'#ef444444'}
-  ];
-  const total=segments.reduce((s,seg)=>s+seg.value,0)||1;
-  let start=-Math.PI/2;
-  segments.filter(s=>s.value>0).forEach(seg=>{
-    const angle=(seg.value/total)*Math.PI*2;
-    ctx.beginPath(); ctx.arc(cx,cy,outer,start,start+angle);
-    ctx.arc(cx,cy,inner,start+angle,start,true); ctx.closePath();
-    ctx.fillStyle=seg.color; ctx.fill();
-    start+=angle;
-  });
-  ctx.beginPath(); ctx.arc(cx,cy,inner-2,0,Math.PI*2);
-  ctx.fillStyle=getCSSVar('--color-base-200'); ctx.fill();
-  ctx.fillStyle=getCSSVar('--color-base-content'); ctx.font='bold 10px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(method,cx,cy-4);
-  ctx.font='7px monospace'; ctx.fillText(`$${(r.totalGain-tax).toFixed(0)}`,cx,cy+8);
-}
-
-function renderHistogram(lots){
-  const ctx=histogramCanvas.getContext('2d');
-  if(!ctx)return;
-  const w=histogramCanvas.width,h=histogramCanvas.height;
-  ctx.clearRect(0,0,w,h);
-  if(!lots.length){ctx.fillStyle=getCSSVar('--color-base-content'); ctx.font='9px sans-serif'; ctx.textAlign='center'; ctx.fillText('No lots to display',w/2,h/2);return}
-  const bins=[{label:'0-30d',min:0,max:30},{label:'31-90d',min:31,max:90},{label:'91-180d',min:91,max:180},{label:'181-365d',min:181,max:365},{label:'1-2y',min:366,max:730},{label:'2y+',min:731,max:Infinity}];
-  const binGains=bins.map(b=>lots.filter(l=>l.days>=b.min&&l.days<=b.max).reduce((s,l)=>s+l.gain,0));
-  const maxVal=Math.max(...binGains.map(Math.abs),1);
-  const barW=Math.floor((w-20)/bins.length);
-  const padL=20,padR=10,padT=10,padB=20;
-  const chartH=h-padT-padB;
-  bins.forEach((b,i)=>{
-    const g=binGains[i]; const barH=g>=0?(g/maxVal)*(chartH/2):Math.abs(g)/maxVal*(chartH/2);
-    const x=padL+i*barW+2; const y=g>=0?padT+chartH/2-barH:padT+chartH/2;
-    ctx.fillStyle=g>=0?'#22c55e':'#ef4444';
-    ctx.fillRect(x,y,barW-4,Math.max(barH,1));
-    ctx.fillStyle=getCSSVar('--color-base-content'); ctx.font='6px sans-serif'; ctx.textAlign='center';
-    ctx.fillText(b.label,x+barW/2-2,h-2);
-    if(Math.abs(g)>10){ctx.fillStyle=g>=0?'#22c55e':'#ef4444'; ctx.font='bold 6px sans-serif'; ctx.fillText(g>=0?'+'+fmt(g,''):'-'+fmt(Math.abs(g),''),x+barW/2-2,g>=0?y-1:y+barH+8)}
-  });
-  ctx.strokeStyle=getCSSVar('--color-base-content'); ctx.globalAlpha=0.1; ctx.beginPath(); ctx.moveTo(padL,padT+chartH/2); ctx.lineTo(w-padR,padT+chartH/2); ctx.stroke(); ctx.globalAlpha=1;
-}
-
-function renderLots(lots){
-  if(!lots.length){lotsSection.style.display='none'; document.querySelector('[data-tab="lots"]')&&lotsTimeline.parentElement.classList.add('hidden');return}
-  lotsSection.style.display='block'; lotsCount.textContent=lots.length;
-  lotsTimeline.innerHTML=lots.map((l,i)=>{
-    const isGain=l.gain>=0;
-    const termBadge=l.term==='LT'
-      ? '<span class="pill-cinematic text-[9px] border-success/30 text-success bg-success/10">LT</span>'
-      : '<span class="pill-cinematic text-[9px] border-warning/30 text-warning bg-warning/10">ST</span>';
-    const side=i%2===0?'start':'end';
-    return `<li><hr class="${i===0?'hidden':''}"><div class="timeline-${side} timeline-box text-[10px] p-1.5 max-w-full overflow-hidden"><div class="font-bold font-mono">${l.asset}</div><div class="text-base-content/50">${l.buyDate} &rarr; ${l.sellDate}</div><div class="flex gap-1.5 items-center mt-0.5"><span class="font-mono font-black ${isGain?'text-success':'text-error'}">${isGain?'+':'-'}${fmt(Math.abs(l.gain),'$')}</span>${termBadge}<span class="text-base-content/70">${l.days}d</span></div></div><div class="timeline-middle">${l.term==='LT'?'<span class="text-success text-xs">●</span>':'<span class="text-warning text-xs">●</span>'}</div><hr class="${i===lots.length-1?'hidden':''}"></li>`;
-  }).join('');
-}
-
-function renderAssets(buys,sells,method){
-  const assets={};
-  txns.forEach(t=>{
-    if(!assets[t.asset])assets[t.asset]={buys:[],sells:[],totalBought:0,totalSold:0,costBasis:0,proceeds:0};
-    if(t.type==='Buy'){assets[t.asset].buys.push(t);assets[t.asset].totalBought+=t.qty;assets[t.asset].costBasis+=t.qty*t.price+t.fees}
-    else{assets[t.asset].sells.push(t);assets[t.asset].totalSold+=t.qty;assets[t.asset].proceeds+=t.qty*t.price-t.fees}
-  });
-  const keys=Object.keys(assets);
-  assetGrid.parentElement.style.display=keys.length?'block':'none';
-  assetCount.textContent=keys.length;
-  assetGrid.innerHTML=keys.map(k=>{
-    const a=assets[k]; const gain=a.proceeds-a.costBasis; const remaining=a.totalBought-a.totalSold;
-    const isPos=gain>=0; const colors=['#f59e0b','#22c55e','#3b82f6','#a855f7','#ef4444','#06b6d4'];
-    const ci=keys.indexOf(k)%colors.length;
-    return `<div class="p-2.5 rounded-lg border border-base-content/10"><div class="flex items-center gap-1.5 mb-1.5"><span class="pill-cinematic text-[9px]" style="background:${colors[ci]}22;color:${colors[ci]}">${k}</span><span class="text-[10px] text-base-content/50">${fmtC(remaining)} held</span></div><div class="text-base font-black font-mono ${isPos?'text-success':'text-error'}">${isPos?'+':'-'}${fmt(Math.abs(gain),'$')}</div><div class="text-[10px] text-base-content/50 flex justify-between mt-0.5"><span>Cost: ${fmt(a.costBasis,'$')}</span><span>Proceeds: ${fmt(a.proceeds,'$')}</span></div></div>`;
-  }).join('');
-}
-
-async function fetchPrices(){
-  const assets=[...new Set(txns.filter(t=>t.type==='Buy').map(t=>t.asset))];
-  if(!assets.length||!includeUnrealized.checked){priceStatus.textContent='';return}
-  priceStatus.textContent='Fetching prices...';
-  const ids=assets.map(a=>a.toLowerCase()).join(',');
-  try{
-    const resp=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`,{signal:AbortSignal.timeout(5000)});
-    const data=await resp.json();
-    Object.entries(data).forEach(([k,v])=>priceCache[k]=v.usd);
-    priceStatus.textContent='Prices updated';
-    setTimeout(()=>{if(priceStatus.textContent==='Prices updated')priceStatus.textContent=''},3000);
-  }catch(e){priceStatus.textContent='Price fetch unavailable';}
-}
-
-const FORMAT_PRESETS={
-  coinbase:{skip:1,map:{asset:1,type:2,date:0,qty:3,price:4,fees:5}},
-  binance:{skip:1,map:{date:0,asset:1,type:2,price:4,qty:5,fees:7}},
-  generic:{skip:1,map:{date:0,asset:1,type:2,qty:3,price:4,fees:5}}
-};
-function tryParseWithPreset(text,preset){
-  const lines=text.split('\n').filter(l=>l.trim());
-  if(lines.length<2)return null;
-  const cfg=FORMAT_PRESETS[preset]; if(!cfg)return null;
-  const h=lines[0].split(',').map(s=>s.trim().toLowerCase());
-  const colIdx={}; h.forEach((c,i)=>colIdx[c]=i);
-  const imported=[];
-  for(let i=cfg.skip;i<lines.length;i++){
-    const v=lines[i].split(',').map(s=>s.trim());
-    const asset=v[colIdx[cfg.map.asset]]||v[cfg.map.asset]||'';
-    const typeRaw=v[colIdx[cfg.map.type]]||v[cfg.map.type]||'';
-    const type=typeRaw.toLowerCase().includes('sell')?'Sell':'Buy';
-    const date=v[colIdx[cfg.map.date]]||v[cfg.map.date]||'';
-    const qty=parseFloat(v[colIdx[cfg.map.qty]]||v[cfg.map.qty])||0;
-    const price=parseFloat(v[colIdx[cfg.map.price]]||v[cfg.map.price])||0;
-    const fees=parseFloat(v[colIdx[cfg.map.fees]]||v[cfg.map.fees])||0;
-    if(asset&&date&&qty>0&&price>0)imported.push({asset,type,date,qty,price,fees});
-  }
-  return imported.length?imported:null;
-}
-
-function doImport(text,ext){
-  let imported=[];
-  try{
-    if(ext==='json'){
-      imported=JSON.parse(text);
-      if(!Array.isArray(imported))throw Error('Not array');
-      imported=imported.map(t=>({asset:t.asset||t.Asset,type:t.type||t.Type,date:t.date||t.Date,qty:parseFloat(t.qty||t.Quantity)||0,price:parseFloat(t.price||t.Price)||0,fees:parseFloat(t.fees||t.Fees)||0}));
-    }else{
-      const lines=text.split('\n').filter(l=>l.trim());
-      if(lines.length<2)throw Error('File is empty');
-      const h=lines[0].split(',').map(s=>s.trim().toLowerCase());
-      for(let i=1;i<lines.length;i++){
-        const v=lines[i].split(',').map(s=>s.trim());const row={};
-        h.forEach((hh,idx)=>row[hh]=v[idx]);imported.push(row);
-      }
-      imported=imported.map(t=>({asset:t.asset,type:t.type,date:t.date,qty:parseFloat(t.qty)||0,price:parseFloat(t.price)||0,fees:parseFloat(t.fees)||0}));
-    }
-    imported.forEach(t=>{if(t.asset&&t.type&&t.date&&t.qty!=null&&t.price!=null)addTx(t.asset,t.type,t.date,t.qty,t.price,t.fees)});
-    alert(`Imported ${imported.length} transactions`);
-  }catch(e){alert('Import failed: '+e.message)}
-}
-
-function downloadTemplate(){
-  const csv='Asset,Type,Date,Quantity,Price,Fees\nBTC,Buy,2025-01-15,1,45000,25\nETH,Buy,2025-03-10,10,2800,15\nBTC,Sell,2025-06-20,0.5,52000,10';
-  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download='crypto_tax_template.csv'; a.click();
-}
-
-function generateForm8949(lots){
-  if(!lots.length){alert('No matched lots to export. Add transactions and calculate first.');return}
-  const header='"Description of Property","Date Acquired","Date Sold","Proceeds","Cost or Other Basis","Gain or (Loss)","Holding Period"\n';
-  const rows=lots.map(l=>`"${l.qty} ${l.asset}","${l.buyDate}","${l.sellDate}","${l.qty*l.sellPrice}","${l.qty*l.buyPrice}","${l.gain}","${l.days} days"`).join('\n');
-  const a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(header+rows);
-  a.download='form_8949_crypto.csv'; a.click();
-}
-
-function generateFullReport(lots,r){
-  const header='Asset,Date Acquired,Date Sold,Qty,Buy Price,Sell Price,Gain/Loss,Holding Days,Term\n';
-  const rows=lots.map(l=>`${l.asset},${l.buyDate},${l.sellDate},${l.qty},${l.buyPrice},${l.sellPrice},${l.gain},${l.days},${l.term}`).join('\n');
-  const summary=`\nSummary\nTotal Proceeds,Total Cost,Total Fees,Total Gain,Est.Tax\n${r.totalProceeds},${r.totalCost},${r.totalFees},${r.totalGain},0`;
-  const a=document.createElement('a');
-  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(header+rows+summary);
-  a.download='crypto_tax_report.csv'; a.click();
-}
-
-// ====== Event Listeners ======
-addBtn.addEventListener('click',()=>addTx('BTC','Buy',new Date().toISOString().slice(0,10),1,50000,0));
-importBtn.addEventListener('click',()=>fileInput.click());
-presetBtn.addEventListener('click',(e)=>{e.stopPropagation();presetDropdown.classList.toggle('hidden')});
-document.addEventListener('click',()=>presetDropdown.classList.add('hidden'));
-document.querySelectorAll('.preset-option').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    presetDropdown.classList.add('hidden');
-    fileInput.dataset.preset=btn.dataset.preset;
-    fileInput.click();
-  });
-});
-fileInput.addEventListener('change',e=>{
-  const f=e.target.files[0]; if(!f)return;
-  const reader=new FileReader();
-  const preset=fileInput.dataset.preset||'';
-  reader.onload=ev=>{
-    const text=ev.target.result; const ext=f.name.split('.').pop().toLowerCase();
-    if(preset){
-      const parsed=tryParseWithPreset(text,preset);
-      if(parsed){parsed.forEach(t=>addTx(t.asset,t.type,t.date,t.qty,t.price,t.fees));alert(`Imported ${parsed.length} transactions via ${preset} preset`);return}
-      alert('Preset parsing failed. Try generic import.');
-    }
-    doImport(text,ext);
-  };
-  reader.readAsText(f); fileInput.value=''; fileInput.dataset.preset='';
-});
-exportBtn.addEventListener('click',()=>{
-  if(!txns.length){alert('No transactions to export.');return}
-  const a=document.createElement('a');
-  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(txns.map(({id,...t})=>t),null,2));
-  a.download='crypto_tax_ledger.json'; a.click();
-});
-templateBtn.addEventListener('click',e=>{e.preventDefault();downloadTemplate()});
-jurisdiction.addEventListener('change',()=>{filingStatusGroup.style.display=jurisdiction.value==='US'?'block':'none'});
-calcBtn.addEventListener('click',calculate);
-selectAll.addEventListener('change',()=>selectAllTxns(selectAll.checked));
-deleteSelectedBtn.addEventListener('click',deleteSelected);
-txSearch.addEventListener('input',()=>{
-  const q=txSearch.value.toLowerCase();
-  txList.querySelectorAll('[data-tx-row]').forEach(row=>{
-    row.style.display=row.querySelector('[data-field="asset"]').value.toLowerCase().includes(q)?'grid':'none';
-  });
-});
-compareToggle.addEventListener('change',()=>{if(resultsContent.style.display!=='none')calculate()});
-includeUnrealized.addEventListener('change',()=>{if(includeUnrealized.checked)fetchPrices()});
-printBtn.addEventListener('click',()=>window.print());
-portfolioSelect.addEventListener('change',()=>{currentPortfolio=portfolioSelect.value;loadPortfolio(currentPortfolio)});
-savePortfolioBtn.addEventListener('click',()=>{
-  const name=prompt('Portfolio name:',currentPortfolio);
-  if(name&&name.trim()){currentPortfolio=name.trim();saveCurrentPortfolio(currentPortfolio);renderPortfolioSelect()}
-});
-deletePortfolioBtn.addEventListener('click',()=>{
-  if(currentPortfolio==='default'){alert('Cannot delete default portfolio.');return}
-  if(confirm(`Delete "${currentPortfolio}"?`))deletePortfolio(currentPortfolio);
-});
-historyBtn.addEventListener('click',()=>{
-  const snapshots=portfolioHistory[currentPortfolio];
-  if(!snapshots||!snapshots.length){alert('No history for this portfolio.');return}
-  historyList.innerHTML=snapshots.map((s,i)=>`<button class="history-item block w-full text-left px-3 py-2 rounded-lg hover:bg-primary/10 focus-ring text-[10px]" data-idx="${i}">${new Date(s.time).toLocaleString()} — ${s.data.length} txns</button>`).join('');
-  historyDialog.classList.remove('hidden');
-  historyList.querySelectorAll('.history-item').forEach(el=>{
-    el.addEventListener('click',()=>{
-      const idx=parseInt(el.dataset.idx);
-      const snapshot=portfolioHistory[currentPortfolio][idx];
-      if(snapshot){txns=[];txIdCounter=0;txList.querySelectorAll('[data-tx-row]').forEach(r=>r.remove());snapshot.data.forEach(t=>addTx(t.asset,t.type,t.date,t.qty,t.price,t.fees));historyDialog.classList.add('hidden')}
+  function setupToggles(){
+    document.querySelectorAll('.toggle-group').forEach(function(group){
+      group.querySelectorAll('.toggle-opt').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          group.querySelectorAll('.toggle-opt').forEach(function(b){
+            b.classList.remove('active');
+            b.setAttribute('aria-checked', 'false');
+          });
+          this.classList.add('active');
+          this.setAttribute('aria-checked', 'true');
+          calculate();
+        });
+      });
     });
+  }
+
+  function reset(){
+    $('taxCostBasis').value = 42000;
+    $('taxProceeds').value = 67500;
+    $('taxIncome').value = 60000;
+    document.querySelectorAll('.toggle-opt').forEach(function(b){ b.classList.remove('active'); b.setAttribute('aria-checked', 'false'); });
+    document.querySelector('.toggle-opt[data-tax-period="short"]').classList.add('active');
+    document.querySelector('.toggle-opt[data-tax-period="short"]').setAttribute('aria-checked', 'true');
+    document.querySelector('.toggle-opt[data-tax-status="single"]').classList.add('active');
+    document.querySelector('.toggle-opt[data-tax-status="single"]').setAttribute('aria-checked', 'true');
+    calculate();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    setupToggles();
+    calculate();
+    ['taxCostBasis','taxProceeds','taxIncome'].forEach(function(id){ $(id).addEventListener('input', calculate); });
+    $('resetBtn').addEventListener('click', reset);
   });
-});
-closeHistory.addEventListener('click',()=>historyDialog.classList.add('hidden'));
-closeShortcuts.addEventListener('click',()=>shortcutsDialog.classList.add('hidden'));
-
-scenarioIncome.addEventListener('input',()=>{
-  const val=parseInt(scenarioIncome.value);
-  scenarioIncomeVal.textContent='$'+val.toLocaleString();
-  annualIncome.value=val;
-});
-scenarioSellPct.addEventListener('input',()=>{
-  const val=parseInt(scenarioSellPct.value);
-  scenarioSellPctVal.textContent=val+'%';
-});
-
-// Keyboard shortcuts
-document.addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&(e.ctrlKey||e.metaKey||e.shiftKey)){e.preventDefault();calculate()}
-  if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)){e.preventDefault();txSearch.focus()}
-  if(e.key==='Escape'){historyDialog.classList.add('hidden');shortcutsDialog.classList.add('hidden')}
-  if(e.key==='?'&&!['INPUT','TEXTAREA'].includes(e.target.tagName)){e.preventDefault();shortcutsDialog.classList.remove('hidden')}
-});
-
-// Tab switching
-document.querySelectorAll('.tab-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
-    const tab=$('tab'+btn.dataset.tab.charAt(0).toUpperCase()+btn.dataset.tab.slice(1));
-    if(tab)tab.classList.remove('hidden');
-  });
-});
-
-exportForm8949Btn.addEventListener('click',()=>{
-  const lots=document.querySelectorAll('[data-tx-row]').length>0;
-  if(!lots){alert('Calculate first to generate Form 8949.');return}
-  const method=getMethod(); const buys=txns.filter(t=>t.type==='Buy'); const sells=txns.filter(t=>t.type==='Sell');
-  if(!buys.length||!sells.length)return;
-  const result=runMethod(buys,sells,method);
-  generateForm8949(result.lots);
-});
-exportDetailBtn.addEventListener('click',()=>{
-  const method=getMethod(); const buys=txns.filter(t=>t.type==='Buy'); const sells=txns.filter(t=>t.type==='Sell');
-  if(!buys.length||!sells.length)return;
-  const result=runMethod(buys,sells,method);
-  generateFullReport(result.lots,result);
-});
-
-setInterval(()=>{if(includeUnrealized.checked)fetchPrices()},60000);
-
-// Init
-const active=localStorage.getItem('ctp_active');
-if(active&&portfolios[active]){currentPortfolio=active;loadPortfolio(active)}
-else{
-  addTx('BTC','Buy','2025-01-15',1,45000,25);
-  addTx('ETH','Buy','2025-03-10',10,2800,15);
-  addTx('BTC','Sell','2025-06-20',0.5,52000,10);
-  addTx('ETH','Sell','2025-08-05',5,3200,8);
-  addTx('SOL','Buy','2025-04-01',50,120,5);
-  addTx('DOGE','Buy','2025-02-01',5000,0.15,2);
-  addTx('DOGE','Sell','2025-09-01',2000,0.32,1);
-}
-renderPortfolioSelect();
-calculate();
-
-});
+})();
 </script>
 {% endblock %}

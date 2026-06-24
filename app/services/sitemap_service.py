@@ -35,7 +35,8 @@ class SitemapService:
             "mrr-calculator": 0.9, "cac-calculator": 0.9, "burn-rate-calculator": 0.9,
             "salary-calculator": 0.9, "fd-calculator": 0.9, "sip-calculator": 0.9,
             "loan-affordability-calculator": 0.9, "mortgage-overpayment-calculator": 0.9,
-            "credit-utilization-calculator": 0.9, "debt-calculator": 0.9,
+            "credit-utilization-calculator": 0.9,
+            "debt-calculator": 0.9,
             "date-calculator": 0.9, "eway-bill-calculator": 0.9,
             "youtube-calculator": 0.8, "instagram-calculator": 0.8, "adsense-calculator": 0.8,
         }

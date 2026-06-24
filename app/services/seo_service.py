@@ -195,17 +195,17 @@ OVERRIDES: dict[str, dict[str, Any]] = {
         "about_title": "About the Password Generator",
         "about_body": "<p>The Password Generator creates strong, cryptographically secure passwords to protect your online accounts. Customize length, character types (uppercase, lowercase, numbers, symbols), and exclude ambiguous characters for readability.</p><p>Passwords are generated entirely in your browser using secure random number generation. No passwords are ever transmitted, stored, or logged.</p>",
     },
-    "crypto-price-prediction": {
-        "icon": "trending-up",
-        "app_category": "FinanceApplication",
-    },
-    "crypto-trend-analyzer": {
-        "icon": "zap",
-        "app_category": "FinanceApplication",
-    },
     "nft-generator-ai": {
         "icon": "palette",
         "app_category": "MultimediaApplication",
+    },
+    "crypto-trend-analyzer": {
+        "icon": "trending-up",
+        "app_category": "FinanceApplication",
+    },
+    "crypto-price-prediction": {
+        "icon": "trending-up",
+        "app_category": "FinanceApplication",
     },
     "schema-generator": {
         "icon": "code",
@@ -217,12 +217,6 @@ OVERRIDES: dict[str, dict[str, Any]] = {
     "api-tester": {
         "icon": "globe",
         "app_category": "DeveloperApplication",
-    },
-    "invoice-generator": {
-        "icon": "file-invoice",
-        "app_category": "BusinessApplication",
-        "about_title": "About the Invoice Generator",
-        "about_body": "<p>The Invoice Generator helps freelancers and small businesses create professional PDF invoices in seconds. Add your company logo, customer details, line items, taxes, and discounts to generate a clean, print-ready invoice.</p><p>All data stays in your browser — nothing is sent to any server. Download your invoice as a PDF file or print directly from the page.</p>",
     },
     "sip-calculator": {
         "icon": "trending-up",

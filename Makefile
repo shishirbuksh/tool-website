@@ -1,4 +1,4 @@
-.PHONY: install build start run clean deploy setup-docker setup-vps
+.PHONY: install build start run clean deploy setup-vps
 
 install:
 	@echo "=== Installing Python dependencies ==="
@@ -23,10 +23,6 @@ run: install build start
 deploy:
 	@echo "=== Running full deploy pipeline ==="
 	bash deploy.sh
-
-setup-docker:
-	@echo "=== Starting with Docker Compose ==="
-	docker compose up -d --build
 
 setup-vps:
 	@echo "=== One-command VPS setup ==="
