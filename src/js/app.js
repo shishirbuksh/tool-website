@@ -25,6 +25,7 @@ function oS(){
 }
 function cS(){if(dia)dia.close()}
 document.querySelectorAll('[id^=searchToggle]').forEach(function(b){b.addEventListener('click',oS)})
+var hsi=document.getElementById('heroSearchInput');if(hsi){hsi.addEventListener('focus',oS);hsi.addEventListener('click',oS)}
 var sc=document.getElementById('searchClose');if(sc)sc.addEventListener('click',cS)
 if(dia){dia.addEventListener('click',function(e){if(e.target===dia)cS()});dia.addEventListener('keydown',function(e){if(e.key==='Escape')cS()})}
 var eb=document.getElementById('exploreToolsBtn');if(eb){eb.addEventListener('click',function(){var d=document.getElementById('mobileDrawer');if(d)d.checked=true})}
