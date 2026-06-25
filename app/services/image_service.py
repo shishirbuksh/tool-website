@@ -22,8 +22,8 @@ class ImageService:
             try:
                 import rembg
                 self._rembg = rembg
-            except Exception:
-                raise ServiceError("Background removal library (rembg) is not available")
+            except Exception as e:
+                raise ServiceError("Background removal library (rembg) is not available") from e
         return self._rembg
 
     def _get_cv2(self):
@@ -31,8 +31,8 @@ class ImageService:
             try:
                 import cv2
                 self._cv2 = cv2
-            except Exception:
-                raise ServiceError("OpenCV (cv2) is not available")
+            except Exception as e:
+                raise ServiceError("OpenCV (cv2) is not available") from e
         return self._cv2
 
     def remove_background(self, image_data: bytes, bg_color: str = "", smooth_edges: bool = False) -> bytes:

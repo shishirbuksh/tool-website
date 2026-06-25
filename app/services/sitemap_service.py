@@ -44,12 +44,12 @@ class SitemapService:
             return tool_priority[slug]
         if slug.startswith("crypto-"):
             return 0.8
-        if slug in ("pdf-converter", "image-compressor", "image-converter",
+        if slug in ("image-compressor", "image-converter",
                      "image-background-remover", "watermark-remover", "meme-generator",
                      "qr-generator", "base64-tool", "uuid-generator",
                      "meta-tag-generator", "open-graph-generator", "schema-generator",
                      "sitemap-generator", "robots-txt-generator", "api-tester",
-                     "keyword-data-analyzer", "password-generator"):
+                      "keyword-data-analyzer"):
             return 0.8
         return 0.7
 

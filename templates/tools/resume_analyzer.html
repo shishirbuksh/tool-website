@@ -1,52 +1,151 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}Resume Analyzer | Free Resume Review & Score{% endblock %}
-{% block meta_description %}Analyze your resume with our free AI-powered resume reviewer. Get instant feedback on content, formatting, keywords, and ATS compatibility score.{% endblock %}
+{% block title %}Resume Analyzer — Free Resume Review & ATS Score Online{% endblock %}
+{% block meta_description %}Paste your resume and get instant feedback on content, keywords, formatting, and ATS compatibility. Free resume review tool with no sign-up needed.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/resume-analyzer{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/resume-analyzer">
-<meta property="og:title" content="Resume Analyzer - Free Resume Review">
-<meta property="og:description" content="Get instant feedback on your resume content and ATS compatibility.">
+<meta property="og:site_name" content="StoryBrain AI">
+<meta property="og:title" content="Resume Analyzer — Free Resume Review">
+<meta property="og:description" content="Get instant feedback on your resume content, keywords, and ATS compatibility. No sign-up, no uploads.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
 {% endblock %}
-{% block head %}{% endblock %}
+{% block head %}
+<style>
+.ra-score{display:inline-flex;align-items:center;justify-content:center;width:80px;height:80px;border-radius:50%;font-weight:900;font-size:2rem;line-height:1;flex-shrink:0}
+.ra-score.good{background:color-mix(in oklab,var(--color-success) 20%,transparent);color:var(--color-success);border:4px solid var(--color-success)}
+.ra-score.ok{background:color-mix(in oklab,var(--color-warning) 20%,transparent);color:var(--color-warning);border:4px solid var(--color-warning)}
+.ra-score.bad{background:color-mix(in oklab,var(--color-error) 20%,transparent);color:var(--color-error);border:4px solid var(--color-error)}
+.ra-pill{display:inline-flex;align-items:center;gap:5px;padding:.3rem .7rem;border-radius:999px;font-weight:700;font-size:11px;background:var(--color-base-200);border:1px solid var(--color-base-300);white-space:nowrap}
+.ra-pill.good{background:color-mix(in oklab,var(--color-success) 12%,transparent);border-color:var(--color-success);color:var(--color-success)}
+.ra-pill.bad{background:color-mix(in oklab,var(--color-error) 12%,transparent);border-color:var(--color-error);color:var(--color-error)}
+.ra-pill.mid{background:color-mix(in oklab,var(--color-warning) 12%,transparent);border-color:var(--color-warning);color:var(--color-warning)}
+.ra-tip{padding:.5rem .75rem;border-radius:.75rem;font-size:12px;font-weight:600;background:var(--color-base-100);border:1px solid var(--color-base-300);display:flex;align-items:start;gap:8px}
+.ra-tip.good{border-color:var(--color-success)}
+.ra-tip.bad{border-color:var(--color-error)}
+.ra-tip.mid{border-color:var(--color-warning)}
+.ra-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.65rem;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:7px;touch-action:manipulation}
+.ra-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.ra-pri:active{transform:translateY(0)}
+.ra-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.5rem .75rem;font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation}
+.ra-sec:hover{border-color:var(--color-base-content)}
+.ra-section{display:inline-flex;align-items:center;gap:4px;padding:.2rem .55rem;border-radius:6px;font-size:10px;font-weight:700;background:var(--color-base-200);border:1px solid var(--color-base-300)}
+.ra-section.found{border-color:var(--color-success);background:color-mix(in oklab,var(--color-success) 10%,transparent);color:var(--color-success)}
+.ra-section.miss{border-color:var(--color-error);background:color-mix(in oklab,var(--color-error) 8%,transparent);color:var(--color-error)}
+.ra-jd-bar{height:8px;border-radius:99px;background:var(--color-base-200);overflow:hidden;flex:1;min-width:60px}
+.ra-jd-bar div{height:100%;border-radius:99px;transition:width .3s}
+.ra-hist-item{padding:.5rem .65rem;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s}
+.ra-hist-item:hover{border-color:var(--color-base-content)}
+.ra-hist-item .ra-hist-score{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;flex-shrink:0}
+.ra-hist-item .ra-hist-del{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.3;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation}
+.ra-hist-item .ra-hist-del:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.ra-label-sm{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.45}
+.ra-passive-count{display:inline-flex;align-items:center;gap:4px;padding:.2rem .55rem;border-radius:6px;font-size:10px;font-weight:700}
+.ra-passive-count.low{background:color-mix(in oklab,var(--color-success) 10%,transparent);color:var(--color-success);border:1px solid var(--color-success)}
+.ra-passive-count.mid{background:color-mix(in oklab,var(--color-warning) 10%,transparent);color:var(--color-warning);border:1px solid var(--color-warning)}
+.ra-passive-count.high{background:color-mix(in oklab,var(--color-error) 10%,transparent);color:var(--color-error);border:1px solid var(--color-error)}
+.ra-section-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.35rem .65rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:11px;transition:all .12s}
+.ra-section-toggle:hover{background:var(--color-base-200)}
+</style>
+{% endblock %}
 {% block content %}
-{{ tool_hero_section("search-check", "Career Tool", "RESUME", "ANALYZER", "Get instant feedback on your resume content, formatting, keywords, and ATS compatibility score.") }}
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Resume Text</h2>
-        <form class="flex flex-col gap-5">
-          <div><label class="label-cinematic" for="resumeText">Paste Your Resume</label><textarea id="resumeText" rows="10" class="textarea w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm leading-relaxed font-mono" placeholder="Paste your resume text here...">John Doe
-Senior Software Engineer
-john@example.com | +1-234-567-8900
-
-Experienced software engineer with 5+ years building scalable web applications.
-
-Skills: JavaScript, Python, React, Node.js, SQL
-
-Experience:
-- Led development of microservices at Company XYZ
-- Built REST APIs serving 1M+ requests daily</textarea></div>
-          <button type="button" id="resumeAnalyzeBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("search-check","w-5 h-5", 20) | safe }} ANALYZE</button>
-        </form>
+{{ tool_hero_section("search-check", "Career Tool", "RESUME", "ANALYZER", "Paste your resume and get instant feedback on content, keywords, and ATS compatibility. All in your browser — no uploads.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s" itemscope itemtype="https://schema.org/SoftwareApplication" itemprop="application">
+  <div class="lg:w-5/12">
+    <div class="card-premium p-6 md:p-8">
+      <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("file-text","w-5 h-5", 20) | safe }} Input</h2>
+      <div class="flex flex-col gap-4">
+        <div>
+          <label class="label-cinematic" for="raText">Paste Your Resume</label>
+          <textarea id="raText" class="textarea w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm leading-relaxed" rows="10" placeholder="Paste your full resume text here including your work experience, skills, education, and contact information."></textarea>
+          <div class="flex gap-2 mt-2">
+            <button type="button" id="raSampleBtn" class="ra-sec" style="font-size:10px;padding:.35rem .6rem">{{ lucide_icon("file-plus","w-3.5 h-3.5", 14) | safe }} Sample</button>
+            <button type="button" id="raUploadBtn" class="ra-sec" style="font-size:10px;padding:.35rem .6rem">{{ lucide_icon("upload","w-3.5 h-3.5", 14) | safe }} Upload .txt</button>
+            <input type="file" id="raFileInput" accept=".txt" hidden>
+          </div>
+        </div>
+        <div>
+          <button type="button" class="ra-section-toggle" id="raJdToggle" aria-expanded="false" aria-controls="raJdWrap">{{ lucide_icon("briefcase","w-3.5 h-3.5", 14) | safe }} Job Description <span class="text-[10px] opacity-40">optional</span></button>
+          <div id="raJdWrap" hidden class="mt-3">
+            <label class="label-cinematic" for="raJd">Paste Job Description (for keyword matching)</label>
+            <textarea id="raJd" class="textarea w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm leading-relaxed" rows="5" placeholder="Paste the job description here to check keyword overlap with your resume."></textarea>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button type="button" id="raBtn" class="ra-pri flex-1 py-3 text-sm shadow-lg shadow-primary/20">{{ lucide_icon("search","w-5 h-5", 20) | safe }} ANALYZE</button>
+          <button type="button" id="raCopyBtn" class="ra-sec" aria-label="Copy results">{{ lucide_icon("copy","w-4 h-4", 14) | safe }}</button>
+          <button type="button" id="raDlBtn" class="ra-sec" aria-label="Download report">{{ lucide_icon("download","w-4 h-4", 14) | safe }}</button>
+        </div>
       </div>
     </div>
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Analysis</h3>
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <div class="card-premium p-5 text-center" style="border-color:color-mix(in oklab, var(--color-primary) 25%, transparent)">
-            <span class="label-cinematic block mb-2 text-primary">ATS Score</span>
-            <output id="atsScore" class="metric-cinematic metric-cinematic--xl text-primary">0</output>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="card-premium p-6 md:p-8">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h3 class="text-xl font-black tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Results</h3>
+        <span id="raInfo" class="text-[10px] font-bold uppercase tracking-wider opacity-40" aria-live="polite"></span>
+      </div>
+      <div id="raEmpty" class="text-center py-8"><span class="text-base-content/30 text-sm font-bold">Paste your resume and click Analyze</span></div>
+      <div id="raResults" hidden>
+        <div class="flex items-center gap-4 mb-4 flex-wrap">
+          <div id="raScore" class="ra-score" role="status" aria-label="ATS Score">0</div>
+          <div class="flex flex-col gap-1.5 flex-1">
+            <div class="flex gap-2 flex-wrap">
+              <span id="raWords" class="ra-pill">Words 0</span>
+              <span id="raChars" class="ra-pill">Chars 0</span>
+              <span id="raReadTime" class="ra-pill">0 min read</span>
+              <span id="raReadability" class="ra-pill">Readability —</span>
+            </div>
+            <span id="raScoreLabel" class="text-xs font-bold uppercase tracking-wider opacity-40">ATS Compatibility Score</span>
           </div>
-          <div class="card-premium p-5 text-center" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-            <span class="label-cinematic block mb-2 text-success">Word Count</span>
-            <output id="wordCount" class="metric-cinematic metric-cinematic--lg text-success">0</output>
+        </div>
+        <div class="mb-4">
+          <span class="label-cinematic" style="margin:0 0 6px 0">Contact & Sections</span>
+          <div class="flex gap-2 flex-wrap">
+            <span id="raEmail" class="ra-pill">Email</span>
+            <span id="raPhone" class="ra-pill">Phone</span>
+            <span id="raLinkedIn" class="ra-pill">LinkedIn</span>
+            <span id="raEducation" class="ra-pill">Education</span>
+            <span id="raCert" class="ra-pill">Certifications</span>
           </div>
-          <div class="stat-cinematic text-center col-span-2"><span class="label-cinematic block mb-2">Feedback</span><output id="feedback" class="block p-4 bg-base-300/20 rounded-xl text-sm leading-relaxed text-left text-base-content/80">Click Analyze to see feedback</output></div>
+        </div>
+        <div class="mb-4">
+          <span class="label-cinematic" style="margin:0 0 6px 0">Resume Sections</span>
+          <div id="raSections" class="flex gap-1.5 flex-wrap"></div>
+        </div>
+        <div class="mb-4">
+          <span class="label-cinematic" style="margin:0 0 6px 0">Content Quality</span>
+          <div class="flex gap-2 flex-wrap">
+            <span id="raVerbs" class="ra-pill">Action Verbs 0</span>
+            <span id="raBullets" class="ra-pill">Bullet Points 0</span>
+            <span id="raNumbers" class="ra-pill">Numbers 0</span>
+            <span id="raKeywords" class="ra-pill">Keywords 0</span>
+            <span id="raPassive" class="ra-passive-count">Passive 0</span>
+          </div>
+        </div>
+        <div id="raJdMatch" hidden class="mb-4">
+          <span class="label-cinematic" style="margin:0 0 6px 0">JD Keyword Match</span>
+          <div class="flex items-center gap-3 flex-wrap">
+            <span id="raJdPct" class="text-lg font-black" style="min-width:36px">0%</span>
+            <div class="ra-jd-bar"><div id="raJdBarFill" style="width:0%"></div></div>
+            <span id="raJdCount" class="text-[10px] font-bold opacity-40">0/0 matched</span>
+          </div>
+          <div id="raJdTags" class="flex gap-1.5 flex-wrap mt-2"></div>
+        </div>
+        <div class="mb-4">
+          <span class="label-cinematic" style="margin:0 0 6px 0">Tips to Improve</span>
+          <div id="raTips" class="flex flex-col gap-1.5"></div>
+        </div>
+        <div>
+          <button type="button" class="ra-section-toggle" id="raHistToggle" aria-expanded="false" aria-controls="raHistWrap">{{ lucide_icon("clock","w-3.5 h-3.5", 14) | safe }} History</button>
+          <div id="raHistWrap" hidden class="mt-3">
+            <div class="flex items-center justify-between mb-2">
+              <span class="ra-label-sm">Last 10 analyses</span>
+              <button type="button" id="raHistClear" class="ra-sec" style="padding:.25rem .5rem;font-size:9px">{{ lucide_icon("trash-2","w-3 h-3", 12) | safe }} Clear</button>
+            </div>
+            <div id="raHistList" class="flex flex-col gap-1.5"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -54,17 +153,167 @@ Experience:
 </div>
 <script>
 (function(){'use strict';
-function analyze(){const text=document.getElementById('resumeText').value;const words=text.split(/\s+/).filter(w=>w.length>0).length;document.getElementById('wordCount').innerText=words;let score=0;let feedback=[];if(words>200&&words<800){score+=30;feedback.push('Good resume length (200-800 words)');}else if(words>=800){score+=10;feedback.push('Resume may be too long. Keep it under 800 words.');}else{score+=10;feedback.push('Resume may be too short. Aim for 200-800 words.');}
-const hasEmail=/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/.test(text);if(hasEmail){score+=15;feedback.push('Email found');}else{feedback.push('Add a professional email address');}
-const hasPhone=/[\+]?[\d\s\-\(\)]{7,}/.test(text);if(hasPhone){score+=15;feedback.push('Phone number found');}else{feedback.push('Add a phone number');}
-const hasLinkedIn=/linkedin/i.test(text);if(hasLinkedIn){score+=10;feedback.push('LinkedIn profile mentioned');}
-const actionWords=['led','managed','developed','created','built','implemented','designed','achieved','improved','delivered'];const foundActions=actionWords.filter(w=>new RegExp(w,'i').test(text));score+=Math.min(foundActions.length*5,20);if(foundActions.length>0){feedback.push(`Action words found: ${foundActions.join(', ')}`);}else{feedback.push('Add more action verbs (led, developed, created, etc.)');}
-const keywords=['skill','experience','education','project','certification'];const foundKw=keywords.filter(k=>new RegExp(k,'i').test(text));score+=foundKw.length*3;if(foundKw.length<3){feedback.push('Include sections: Skills, Experience, Education');}
-const hasBulletPoints=text.includes('•')||text.includes('-')||text.includes('*');if(hasBulletPoints){score+=10;feedback.push('Good use of bullet points');}
-score=Math.min(score,100);document.getElementById('atsScore').innerText=score+'/100';const scoreEl=document.getElementById('atsScore');if(score>=80)scoreEl.style.color='var(--color-success)';else if(score>=50)scoreEl.style.color='var(--color-warning)';else scoreEl.style.color='var(--color-error)';document.getElementById('feedback').innerHTML=feedback.map(f=>'• '+f).join('<br>');}
-document.addEventListener('DOMContentLoaded',function(){document.getElementById('resumeAnalyzeBtn').addEventListener('click',analyze);document.getElementById('resumeText').addEventListener('input',analyze);analyze();});
+var LS_KEY='sb_ra1';
+var ta=document.getElementById('raText'),btn=document.getElementById('raBtn');
+var jdTa=document.getElementById('raJd'),jdToggle=document.getElementById('raJdToggle'),jdWrap=document.getElementById('raJdWrap');
+var emp=document.getElementById('raEmpty'),res=document.getElementById('raResults');
+var sc=document.getElementById('raScore'),scL=document.getElementById('raScoreLabel');
+var wo=document.getElementById('raWords'),ch=document.getElementById('raChars'),rt=document.getElementById('raReadTime');
+var rd=document.getElementById('raReadability');
+var em=document.getElementById('raEmail'),ph=document.getElementById('raPhone'),li=document.getElementById('raLinkedIn');
+var ed=document.getElementById('raEducation'),ce=document.getElementById('raCert');
+var vb=document.getElementById('raVerbs'),bl=document.getElementById('raBullets'),nm=document.getElementById('raNumbers');
+var kw=document.getElementById('raKeywords'),pv=document.getElementById('raPassive'),tp=document.getElementById('raTips');
+var sx=document.getElementById('raSections');
+var jm=document.getElementById('raJdMatch'),jp=document.getElementById('raJdPct');
+var jb=document.getElementById('raJdBarFill'),jc=document.getElementById('raJdCount'),jt=document.getElementById('raJdTags');
+var hi=document.getElementById('raHistToggle'),hw=document.getElementById('raHistWrap'),hl=document.getElementById('raHistList'),hc=document.getElementById('raHistClear');
+var inf=document.getElementById('raInfo');
+var cpBtn=document.getElementById('raCopyBtn'),dlBtn=document.getElementById('raDlBtn');
+var saBtn=document.getElementById('raSampleBtn'),upBtn=document.getElementById('raUploadBtn'),fi=document.getElementById('raFileInput');
+var lastResult=null;
+
+var ACTION_VERBS=['managed','led','developed','created','implemented','achieved','improved','increased','reduced','delivered','built','designed','established','generated','launched','optimized','produced','solved','trained','mentored','negotiated','coordinated','organized','spearheaded','transformed','accelerated','streamlined','drove','executed','pioneered','engineered','architected','orchestrated','championed','secured','restructured','consolidated','automated','deployed','configured','migrated','integrated','customized','facilitated','supervised','monitored','evaluated','forecasted','budgeted','documented','composed','authored','drafted','presented','demonstrated','advised','consulted','collaborated','partnered','cultivated','fostered','expanded','scaled','overhauled','modernized','standardized','centralized','decentralized','rebuilt','reinvented','reshaped','revamped','upgraded','downsized','merged','acquired','divested','outsourced','cross-trained','sponsored','influenced','persuaded','convinced','mediated','resolved','arbitrated','reconciled','launched','published','produced','wrote','wrote','crafted','compiled','assembled','fabricated','formulated','instituted','introduced','performed','planned','prioritized','processed','procured','programmed','promoted','recommended','recruited','reduced','reengineered','reorganized','replaced','restored','retained','revitalized','scheduled','selected','strengthened','targeted','unified','utilized'];
+
+var KEYWORDS=['agile','scrum','python','javascript','java','sql','aws','azure','gcp','docker','kubernetes','react','angular','node','api','rest','machine learning','data','analytics','project management','leadership','team','strategy','budget','revenue','kpi','roi','stakeholder','cross-functional','p&l','forecast','compliance','risk','audit','governance','pipeline','funnel','conversion','retention','acquisition','growth','optimization','automation','integration','deployment','ci/cd','devops','microservices','cloud','saas','blockchain','ai','llm','nlp','computer vision','deep learning','statistics','regression','classification','segmentation','visualization','tableau','power bi','looker','snowflake','redshift','bigquery','mongodb','postgresql','redis','kafka','spark','hadoop','terraform','ansible','jenkins','git','linux','windows','server','network','security','cybersecurity','encryption','authentication','authorization','oauth','jwt','graphql','webpack','babel','typescript','sass','less','html','css','figma','sketch','photoshop','illustrator','ui/ux','user research','a/b testing','prototyping','wireframing','responsive','mobile-first','accessibility','seo','content marketing','social media','email marketing','crm','salesforce','hubspot','marketo','google analytics','adwords','ppc','smm','cpa','cac','ltv','nps','csat','okr','balanced scorecard','six sigma','lean','kaizen','kanban','waterfall','sdlc','qa','testing','unit test','integration test','e2e','tdd','bdd','code review','refactoring','technical debt','documentation','onboarding','mentoring','recruiting','hiring','interviewing','performance review','succession planning','talent management','change management','vendor management','contract negotiation','stakeholder management','risk assessment','gap analysis','root cause','swot','pestle','competitive analysis','market research','product roadmap','feature prioritization','user story','sprint','retrospective','standup','velocity','burn down','epic','milestone','deliverable','throughput','cycle time','lead time','sla','slo','mtbf','mttr','incident','problem','change request','service now','jira','confluence','notion','figma','invision','zeplin','asana','trello','monday','clickup','airtable','basecamp','teamwork'];
+
+var SECTIONS=[{id:'summary',label:'Summary',rx:/\b(professional\s+summary|career\s+summary|profile|summary\s+of\s+qualifications|about\s+me|objective)\b/i},{id:'experience',label:'Experience',rx:/\b(experience|work\s+history|employment|professional\s+experience|work\s+experience|relevant\s+experience)\b/i},{id:'skills',label:'Skills',rx:/\b(skills|technical\s+skills|core\s+competencies|areas\s+of\s+expertise|key\s+skills|expertise)\b/i},{id:'education',label:'Education',rx:/\b(education|academic\s+background|qualifications)\b/i},{id:'projects',label:'Projects',rx:/\b(projects|personal\s+projects|key\s+projects|major\s+projects)\b/i},{id:'certifications',label:'Certifications',rx:/\b(certifications|certificates|professional\s+certifications|licenses)\b/i},{id:'awards',label:'Awards',rx:/\b(awards|honors|achievements|recognition)\b/i},{id:'languages',label:'Languages',rx:/\b(languages|languanges)\b/i},{id:'publications',label:'Publications',rx:/\b(publications|papers|research|published)\b/i},{id:'volunteer',label:'Volunteer',rx:/\b(volunteer|volunteering|community\s+service)\b/i}];
+
+var SAMPLE_RESUME='Sarah Chen\nsarah.chen@email.com\nlinkedin.com/in/sarachen\n\nProfessional Summary\n\nResults-driven Senior Software Engineer with 8+ years of experience building scalable cloud-native applications. Led cross-functional teams delivering 15+ major product releases. Passionate about clean architecture, CI/CD automation, and mentoring junior engineers.\n\nExperience\n\nSenior Software Engineer | TechCorp Inc. | San Francisco, CA\nJan 2020 - Present\n- Architected and deployed a microservices platform on AWS handling 2M+ daily requests, reducing latency by 40%\n- Led a team of 5 engineers to migrate 12 legacy services to Kubernetes, achieving 99.9% uptime\n- Implemented CI/CD pipelines using GitHub Actions and Terraform, cutting deployment time from 4 hours to 12 minutes\n- Optimized PostgreSQL query performance, reducing average response time from 800ms to 120ms\n- Mentored 4 junior developers through structured code reviews and pair programming sessions\n- Drove adoption of TypeScript and automated testing, increasing code coverage from 45% to 92%\n\nSoftware Engineer | DataFlow Systems | Austin, TX\nJun 2017 - Dec 2019\n- Built real-time data pipeline processing 500K+ events per second using Kafka and Spark\n- Developed RESTful APIs in Python and Node.js serving 100K+ users across 3 continents\n- Reduced infrastructure costs by 35% through instance right-sizing and reserved instance planning\n- Created comprehensive documentation and runbooks adopted as team standards\n\nSkills\n\nLanguages: Python, JavaScript, TypeScript, Java, SQL\nCloud & DevOps: AWS, Docker, Kubernetes, Terraform, GitHub Actions, CI/CD\nDatabases: PostgreSQL, MongoDB, Redis, Snowflake\nFrameworks: React, Node.js, Express, Django\nTools: Git, Jira, Confluence, Datadog, PagerDuty\n\nEducation\n\nM.S. Computer Science | Stanford University | 2017\nB.S. Computer Science | UC Berkeley | 2015\n\nCertifications\n\n- AWS Solutions Architect Professional\n- Certified Kubernetes Administrator (CKA)\n- Google Cloud Professional Data Engineer\n\nProjects\n\n- Open Source Contributor: Maintained 3 popular npm packages with 10K+ weekly downloads\n- Hackathon Winner: First place at CloudConf 2023 Hackathon for AI-powered code review tool\n\nLanguages\n\nEnglish (Native), Mandarin (Fluent), Japanese (Conversational)';
+
+function analyze(){
+var t=ta.value.trim();if(!t){emp.hidden=false;res.hidden=true;inf.textContent='';return}
+emp.hidden=true;res.hidden=false;
+var words=t.split(/\s+/).filter(Boolean),wc=words.length,cc=t.length,rtm=Math.max(1,Math.ceil(wc/200));
+var sentences=t.split(/[.!?]+/).filter(Boolean).length||1;
+var syllableCount=0;for(var si=0;si<words.length;si++){var w=words[si].toLowerCase().replace(/[^a-z]/g,'');if(!w)continue;var syl=0;if(w.length<=3)syl=1;else{syl=(w.match(/[aeiouy]{1,2}/g)||[]).length;if(w.endsWith('e'))syl--;if(w.endsWith('le')&&w.length>2)syl++;syl=Math.max(1,syl)}syllableCount+=syl}
+var readability=wc&&syllableCount?Math.round(206.835-1.015*(wc/sentences)-84.6*(syllableCount/wc)):0;readability=Math.max(0,Math.min(100,readability));
+var readabilityLabel=readability>=60?'Fairly Easy':readability>=50?'Plain English':readability>=30?'Fairly Hard':readability>=10?'Hard':'Very Hard';
+var hasEmail=/[\w.-]+@[\w.-]+\.\w+/.test(t);
+var hasPhone=/[\d\-\(\)\s+\.]{7,}/.test(t);
+var hasLinkedIn=/linkedin\.com\/in\//i.test(t);
+var hasEducation=/\b(education|bachelor|master|phd|b\.s\.|m\.s\.|b\.a\.|m\.a\.|bs\s+|ms\s+|ba\s+|ma\s+|university|college|school|degree|diploma|certificate)\b/i.test(t);
+var hasCert=/\b(certification|certified|pmp|six sigma|scrum master|cissp|cpa|cfa|aws\s+certified|google\s+certified|microsoft\s+certified|comptia|itil|prince2|frm|actuarial|license)\b/i.test(t);
+var verbCount=0;for(var vi=0;vi<ACTION_VERBS.length;vi++){var re=new RegExp('\\b'+ACTION_VERBS[vi]+'\\b','gi');var m=t.match(re);if(m)verbCount+=m.length}
+var bulletCount=(t.match(/^[•\-\*]\s/gm)||[]).length;
+var numCount=(t.match(/\b\d+\b/g)||[]).length;
+var kwCount=0;for(var ki=0;ki<KEYWORDS.length;ki++){var re=new RegExp('\\b'+KEYWORDS[ki].replace(/[\/\-&\s]/g,'[\\/\\-&\\s]?')+'\\b','gi');var m=t.match(re);if(m)kwCount+=m.length}
+var passiveCount=(t.match(/\b(was|were|been|being)\s+\w+ed\b/gi)||[]).length;
+var sectionHtml='';var foundSections=[];for(var si=0;si<SECTIONS.length;si++){var found=SECTIONS[si].rx.test(t);if(found)foundSections.push(SECTIONS[si].id);sectionHtml+='<span class="ra-section '+(found?'found':'miss')+'">'+(found?'{{ lucide_icon("check","w-3 h-3", 12) | safe }} ':'{{ lucide_icon("x","w-3 h-3", 12) | safe }} ')+SECTIONS[si].label+'</span>'}
+sx.innerHTML=sectionHtml;
+var score=0;
+score+=hasEmail?10:0;score+=hasPhone?8:0;score+=hasLinkedIn?8:0;score+=hasEducation?6:0;score+=hasCert?4:0;
+score+=foundSections.length>=6?12:foundSections.length>=4?8:foundSections.length>=2?4:0;
+if(wc>=300&&wc<=800)score+=16;else if(wc>=150)score+=10;else score+=3;
+score+=Math.min(verbCount*2,14);
+score+=Math.min(bulletCount*2,8);
+score+=numCount>=20?8:numCount>=10?5:numCount>=5?3:numCount>=1?2:0;
+score+=Math.min(kwCount,8);
+score+=passiveCount<=3?4:passiveCount<=6?2:0;
+score=Math.min(score,100);
+var cls=score>=75?'good':score>=45?'ok':'bad';
+sc.textContent=score;sc.className='ra-score '+cls;
+var lbls={'good':'Strong — ready for most ATS systems','ok':'Fair — some improvements needed','bad':'Needs work — see tips below'};
+scL.textContent=lbls[cls];
+wo.textContent='Words '+wc;ch.textContent='Chars '+cc;rt.textContent=rtm+' min read';
+rd.textContent='Readability '+readability+' ('+readabilityLabel+')';
+function up(el,found){el.className='ra-pill '+(found?'good':'bad');el.innerHTML=(found?'{{ lucide_icon("check","w-3.5 h-3.5", 14) | safe }} ':'{{ lucide_icon("x","w-3.5 h-3.5", 14) | safe }} ')+el.getAttribute('data-l')}
+em.setAttribute('data-l','Email');up(em,hasEmail);
+ph.setAttribute('data-l','Phone');up(ph,hasPhone);
+li.setAttribute('data-l','LinkedIn');up(li,hasLinkedIn);
+ed.setAttribute('data-l','Education');up(ed,hasEducation);
+ce.setAttribute('data-l','Certifications');up(ce,hasCert);
+vb.innerHTML=(verbCount>0?'{{ lucide_icon("check","w-3.5 h-3.5", 14) | safe }} ':'')+'Action Verbs '+verbCount;vb.className='ra-pill'+(verbCount>=5?' good':verbCount>=2?' mid':' bad');
+bl.innerHTML=(bulletCount>0?'{{ lucide_icon("check","w-3.5 h-3.5", 14) | safe }} ':'')+'Bullet Points '+bulletCount;bl.className='ra-pill'+(bulletCount>=5?' good':bulletCount>=2?' mid':' bad');
+nm.innerHTML=(numCount>0?'{{ lucide_icon("check","w-3.5 h-3.5", 14) | safe }} ':'')+'Numbers '+numCount;nm.className='ra-pill'+(numCount>=10?' good':numCount>=5?' mid':' bad');
+kw.innerHTML=(kwCount>0?'{{ lucide_icon("check","w-3.5 h-3.5", 14) | safe }} ':'')+'Keywords '+kwCount;kw.className='ra-pill'+(kwCount>=10?' good':kwCount>=5?' mid':' bad');
+var passiveCls=passiveCount<=3?'low':passiveCount<=6?'mid':'high';pv.textContent='Passive '+passiveCount;pv.className='ra-passive-count '+passiveCls;
+var tips=[];
+if(!hasEmail)tips.push({l:'bad',t:'Add your email address so recruiters can contact you'});
+if(!hasPhone)tips.push({l:'bad',t:'Include a phone number for direct reach from hiring managers'});
+if(!hasLinkedIn)tips.push({l:'bad',t:'Add your LinkedIn profile URL — 87% of recruiters use it'});
+if(!hasEducation)tips.push({l:'mid',t:'Add your education section including degrees and institutions'});
+if(foundSections.length<3)tips.push({l:'mid',t:'Add more resume sections like Summary, Experience, Skills, and Education'});
+if(wc<200)tips.push({l:'bad',t:'Your resume is too short ('+wc+' words). Add more detail to reach 300–800 words'});
+else if(wc<300)tips.push({l:'mid',t:'Try expanding your resume to 300+ words for stronger ATS matching'});
+else if(wc>800)tips.push({l:'mid',t:'Consider trimming your resume — 300–800 words is ideal for ATS'});
+if(verbCount<5)tips.push({l:'mid',t:'Use more action verbs (start bullets with words like "led", "developed", "achieved")'});
+if(bulletCount<3)tips.push({l:'mid',t:'Format experience with bullet points (• or -) for better readability'});
+if(numCount<5)tips.push({l:'mid',t:'Add quantified achievements (numbers, percentages, dollar amounts) to stand out'});
+if(kwCount<5)tips.push({l:'mid',t:'Include more industry keywords relevant to your target role'});
+if(passiveCount>6)tips.push({l:'mid',t:'Too much passive voice ('+passiveCount+' instances). Use active voice for stronger impact'});
+else if(passiveCount>3)tips.push({l:'good',t:'Minimal passive voice — good for readability and impact'});
+if(readability<30&&wc>50)tips.push({l:'mid',t:'Your resume is hard to read (readability: '+readabilityLabel+'). Use shorter sentences and simpler language'});
+if(!tips.length)tips.push({l:'good',t:'Great job! Your resume has all the key elements ATS systems look for.'});
+var th='';for(var ti=0;ti<Math.min(tips.length,6);ti++){th+='<div class="ra-tip '+tips[ti].l+'">{{ lucide_icon("info","w-3.5 h-3.5", 14) | safe }}<span>'+tips[ti].t+'</span></div>'}
+tp.innerHTML=th;
+var jdTxt=jdTa.value.trim();var jdKwMatch=0;jdTa.style.borderColor='';
+if(jdTxt){var jdKws=[];for(var ki=0;ki<KEYWORDS.length;ki++){var re=new RegExp('\\b'+KEYWORDS[ki].replace(/[\/\-&\s]/g,'[\\/\\-&\\s]?')+'\\b','gi');if(jdTxt.match(re))jdKws.push(KEYWORDS[ki])}
+var matched=[],missing=[];for(var ki=0;ki<jdKws.length;ki++){var re=new RegExp('\\b'+jdKws[ki].replace(/[\/\-&\s]/g,'[\\/\\-&\\s]?')+'\\b','gi');if(t.match(re))matched.push(jdKws[ki]);else missing.push(jdKws[ki])}
+jdKwMatch=jdKws.length?Math.round(matched.length/jdKws.length*100):0;jm.hidden=false;jp.textContent=jdKwMatch+'%';
+var barCls=jdKwMatch>=60?'good':jdKwMatch>=30?'mid':'bad';jb.style.background='var(--color-'+barCls+')';jb.style.width=jdKwMatch+'%';
+jc.textContent=matched.length+'/'+jdKws.length+' matched';
+var jth='';if(matched.length){jth+='<span class="ra-label-sm" style="display:block;margin:4px 0 2px">Matched</span>';for(var mi=0;mi<Math.min(matched.length,8);mi++)jth+='<span class="ra-pill good" style="font-size:10px">'+matched[mi]+'</span>';if(matched.length>8)jth+='<span class="ra-pill" style="font-size:10px">+'+ (matched.length-8)+' more</span>'}
+if(missing.length){jth+='<span class="ra-label-sm" style="display:block;margin:4px 0 2px">Missing in Resume</span>';for(var mi=0;mi<Math.min(missing.length,8);mi++)jth+='<span class="ra-pill bad" style="font-size:10px">'+missing[mi]+'</span>';if(missing.length>8)jth+='<span class="ra-pill" style="font-size:10px">+'+ (missing.length-8)+' more</span>'}
+jt.innerHTML=jth}else{jm.hidden=true}
+inf.textContent=wc+' words · '+score+'% ATS';
+lastResult={text:t,words:wc,chars:cc,score:score,cls:cls,readability:readability,jdMatch:jdKwMatch,jdKwCount:jdKwMatch?null:null};
+saveHistory(score,cls,wc);renderHistory();
+}
+
+function saveHistory(score,cls,wc){try{var h=JSON.parse(localStorage.getItem(LS_KEY))||[];h.unshift({s:score,c:cls,w:wc,t:Date.now()});if(h.length>10)h=h.slice(0,10);localStorage.setItem(LS_KEY,JSON.stringify(h))}catch(e){}}
+
+function renderHistory(){try{var h=JSON.parse(localStorage.getItem(LS_KEY))||[];if(!h.length){hl.innerHTML='<span class="text-[10px] font-bold opacity-30 text-center py-2 block">No history yet</span>';return}
+var html='';for(var i=0;i<h.length;i++){var d=new Date(h[i].t),now=new Date();var diff=Math.round((now-d)/1000);var rel=diff<60?'just now':diff<3600?Math.floor(diff/60)+'m ago':diff<86400?Math.floor(diff/3600)+'h ago':Math.floor(diff/86400)+'d ago';html+='<div class="ra-hist-item" data-idx="'+i+'" role="button" tabindex="0" aria-label="Load analysis from '+rel+'">'+'<div class="flex items-center gap-2.5"><span class="ra-hist-score '+h[i].c+'" style="background:color-mix(in oklab,var(--color-'+(h[i].c==='good'?'success':h[i].c==='ok'?'warning':'error')+') 20%,transparent);color:var(--color-'+(h[i].c==='good'?'success':h[i].c==='ok'?'warning':'error')+')">'+h[i].s+'</span><span class="font-bold">'+h[i].w+' words</span><span class="opacity-40">·</span><span class="opacity-40">'+rel+'</span></div>'+'<button type="button" class="ra-hist-del" data-del="'+i+'" aria-label="Delete history item">'+'{{ lucide_icon("x","w-3 h-3", 12) | safe }}'+'</button></div>'}
+hl.innerHTML=html;
+hl.querySelectorAll('.ra-hist-item').forEach(function(el){el.addEventListener('click',function(e){if(e.target.closest('.ra-hist-del'))return;var idx=parseInt(this.getAttribute('data-idx'));loadHistory(idx)})});
+hl.querySelectorAll('.ra-hist-del').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();var idx=parseInt(this.getAttribute('data-del'));deleteHistory(idx)})})}catch(e){}}
+
+function loadHistory(idx){try{var h=JSON.parse(localStorage.getItem(LS_KEY))||[];if(!h[idx])return;ta.value=h[idx].text||'';analyze()}catch(e){}}
+
+function deleteHistory(idx){try{var h=JSON.parse(localStorage.getItem(LS_KEY))||[];h.splice(idx,1);localStorage.setItem(LS_KEY,JSON.stringify(h));renderHistory()}catch(e){}}
+
+function copyResults(){if(!lastResult){return}
+var t=lastResult.text;var lines=[];
+lines.push('=== RESUME ANALYSIS REPORT ===');
+lines.push('ATS Score: '+lastResult.score+'%');
+lines.push('Words: '+lastResult.words+' | Characters: '+lastResult.chars);
+lines.push('Readability: '+lastResult.readability);
+if(lastResult.jdKwCount!==null)lines.push('JD Keyword Match: '+lastResult.jdMatch+'%');
+lines.push('');
+lines.push('=== TIPS ===');
+var tipEls=tp.querySelectorAll('.ra-tip span');tipEls.forEach(function(s){lines.push('- '+s.textContent)});
+navigator.clipboard.writeText(lines.join('\n'))['catch'](function(){})}
+
+function downloadReport(){if(!lastResult){return}
+var t=lastResult.text;var lines=[];
+lines.push('=== RESUME ANALYSIS REPORT ===');
+lines.push('Generated: '+new Date().toLocaleString());
+lines.push('');
+lines.push('ATS Score: '+lastResult.score+'%');
+lines.push('Words: '+lastResult.words);
+lines.push('Characters: '+lastResult.chars);
+lines.push('Readability Score: '+lastResult.readability);
+if(lastResult.jdKwCount!==null)lines.push('JD Keyword Match: '+lastResult.jdMatch+'%');
+lines.push('');
+lines.push('=== IMPROVEMENT TIPS ===');
+var tipEls=tp.querySelectorAll('.ra-tip span');tipEls.forEach(function(s){lines.push('- '+s.textContent)});
+lines.push('');
+lines.push('=== RESUME TEXT ===');
+lines.push(t);
+var blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='resume-analysis-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href)}
+
+btn.addEventListener('click',analyze);
+cpBtn.addEventListener('click',copyResults);
+dlBtn.addEventListener('click',downloadReport);
+jdToggle.addEventListener('click',function(){var o=jdToggle.getAttribute('aria-expanded')==='true';jdToggle.setAttribute('aria-expanded',!o);jdWrap.hidden=o});
+hi.addEventListener('click',function(){var o=hi.getAttribute('aria-expanded')==='true';hi.setAttribute('aria-expanded',!o);hw.hidden=o;if(!o)renderHistory()});
+hc.addEventListener('click',function(){if(confirm('Clear all history?')){localStorage.removeItem(LS_KEY);renderHistory()}});
+ta.addEventListener('input',function(){if(ta.value.trim()){emp.hidden=true;res.hidden=false;analyze()}else{emp.hidden=false;res.hidden=true;inf.textContent=''}});
+saBtn.addEventListener('click',function(){ta.value=SAMPLE_RESUME;analyze()});
+upBtn.addEventListener('click',function(){fi.click()});
+fi.addEventListener('change',function(){var f=fi.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){ta.value=e.target.result;analyze();fi.value=''};r.readAsText(f)});
+renderHistory();
 })();
 </script>
-
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Resume Analyzer","applicationCategory":"BusinessApplication","operatingSystem":"Web browser","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Get instant feedback on your resume and ATS compatibility score."}]}</script>
 {% endblock %}

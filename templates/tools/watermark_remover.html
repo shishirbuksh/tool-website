@@ -1,60 +1,242 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}Free Watermark Remover | Remove Objects Instantly{% endblock %}
-{% block meta_description %}Remove watermarks, text, or unwanted objects from photos instantly. Free online watermark remover powered by AI. No sign-up required.{% endblock %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
+{% block title %}Watermark Remover - Remove Watermarks from Images Online Free{% endblock %}
+{% block meta_description %}Remove watermarks, text, and logos from images instantly. Free online watermark remover — select the area and remove. No sign-up needed.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/watermark-remover{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/watermark-remover">
-<meta property="og:title" content="Free Watermark Remover | Remove Objects Instantly">
-<meta property="og:description" content="Remove watermarks, text, or unwanted objects from photos instantly.">
+<meta property="og:title" content="Watermark Remover - Remove Watermarks from Images Online Free">
+<meta property="og:description" content="Remove watermarks, text, and logos from images instantly. All processing is done in your browser.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
 {% endblock %}
 {% block head %}
-<style>.editor-workspace{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:1.5rem;overflow:hidden;position:relative;min-height:400px}.canvas-stack{position:relative;display:inline-block;max-width:100%}#imageCanvas{display:block;max-width:100%;border-radius:1rem;z-index:10;cursor:crosshair}#maskCanvas{position:absolute;top:0;left:0;max-width:100%;display:block;opacity:0.5;border-radius:1rem;pointer-events:none;z-index:20}.loading-shade{position:absolute;inset:0;z-index:100;background:var(--color-base-100);opacity:0.9;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:1.5rem}</style>
+<style>
+.wm-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.preview-box{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:1rem;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+#workCanvas{max-width:100%;max-height:500px;object-fit:contain;display:block;margin:0 auto;border-radius:0.5rem;cursor:crosshair}
+</style>
 {% endblock %}
 {% block content %}
-{{ tool_hero_section("eraser", "Free AI Tool", "WATERMARK", "REMOVER", "Remove watermarks, text, and unwanted objects from your photos instantly using AI.") }}
-  <div class="flex justify-center gap-6 reveal" style="animation-delay:0.2s">
-    <div class="w-full lg:w-10/12">
-      <div id="uploadContainer" class="reveal">
-        <div class="card-premium p-8 text-center relative" id="uploadZone" style="cursor:pointer">
-          <input type="file" id="fileInput" class="absolute top-0 left-0 w-full h-full opacity-0" style="cursor:pointer;z-index:10" accept="image/jpeg,image/png,image/webp" aria-label="File">
-          <div class="rounded-full bg-primary/10 inline-flex items-center justify-center mb-4" style="width:80px;height:80px">{{ lucide_icon("cloud-upload","w-7 h-7", 28) | safe }}</div>
-          <h2 class="font-black text-xl mb-2">Click or Drop Image Here</h2>
-          <p class="text-base-content/50 text-sm">Supports JPG, PNG, WEBP (Max 10MB)</p>
+{{ tool_hero_section("eraser", "Free Tool", "WATERMARK", "REMOVER", "Drag to select the watermark area. Click Remove. Done. 100% private — nothing leaves your device.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="wm-card">
+      <div id="uploadZone" class="preview-box mb-4" tabindex="0" role="button" aria-label="Upload an image" style="cursor:pointer;min-height:120px;border:2px dashed var(--color-base-300);transition:border-color .2s" onmouseover="this.style.borderColor='var(--color-primary)'" onmouseout="this.style.borderColor='var(--color-base-300)'">
+        <input type="file" id="fileInput" class="absolute top-0 left-0 w-full h-full opacity-0" style="cursor:pointer;z-index:10" accept="image/jpeg,image/png,image/webp" aria-label="Choose image file">
+        <div class="text-center" aria-hidden="true">
+          <div class="mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center" style="width:48px;height:48px">{{ lucide_icon("eraser","w-5 h-5", 20) | safe }}</div>
+          <p class="font-bold text-sm">Drop image here or click</p>
+          <p class="text-xs text-base-content/40 mt-1">JPG &bull; PNG &bull; WebP &bull; max 10MB</p>
         </div>
       </div>
-      <div id="resultCard" class="hidden reveal flex flex-col gap-4">
-        <div class="card-premium p-4">
-          <div class="flex flex-wrap items-center gap-4">
-            <div><label class="label-cinematic" for="brushSize">Brush Size</label><input type="range" id="brushSize" class="range range-cinematic w-full" min="5" max="50" value="20"><output id="brushSizeValue" class="text-sm font-mono text-base-content/60 mt-1 block text-center">20px</output></div>
-            <div class="flex gap-2 ml-auto">
-              <button type="button" id="undoBtn" class="btn btn-cinematic py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("rotate-ccw","w-4 h-4", 16) | safe }} UNDO</button>
-              <button type="button" id="clearBtn" class="btn btn-cinematic py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("trash-2","w-4 h-4", 16) | safe }} CLEAR</button>
-              <button type="button" id="processBtn" class="btn btn-cinematic py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("wand-2","w-4 h-4", 16) | safe }} PROCESS</button>
-            </div>
+      <p class="text-xs font-bold text-base-content/50 mb-3 flex items-center gap-2">{{ lucide_icon("info","w-3.5 h-3.5", 14) | safe }} Drag on the image to select the watermark, then click Remove.</p>
+      <div class="space-y-3">
+        <button type="button" id="removeBtn" class="w-full py-3 rounded-xl font-bold text-sm uppercase tracking-widest cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2" style="background:var(--color-primary);color:#fff;border:none;box-shadow:0 4px 12px color-mix(in oklab,var(--color-primary) 35%,transparent)" onmouseover="this.style.boxShadow='0 6px 20px color-mix(in oklab,var(--color-primary) 45%,transparent)'" onmouseout="this.style.boxShadow='0 4px 12px color-mix(in oklab,var(--color-primary) 35%,transparent)'" disabled>
+          {{ lucide_icon("wand-2","w-4 h-4", 16) | safe }} <span id="removeLabel">REMOVE</span>
+        </button>
+        <div id="progressWrap" class="hidden">
+          <div style="background:var(--color-base-100);border-radius:0.5rem;height:6px;overflow:hidden"><div id="progressBar" style="width:0%;height:100%;background:var(--color-primary);border-radius:0.5rem;transition:width .1s"></div></div>
+          <span id="progressText" class="text-xs text-base-content/30 mt-1 block">Processing...</span>
+        </div>
+        <button type="button" id="undoBtn" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer transition-all" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);display:none" onmouseover="this.style.borderColor='var(--color-base-content)'" onmouseout="this.style.borderColor='var(--color-base-300)'">
+          {{ lucide_icon("rotate-ccw","w-4 h-4", 16) | safe }} UNDO
+        </button>
+        <button type="button" id="resetBtn" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer transition-all" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content)" onmouseover="this.style.borderColor='var(--color-base-content)'" onmouseout="this.style.borderColor='var(--color-base-300)'">
+          {{ lucide_icon("rotate-ccw","w-4 h-4", 16) | safe }} Reset
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="wm-card" style="min-height:300px">
+      <div id="placeholder" class="flex items-center justify-center" style="min-height:280px">
+        <p class="text-sm text-base-content/30 font-bold">Upload an image to get started</p>
+      </div>
+      <div id="resultContent" class="hidden space-y-4">
+        <div class="flex items-center justify-between gap-3 pb-3 border-b" style="border-color:var(--color-base-300)">
+          <div class="flex items-center gap-3 text-xs">
+            <span class="font-mono font-bold" style="color:var(--color-success)" id="fileSizeLabel">0 KB</span>
+            <span class="font-mono text-base-content/40" id="selInfoLabel"></span>
+          </div>
+          <span class="text-xs font-mono text-base-content/40" id="dimsLabel"></span>
+        </div>
+        <div class="preview-box" style="aspect-ratio:auto;padding:0.25rem">
+          <div style="position:relative;display:inline-block">
+            <canvas id="workCanvas" role="img" aria-label="Image with selection"></canvas>
+            <canvas id="selCanvas" style="position:absolute;inset:0;z-index:5;pointer-events:none" width="0" height="0" aria-hidden="true"></canvas>
           </div>
         </div>
-        <div class="card-premium p-4">
-          <div class="editor-workspace">
-            <div class="canvas-stack">
-              <canvas id="imageCanvas"></canvas>
-              <canvas id="maskCanvas"></canvas>
-            </div>
-            <div id="loadingShade" class="loading-shade hidden"><div class="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mb-3"></div><p class="text-primary font-bold">Processing...</p></div>
-          </div>
-          <a id="downloadBtn" href="#" download="cleaned_image.png" class="btn btn-cinematic w-full mt-4 py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl hidden">{{ lucide_icon("download","w-5 h-5", 20) | safe }} DOWNLOAD</a>
+        <div class="flex justify-end">
+          <a id="downloadBtn" href="#" download="watermark_removed.png" class="text-xs px-4 py-2 rounded-lg font-bold uppercase tracking-wider no-underline transition-all inline-flex items-center gap-1.5" style="background:var(--color-success);color:#fff;border:none;display:none">{{ lucide_icon("download","w-3.5 h-3.5", 14) | safe }} Download</a>
         </div>
       </div>
     </div>
   </div>
 </div>
+</div>
 <script>
-document.addEventListener('DOMContentLoaded',()=>{const uploadZone=document.getElementById('uploadZone');const fileInput=document.getElementById('fileInput');const uploadContainer=document.getElementById('uploadContainer');const resultCard=document.getElementById('resultCard');const imageCanvas=document.getElementById('imageCanvas');const maskCanvas=document.getElementById('maskCanvas');const ctx=imageCanvas.getContext('2d');const maskCtx=maskCanvas.getContext('2d');const brushSize=document.getElementById('brushSize');const brushSizeValue=document.getElementById('brushSizeValue');const undoBtn=document.getElementById('undoBtn');const clearBtn=document.getElementById('clearBtn');const processBtn=document.getElementById('processBtn');const downloadBtn=document.getElementById('downloadBtn');const loadingShade=document.getElementById('loadingShade');let isDrawing=false;let lastMaskState=null;let currentImage=null;brushSize.addEventListener('input',()=>{brushSizeValue.textContent=brushSize.value+'px';});uploadZone.addEventListener('click',()=>fileInput.click());fileInput.addEventListener('change',e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{const img=new Image();img.onload=()=>{currentImage=img;uploadContainer.classList.add('hidden');resultCard.classList.remove('hidden');imageCanvas.width=Math.min(img.width,600);imageCanvas.height=Math.min(img.height,600);ctx.drawImage(img,0,0,imageCanvas.width,imageCanvas.height);maskCanvas.width=imageCanvas.width;maskCanvas.height=imageCanvas.height;maskCtx.fillStyle='rgba(0,0,0,0)';maskCtx.fillRect(0,0,maskCanvas.width,maskCanvas.height);};img.src=ev.target.result;};reader.readAsDataURL(file);});function getCanvasPos(e){const rect=imageCanvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*(imageCanvas.width/rect.width),y:(e.clientY-rect.top)*(imageCanvas.height/rect.height)};}
-imageCanvas.addEventListener('mousedown',e=>{isDrawing=true;lastMaskState=maskCtx.getImageData(0,0,maskCanvas.width,maskCanvas.height);const pos=getCanvasPos(e);maskCtx.fillStyle='white';maskCtx.beginPath();maskCtx.arc(pos.x,pos.y,parseInt(brushSize.value)/2,0,Math.PI*2);maskCtx.fill();});imageCanvas.addEventListener('mousemove',e=>{if(!isDrawing)return;const pos=getCanvasPos(e);maskCtx.fillStyle='white';maskCtx.beginPath();maskCtx.arc(pos.x,pos.y,parseInt(brushSize.value)/2,0,Math.PI*2);maskCtx.fill();});imageCanvas.addEventListener('mouseup',()=>{isDrawing=false;});imageCanvas.addEventListener('mouseleave',()=>{isDrawing=false;});undoBtn.addEventListener('click',()=>{if(lastMaskState){maskCtx.putImageData(lastMaskState,0,0);lastMaskState=null;}});clearBtn.addEventListener('click',()=>{maskCtx.clearRect(0,0,maskCanvas.width,maskCanvas.height);});processBtn.addEventListener('click',async()=>{if(!currentImage)return;loadingShade.classList.remove('hidden');processBtn.disabled=true;const maskData=maskCanvas.toDataURL();const formData=new FormData();formData.append('image',dataURItoBlob(imageCanvas.toDataURL()),'image.png');formData.append('mask',dataURItoBlob(maskData),'mask.png');try{const res=await fetch('/api/remove-watermark',{method:'POST',body:formData});if(!res.ok)throw new Error('Processing failed');const blob=await res.blob();const url=URL.createObjectURL(blob);const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0,imageCanvas.width,imageCanvas.height);maskCtx.clearRect(0,0,maskCanvas.width,maskCanvas.height);downloadBtn.href=url;downloadBtn.classList.remove('hidden');loadingShade.classList.add('hidden');};img.src=url;}catch(err){alert('Error: '+err.message);loadingShade.classList.add('hidden');}finally{processBtn.disabled=false;}});function dataURItoBlob(dataURI){const byteString=atob(dataURI.split(',')[1]);const mimeString=dataURI.split(',')[0].split(':')[1].split(';')[0];const ab=new ArrayBuffer(byteString.length);const ia=new Uint8Array(ab);for(let i=0;i<byteString.length;i++)ia[i]=byteString.charCodeAt(i);return new Blob([ab],{type:mimeString});}});
-</script>
+(function(){'use strict';
+var fi=document.getElementById('fileInput'),dz=document.getElementById('uploadZone');
+var ph=document.getElementById('placeholder'),rc=document.getElementById('resultContent');
+var ca=document.getElementById('workCanvas'),cx=ca.getContext('2d');
+var sc=document.getElementById('selCanvas'),sx=sc.getContext('2d');
+var dl=document.getElementById('dimsLabel'),fl=document.getElementById('fileSizeLabel');
+var sl=document.getElementById('selInfoLabel');
+var db=document.getElementById('downloadBtn'),rb=document.getElementById('resetBtn');
+var rm=document.getElementById('removeBtn'),rl=document.getElementById('removeLabel');
+var ub=document.getElementById('undoBtn');
+var pb=document.getElementById('progressBar'),pw=document.getElementById('progressWrap');
+var pt=document.getElementById('progressText');
+var img=null,bu=null,origData=null,processed=null;
+var sel={x:0,y:0,w:0,h:0},drag=false,sx2=0,sy2=0;
 
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Watermark Remover","applicationCategory":"UtilitiesApplication","operatingSystem":"Web browser","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}]}</script>
+function selDraw(){
+  sc.width=ca.width;sc.height=ca.height;
+  sx.clearRect(0,0,sc.width,sc.height);
+  if(sel.w<3||sel.h<3)return;
+  sx.fillStyle='rgba(0,0,0,0.35)';
+  sx.fillRect(0,0,sc.width,sc.height);
+  sx.clearRect(sel.x,sel.y,sel.w,sel.h);
+  sx.strokeStyle='#fff';sx.lineWidth=2.5;
+  sx.strokeRect(sel.x,sel.y,sel.w,sel.h);
+}
+
+function loadImg(file){
+  var r=new FileReader();
+  r.onload=function(ev){
+    var im=new Image();
+    im.onload=function(){
+      img=im;rc.classList.remove('hidden');ph.classList.add('hidden');
+      var s=Math.min(600/im.naturalWidth,500/im.naturalHeight,1);
+      ca.width=Math.round(im.naturalWidth*s);ca.height=Math.round(im.naturalHeight*s);
+      sel={x:0,y:0,w:0,h:0};
+      cx.drawImage(im,0,0,ca.width,ca.height);
+      origData=cx.getImageData(0,0,ca.width,ca.height);processed=null;
+      fl.textContent=window.sbr.formatFileSize(file.size);
+      dl.textContent=ca.width+'\u00D7'+ca.height;
+      sl.textContent='';rm.disabled=true;db.style.display='none';ub.style.display='none';
+      selDraw();
+    };im.src=ev.target.result;
+  };r.readAsDataURL(file);
+}
+
+function pos(e){
+  var r=ca.getBoundingClientRect();
+  var p=e.touches?e.touches[0]:e;
+  return{x:(p.clientX-r.left)/r.width*ca.width,y:(p.clientY-r.top)/r.height*ca.height};
+}
+
+ca.addEventListener('mousedown',function(e){if(!img)return;var p=pos(e);drag=true;sx2=p.x;sy2=p.y;sel={x:0,y:0,w:0,h:0}});
+ca.addEventListener('mousemove',function(e){if(!drag||!img)return;var p=pos(e);
+  var x=Math.min(sx2,p.x),y=Math.min(sy2,p.y);
+  sel={x:Math.max(0,Math.round(x)),y:Math.max(0,Math.round(y)),w:Math.min(ca.width-x,Math.round(Math.abs(p.x-sx2))),h:Math.min(ca.height-y,Math.round(Math.abs(p.y-sy2)))};
+  selDraw();
+});
+ca.addEventListener('mouseup',function(){if(!drag)return;drag=false;
+  var ok=sel.w>4&&sel.h>4;rm.disabled=!ok;
+  if(!ok){sel={x:0,y:0,w:0,h:0};selDraw()}
+});
+ca.addEventListener('touchstart',function(e){e.preventDefault();if(!img)return;var p=pos(e);drag=true;sx2=p.x;sy2=p.y;sel={x:0,y:0,w:0,h:0}},{passive:false});
+ca.addEventListener('touchmove',function(e){e.preventDefault();if(!drag||!img)return;var p=pos(e);var x=Math.min(sx2,p.x),y=Math.min(sy2,p.y);sel={x:Math.max(0,Math.round(x)),y:Math.max(0,Math.round(y)),w:Math.min(ca.width-x,Math.round(Math.abs(p.x-sx2))),h:Math.min(ca.height-y,Math.round(Math.abs(p.y-sy2)))};selDraw()},{passive:false});
+ca.addEventListener('touchend',function(){if(!drag)return;drag=false;var ok=sel.w>4&&sel.h>4;rm.disabled=!ok;if(!ok){sel={x:0,y:0,w:0,h:0};selDraw()}});
+
+function sample(d,w,px,py){if(px<0||px>=ca.width||py<0||py>=ca.height)return null;var i=(py*w+px)*4;return{r:d[i],g:d[i+1],b:d[i+2]}}
+
+function removeWM(){
+  if(sel.w<3||sel.h<3||!img)return;
+  var id=cx.getImageData(0,0,ca.width,ca.height);
+  var d=id.data,w=ca.width,h=ca.height;
+  var orig=new Uint8ClampedArray(d);
+  var sx=sel.x,sy=sel.y,sw=sel.w,sh=sel.h;
+  var tot=sw*sh,bw=2;
+  pw.classList.remove('hidden');rm.disabled=true;rl.textContent='REMOVING...';
+  pt.textContent='Sampling border...';
+  // Collect border pixels (2px outside selection, sample every other pixel)
+  var bp=[];
+  for(var by=sy-bw;by<sy+sh+bw;by++){
+    for(var bx=sx-bw;bx<sx+sw+bw;bx++){
+      if(bx%2!==0||by%2!==0)continue;
+      if(bx>=0&&bx<w&&by>=0&&by<h){
+        if(bx>=sx&&bx<sx+sw&&by>=sy&&by<sy+sh)continue;
+        var p=sample(d,w,bx,by);if(p)bp.push({r:p.r,g:p.g,b:p.b,x:bx,y:by});
+      }
+    }
+  }
+  pt.textContent='Filling...';
+  var idx=0;
+  for(var py=sy;py<sy+sh;py++){
+    for(var px=sx;px<sx+sw;px++){
+      var r=0,g=0,b=0,tw=0;
+      for(var bi=0;bi<bp.length;bi++){
+        var dx=px-bp[bi].x,dy=py-bp[bi].y;
+        var wgt=1/(dx*dx+dy*dy+1);
+        r+=bp[bi].r*wgt;g+=bp[bi].g*wgt;b+=bp[bi].b*wgt;tw+=wgt;
+      }
+      idx=(py*w+px)*4;
+      if(tw>0){d[idx]=Math.round(r/tw);d[idx+1]=Math.round(g/tw);d[idx+2]=Math.round(b/tw)}
+    }
+  }
+  // Edge feather
+  var f=6;
+  for(var py=sy;py<sy+sh;py++){
+    for(var px=sx;px<sx+sw;px++){
+      var dist=Math.min(px-sx,sx+sw-1-px,py-sy,sy+sh-1-py);
+      if(dist<f){var t=dist/f;idx=(py*w+px)*4;
+        d[idx]=Math.round(d[idx]*t+orig[idx]*(1-t));
+        d[idx+1]=Math.round(d[idx+1]*t+orig[idx+1]*(1-t));
+        d[idx+2]=Math.round(d[idx+2]*t+orig[idx+2]*(1-t))}
+    }
+  }
+  pw.classList.add('hidden');pb.style.width='0%';pt.textContent='Processing...';
+  cx.putImageData(id,0,0);
+  rm.disabled=false;rl.textContent='REMOVE';ub.style.display='block';
+  sel={x:0,y:0,w:0,h:0};selDraw();
+  processed=cx.getImageData(0,0,w,h);
+  sl.textContent='Done!';
+  ca.toBlob(function(blob){
+    if(bu)URL.revokeObjectURL(bu);
+    bu=URL.createObjectURL(blob);
+    db.href=bu;db.download='watermark_removed.png';db.style.display='inline-flex';
+    fl.textContent=window.sbr.formatFileSize(blob.size);
+  },'image/png');
+}
+
+rm.addEventListener('click',removeWM);
+ub.addEventListener('click',function(){if(origData){cx.putImageData(origData,0,0);ub.style.display='none';db.style.display='none';processed=null;sl.textContent=''}});
+dz.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click()}});
+dz.addEventListener('click',function(){fi.click()});
+fi.addEventListener('change',function(e){var f=e.target.files[0];if(f)loadImg(f)});
+rb.addEventListener('click',function(){
+  if(bu){URL.revokeObjectURL(bu);bu=null}
+  img=null;fi.value='';rc.classList.add('hidden');ph.classList.remove('hidden');
+  ca.width=0;ca.height=0;sc.width=0;sc.height=0;
+  sel={x:0,y:0,w:0,h:0};processed=null;origData=null;
+  db.style.display='none';ub.style.display='none';rm.disabled=true;
+  pw.classList.add('hidden');pb.style.width='0%';pt.textContent='Processing...';rl.textContent='REMOVE';sl.textContent='';
+  selDraw();
+});
+})();
+</script>
+{% set seo = {
+  "name": "Watermark Remover",
+  "description": "Free online watermark remover — select any watermark, text, or logo on your image and remove it instantly. All processing happens in your browser.",
+  "app_category": "MultimediaApplication",
+  "faqs": [
+    {"q": "How does this watermark remover work?", "a": "Upload your image, drag to select the watermark area, and click Remove. The tool blends the selected region with surrounding pixels using smart edge interpolation — all in your browser."},
+    {"q": "What image formats are supported?", "a": "You can use JPG, PNG, and WebP images. The result is always downloaded as a PNG file for maximum quality."},
+    {"q": "Is my image data private?", "a": "Yes. All processing happens locally on your device. Your images are never uploaded, stored, or shared with any server."}
+  ],
+  "howto_steps": [
+    {"title": "Upload your image", "desc": "Click the upload area or drag and drop an image. Supported formats are JPG, PNG, and WebP."},
+    {"title": "Select the watermark", "desc": "Drag on the image to draw a rectangle around the watermark you want to remove."},
+    {"title": "Remove and download", "desc": "Click Remove to process the image, then download your cleaned image as PNG."}
+  ],
+  "related": [
+    {"name": "Background Remover", "url": "/tool/image-background-remover"},
+    {"name": "Image Converter", "url": "/tool/image-converter"},
+    {"name": "Meme Generator", "url": "/tool/meme-generator"}
+  ]
+} %}
+{{ tool_seo_all(seo) }}
 {% endblock %}

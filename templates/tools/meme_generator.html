@@ -1,52 +1,346 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}Meme Generator | Free Online Meme Creator{% endblock %}
-{% block meta_description %}Create custom memes with top and bottom text overlays. Free online meme generator with popular meme templates. Share your memes instantly.{% endblock %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
+{% block title %}Meme Generator - Create Custom Memes Online Free{% endblock %}
+{% block meta_description %}Create custom memes with your own images. Free online meme generator — add top and bottom text to any image and download instantly. No sign-up needed.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/meme-generator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/meme-generator">
-<meta property="og:title" content="Meme Generator - Free Meme Creator">
-<meta property="og:description" content="Create custom memes with text overlays instantly.">
+<meta property="og:title" content="Meme Generator - Create Custom Memes Online Free">
+<meta property="og:description" content="Create custom memes with your own images. Add top and bottom text and download instantly. No sign-up needed.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
 {% endblock %}
-{% block head %}{% endblock %}
+{% block head %}
+<style>
+.mg-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.preview-box{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:1rem;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+#memeCanvas{max-width:100%;max-height:500px;object-fit:contain;display:block;margin:0 auto;border-radius:0.5rem;cursor:grab}
+#memeCanvas.dragging{cursor:grabbing}
+.color-row{display:flex;gap:0.75rem}
+.color-row > div{flex:1}
+.color-row input[type=color]{width:100%;height:38px;border-radius:0.75rem;border:2px solid var(--color-base-300);padding:2px;cursor:pointer;background:var(--color-base-100)}
+</style>
+{% endblock %}
 {% block content %}
-{{ tool_hero_section("smile-plus", "Fun Tool", "MEME", "GENERATOR", "Create custom memes with top and bottom text overlays. Choose from popular templates.") }}
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Meme Details</h2>
-        <form class="flex flex-col gap-5">
-          <div><label class="label-cinematic" for="memeTemplate">Template</label><select id="memeTemplate" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"><option value="drake">Drake Hotline Bling</option><option value="distracted">Distracted Boyfriend</option><option value="drake2">Drake Yes/No</option><option value="disaster">Disaster Girl</option><option value="change">Change My Mind</option></select></div>
-          <div><label class="label-cinematic" for="topText">Top Text</label><input type="text" id="topText" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="This is the top text"></div>
-          <div><label class="label-cinematic" for="bottomText">Bottom Text</label><input type="text" id="bottomText" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="This is the bottom text"></div>
-          <button type="button" id="memeGenBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("smile-plus","w-5 h-5", 20) | safe }} GENERATE MEME</button>
-        </form>
+{{ tool_hero_section("image", "Free Tool", "MEME", "GENERATOR", "Add top and bottom text to any image and create custom memes. 100% private — nothing leaves your device.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="mg-card">
+      <div id="uploadZone" class="preview-box mb-5" tabindex="0" role="button" aria-label="Upload an image to make a meme" style="cursor:pointer;min-height:140px;border:2px dashed var(--color-base-300);transition:border-color .2s" onmouseover="this.style.borderColor='var(--color-primary)'" onmouseout="this.style.borderColor='var(--color-base-300)'">
+        <input type="file" id="fileInput" class="absolute top-0 left-0 w-full h-full opacity-0" style="cursor:pointer;z-index:10" accept="image/jpeg,image/png,image/webp" aria-label="Choose image file for meme">
+        <div class="text-center" aria-hidden="true">
+          <div class="mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center" style="width:56px;height:56px">{{ lucide_icon("image-plus","w-6 h-6", 24) | safe }}</div>
+          <p class="font-bold text-sm">Drop image here or click</p>
+          <p class="text-xs text-base-content/40 mt-1">JPG &bull; PNG &bull; WebP &bull; max 10MB</p>
+        </div>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/50 block mb-1.5" for="topText">Top text</label>
+          <textarea id="topText" class="w-full rounded-xl px-4 py-2.5 font-bold text-sm resize-none" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:inherit" placeholder="Top text" rows="2" maxlength="200" aria-label="Top meme text"></textarea>
+        </div>
+        <div>
+          <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/50 block mb-1.5" for="bottomText">Bottom text</label>
+          <textarea id="bottomText" class="w-full rounded-xl px-4 py-2.5 font-bold text-sm resize-none" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:inherit" placeholder="Bottom text" rows="2" maxlength="200" aria-label="Bottom meme text"></textarea>
+        </div>
+        <div>
+          <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/50 block mb-1.5" for="fontFamily">Font</label>
+          <select id="fontFamily" class="w-full rounded-xl px-4 py-2.5 font-bold text-sm" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);appearance:auto" aria-label="Meme font family">
+            <option value="Impact, sans-serif">Impact</option>
+            <option value="Arial Black, sans-serif">Arial Black</option>
+            <option value="'Comic Sans MS', cursive">Comic Sans</option>
+            <option value="Oswald, sans-serif">Oswald</option>
+            <option value="'Roboto Condensed', sans-serif">Roboto Condensed</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/50 block mb-1.5" for="fontSize">Font size</label>
+          <input type="range" id="fontSize" class="range range-cinematic w-full" min="3" max="20" step="0.5" value="8" aria-valuemin="3" aria-valuemax="20" aria-valuenow="8">
+          <div class="flex justify-between text-xs text-base-content/30 mt-1"><span>Small</span><output id="fontSizeValue" class="font-bold text-base-content/60" for="fontSize">8%</output><span>Large</span></div>
+        </div>
+        <div>
+          <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/50 block mb-1.5">Position <span class="text-base-content/30 font-normal normal-case">(drag text on canvas)</span></label>
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <span class="text-xs text-base-content/40 block mb-1">Top Y</span>
+              <input type="range" id="topY" class="range range-cinematic w-full" min="0" max="50" value="4" aria-label="Top text vertical position">
+              <span class="text-xs text-base-content/30" id="topYVal">4%</span>
+            </div>
+            <div class="flex-1">
+              <span class="text-xs text-base-content/40 block mb-1">Bottom Y</span>
+              <input type="range" id="bottomY" class="range range-cinematic w-full" min="50" max="100" value="92" aria-label="Bottom text vertical position">
+              <span class="text-xs text-base-content/30" id="bottomYVal">92%</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/50 block mb-1.5">Colors</label>
+          <div class="color-row">
+            <div>
+              <span class="text-xs text-base-content/40 block mb-1">Text</span>
+              <input type="color" id="fillColor" value="#ffffff" aria-label="Text fill color" title="Text color">
+            </div>
+            <div>
+              <span class="text-xs text-base-content/40 block mb-1">Outline</span>
+              <input type="color" id="strokeColor" value="#000000" aria-label="Text outline color" title="Outline color">
+            </div>
+            <div>
+              <span class="text-xs text-base-content/40 block mb-1">Width</span>
+              <input type="range" id="strokeW" class="range range-cinematic w-full" min="1" max="10" value="4" aria-label="Outline width">
+              <span class="text-xs text-base-content/30" id="strokeWVal">4px</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 pt-1">
+          <label class="flex items-center gap-2 cursor-pointer" for="shadowToggle">
+            <input type="checkbox" id="shadowToggle" aria-label="Enable text shadow">
+            <span class="text-xs font-bold uppercase tracking-wider text-base-content/60">Shadow</span>
+          </label>
+          <div class="flex-1">
+            <input type="range" id="shadowBlur" class="range range-cinematic w-full" min="0" max="20" value="4" aria-label="Shadow blur">
+            <div class="flex justify-between text-xs text-base-content/30"><span></span><span class="text-base-content/30" id="shadowBlurVal">4px</span></div>
+          </div>
+        </div>
+        <button type="button" id="resetBtn" class="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer transition-all" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content)" onmouseover="this.style.borderColor='var(--color-base-content)'" onmouseout="this.style.borderColor='var(--color-base-300)'">
+          {{ lucide_icon("rotate-ccw","w-4 h-4", 16) | safe }} Reset
+        </button>
       </div>
     </div>
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Meme Preview</h3>
-        <div class="card-premium p-6 text-center" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-          <canvas id="memeCanvas" width="500" height="500" class="rounded-xl mx-auto max-w-full bg-base-300/20"></canvas>
-          <button id="memeDlBtn" class="btn btn-cinematic mt-4 py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("download","w-4 h-4", 16) | safe }} DOWNLOAD</button>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="mg-card" style="min-height:300px">
+      <div id="placeholder" class="flex items-center justify-center" style="min-height:280px">
+        <p class="text-sm text-base-content/30 font-bold">Upload an image and add text to get started</p>
+      </div>
+      <div id="resultContent" class="hidden space-y-4">
+        <div class="flex items-center justify-between gap-3 pb-3 border-b" style="border-color:var(--color-base-300)">
+          <div class="flex items-center gap-3 text-xs">
+            <span class="font-mono font-bold" style="color:var(--color-success)" id="memeSizeLabel">0 KB</span>
+          </div>
+          <span class="text-xs font-mono text-base-content/40" id="dimsLabel"></span>
+        </div>
+        <div class="preview-box" style="aspect-ratio:auto;padding:0.25rem">
+          <canvas id="memeCanvas" role="img" aria-label="Generated meme with text overlay"></canvas>
+        </div>
+        <div class="flex gap-3">
+          <a id="downloadBtn" href="#" download="meme.png" class="ml-auto text-xs px-4 py-2 rounded-lg font-bold uppercase tracking-wider no-underline transition-all inline-flex items-center gap-1.5" style="background:var(--color-success);color:#fff;border:none;display:none">{{ lucide_icon("download","w-3.5 h-3.5", 14) | safe }} Download</a>
+          <button type="button" id="copyBtn" class="text-xs px-4 py-2 rounded-lg font-bold uppercase tracking-wider cursor-pointer transition-all" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);display:none" onmouseover="this.style.borderColor='var(--color-base-content)'" onmouseout="this.style.borderColor='var(--color-base-300)'">{{ lucide_icon("clipboard","w-3.5 h-3.5", 14) | safe }} Copy</button>
         </div>
       </div>
     </div>
   </div>
 </div>
+</div>
 <script>
 (function(){'use strict';
-const memeImages={drake:'https://i.imgflip.com/30b1gx.jpg',distracted:'https://i.imgflip.com/1ur9bj.jpg',drake2:'https://i.imgflip.com/30b1gx.jpg',disaster:'https://i.imgflip.com/w0y7a.jpg',change:'https://i.imgflip.com/24y43o.jpg'};
-function generate(){const template=document.getElementById('memeTemplate').value;const top=document.getElementById('topText').value;const bottom=document.getElementById('bottomText').value;const canvas=document.getElementById('memeCanvas');const ctx=canvas.getContext('2d');const img=new Image();img.crossOrigin='anonymous';img.onload=function(){const w=400;const h=400;canvas.width=w;canvas.height=h;ctx.drawImage(img,0,0,w,h);ctx.strokeStyle='black';ctx.lineWidth=4;ctx.fillStyle='white';ctx.font='bold 36px Impact, sans-serif';ctx.textAlign='center';ctx.textBaseline='top';if(top){ctx.strokeText(top,w/2,10);ctx.fillText(top,w/2,10);}
-ctx.textBaseline='bottom';if(bottom){ctx.strokeText(bottom,w/2,h-10);ctx.fillText(bottom,w/2,h-10);}};
-img.src=memeImages[template]||memeImages.drake;img.onerror=function(){ctx.fillStyle='#333';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='white';ctx.font='20px sans-serif';ctx.textAlign='center';ctx.fillText('Image loading failed',200,200);};}
-function downloadMeme(){const canvas=document.getElementById('memeCanvas');const link=document.createElement('a');link.download='meme.png';link.href=canvas.toDataURL('image/png');link.click();}
-document.addEventListener('DOMContentLoaded',function(){document.getElementById('memeGenBtn').addEventListener('click',generate);document.getElementById('memeDlBtn').addEventListener('click',downloadMeme);document.querySelectorAll('input, select').forEach(function(el){el.addEventListener('input',generate);});generate();});
+var fi=document.getElementById('fileInput'),dz=document.getElementById('uploadZone');
+var ph=document.getElementById('placeholder'),rc=document.getElementById('resultContent');
+var ca=document.getElementById('memeCanvas'),cx=ca.getContext('2d');
+var dl=document.getElementById('dimsLabel'),ms=document.getElementById('memeSizeLabel');
+var db=document.getElementById('downloadBtn'),rb=document.getElementById('resetBtn');
+var tt=document.getElementById('topText'),bt=document.getElementById('bottomText');
+var ff=document.getElementById('fontFamily');
+var fs=document.getElementById('fontSize'),fv=document.getElementById('fontSizeValue');
+var ty=document.getElementById('topY'),tyv=document.getElementById('topYVal');
+var by=document.getElementById('bottomY'),byv=document.getElementById('bottomYVal');
+var fc=document.getElementById('fillColor'),sc=document.getElementById('strokeColor');
+var sw=document.getElementById('strokeW'),swv=document.getElementById('strokeWVal');
+var st=document.getElementById('shadowToggle'),sb=document.getElementById('shadowBlur');
+var sbv=document.getElementById('shadowBlurVal');
+var cb=document.getElementById('copyBtn');
+var img=null,bu=null,drag=null;
+
+function wrapText(ctx,text,maxW){
+  var paragraphs=text.split('\n'),allLines=[];
+  for(var p=0;p<paragraphs.length;p++){
+    var words=paragraphs[p].split(' '),lines=[],cur='';
+    for(var i=0;i<words.length;i++){
+      var t=cur?cur+' '+words[i]:words[i];
+      if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=words[i]}
+      else{cur=t}
+    }
+    if(cur)lines.push(cur);
+    if(p<paragraphs.length-1&&lines.length)lines[lines.length-1]+=' ';
+    for(var j=0;j<lines.length;j++)allLines.push(lines[j]);
+    if(p<paragraphs.length-1&&!lines.length)allLines.push('');
+  }
+  return allLines;
+}
+
+function draw(){
+  if(!img)return;
+  var iw=img.naturalWidth,ih=img.naturalHeight;
+  var mw=600,mh=500,sw=mw/iw,sh=mh/ih,s=Math.min(sw,sh,1);
+  var cw=Math.round(iw*s),ch=Math.round(ih*s);
+  ca.width=cw;ca.height=ch;
+  cx.clearRect(0,0,cw,ch);
+  cx.drawImage(img,0,0,cw,ch);
+  var t=tt.value.trim(),b=bt.value.trim();
+  if(!t&&!b){
+    db.style.display='none';cb.style.display='none';
+    ms.textContent='0 KB';dl.textContent=cw+'\u00D7'+ch;
+    return
+  }
+  cx.textAlign='center';cx.lineJoin='round';
+  cx.fillStyle=fc.value;cx.strokeStyle=sc.value;
+  var lw=Math.max(1,Math.round(parseFloat(sw.value)*cw/800));
+  cx.lineWidth=lw;
+  var pct=parseFloat(fs.value)/100;
+  var fz=Math.max(12,Math.round(cw*pct));
+  cx.font='bold '+fz+'px '+ff.value;
+  if(st.checked){
+    var bl=Math.min(parseInt(sb.value),20);
+    cx.shadowColor='rgba(0,0,0,'+Math.min(0.5,bl/30)+')';
+    cx.shadowBlur=Math.round(bl*cw/400);
+    cx.shadowOffsetX=Math.round(bl*cw/800);
+    cx.shadowOffsetY=Math.round(bl*cw/800);
+  }else{cx.shadowColor='transparent';cx.shadowBlur=0;cx.shadowOffsetX=0;cx.shadowOffsetY=0}
+  var pad=Math.round(cw*0.04);
+  var maxW=cw-pad*2;
+  if(t){
+    var lines=wrapText(cx,t,maxW);
+    var lh=fz*1.15;
+    var tyPct=parseFloat(ty.value)/100;
+    var startY=Math.round(ch*tyPct)+Math.round(lh/2)-(lines.length>1?Math.round((lines.length-1)*lh*0.5):0);
+    for(var i=0;i<lines.length;i++){
+      cx.strokeText(lines[i],cw/2,startY+i*lh);
+      cx.fillText(lines[i],cw/2,startY+i*lh);
+    }
+  }
+  if(b){
+    var blines=wrapText(cx,b,maxW);
+    var blh=fz*1.15;
+    var byPct=parseFloat(by.value)/100;
+    var startBY=Math.round(ch*byPct)-Math.round((blines.length-1)*blh);
+    for(var i=0;i<blines.length;i++){
+      cx.strokeText(blines[i],cw/2,startBY+i*blh);
+      cx.fillText(blines[i],cw/2,startBY+i*blh);
+    }
+  }
+  cx.shadowColor='transparent';cx.shadowBlur=0;cx.shadowOffsetX=0;cx.shadowOffsetY=0;
+  ca.toBlob(function(blob){
+    if(!blob)return;
+    if(bu)URL.revokeObjectURL(bu);
+    bu=URL.createObjectURL(blob);
+    db.href=bu;db.download='meme.png';db.style.display='inline-flex';
+    cb.style.display='inline-flex';
+    ms.textContent=window.sbr.formatFileSize(blob.size);
+    dl.textContent=cw+'\u00D7'+ch;
+  },'image/png');
+}
+
+function getCanvasPos(e){
+  var r=ca.getBoundingClientRect();
+  var p=(e.touches?e.touches[0]:e);
+  return{x:(p.clientX-r.left)/r.width*ca.width,y:(p.clientY-r.top)/r.height*ca.height};
+}
+
+function startDrag(e){e.preventDefault();
+  if(!img)return;
+  var p=getCanvasPos(e);
+  drag=p.y/ca.height<0.5?'top':'bottom';
+  ca.classList.add('dragging');
+}
+function moveDrag(e){e.preventDefault();
+  if(!drag||!img)return;
+  var p=getCanvasPos(e);
+  var pct=Math.round(p.y/ca.height*100);
+  if(drag==='top'){
+    pct=Math.max(0,Math.min(50,pct));
+    ty.value=pct;tyv.textContent=pct+'%';
+  }else{
+    pct=Math.max(50,Math.min(100,pct));
+    by.value=pct;byv.textContent=pct+'%';
+  }
+  draw();
+}
+function endDrag(){if(drag){ca.classList.remove('dragging');drag=null}}
+
+ca.addEventListener('mousedown',startDrag);
+ca.addEventListener('mousemove',moveDrag);
+ca.addEventListener('mouseup',endDrag);
+ca.addEventListener('mouseleave',endDrag);
+ca.addEventListener('touchstart',startDrag,{passive:false});
+ca.addEventListener('touchmove',moveDrag,{passive:false});
+ca.addEventListener('touchend',endDrag);
+
+function resetAll(){
+  if(bu){URL.revokeObjectURL(bu);bu=null}
+  img=null;fi.value='';tt.value='';bt.value='';
+  ff.value='Impact, sans-serif';
+  fs.value='8';fv.textContent='8%';fs.setAttribute('aria-valuenow','8');
+  ty.value='4';tyv.textContent='4%';
+  by.value='92';byv.textContent='92%';
+  fc.value='#ffffff';sc.value='#000000';
+  sw.value='4';swv.textContent='4px';
+  st.checked=false;sb.value='4';sbv.textContent='4px';
+  rc.classList.add('hidden');ph.classList.remove('hidden');
+  ca.width=0;ca.height=0;
+  db.style.display='none';cb.style.display='none';
+}
+
+var debounce=function(fn,ms){var t;return function(){clearTimeout(t);t=setTimeout(fn,ms)}};
+var redraw=debounce(function(){if(img)draw()},80);
+
+dz.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click()}});
+dz.addEventListener('click',function(){fi.click()});
+fi.addEventListener('change',function(e){
+  var file=e.target.files[0];
+  if(!file)return;
+  var r=new FileReader();
+  r.onload=function(ev){
+    var im=new Image();
+    im.onload=function(){img=im;rc.classList.remove('hidden');ph.classList.add('hidden');draw()};
+    im.src=ev.target.result;
+  };r.readAsDataURL(file);
+});
+tt.addEventListener('input',redraw);
+bt.addEventListener('input',redraw);
+ff.addEventListener('change',function(){if(img)draw()});
+fs.addEventListener('input',function(){fv.textContent=fs.value+'%';fs.setAttribute('aria-valuenow',fs.value);if(img)draw()});
+ty.addEventListener('input',function(){tyv.textContent=ty.value+'%';if(img)draw()});
+by.addEventListener('input',function(){byv.textContent=by.value+'%';if(img)draw()});
+fc.addEventListener('input',function(){if(img)draw()});
+sc.addEventListener('input',function(){if(img)draw()});
+sw.addEventListener('input',function(){swv.textContent=sw.value+'px';if(img)draw()});
+st.addEventListener('change',function(){if(img)draw()});
+sb.addEventListener('input',function(){sbv.textContent=sb.value+'px';if(img)draw()});
+rb.addEventListener('click',resetAll);
+
+cb.addEventListener('click',function(){
+  if(!bu)return;
+  var inp=document.createElement('input');
+  inp.value=bu;
+  document.body.appendChild(inp);
+  inp.select();
+  try{document.execCommand('copy')}catch(e){}
+  document.body.removeChild(inp);
+  var orig=cb.innerHTML;
+  cb.innerHTML='{{ lucide_icon("check","w-3.5 h-3.5",14) | safe }} Copied';
+  setTimeout(function(){cb.innerHTML=orig},1500);
+});
 })();
 </script>
-
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Meme Generator","applicationCategory":"MultimediaApplication","operatingSystem":"Web browser","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Create custom memes with text overlays instantly."}]}</script>
+{% set seo = {
+  "name": "Meme Generator",
+  "description": "Free online meme generator — add top and bottom text to any image and download your custom meme instantly. All processing stays on your device.",
+  "app_category": "MultimediaApplication",
+  "faqs": [
+    {"q": "How does this meme generator work?", "a": "Upload an image, type your top and bottom text, and the tool renders your meme instantly using HTML5 Canvas. Everything happens in your browser — nothing is uploaded to any server."},
+    {"q": "What image formats can I use?", "a": "You can use JPG, PNG, and WebP images. The generated meme is always downloaded as a PNG file for maximum quality."},
+    {"q": "Is my image data private?", "a": "Yes. All processing happens locally on your device. Your images and text are never uploaded, stored, or shared with any server."}
+  ],
+  "howto_steps": [
+    {"title": "Upload your image", "desc": "Click the upload area or drag and drop an image. Supported formats are JPG, PNG, and WebP."},
+    {"title": "Add your text", "desc": "Type top and bottom text for your meme. Adjust font size, position, and colors to get the perfect look."},
+    {"title": "Download your meme", "desc": "Preview your meme in real time and click Download to save it as a PNG image."}
+  ],
+  "related": [
+    {"name": "Image Converter", "url": "/tool/image-converter"},
+    {"name": "Background Remover", "url": "/tool/image-background-remover"},
+    {"name": "Watermark Remover", "url": "/tool/watermark-remover"},
+    {"name": "Image Compressor", "url": "/tool/image-compressor"}
+  ]
+} %}
+{{ tool_seo_all(seo) }}
 {% endblock %}

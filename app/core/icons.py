@@ -1,11 +1,11 @@
+import json
 import os
 import re
-import json
 
 _cache = {}
 
 JSON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lucide_icons.json")
-with open(JSON_PATH, "r", encoding="utf-8") as f:
+with open(JSON_PATH, encoding="utf-8") as f:
     _icons = json.load(f)
 
 def lucide_icon(name: str, class_name: str = "", size: int = 24) -> str:

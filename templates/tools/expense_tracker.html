@@ -1,99 +1,269 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}Advanced Expense Tracker | Smart Budgeting & Insights{% endblock %}
-{% block meta_description %}Use our free advanced expense tracker with AI-style insights. Auto-fill from bank SMS, track 50/30/20 budget rules, and find hidden subscription costs.{% endblock %}
+{% block title %}Expense Tracker - Track Your Money Free Online{% endblock %}
+{% block meta_description %}Track your income and expenses for free. Simple expense tracker that works in your browser. No sign-up needed.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/expense-tracker{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/expense-tracker">
-<meta property="og:title" content="Advanced Expense Tracker | Smart Budgeting & Insights">
-<meta property="og:description" content="Manage money smarter. Auto-fill expenses from Bank SMS, track your 50/30/20 budget health, and detect hidden subscriptions.">
+<meta property="og:title" content="Expense Tracker - Track Your Money Free Online">
+<meta property="og:description" content="Track your income and expenses for free. Simple expense tracker that works in your browser.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
 {% endblock %}
 {% block head %}
-<style>.expense-list{max-height:450px;overflow-y:auto}.expense{background:color-mix(in oklab, var(--color-base-content) 3%, transparent);border:1px solid rgba(255,255,255,0.1);border-radius:0.5rem;padding:1rem;margin-bottom:0.5rem;transition:all 0.2s ease}.expense:hover{background:color-mix(in oklab, var(--color-primary) 10%, transparent);border-color:color-mix(in oklab, var(--color-primary) 30%, transparent)}.type-toggle .btn{border-color:var(--color-base-300);color:color-mix(in oklab, var(--color-base-content) 50%, transparent)}.insights-card{background:color-mix(in oklab, var(--color-primary) 15%, transparent);border:1px solid color-mix(in oklab, var(--color-primary) 30%, transparent)}</style>
-<script src="/static/js/vendor/chart.min.js"></script>
+<style>
+:root{--et-radius:1rem;--et-radius-lg:1.25rem}
+.et-card{background:var(--color-base-200);border-radius:var(--et-radius-lg);padding:1.5rem;border:1px solid var(--color-base-300);transition:box-shadow .2s}
+.et-stat{padding:1rem;border-radius:var(--et-radius);text-align:center;background:var(--color-base-100);border:1px solid var(--color-base-300);position:relative;overflow:hidden}
+.et-stat .num{font-size:1.55rem;font-weight:900;line-height:1.2;letter-spacing:-0.02em}
+.et-stat .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;opacity:.45;margin-bottom:3px}
+.et-stat .icon-top{position:absolute;top:-8px;right:-8px;opacity:.08;transform:rotate(15deg)}
+.et-tab{padding:8px 18px;border-radius:999px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .18s;touch-action:manipulation}
+.et-tab.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.et-tab:not(.on):hover{border-color:var(--color-base-content)}
+.et-row{display:flex;align-items:center;gap:12px;padding:11px 15px;border-radius:var(--et-radius);background:var(--color-base-100);border:1px solid var(--color-base-300);margin-bottom:5px;transition:all .18s}
+.et-row:hover{border-color:color-mix(in oklab,var(--color-primary) 30%,transparent);transform:translateX(2px)}
+.et-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 2px color-mix(in oklab,currentColor 15%,transparent)}
+.et-amt{font-weight:800;white-space:nowrap;font-size:14px;font-variant-numeric:tabular-nums}
+.et-del{font-size:11px;font-weight:700;cursor:pointer;opacity:.25;border:none;background:0;color:var(--color-error);padding:4px 6px;border-radius:6px;transition:all .15s}
+.et-del:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 10%,transparent)}
+.et-edit{font-size:11px;font-weight:700;cursor:pointer;opacity:.25;border:none;background:0;color:var(--color-primary);padding:4px 6px;border-radius:6px;transition:all .15s}
+.et-edit:hover{opacity:1;background:color-mix(in oklab,var(--color-primary) 10%,transparent)}
+.et-fp{padding:5px 13px;border-radius:999px;font-size:10px;font-weight:700;cursor:pointer;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .15s;touch-action:manipulation}
+.et-fp.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.et-fp:not(.on):hover{border-color:var(--color-base-content)}
+.et-inp{width:100%;border-radius:var(--et-radius);padding:.7rem 1rem;font-weight:700;font-size:.875rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);transition:border-color .18s}
+.et-inp:focus{border-color:var(--color-primary);outline:none;box-shadow:0 0 0 3px color-mix(in oklab,var(--color-primary) 15%,transparent)}
+.et-inp::placeholder{color:var(--color-base-content);opacity:.25;font-weight:600}
+.et-pri{background:var(--color-primary);color:#fff;border:none;border-radius:var(--et-radius);padding:.75rem;font-weight:700;font-size:.875rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:8px}
+.et-pri:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:0 6px 16px color-mix(in oklab,var(--color-primary) 35%,transparent)}
+.et-pri:active{transform:translateY(0)}
+.et-sec{padding:.5rem .9rem;border-radius:var(--et-radius);font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .15s;touch-action:manipulation}
+.et-sec:hover{border-color:var(--color-base-content)}
+.et-cat-bar{display:flex;align-items:center;gap:8px;margin:5px 0}
+.et-cat-tt{flex:1;height:7px;border-radius:4px;background:var(--color-base-300);overflow:hidden}
+.et-cat-fl{height:100%;border-radius:4px;min-width:2px;transition:width .5s cubic-bezier(.22,1,.36,1)}
+.et-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:var(--et-radius);padding:12px 20px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s}
+.et-toast.show{opacity:1;transform:translateY(0)}
+.et-bdg{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:4px;vertical-align:middle}
+</style>
 {% endblock %}
 {% block content %}
-{{ tool_hero_section("wand-2", "Smart Money Tools", "SMART", "MONEY TRACKER", "The only expense tracker you need. Auto-fill transactions from your Bank SMS and get AI-style insights on your spending habits.") }}
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 reveal" style="animation-delay:0.1s">
-    <div class="card-premium p-5 text-center" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)"><span class="label-cinematic block mb-2 text-success">Total Income</span><h2 id="totalIncome" class="metric-cinematic metric-cinematic--lg text-success">₹0</h2></div>
-    <div class="card-premium p-5 text-center" style="border-color:color-mix(in oklab, var(--color-error) 25%, transparent)"><span class="label-cinematic block mb-2 text-error">Total Expenses</span><h3 id="totalExpenses" class="metric-cinematic metric-cinematic--lg text-error">₹0</h3></div>
-    <div class="card-premium p-5 text-center" id="balanceCard"><span class="label-cinematic block mb-2">Net Savings</span><h3 id="remainingBalance" class="metric-cinematic metric-cinematic--lg">₹0</h3></div>
-  </div>
+{{ tool_hero_section("wallet", "Free Tool", "EXPENSE", "TRACKER", "Track your money. Simple expense tracker that works in your browser — no sign-up, no data uploads.") }}
+<div class="flex gap-3 mb-5 reveal" style="animation-delay:0.15s">
+  <button type="button" class="et-tab on" data-tab="tx">Transactions</button>
+  <button type="button" class="et-tab" data-tab="analytics">Analytics</button>
+</div>
+<div id="tabTx">
   <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
     <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("plus-circle","w-5 h-5", 20) | safe }} Add Transaction</h3>
-        <button type="button" class="btn btn-cinematic w-full py-3 mb-4 font-bold tracking-widest uppercase text-xs rounded-xl" id="btnSmartPasteToggle">{{ lucide_icon("wand-2","w-4 h-4", 16) | safe }} AUTO-FILL FROM BANK SMS</button>
-        <div id="smsInputContainer" class="hidden p-4 rounded-xl bg-warning/10 border border-amber-500/20 mb-4"><label class="label-cinematic text-warning" for="smsText">Paste Bank SMS Here</label><textarea id="smsText" class="textarea w-full input-cinematic bg-base-300/30 border-amber-500/30 text-base-content font-bold rounded-xl text-sm mb-2" rows="2" placeholder="e.g. Debited Rs.450.00 from A/C at Zomato..."></textarea><button type="button" class="btn btn-cinematic py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl" id="btnParseSms">EXTRACT DETAILS</button></div>
-        <form id="transactionForm" class="flex flex-col gap-4">
-          <div><label class="label-cinematic">Transaction Type</label><div class="flex gap-2 type-toggle"><label class="btn btn-cinematic py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl cursor-pointer"><input type="radio" class="hidden" name="transType" id="typeExpense" value="expense" checked>{{ lucide_icon("arrow-down","w-4 h-4", 16) | safe }} EXPENSE</label><label class="btn btn-cinematic py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl cursor-pointer"><input type="radio" class="hidden" name="transType" id="typeIncome" value="income">{{ lucide_icon("arrow-up","w-4 h-4", 16) | safe }} INCOME</label></div></div>
-          <div><label class="label-cinematic" for="transName">Description</label><input type="text" id="transName" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" placeholder="e.g. Salary, Groceries, Rent"></div>
-          <div class="grid grid-cols-2 gap-3"><div><label class="label-cinematic" for="transAmount">Amount (₹)</label><input type="number" id="transAmount" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" placeholder="0"></div><div><label class="label-cinematic" for="transDate">Date</label><input type="date" id="transDate" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"></div></div>
-          <div><label class="label-cinematic" for="transCategory">Category</label><select id="transCategory" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"></select></div>
-          <button type="submit" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("plus","w-5 h-5", 20) | safe }} ADD TRANSACTION</button>
+      <div class="et-card">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-5 flex items-center gap-2">{{ lucide_icon("plus-circle","w-4 h-4", 16) | safe }} Add Transaction</h2>
+        <form id="txForm" class="space-y-4">
+          <div>
+            <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/50 block mb-1.5">Type</label>
+            <div class="flex gap-2">
+              <label class="flex-1 cursor-pointer"><input type="radio" name="txType" value="expense" checked hidden><span class="block text-center py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest" style="border:2px solid var(--color-error);background:var(--color-base-100);color:var(--color-error)">{{ lucide_icon("arrow-down","w-3 h-3", 12) | safe }} Expense</span></label>
+              <label class="flex-1 cursor-pointer"><input type="radio" name="txType" value="income" hidden><span class="block text-center py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest" style="border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content)">{{ lucide_icon("arrow-up","w-3 h-3", 12) | safe }} Income</span></label>
+            </div>
+          </div>
+          <div>
+            <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/50 block mb-1.5" for="txName">Description</label>
+            <input type="text" id="txName" class="et-inp" placeholder="e.g. Groceries, Salary" maxlength="60">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/50 block mb-1.5" for="txAmount">Amount ($)</label>
+              <input type="number" id="txAmount" class="et-inp" placeholder="0" min="0.01" step="0.01">
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/50 block mb-1.5" for="txDate">Date</label>
+              <input type="date" id="txDate" class="et-inp">
+            </div>
+          </div>
+          <div>
+            <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/50 block mb-1.5" for="txCategory">Category</label>
+            <select id="txCategory" class="et-inp" style="appearance:auto"></select>
+          </div>
+          <button type="submit" class="et-pri w-full" id="submitBtn">{{ lucide_icon("plus","w-4 h-4", 16) | safe }} <span id="submitLabel">Add Transaction</span></button>
+          <button type="button" id="cancelEdit" class="et-sec w-full hidden">Cancel</button>
         </form>
       </div>
     </div>
     <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <div class="flex gap-2" id="trackerTabs">
-            <button class="btn btn-cinematic py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl active" id="list-tab">{{ lucide_icon("list","w-4 h-4", 16) | safe }} HISTORY</button>
-            <button class="btn btn-cinematic py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl" id="chart-tab">{{ lucide_icon("pie-chart","w-4 h-4", 16) | safe }} CHART</button>
-            <button class="btn btn-cinematic py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl text-warning" id="insights-tab">{{ lucide_icon("lightbulb","w-4 h-4", 16) | safe }} INSIGHTS</button>
-          </div>
-          <div class="flex gap-2"><select id="monthFilter" class="input input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-xs"><option value="all">All Time</option></select><button class="btn btn-cinematic py-2 px-3 text-xs rounded-xl" id="exportCsvBtn">{{ lucide_icon("download","w-4 h-4", 16) | safe }}</button><button class="btn btn-cinematic py-2 px-3 text-xs rounded-xl text-error" id="clearAllBtn">{{ lucide_icon("trash-2","w-4 h-4", 16) | safe }}</button></div>
+      <div class="et-card">
+        <div class="grid grid-cols-3 gap-3 mb-5">
+          <div class="et-stat" style="border-color:color-mix(in oklab,#27ae60 20%,transparent)"><div class="lbl" style="color:#27ae60">Income</div><div class="num" style="color:#27ae60" id="totInc">$0</div></div>
+          <div class="et-stat" style="border-color:color-mix(in oklab,#e74c3c 20%,transparent)"><div class="lbl" style="color:#e74c3c">Expenses</div><div class="num" style="color:#e74c3c" id="totExp">$0</div></div>
+          <div class="et-stat" id="balCard"><div class="lbl">Balance</div><div class="num" id="totBal">$0</div></div>
         </div>
-        <div id="list-view"><div id="listEmptyState" class="text-center py-8 text-base-content/40"><p class="text-sm">No transactions found. Add your first income or expense using the form.</p></div><div id="transactionList" class="expense-list hidden flex flex-col gap-2"></div></div>
-        <div id="chart-view" class="hidden"><div id="chartEmptyState" class="text-center py-8 text-base-content/40 hidden"><p class="text-sm">No expenses to show.</p></div><div id="chartContainer" class="hidden" style="min-height:300px"><canvas id="expenseChart"></canvas></div></div>
-        <div id="insights-view" class="hidden"><div id="insightsEmptyState" class="text-center py-8 text-base-content/40"><p class="text-sm">Add your income and expenses to unlock smart financial insights.</p></div><div id="insightsContent" class="hidden flex flex-col gap-4">
-          <div class="card-premium p-4" style="border-color:color-mix(in oklab, var(--color-primary) 25%, transparent)"><h5 class="font-bold mb-3">{{ lucide_icon("scale","w-4 h-4", 16) | safe }} 50/30/20 Budget Health</h5><div class="flex gap-1 h-6 rounded-full overflow-hidden mb-3" style="background:color-mix(in oklab, var(--color-base-content) 5%, transparent)"><div id="barNeeds" class="bg-info" style="width:0%"></div><div id="barWants" class="bg-warning" style="width:0%"></div><div id="barSavings" class="bg-success" style="width:0%"></div></div><div class="flex justify-between text-xs font-bold mb-3"><span class="text-info">Needs (<span id="lblNeeds">0</span>%)</span><span class="text-warning">Wants (<span id="lblWants">0</span>%)</span><span class="text-success">Savings (<span id="lblSavings">0</span>%)</span></div><div class="p-3 rounded-xl bg-base-300/20"><span class="label-cinematic block mb-1 text-xs">AI Budget Advice</span><p id="budgetAdvice" class="font-bold text-sm"></p></div></div>
-          <div class="card-premium p-4" style="border-color:color-mix(in oklab, var(--color-error) 25%, transparent)"><h5 class="font-bold text-error mb-2">{{ lucide_icon("repeat","w-4 h-4", 16) | safe }} Hidden Subscription Costs</h5><p id="subscriptionWarning" class="text-sm text-base-content/60"></p></div>
-        </div></div>
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div class="flex gap-1 flex-wrap" id="filterBar"><button type="button" class="et-fp on" data-m="all">All</button></div>
+          <div class="flex gap-1">
+            <input type="text" id="searchInput" class="et-inp" placeholder="Search..." style="width:140px;padding:.45rem .8rem;font-size:12px">
+            <button type="button" id="exportBtn" class="et-sec" aria-label="Export CSV">{{ lucide_icon("download","w-3 h-3", 12) | safe }}</button>
+          </div>
+        </div>
+        <div id="emptyState" class="text-center py-10 text-base-content/30"><p class="text-sm font-bold">No transactions yet. Add your first one.</p></div>
+        <div id="txList" class="hidden" style="max-height:420px;overflow-y:auto"></div>
       </div>
     </div>
   </div>
 </div>
+<div id="tabAnalytics" class="hidden">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 reveal" style="animation-delay:0.2s">
+    <div class="et-card">
+      <h3 class="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2">{{ lucide_icon("pie-chart","w-4 h-4", 16) | safe }} Spending by Category</h3>
+      <div id="catEmpty" class="text-center py-8 text-base-content/30"><p class="text-sm font-bold">No expenses to show.</p></div>
+      <div id="catWrap" class="hidden space-y-1"></div>
+    </div>
+    <div class="et-card">
+      <h3 class="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4", 16) | safe }} Monthly Overview</h3>
+      <div id="moEmpty" class="text-center py-8 text-base-content/30"><p class="text-sm font-bold">Not enough data.</p></div>
+      <div id="moWrap" class="hidden space-y-3"></div>
+    </div>
+  </div>
+</div>
+<div id="toast" class="et-toast" role="status" aria-live="polite"></div>
 <script>
-(function(){
-'use strict';
-document.addEventListener('DOMContentLoaded',function(){function formatCurrency(val){return parseFloat(val).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0});}
-var resIncome=document.getElementById('totalIncome');var resExpenses=document.getElementById('totalExpenses');var resBalance=document.getElementById('remainingBalance');var balanceCard=document.getElementById('balanceCard');var transactionForm=document.getElementById('transactionForm');var typeRadios=document.getElementsByName('transType');var transName=document.getElementById('transName');var transAmount=document.getElementById('transAmount');var transDate=document.getElementById('transDate');var transCategory=document.getElementById('transCategory');var submitBtn=document.getElementById('submitBtn');var btnSmartPasteToggle=document.getElementById('btnSmartPasteToggle');var smsInputContainer=document.getElementById('smsInputContainer');var smsText=document.getElementById('smsText');var btnParseSms=document.getElementById('btnParseSms');var listEmptyState=document.getElementById('listEmptyState');var transactionList=document.getElementById('transactionList');var chartEmptyState=document.getElementById('chartEmptyState');var chartContainer=document.getElementById('chartContainer');var monthFilter=document.getElementById('monthFilter');var clearAllBtn=document.getElementById('clearAllBtn');var exportCsvBtn=document.getElementById('exportCsvBtn');var transactions=[];var chartInstance=null;var currentFilter='all';var today=new Date();transDate.value=today.toISOString().split('T')[0];var expenseCategories=['Housing','Food','Transport','Utilities','Health','Entertainment','Shopping','Other'];var incomeCategories=['Salary','Business','Investments','Freelance','Gift','Other'];var categoryColors={'Housing':'#6610f2','Food':'#fd7e14','Transport':'#0dcaf0','Utilities':'#ffc107','Health':'#dc3545','Entertainment':'#d63384','Shopping':'#20c997','Other':'#6c757d','Salary':'#198754','Business':'#0d6efd','Investments':'#6f42c1','Freelance':'#0dcaf0','Gift':'#ffc107'};function updateCategoryDropdown(){var checkedType=document.querySelector('input[name="transType"]:checked');const categories=checkedType&&checkedType.value==='income'?incomeCategories:expenseCategories;transCategory.innerHTML=categories.map(c=>`<option value="${c}">${c}</option>`).join('');const submitBtnText=checkedType&&checkedType.value==='income'?'ADD INCOME':'ADD EXPENSE';submitBtn.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> '+submitBtnText;}
-Array.from(typeRadios).forEach(function(r){r.addEventListener('change',updateCategoryDropdown);});updateCategoryDropdown();function loadData(){var savedData=localStorage.getItem('sb_adv_transactions');if(savedData){try{transactions=JSON.parse(savedData);}catch(e){transactions=[];}}
-updateMonthFilterOptions();updateUI();}
-function saveData(){localStorage.setItem('sb_adv_transactions',JSON.stringify(transactions));updateMonthFilterOptions();}
-function updateMonthFilterOptions(){var months=new Set();transactions.forEach(function(t){var ym=t.date.substring(0,7);months.add(ym);});var currentSel=monthFilter.value;monthFilter.innerHTML='<option value="all">All Time</option>';Array.from(months).sort().reverse().forEach(function(ym){var dateObj=new Date(ym+'-01');var label=dateObj.toLocaleDateString('en-US',{month:'long',year:'numeric'});var opt=document.createElement('option');opt.value=ym;opt.innerText=label;monthFilter.appendChild(opt);});if(months.has(currentSel))monthFilter.value=currentSel;else{monthFilter.value='all';currentFilter='all';}}
-monthFilter.addEventListener('change',function(e){currentFilter=e.target.value;updateUI();});
-document.getElementById('list-tab').addEventListener('click',function(){switchTab('list');});document.getElementById('chart-tab').addEventListener('click',function(){switchTab('chart');});document.getElementById('insights-tab').addEventListener('click',function(){switchTab('insights');});
-function switchTab(tab){['list','chart','insights'].forEach(function(t){document.getElementById(t+'-view').classList.toggle('hidden',t!==tab);});}
-btnSmartPasteToggle.addEventListener('click',function(){smsInputContainer.classList.toggle('hidden');if(!smsInputContainer.classList.contains('hidden'))smsText.focus();});
-btnParseSms.addEventListener('click',function(){var text=smsText.value;if(!text)return;var amountMatch=text.match(/(?:Rs\.?|INR|₹)\s?(\d+(?:,\d+)*(?:\.\d+)?)/i);if(amountMatch){var amt=amountMatch[1].replace(/,/g,'');transAmount.value=parseFloat(amt);}
-if(text.toLowerCase().includes('credited')||text.toLowerCase().includes('deposited')){document.getElementById('typeIncome').checked=true;}else{document.getElementById('typeExpense').checked=true;}
-updateCategoryDropdown();var foundName='';var nameMatch=text.match(/at\s+([A-Za-z0-9\s]+?)(?:\.| on | val | txn)/i)||text.match(/to\s+([A-Za-z0-9\s]+?)(?:\.| on | ref)/i);if(nameMatch){foundName=nameMatch[1].trim();transName.value=foundName;}
-var lowerText=(text+' '+foundName).toLowerCase();var cat='Other';if(lowerText.match(/zomato|swiggy|restaurant|cafe|mcdonalds|kfc|pizza/))cat='Food';if(lowerText.match(/uber|ola|petrol|fuel|irctc|metro/))cat='Transport';if(lowerText.match(/amazon|flipkart|myntra|zara|h&m/))cat='Shopping';if(lowerText.match(/netflix|spotify|prime|hotstar/))cat='Entertainment';if(lowerText.match(/hospital|pharmacy|apollo|medplus/))cat='Health';if(lowerText.match(/electricity|bill|jio|airtel|recharge/))cat='Utilities';if(lowerText.match(/salary|payroll/))cat='Salary';transCategory.value=cat;smsInputContainer.classList.add('hidden');smsText.value='';});
-transactionForm.addEventListener('submit',function(e){e.preventDefault();var type=document.querySelector('input[name="transType"]:checked').value;var newTrans={id:Date.now().toString(),type:type,name:transName.value.trim(),amount:parseFloat(transAmount.value),category:transCategory.value,date:transDate.value};transactions.unshift(newTrans);transactions.sort(function(a,b){return new Date(b.date)-new Date(a.date);});saveData();updateUI();transName.value='';transAmount.value='';transName.focus();});
-function deleteTransaction(id){transactions=transactions.filter(function(t){return t.id!==id;});saveData();updateUI();};
-clearAllBtn.addEventListener('click',function(){if(confirm("Are you sure you want to delete ALL data?")){transactions=[];saveData();updateUI();}});
-exportCsvBtn.addEventListener('click',function(){if(transactions.length===0)return alert("No data.");var csv="data:text/csv;charset=utf-8,Date,Type,Description,Category,Amount\n";transactions.forEach(function(t){csv+=t.date+','+t.type+','+t.name.replace(/,/g,"")+','+t.category+','+t.amount+'\n';});var a=document.createElement('a');a.href=encodeURI(csv);a.download="expenses.csv";document.body.appendChild(a);a.click();document.body.removeChild(a);});
-function updateUI(){var filtered=currentFilter==='all'?transactions:transactions.filter(function(t){return t.date.startsWith(currentFilter);});var totalInc=0;var totalExp=0;filtered.forEach(function(t){if(t.type==='income')totalInc+=t.amount;if(t.type==='expense')totalExp+=t.amount;});var remBalance=totalInc-totalExp;resIncome.innerText="₹"+formatCurrency(totalInc);resExpenses.innerText="₹"+formatCurrency(totalExp);resBalance.innerText=(remBalance<0?"-₹":"₹")+formatCurrency(Math.abs(remBalance));if(remBalance<0){balanceCard.style.borderColor='color-mix(in oklab, var(--color-error) 25%, transparent)';resBalance.style.color='var(--color-error)';}else if(remBalance>0){balanceCard.style.borderColor='color-mix(in oklab, var(--color-success) 25%, transparent)';resBalance.style.color='var(--color-success)';}else{balanceCard.style.borderColor='color-mix(in oklab, var(--color-base-content) 25%, transparent)';resBalance.style.color='';}
-renderList(filtered);renderChart(filtered);renderSmartInsights(filtered,totalInc,totalExp);}
-function renderList(filtered){if(filtered.length===0){listEmptyState.classList.remove('hidden');transactionList.classList.add('hidden');return;}
-listEmptyState.classList.add('hidden');transactionList.classList.remove('hidden');transactionList.innerHTML=filtered.map(function(t){var sign=t.type==='income'?'+':'-';var cls=t.type==='income'?'text-success':'text-error';    return'<div class="expense flex items-center justify-between gap-3"><div class="flex-1 min-w-0"><div class="flex items-center gap-2"><span class="pill-cinematic text-xs">'+t.category+'</span><span class="text-xs text-base-content/40">'+new Date(t.date).toLocaleDateString('en-IN')+'</span></div><div class="font-bold text-sm truncate">'+t.name+'</div></div><div class="text-right shrink-0"><div class="font-black '+cls+'">'+sign+'₹'+formatCurrency(t.amount)+'</div><button data-action="delete-transaction" data-transaction-id="'+t.id+'" class="text-xs text-error opacity-50 hover:opacity-100">Delete</button></div></div>';}).join('');}
-function renderChart(filtered){var expenseData=filtered.filter(function(t){return t.type==='expense';});if(expenseData.length===0){chartEmptyState.classList.remove('hidden');chartContainer.classList.add('hidden');return;}
-chartEmptyState.classList.add('hidden');chartContainer.classList.remove('hidden');var catTotals={};expenseData.forEach(function(t){catTotals[t.category]=(catTotals[t.category]||0)+t.amount;});var labels=Object.keys(catTotals);var data=Object.values(catTotals);var colors=labels.map(function(l){return categoryColors[l]||'#6c757d';});if(chartInstance)chartInstance.destroy();chartInstance=new Chart(document.getElementById('expenseChart'),{type:'doughnut',data:{labels:labels,datasets:[{data:data,backgroundColor:colors,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{color:'var(--color-base-content)',font:{size:10}}}}}});}
-function renderSmartInsights(filtered,totalInc,totalExp){var insightsContent=document.getElementById('insightsContent');var insightsEmptyState=document.getElementById('insightsEmptyState');var expenseData=filtered.filter(function(t){return t.type==='expense';});if(totalInc<=0||expenseData.length<2){insightsEmptyState.classList.remove('hidden');insightsContent.classList.add('hidden');return;}
-insightsEmptyState.classList.add('hidden');insightsContent.classList.remove('hidden');var needsCats=['Housing','Utilities','Health','Transport'];var wantsCats=['Food','Entertainment','Shopping','Other'];var needs=0,wants=0;expenseData.forEach(function(t){if(needsCats.includes(t.category))needs+=t.amount;else if(wantsCats.includes(t.category))wants+=t.amount;else needs+=t.amount;});var savings=Math.max(0,totalInc-totalExp);var needsPct=totalInc>0?Math.round(needs/totalInc*100):0;var wantsPct=totalInc>0?Math.round(wants/totalInc*100):0;var savingsPct=totalInc>0?Math.round(savings/totalInc*100):0;document.getElementById('barNeeds').style.width=needsPct+'%';document.getElementById('barWants').style.width=wantsPct+'%';document.getElementById('barSavings').style.width=savingsPct+'%';document.getElementById('lblNeeds').innerText=needsPct;document.getElementById('lblWants').innerText=wantsPct;document.getElementById('lblSavings').innerText=savingsPct;var adviceEl=document.getElementById('budgetAdvice');if(needsPct>50)adviceEl.innerText='Your needs spending is above 50%. Consider reducing housing or utility costs.';else if(savingsPct<20)adviceEl.innerText='You are saving less than 20%. Try to save more each month.';else if(wantsPct>30)adviceEl.innerText='Your wants spending is above 30%. Try cutting back on entertainment and shopping.';else adviceEl.innerText='Great job! Your budget aligns well with the 50/30/20 rule.';var subNames=expenseData.filter(function(t){var low=t.name.toLowerCase();return low.includes('netflix')||low.includes('spotify')||low.includes('prime')||low.includes('hotstar')||low.includes('youtube')||low.includes('icloud')||low.includes('google one')||low.includes('dropbox')||low.includes('patreon');});if(subNames.length>0){var names=[];subNames.forEach(function(s){if(names.indexOf(s.name)===-1)names.push(s.name);});document.getElementById('subscriptionWarning').innerHTML='<strong>Potential recurring subscriptions detected:</strong> '+names.join(', ')+'. Review these to find potential savings.';}else{document.getElementById('subscriptionWarning').innerHTML='No recurring subscriptions detected. Track regularly to catch new charges.';}}
-loadData();
-document.getElementById('transactionList').addEventListener('click',function(e){
-  var btn=e.target.closest('[data-action="delete-transaction"]');
-  if(!btn)return;
-  var id=btn.getAttribute('data-transaction-id');
-  deleteTransaction(id);
-});});})();
-</script>
+(function(){'use strict';
+var S='sb_expenses',tx=[],curFilter='all',editId=null;
+var txForm=document.getElementById('txForm'),txName=document.getElementById('txName'),txAmount=document.getElementById('txAmount'),txDate=document.getElementById('txDate'),txCategory=document.getElementById('txCategory');
+var submitBtn=document.getElementById('submitBtn'),submitLabel=document.getElementById('submitLabel'),cancelEdit=document.getElementById('cancelEdit');
+var totInc=document.getElementById('totInc'),totExp=document.getElementById('totExp'),totBal=document.getElementById('totBal'),balCard=document.getElementById('balCard');
+var txList=document.getElementById('txList'),emptyState=document.getElementById('emptyState'),filterBar=document.getElementById('filterBar'),searchInput=document.getElementById('searchInput'),exportBtn=document.getElementById('exportBtn');
+var catEmpty=document.getElementById('catEmpty'),catWrap=document.getElementById('catWrap'),moEmpty=document.getElementById('moEmpty'),moWrap=document.getElementById('moWrap');
+var toast=document.getElementById('toast'),toastTimer=null;
+var expCats=['Housing','Food','Transport','Utilities','Health','Entertainment','Shopping','Other'];
+var incCats=['Salary','Freelance','Business','Investments','Gift','Other'];
+var Cc={Housing:'#8e44ad',Food:'#e67e22',Transport:'#3498db',Utilities:'#f1c40f',Health:'#e74c3c',Entertainment:'#e91e63',Shopping:'#2ecc71',Other:'#95a5a6',Salary:'#27ae60',Freelance:'#2980b9',Business:'#16a085',Investments:'#8e44ad',Gift:'#f39c12'};
 
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Expense Tracker","applicationCategory":"FinanceApplication","operatingSystem":"Web browser","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}]}</script>
+function showToast(m){if(toastTimer)clearTimeout(toastTimer);toast.textContent=m;toast.classList.add('show');toastTimer=setTimeout(function(){toast.classList.remove('show')},2200)}
+function popCats(t){var c=t==='income'?incCats:expCats;txCategory.innerHTML=c.map(function(c){return'<option value="'+c+'">'+c+'</option>'}).join('')}
+document.getElementsByName('txType').forEach(function(r){r.addEventListener('change',function(){
+  var v=document.querySelector('input[name="txType"]:checked').value;popCats(v);
+  document.querySelectorAll('[data-txlabel]').forEach(function(s){});
+  document.querySelectorAll('[data-txlabel]').forEach(function(s){var p=s.parentElement,i=p.querySelector('input');
+    s.style.borderColor=i.checked?(v==='expense'?'var(--color-error)':'var(--color-success)'):'var(--color-base-300)';
+    s.style.color=i.checked?(v==='expense'?'var(--color-error)':'var(--color-success)'):'var(--color-base-content)'});
+})});popCats('expense');
+
+document.querySelectorAll('.et-tab').forEach(function(t){t.addEventListener('click',function(){
+  document.querySelectorAll('.et-tab').forEach(function(x){x.classList.remove('on')});this.classList.add('on');
+  var tab=this.getAttribute('data-tab');
+  document.getElementById('tabTx').classList.toggle('hidden',tab!=='tx');
+  document.getElementById('tabAnalytics').classList.toggle('hidden',tab!=='analytics');
+  if(tab==='analytics')renderAnalytics();else render();
+})});
+
+txDate.value=new Date().toISOString().split('T')[0];
+function load(){var d=localStorage.getItem(S);tx=d?JSON.parse(d):[];render();renderFilters()}
+function save(){localStorage.setItem(S,JSON.stringify(tx));renderFilters()}
+function fmt(n){return Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function render(){
+  var q=searchInput.value.toLowerCase().trim();
+  var f=curFilter==='all'?tx:tx.filter(function(t){return t.date.startsWith(curFilter)});
+  if(q)f=f.filter(function(t){return t.name.toLowerCase().includes(q)||t.category.toLowerCase().includes(q)});
+  var inc=0,exp=0;f.forEach(function(t){if(t.type==='income')inc+=t.amount;else exp+=t.amount});
+  var bal=inc-exp;
+  totInc.textContent='$'+fmt(inc);totExp.textContent='$'+fmt(exp);
+  totBal.textContent=(bal<0?'-$':'$')+fmt(Math.abs(bal));
+  balCard.style.borderColor='color-mix(in oklab,'+(bal>0?'#27ae60':bal<0?'#e74c3c':'var(--color-base-300)')+' 20%,transparent)';
+  totBal.style.color=bal>0?'#27ae60':bal<0?'#e74c3c':'';
+  renderList(f);
+}
+function renderList(f){
+  if(!f.length){emptyState.classList.remove('hidden');txList.classList.add('hidden');return}
+  emptyState.classList.add('hidden');txList.classList.remove('hidden');
+  var d={};f.forEach(function(t){var k=t.date;if(!d[k])d[k]=[];d[k].push(t)});
+  var h='';Object.keys(d).sort(function(a,b){return b.localeCompare(a)}).forEach(function(k){
+    h+='<div class="text-xs font-bold text-base-content/30 uppercase tracking-wider mb-1.5 mt-2.5">'+new Date(k+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})+'</div>';
+    d[k].forEach(function(t){
+      var cc=Cc[t.category]||'#95a5a6';
+      h+='<div class="et-row"><div class="flex items-center gap-3 min-w-0 flex-1"><span class="et-dot" style="background:'+cc+';color:'+cc+'" aria-hidden="true"></span><div class="min-w-0 flex-1"><div class="font-bold text-sm truncate">'+t.name+'</div><div class="text-xs font-bold" style="color:'+cc+'">'+t.category+'</div></div></div><div class="flex items-center gap-1 shrink-0"><div class="et-amt" style="color:'+(t.type==='income'?'#27ae60':'#e74c3c')+'">'+(t.type==='income'?'+':'−')+'$'+t.amount.toFixed(t.amount%1?2:0)+'</div><button class="et-edit" data-act="ed" data-id="'+t.id+'" aria-label="Edit">✎</button><button class="et-del" data-act="del" data-id="'+t.id+'" aria-label="Delete">✕</button></div></div>'});
+  });
+  txList.innerHTML=h;
+}
+function renderAnalytics(){
+  var f=curFilter==='all'?tx:tx.filter(function(t){return t.date.startsWith(curFilter)});
+  renderCats(f);renderMonthly(f);
+}
+function renderCats(f){
+  var exps=f.filter(function(t){return t.type==='expense'});
+  if(!exps.length){catEmpty.classList.remove('hidden');catWrap.classList.add('hidden');return}
+  catEmpty.classList.add('hidden');catWrap.classList.remove('hidden');
+  var cats={};exps.forEach(function(t){cats[t.category]=(cats[t.category]||0)+t.amount});
+  var total=exps.reduce(function(s,t){return s+t.amount},0);
+  var sorted=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a]});
+  var maxVal=cats[sorted[0]]||1;
+  catWrap.innerHTML=sorted.map(function(c){var p=total>0?Math.round(cats[c]/total*100):0;return'<div class="et-cat-bar"><span class="text-xs font-bold" style="width:60px;text-align:right;flex-shrink:0">'+c+'</span><div class="et-cat-tt"><div class="et-cat-fl" style="width:'+Math.round(cats[c]/maxVal*100)+'%;background:'+(Cc[c]||'#95a5a6')+'" role="progressbar" aria-valuenow="'+cats[c]+'" aria-valuemax="'+total+'"></div></div><span class="text-xs font-bold" style="width:55px;text-align:right">$'+cats[c].toFixed(0)+'</span><span class="text-xs font-bold text-base-content/40" style="width:32px;text-align:right">'+p+'%</span></div>'}).join('');
+}
+function renderMonthly(f){
+  var months={};f.forEach(function(t){var m=t.date.slice(0,7);if(!months[m])months[m]={inc:0,exp:0};if(t.type==='income')months[m].inc+=t.amount;else months[m].exp+=t.amount});
+  var keys=Object.keys(months).sort();if(keys.length<1){moEmpty.classList.remove('hidden');moWrap.classList.add('hidden');return}
+  moEmpty.classList.add('hidden');moWrap.classList.remove('hidden');
+  var maxV=Math.max.apply(null,keys.map(function(k){return Math.max(months[k].inc,months[k].exp)}))||1;
+  moWrap.innerHTML=keys.slice(-6).map(function(k){
+    var d=new Date(k+'-01T12:00:00'),m=d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
+    var iH=Math.round(months[k].inc/maxV*100),eH=Math.round(months[k].exp/maxV*100),bal=months[k].inc-months[k].exp;
+    return'<div><div class="flex justify-between text-xs font-bold mb-1"><span>'+m+'</span><span style="color:'+(bal>=0?'#27ae60':'#e74c3c')+'">'+(bal>=0?'+':'−')+'$'+fmt(Math.abs(bal))+'</span></div><div class="flex gap-1" style="height:24px"><div style="width:'+iH+'%;background:#27ae60;border-radius:4px 0 0 4px;transition:width .5s;min-width:'+(iH>0?'6px':'0')+'" title="Income: $'+fmt(months[k].inc)+'"></div><div style="width:'+eH+'%;background:#e74c3c;border-radius:0 4px 4px 0;transition:width .5s;min-width:'+(eH>0?'6px':'0')+'" title="Expenses: $'+fmt(months[k].exp)+'"></div></div></div>'} ).join('');
+}
+function renderFilters(){
+  var ms=new Set();tx.forEach(function(t){ms.add(t.date.substring(0,7))});
+  var cv=curFilter;
+  filterBar.innerHTML='<button type="button" class="et-fp on" data-m="all">All</button>';
+  Array.from(ms).sort().reverse().forEach(function(ym){
+    var d=new Date(ym+'-01T12:00:00'),b=document.createElement('button');
+    b.type='button';b.className='et-fp';b.setAttribute('data-m',ym);b.textContent=d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
+    if(ym===cv)b.classList.add('on');filterBar.appendChild(b);
+  });
+  if(!ms.has(cv))curFilter='all';
+  filterBar.querySelectorAll('.et-fp').forEach(function(b){b.addEventListener('click',function(){
+    filterBar.querySelectorAll('.et-fp').forEach(function(x){x.classList.remove('on')});
+    this.classList.add('on');curFilter=this.getAttribute('data-m');render();
+  })});
+}
+txForm.addEventListener('submit',function(e){
+  e.preventDefault();
+  var type=document.querySelector('input[name="txType"]:checked').value;
+  var name=txName.value.trim(),amount=parseFloat(txAmount.value),date=txDate.value,category=txCategory.value;
+  if(!name||!amount||!date)return;
+  if(editId){
+    tx.forEach(function(t,i){if(t.id===editId){tx[i]={id:editId,type:type,name:name,amount:amount,category:category,date:date}}});
+    editId=null;submitLabel.textContent='Add Transaction';submitBtn.innerHTML='{{ lucide_icon("plus","w-4 h-4", 16) | safe }} <span id="submitLabel">Add Transaction</span>';cancelEdit.classList.add('hidden');
+    showToast('Transaction updated ✓');
+  }else{
+    tx.unshift({id:Date.now().toString(),type:type,name:name,amount:amount,category:category,date:date});
+    showToast('Transaction added ✓');
+  }
+  tx.sort(function(a,b){return b.date.localeCompare(a.date)||(a.id>b.id?-1:1)});
+  save();render();
+  txName.value='';txAmount.value='';txName.focus();
+});
+cancelEdit.addEventListener('click',function(){
+  editId=null;submitLabel.textContent='Add Transaction';submitBtn.innerHTML='{{ lucide_icon("plus","w-4 h-4", 16) | safe }} <span id="submitLabel">Add Transaction</span>';cancelEdit.classList.add('hidden');
+  txName.value='';txAmount.value='';txName.focus();
+});
+txList.addEventListener('click',function(e){
+  var btn=e.target.closest('[data-act]');if(!btn)return;
+  var id=btn.getAttribute('data-id'),act=btn.getAttribute('data-act');
+  if(act==='del'){tx=tx.filter(function(t){return t.id!==id});save();render();showToast('Transaction deleted')}
+  if(act==='ed'){tx.forEach(function(t){if(t.id===id){
+    editId=id;txName.value=t.name;txAmount.value=t.amount;txDate.value=t.date;
+    document.querySelectorAll('input[name="txType"]').forEach(function(r){r.checked=r.value===t.type;r.dispatchEvent(new Event('change'))});
+    txCategory.value=t.category;submitLabel.textContent='Update';cancelEdit.classList.remove('hidden');txName.focus();
+  }})}
+});
+searchInput.addEventListener('input',function(){render()});
+exportBtn.addEventListener('click',function(){
+  if(!tx.length)return;
+  var csv='data:text/csv;charset=utf-8,Date,Type,Description,Category,Amount\n';
+  tx.forEach(function(t){csv+=t.date+','+t.type+','+t.name.replace(/,/g,'')+','+t.category+','+t.amount+'\n'});
+  var a=document.createElement('a');a.href=encodeURI(csv);a.download='expenses.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);
+  showToast('CSV exported ✓');
+});
+load();
+})();
+</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Expense Tracker","applicationCategory":"FinanceApplication","operatingSystem":"Web browser","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Free online expense tracker to log income and expenses in your browser. No sign-up."}]}</script>
 {% endblock %}

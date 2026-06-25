@@ -86,6 +86,6 @@ class ProxyService:
                 "body": response.text,
             }
         except requests.exceptions.RequestException as e:
-            raise ServiceError(f"Request failed: {str(e)}")
+            raise ServiceError(f"Request failed: {str(e)}") from e
         except Exception as e:
-            raise ServiceError(f"An unexpected error occurred: {str(e)}")
+            raise ServiceError(f"An unexpected error occurred: {str(e)}") from e

@@ -1,8 +1,25 @@
+import struct
+import zlib
+
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
 client = TestClient(app)
+
+
+def _make_png(r=255, g=0, b=0):
+    sig = b'\x89PNG\r\n\x1a\n'
+    ihdr_data = struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0)
+    ihdr_crc = zlib.crc32(b'IHDR' + ihdr_data)
+    ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + struct.pack('>I', ihdr_crc)
+    raw = b'\x00' + bytes([r, g, b])
+    compressed = zlib.compress(raw)
+    idat_crc = zlib.crc32(b'IDAT' + compressed)
+    idat = struct.pack('>I', len(compressed)) + b'IDAT' + compressed + struct.pack('>I', idat_crc)
+    iend_crc = zlib.crc32(b'IEND')
+    iend = struct.pack('>I', 0) + b'IEND' + struct.pack('>I', iend_crc)
+    return sig + ihdr + idat + iend
 
 
 class TestPages:
@@ -248,13 +265,14 @@ class TestNFTIntegration:
 
 
 class TestImageIntegration:
-    def test_remove_background_missing_deps(self):
+    def test_remove_background(self):
         resp = client.post(
             "/api/remove-background",
-            files={"image": ("test.png", b"not-a-real-png", "image/png")},
-            data={"bg_color": ""},
+            files={"image": ("test.png", _make_png(), "image/png")},
+            data={"bg_color": "transparent"},
         )
-        assert resp.status_code in (500,)
+        assert resp.status_code == 200
+        assert resp.headers["content-type"] == "image/png"
 
     def test_remove_watermark_missing_deps(self):
         resp = client.post(

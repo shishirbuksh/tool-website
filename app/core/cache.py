@@ -1,8 +1,7 @@
+import json
 import os
 import time
 from typing import Any
-
-import json
 
 from app.core.log import get_logger
 

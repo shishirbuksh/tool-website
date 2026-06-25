@@ -62,8 +62,8 @@ class TestCatalogService:
     def test_get_valid_tools_missing_some(self, settings):
         svc = CatalogService(settings)
         tools = svc.get_valid_tools()
-        important = ["qr-generator", "invoice-generator", "password-generator",
-                      "calculator", "pdf-converter", "image-background-remover"]
+        important = ["qr-generator", "invoice-generator",
+                      "calculator"]
         for t in important:
             assert t in tools, f"Missing important tool: {t}"
 

@@ -1,67 +1,232 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
 
-{% block title %}Free Image Background Remover | Simple & Fast | StoryBrain AI{% endblock %}
-{% block meta_description %}Remove the background from any image for free. Choose a transparent background or pick a custom color. Fast, easy, and completely free.{% endblock %}
-{% block meta_keywords %}free background remover, remove image background, transparent background maker, photo background editor{% endblock %}
+{% block title %}Free Image Background Remover | Remove BG Online{% endblock %}
+{% block meta_description %}Remove background from any image for free. Works with portraits, products, and graphics. Compare before and after. No sign-up.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/image-background-remover{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/image-background-remover">
-<meta property="og:title" content="Free Image Background Remover | Simple & Fast">
-<meta property="og:description" content="Remove the background from any image for free. Choose transparent or pick a custom color instantly.">
+<meta property="og:title" content="Free Image Background Remover | Remove BG Online">
+<meta property="og:description" content="Remove background from any image for free. Compare before and after.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
 {% endblock %}
 {% block head %}
-<style>.extraction-workspace{aspect-ratio:1/1;background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:1.5rem;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}.extraction-workspace img{max-width:100%;max-height:100%;object-fit:contain}.loading-overlay{position:absolute;inset:0;z-index:50;background:var(--color-base-100);opacity:0.9;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:1.5rem}.checkered-bg{background-image:linear-gradient(45deg,var(--color-base-300) 25%,transparent 25%),linear-gradient(-45deg,var(--color-base-300) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,var(--color-base-300) 75%),linear-gradient(-45deg,transparent 75%,var(--color-base-300) 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}</style>
+<style>
+.preview-box{aspect-ratio:1/1;border-radius:1.5rem;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+.preview-box img{max-width:100%;max-height:100%;object-fit:contain;transition:opacity .3s}
+.checker{background:repeating-conic-gradient(#d4d4d4 0% 25%,transparent 0% 50%) 0 0 / 20px 20px}
+.compare-strip{position:absolute;bottom:.75rem;left:.75rem;right:.75rem;z-index:4;display:flex;align-items:center;gap:.5rem;padding:.4rem .6rem;border-radius:99px;background:color-mix(in oklab,var(--color-base-100) 70%,transparent);-webkit-backdrop-filter:blur(12px);border:1px solid #ffffff0f}
+.compare-strip label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--color-base-content);opacity:.5}
+.img-badge{position:absolute;top:.75rem;left:.75rem;z-index:4;padding:.25rem .6rem;border-radius:99px;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;background:color-mix(in oklab,var(--color-base-content) 10%,transparent);-webkit-backdrop-filter:blur(8px);border:1px solid #ffffff0f;color:var(--color-base-content)}
+.zoom-overlay{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);-webkit-backdrop-filter:blur(24px);display:none;align-items:center;justify-content:center;padding:2rem;cursor:zoom-out}
+.zoom-overlay.open{display:flex}
+.zoom-overlay img{max-width:100%;max-height:100%;object-fit:contain;border-radius:1rem}
+.control-section{margin-bottom:1.25rem}
+.control-section:last-child{margin-bottom:0}
+.control-label{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--color-base-content);opacity:.45;display:block;margin-bottom:.5rem}
+.color-swatch{width:24px;height:24px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:all .2s;flex-shrink:0}
+.color-swatch:hover,.color-swatch.active{border-color:var(--color-primary);transform:scale(1.15)}
+.color-swatch-wrap{display:flex;gap:.35rem;flex-wrap:wrap}
+</style>
 {% endblock %}
 {% block content %}
-{{ tool_hero_section("image", "Free Tool", "IMAGE BACKGROUND", "REMOVER", "Remove the background from any photo instantly. Fast, completely free, and secure.") }}
-  <div class="flex justify-center gap-6 reveal" style="animation-delay:0.2s">
-    <div class="w-full lg:w-10/12">
-      <div id="uploadCard" class="reveal">
-        <div class="card-premium p-8 text-center upload-area" id="uploadArea" style="cursor:pointer;position:relative">
-          <input type="file" id="fileInput" class="absolute top-0 left-0 w-full h-full opacity-0" style="cursor:pointer;z-index:10" accept="image/png,image/jpeg,image/webp" aria-label="File">
-          <div class="rounded-full bg-primary/10 inline-flex items-center justify-center mb-4" style="width:80px;height:80px">{{ lucide_icon("cloud-upload","w-7 h-7", 28) | safe }}</div>
-          <h2 class="font-black text-xl mb-2">Click or Drop Image Here</h2>
-          <p class="text-base-content/50 text-sm">Supports JPG, PNG, WEBP (Max 10MB)</p>
+{{ tool_hero_section("eraser", "Image Processing", "BACKGROUND", "REMOVER", "Remove, replace, and compare. Upload any image and remove its background in seconds.") }}
+
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+
+  <div class="lg:w-4/12 xl:max-w-sm shrink-0">
+    <div class="card-premium p-6 space-y-5">
+
+      <div id="uploadArea">
+        <div class="text-center relative" id="uploadZone" tabindex="0" role="button" aria-label="Upload an image to remove its background" style="cursor:pointer;padding:1.5rem;border:2px dashed color-mix(in oklab,var(--color-primary) 25%,transparent);border-radius:1.25rem;transition:all .3s">
+          <input type="file" id="fileInput" class="absolute top-0 left-0 w-full h-full opacity-0" style="cursor:pointer;z-index:10" accept="image/*" aria-label="Choose an image file">
+          <div class="rounded-full bg-primary/10 inline-flex items-center justify-center mx-auto mb-3" style="width:64px;height:64px">{{ lucide_icon("cloud-upload","w-6 h-6",24)|safe }}</div>
+          <p class="font-black text-base mb-1">Upload Image</p>
+          <p class="text-xs text-base-content/40">Drop or click &bull; Max 10MB</p>
         </div>
       </div>
-      <div id="resultCard" class="hidden reveal flex flex-col gap-4">
-        <div class="card-premium p-4">
-          <form id="bgForm" class="flex flex-wrap items-end gap-4">
-            <div><label class="label-cinematic" for="bgColorType">Background Color</label>
-              <div class="flex gap-2"><select class="input input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" id="bgColorType"><option value="transparent">Transparent (Default)</option><option value="solid">Solid Color</option></select><input type="color" class="input input-color-cinematic hidden" id="bgColor" value="#ffffff"></div></div>
-            <div><label class="label-cinematic">Edge Smoothing</label><div class="flex items-center gap-2 pt-2"><input type="checkbox" class="checkbox checkbox-cinematic rounded-md border-base-content/30" id="smoothEdges"><span class="text-sm font-medium">Enable Smoothing</span></div></div>
-            <div class="flex gap-2 ml-auto">
-              <button type="button" id="resetBtn" class="btn btn-cinematic py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("rotate-ccw","w-4 h-4", 16) | safe }} START OVER</button>
-              <button type="submit" id="applyBtn" class="btn btn-cinematic py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("check","w-4 h-4", 16) | safe }} APPLY</button>
-            </div>
-          </form>
+
+      <div id="controlsArea" class="hidden">
+        <div class="control-section">
+          <span class="control-label">Background Color</span>
+          <div class="color-swatch-wrap">
+            <button type="button" class="color-swatch active" data-color="transparent" style="background:repeating-conic-gradient(#d4d4d4 0% 25%,#fff 0% 50%) 0 0 / 10px 10px" aria-label="Transparent background"></button>
+            <button type="button" class="color-swatch" data-color="#ffffff" style="background:#fff;border-color:color-mix(in oklab,var(--color-base-content) 15%,transparent)" aria-label="White background"></button>
+            <button type="button" class="color-swatch" data-color="#000000" style="background:#000" aria-label="Black background"></button>
+            <button type="button" class="color-swatch" data-color="#ef4444" style="background:#ef4444" aria-label="Red background"></button>
+            <button type="button" class="color-swatch" data-color="#22c55e" style="background:#22c55e" aria-label="Green background"></button>
+            <button type="button" class="color-swatch" data-color="#3b82f6" style="background:#3b82f6" aria-label="Blue background"></button>
+            <button type="button" class="color-swatch" data-color="#f59e0b" style="background:#f59e0b" aria-label="Amber background"></button>
+            <button type="button" class="color-swatch" data-color="#a855f7" style="background:#a855f7" aria-label="Purple background"></button>
+          </div>
+          <div style="margin-top:.5rem">
+            <label for="customColor" class="text-[9px] font-bold uppercase tracking-wider text-base-content/30">or custom</label>
+            <input type="color" id="customColor" value="#3b82f6" class="block w-full h-7 rounded-lg cursor-pointer border-0 p-0 mt-1" aria-label="Pick a custom background color">
+          </div>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="card-premium p-4">
-            <div class="flex justify-between items-center mb-3"><span class="font-bold text-base-content">Original Image</span><span id="originalSize" class="text-xs text-base-content/50 font-mono"></span></div>
-            <div class="extraction-workspace"><img alt="Original" loading="lazy" id="originalPreview" src="" class="w-full h-full object-contain"></div>
+
+        <div class="control-section">
+          <label class="control-label" for="smoothEdges">Smooth Edges</label>
+          <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl" style="background:color-mix(in oklab,var(--color-base-content) 3%,transparent)">
+            <input type="checkbox" id="smoothEdges" class="toggle toggle-sm toggle-cinematic" aria-label="Soften edges for smoother cutouts">
+            <div><span class="font-bold text-sm text-base-content">Soften</span><p class="text-[10px] text-base-content/35">Better for hair and fur</p></div>
+          </label>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button type="button" id="resetBtn" class="btn-cinematic flex-1 justify-center text-xs font-bold tracking-widest uppercase py-3">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
+          <a id="downloadBtn" href="#" download="background_removed.png" class="hidden btn-cinematic flex-1 justify-center text-xs font-bold tracking-widest uppercase py-3" style="color:var(--color-primary-content);background:var(--color-primary);border-color:color-mix(in oklab,var(--color-primary) 50%,transparent)">{{ lucide_icon("download","w-3.5 h-3.5",14)|safe }} Download</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="flex-1 min-w-0">
+    <div id="resultCard" class="hidden flex flex-col gap-4">
+
+      <div class="card-premium p-4" style="position:relative">
+        <div id="loadingOverlay" class="hidden" style="position:absolute;inset:.75rem;background:color-mix(in oklab,var(--color-base-100) 80%,transparent);-webkit-backdrop-filter:blur(16px);display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:1.5rem;z-index:20" role="status" aria-live="polite">
+          <div style="width:80px;height:80px;border:2px solid transparent;border-top-color:var(--color-primary);border-bottom-color:var(--color-success);border-radius:50%;animation:spin 1.2s cubic-bezier(.4,0,.2,1) infinite;filter:drop-shadow(0 0 12px color-mix(in oklab,var(--color-primary) 40%,transparent));margin-bottom:1rem"></div>
+          <p class="text-sm font-black tracking-widest uppercase text-primary">Processing...</p>
+          <p class="text-[10px] text-base-content/30 mt-1">Removing background</p>
+        </div>
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-3">
+            <span class="font-bold text-sm text-base-content" id="viewLabel">Result</span>
+            <span id="imgDims" class="text-[10px] font-mono text-base-content/30 font-bold">--</span>
           </div>
-          <div class="card-premium p-4">
-            <div class="flex justify-between items-center mb-3"><span class="font-bold text-base-content">Result</span><span id="resultSize" class="text-xs text-primary font-bold font-mono"></span></div>
-            <div class="extraction-workspace checkered-bg">
-              <div id="loadingOverlay" class="loading-overlay hidden"><div class="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent mb-3"></div><p class="text-primary font-bold">Removing Background...</p></div>
-              <img alt="Result" loading="lazy" id="resultPreview" src="" class="hidden w-full h-full object-contain">
-            </div>
-            <a id="downloadBtn" href="#" download="background_removed.png" class="btn btn-cinematic w-full mt-4 py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl hidden">{{ lucide_icon("download","w-5 h-5", 20) | safe }} DOWNLOAD IMAGE</a>
+          <div class="flex items-center gap-2">
+            <span class="text-[9px] font-bold uppercase tracking-widest text-base-content/30">Original</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="viewToggle" class="sr-only peer" aria-label="Toggle between original and result view">
+              <div class="w-9 h-5 rounded-full transition-all" style="background:color-mix(in oklab,var(--color-base-content) 12%,transparent)"></div>
+              <div class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-all peer-checked:translate-x-4" style="box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>
+            </label>
+            <span class="text-[9px] font-bold uppercase tracking-widest text-primary">Result</span>
           </div>
+        </div>
+        <div class="preview-box checker border border-base-300/40" style="position:relative;cursor:zoom-in" id="previewWrap" title="Click to zoom">
+          <img alt="Original image" id="originalPreview" src="" class="w-full h-full object-contain" style="position:absolute;top:0;left:0">
+          <img alt="Image with background removed" id="previewImg" src="" class="hidden w-full h-full object-contain" style="position:relative;z-index:2">
+          <div id="placeholder" class="text-base-content/15 font-bold text-lg" style="z-index:1">No image loaded</div>
+        </div>
+        <div class="flex flex-wrap items-center gap-4 mt-3 text-[10px]">
+          <span class="font-mono font-bold text-base-content/50">Original: <span id="originalSize" class="text-base-content/70">--</span></span>
+          <span class="font-mono font-bold text-base-content/50">Result: <span id="resultSize" class="text-success">--</span></span>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="emptyState" class="card-premium p-4">
+      <div class="preview-box checker border border-base-300/40">
+        <div class="text-center" style="z-index:1">
+          <div class="rounded-full bg-primary/5 inline-flex items-center justify-center mb-4" style="width:80px;height:80px">{{ lucide_icon("image","w-8 h-8",32)|safe }}</div>
+          <p class="font-bold text-base-content/30 text-sm">Upload an image to get started</p>
         </div>
       </div>
     </div>
   </div>
+
 </div>
+
+<div class="hidden" id="zoomOverlay" class="zoom-overlay" onclick="this.classList.remove('open')" role="dialog" aria-modal="true" aria-label="Zoomed image preview">
+  <img alt="Zoomed preview" id="zoomImg" src="">
+</div>
+
 <script>
-document.addEventListener('DOMContentLoaded',()=>{const uploadCard=document.getElementById('uploadCard');const uploadArea=document.getElementById('uploadArea');const fileInput=document.getElementById('fileInput');const resultCard=document.getElementById('resultCard');const originalPreview=document.getElementById('originalPreview');const originalSize=document.getElementById('originalSize');const resultPreview=document.getElementById('resultPreview');const resultSize=document.getElementById('resultSize');const loadingOverlay=document.getElementById('loadingOverlay');const resetBtn=document.getElementById('resetBtn');const downloadBtn=document.getElementById('downloadBtn');const applyBtn=document.getElementById('applyBtn');const bgColorType=document.getElementById('bgColorType');const bgColor=document.getElementById('bgColor');const smoothEdges=document.getElementById('smoothEdges');const bgForm=document.getElementById('bgForm');let currentFile=null;const formatBytes=b=>b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB';bgColorType.addEventListener('change',(e)=>{if(e.target.value==='solid')bgColor.classList.remove('hidden');else bgColor.classList.add('hidden');});uploadArea.addEventListener('click',()=>fileInput.click());fileInput.addEventListener('change',e=>{if(e.target.files[0]){currentFile=e.target.files[0];handleFileProcess(currentFile);}});bgForm.addEventListener('submit',(e)=>{e.preventDefault();if(currentFile)handleFileProcess(currentFile);});async function handleFileProcess(file){uploadCard.classList.add('hidden');resultCard.classList.remove('hidden');loadingOverlay.classList.remove('hidden');resultPreview.classList.add('hidden');downloadBtn.classList.add('hidden');applyBtn.disabled=true;originalSize.textContent=formatBytes(file.size);const reader=new FileReader();reader.onload=e=>originalPreview.src=e.target.result;reader.readAsDataURL(file);const formData=new FormData();formData.append('image',file);if(smoothEdges.checked)formData.append('smooth_edges','true');try{const res=await fetch('/api/remove-background',{method:'POST',body:formData});if(!res.ok)throw new Error(await res.text()||'Processing failed');const blob=await res.blob();const url=URL.createObjectURL(blob);resultPreview.src=url;resultPreview.classList.remove('hidden');resultSize.textContent=formatBytes(blob.size);downloadBtn.href=url;downloadBtn.download=`nobg_${file.name.split('.')[0]}.png`;loadingOverlay.classList.add('hidden');downloadBtn.classList.remove('hidden');}catch(err){alert("Error:"+err.message);loadingOverlay.classList.add('hidden');}finally{applyBtn.disabled=false;}}
-resetBtn.addEventListener('click',()=>{currentFile=null;fileInput.value='';uploadCard.classList.remove('hidden');resultCard.classList.add('hidden');});});
+document.addEventListener('DOMContentLoaded',function(){
+  var $=function(id){return document.getElementById(id)};
+  var fileInput=$('fileInput'),uploadZone=$('uploadZone'),uploadArea=$('uploadArea'),
+    controlsArea=$('controlsArea'),resultCard=$('resultCard'),emptyState=$('emptyState'),
+    originalPreview=$('originalPreview'),previewImg=$('previewImg'),placeholder=$('placeholder'),
+    originalSize=$('originalSize'),resultSize=$('resultSize'),imgDims=$('imgDims'),
+    downloadBtn=$('downloadBtn'),resetBtn=$('resetBtn'),loadingOverlay=$('loadingOverlay'),
+    smoothEdges=$('smoothEdges'),customColor=$('customColor'),viewToggle=$('viewToggle'),
+    previewWrap=$('previewWrap'),zoomOverlay=$('zoomOverlay'),zoomImg=$('zoomImg'),
+    viewLabel=$('viewLabel');
+  var currentFile=null,currentResultUrl=null,currentOriginalUrl=null;
+  var selectedColor='transparent';
+
+  function fmtBytes(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB'}
+
+  document.querySelectorAll('.color-swatch').forEach(function(el){
+    el.addEventListener('click',function(){
+      document.querySelectorAll('.color-swatch').forEach(function(s){s.classList.remove('active')});
+      el.classList.add('active');
+      selectedColor=el.getAttribute('data-color');
+      if(currentFile)reprocess();
+    });
+  });
+
+  customColor.addEventListener('input',function(){
+    document.querySelectorAll('.color-swatch').forEach(function(s){s.classList.remove('active')});
+    selectedColor=customColor.value;
+    if(currentFile)reprocess();
+  });
+
+  viewToggle.addEventListener('change',function(){
+    if(viewToggle.checked){
+      previewImg.style.opacity='1';originalPreview.style.opacity='0';viewLabel.textContent='Result';
+    }else{
+      previewImg.style.opacity='0';originalPreview.style.opacity='1';viewLabel.textContent='Original';
+    }
+  });
+
+  previewWrap.addEventListener('click',function(){
+    var src=viewToggle.checked?previewImg.src:originalPreview.src;
+    if(src){zoomImg.src=src;zoomOverlay.classList.add('open')}
+  });
+  zoomOverlay.addEventListener('click',function(){this.classList.remove('open')});
+
+  function process(file){
+    currentFile=file;uploadArea.classList.add('hidden');controlsArea.classList.remove('hidden');
+    resultCard.classList.remove('hidden');emptyState.classList.add('hidden');
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      currentOriginalUrl=ev.target.result;
+      originalPreview.src=currentOriginalUrl;originalSize.textContent=fmtBytes(file.size);
+      var img=new Image();img.onload=function(){imgDims.textContent=img.naturalWidth+'\u00D7'+img.naturalHeight};img.src=currentOriginalUrl;
+    };
+    reader.readAsDataURL(file);
+    loadingOverlay.classList.remove('hidden');previewImg.classList.add('hidden');downloadBtn.classList.add('hidden');resultSize.textContent='';
+    reprocess();
+  }
+
+  function reprocess(){
+    if(!currentFile)return;
+    loadingOverlay.classList.remove('hidden');previewImg.classList.add('hidden');downloadBtn.classList.add('hidden');resultSize.textContent='';
+    var fd=new FormData();fd.append('image',currentFile);
+    fd.append('bg_color',selectedColor==='transparent'?'':selectedColor);
+    fd.append('smooth_edges',smoothEdges.checked);
+    fetch('/api/remove-background',{method:'POST',body:fd}).then(function(r){if(!r.ok)throw new Error('Processing failed');return r.blob();}).then(function(blob){
+      if(currentResultUrl)URL.revokeObjectURL(currentResultUrl);
+      currentResultUrl=URL.createObjectURL(blob);
+      previewImg.src=currentResultUrl;previewImg.classList.remove('hidden');loadingOverlay.classList.add('hidden');
+      downloadBtn.href=currentResultUrl;downloadBtn.classList.remove('hidden');resultSize.textContent=fmtBytes(blob.size);
+      viewToggle.checked=true;viewToggle.dispatchEvent(new Event('change'));
+    }).catch(function(err){loadingOverlay.classList.add('hidden');alert('Error: '+err.message);});
+  }
+
+  uploadZone.addEventListener('click',function(){fileInput.click()});
+  uploadZone.addEventListener('dragover',function(e){e.preventDefault();uploadZone.style.borderColor='var(--color-primary)'});
+  uploadZone.addEventListener('dragleave',function(){uploadZone.style.borderColor=''});
+  uploadZone.addEventListener('drop',function(e){e.preventDefault();uploadZone.style.borderColor='';var f=e.dataTransfer.files[0];if(f)process(f)});
+  fileInput.addEventListener('change',function(e){var f=e.target.files[0];if(f)process(f)});
+  smoothEdges.addEventListener('change',function(){if(currentFile)reprocess()});
+
+  resetBtn.addEventListener('click',function(){
+    fileInput.value='';currentFile=null;
+    if(currentResultUrl)URL.revokeObjectURL(currentResultUrl);
+    currentResultUrl=null;currentOriginalUrl=null;
+    uploadArea.classList.remove('hidden');controlsArea.classList.add('hidden');
+    resultCard.classList.add('hidden');emptyState.classList.remove('hidden');
+    originalPreview.src='';previewImg.src='';placeholder.classList.remove('hidden');
+  });
+});
 </script>
 
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Image Background Remover","applicationCategory":"UtilitiesApplication","operatingSystem":"Web browser","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"SoftwareApplication","name":"Image Background Remover","applicationCategory":"MultimediaApplication","operatingSystem":"Web browser","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}]}</script>
 {% endblock %}

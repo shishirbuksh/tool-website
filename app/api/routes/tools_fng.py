@@ -2,8 +2,8 @@ import asyncio
 import time
 
 import requests
-
 from fastapi import APIRouter
+
 from app.core.config import Settings
 from app.core.log import get_logger
 

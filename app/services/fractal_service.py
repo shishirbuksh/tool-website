@@ -83,9 +83,9 @@ class FractalService:
                 if style == "pixel":
                     width, height = 128, 128
             except json.JSONDecodeError as e:
-                raise ServiceError(f"LLM returned invalid JSON: {str(e)}")
+                raise ServiceError(f"LLM returned invalid JSON: {str(e)}") from e
             except Exception as e:
-                raise ServiceError(f"LLM Orchestration error: {str(e)}")
+                raise ServiceError(f"LLM Orchestration error: {str(e)}") from e
 
         raw_data = await self._generate_pattern(width, height, zoom, c_re, c_im, max_iter)
 

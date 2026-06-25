@@ -1,13 +1,14 @@
 import asyncio
-import json
 import logging
 from datetime import timedelta
 
 import numpy as np
+from typing import Any
 
 from app.core.cache import get_cache
 from app.core.config import Settings
 from app.core.exceptions import ServiceError
+
 logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
 
 from app.core.log import get_logger
@@ -28,8 +29,8 @@ class CryptoService:
             try:
                 import pandas as pd
                 self._pd = pd
-            except Exception:
-                raise ServiceError("pandas library is not available")
+            except Exception as e:
+                raise ServiceError("pandas library is not available") from e
         return self._pd
 
     def _get_yf(self):
@@ -37,8 +38,8 @@ class CryptoService:
             try:
                 import yfinance as yf
                 self._yf = yf
-            except Exception:
-                raise ServiceError("yfinance library is not available")
+            except Exception as e:
+                raise ServiceError("yfinance library is not available") from e
         return self._yf
 
     def _get_prophet(self):
@@ -159,9 +160,9 @@ class CryptoService:
                 result["degraded"] = degraded_flag
             return result
 
-        history = [{"date": d, "price": float(p)} for d, p in zip(timestamps, close_prices)]
+        history = [{"date": d, "price": float(p)} for d, p in zip(timestamps, close_prices, strict=False)]
         future_data = []
-        for date, p_val, r_val in zip(future_dates, prophet_preds, rust_preds):
+        for date, p_val, r_val in zip(future_dates, prophet_preds, rust_preds, strict=False):
             entry = {"date": date}
             if p_val is not None:
                 entry["prophet_price"] = float(p_val)
@@ -174,7 +175,7 @@ class CryptoService:
             result["degraded"] = degraded_flag
         return result
 
-    def _compute_ta(self, close_prices: np.ndarray, df_index) -> "pd.DataFrame":
+    def _compute_ta(self, close_prices: np.ndarray, df_index) -> Any:
         pd = self._get_pd()
         df_ta = pd.DataFrame({"Close": close_prices}, index=df_index)
 
@@ -215,7 +216,7 @@ class CryptoService:
             })
 
         future_data = []
-        for d, p, r in zip(future_dates, prophet_preds, rust_preds):
+        for d, p, r in zip(future_dates, prophet_preds, rust_preds, strict=False):
             future_data.append({"date": d, "prophet_price": float(p), "rust_price": float(r)})
 
         curr_price = float(close_prices[-1])

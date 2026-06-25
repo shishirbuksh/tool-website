@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -175,25 +175,15 @@ OVERRIDES: dict[str, dict[str, Any]] = {
         "about_title": "About the QR Code Generator",
         "about_body": "<p>The QR Code Generator lets you create custom QR codes in seconds. Supports URLs, plain text, vCard contact details, and WiFi network credentials with optional foreground color customization.</p><p>All QR codes are generated entirely in your browser — no uploads, no servers, no tracking. Download your QR code as a high-resolution PNG ready for print or web use.</p>",
     },
-    "image-background-remover": {
-        "icon": "image",
-        "app_category": "MultimediaApplication",
-        "faqs": [
-            {"q": "How long does background removal take?", "a": "Most images process in seconds. Processing time depends on image size and your device capabilities."},
-            {"q": "Can I choose a custom background color?", "a": "Yes. You can select a custom background color or keep the background transparent."},
-        ],
-        "about_title": "About the Background Remover",
-        "about_body": "<p>The Image Background Remover uses advanced AI-based segmentation to detect and remove backgrounds from photos with a single click. Upload any portrait, product shot, or graphic and get a clean cutout instantly.</p><p>You can replace the removed background with a solid color of your choice or keep it transparent for use in design projects. All processing happens locally in your browser — your images are never uploaded.</p>",
-    },
-    "pdf-converter": {
-        "icon": "file-text",
+    "random-number-generator": {
+        "icon": "dice-1",
         "app_category": "UtilitiesApplication",
-    },
-    "password-generator": {
-        "icon": "key",
-        "app_category": "SecurityApplication",
-        "about_title": "About the Password Generator",
-        "about_body": "<p>The Password Generator creates strong, cryptographically secure passwords to protect your online accounts. Customize length, character types (uppercase, lowercase, numbers, symbols), and exclude ambiguous characters for readability.</p><p>Passwords are generated entirely in your browser using secure random number generation. No passwords are ever transmitted, stored, or logged.</p>",
+        "faqs": [
+            {"q": "Can I generate truly random numbers?", "a": "This tool uses cryptographically secure randomness (Crypto.getRandomValues) when available for better quality random numbers than Math.random alone."},
+            {"q": "What is the maximum range?", "a": "You can set any range from -999,999,999 to 999,999,999. For ranges larger than 16 million, the tool uses Math.random as a fallback."},
+        ],
+        "about_title": "About the Random Number Generator",
+        "about_body": "<p>The Random Number Generator lets you pick random integers within any range. Generate one number or a batch of up to 20, with an option for all-unique results.</p><p>Everything runs in your browser — no data is sent anywhere. The tool uses Crypto.getRandomValues for better randomness quality when available.</p>",
     },
     "nft-generator-ai": {
         "icon": "palette",
@@ -239,19 +229,19 @@ OVERRIDES: dict[str, dict[str, Any]] = {
         "app_category": "MultimediaApplication",
     },
     "meme-generator": {
-        "icon": "smile",
+        "icon": "image",
         "app_category": "MultimediaApplication",
     },
     "watermark-remover": {
         "icon": "image",
         "app_category": "MultimediaApplication",
     },
-    "resume-generator": {
-        "icon": "file",
+    "resume-analyzer": {
+        "icon": "search-check",
         "app_category": "BusinessApplication",
     },
-    "resume-analyzer": {
-        "icon": "search",
+    "resume-generator": {
+        "icon": "file",
         "app_category": "BusinessApplication",
     },
 }
@@ -339,7 +329,7 @@ class SeoService:
                 tmpl_path = os.path.join(self.settings.TEMPLATES_DIR, "tools", f"{slug.replace('-', '_')}.html")
                 try:
                     mtime = os.path.getmtime(tmpl_path)
-                    date_modified = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime("%Y-%m-%d")
+                    date_modified = datetime.fromtimestamp(mtime, tz=UTC).strftime("%Y-%m-%d")
                 except OSError:
                     pass
 
@@ -373,7 +363,7 @@ class SeoService:
 
     def get_related(self, slug: str) -> list[dict]:
         categories, _ = self._catalog.get_categorized_tools()
-        for cat_name, tools in categories.items():
+        for _cat_name, tools in categories.items():
             slugs = [t["url"].split("/tool/")[-1] for t in tools]
             if slug in slugs:
                 return [t for t in tools if t["url"].split("/tool/")[-1] != slug][:6]
