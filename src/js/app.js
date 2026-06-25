@@ -64,6 +64,22 @@ var m=toolCache.filter(function(t){return t.name.toLowerCase().indexOf(q)>-1||(t
 if(m.length===0){sr.innerHTML='<p class="text-base-content/30 text-center py-4">No results found</p>';return}
 sr.innerHTML=m.slice(0,20).map(function(t){return'<a href="'+t.url+'" class="flex items-center justify-between p-3 rounded-xl hover:glass transition-all duration-200" onclick="document.getElementById(\'searchDialog\').close()"><div><div class="font-semibold text-sm">'+t.name+'</div><div class="text-xs text-base-content/40">'+t.category+'</div></div><svg class="w-4 h-4 text-base-content/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>'}).join('')}
 
+/* ── Hover-Intent Prefetching ── */
+var prefetched = new Set();
+document.addEventListener('mouseover', function(e) {
+  var t = e.target.closest('a');
+  if (t && t.href && t.href.startsWith(window.location.origin) && !t.hash && !prefetched.has(t.href)) {
+    var timer = setTimeout(function() {
+      prefetched.add(t.href);
+      var link = document.createElement('link');
+      link.rel = 'prefetch';
+      link.href = t.href;
+      document.head.appendChild(link);
+    }, 60);
+    t.addEventListener('mouseout', function() { clearTimeout(timer); }, { once: true });
+  }
+});
+
 /* ── Hero mouse-follow glow ── */
 var hs=document.getElementById('heroSection');if(hs){var _r=null,_rid=!1;hs.addEventListener('mousemove',function(e){if(_rid)cancelAnimationFrame(_r);_rid=!0;_r=requestAnimationFrame(function(){var b=hs.getBoundingClientRect(),mx=(e.clientX-b.left)/b.width*100,my=(e.clientY-b.top)/b.height*100;hs.style.setProperty('--mx',mx+'%');hs.style.setProperty('--my',my+'%');_rid=!1})},{passive:!0})}
 })();
