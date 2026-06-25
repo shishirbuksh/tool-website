@@ -1,6 +1,6 @@
 // StoryBrain AI Service Worker v1.0.1
-const CACHE_NAME = 'storybrain-v28';
-const STATIC_CACHE = 'storybrain-static-v26';
+const CACHE_NAME = 'storybrain-v29';
+const STATIC_CACHE = 'storybrain-static-v27';
 
 // Assets to pre-cache on install
 const PRECACHE_URLS = [
