@@ -14,7 +14,15 @@ document.querySelectorAll('.tilt-card[data-tilt]').forEach(function(c){c.addEven
 /* ── Button ripple ── */
 document.querySelectorAll('.btn-ripple').forEach(function(b){b.addEventListener('mousedown',function(e){var r=this.getBoundingClientRect();this.style.setProperty('--ripple-x',((e.clientX-r.left)/r.width*100)+'%');this.style.setProperty('--ripple-y',((e.clientY-r.top)/r.height*100)+'%')})})
 var dia=document.getElementById('searchDialog'),si=document.getElementById('searchInput')
-function oS(){if(!dia)return;dia.showModal();if(si)si.focus()}
+function oS(){
+  if(!dia)return;
+  dia.showModal();
+  if(si)si.focus();
+  // Fetch tool catalog if not already cached
+  if(!toolCache){
+    fetch('/api/tools/catalog').then(function(r){return r.json()}).then(function(d){toolCache=d;filterTools()}).catch(function(){if(sr)sr.innerHTML='<p class="text-base-content/30 text-center py-4">Could not load tools. Try again later.</p>'})
+  }
+}
 function cS(){if(dia)dia.close()}
 document.querySelectorAll('[id^=searchToggle]').forEach(function(b){b.addEventListener('click',oS)})
 var sc=document.getElementById('searchClose');if(sc)sc.addEventListener('click',cS)
