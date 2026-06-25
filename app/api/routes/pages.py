@@ -18,6 +18,14 @@ templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
 templates.env.globals["lucide_icon"] = lucide_icon
 templates.env.globals["today"] = lambda: datetime.now(UTC).strftime("%Y-%m-%d")
 
+def get_app_css():
+    try:
+        with open(os.path.join(settings.STATIC_DIR, "css", "app.css"), encoding="utf-8") as f:
+            return f.read()
+    except Exception:
+        return ""
+templates.env.globals["get_app_css"] = get_app_css
+
 HUB_CATEGORIES = {
     "ai-tools": ("AI & Crypto", "AI & Crypto Tools — Free Online Predictors & Calculators"),
     "image-tools": ("Image Processing", "Free Online Image Tools — Background Remover, Compressor & Converter"),
