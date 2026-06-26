@@ -1,101 +1,218 @@
-{% extends"base.html" %}
-{% from "components/tool_layout.html" import tool_back_link %}
-
-{% block title %}Free Online Calculator | Simple Math & Standard Calculator Tool{% endblock %}
-{% block meta_description %}Use our free online calculator for quick math. This simple standard calculator is fast, easy to use, and works on any device with no download needed.{% endblock %}
-{% block meta_keywords %}free online calculator, simple math calculator, standard calculator tool, basic calculator app free, easy online calculator, solve math problems online, best calculator without sign up, browser math calculator, standard arithmetic calculator, fast web calculator{% endblock %}
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+{% block title %}Standard Calculator — Free Online Calculator{% endblock %}
+{% block meta_description %}Free online standard calculator with memory, history, keyboard support, and copy/paste. All calculations done locally in your browser. No sign-up.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/calculator">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Free Online Calculator | Simple Math & Standard Calculator Tool">
-<meta property="og:description" content="Use our free online calculator for quick math. This simple standard calculator is fast, easy to use, and works on any device with no download needed.">
+<meta property="og:title" content="Standard Calculator — Free Online | StoryBrain AI">
+<meta property="og:description" content="Fast, free standard calculator with memory, history, keyboard support. All in your browser.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Free Online Calculator">
-<meta name="twitter:description" content="A fast, simple, and beautifully designed standard math calculator you can use directly from your web browser.">
 {% endblock %}
-
+{% block head %}
+<style>
+.sc-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.sc-display{background:var(--color-base-100);border-radius:1rem;padding:16px 20px;border:1px solid var(--color-base-300);text-align:right;min-height:100px;display:flex;flex-direction:column;justify-content:flex-end;margin-bottom:14px}
+.sc-display .expr{font-size:11px;font-weight:700;font-family:monospace;opacity:.35;min-height:18px;word-break:break-all;direction:rtl;text-align:left}
+.sc-display .val{font-size:36px;font-weight:900;font-family:monospace;color:var(--color-base-content);line-height:1.1;word-break:break-all;direction:rtl;text-align:left;transition:all .08s}
+.sc-keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sc-key{display:flex;align-items:center;justify-content:center;min-height:56px;border-radius:1rem;font-weight:800;font-size:1rem;cursor:pointer;border:none;background:var(--color-base-100);color:var(--color-base-content);border:1px solid var(--color-base-300);transition:all .1s;touch-action:manipulation}
+.sc-key:hover{background:color-mix(in oklab,var(--color-base-content) 8%,transparent);transform:translateY(-1px)}
+.sc-key:active{transform:translateY(0)}
+.sc-key.op{background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary);border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.sc-key.op:hover{background:color-mix(in oklab,var(--color-primary) 20%,transparent)}
+.sc-key.eq{background:var(--color-primary);color:var(--color-primary-content);border-color:var(--color-primary);font-size:1.4rem}
+.sc-key.eq:hover{filter:brightness(1.1)}
+.sc-key.ac{background:color-mix(in oklab,var(--color-error) 10%,transparent);color:var(--color-error);border-color:color-mix(in oklab,var(--color-error) 20%,transparent)}
+.sc-key.ac:hover{background:color-mix(in oklab,var(--color-error) 18%,transparent)}
+.sc-key.mm{font-size:9px;font-weight:700;min-height:36px;border-radius:.65rem;background:color-mix(in oklab,var(--color-base-content) 5%,transparent);border-color:var(--color-base-300)}
+.sc-key.mm.on{background:color-mix(in oklab,var(--color-primary) 10%,transparent);color:var(--color-primary);border-color:var(--color-primary)}
+.sc-mem-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.sc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.sc-toast.show{opacity:1;transform:translateY(0)}
+.sc-hist{max-height:200px;overflow-y:auto}
+.sc-hist-item{padding:5px 10px;border-radius:.5rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10px;font-weight:600;cursor:pointer;transition:all .12s;margin-bottom:2px}
+.sc-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.sc-hist-item .preview{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:9px;opacity:.55;min-width:0;font-family:monospace;direction:rtl;text-align:left}
+.sc-hist-item .hdel{width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:10px}
+.sc-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.sc-empty{text-align:center;padding:24px 16px;font-size:11px;font-weight:600;opacity:.3}
+.sc-ind{font-size:8px;font-weight:700;opacity:.3;min-height:14px;text-align:right;margin-bottom:4px}
+</style>
+{% endblock %}
 {% block content %}
-<div class="mb-8 reveal">{{ tool_back_link() }}</div>
-
-<div class="max-w-[400px] mx-auto w-full reveal">
-  <!-- Hero -->
-  <div class="text-center mb-8">
-    <div class="inline-flex items-center gap-2 px-5 py-3 glass-cinematic rounded-2xl border-primary/20 text-primary font-mono text-xs font-bold uppercase tracking-widest mb-4">
-      {{ lucide_icon("calculator","w-4 h-4", 16) | safe }} Standard
+{{ tool_hero_section("calculator","Math Engine","STANDARD","CALCULATOR","Fast arithmetic with memory, history, keyboard support, and copy/paste.") }}
+<div class="max-w-[420px] mx-auto w-full reveal" style="animation-delay:0.2s">
+  <div class="sc-card">
+    <div class="sc-display">
+      <div class="sc-ind" id="scInd"></div>
+      <div class="expr" id="scExpr"></div>
+      <div class="val" id="scVal">0</div>
     </div>
-    <h1 class="text-4xl md:text-5xl font-black mb-3 tracking-tighter">
-      FREE STANDARD <span class="gradient-text italic">CALCULATOR</span>
-    </h1>
-    <p class="text-base-content/60 text-sm uppercase tracking-widest font-bold">Daily Math Simplified</p>
+    <div class="sc-mem-row">
+      <button type="button" class="sc-key sc-key mm" data-mem="mc" aria-label="Memory clear">MC</button>
+      <button type="button" class="sc-key sc-key mm" data-mem="mr" aria-label="Memory recall">MR</button>
+      <button type="button" class="sc-key sc-key mm" data-mem="mplus" aria-label="Memory add">M+</button>
+      <button type="button" class="sc-key sc-key mm" data-mem="mminus" aria-label="Memory subtract">M−</button>
+    </div>
+    <div class="sc-keypad" id="scKeys">
+      <button type="button" class="sc-key sc-key ac" data-calc="clear">AC</button>
+      <button type="button" class="sc-key" data-calc="negate">+/−</button>
+      <button type="button" class="sc-key" data-calc="percent">%</button>
+      <button type="button" class="sc-key sc-key op" data-calc="op:/">&divide;</button>
+      <button type="button" class="sc-key" data-calc="7">7</button>
+      <button type="button" class="sc-key" data-calc="8">8</button>
+      <button type="button" class="sc-key" data-calc="9">9</button>
+      <button type="button" class="sc-key sc-key op" data-calc="op:*">&times;</button>
+      <button type="button" class="sc-key" data-calc="4">4</button>
+      <button type="button" class="sc-key" data-calc="5">5</button>
+      <button type="button" class="sc-key" data-calc="6">6</button>
+      <button type="button" class="sc-key sc-key op" data-calc="op:−">−</button>
+      <button type="button" class="sc-key" data-calc="1">1</button>
+      <button type="button" class="sc-key" data-calc="2">2</button>
+      <button type="button" class="sc-key" data-calc="3">3</button>
+      <button type="button" class="sc-key sc-key op" data-calc="op:+">+</button>
+      <button type="button" class="sc-key" data-calc="0" style="grid-column:span 2">0</button>
+      <button type="button" class="sc-key" data-calc="decimal">.</button>
+      <button type="button" class="sc-key sc-key eq" data-calc="equals">=</button>
+    </div>
+    <div class="flex items-center gap-2 mt-3">
+      <button type="button" id="scCopy" class="sc-key sc-key mm" style="flex:1;font-size:9px">{{ lucide_icon("copy","w-3 h-3",12) | safe }} Copy</button>
+      <button type="button" id="scPaste" class="sc-key sc-key mm" style="flex:1;font-size:9px">{{ lucide_icon("clipboard-paste","w-3 h-3",12) | safe }} Paste</button>
+    </div>
   </div>
-
-  <!-- Calculator Card -->
-  <div class="card-premium p-6 md:p-8">
-    <!-- OLED Display -->
-    <div class="glass-cinematic rounded-2xl p-6 mb-5 text-right min-h-[130px] flex flex-col justify-end">
-      <div id="calc-history" class="text-xs font-mono text-primary/50 mb-2 min-h-[1.2rem] tracking-wider"></div>
-      <div id="calc-display" class="text-5xl md:text-6xl font-black font-mono tracking-tighter text-base-content leading-none">0</div>
+  <div class="sc-card mt-4">
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-xs font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
+      <button type="button" id="scHiClear" class="sc-key sc-key mm" style="min-height:28px;font-size:8px">{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button>
     </div>
-
-    <!-- Keypad -->
-    <div class="grid grid-cols-4 gap-3" id="calcKeypad">
-      <button data-calc="clear" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-sm bg-error/10 text-error border border-error/20 hover:bg-error/20 btn-ac">AC</button>
-      <button data-calc="negate" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-base glass-cinematic">+/-</button>
-      <button data-calc="percent" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-base glass-cinematic">%</button>
-      <button data-calc="op:/" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-xl" style="background:var(--color-primary);color:var(--color-primary-content);border:none">&divide;</button>
-
-      <button data-calc="7" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">7</button>
-      <button data-calc="8" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">8</button>
-      <button data-calc="9" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">9</button>
-      <button data-calc="op:*" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-xl" style="background:var(--color-primary);color:var(--color-primary-content);border:none" aria-label="Multiply">&times;</button>
-
-      <button data-calc="4" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">4</button>
-      <button data-calc="5" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">5</button>
-      <button data-calc="6" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">6</button>
-      <button data-calc="op:-" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-xl" style="background:var(--color-primary);color:var(--color-primary-content);border:none">&minus;</button>
-
-      <button data-calc="1" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">1</button>
-      <button data-calc="2" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">2</button>
-      <button data-calc="3" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">3</button>
-      <button data-calc="op:+" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-xl" style="background:var(--color-primary);color:var(--color-primary-content);border:none">+</button>
-
-      <button data-calc="0" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic col-span-2">0</button>
-      <button data-calc="decimal" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-lg glass-cinematic">.</button>
-      <button data-calc="equals" class="btn-cinematic min-h-[68px] rounded-2xl font-black text-2xl shadow-glow" style="background:var(--color-primary);color:var(--color-primary-content);border:none">=</button>
-    </div>
+    <div id="scHiList" class="sc-hist"></div>
   </div>
 </div>
-
+<div id="scToast" class="sc-toast" role="status" aria-live="polite"></div>
 <script>
-(function(){'use strict';let displayValue='0';let firstOperand=null;let waitingForSecondOperand=false;let operator=null;let historyStr='';const displayElement=document.getElementById('calc-display');const historyElement=document.getElementById('calc-history');function updateDisplay(pop=false){let showVal=displayValue;if(showVal.length>12){const num=parseFloat(showVal);if(!isNaN(num))showVal=num.toPrecision(8).replace(/(?:\.0+|(\.\d+?)0+)$/,'$1');}
-displayElement.textContent=showVal;historyElement.textContent=historyStr;if(pop){displayElement.style.transform='scale(1.05)';displayElement.style.color='var(--color-primary)';setTimeout(()=>{displayElement.style.transform='scale(1)';displayElement.style.color='';},100);}}
-function inputDigit(digit){if(displayValue==='Error'){displayValue=digit;waitingForSecondOperand=false;return updateDisplay();}
-if(waitingForSecondOperand){displayValue=digit;waitingForSecondOperand=false;}
-else displayValue=displayValue==='0'?digit:displayValue+digit;updateDisplay();}
-function inputDecimal(){if(displayValue==='Error'){displayValue='0.';waitingForSecondOperand=false;return updateDisplay();}
-if(waitingForSecondOperand){displayValue='0.';waitingForSecondOperand=false;return updateDisplay();}
-if(!displayValue.includes('.'))displayValue+='.';updateDisplay();}
-function setOperator(nextOp){const val=parseFloat(displayValue);if(operator&&waitingForSecondOperand){operator=nextOp;historyStr=historyStr.slice(0,-1)+opSymbol(nextOp);updateDisplay();return;}
-if(firstOperand==null&&!isNaN(val))firstOperand=val;else if(operator){const res=calculate(firstOperand,val,operator);displayValue=`${parseFloat(res.toFixed(10))}`;firstOperand=res;}
-waitingForSecondOperand=true;operator=nextOp;historyStr=`${firstOperand}${opSymbol(nextOp)}`;updateDisplay();}
-function calculate(f,s,op){if(op==='+')return f+s;if(op==='-')return f-s;if(op==='*')return f*s;if(op==='/')return s===0?NaN:f/s;return s;}
-function opSymbol(op){return op==='*'?'×':op==='/'?'÷':op==='+'?'+':'−';}
-function calculateResult(){if(!operator||waitingForSecondOperand)return;const val=parseFloat(displayValue);let res=calculate(firstOperand,val,operator);if(isNaN(res)||!isFinite(res)){displayValue="Error";historyStr='';}
-else{historyStr+=`${displayValue}=`;displayValue=`${parseFloat(res.toFixed(10))}`;}
-firstOperand=null;operator=null;waitingForSecondOperand=true;updateDisplay(true);}
-function clearCalc(){displayValue='0';firstOperand=null;waitingForSecondOperand=false;operator=null;historyStr='';updateDisplay();}
-function toggleSign(){if(displayValue==='Error'||displayValue==='0')return;displayValue=displayValue.charAt(0)==='-'?displayValue.slice(1):'-'+displayValue;updateDisplay();}
-function inputPercent(){if(displayValue==='Error'){clearCalc();return;}displayValue=`${parseFloat(displayValue)/100}`;updateDisplay();}
-document.getElementById('calcKeypad').addEventListener('click',function(e){var btn=e.target.closest('[data-calc]');if(!btn)return;var action=btn.getAttribute('data-calc');if(action==='clear')clearCalc();else if(action==='negate')toggleSign();else if(action==='percent')inputPercent();else if(action==='decimal')inputDecimal();else if(action==='equals')calculateResult();else if(action.indexOf('op:')===0)setOperator(action.slice(3));else inputDigit(action);});
-document.addEventListener('keydown',(e)=>{if(e.key>='0'&&e.key<='9')inputDigit(e.key);if(e.key==='.')inputDecimal();if(e.key==='='||e.key==='Enter'){e.preventDefault();calculateResult();}
-if(e.key==='Backspace'){if(displayValue==='Error')clearCalc();else displayValue=displayValue.length>1?displayValue.slice(0,-1):'0';updateDisplay();}
-if(e.key==='Escape')clearCalc();if(['+','-','*','/'].includes(e.key))setOperator(e.key);});})();
+(function(){'use strict';
+var display='0',first=null,waiting=false,op=null,expr='',mem=0,hasMem=false;
+var hist=[]; try{var d=localStorage.getItem('sb_sc1');if(d)hist=JSON.parse(d)}catch(e){}
+var maxHist=30;
+
+function el(id){return document.getElementById(id)}
+var valEl=el('scVal'),exprEl=el('scExpr'),indEl=el('scInd'),histEl=el('scHiList');
+var toastEl=el('scToast');
+
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+
+function update(pop){
+var s=display;if(s.length>14){var n=parseFloat(s);if(!isNaN(n))s=n.toPrecision(10).replace(/(?:\.0+|(\.\d+?)0+)$/,'$1')}
+valEl.textContent=s;exprEl.textContent=expr;indEl.textContent=hasMem?'M':'';
+if(pop){valEl.style.transform='scale(1.05)';valEl.style.color='var(--color-primary)';setTimeout(function(){valEl.style.transform='';valEl.style.color=''},100)}
+}
+
+function inputDigit(d){
+if(display==='Error'){display=d;waiting=false;update();return}
+if(waiting){display=d;waiting=false}else display=display==='0'?d:display+d;update()
+}
+
+function inputDecimal(){
+if(display==='Error'){display='0.';waiting=false;update();return}
+if(waiting){display='0.';waiting=false;return}
+if(display.indexOf('.')===-1)display+='.';update()
+}
+
+function opSymbol(o){return o==='+'?'+':o==='−'?'−':o==='*'?'×':o==='/'?'÷':''}
+
+function setOperator(nextOp){
+var v=parseFloat(display);if(op&&waiting){op=nextOp;expr=first+opSymbol(nextOp);update();return}
+if(first===null&&!isNaN(v))first=v;else if(op){var res=calc(first,v,op);display=String(parseFloat(res.toFixed(10)));first=res}
+waiting=true;op=nextOp;expr=first+opSymbol(nextOp);update()
+}
+
+function calc(a,b,o){
+if(o==='+')return a+b;if(o==='−')return a-b;if(o==='*')return a*b;if(o==='/')return b===0?NaN:a/b;return b
+}
+
+function equals(){
+if(!op||waiting)return;var v=parseFloat(display);var res=calc(first,v,op);
+if(isNaN(res)||!isFinite(res)){display='Error';expr='';first=null;op=null;waiting=true;update();return}
+expr=first+opSymbol(op)+v+'=';display=String(parseFloat(res.toFixed(10)));first=res;op=null;waiting=true;update(true);
+saveToHistory(expr+display);
+}
+
+function clearAll(){display='0';first=null;waiting=false;op=null;expr='';update()}
+function toggleSign(){if(display==='Error'||display==='0')return;display=display[0]==='−'?display.slice(1):'−'+display;update()}
+function percent(){if(display==='Error'){clearAll();return}display=String(parseFloat(display)/100);update()}
+function backspace(){if(display==='Error'){clearAll();return}display=display.length>1?display.slice(0,-1):'0';update()}
+
+function saveToHistory(e){
+var txt=e||display;if(hist.length&&hist[0].txt===txt)return;
+hist.unshift({txt:txt,ts:Date.now()});if(hist.length>maxHist)hist.pop();try{localStorage.setItem('sb_sc1',JSON.stringify(hist))}catch(e2){}renderHist()
+}
+
+function renderHist(){
+if(!hist.length){histEl.innerHTML='<div class="sc-empty">No calculations yet</div>';return}
+var h='';hist.slice(0,20).forEach(function(item,i){
+var d=new Date(item.ts),now=new Date();var diff=Math.round((now-d)/1000);
+var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+h+='<div class="sc-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.txt)+'</span><span class="hdel" data-idx="'+i+'" aria-label="Delete">✕</span></div>';
+});
+histEl.innerHTML=h;
+}
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+el('scKeys').addEventListener('click',function(e){
+var btn=e.target.closest('[data-calc]');if(!btn)return;
+var a=btn.getAttribute('data-calc');
+if(a==='clear')clearAll();
+else if(a==='negate')toggleSign();
+else if(a==='percent')percent();
+else if(a==='decimal')inputDecimal();
+else if(a==='equals')equals();
+else if(a.indexOf('op:')===0)setOperator(a.slice(3));
+else inputDigit(a);
+});
+
+el('scKeys').querySelectorAll('[data-mem]').forEach(function(b){
+b.addEventListener('click',function(){
+var m=this.getAttribute('data-mem');
+if(m==='mc'){mem=0;hasMem=false;update()}
+else if(m==='mr'){if(hasMem){display=String(mem);waiting=false;update()}}
+else if(m==='mplus'){mem+=parseFloat(display)||0;hasMem=true;update()}
+else if(m==='mminus'){mem-=parseFloat(display)||0;hasMem=true;update()}
+});
+});
+
+document.addEventListener('keydown',function(e){
+if(e.key>='0'&&e.key<='9')inputDigit(e.key);
+if(e.key==='.')inputDecimal();
+if(e.key==='='||e.key==='Enter'){e.preventDefault();equals()}
+if(e.key==='Backspace')backspace();
+if(e.key==='Escape')clearAll();
+if(e.key==='+'||e.key==='-')setOperator(e.key==='+'?'+':'−');
+if(e.key==='*')setOperator('*');
+if(e.key==='/'){e.preventDefault();setOperator('/')}
+if(e.key==='%')percent();
+});
+
+el('scCopy').addEventListener('click',function(){
+navigator.clipboard.writeText(display).then(function(){toast('Copied: '+display)}).catch(function(){toast('Copy failed')});
+saveToHistory();
+});
+
+el('scPaste').addEventListener('click',function(){
+navigator.clipboard.readText().then(function(t){t=t.trim();var n=parseFloat(t);if(!isNaN(n)){display=String(n);waiting=false;update();toast('Pasted')}else toast('Not a number')}).catch(function(){toast('Paste failed')});
+});
+
+el('scHiClear').addEventListener('click',function(){if(confirm('Clear all history?')){hist=[];try{localStorage.setItem('sb_sc1',JSON.stringify(hist))}catch(e){}renderHist();toast('History cleared')}});
+histEl.addEventListener('click',function(e){
+var del=e.target.closest('.hdel');if(!del)return;
+var idx=parseInt(del.getAttribute('data-idx'));hist.splice(idx,1);try{localStorage.setItem('sb_sc1',JSON.stringify(hist))}catch(e){}renderHist()
+});
+
+renderHist();
+})();
 </script>
-
-
-
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

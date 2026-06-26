@@ -1,60 +1,438 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}Free Work Hour Tracker & Timesheet Calculator{% endblock %}
-{% block meta_description %}Track your billable work hours, use as a Pomodoro timer, or manually log time with our free online time tracker. Instantly export CSV timesheets.{% endblock %}
+{% block title %}Time Tracker — Free Work Hours Tracker & Timesheet Online{% endblock %}
+{% block meta_description %}Free online time tracker. Log work hours, track sessions with a live timer, calculate billable earnings, and export CSV timesheets. No sign-up.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/time-tracker{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/time-tracker">
-<meta property="og:title" content="Time Tracker & Timesheet Calculator">
-<meta property="og:description" content="Track work hours, calculate billable earnings, and export CSV timesheets.">
+<meta property="og:site_name" content="StoryBrain AI">
+<meta property="og:title" content="Time Tracker — Free Work Hours Tracker">
+<meta property="og:description" content="Track work hours, log sessions, and export CSV timesheets. Free and private.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
 {% endblock %}
 {% block head %}
-<style>.timer-display{font-family:'Courier New',Courier,monospace;font-size:5rem;font-weight:900;color:var(--color-base-content);line-height:1;letter-spacing:-2px;transition:color 0.3s ease,text-shadow 0.3s ease}.timer-display.recording{color:#10b981;text-shadow:0 0 30px rgba(16,185,129,0.4);animation:pulse-glow 2s infinite}@keyframes pulse-glow{0%,100%{text-shadow:0 0 20px rgba(16,185,129,0.2)}50%{text-shadow:0 0 40px rgba(16,185,129,0.6)}}.timer-ms{font-size:1.5rem;color:color-mix(in oklab, var(--color-base-content) 50%, transparent);margin-left:5px}.btn-circle{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;border:none;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);color:white}.btn-play{background:var(--color-success);box-shadow:0 4px 15px color-mix(in oklab, var(--color-success) 30%, transparent)}.btn-play:hover{transform:scale(1.1);box-shadow:0 8px 25px color-mix(in oklab, var(--color-success) 50%, transparent)}.btn-pause{background:var(--color-warning);box-shadow:0 4px 15px color-mix(in oklab, var(--color-warning) 30%, transparent)}.btn-pause:hover{transform:scale(1.1)}.btn-stop{background:var(--color-error);box-shadow:0 4px 15px color-mix(in oklab, var(--color-error) 30%, transparent)}.btn-stop:hover{transform:scale(1.1)}</style>
+<style>
+.tt-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.tt-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:4px;display:block}
+.tt-inp{width:100%;border-radius:.75rem;padding:.5rem .75rem;font-weight:700;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);transition:border-color .18s;box-sizing:border-box}
+.tt-inp:focus{border-color:var(--color-primary);outline:none}
+.tt-timer{font-family:'Courier New',Courier,monospace;font-size:3rem;font-weight:900;color:var(--color-base-content);line-height:1;letter-spacing:-1px;text-align:center;transition:color .3s;font-variant-numeric:tabular-nums}
+.tt-timer.running{color:color-mix(in oklab,var(--color-success) 80%,var(--color-base-content))}
+.tt-timer.paused{color:color-mix(in oklab,var(--color-warning) 80%,var(--color-base-content))}
+.tt-timer .ms{font-size:1.1rem;color:color-mix(in oklab,var(--color-base-content) 45%,transparent)}
+.tt-timer .earning{font-size:.7rem;font-weight:700;opacity:.55;display:block;margin-top:2px;font-family:system-ui;letter-spacing:0}
+.tt-btn{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;border:none;cursor:pointer;transition:all .25s;touch-action:manipulation;flex-shrink:0}
+.tt-btn:hover{transform:scale(1.08)}
+.tt-btn:active{transform:scale(.95)}
+.tt-btn-start{background:var(--color-success);color:#fff;box-shadow:0 4px 16px color-mix(in oklab,var(--color-success) 35%,transparent)}
+.tt-btn-start:hover{box-shadow:0 6px 24px color-mix(in oklab,var(--color-success) 50%,transparent)}
+.tt-btn-pause{background:var(--color-warning);color:#fff;box-shadow:0 4px 16px color-mix(in oklab,var(--color-warning) 35%,transparent)}
+.tt-btn-pause:hover{box-shadow:0 6px 24px color-mix(in oklab,var(--color-warning) 50%,transparent)}
+.tt-btn-stop{background:var(--color-error);color:#fff;box-shadow:0 4px 16px color-mix(in oklab,var(--color-error) 35%,transparent)}
+.tt-btn-stop:hover{box-shadow:0 6px 24px color-mix(in oklab,var(--color-error) 50%,transparent)}
+.tt-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.5rem .75rem;font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation}
+.tt-sec:hover{border-color:var(--color-base-content)}
+.tt-sec:disabled{opacity:.35;cursor:not-allowed;border-color:var(--color-base-300)}
+.tt-sec.on{background:color-mix(in oklab,var(--color-primary) 10%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.tt-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.55rem;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:6px;touch-action:manipulation}
+.tt-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.tt-pri:active{transform:translateY(0)}
+.tt-pri:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:none}
+.tt-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.tt-toast.show{opacity:1;transform:translateY(0)}
+.tt-stat{background:var(--color-base-100);border-radius:.65rem;padding:.35rem .55rem;border:1px solid var(--color-base-300);text-align:center;flex:1}
+.tt-stat .sv{font-size:1rem;font-weight:900;line-height:1.2}
+.tt-stat .sl{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.45}
+.tt-log{max-height:300px;overflow-y:auto}
+.tt-entry{padding:7px 10px;border-radius:.6rem;background:var(--color-base-100);border:1px solid var(--color-base-300);margin-bottom:3px;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;transition:border-color .12s}
+.tt-entry:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.tt-entry .tt-edate{font-size:9px;font-weight:700;opacity:.4;min-width:40px;cursor:pointer;touch-action:manipulation}
+.tt-entry .tt-etask{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;cursor:pointer;touch-action:manipulation;border-radius:4px;padding:0 4px;transition:background .12s}
+.tt-entry .tt-etask:hover{background:color-mix(in oklab,var(--color-base-content) 6%,transparent)}
+.tt-entry .tt-edur{font-weight:900;font-variant-numeric:tabular-nums;min-width:40px;text-align:right;cursor:pointer;touch-action:manipulation;border-radius:4px;padding:0 4px;transition:background .12s}
+.tt-entry .tt-edur:hover{background:color-mix(in oklab,var(--color-base-content) 6%,transparent)}
+.tt-entry .tt-emoney{color:var(--color-success);font-weight:900;min-width:48px;text-align:right}
+.tt-entry .tt-edel{width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:10px}
+.tt-entry .tt-edel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.tt-entry .tt-eedit{display:none;width:100%;gap:4px}
+.tt-entry .tt-eedit input{border-radius:4px;padding:2px 6px;font-size:11px;font-weight:700;background:var(--color-base-200);border:1px solid var(--color-primary);color:var(--color-base-content);outline:none;font-family:inherit}
+.tt-entry .tt-eedit .save{background:var(--color-primary);color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:9px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.tt-entry .tt-eedit .cancel{background:transparent;border:1px solid var(--color-base-300);border-radius:4px;padding:2px 8px;font-size:9px;font-weight:700;cursor:pointer;touch-action:manipulation;color:var(--color-base-content)}
+.tt-today{border-left:3px solid var(--color-primary)}
+.tt-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.3rem .6rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:10px;transition:all .12s}
+.tt-toggle:hover{background:var(--color-base-200)}
+.tt-filter{display:flex;gap:3px;background:var(--color-base-100);border-radius:999px;padding:3px;border:1px solid var(--color-base-300)}
+.tt-filter button{padding:3px 10px;border-radius:999px;font-size:9px;font-weight:800;cursor:pointer;border:none;background:transparent;color:var(--color-base-content);transition:all .12s;touch-action:manipulation;white-space:nowrap}
+.tt-filter button.on{background:var(--color-primary);color:#fff}
+.tt-filter button .cnt{font-size:8px;opacity:.5;margin-left:2px}
+.tt-filter button.on .cnt{opacity:.8}
+.tt-sort{display:flex;gap:2px}
+.tt-sort button{padding:3px 7px;border-radius:4px;font-size:8px;font-weight:700;cursor:pointer;border:1px solid transparent;background:transparent;color:var(--color-base-content);opacity:.35;transition:all .12s;touch-action:manipulation}
+.tt-sort button:hover{opacity:1;border-color:var(--color-base-300)}
+.tt-sort button.on{opacity:1;border-color:var(--color-primary);color:var(--color-primary)}
+.tt-astats{max-height:320px;overflow-y:auto}
+.tt-astats .sec{margin-bottom:8px}
+.tt-astats .sec-h{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;opacity:.45;margin-bottom:4px}
+.tt-astats .g2{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.tt-astats .g2 div{background:var(--color-base-100);border-radius:.5rem;padding:.35rem .5rem;border:1px solid var(--color-base-300)}
+.tt-astats .g2 .gv{font-size:13px;font-weight:900;line-height:1.2}
+.tt-astats .g2 .gl{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4}
+.tt-bar-item{display:flex;align-items:center;gap:6px;margin-bottom:2px;font-size:11px;font-weight:600}
+.tt-bar-item .bl{min-width:60px;font-weight:700;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tt-bar-item .bar{height:14px;border-radius:3px;background:var(--color-primary);transition:width .3s;min-width:2px;flex-shrink:0}
+.tt-bar-item .bc{font-size:9px;font-weight:700;opacity:.4;min-width:32px;text-align:right;font-variant-numeric:tabular-nums}
+.tt-hist{max-height:200px;overflow-y:auto}
+.tt-hist-item{padding:5px 8px;border-radius:.5rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s}
+.tt-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.tt-hist-item .htask{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;font-weight:500;font-size:10px;opacity:.55}
+.tt-hist-item .hmeta{font-size:8px;font-weight:700;opacity:.35;white-space:nowrap}
+</style>
 {% endblock %}
 {% block content %}
-{{ tool_hero_section("timer", "Free Time Tracking", "TIME", "TRACKER", "Track your work hours easily, calculate billable earnings, and download your timesheet.") }}
-  <div class="flex justify-center reveal" style="animation-delay:0.2s">
-    <div class="w-full lg:w-10/12">
-      <div class="card-premium p-6 md:p-8">
-        <div class="text-center mb-8">
-          <div class="timer-display" id="timerDisplay">00:00:00<span class="timer-ms">.00</span></div>
+{{ tool_hero_section("timer","Free Tool","TIME","TRACKER","Track work hours with pause/resume, filter log, edit entries, and view task breakdown. All in your browser.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="tt-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("clock","w-4 h-4",16) | safe }} Timer</h2>
+      <div class="tt-timer" id="ttDisplay" aria-live="polite" role="status">00:00:00<span class="ms">.00</span></div>
+      <div class="flex justify-center gap-3 my-3">
+        <button type="button" id="ttStartBtn" class="tt-btn tt-btn-start" aria-label="Start timer">{{ lucide_icon("play","w-5 h-5",20) | safe }}</button>
+        <button type="button" id="ttPauseBtn" class="tt-btn tt-btn-pause hidden" aria-label="Pause timer">{{ lucide_icon("pause","w-5 h-5",20) | safe }}</button>
+        <button type="button" id="ttStopBtn" class="tt-btn tt-btn-stop hidden" aria-label="Stop timer">{{ lucide_icon("square","w-5 h-5",20) | safe }}</button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div><label class="tt-label" for="ttTask">Task</label><input type="text" id="ttTask" class="tt-inp" placeholder="e.g. Design work" value="Untitled" list="ttTaskList"><datalist id="ttTaskList"></datalist></div>
+        <div><label class="tt-label" for="ttRate">Rate ($/hr)</label><input type="number" id="ttRate" class="tt-inp" value="50" min="0" step="0.5"></div>
+      </div>
+      <div class="border-t border-base-300 pt-3 mb-3">
+        <span class="tt-label mb-2">Manual Entry</span>
+        <div class="grid grid-cols-4 gap-2 mb-2">
+          <div><label class="tt-label" for="ttMDate" style="font-size:8px">Date</label><input type="date" id="ttMDate" class="tt-inp" style="font-size:11px"></div>
+          <div class="col-span-2"><label class="tt-label" for="ttMTask" style="font-size:8px">Task</label><input type="text" id="ttMTask" class="tt-inp" style="font-size:11px" placeholder="Task name" list="ttTaskList"></div>
+          <div><label class="tt-label" for="ttMDur" style="font-size:8px">Hours</label><input type="number" id="ttMDur" class="tt-inp" style="font-size:11px" value="1" min="0.25" step="0.25"></div>
         </div>
-        <div class="flex gap-4 justify-center mb-6">
-          <button id="startBtn" class="btn-circle btn-play">{{ lucide_icon("play","w-6 h-6", 24) | safe }}</button>
-          <button id="pauseBtn" class="btn-circle btn-pause hidden">{{ lucide_icon("pause","w-6 h-6", 24) | safe }}</button>
-          <button id="stopBtn" class="btn-circle btn-stop hidden">{{ lucide_icon("square","w-6 h-6", 24) | safe }}</button>
-        </div>
-        <div class="card-premium p-4 mb-6">
-          <div class="flex flex-wrap items-end gap-4">
-            <div><label class="label-cinematic" for="taskName">Task Name</label><input aria-label="Taskname" type="text" id="taskName" class="input input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" placeholder="e.g. Design work"></div>
-            <div><label class="label-cinematic" for="hourlyRate">Hourly Rate ($)</label><input aria-label="Hourlyrate" type="number" id="hourlyRate" class="input input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="50"></div>
-            <button id="ttExportBtn" class="btn btn-cinematic py-3 px-6 font-bold tracking-widest uppercase text-xs shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("download","w-4 h-4", 16) | safe }} EXPORT CSV</button>
-          </div>
-        </div>
-        <div class="card-premium p-4">
-          <h3 class="font-bold mb-4 flex items-center gap-2">{{ lucide_icon("list","w-4 h-4", 16) | safe }} Time Log</h3>
-          <div id="logContainer" class="flex flex-col gap-2"><p class="text-base-content/40 text-sm text-center py-4">No entries yet. Start tracking!</p></div>
-        </div>
+        <button type="button" id="ttManualAdd" class="tt-pri w-full" style="font-size:10px;padding:.4rem">{{ lucide_icon("plus","w-3.5 h-3.5",14) | safe }} Add Entry</button>
+      </div>
+      <div class="flex gap-2" id="ttStatsRow">
+        <div class="tt-stat"><div class="sv" id="ttStatSessions">0</div><div class="sl">Sessions</div></div>
+        <div class="tt-stat"><div class="sv" id="ttStatHours">0.0</div><div class="sl">Hours</div></div>
+        <div class="tt-stat"><div class="sv" id="ttStatEarn">$0</div><div class="sl">Earnings</div></div>
+        <div class="tt-stat"><div class="sv" id="ttStatToday">0.0</div><div class="sl">Today</div></div>
       </div>
     </div>
   </div>
+  <div class="lg:w-7/12">
+    <div class="tt-card">
+      <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("list","w-4 h-4",16) | safe }} Log</h2>
+        <div class="flex items-center gap-2">
+          <div class="tt-filter" id="ttFilter" role="tablist" aria-label="Filter by date range">
+            <button type="button" data-range="all" class="on" role="tab" aria-selected="true">All <span class="cnt" id="ttCntAll"></span></button>
+            <button type="button" data-range="month" role="tab" aria-selected="false">Month <span class="cnt" id="ttCntMonth"></span></button>
+            <button type="button" data-range="week" role="tab" aria-selected="false">Week <span class="cnt" id="ttCntWeek"></span></button>
+            <button type="button" data-range="today" role="tab" aria-selected="false">Today <span class="cnt" id="ttCntToday"></span></button>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 mb-2">
+        <div class="tt-sort" id="ttSort">
+          <button type="button" data-sort="newest" class="on" aria-label="Sort newest first">Newest</button>
+          <button type="button" data-sort="oldest" aria-label="Sort oldest first">Oldest</button>
+          <button type="button" data-sort="longest" aria-label="Sort by longest duration">Longest</button>
+          <button type="button" data-sort="shortest" aria-label="Sort by shortest duration">Shortest</button>
+        </div>
+        <div class="flex gap-1 ml-auto">
+          <button type="button" id="ttExportBtn" class="tt-sec" style="font-size:8px;padding:.3rem .5rem" aria-label="Export CSV">{{ lucide_icon("download","w-2.5 h-2.5",10) | safe }}</button>
+          <button type="button" id="ttClearBtn" class="tt-sec" style="font-size:8px;padding:.3rem .5rem;color:var(--color-error)" aria-label="Clear all entries">{{ lucide_icon("trash-2","w-2.5 h-2.5",10) | safe }}</button>
+        </div>
+      </div>
+      <div id="ttLogWrap" class="tt-log">
+        <p id="ttEmpty" class="text-center py-6 text-[10px] font-bold uppercase tracking-wider opacity-30">No entries yet. Start the timer or add one manually.</p>
+        <div id="ttLogList" class="hidden"></div>
+      </div>
+      <div id="ttTotals" hidden class="mt-3 flex items-center justify-between p-3 rounded-lg" style="background:color-mix(in oklab,var(--color-primary) 8%,transparent);border:1px solid color-mix(in oklab,var(--color-primary) 20%,transparent)">
+        <span class="text-[10px] font-bold uppercase tracking-wider opacity-60">Total</span>
+        <span class="font-black" id="ttTotalHours">0.0 hrs</span>
+        <span class="font-black text-success" id="ttTotalEarn">$0.00</span>
+      </div>
+      <div class="mt-3 flex gap-2 flex-wrap">
+        <button type="button" class="tt-toggle" id="ttStatsToggle" aria-expanded="false" aria-controls="ttStatsWrap">{{ lucide_icon("bar-chart-3","w-3 h-3",12) | safe }} Stats</button>
+        <button type="button" class="tt-toggle" id="ttHistToggle" aria-expanded="false" aria-controls="ttHistWrap">{{ lucide_icon("clock","w-3 h-3",12) | safe }} History <span id="ttHistCount" class="text-[8px] opacity-40"></span></button>
+      </div>
+      <div id="ttStatsWrap" hidden class="mt-2 tt-astats"></div>
+      <div id="ttHistWrap" hidden class="mt-2 tt-hist"></div>
+    </div>
+  </div>
 </div>
+<div id="ttToast" class="tt-toast" role="status" aria-live="polite"></div>
 <script>
-(function(){
-'use strict';
-document.addEventListener('DOMContentLoaded',function(){var timerDisplay=document.getElementById('timerDisplay');var startBtn=document.getElementById('startBtn');var pauseBtn=document.getElementById('pauseBtn');var stopBtn=document.getElementById('stopBtn');var taskName=document.getElementById('taskName');var hourlyRate=document.getElementById('hourlyRate');var logContainer=document.getElementById('logContainer');var seconds=0,isRunning=false,interval=null;function formatTime(s){var hrs=Math.floor(s/3600);var mins=Math.floor((s%3600)/60);var secs=s%60;var ms=Math.floor((s-Math.floor(s))*100);return String(hrs).padStart(2,'0')+':'+String(mins).padStart(2,'0')+':'+String(secs).padStart(2,'0')+'<span class="timer-ms">.'+String(ms).padStart(2,'0')+'</span>';}
-function updateDisplay(){var s=seconds+performance.now()/1000-(lastStart||performance.now()/1000);timerDisplay.innerHTML=formatTime(Math.max(0,s));}
-startBtn.addEventListener('click',function(){if(!isRunning){isRunning=true;lastStart=performance.now()/1000;interval=setInterval(function(){var s=seconds+(performance.now()/1000-lastStart);timerDisplay.innerHTML=formatTime(Math.max(0,s));timerDisplay.classList.add('recording');},50);startBtn.classList.add('hidden');pauseBtn.classList.remove('hidden');stopBtn.classList.remove('hidden');}});
-pauseBtn.addEventListener('click',function(){if(isRunning){isRunning=false;clearInterval(interval);seconds+=performance.now()/1000-lastStart;timerDisplay.classList.remove('recording');pauseBtn.classList.add('hidden');startBtn.classList.remove('hidden');}});
-stopBtn.addEventListener('click',function(){if(isRunning){isRunning=false;clearInterval(interval);seconds+=performance.now()/1000-lastStart;}var totalSecs=seconds;var name=taskName.value.trim()||'Untitled Task';var rate=parseFloat(hourlyRate.value)||0;var hrs=totalSecs/3600;var earnings=hrs*rate;var now=new Date();var entry=document.createElement('div');entry.className='card-premium p-3 flex justify-between items-center';entry.innerHTML='<div><span class="text-xs font-mono text-base-content/60">'+now.toLocaleDateString()+'</span><div class="font-bold text-sm">'+name+'</div><div class="text-xs text-base-content/60">'+formatTime(totalSecs).replace(/<.*?>/g,'')+'</div></div><div class="text-right"><div class="font-black text-success">$'+earnings.toFixed(2)+'</div><div class="text-xs text-base-content/60">@ $'+rate.toFixed(2)+'/hr</div></div>';logContainer.insertBefore(entry,logContainer.firstChild);seconds=0;timerDisplay.innerHTML=formatTime(0);timerDisplay.classList.remove('recording');pauseBtn.classList.add('hidden');stopBtn.classList.add('hidden');startBtn.classList.remove('hidden');});var lastStart=0;
-document.getElementById('ttExportBtn').addEventListener('click',function(){var csv='Task,Date,Duration (hrs),Rate,earnings\n';logContainer.querySelectorAll('.card-premium').forEach(function(el){var cells=el.innerText.split('\n').filter(Boolean);if(cells.length>=3){var date=cells[0];var task=cells[1];var dur=cells[2];csv+=task+','+date+','+dur+',\n';}});var blob=new Blob([csv],{type:'text/csv'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='timesheet.csv';a.click();});});
+(function(){'use strict';
+var LS_KEY='sb_tt1';
+var entries=[];
+var timerRunning=false,timerPaused=false,startTime=0,elapsed=0,animFrame=null;
+var currentFilter='all',currentSort='newest';
+var _statsDirty=true,_taskNamesDirty=true;
+
+var disp=document.getElementById('ttDisplay');
+var startBtn=document.getElementById('ttStartBtn'),pauseBtn=document.getElementById('ttPauseBtn'),stopBtn=document.getElementById('ttStopBtn');
+var taskInp=document.getElementById('ttTask'),rateInp=document.getElementById('ttRate'),taskList=document.getElementById('ttTaskList');
+var mDate=document.getElementById('ttMDate'),mTask=document.getElementById('ttMTask'),mDur=document.getElementById('ttMDur'),mAdd=document.getElementById('ttManualAdd');
+var sSes=document.getElementById('ttStatSessions'),sHrs=document.getElementById('ttStatHours'),sEarn=document.getElementById('ttStatEarn'),sToday=document.getElementById('ttStatToday');
+var logList=document.getElementById('ttLogList'),logEmpty=document.getElementById('ttEmpty'),totals=document.getElementById('ttTotals');
+var tHrs=document.getElementById('ttTotalHours'),tEarn=document.getElementById('ttTotalEarn');
+var expBtn=document.getElementById('ttExportBtn'),clrBtn=document.getElementById('ttClearBtn');
+var filterEl=document.getElementById('ttFilter'),sortEl=document.getElementById('ttSort');
+var cntAll=document.getElementById('ttCntAll'),cntMonth=document.getElementById('ttCntMonth'),cntWeek=document.getElementById('ttCntWeek'),cntToday=document.getElementById('ttCntToday');
+var stToggle=document.getElementById('ttStatsToggle'),stWrap=document.getElementById('ttStatsWrap');
+var hiToggle=document.getElementById('ttHistToggle'),hiWrap=document.getElementById('ttHistWrap'),hiCount=document.getElementById('ttHistCount');
+var tst=document.getElementById('ttToast'),tt=null;
+
+function toast(m){if(tt)clearTimeout(tt);tst.textContent=m;tst.classList.add('show');tt=setTimeout(function(){tst.classList.remove('show')},2200)}
+
+function fmtTime(s){var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),se=s%60,ms=Math.floor((s-Math.floor(s))*100);return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(se).padStart(2,'0')+'<span class="ms">.'+String(ms).padStart(2,'0')+'</span>'}
+function today(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function getWeekStart(){var d=new Date();d.setDate(d.getDate()-d.getDay());return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function getMonthStart(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01'}
+function dateInRange(dStr,range){if(range==='all')return true;if(range==='today')return dStr===today();if(range==='week')return dStr>=getWeekStart();if(range==='month')return dStr>=getMonthStart();return true}
+
+function load(){try{var d=localStorage.getItem(LS_KEY);if(d)entries=JSON.parse(d)}catch(e){}renderLog();renderStats();updateTaskList()}
+function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(entries))}catch(e){}}
+
+function addEntry(date,task,dur,rate,note){
+entries.push({date:date,task:task,dur:dur,rate:rate,ts:Date.now(),note:note||''});
+save();_statsDirty=true;_taskNamesDirty=true;renderLog();renderStats();renderHistory();
+}
+
+function updateEntry(idx,updates){
+if(!entries[idx])return;Object.assign(entries[idx],updates);entries[idx].ts=Date.now();
+save();_statsDirty=true;renderLog();renderStats();
+}
+
+function deleteEntry(idx){
+entries.splice(idx,1);save();_statsDirty=true;_taskNamesDirty=true;renderLog();renderStats();renderHistory();
+}
+
+function updateTaskList(){
+var names={};entries.forEach(function(e){if(e.task)names[e.task]=true});
+var html=Object.keys(names).map(function(n){return'<option value="'+esc(n)+'">'}).join('');
+taskList.innerHTML=html;
+}
+
+function getFilteredSorted(){
+var filtered=entries.filter(function(e){return dateInRange(e.date,currentFilter)});
+var sorted=[].concat(filtered);
+switch(currentSort){
+case'newest':sorted.sort(function(a,b){return b.ts-a.ts});break;
+case'oldest':sorted.sort(function(a,b){return a.ts-b.ts});break;
+case'longest':sorted.sort(function(a,b){return b.dur-a.dur});break;
+case'shortest':sorted.sort(function(a,b){return a.dur-b.dur});break;
+}
+return sorted;
+}
+
+function renderLog(){
+var hasEntries=entries.length>0;
+logEmpty.hidden=hasEntries;logList.classList.toggle('hidden',!hasEntries);totals.hidden=!hasEntries;
+if(!hasEntries){logList.innerHTML='';tHrs.textContent='0.0 hrs';tEarn.textContent='$0.00';cntAll.textContent='';cntMonth.textContent='';cntWeek.textContent='';cntToday.textContent='';return}
+var td=today(),ws=getWeekStart(),ms=getMonthStart();
+var totalHrs=0,totalEarn=0,fc=0;
+var sorted=getFilteredSorted();
+var h='';sorted.forEach(function(e,i){
+totalHrs+=e.dur;totalEarn+=e.dur*e.rate;fc++;
+var isToday=e.date===td;
+h+='<div class="tt-entry'+(isToday?' tt-today':'')+'" data-idx="'+i+'"><span class="tt-edate">'+esc(e.date.slice(5))+'</span>'
++'<span class="tt-etask" data-edit="task">'+esc(e.task)+'</span>'
++'<span class="tt-edur" data-edit="dur">'+e.dur.toFixed(2)+'h</span>'
++'<span class="tt-emoney">$'+(e.dur*e.rate).toFixed(2)+'</span>'
++'<button type="button" class="tt-edel" data-idx="'+i+'" aria-label="Delete entry">'+lucideIcon('x')+'</button></div>';
+});
+logList.innerHTML=h;
+tHrs.textContent=totalHrs.toFixed(1)+' hrs';tEarn.textContent='$'+totalEarn.toFixed(2);
+var counts={all:entries.length,today:0,week:0,month:0};
+entries.forEach(function(e){
+if(e.date===td)counts.today++;if(e.date>=ws)counts.week++;if(e.date>=ms)counts.month++;
+});
+cntAll.textContent='('+counts.all+')';cntToday.textContent='('+counts.today+')';cntWeek.textContent='('+counts.week+')';cntMonth.textContent='('+counts.month+')';
+}
+
+function renderStats(){
+var totalHrs=0,totalEarn=0,sessionCount=entries.length,todayHrs=0;
+var td=today();
+entries.forEach(function(e){
+totalHrs+=e.dur;totalEarn+=e.dur*e.rate;
+if(e.date===td)todayHrs+=e.dur;
+});
+sSes.textContent=sessionCount;
+sHrs.textContent=totalHrs.toFixed(1);
+sEarn.textContent='$'+Math.round(totalEarn);
+sToday.textContent=todayHrs.toFixed(1);
+}
+
+function renderAdvancedStats(){
+var t=entries;if(!t.length){stWrap.innerHTML='<span class="text-[9px] font-bold opacity-30 text-center py-4 block">No data yet</span>';return}
+var taskMap={},totalHrs=0,dayMap={};
+t.forEach(function(e){
+totalHrs+=e.dur;
+taskMap[e.task]=(taskMap[e.task]||0)+e.dur;
+var day=e.date.slice(5);dayMap[day]=(dayMap[day]||0)+e.dur;
+});
+var taskArr=Object.keys(taskMap).map(function(k){return{task:k,hrs:taskMap[k]}}).sort(function(a,b){return b.hrs-a.hrs});
+var maxTaskHrs=taskArr.length?taskArr[0].hrs:1;
+var dayArr=Object.keys(dayMap).map(function(k){return{day:k,hrs:dayMap[k]}}).sort(function(a,b){return b.hrs-a.hrs});
+var busiest=dayArr.length?dayArr[0].day:'—';
+var avgDur=totalHrs/t.length;
+var rates={};t.forEach(function(e){rates[e.rate]=true});
+var uniqueRates=Object.keys(rates).length;
+var taskHtml=taskArr.slice(0,8).map(function(item){var pct=Math.round(item.hrs/maxTaskHrs*100);return'<div class="tt-bar-item"><span class="bl">'+esc(item.task)+'</span><div style="height:14px;border-radius:3px;background:var(--color-primary);width:'+pct+'%;min-width:2px;flex-shrink:0"></div><span class="bc">'+item.hrs.toFixed(1)+'h</span></div>'}).join('');
+stWrap.innerHTML='<div class="g2">'
++'<div><div class="gv">'+t.length+'</div><div class="gl">Total Sessions</div></div>'
++'<div><div class="gv">'+totalHrs.toFixed(1)+'</div><div class="gl">Total Hours</div></div>'
++'<div><div class="gv">'+avgDur.toFixed(2)+'</div><div class="gl">Avg Hours/Session</div></div>'
++'<div><div class="gv">'+uniqueRates+'</div><div class="gl">Unique Rates</div></div>'
++'<div><div class="gv">'+Object.keys(taskMap).length+'</div><div class="gl">Unique Tasks</div></div>'
++'<div><div class="gv">'+Object.keys(dayMap).length+'</div><div class="gl">Active Days</div></div>'
++'</div>'
++(taskHtml?'<div class="sec mt-2"><div class="sec-h">Hours by Task</div>'+taskHtml+'</div>':'');
+}
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+var _icn='<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+function lucideIcon(n){return _icn}
+
+function updateTimerDisplay(){
+var now=timerRunning?performance.now()/1000:0;
+var total=elapsed+(timerRunning?(now-startTime):0);
+var rate=parseFloat(rateInp.value)||0;
+var earning=rate*(total/3600);
+var earnHtml=total>0?'<span class="earning">Earning $'+earning.toFixed(2)+' @ $'+rate.toFixed(2)+'/hr</span>':'';
+disp.innerHTML=fmtTime(total)+earnHtml;
+if(timerRunning)animFrame=requestAnimationFrame(updateTimerDisplay);
+}
+
+function stopTimerAndLog(){
+timerRunning=false;timerPaused=false;
+if(animFrame)cancelAnimationFrame(animFrame);
+var total=elapsed;
+var rate=parseFloat(rateInp.value)||0;
+var task=taskInp.value.trim()||'Untitled';
+var d=new Date();
+var dateStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+var mins=Math.round((total/3600)*60);
+elapsed=0;
+disp.innerHTML=fmtTime(0);disp.classList.remove('running','paused');
+startBtn.classList.remove('hidden');pauseBtn.classList.add('hidden');stopBtn.classList.add('hidden');
+if(mins>=1){addEntry(dateStr,task,mins/60,rate);toast('Logged '+fmtTime(total).replace(/<.*?>/g,'')+' — $'+(rate*total/3600).toFixed(2))}
+else{toast('Session too short')}
+}
+
+startBtn.addEventListener('click',function(){
+if(timerRunning||timerPaused)return;
+timerRunning=true;timerPaused=false;startTime=performance.now()/1000;
+startBtn.classList.add('hidden');pauseBtn.classList.remove('hidden');stopBtn.classList.remove('hidden');
+disp.classList.add('running');disp.classList.remove('paused');
+updateTimerDisplay();
+});
+
+pauseBtn.addEventListener('click',function(){
+if(!timerRunning)return;
+timerRunning=false;cancelAnimationFrame(animFrame);
+elapsed+=performance.now()/1000-startTime;
+timerPaused=true;
+pauseBtn.innerHTML='{{ lucide_icon("play","w-5 h-5",20) | safe }}';
+pauseBtn.setAttribute('aria-label','Resume timer');
+disp.classList.remove('running');disp.classList.add('paused');
+updateTimerDisplay();
+});
+
+stopBtn.addEventListener('click',stopTimerAndLog);
+window.addEventListener('beforeunload',function(){if(timerRunning){elapsed+=performance.now()/1000-startTime;stopTimerAndLog()}});
+
+mAdd.addEventListener('click',function(){
+var date=mDate.value||today();
+var task=mTask.value.trim()||'Untitled';
+var dur=parseFloat(mDur.value)||0;
+if(dur<0.25){toast('Minimum 0.25 hours');return}
+var rate=parseFloat(rateInp.value)||0;
+addEntry(date,task,dur,rate);
+toast('Added '+dur.toFixed(2)+'h — $'+(dur*rate).toFixed(2));
+mTask.value='';mDur.value='1';mDate.value=today();
+});
+
+logList.addEventListener('click',function(e){
+var del=e.target.closest('.tt-edel');if(!del)return;
+var idx=parseInt(del.getAttribute('data-idx'));
+deleteEntry(getFilteredSorted()[idx]);
+toast('Entry removed');
+});
+
+logList.addEventListener('dblclick',function(e){
+var span=e.target.closest('[data-edit]');if(!span)return;
+var entry=span.closest('.tt-entry');if(!entry)return;
+var idx=parseInt(entry.getAttribute('data-idx'));
+var realIdx=entries.indexOf(getFilteredSorted()[idx]);if(realIdx===-1)return;
+var field=span.getAttribute('data-edit');
+var currentVal=field==='task'?entries[realIdx].task:entries[realIdx].dur.toFixed(2);
+var inp=document.createElement('input');inp.type='text';inp.value=currentVal;inp.style.width='80px';inp.className='tt-inp';inp.style.fontSize='11px';inp.style.padding='2px 6px';
+span.textContent='';span.appendChild(inp);inp.focus();inp.select();
+function saveEdit(){var newVal=inp.value.trim();if(newVal&&newVal!==currentVal){if(field==='dur'){var n=parseFloat(newVal);if(!isNaN(n)&&n>0){updateEntry(realIdx,{dur:n});toast('Duration updated')}}else{updateEntry(realIdx,{task:newVal});toast('Task updated')}}renderLog()}
+inp.addEventListener('blur',saveEdit);inp.addEventListener('keydown',function(ev){if(ev.key==='Enter'){ev.preventDefault();inp.blur()}if(ev.key==='Escape'){ev.preventDefault();renderLog()}});
+});
+
+expBtn.addEventListener('click',function(){
+if(!entries.length){toast('No entries to export');return}
+var csv='Date,Task,Hours,Rate,Earnings\n';
+entries.forEach(function(e){csv+=e.date+','+esc(e.task)+','+e.dur.toFixed(2)+','+e.rate.toFixed(2)+','+(e.dur*e.rate).toFixed(2)+'\n'});
+var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='timesheet-'+today()+'.csv';a.click();URL.revokeObjectURL(a.href);
+toast('Exported '+entries.length+' entries');
+});
+
+clrBtn.addEventListener('click',function(){
+if(!entries.length)return;
+if(!confirm('Clear all '+entries.length+' entries?'))return;
+entries=[];save();_statsDirty=true;_taskNamesDirty=true;renderLog();renderStats();renderHistory();
+toast('All entries cleared');
+});
+
+filterEl.addEventListener('click',function(e){
+var b=e.target.closest('button[data-range]');if(!b)return;
+currentFilter=b.getAttribute('data-range');
+filterEl.querySelectorAll('button').forEach(function(btn){btn.classList.toggle('on',btn.getAttribute('data-range')===currentFilter);btn.setAttribute('aria-selected',btn.getAttribute('data-range')===currentFilter?'true':'false')});
+renderLog();
+});
+
+sortEl.addEventListener('click',function(e){
+var b=e.target.closest('button[data-sort]');if(!b)return;
+currentSort=b.getAttribute('data-sort');
+sortEl.querySelectorAll('button').forEach(function(btn){btn.classList.toggle('on',btn.getAttribute('data-sort')===currentSort)});
+renderLog();
+});
+
+stToggle.addEventListener('click',function(){
+var o=stToggle.getAttribute('aria-expanded')==='true';
+stToggle.setAttribute('aria-expanded',!o);stWrap.hidden=o;
+if(!o&&_statsDirty){renderAdvancedStats();_statsDirty=false}
+});
+
+hiToggle.addEventListener('click',function(){
+var o=hiToggle.getAttribute('aria-expanded')==='true';
+hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;
+if(!o)renderHistory();
+});
+
+function renderHistory(){
+var h=JSON.parse(localStorage.getItem(LS_KEY))||[];
+hiCount.textContent=h.length?'('+h.length+')':'';
+if(!h.length){hiWrap.innerHTML='<span class="text-[8px] font-bold opacity-30 text-center py-2 block">No history</span>';return}
+var html='';h.slice(0,10).forEach(function(e,i){
+var snippet=e.task.slice(0,25)+(e.task.length>25?'...':'');
+html+='<div class="tt-hist-item"><span class="font-bold" style="font-size:10px">'+e.dur.toFixed(1)+'h</span><span class="htask">'+esc(snippet)+'</span><span class="hmeta">$'+(e.dur*e.rate).toFixed(0)+'</span></div>';
+});
+hiWrap.innerHTML=html;
+}
+
+renderHistory();load();
 })();
 </script>
-
-
-
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

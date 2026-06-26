@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from app.core.icons import lucide_icon, LUCIDE_PATH, _cache
+from app.core.icons import LUCIDE_PATH, _cache, lucide_icon
 
 
 class TestLucideIcon:

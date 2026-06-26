@@ -16,7 +16,7 @@ async def liveness():
 
 @router.get("/readyz", include_in_schema=False)
 async def readiness():
-    templates_dir = settings.TEMPLATES_DIR
+    templates_dir = settings.templates_dir
     if not os.path.exists(templates_dir):
         return JSONResponse(
             status_code=503,

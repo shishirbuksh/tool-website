@@ -1,4 +1,3 @@
-import pytest
 from app.services.sitemap_service import SitemapService
 
 

@@ -1,6 +1,8 @@
 import os
+
 import pytest
-from app.services.analytics_service import track, get_counts, DB_PATH
+
+from app.services.analytics_service import DB_PATH, get_counts, track
 
 
 @pytest.fixture(autouse=True)

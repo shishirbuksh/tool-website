@@ -1,173 +1,360 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section, tool_range_slider, tool_result_card, tool_section_header, tool_json_ld %}
-
-{% block title %}EMI Calculator Online - Home, Car & Personal Loan Installment Calculator{% endblock %}
-{% block meta_description %}Easily calculate your monthly loan payments with our free EMI Calculator. Plan your home loan, car loan, or personal loan. See your complete amortization schedule, principal, and interest breakdown instantly.{% endblock %}
-{% block meta_keywords %}EMI calculator, loan EMI calculator, home loan calculator, car loan payment calculator, personal loan EMI, monthly installment calculator, loan amortization schedule, calculate loan interest, mortgage calculator, simple EMI formula tool{% endblock %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+{% block title %}EMI Calculator — Free Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Advanced EMI calculator with loan comparison, affordability check, monthly/yearly amortization, rate-tenure matrix, prepayment savings, and What-If scenarios.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/emi-calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/emi-calculator">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="EMI Calculator Online - Home, Car & Personal Loan Installment Calculator">
-<meta property="og:description" content="Easily calculate your monthly loan payments with our free EMI Calculator. Plan your home loan, car loan, or personal loan.">
+<meta property="og:title" content="EMI Calculator — Advanced | StoryBrain AI">
+<meta property="og:description" content="Advanced EMI calculator with loan comparison, affordability, monthly amortization, rate-tenure matrix, and prepayment savings.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="EMI Calculator Online - Home, Car & Personal Loan Installment Calculator">
-<meta name="twitter:description" content="Easily calculate your monthly loan payments with our free EMI Calculator. Plan your home loan, car loan, or personal loan.">
 {% endblock %}
-
 {% block head %}
+<style>
+.em-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.em-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.em-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.em-input:focus{border-color:var(--color-primary);outline:none}
+.em-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.55rem .75rem;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:6px;touch-action:manipulation}
+.em-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.em-pri:active{transform:translateY(0)}
+.em-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.45rem .7rem;font-weight:700;font-size:.65rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation}
+.em-sec:hover{border-color:var(--color-base-content)}
+.em-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.em-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.em-result{background:var(--color-base-100);border-radius:1rem;padding:14px 12px;text-align:center;border:1px solid var(--color-base-300)}
+.em-result .iv{font-size:20px;font-weight:900;font-family:monospace;line-height:1.2}
+.em-result .il{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-top:4px}
+.em-result.full{grid-column:1/-1}
+.em-result.full .iv{font-size:26px}
+.em-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.em-toast.show{opacity:1;transform:translateY(0)}
+.em-whatif{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px}
+.em-whatif button{padding:4px 6px;border-radius:6px;font-size:8px;font-weight:700;cursor:pointer;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;touch-action:manipulation}
+.em-whatif button:hover{background:color-mix(in oklab,var(--color-primary) 10%,transparent);border-color:var(--color-primary)}
+.em-whatif button.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.em-hist{max-height:200px;overflow-y:auto}
+.em-hist-item{padding:5px 8px;border-radius:.6rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:9px;font-weight:600;cursor:pointer;transition:all .12s;margin-bottom:2px}
+.em-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.em-hist-item .preview{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:8px;opacity:.55;min-width:0}
+.em-hist-item .meta{font-size:7px;font-weight:700;opacity:.35;white-space:nowrap}
+.em-hist-item .hdel{width:18px;height:18px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:8px}
+.em-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.em-empty{text-align:center;padding:20px 12px;font-size:10px;font-weight:600;opacity:.3}
+.em-table{width:100%;border-collapse:collapse;font-size:10px;font-weight:600}
+.em-table th{padding:4px 6px;text-align:right;font-size:7px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;opacity:.35;border-bottom:1px solid var(--color-base-300)}
+.em-table th:first-child,.em-table td:first-child{text-align:left}
+.em-table td{padding:4px 6px;text-align:right;font-family:monospace;border-bottom:1px solid var(--color-base-200)}
+.em-table td:first-child{font-weight:800}
+.em-table-wrap{max-height:240px;overflow-y:auto;border-radius:.75rem;border:1px solid var(--color-base-300)}
+.em-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.3rem .6rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:10px;transition:all .12s}
+.em-toggle:hover{background:var(--color-base-200)}
+.em-toggle.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.em-inline{display:flex;align-items:center;gap:8px;font-size:9px;font-weight:600}
+.em-matrix td{font-size:9px;padding:3px 5px;font-weight:700}
+.em-matrix th{font-size:7px;padding:3px 5px}
+.em-matrix td.highlight{background:color-mix(in oklab,var(--color-primary) 15%,transparent);border-radius:4px}
+</style>
 {% endblock %}
-
 {% block content %}
-{{ tool_hero_section("home", "Professional Grade", "ADVANCED", "EMI CALCULATOR", "Calculate your monthly loan payments accurately. Get instant visual breakdowns of principal versus interest and export your complete amortization schedule.") }}
-
-  <div class="flex flex-col lg:flex-row gap-6 mb-12 reveal">
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8 h-full flex flex-col">
-        {{ tool_section_header("Loan Details", "sliders-horizontal") }}
-        <form id="emiForm" class="flex-1">
-          {{ tool_range_slider(id="loanAmount", label="Loan Amount", prefix="₹", value=1000000, min=10000, max=50000000, step=10000) }}
-          <div class="mb-6">
-            <label class="label-cinematic flex justify-between" for="interestRate">
-              <span>Interest Rate (Annual)</span>
-              <span class="text-base-content" id="valRateDisplay">8.5 %</span>
-            </label>
-            <div class="flex mb-2">
-              <input aria-label="Interestrate" type="number" id="interestRate" class="input-cinematic flex-1" value="8.5" step="0.1" min="0.1" max="50" required>
-              <span class="inline-flex items-center bg-base-300/15 border-base-content/10 text-base-content/60 px-3">%</span>
-            </div>
-            <input type="range" class="slider-cinematic w-full" id="interestRateRange" min="1" max="30" step="0.1" value="8.5" aria-label="Interest Rate">
-          </div>
-          <div class="mb-6">
-            <div class="flex justify-between items-center mb-2">
-              <label class="label-cinematic m-0">Loan Tenure</label>
-              <div class="flex gap-1 p-0.5 rounded-xl bg-base-300/15 border border-base-content/10">
-                <input aria-label="Tenureyr" type="radio" class="peer-hidden" name="tenureType" id="tenureYr" value="yr" checked>
-                <label class="btn-cinematic px-3 py-1.5 text-[10px] font-black tracking-widest uppercase rounded-lg flex-1 text-center cursor-pointer" for="tenureYr">Years</label>
-                <input aria-label="Tenuremo" type="radio" class="peer-hidden" name="tenureType" id="tenureMo" value="mo">
-                <label class="btn-cinematic px-3 py-1.5 text-[10px] font-black tracking-widest uppercase rounded-lg flex-1 text-center cursor-pointer" for="tenureMo">Months</label>
-              </div>
-            </div>
-            <div class="flex mb-2 mt-2">
-              <input type="number" id="loanTenure" class="input-cinematic flex-1" value="10" min="1" max="360" required aria-label="Loan Tenure">
-              <span class="inline-flex items-center bg-base-300/15 border-base-content/10 text-base-content/60 px-3" id="tenureLabel">Years</span>
-            </div>
-            <input type="range" class="slider-cinematic w-full" id="loanTenureRange" min="1" max="30" step="1" value="10" aria-label="Loan Tenure">
-          </div>
-          <button type="submit" class="btn-cinematic w-full py-3 mt-6">
-            {{ lucide_icon("calculator","w-4 h-4", 16) | safe }} CALCULATE EMI
-          </button>
-        </form>
+{{ tool_hero_section("banknote","Calculators","EMI","CALCULATOR","Compare loans, check affordability, view monthly or yearly amortization, and explore rate-tenure trade-offs.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="em-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("wallet","w-4 h-4",16) | safe }} Loan Details</h2>
+      <div class="flex flex-col gap-3">
+        <div><label class="em-label" for="emAmount">Loan Amount ($)</label><input type="text" id="emAmount" class="em-input" value="500000" inputmode="numeric" aria-label="Loan amount"></div>
+        <div><label class="em-label" for="emRate">Annual Interest Rate (%)</label><input type="text" id="emRate" class="em-input" value="8.5" inputmode="decimal" aria-label="Annual interest rate"></div>
+        <div><label class="em-label" for="emTenure">Loan Tenure (years)</label><input type="text" id="emTenure" class="em-input" value="5" inputmode="numeric" aria-label="Loan tenure in years"></div>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button type="button" id="emCalcBtn" class="em-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
+        <button type="button" id="emCopyBtn" class="em-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="emDlBtn" class="em-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
       </div>
     </div>
-
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8 h-full flex flex-col">
-        <div class="flex justify-between items-center mb-4 pb-3 border-b border-base-content/10">
-          <h3 class="text-2xl font-bold mb-0">{{ lucide_icon("pie-chart","w-5 h-5", 20) | safe }} Repayment Summary</h3>
-          <button class="btn-cinematic btn-cinematic-sm rounded-full px-3" id="copyBtn">{{ lucide_icon("copy","w-4 h-4", 16) | safe }} Copy Details</button>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          {{ tool_result_card("Monthly EMI", "₹ 0.00", "", "rupee", "primary", "resEmi") }}
-          {{ tool_result_card("Total Interest", "₹ 0.00", "", "percent", "warning", "resInterest") }}
-          {{ tool_result_card("Total Payment", "₹ 0.00", "", "wallet", "accent", "resTotalPayment") }}
-        </div>
-        <div class="mt-auto">
-          <div class="flex justify-between items-center mb-3">
-            <h6 class="font-bold m-0 text-base-content">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Principal vs Interest</h6>
-          </div>
-          <div class="h-6 rounded-2xl overflow-hidden bg-base-300 w-full mb-3 flex">
-            <div id="barPrincipal" class="h-full bg-primary transition-all duration-500" style="width: 50%"></div>
-            <div id="barInterest" class="h-full bg-warning transition-all duration-500" style="width: 50%"></div>
-          </div>
-          <div class="flex justify-between text-sm font-bold">
-            <div class="flex items-center text-base-content/60">
-              <span class="inline-block w-2.5 h-2.5 rounded-full mr-2 bg-primary"></span>
-              Principal (<span id="pctPrincipal">50</span>%)
-            </div>
-            <div class="flex items-center text-base-content/60">
-              <span class="inline-block w-2.5 h-2.5 rounded-full mr-2 bg-warning"></span>
-              Interest (<span id="pctInterest">50</span>%)
-            </div>
-          </div>
-        </div>
+    <div class="em-card mt-4">
+      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("zap","w-3 h-3",12) | safe }} What-If</h2>
+      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">Test different loan scenarios</p>
+      <div class="em-whatif" id="emWhatIf"><button type="button" class="on" data-wi="current">Current</button><button type="button" data-wi="higher-rate">+2% Rate</button><button type="button" data-wi="longer-term">+5 Years</button><button type="button" data-wi="double-loan">x2 Loan</button><button type="button" data-wi="lower-rate">-2% Rate</button><button type="button" data-wi="best-case">Best Case</button></div>
+    </div>
+    <div class="em-card mt-4">
+      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("trending-up","w-4 h-4",16) | safe }} Prepayment Plan</h2>
+      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">See savings from extra monthly payments</p>
+      <div class="flex flex-col gap-2">
+        <div><label class="em-label" for="emExtra">Extra Monthly Payment ($)</label><input type="text" id="emExtra" class="em-input" value="200" inputmode="numeric" aria-label="Extra monthly payment"></div>
       </div>
+      <div class="em-grid mt-2">
+        <div class="em-result" style="padding:8px"><div class="iv" id="emSavedInt" style="font-size:14px">$0</div><div class="il">Interest Saved</div></div>
+        <div class="em-result" style="padding:8px"><div class="iv" id="emReducedMonths" style="font-size:14px">0 mo</div><div class="il">Time Reduced</div></div>
+      </div>
+    </div>
+    <div class="em-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
+        <div class="flex items-center gap-2"><button type="button" id="emHiToggle" class="em-toggle" aria-expanded="false" aria-controls="emHiWrap">History <span id="emHiCount"></span></button><button type="button" id="emHiClear" class="em-sec" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
+      </div>
+      <div id="emHiWrap" hidden class="mt-2"><div id="emHiList" class="em-hist"></div></div>
     </div>
   </div>
-
-  <div class="reveal mb-12" id="scheduleSection">
-    <div class="card-premium p-6 md:p-8">
-      <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-3">
-        <div>
-          <h3 class="text-2xl font-bold mb-1">{{ lucide_icon("table","w-5 h-5", 20) | safe }} Amortization Schedule</h3>
-              <p class="text-base-content/60 text-sm mb-0">Detailed breakdown of your repayment timeline, showing principal and interest components.</p>
+  <div class="lg:w-7/12">
+    <div class="em-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} Payment Summary</h2>
+      <div class="em-grid" id="emResults">
+        <div class="em-result full"><div class="iv" id="emMonthly" style="color:var(--color-primary)">$0</div><div class="il">Monthly EMI</div></div>
+        <div class="em-result"><div class="iv" id="emTotalPay">$0</div><div class="il">Total Payment</div></div>
+        <div class="em-result"><div class="iv" id="emTotalInt" style="color:var(--color-warning)">$0</div><div class="il">Total Interest</div></div>
+        <div class="em-result"><div class="iv" id="emMonths">0</div><div class="il">Total Months</div></div>
+      </div>
+      <div><label class="em-label mt-2" for="emIncome">Monthly Income ($)</label><input type="text" id="emIncome" class="em-input" value="8000" inputmode="numeric" aria-label="Monthly income"></div>
+      <div class="em-inline mt-1 justify-center"><span class="il">EMI / Income:</span><span class="iv" id="emIncomeRatio" style="font-size:13px;font-weight:900">—</span></div>
+      <div id="emRatioBar" class="em-inline mt-2 justify-center" style="gap:2px"></div>
+      <p class="text-[7px] font-bold opacity-25 uppercase tracking-wider text-center mt-1" id="emRatioLabel"></p>
+    </div>
+    <div class="em-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("arrow-left-right","w-4 h-4",16) | safe }} Loan Comparison</h2>
+        <button type="button" id="emCompTog" class="em-toggle on" aria-expanded="true" aria-controls="emCompWrap">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
+      </div>
+      <div id="emCompWrap">
+        <div class="flex gap-2 mt-2">
+          <div class="flex-1"><label class="em-label" for="emCAmt">Amount B ($)</label><input type="text" id="emCAmt" class="em-input" value="500000" inputmode="numeric"></div>
+          <div class="flex-1"><label class="em-label" for="emCRate">Rate B (%)</label><input type="text" id="emCRate" class="em-input" value="7.5" inputmode="decimal"></div>
+          <div class="flex-1"><label class="em-label" for="emCTenure">Tenure B (yr)</label><input type="text" id="emCTenure" class="em-input" value="5" inputmode="numeric"></div>
         </div>
-        <div class="flex gap-1 p-0.5 rounded-xl bg-base-300/15 border border-base-content/10">
-          <input aria-label="Schyear" type="radio" class="peer-hidden schedule-toggle" name="scheduleMode" id="schYear" value="yearly" checked>
-          <label class="btn-cinematic px-3 py-1.5 text-[10px] font-black tracking-widest uppercase rounded-lg flex-1 text-center cursor-pointer" for="schYear">Yearly</label>
-          <input aria-label="Schmonth" type="radio" class="peer-hidden schedule-toggle" name="scheduleMode" id="schMonth" value="monthly">
-          <label class="btn-cinematic px-3 py-1.5 text-[10px] font-black tracking-widest uppercase rounded-lg flex-1 text-center cursor-pointer" for="schMonth">Monthly</label>
+        <div class="em-grid mt-2">
+          <div class="em-result" style="padding:8px"><div class="iv" id="emCEmi" style="font-size:14px">$0</div><div class="il">EMI B</div></div>
+          <div class="em-result" style="padding:8px"><div class="iv" id="emCInt" style="font-size:14px">$0</div><div class="il">Interest B</div></div>
+          <div class="em-result" style="padding:8px"><div class="iv" id="emCDiff" style="font-size:14px">$0</div><div class="il">vs Your EMI</div></div>
+          <div class="em-result" style="padding:8px"><div class="iv" id="emCSave" style="font-size:14px">$0</div><div class="il">Interest Saved</div></div>
         </div>
       </div>
-      <div class="overflow-x-auto" style="max-height:500px;overflow-y:auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="sticky top-0 z-10 glass-cinematic border-b border-base-content/10">
-              <th class="text-left p-3 text-xs uppercase tracking-widest text-base-content/60 font-bold" width="10%">Period</th>
-              <th class="text-right p-3 text-xs uppercase tracking-widest text-base-content/60 font-bold" width="22%">Opening Balance</th>
-              <th class="text-right p-3 text-xs uppercase tracking-widest text-base-content/60 font-bold" width="22%">Principal Paid</th>
-              <th class="text-right p-3 text-xs uppercase tracking-widest text-base-content/60 font-bold" width="22%">Interest Paid</th>
-              <th class="text-right p-3 text-xs uppercase tracking-widest text-base-content/60 font-bold" width="24%">Closing Balance</th>
-            </tr>
-          </thead>
-          <tbody id="scheduleBody"></tbody>
-        </table>
+    </div>
+    <div class="em-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("calendar","w-4 h-4",16) | safe }} Amortization</h2>
+        <div class="flex items-center gap-2"><button type="button" id="emAmoView" class="em-toggle on" aria-expanded="true" aria-label="Toggle monthly view">Monthly</button><button type="button" id="emAmoTog" class="em-toggle on" aria-expanded="true" aria-controls="emAmoWrap">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button></div>
       </div>
+      <div id="emAmoWrap"><div class="em-table-wrap mt-2"><table class="em-table"><thead><tr><th id="emAmoHCol">Year</th><th>EMI Paid</th><th>Principal</th><th>Interest</th><th>Balance</th></tr></thead><tbody id="emAmoBody"></tbody></table></div></div>
+    </div>
+    <div class="em-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("grid","w-4 h-4",16) | safe }} Rate vs Tenure</h2>
+        <button type="button" id="emMatTog" class="em-toggle on" aria-expanded="true" aria-controls="emMatWrap">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
+      </div>
+      <div id="emMatWrap"><p class="text-[7px] font-bold opacity-25 uppercase tracking-wider mt-1 mb-2">EMI at different rate & tenure combos</p><div class="em-table-wrap"><table class="em-table em-matrix" id="emMatrix"><thead id="emMatHead"></thead><tbody id="emMatBody"></tbody></table></div></div>
     </div>
   </div>
 </div>
-
+<div id="emToast" class="em-toast" role="status" aria-live="polite"></div>
 <script>
-function formatCurrency(val){return parseFloat(val).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0})}
-function generateSchedule(principal,rate,tenureMonths,emi){let balance=principal;const monthlyRate=rate/12/100;const schedule=[];for(let month=1;month<=tenureMonths;month++){let interest=balance*monthlyRate;let principalPaid=emi-interest;if(month===tenureMonths||balance<principalPaid){principalPaid=balance;emi=principalPaid+interest;balance=0}else{balance-=principalPaid}
-schedule.push({month,emi,principalPaid,interestPaid:interest,balance:balance>0?balance:0})}
-return schedule}
-function getYearlySchedule(monthlySchedule){const yearly=[];let currentYear=1;let yPrincipal=0;let yInterest=0;let openingBalance=monthlySchedule[0]?monthlySchedule[0].balance+monthlySchedule[0].principalPaid:0;for(let i=0;i<monthlySchedule.length;i++){const item=monthlySchedule[i];if(i>0&&i%12===0){openingBalance=monthlySchedule[i].balance+monthlySchedule[i].principalPaid}
-yPrincipal+=item.principalPaid;yInterest+=item.interestPaid;if((i+1)%12===0||i===monthlySchedule.length-1){yearly.push({year:currentYear,opening:openingBalance,principalPaid:yPrincipal,interestPaid:yInterest,balance:item.balance});currentYear++;yPrincipal=0;yInterest=0}}
-return yearly}
-document.addEventListener('DOMContentLoaded',()=>{const emiForm=document.getElementById('emiForm');const loanAmount=document.getElementById('loanAmount');const loanAmountRange=document.getElementById('loanAmountRange');const valLoanAmount=document.getElementById('valLoanAmount');const interestRate=document.getElementById('interestRate');const interestRateRange=document.getElementById('interestRateRange');const valRateDisplay=document.getElementById('valRateDisplay');const loanTenure=document.getElementById('loanTenure');const loanTenureRange=document.getElementById('loanTenureRange');const tenureLabel=document.getElementById('tenureLabel');const tenureRadios=document.getElementsByName('tenureType');const resEmi=document.getElementById('resEmi');const resInterest=document.getElementById('resInterest');const resTotalPayment=document.getElementById('resTotalPayment');const copyBtn=document.getElementById('copyBtn');const barPrincipal=document.getElementById('barPrincipal');const barInterest=document.getElementById('barInterest');const pctPrincipalNode=document.getElementById('pctPrincipal');const pctInterestNode=document.getElementById('pctInterest');const scheduleBody=document.getElementById('scheduleBody');const scheduleRadios=document.querySelectorAll('.schedule-toggle');let currentSchedule=[];function syncValue(input,range,display,formatter){input.addEventListener('input',()=>{range.value=input.value;display.innerText=formatter(input.value);calculateEMI()});range.addEventListener('input',()=>{input.value=range.value;display.innerText=formatter(range.value);calculateEMI()})}
-syncValue(loanAmount,loanAmountRange,valLoanAmount,v=>'₹ '+formatCurrency(v));syncValue(interestRate,interestRateRange,valRateDisplay,v=>parseFloat(v).toFixed(1)+' %');loanTenure.addEventListener('input',()=>{loanTenureRange.value=loanTenure.value;calculateEMI()});loanTenureRange.addEventListener('input',()=>{loanTenure.value=loanTenureRange.value;calculateEMI()});tenureRadios.forEach(r=>{r.addEventListener('change',()=>{const isYear=document.getElementById('tenureYr').checked;tenureLabel.innerText=isYear?'Years':'Months';if(isYear){loanTenureRange.min=1;loanTenureRange.max=30;let val=Math.max(1,Math.round(loanTenure.value/12));loanTenure.value=val;loanTenureRange.value=val}else{loanTenureRange.min=1;loanTenureRange.max=360;let val=loanTenure.value*12;loanTenure.value=val;loanTenureRange.value=val}
-calculateEMI()})});function calculateEMI(){const principal=parseFloat(loanAmount.value)||0;const rateAnnual=parseFloat(interestRate.value)||0;const tenureInput=parseFloat(loanTenure.value)||0;if(principal<=0||rateAnnual<=0||tenureInput<=0){resetUI();return}
-const isYear=document.getElementById('tenureYr').checked;const months=isYear?tenureInput*12:tenureInput;const r=rateAnnual/12/100;const emi=(principal*r*Math.pow(1+r,months))/(Math.pow(1+r,months)-1);const totalPayment=emi*months;const totalInterest=totalPayment-principal;resEmi.innerText=formatCurrency(emi);resEmi.classList.remove('result-highlight');void resEmi.offsetWidth;resEmi.classList.add('result-highlight');resInterest.innerText="₹"+formatCurrency(totalInterest);resInterest.classList.remove('result-highlight');void resInterest.offsetWidth;resInterest.classList.add('result-highlight');resTotalPayment.innerText="₹"+formatCurrency(totalPayment);resTotalPayment.classList.remove('result-highlight');void resTotalPayment.offsetWidth;resTotalPayment.classList.add('result-highlight');const pctP=Math.round((principal/totalPayment)*100);const pctI=100-pctP;barPrincipal.style.width=pctP+'%';barInterest.style.width=pctI+'%';pctPrincipalNode.innerText=pctP;pctInterestNode.innerText=pctI;currentSchedule=generateSchedule(principal,rateAnnual,months,emi);renderSchedule()}
-function resetUI(){resEmi.innerText="0";resInterest.innerText="₹ 0";resTotalPayment.innerText="₹ 0";barPrincipal.style.width='50%';barInterest.style.width='50%';pctPrincipalNode.innerText="50";pctInterestNode.innerText="50";scheduleBody.innerHTML='<tr><td colspan="5" class="text-center text-base-content/60 py-4">Enter loan details to view schedule.</td></tr>'}
-function renderSchedule(){if(!currentSchedule||currentSchedule.length===0)return;const isMonthly=document.getElementById('schMonth').checked;scheduleBody.innerHTML='';if(isMonthly){currentSchedule.forEach(row=>{const tr=document.createElement('tr');const opening=row.balance+row.principalPaid;tr.innerHTML=`<td class="font-bold text-left p-2 border-b border-base-content/10">Month ${row.month}</td><td class="font-mono text-right p-2 border-b border-base-content/10">₹${formatCurrency(opening)}</td><td class="font-mono text-right p-2 border-b border-base-content/10 text-accent">₹${formatCurrency(row.principalPaid)}</td><td class="font-mono text-right p-2 border-b border-base-content/10 text-warning">₹${formatCurrency(row.interestPaid)}</td><td class="font-mono text-right p-2 border-b border-base-content/10 font-bold">₹${formatCurrency(row.balance)}</td>`;scheduleBody.appendChild(tr)})}else{const yearly=getYearlySchedule(currentSchedule);yearly.forEach(row=>{const tr=document.createElement('tr');tr.innerHTML=`<td class="font-bold text-left p-2 border-b border-base-content/10">Year ${row.year}</td><td class="font-mono text-right p-2 border-b border-base-content/10">₹${formatCurrency(row.opening)}</td><td class="font-mono text-right p-2 border-b border-base-content/10 text-accent">₹${formatCurrency(row.principalPaid)}</td><td class="font-mono text-right p-2 border-b border-base-content/10 text-warning">₹${formatCurrency(row.interestPaid)}</td><td class="font-mono text-right p-2 border-b border-base-content/10 font-bold">₹${formatCurrency(row.balance)}</td>`;scheduleBody.appendChild(tr)})}}
-scheduleRadios.forEach(r=>r.addEventListener('change',renderSchedule));emiForm.addEventListener('submit',(e)=>{e.preventDefault();calculateEMI();document.getElementById('scheduleSection').scrollIntoView({behavior:'smooth'})});copyBtn.addEventListener('click',()=>{const txt=`EMI Calculation:\nLoan Amount:₹${formatCurrency(loanAmount.value)}\nInterest Rate:${interestRate.value}%\nTenure:${loanTenure.value}${tenureLabel.innerText}\n\nMonthly EMI:₹${resEmi.innerText}\nTotal Interest:${resInterest.innerText}\nTotal Payment:${resTotalPayment.innerText}`;navigator.clipboard.writeText(txt).then(()=>{const og=copyBtn.innerHTML;copyBtn.innerHTML='{{ lucide_icon("check","w-5 h-5", 20) | safe }} Copied';setTimeout(()=>copyBtn.innerHTML=og,2000)})});calculateEMI()});
+(function(){'use strict';
+var wi='current',amoTable=true,amoMonthly=false,compOn=true,matOn=true;
+var history=[];try{var h=JSON.parse(localStorage.getItem('sb_em')||'[]');if(Array.isArray(h))history=h}catch(e){}
+var saved=null;try{var s=JSON.parse(localStorage.getItem('sb_em_i')||'null');if(s&&typeof s==='object')saved=s}catch(e){}
+
+function el(id){return document.getElementById(id)}
+var amount=el('emAmount'),rate=el('emRate'),tenure=el('emTenure'),extra=el('emExtra'),income=el('emIncome');
+var cAmt=el('emCAmt'),cRate=el('emCRate'),cTenure=el('emCTenure');
+var calcBtn=el('emCalcBtn'),copyBtn=el('emCopyBtn'),dlBtn=el('emDlBtn'),whatifEl=el('emWhatIf');
+var monthly=el('emMonthly'),totalPay=el('emTotalPay'),totalInt=el('emTotalInt'),months=el('emMonths');
+var savedInt=el('emSavedInt'),reducedMonths=el('emReducedMonths');
+var incomeRatio=el('emIncomeRatio');
+var ratioBar=el('emRatioBar'),ratioLabel=el('emRatioLabel');
+var amoBody=el('emAmoBody'),amoHCol=el('emAmoHCol');
+var cEmi=el('emCEmi'),cInt=el('emCInt'),cDiff=el('emCDiff'),cSave=el('emCSave');
+var matHead=el('emMatHead'),matBody=el('emMatBody');
+var hiToggle=el('emHiToggle'),hiCount=el('emHiCount'),hiClear=el('emHiClear'),hiWrap=el('emHiWrap'),hiList=el('emHiList');
+var amoTog=el('emAmoTog'),amoWrap=el('emAmoWrap'),amoView=el('emAmoView');
+var compTog=el('emCompTog'),compWrap=el('emCompWrap'),matTog=el('emMatTog'),matWrap=el('emMatWrap');
+var toastEl=el('emToast'),tt;
+var amoData=[],emiValue=0,totalMonths=0;
+
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function v(e){var n=parseFloat(e.value.replace(/,/g,''));return isNaN(n)?0:n}
+function fmtCurrency(n){if(isNaN(n)||n===0)return'$0';return'$'+Math.round(n).toLocaleString('en-US')}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+function applyWI(){
+var p=v(amount),r=v(rate),t=v(tenure);
+if(wi==='higher-rate'){r+=2}
+else if(wi==='longer-term'){t+=5}
+else if(wi==='double-loan'){p*=2}
+else if(wi==='lower-rate'){r=Math.max(1,r-2)}
+else if(wi==='best-case'){r=Math.max(1,r-2);t+=5}
+return{p:p,r:r,t:t}
+}
+
+function calcEMI(p,annualRate,monthsN){
+if(monthsN<=0||p<=0)return{emi:0,data:[]};
+var mr=annualRate/12/100;
+var emi=p*mr*Math.pow(1+mr,monthsN)/(Math.pow(1+mr,monthsN)-1);
+if(!isFinite(emi))emi=p/monthsN;
+var data=[];var bal=p;var yEmi=0,yPrin=0,yInt=0;
+for(var m=1;m<=monthsN;m++){
+var intP=bal*mr;var prinP=emi-intP;bal-=prinP;if(bal<0)bal=0;
+yEmi+=emi;yPrin+=prinP;yInt+=intP;
+if(amoMonthly?(m===monthsN):(m%12===0||m===monthsN)){
+data.push({l:amoMonthly?'Month '+m:'Year '+Math.ceil(m/12),emi:yEmi,prin:yPrin,int:yInt,bal:bal});
+yEmi=0;yPrin=0;yInt=0;
+}}
+return{emi:emi,data:data};
+}
+
+function calc(){
+var d=applyWI();var p=d.p,r=d.r,t=d.t;var mn=Math.round(t*12);
+if(mn<=0||p<=0){resetDisplay();return}
+var result=calcEMI(p,r,mn);
+emiValue=result.emi;amoData=result.data;totalMonths=mn;
+var totalEmi=emiValue*mn;var interestTotal=totalEmi-p;
+monthly.textContent=fmtCurrency(emiValue);
+totalPay.textContent=fmtCurrency(totalEmi);
+totalInt.textContent=fmtCurrency(interestTotal);
+totalInt.style.color=interestTotal>0?'var(--color-warning)':'var(--color-base-content)';
+months.textContent=mn;
+
+var ic=v(income);if(ic>0){var ir=emiValue/ic*100;
+incomeRatio.textContent=ir.toFixed(1)+'%';
+incomeRatio.style.color=ir<=20?'var(--color-success)':ir<=36?'var(--color-primary)':ir<=50?'var(--color-warning)':'var(--color-error)';
+}else{incomeRatio.textContent='—'}
+
+var ep=v(extra);var savedAmt=0,reduced=0;
+if(ep>0){var fullInt2=calcEMI(p,r,mn).emi*mn-p;
+var pe=calcEMI(p,r,mn).emi+ep;var pBal=p;var pMn=0;var pMr=r/12/100;
+while(pBal>0&&pMn<mn*2){pMn++;var pInt2=pBal*pMr;var pPrin=pe-pInt2;if(pPrin>pBal)pPrin=pBal;pBal-=pPrin;if(pBal<0)pBal=0}
+var prepayInt=pe*pMn-p;
+if(pMn<mn){savedAmt=fullInt2-prepayInt;reduced=mn-pMn}else{savedAmt=0;reduced=0}}
+savedInt.textContent=fmtCurrency(savedAmt);savedInt.style.color=savedAmt>0?'var(--color-success)':'var(--color-base-content)';
+reducedMonths.textContent=reduced>0?reduced+' mo':'0 mo';reducedMonths.style.color=reduced>0?'var(--color-success)':'var(--color-base-content)';
+
+renderRatio(p,interestTotal);renderAmo();renderComparison();renderMatrix(p);saveInputs();
+}
+
+function resetDisplay(){
+monthly.textContent='$0';totalPay.textContent='$0';totalInt.textContent='$0';months.textContent='0';
+savedInt.textContent='$0';reducedMonths.textContent='0 mo';incomeRatio.textContent='—';
+ratioBar.innerHTML='';ratioLabel.textContent='';amoBody.innerHTML='';
+cEmi.textContent='$0';cInt.textContent='$0';cDiff.textContent='$0';cSave.textContent='$0';
+matHead.innerHTML='';matBody.innerHTML='';
+}
+
+function renderRatio(prinAmt,intAmt){
+var total=prinAmt+intAmt;
+if(total<=0){ratioBar.innerHTML='';ratioLabel.textContent='';return}
+var ppct=((prinAmt/total)*100).toFixed(1);var ipct=((intAmt/total)*100).toFixed(1);
+ratioBar.innerHTML='<span style="display:inline-block;height:16px;border-radius:4px;background:color-mix(in oklab,var(--color-primary) 50%,transparent);width:'+ppct+'%;min-width:4px"></span><span style="display:inline-block;height:16px;border-radius:4px;background:color-mix(in oklab,var(--color-warning) 50%,transparent);width:'+ipct+'%;min-width:4px"></span>';
+ratioLabel.textContent='Principal: '+ppct+'%   Interest: '+ipct+'%';
+}
+
+function renderAmo(){
+amoHCol.textContent=amoMonthly?'Month':'Year';
+var h='';
+amoData.forEach(function(r){h+='<tr><td>'+r.l+'</td><td>'+fmtCurrency(r.emi)+'</td><td>'+fmtCurrency(r.prin)+'</td><td style="color:var(--color-warning)">'+fmtCurrency(r.int)+'</td><td style="font-weight:900">'+fmtCurrency(r.bal)+'</td></tr>'});
+amoBody.innerHTML=h||'<tr><td colspan="5" style="text-align:center;opacity:.3;padding:20px">No data</td></tr>';
+}
+
+function renderComparison(){
+var p2=v(cAmt),r2=v(cRate),t2=v(cTenure);var mn2=Math.round(t2*12);
+if(mn2>0&&p2>0){var res2=calcEMI(p2,r2,mn2);var total2=res2.emi*mn2;var int2=total2-p2;
+cEmi.textContent=fmtCurrency(res2.emi);cInt.textContent=fmtCurrency(int2);
+var diff=emiValue-res2.emi;cDiff.textContent=fmtCurrency(diff);cDiff.style.color=diff>=0?'var(--color-success)':'var(--color-error)';
+var d2=v(amount)*1;var sv=calcEMI(d2,r2,mn2).emi*mn2-d2;var sv2=calcEMI(d2,v(rate),Math.round(v(tenure)*12)).emi*Math.round(v(tenure)*12)-d2;
+var saved=sv2-sv;cSave.textContent=saved>0?fmtCurrency(saved):'$0';cSave.style.color=saved>0?'var(--color-success)':'var(--color-base-content)';
+}else{cEmi.textContent='$0';cInt.textContent='$0';cDiff.textContent='$0';cSave.textContent='$0'}
+}
+
+function renderMatrix(p){
+var rates=[6,8.5,11,14];var tenures=[3,5,7,10];
+var h='<tr><th style="text-align:left">Rate ↓ Tenure →</th>';
+tenures.forEach(function(t){h+='<th>'+t+'yr</th>'});
+h+='</tr>';matHead.innerHTML=h;
+var h2='';
+rates.forEach(function(rt){
+h2+='<tr><td style="font-weight:800;font-size:8px">'+rt+'%</td>';
+tenures.forEach(function(tn){
+var res=calcEMI(p,rt,tn*12);
+var isMatch=Math.abs(rt-v(rate))<0.1&&Math.abs(tn-v(tenure))<0.1;
+h2+='<td'+(isMatch?' class="highlight"':'')+'>'+fmtCurrency(res.emi)+'</td>';
+});
+h2+='</tr>';
+});
+matBody.innerHTML=h2;
+}
+
+function saveInputs(){
+var obj={a:v(amount),r:v(rate),t:v(tenure),e:v(extra),wi:wi,ic:v(income),ca:v(cAmt),cr:v(cRate),ct:v(cTenure)};
+try{localStorage.setItem('sb_em_i',JSON.stringify(obj))}catch(e){}
+}
+
+function saveHistory(){
+var label=fmtCurrency(emiValue)+'/mo · '+totalMonths+' mo';
+history.unshift({a:v(amount),r:v(rate),t:v(tenure),e:v(extra),wi:wi,ic:v(income),ca:v(cAmt),cr:v(cRate),ct:v(cTenure),label:label,ts:Date.now()});
+if(history.length>30)history.pop();
+try{localStorage.setItem('sb_em',JSON.stringify(history))}catch(e){}renderHistory();
+}
+
+function renderHistory(){
+hiCount.textContent=history.length?'('+history.length+')':'';hiClear.hidden=!history.length;
+if(!history.length){hiList.innerHTML='<div class="em-empty">No calculations yet</div>';return}
+var h='';history.forEach(function(item,i){
+var d2=new Date(item.ts);var diff=Math.round((Date.now()-d2)/1000);
+var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+h+='<div class="em-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
+});hiList.innerHTML=h;
+}
+
+function copyAll(){
+var d=applyWI();
+var txt='EMI Report\nScenario: '+wi.replace(/-/g,' ')+'\nLoan Amount: '+fmtCurrency(d.p)+'\nRate: '+d.r+'%\nTenure: '+d.t+' years\n\nMonthly EMI: '+monthly.textContent+'\nTotal Payment: '+totalPay.textContent+'\nTotal Interest: '+totalInt.textContent+'\nTotal Months: '+months.textContent+'\nEMI/Income Ratio: '+incomeRatio.textContent+'\n\nPrepayment: Extra '+fmtCurrency(v(extra))+', Saved '+savedInt.textContent+', Reduced '+reducedMonths.textContent;
+txt+='\n\nLoan B: Amount '+fmtCurrency(v(cAmt))+', Rate '+v(cRate)+'%, Tenure '+v(cTenure)+'yr\nEMI B: '+cEmi.textContent+', Interest B: '+cInt.textContent;
+txt+='\n\nAmortization:\n';
+amoData.forEach(function(r){txt+=r.l+': Paid '+fmtCurrency(r.emi)+' | Prin '+fmtCurrency(r.prin)+' | Int '+fmtCurrency(r.int)+' | Bal '+fmtCurrency(r.bal)+'\n'});
+navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')});
+}
+
+function dlReport(){
+var d=applyWI();
+var txt='=== EMI Report ===\nDate: '+new Date().toISOString().slice(0,10)+'\nScenario: '+wi.replace(/-/g,' ')+'\n\nLoan Amount: '+fmtCurrency(d.p)+'\nRate: '+d.r+'%\nTenure: '+d.t+' years\n\nMonthly EMI: '+monthly.textContent+'\nTotal Payment: '+totalPay.textContent+'\nTotal Interest: '+totalInt.textContent+'\nTotal Months: '+months.textContent+'\nEMI/Income Ratio: '+incomeRatio.textContent+'\n\nPrepayment: Extra '+fmtCurrency(v(extra))+', Saved '+savedInt.textContent+', Reduced '+reducedMonths.textContent;
+txt+='\n\nLoan B: Amount '+fmtCurrency(v(cAmt))+', Rate '+v(cRate)+'%, Tenure '+v(cTenure)+'yr\nEMI B: '+cEmi.textContent+', Interest B: '+cInt.textContent;
+txt+='\n\nAmortization:\n';
+amoData.forEach(function(r){txt+=r.l+': Paid '+fmtCurrency(r.emi)+' | Prin '+fmtCurrency(r.prin)+' | Int '+fmtCurrency(r.int)+' | Bal '+fmtCurrency(r.bal)+'\n'});
+var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='emi-report-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded');
+}
+
+whatifEl.addEventListener('click',function(e){
+var b=e.target.closest('button[data-wi]');if(!b)return;
+wi=b.getAttribute('data-wi');whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+calc();saveHistory();
+});
+
+calcBtn.addEventListener('click',function(){calc();saveHistory()});
+copyBtn.addEventListener('click',copyAll);
+dlBtn.addEventListener('click',dlReport);
+
+hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
+hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_em',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});
+hiList.addEventListener('click',function(e){
+var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_em',JSON.stringify(history))}catch(e){}renderHistory();return}
+var item=e.target.closest('.em-hist-item');if(!item)return;
+var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
+amount.value=h.a;rate.value=h.r;tenure.value=h.t;extra.value=h.e||0;income.value=h.ic||0;
+cAmt.value=h.ca||500000;cRate.value=h.cr||7.5;cTenure.value=h.ct||5;
+wi=h.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+history.splice(idx,1);try{localStorage.setItem('sb_em',JSON.stringify(history))}catch(e){}renderHistory();calc();
+});
+
+amoTog.addEventListener('click',function(){amoTable=amoTog.getAttribute('aria-expanded')==='true'?false:true;amoTog.setAttribute('aria-expanded',amoTable);amoWrap.hidden=!amoTable;amoTog.classList.toggle('on')});
+amoView.addEventListener('click',function(){amoMonthly=amoView.getAttribute('aria-expanded')==='true'?false:true;amoView.setAttribute('aria-expanded',amoMonthly);amoView.classList.toggle('on');amoView.textContent=amoMonthly?'Yearly':'Monthly';if(amoTable)calc()});
+compTog.addEventListener('click',function(){compOn=compTog.getAttribute('aria-expanded')==='true'?false:true;compTog.setAttribute('aria-expanded',compOn);compWrap.hidden=!compOn;compTog.classList.toggle('on')});
+matTog.addEventListener('click',function(){matOn=matTog.getAttribute('aria-expanded')==='true'?false:true;matTog.setAttribute('aria-expanded',matOn);matWrap.hidden=!matOn;matTog.classList.toggle('on')});
+
+[amount,rate,tenure,extra,income,cAmt,cRate,cTenure].forEach(function(el){el.addEventListener('input',calc)});
+
+if(saved){amount.value=saved.a||500000;rate.value=saved.r||8.5;tenure.value=saved.t||5;extra.value=saved.e||200;income.value=saved.ic||0;cAmt.value=saved.ca||500000;cRate.value=saved.cr||7.5;cTenure.value=saved.ct||5;wi=saved.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)})}
+calc();
+})();
 </script>
-
-{{ tool_json_ld({
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "SoftwareApplication",
-      "name": "Advanced EMI Calculator",
-      "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Web browser",
-      "offers": {"@type": "Offer", "price": "0", "priceCurrency": "INR"},
-      "description": "Calculate your Equated Monthly Installment (EMI) for home, car, or personal loans. View full amortization schedules and visual breakdowns instantly."
-    },
-    {
-      "@type": "FAQPage",
-      "mainEntity": [
-        {"@type": "Question", "name": "What is an EMI?", "acceptedAnswer": {"@type": "Answer", "text": "Equated Monthly Installment (EMI) is a fixed payment amount made by a borrower to a lender at a specified date each calendar month."}},
-        {"@type": "Question", "name": "How is the EMI calculated?", "acceptedAnswer": {"@type": "Answer", "text": "The formula is E = P x r x (1+r)^n / ((1+r)^n - 1) where P is principal, r is monthly interest rate, and n is number of months."}},
-        {"@type": "Question", "name": "What is an Amortization Schedule?", "acceptedAnswer": {"@type": "Answer", "text": "A complete table of periodic loan payments showing principal and interest portions until the loan is paid off."}}
-      ]
-    }
-  ]
-}) }}
-
-
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

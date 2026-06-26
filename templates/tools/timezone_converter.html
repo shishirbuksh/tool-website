@@ -1,63 +1,613 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}Timezone Converter | Convert Time Across Time Zones{% endblock %}
-{% block meta_description %}Convert time between any two time zones worldwide. Free timezone converter with DST awareness for scheduling meetings and calls.{% endblock %}
+{% block title %}Timezone Converter — World Clock & Meeting Planner | Free Online{% endblock %}
+{% block meta_description %}Free online timezone converter with world clock, meeting planner, and timezone browser. Convert time across time zones, find overlapping business hours, compare offsets with DST awareness. No sign-up.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/timezone-converter{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/timezone-converter">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Timezone Converter">
-<meta property="og:description" content="Convert time between any two time zones worldwide.">
+<meta property="og:title" content="Timezone Converter — World Clock & Meeting Planner">
+<meta property="og:description" content="Convert time across time zones, view world clocks, find meeting times, and explore timezone offsets with DST awareness. Free online tool.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
 {% endblock %}
-{% block head %}{% endblock %}
+{% block head %}
+<style>
+.tzc-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.tzc-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.tzc-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.65rem;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:7px;touch-action:manipulation}
+.tzc-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.tzc-pri:active{transform:translateY(0)}
+.tzc-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.5rem .75rem;font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation}
+.tzc-sec:hover{border-color:var(--color-base-content)}
+.tzc-sec:disabled{opacity:.35;cursor:not-allowed;border-color:var(--color-base-300)}
+.tzc-sec.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.tzc-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.35rem .65rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:11px;transition:all .12s}
+.tzc-toggle:hover{background:var(--color-base-200)}
+.tzc-toggle.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.tzc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.tzc-toast.show{opacity:1;transform:translateY(0)}
+.tzc-select{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;cursor:pointer}
+.tzc-select:focus{border-color:var(--color-primary);outline:none}
+.tzc-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.tzc-input:focus{border-color:var(--color-primary);outline:none}
+.tzc-input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;cursor:pointer;padding:0;border:none;width:100%}
+.tzc-input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--color-base-300)}
+.tzc-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--color-primary);margin-top:-6px;border:2px solid var(--color-base-100)}
+.tzc-input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--color-base-300);border:none}
+.tzc-input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--color-primary);border:2px solid var(--color-base-100)}
+.tzc-input[type=range]:focus{outline:none}
+.tzc-clocks{display:grid;gap:8px}
+.tzc-clock-card{background:var(--color-base-100);border-radius:1rem;padding:12px 14px;border:1px solid var(--color-base-300);position:relative;transition:border-color .15s;cursor:default;touch-action:manipulation}
+.tzc-clock-card:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.tzc-clock-card.dragging{opacity:.5;border-style:dashed}
+.tzc-clock-card.drag-over{border-color:var(--color-primary);border-style:dashed;transform:scale(1.02)}
+.tzc-clock-card .tz-del{position:absolute;top:4px;right:6px;width:22px;height:22px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;font-size:11px}
+.tzc-clock-card .tz-del:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.tzc-clock-card .tz-drag-handle{position:absolute;top:4px;left:6px;width:20px;height:22px;opacity:.2;cursor:grab;display:flex;align-items:center;justify-content:center;font-size:12px;touch-action:manipulation;user-select:none}
+.tzc-clock-card .tz-drag-handle:hover{opacity:.6}
+.tzc-clock-card .tz-name{font-size:10px;font-weight:700;opacity:.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;padding:0 20px;cursor:pointer}
+.tzc-clock-card .tz-name:hover{opacity:.8}
+.tzc-clock-card .tz-time{font-size:20px;font-weight:900;font-family:monospace;line-height:1.3;letter-spacing:0.02em;cursor:pointer}
+.tzc-clock-card .tz-date{font-size:9px;font-weight:600;opacity:.45;margin-top:1px}
+.tzc-clock-card .tz-offset{font-size:8px;font-weight:700;opacity:.3;margin-top:4px;font-family:monospace}
+.tzc-clock-card.dst .tz-time{color:var(--color-success)}
+.tzc-clock-card.dst{border-left:3px solid var(--color-success)}
+.tzc-clock-card .tz-abbr{font-size:8px;font-weight:800;opacity:.35;margin-left:4px}
+.tzc-clock-card.expanded{grid-column:1/-1}
+.tzc-clock-card .tz-info{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--color-base-300);font-size:10px}
+.tzc-clock-card.expanded .tz-info{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tzc-clock-card .tz-info-item{display:flex;justify-content:space-between;padding:3px 6px;border-radius:4px;background:var(--color-base-200);font-weight:600}
+.tzc-clock-card .tz-info-item .tzi-l{opacity:.4;font-size:8px;text-transform:uppercase;letter-spacing:0.04em}
+.tzc-clock-card .tz-info-item .tzi-v{opacity:.8}
+.tzc-meeting-grid{display:grid;grid-template-columns:auto repeat(24,1fr);gap:1px;font-size:9px;font-weight:600;overflow-x:auto;min-width:500px;position:relative}
+.tzc-meeting-grid .mg-h{text-align:center;padding:4px 0;opacity:.45;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em}
+.tzc-meeting-grid .mg-row{display:contents}
+.tzc-meeting-grid .mg-label{text-align:right;padding:3px 6px;white-space:nowrap;font-size:8px;font-weight:700;opacity:.6;text-overflow:ellipsis;overflow:hidden;min-width:0}
+.tzc-meeting-grid .mg-cell{background:var(--color-base-100);border-radius:2px;min-height:16px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;transition:background .1s}
+.tzc-meeting-grid .mg-cell.biz{background:color-mix(in oklab,var(--color-primary) 18%,transparent);color:var(--color-primary)}
+.tzc-meeting-grid .mg-cell.overlap{background:color-mix(in oklab,var(--color-success) 25%,transparent);color:var(--color-success)}
+.tzc-meeting-grid .mg-cell.night{opacity:.3}
+.tzc-meeting-grid .mg-cell-label{background:transparent;font-size:7px;opacity:.3}
+.tzc-meeting-grid .mg-now{position:absolute;top:0;bottom:0;width:2px;background:var(--color-error);z-index:2;pointer-events:none;opacity:.7}
+.tzc-meeting-grid .mg-now::before{content:'NOW';position:absolute;top:-12px;left:50%;transform:translateX(-50%);font-size:6px;font-weight:900;color:var(--color-error);letter-spacing:0.06em}
+.tzc-add-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tzc-add-bar select{flex:1;min-width:0}
+.tzc-browse{max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.tzc-browse-item{display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:.5rem;background:var(--color-base-100);border:1px solid var(--color-base-300);font-size:10px;font-weight:600;transition:border-color .12s;cursor:pointer;touch-action:manipulation}
+.tzc-browse-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.tzc-browse-item .bo{font-family:monospace;font-size:9px;font-weight:700;opacity:.4;min-width:52px;text-align:right}
+.tzc-browse-item .bt{font-weight:700;font-size:10px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0;flex:1}
+.tzc-browse-item .bc{font-size:8px;opacity:.4;font-weight:600}
+.tzc-browse-item .ba{width:20px;height:20px;border-radius:50%;border:none;background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;transition:all .12s;touch-action:manipulation;flex-shrink:0}
+.tzc-browse-item .ba:hover{background:var(--color-primary);color:#fff}
+.tzc-hist{max-height:220px;overflow-y:auto}
+.tzc-hist-item{padding:6px 10px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10px;font-weight:600;cursor:pointer;transition:all .12s}
+.tzc-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.tzc-hist-item .preview{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:9px;opacity:.55;min-width:0}
+.tzc-hist-item .meta{font-size:8px;font-weight:700;opacity:.35;white-space:nowrap}
+.tzc-hist-item .hdel{width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:10px}
+.tzc-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.tzc-conv-result{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tzc-conv-card{background:var(--color-base-100);border-radius:1rem;padding:14px;border:1px solid var(--color-base-300);text-align:center}
+.tzc-conv-card .cc-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.45;margin-bottom:4px}
+.tzc-conv-card .cc-time{font-size:22px;font-weight:900;font-family:monospace;line-height:1.3}
+.tzc-conv-card .cc-date{font-size:10px;font-weight:600;opacity:.4;margin-top:2px}
+.tzc-conv-card .cc-zone{font-size:9px;font-weight:700;opacity:.3;margin-top:2px;font-family:monospace}
+.tzc-conv-diff{text-align:center;font-size:11px;font-weight:700;opacity:.5;grid-column:1/-1;padding:6px}
+.tzc-search-wrap{position:relative}
+.tzc-search-wrap input{padding-left:32px;width:100%;border-radius:.75rem;padding:.5rem .75rem .5rem 32px;font-weight:600;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.tzc-search-wrap input:focus{border-color:var(--color-primary);outline:none}
+.tzc-search-wrap .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.35;pointer-events:none;font-size:12px}
+.tzc-empty{text-align:center;padding:24px 16px;font-size:11px;font-weight:600;opacity:.3}
+.tzc-time-travel{display:flex;align-items:center;gap:10px}
+.tzc-time-travel .tt-label{font-size:9px;font-weight:700;opacity:.4;white-space:nowrap;text-transform:uppercase;letter-spacing:0.04em}
+.tzc-time-travel .tt-value{font-size:11px;font-weight:800;font-family:monospace;min-width:80px;text-align:center}
+.tzc-time-travel .tt-reset{font-size:9px;font-weight:700;cursor:pointer;opacity:.4;text-decoration:underline;transition:opacity .12s;touch-action:manipulation;white-space:nowrap}
+.tzc-time-travel .tt-reset:hover{opacity:1}
+.tzc-compare-wrap{overflow-x:auto}
+.tzc-compare-table{width:100%;border-collapse:collapse;font-size:10px}
+.tzc-compare-table th{text-align:left;padding:6px 8px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.45;border-bottom:1px solid var(--color-base-300)}
+.tzc-compare-table td{padding:5px 8px;border-bottom:1px solid var(--color-base-200);font-weight:600}
+.tzc-compare-table tr:hover td{background:color-mix(in oklab,var(--color-primary) 6%,transparent)}
+.tzc-compare-table .co{font-family:monospace;font-size:9px;opacity:.4;font-weight:700}
+.tzc-compare-table .ct{font-family:monospace;font-weight:800}
+.tzc-compare-table .cd{font-size:9px;opacity:.4}
+.tzc-compare-table .cb{display:inline-block;height:6px;border-radius:3px;min-width:4px;transition:width .3s}
+.tzc-time-band{display:flex;gap:2px;align-items:center;height:14px;border-radius:3px;overflow:hidden;min-width:60px}
+.tzc-time-band .band-seg{height:100%;flex:1;border-radius:1px}
+.tzc-time-band .band-seg.day{background:color-mix(in oklab,#fbbf24 30%,transparent)}
+.tzc-time-band .band-seg.eve{background:color-mix(in oklab,#f97316 20%,transparent)}
+.tzc-time-band .band-seg.night{background:color-mix(in oklab,#6366f1 15%,transparent)}
+.tzc-time-band .band-seg.morn{background:color-mix(in oklab,#60a5fa 20%,transparent)}
+.tzc-legend{display:flex;gap:8px;flex-wrap:wrap}
+.tzc-legend span{display:flex;align-items:center;gap:3px;font-size:8px;font-weight:600;opacity:.5}
+.tzc-legend span .dot{width:8px;height:8px;border-radius:2px;display:inline-block}
+</style>
+{% endblock %}
 {% block content %}
-{{ tool_hero_section("globe", "World Clock", "TIMEZONE", "CONVERTER", "Convert time between any two time zones worldwide.") }}
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Time Details</h2>
-        <form class="flex flex-col gap-5">
-          <div><label class="label-cinematic" for="fromTimezone">From Timezone</label><select aria-label="Fromtimezone" id="fromTimezone" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"></select></div>
-          <div><label class="label-cinematic" for="toTimezone">To Timezone</label><select aria-label="Totimezone" id="toTimezone" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"></select></div>
-          <div><label class="label-cinematic" for="dateInput">Date</label><input aria-label="Dateinput" type="date" id="dateInput" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"></div>
-          <div><label class="label-cinematic" for="timeInput">Time</label><input aria-label="Timeinput" type="time" id="timeInput" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"></div>
-          <button type="button" id="tzConvBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("arrow-left-right","w-5 h-5", 20) | safe }} CONVERT TIME</button>
-        </form>
+{{ tool_hero_section("globe","Productivity","TIMEZONE","CONVERTER","World clock, meeting planner, timezone browser, and converter — all in one tool.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="tzc-card">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("clock","w-4 h-4",16) | safe }} World Clocks</h2>
+        <div class="flex items-center gap-2">
+          <button type="button" id="tzcCompToggle" class="tzc-toggle" aria-expanded="false" aria-controls="tzcCompWrap" aria-label="Toggle comparison view">{{ lucide_icon("table","w-3 h-3",12) | safe }}</button>
+        </div>
+      </div>
+      <div id="tzcCompWrap" hidden class="tzc-compare-wrap mb-3"></div>
+      <div class="tzc-add-bar mb-3">
+        <select id="tzcAddSel" class="tzc-select" aria-label="Add a timezone"><option value="">— Add a timezone —</option></select>
+        <button type="button" id="tzcAddBtn" class="tzc-sec" aria-label="Add timezone">{{ lucide_icon("plus","w-3 h-3",12) | safe }} Add</button>
+      </div>
+      <div id="tzcClocks" class="tzc-clocks mb-3"></div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button type="button" id="tzcClearClocks" class="tzc-sec" aria-label="Clear all clocks">{{ lucide_icon("trash-2","w-3 h-3",12) | safe }} Clear</button>
+        <button type="button" id="tzcCopyClocks" class="tzc-sec" aria-label="Copy clocks as text">{{ lucide_icon("copy","w-3 h-3",12) | safe }} Copy</button>
+        <button type="button" id="tzcCsvExport" class="tzc-sec" aria-label="Export clocks as CSV">{{ lucide_icon("download","w-3 h-3",12) | safe }} CSV</button>
       </div>
     </div>
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Converted Time</h3>
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <div class="card-premium p-6 text-center" style="border-color:color-mix(in oklab, var(--color-primary) 25%, transparent)">
-            <span class="label-cinematic block mb-2 text-primary">From Time</span>
-            <output id="resFromTime" class="metric-cinematic metric-cinematic--md font-mono">—</output>
-            <p id="resFromZone" class="text-xs text-base-content/60 mt-2 font-mono"></p>
-          </div>
-          <div class="card-premium p-6 text-center" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-            <span class="label-cinematic block mb-2 text-success">To Time</span>
-            <output id="resToTime" class="metric-cinematic metric-cinematic--md font-mono">—</output>
-            <p id="resToZone" class="text-xs text-base-content/60 mt-2 font-mono"></p>
-          </div>
-          <div class="stat-cinematic text-center col-span-2"><span class="label-cinematic block mb-2">Timezone Difference</span><output id="resDiff" class="metric-cinematic metric-cinematic--sm font-mono">0 hours</output></div>
+    <div class="tzc-card mt-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("gauge","w-4 h-4",16) | safe }} Time Travel</h2>
+        <button type="button" id="tzcTtToggle" class="tzc-toggle" aria-expanded="false" aria-controls="tzcTtWrap" aria-label="Toggle time travel">{{ lucide_icon("clock","w-3 h-3",12) | safe }}</button>
+      </div>
+      <div id="tzcTtWrap" hidden>
+        <div class="tzc-time-travel">
+          <span class="tt-label">Shift</span>
+          <input type="range" id="tzcTtSlider" class="tzc-input tzc-input[type=range]" min="-24" max="24" value="0" step="1" aria-label="Time travel hours">
+          <span class="tt-value" id="tzcTtValue">Now</span>
+          <span class="tt-reset" id="tzcTtReset">Reset</span>
         </div>
+      </div>
+    </div>
+    <div class="tzc-card mt-6">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("arrow-left-right","w-4 h-4",16) | safe }} Converter</h2>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div><label class="tzc-label" for="tzcFrom">From</label><select id="tzcFrom" class="tzc-select" aria-label="From timezone"></select></div>
+        <div><label class="tzc-label" for="tzcTo">To</label><select id="tzcTo" class="tzc-select" aria-label="To timezone"></select></div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div><label class="tzc-label" for="tzcDate">Date</label><input type="date" id="tzcDate" class="tzc-input" aria-label="Conversion date"></div>
+        <div><label class="tzc-label" for="tzcTime">Time</label><input type="time" id="tzcTime" class="tzc-input" aria-label="Conversion time"></div>
+      </div>
+      <button type="button" id="tzcConvBtn" class="tzc-pri w-full mb-3">{{ lucide_icon("arrow-left-right","w-4 h-4",16) | safe }} Convert</button>
+      <div id="tzcConvResult" class="tzc-conv-result"></div>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="tzc-card">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("calendar-days","w-4 h-4",16) | safe }} Meeting Planner</h2>
+        <div class="flex items-center gap-2">
+          <button type="button" id="tzcMtgToggle" class="tzc-toggle on" aria-expanded="true" aria-controls="tzcMtgWrap">{{ lucide_icon("users","w-3 h-3",12) | safe }}{{ lucide_icon("clock","w-3 h-3",12) | safe }}</button>
+        </div>
+      </div>
+      <div id="tzcMtgWrap">
+        <div class="tzc-meeting-grid" id="tzcMtgGrid"></div>
+        <div class="flex items-center justify-between mt-3">
+          <div class="tzc-legend">
+            <span><span class="dot" style="background:color-mix(in oklab,var(--color-primary) 18%,transparent)"></span> Business (9-17)</span>
+            <span><span class="dot" style="background:color-mix(in oklab,var(--color-success) 25%,transparent)"></span> Overlap</span>
+            <span><span class="dot" style="background:#60a5fa20"></span> Morning</span>
+            <span><span class="dot" style="background:#fbbf2430"></span> Day</span>
+            <span><span class="dot" style="background:#f9731620"></span> Evening</span>
+            <span><span class="dot" style="background:#6366f115"></span> Night</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tzc-card mt-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("search","w-4 h-4",16) | safe }} Timezone Browser</h2>
+        <span id="tzcBrowseCount" class="text-[9px] font-bold opacity-40"></span>
+      </div>
+      <div class="tzc-search-wrap mb-3">
+        <span class="search-icon">{{ lucide_icon("search","w-3 h-3",12) | safe }}</span>
+        <input type="text" id="tzcBrowseSearch" placeholder="Search timezones or cities..." aria-label="Search timezones">
+      </div>
+      <div class="flex items-center gap-2 mb-2">
+        <button type="button" id="tzcSortOffset" class="tzc-sec on" aria-label="Sort by offset">By Offset</button>
+        <button type="button" id="tzcSortAlpha" class="tzc-sec" aria-label="Sort alphabetically">A-Z</button>
+        <button type="button" id="tzcSortPop" class="tzc-sec" aria-label="Show popular timezones">Popular</button>
+      </div>
+      <div id="tzcBrowse" class="tzc-browse" role="listbox" aria-label="Timezone list"></div>
+    </div>
+    <div class="tzc-card mt-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-4 h-4",16) | safe }} History</h2>
+        <div class="flex items-center gap-2">
+          <button type="button" id="tzcHiToggle" class="tzc-toggle" aria-expanded="false" aria-controls="tzcHiWrap">History <span id="tzcHiCount"></span></button>
+          <button type="button" id="tzcHiClear" class="tzc-sec" aria-label="Clear history" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button>
+        </div>
+      </div>
+      <div id="tzcHiWrap" hidden>
+        <div id="tzcHiList" class="tzc-hist"></div>
       </div>
     </div>
   </div>
 </div>
+<div id="tzcToast" class="tzc-toast" role="status" aria-live="polite"></div>
 <script>
 (function(){'use strict';
-const timezones=Intl.supportedValuesOf('timeZone');
-function populateZones(){const fromSel=document.getElementById('fromTimezone');const toSel=document.getElementById('toTimezone');fromSel.innerHTML='';toSel.innerHTML='';const userTz=Intl.DateTimeFormat().resolvedOptions().timeZone;timezones.forEach(tz=>{const o1=document.createElement('option');o1.value=tz;o1.textContent=tz;fromSel.appendChild(o1);const o2=document.createElement('option');o2.value=tz;o2.textContent=tz;if(tz===userTz)o2.selected=true;toSel.appendChild(o2);});fromSel.value=Intl.DateTimeFormat().resolvedOptions().timeZone;}
-function convert(){const from=document.getElementById('fromTimezone').value;const to=document.getElementById('toTimezone').value;const date=document.getElementById('dateInput').value;const time=document.getElementById('timeInput').value;const dt=new Date(`${date}T${time}:00`);const fromOpt={timeZone:from,dateStyle:'full',timeStyle:'medium'};const toOpt={timeZone:to,dateStyle:'full',timeStyle:'medium'};document.getElementById('resFromTime').innerText=dt.toLocaleString('en-US',fromOpt);document.getElementById('resFromZone').innerText=from;document.getElementById('resToTime').innerText=dt.toLocaleString('en-US',toOpt);document.getElementById('resToZone').innerText=to;const fromOff=-dt.getTimezoneOffset()/60;const toOff=-(new Date(dt.toLocaleString('en-US',{timeZone:to})))/60;let diff=toOff-fromOff;document.getElementById('resDiff').innerText=(diff>=0?'+':'')+diff+' hours';}
-document.addEventListener('DOMContentLoaded',function(){document.getElementById('tzConvBtn').addEventListener('click',convert);const now=new Date();document.getElementById('dateInput').value=now.toISOString().split('T')[0];document.getElementById('timeInput').value=now.toTimeString().slice(0,5);populateZones();convert();document.querySelectorAll('select, input').forEach(function(el){el.addEventListener('input',convert);});});
+var tzs=Intl.supportedValuesOf('timeZone'), sortMode='offset', searchQ='';
+var userTz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+var clocks=[]; try{var c=JSON.parse(localStorage.getItem('sb_tz1')||'[]');if(Array.isArray(c))clocks=c.filter(function(t){return tzs.indexOf(t)!==-1})}catch(e){}
+var history=[]; try{var h=JSON.parse(localStorage.getItem('sb_tz2')||'[]');if(Array.isArray(h))history=h}catch(e){}
+var timeShift=0, dragIdx=null;
+var cityAliases={'london':'Europe/London','paris':'Europe/Paris','berlin':'Europe/Berlin','moscow':'Europe/Moscow','rome':'Europe/Rome','madrid':'Europe/Madrid','dubai':'Asia/Dubai','mumbai':'Asia/Kolkata','delhi':'Asia/Kolkata','kolkata':'Asia/Kolkata','bangalore':'Asia/Kolkata','chennai':'Asia/Kolkata','hyderabad':'Asia/Kolkata','tokyo':'Asia/Tokyo','osaka':'Asia/Tokyo','seoul':'Asia/Seoul','beijing':'Asia/Shanghai','shanghai':'Asia/Shanghai','hong kong':'Asia/Hong_Kong','singapore':'Asia/Singapore','bangkok':'Asia/Bangkok','jakarta':'Asia/Jakarta','manila':'Asia/Manila','kuala lumpur':'Asia/Kuala_Lumpur','sydney':'Australia/Sydney','melbourne':'Australia/Melbourne','auckland':'Pacific/Auckland','new york':'America/New_York','chicago':'America/Chicago','denver':'America/Denver','los angeles':'America/Los_Angeles','san francisco':'America/Los_Angeles','seattle':'America/Los_Angeles','toronto':'America/Toronto','vancouver':'America/Vancouver','mexico city':'America/Mexico_City','sao paulo':'America/Sao_Paulo','buenos aires':'America/Argentina/Buenos_Aires','santiago':'America/Santiago','lagos':'Africa/Lagos','cairo':'Africa/Cairo','nairobi':'Africa/Nairobi','johannesburg':'Africa/Johannesburg','casablanca':'Africa/Casablanca','cape town':'Africa/Johannesburg','dubai':'Asia/Dubai','doha':'Asia/Qatar','riyadh':'Asia/Riyadh','istanbul':'Europe/Istanbul','athens':'Europe/Athens','stockholm':'Europe/Stockholm','oslo':'Europe/Oslo','copenhagen':'Europe/Copenhagen','amsterdam':'Europe/Amsterdam','brussels':'Europe/Brussels','zurich':'Europe/Zurich','vienna':'Europe/Vienna','warsaw':'Europe/Warsaw','prague':'Europe/Prague','budapest':'Europe/Budapest','helsinki':'Europe/Helsinki','dublin':'Europe/Dublin','lisbon':'Europe/Lisbon','reykjavik':'Atlantic/Reykjavik','honolulu':'Pacific/Honolulu','anchorage':'America/Anchorage','phoenix':'America/Phoenix','houston':'America/Chicago','dallas':'America/Chicago','atlanta':'America/New_York','miami':'America/New_York','boston':'America/New_York','washington':'America/New_York','las vegas':'America/Los_Angeles','portland':'America/Los_Angeles','salt lake city':'America/Denver','kathmandu':'Asia/Kathmandu','dhaka':'Asia/Dhaka','karachi':'Asia/Karachi','lahore':'Asia/Karachi','colombo':'Asia/Colombo','rangoon':'Asia/Yangon','hanoi':'Asia/Bangkok','ho chi minh':'Asia/Ho_Chi_Minh','tel aviv':'Asia/Jerusalem','jerusalem':'Asia/Jerusalem','anadyr':'Asia/Anadyr','magadan':'Asia/Magadan','vladivostok':'Asia/Vladivostok','irkutsk':'Asia/Irkutsk','krasnoyarsk':'Asia/Krasnoyarsk','novosibirsk':'Asia/Novosibirsk','yekaterinburg':'Asia/Yekaterinburg','samara':'Europe/Samara','kaliningrad':'Europe/Kaliningrad','chatham':'Pacific/Chatham','fiji':'Pacific/Fiji','tahiti':'Pacific/Tahiti','guam':'Pacific/Guam','azores':'Atlantic/Azores','canary':'Atlantic/Canary','madeira':'Atlantic/Madeira','south georgia':'Atlantic/South_Georgia','st helena':'Atlantic/St_Helena'};
+
+function el(id){return document.getElementById(id)}
+var addSel=el('tzcAddSel'),addBtn=el('tzcAddBtn'),clocksWrap=el('tzcClocks'),clearClocks=el('tzcClearClocks'),copyClocks=el('tzcCopyClocks'),csvExport=el('tzcCsvExport');
+var compToggle=el('tzcCompToggle'),compWrap=el('tzcCompWrap');
+var ttToggle=el('tzcTtToggle'),ttWrap=el('tzcTtWrap'),ttSlider=el('tzcTtSlider'),ttValue=el('tzcTtValue'),ttReset=el('tzcTtReset');
+var fromSel=el('tzcFrom'),toSel=el('tzcTo'),dateInp=el('tzcDate'),timeInp=el('tzcTime'),convBtn=el('tzcConvBtn'),convRes=el('tzcConvResult');
+var mtgWrap=el('tzcMtgWrap'),mtgGrid=el('tzcMtgGrid'),mtgToggle=el('tzcMtgToggle');
+var browseWrap=el('tzcBrowse'),browseSearch=el('tzcBrowseSearch'),browseCount=el('tzcBrowseCount');
+var sortOffset=el('tzcSortOffset'),sortAlpha=el('tzcSortAlpha'),sortPop=el('tzcSortPop');
+var hiToggle=el('tzcHiToggle'),hiCount=el('tzcHiCount'),hiClear=el('tzcHiClear'),hiWrap=el('tzcHiWrap'),hiList=el('tzcHiList');
+var toastEl=el('tzcToast');
+var popTzs=['America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Paris','Europe/Berlin','Europe/Moscow','Asia/Dubai','Asia/Kolkata','Asia/Shanghai','Asia/Tokyo','Asia/Singapore','Australia/Sydney','Pacific/Auckland','Pacific/Honolulu'];
+
+var fmtDate={year:'numeric',month:'short',day:'numeric'};
+var fmtDateFull={weekday:'short',year:'numeric',month:'short',day:'numeric'};
+var fmtTime={hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false};
+var fmtTime12={hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true};
+var fmtFull={dateStyle:'full',timeStyle:'medium'};
+var dayNames=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function getOffset(tz,date){try{var parts=new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'shortOffset',hour:'2-digit',minute:'2-digit'}).formatToParts(date);var off=parts.find(function(p){return p.type==='timeZoneName'});if(off&&off.value){var m=off.value.match(/UTC([+-]\d+)(?::(\d+))?/);if(m){var h=parseInt(m[1]),min=parseInt(m[2]||'0');return{h:h,min:min,total:h+min/60}};if(off.value==='UTC')return{h:0,min:0,total:0}}return null}catch(e){return null}}
+function getOffsetStr(tz,date){var o=getOffset(tz,date);if(!o)return'';var sign=o.total>=0?'+':'';var h=Math.abs(o.h),m=Math.abs(o.min);return'UTC'+sign+String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')}
+function isDST(tz,date){try{var jan=new Date(date.getFullYear(),0,1);var jul=new Date(date.getFullYear(),6,1);var offJan=getOffset(tz,jan);var offJul=getOffset(tz,jul);if(offJan&&offJul){return offJan.total!==offJul.total&&offJul.total>offJan.total}}catch(e){}return false}
+function getTimeInZone(tz,date){try{return date.toLocaleString('en-US',Object.assign({},{timeZone:tz},fmtTime))}catch(e){return'--'}}
+function getTimeInZone12(tz,date){try{return date.toLocaleString('en-US',Object.assign({},{timeZone:tz},fmtTime12))}catch(e){return'--'}}
+function getDateInZone(tz,date){try{return date.toLocaleString('en-US',Object.assign({},{timeZone:tz},fmtDate))}catch(e){return'--'}}
+function getDateFullInZone(tz,date){try{return date.toLocaleString('en-US',Object.assign({},{timeZone:tz},fmtDateFull))}catch(e){return'--'}}
+function getDayInZone(tz,date){try{return dayNames[new Date(date.toLocaleString('en-US',{timeZone:tz}))?.getDay()||0]}catch(e){return''}}
+function getAbbr(tz,date){try{var parts=new Intl.DateTimeFormat('en-US',{timeZone:tz,timeZoneName:'short',hour:'2-digit',minute:'2-digit'}).formatToParts(date);var a=parts.find(function(p){return p.type==='timeZoneName'});return a?a.value:''}catch(e){return''}}
+function getHourInZone(tz,date){try{return parseInt(date.toLocaleString('en-US',{hour:'2-digit',hour12:false,timeZone:tz}))||0}catch(e){return0}}
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function toast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function saveClocks(){localStorage.setItem('sb_tz1',JSON.stringify(clocks))}
+function saveHistory(){localStorage.setItem('sb_tz2',JSON.stringify(history))}
+
+function getNow(){if(timeShift===0)return new Date();var n=new Date();n.setHours(n.getHours()+timeShift);return n}
+
+function getTimeBand(tz,date){
+var h=getHourInZone(tz,date);
+if(h<6||h>=22)return'night';
+if(h<9)return'morn';
+if(h<17)return'day';
+if(h<22)return'eve';
+return'night';
+}
+
+function renderClocks(){
+if(!clocks.length){clocksWrap.innerHTML='<div class="tzc-empty">Click <strong>Add</strong> to add timezones</div>';return}
+var now=getNow(),h='';
+clocks.forEach(function(tz,i){
+var t=getTimeInZone(tz,now),d=getDateInZone(tz,now),day=getDayInZone(tz,now);
+var offStr=getOffsetStr(tz,now),dst=isDST(tz,now),abbr=getAbbr(tz,now);
+var name=tz.replace(/_/g,' ');
+var band=getTimeBand(tz,now);
+h+='<div class="tzc-clock-card'+(dst?' dst':'')+'" data-idx="'+i+'" draggable="true" tabindex="0"><div class="tz-drag-handle" aria-hidden="true">⠿</div><button type="button" class="tz-del" data-idx="'+i+'" aria-label="Remove '+esc(name)+'">✕</button><div class="tz-name" title="'+esc(tz)+'">'+esc(day)+' · '+esc(name)+'</div><div class="tz-time">'+esc(t)+'<span class="tz-abbr">'+esc(abbr)+'</span></div><div class="tz-date">'+esc(d)+'</div><div class="tz-offset">'+esc(offStr)+(dst?' DST':'')+' · '+band+'</div><div class="tz-info"><div class="tz-info-item"><span class="tzi-l">12h</span><span class="tzi-v">'+esc(getTimeInZone12(tz,now))+'</span></div><div class="tz-info-item"><span class="tzi-l">Date</span><span class="tzi-v">'+esc(getDateFullInZone(tz,now))+'</span></div><div class="tz-info-item"><span class="tzi-l">Abbr</span><span class="tzi-v">'+esc(abbr)+(dst?' (DST)':'')+'</span></div><div class="tz-info-item"><span class="tzi-l">Offset</span><span class="tzi-v">'+esc(offStr)+'</span></div><div class="tz-info-item"><span class="tzi-l">DST</span><span class="tzi-v">'+(dst?'Yes — currently in DST':'No')+'</span></div><div class="tz-info-item"><span class="tzi-l">Time Band</span><span class="tzi-v">'+band+'</span></div></div></div>';
+});
+clocksWrap.innerHTML=h;
+setupDragDrop();
+setupClockClick();
+renderCompTable();
+}
+
+function setupDragDrop(){
+clocksWrap.querySelectorAll('.tzc-clock-card').forEach(function(card){
+card.addEventListener('dragstart',function(e){
+dragIdx=parseInt(card.getAttribute('data-idx'));
+card.classList.add('dragging');
+e.dataTransfer.effectAllowed='move';
+e.dataTransfer.setData('text/plain',dragIdx);
+});
+card.addEventListener('dragend',function(e){
+card.classList.remove('dragging');
+clocksWrap.querySelectorAll('.tzc-clock-card').forEach(function(c){c.classList.remove('drag-over')});
+dragIdx=null;
+});
+card.addEventListener('dragover',function(e){
+e.preventDefault();
+e.dataTransfer.dropEffect='move';
+if(dragIdx===null)return;
+var targetIdx=parseInt(card.getAttribute('data-idx'));
+if(targetIdx===dragIdx)return;
+clocksWrap.querySelectorAll('.tzc-clock-card').forEach(function(c){c.classList.remove('drag-over')});
+card.classList.add('drag-over');
+});
+card.addEventListener('dragleave',function(){card.classList.remove('drag-over')});
+card.addEventListener('drop',function(e){
+e.preventDefault();
+if(dragIdx===null)return;
+var targetIdx=parseInt(card.getAttribute('data-idx'));
+if(targetIdx===dragIdx)return;
+var item=clocks.splice(dragIdx,1)[0];
+clocks.splice(targetIdx,0,item);
+saveClocks();renderClocks();populateAddSel();renderMeetingGrid();renderBrowse();
+});
+});
+}
+
+function setupClockClick(){
+clocksWrap.addEventListener('click',function(e){
+var del=e.target.closest('.tz-del');if(del){removeClock(parseInt(del.getAttribute('data-idx')));return}
+var card=e.target.closest('.tzc-clock-card');if(!card)return;
+card.classList.toggle('expanded');
+});
+}
+
+function removeClock(idx){
+if(isNaN(idx))return;
+clocks.splice(idx,1);saveClocks();populateAddSel();renderClocks();renderMeetingGrid();renderBrowse();
+}
+
+function renderClocksLoop(){
+if(document.querySelector('#tzcClocks .tzc-clock-card')){renderClocks()}
+setTimeout(renderClocksLoop,1000);
+}
+
+function renderCompTable(){
+if(!clocks.length||compToggle.getAttribute('aria-expanded')!=='true'){compWrap.innerHTML='';return}
+var now=getNow(),h='<table class="tzc-compare-table"><thead><tr><th>Timezone</th><th>Offset</th><th>Time</th><th>Day</th><th>Band</th></tr></thead><tbody>';
+clocks.forEach(function(tz){
+var t=getTimeInZone(tz,now),off=getOffsetStr(tz,now),day=getDayInZone(tz,now);
+var band=getTimeBand(tz,now);
+var bandCls=band==='night'?'#6366f115':band==='morn'?'#60a5fa20':band==='day'?'#fbbf2430':'#f9731620';
+var name=tz.replace(/_/g,' ').split('/').pop();
+h+='<tr><td style="font-weight:700">'+esc(name)+'</td><td class="co">'+esc(off)+'</td><td class="ct">'+esc(t)+'</td><td class="cd">'+esc(day)+'</td><td><div class="tzc-time-band"><div class="band-seg '+band+'" style="background:'+bandCls+';width:100%"></div></div></td></tr>';
+});
+h+='</tbody></table>';
+compWrap.innerHTML=h;
+}
+
+function populateSelects(){
+var opt='';tzs.forEach(function(tz){opt+='<option value="'+esc(tz)+'">'+esc(tz.replace(/_/g,' '))+'</option>'});
+addSel.innerHTML='<option value="">— Add a timezone —</option>'+opt;
+fromSel.innerHTML=opt;toSel.innerHTML=opt;
+fromSel.value=userTz;toSel.value=userTz;
+}
+
+function populateAddSel(){
+var existing={};clocks.forEach(function(t){existing[t]=true});
+var opt='<option value="">— Add a timezone —</option>';
+tzs.forEach(function(tz){if(!existing[tz])opt+='<option value="'+esc(tz)+'">'+esc(tz.replace(/_/g,' '))+'</option>'});
+addSel.innerHTML=opt;
+}
+
+function convertTime(){
+var from=fromSel.value,to=toSel.value,date=dateInp.value,time=timeInp.value;
+if(!from||!to){convRes.innerHTML='<div class="tzc-conv-diff">Select both timezones</div>';return}
+var dt=new Date(date+'T'+time+':00');
+if(isNaN(dt.getTime())){convRes.innerHTML='<div class="tzc-conv-diff">Invalid date/time</div>';return}
+var fromTime=dt.toLocaleString('en-US',Object.assign({},{timeZone:from},fmtFull));
+var toTime=dt.toLocaleString('en-US',Object.assign({},{timeZone:to},fmtFull));
+var fromOff=getOffset(from,dt),toOff=getOffset(to,dt);
+var diff='';
+if(fromOff&&toOff){var d=toOff.total-fromOff.total;diff=(d>=0?'+':'')+d+'h'}
+convRes.innerHTML='<div class="tzc-conv-card"><div class="cc-label">From</div><div class="cc-time">'+esc(dt.toLocaleString('en-US',Object.assign({},{timeZone:from},fmtTime)))+'</div><div class="cc-date">'+esc(dt.toLocaleString('en-US',Object.assign({},{timeZone:from},fmtDate)))+'</div><div class="cc-zone">'+esc(getOffsetStr(from,dt))+' · '+esc(from.replace(/_/g,' '))+'</div></div><div class="tzc-conv-card"><div class="cc-label">To</div><div class="cc-time">'+esc(dt.toLocaleString('en-US',Object.assign({},{timeZone:to},fmtTime)))+'</div><div class="cc-date">'+esc(dt.toLocaleString('en-US',Object.assign({},{timeZone:to},fmtDate)))+'</div><div class="cc-zone">'+esc(getOffsetStr(to,dt))+' · '+esc(to.replace(/_/g,' '))+'</div></div><div class="tzc-conv-diff">Timezone Difference: '+diff+'</div>';
+addHistory(from,to,date,time);
+}
+
+function addHistory(from,to,date,time){
+history.unshift({from:from,to:to,date:date,time:time,ts:Date.now()});
+if(history.length>50)history.pop();
+saveHistory();renderHistory();
+}
+
+function renderHistory(){
+hiCount.textContent=history.length?'('+history.length+')':'';
+hiClear.hidden=!history.length;
+if(!history.length){hiList.innerHTML='<div class="tzc-empty">No conversions yet</div>';return}
+var h='';history.forEach(function(item,i){
+var d=new Date(item.ts),now=new Date();
+var diff=Math.round((now-d)/1000);
+var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+var fromName=item.from.replace(/_/g,' ').split('/').pop();
+var toName=item.to.replace(/_/g,' ').split('/').pop();
+h+='<div class="tzc-hist-item" data-idx="'+i+'"><span class="preview">'+esc(fromName)+' → '+esc(toName)+' · '+esc(item.date)+' '+esc(item.time)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete from history">✕</button></div>';
+});
+hiList.innerHTML=h;
+}
+
+function renderMeetingGrid(){
+var now=getNow();
+if(!clocks.length){mtgGrid.innerHTML='<div class="tzc-empty">Add timezones to see meeting planner</div>';return}
+if(mtgToggle.getAttribute('aria-expanded')!=='true')return;
+var totalOverlap=0;
+clocks.forEach(function(){totalOverlap++});
+var hourOverlap=[];
+for(var hr=0;hr<24;hr++){hourOverlap[hr]=0}
+clocks.forEach(function(tz){
+for(var hr=0;hr<24;hr++){
+var cellDate=new Date(now);cellDate.setHours(hr,0,0,0);
+var localHr=getHourInZone(tz,cellDate);
+if(localHr>=9&&localHr<17)hourOverlap[hr]++;
+}
+});
+var nowHr=now.getHours();
+var h='<div class="mg-h"></div>';
+for(var hr=0;hr<24;hr++){h+='<div class="mg-h">'+String(hr).padStart(2,'0')+'</div>'}
+clocks.forEach(function(tz){
+h+='<div class="mg-row"><div class="mg-label" title="'+esc(tz)+'">'+esc(tz.split('/').pop().replace(/_/g,' '))+'</div>';
+for(var hr=0;hr<24;hr++){
+var cellDate=new Date(now);cellDate.setHours(hr,0,0,0);
+var localHr=getHourInZone(tz,cellDate);
+var isBiz=localHr>=9&&localHr<17;
+var isNight=localHr<6||localHr>=22;
+var isMorn=localHr>=6&&localHr<9;
+var isEve=localHr>=17&&localHr<22;
+var isOverlap=hourOverlap[hr]===clocks.length&&isBiz;
+var cls='mg-cell'+(isBiz?' biz':'')+(isNight?' night':'');
+if(isOverlap)cls+=' overlap';
+h+='<div class="'+cls+'">'+(isBiz?'●':'')+'</div>';
+}
+h+='</div>';
+});
+mtgGrid.innerHTML=h;
+var nowPct=(nowHr/24)*100;
+mtgGrid.style.position='relative';
+var existing=mtgGrid.querySelector('.mg-now');if(existing)existing.remove();
+var nowLine=document.createElement('div');nowLine.className='mg-now';
+nowLine.style.left='calc('+nowPct+'% + 32px)';
+mtgGrid.appendChild(nowLine);
+}
+
+function findTimezones(q){
+var ql=q.toLowerCase().trim();
+if(!ql)return null;
+if(cityAliases[ql])return[cityAliases[ql]];
+var results=[];
+for(var alias in cityAliases){if(alias.indexOf(ql)!==-1&&results.indexOf(cityAliases[alias])===-1)results.push(cityAliases[alias])}
+var exact=tzs.filter(function(tz){return tz.toLowerCase().indexOf(ql)!==-1});
+exact.forEach(function(t){if(results.indexOf(t)===-1)results.push(t)});
+return results.length?results:null;
+}
+
+function renderBrowse(){
+var list=[];
+if(searchQ){
+var aliases=findTimezones(searchQ);
+if(aliases){list=aliases}else{list=tzs.filter(function(tz){return tz.toLowerCase().indexOf(searchQ.toLowerCase())!==-1})}
+}else{list=tzs.slice()}
+if(sortMode==='offset'||sortMode==='alpha'){
+if(sortMode==='alpha'){list.sort()}
+else{var now2=getNow();list.sort(function(a,b){var oa=getOffset(a,now2),ob=getOffset(b,now2);return(oa?oa.total:0)-(ob?ob.total:0)})}
+}
+if(sortMode==='pop'){var now3=getNow();var set={};popTzs.forEach(function(t){set[t]=true});var popList=[];var otherList=[];
+list.forEach(function(tz){if(set[tz])popList.push(tz);else otherList.push(tz)});
+popList.sort(function(a,b){var oa=getOffset(a,now3),ob=getOffset(b,now3);return(oa?oa.total:0)-(ob?ob.total:0)});
+list=popList.concat(otherList);
+}
+browseCount.textContent=list.length+' timezones';
+var existing={};clocks.forEach(function(t){existing[t]=true});
+var h='';
+if(!list.length){browseWrap.innerHTML='<div class="tzc-empty">No timezones match your search</div>';return}
+list.forEach(function(tz){
+var now4=getNow();
+var offStr=getOffsetStr(tz,now4);
+var t=getTimeInZone(tz,now4);
+var added=existing[tz];
+var name=tz.replace(/_/g,' ');
+var aliasKeys=[];for(var k in cityAliases){if(cityAliases[k]===tz){aliasKeys.push(k);if(aliasKeys.length>=2)break}}
+h+='<div class="tzc-browse-item" data-tz="'+esc(tz)+'"><span class="bo">'+esc(offStr)+'</span><span class="bt" title="'+esc(name)+'">'+esc(name)+(aliasKeys.length?' <span style="opacity:.3">('+esc(aliasKeys.map(function(k){return k.charAt(0).toUpperCase()+k.slice(1)}).join(', '))+')</span>':'')+'</span><span class="bc">'+esc(t)+'</span><button type="button" class="ba" data-tz="'+esc(tz)+'" aria-label="'+(added?'Remove':'Add')+' '+esc(name)+'">'+(added?'−':'+')+'</button></div>';
+});
+browseWrap.innerHTML=h;
+}
+
+addBtn.addEventListener('click',function(){
+var tz=addSel.value;if(!tz)return;
+if(clocks.indexOf(tz)===-1){clocks.push(tz);saveClocks();renderClocks();populateAddSel();renderMeetingGrid();renderBrowse()}
+});
+
+clearClocks.addEventListener('click',function(){
+if(!clocks.length)return;
+if(!confirm('Remove all clocks?'))return;
+clocks=[];saveClocks();populateAddSel();renderClocks();renderMeetingGrid();renderBrowse();toast('Clocks cleared');
+});
+
+copyClocks.addEventListener('click',function(){
+if(!clocks.length){toast('No clocks to copy');return}
+var now=getNow(),lines=[];
+clocks.forEach(function(tz){
+var t=getTimeInZone(tz,now),d=getDateInZone(tz,now),off=getOffsetStr(tz,now),abbr=getAbbr(tz,now);
+lines.push(tz.replace(/_/g,' ')+' | '+t+' | '+d+' | '+off+' | '+abbr);
+});
+var text=lines.join('\n');
+navigator.clipboard.writeText(text).then(function(){toast('Copied '+lines.length+' clocks')}).catch(function(){toast('Copy failed')});
+});
+
+csvExport.addEventListener('click',function(){
+if(!clocks.length){toast('No clocks to export');return}
+var now=getNow(),lines=['Timezone,Time,Date,Offset,Abbr,DST,Day'];
+clocks.forEach(function(tz){
+var t=getTimeInZone(tz,now),d=getDateInZone(tz,now),off=getOffsetStr(tz,now),abbr=getAbbr(tz,now),dst=isDST(tz,now)?'Yes':'No',day=getDayInZone(tz,now);
+lines.push('"'+tz.replace(/_/g,' ')+'","'+t+'","'+d+'","'+off+'","'+abbr+'","'+dst+'","'+day+'"');
+});
+var blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8'});
+var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='timezones-'+Date.now()+'.csv';a.click();URL.revokeObjectURL(a.href);
+toast('CSV exported ('+clocks.length+' zones)');
+});
+
+compToggle.addEventListener('click',function(){
+var o=compToggle.getAttribute('aria-expanded')==='true';
+compToggle.setAttribute('aria-expanded',!o);compWrap.hidden=o;
+compToggle.classList.toggle('on');
+if(!o)renderCompTable();else compWrap.innerHTML='';
+});
+
+ttToggle.addEventListener('click',function(){
+var o=ttToggle.getAttribute('aria-expanded')==='true';
+ttToggle.setAttribute('aria-expanded',!o);ttWrap.hidden=o;
+ttToggle.classList.toggle('on');
+});
+
+ttSlider.addEventListener('input',function(){
+timeShift=parseInt(this.value);
+ttValue.textContent=timeShift===0?'Now':(timeShift>0?'+'+timeShift:timeShift)+'h';
+renderClocks();renderMeetingGrid();renderBrowse();renderCompTable();
+});
+
+ttReset.addEventListener('click',function(){
+ttSlider.value=0;timeShift=0;ttValue.textContent='Now';
+renderClocks();renderMeetingGrid();renderBrowse();renderCompTable();
+});
+
+convBtn.addEventListener('click',function(){convertTime()});
+document.querySelectorAll('#tzcFrom,#tzcTo,#tzcDate,#tzcTime').forEach(function(el){el.addEventListener('change',function(){if(dateInp.value&&timeInp.value)convertTime()})});
+
+mtgToggle.addEventListener('click',function(){
+var o=mtgToggle.getAttribute('aria-expanded')==='true';
+mtgToggle.setAttribute('aria-expanded',!o);mtgWrap.hidden=o;
+mtgToggle.classList.toggle('on');
+if(!o)renderMeetingGrid();
+});
+
+browseSearch.addEventListener('input',function(){searchQ=this.value;renderBrowse()});
+sortOffset.addEventListener('click',function(){sortMode='offset';sortOffset.classList.add('on');sortAlpha.classList.remove('on');sortPop.classList.remove('on');renderBrowse()});
+sortAlpha.addEventListener('click',function(){sortMode='alpha';sortAlpha.classList.add('on');sortOffset.classList.remove('on');sortPop.classList.remove('on');renderBrowse()});
+sortPop.addEventListener('click',function(){sortMode='pop';sortPop.classList.add('on');sortOffset.classList.remove('on');sortAlpha.classList.remove('on');renderBrowse()});
+
+hiToggle.addEventListener('click',function(){
+var o=hiToggle.getAttribute('aria-expanded')==='true';
+hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;
+hiToggle.classList.toggle('on');
+if(!o)renderHistory();
+});
+
+hiClear.addEventListener('click',function(){
+history=[];saveHistory();renderHistory();toast('History cleared');
+});
+
+hiList.addEventListener('click',function(e){
+var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);saveHistory();renderHistory();return}
+var item=e.target.closest('.tzc-hist-item');if(!item)return;
+var idx=parseInt(item.getAttribute('data-idx'));
+var h=history[idx];if(!h)return;
+fromSel.value=h.from;toSel.value=h.to;dateInp.value=h.date;timeInp.value=h.time;
+convertTime();history.splice(idx,1);saveHistory();renderHistory();
+});
+
+browseWrap.addEventListener('click',function(e){
+var btn=e.target.closest('.ba');if(!btn)return;
+var tz=btn.getAttribute('data-tz');if(!tz)return;
+var idx=clocks.indexOf(tz);
+if(idx!==-1){clocks.splice(idx,1);toast('Removed '+tz.replace(/_/g,' ').split('/').pop())}
+else{clocks.push(tz);toast('Added '+tz.replace(/_/g,' ').split('/').pop())}
+saveClocks();populateAddSel();renderClocks();renderMeetingGrid();renderBrowse();
+});
+
+populateSelects();populateAddSel();renderClocks();renderBrowse();renderHistory();
+var n=new Date();dateInp.value=n.toISOString().split('T')[0];timeInp.value=n.toTimeString().slice(0,5);
+convertTime();
+document.querySelectorAll('#tzcFrom,#tzcTo,#tzcDate,#tzcTime').forEach(function(el){el.addEventListener('change',function(){if(dateInp.value&&timeInp.value)convertTime()})});
 })();
 </script>
-
-
-
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

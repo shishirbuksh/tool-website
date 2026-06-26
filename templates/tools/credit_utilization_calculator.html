@@ -1,169 +1,346 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section, tool_json_ld %}
-
-{% block title %}Credit Utilization Calculator | Fix Your Credit Score Fast{% endblock %}
-{% block meta_description %}Calculate your exact credit card utilization ratio. Use our smart simulator to find out exactly how much debt to pay off, or how to lower your ratio without paying a dime.{% endblock %}
-{% block meta_keywords %}credit utilization ratio calculator, how to lower credit utilization fast without paying, what is a good credit utilization ratio to buy a house, how much should i pay down to get 30 percent utilization, credit score trick, how to use Credit Utilization Calculator for free online, best free Credit Utilization Calculator alternative, Credit Utilization Calculator without sign up, browser-based utility, secure processing, no installation required, instant results, data privacy, cloud alternative, free Credit Utilization Calculator, online Credit Utilization Calculator, fastest local browser Credit Utilization Calculator, secure private Credit Utilization Calculator no tracking{% endblock %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+{% block title %}Credit Utilization Calculator — Free Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Advanced credit utilization calculator with per-card breakdown, What-If scenarios, credit score impact, payment planner, and goal calculator. Track, plan, and improve.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/credit-utilization-calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/credit-utilization-calculator">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Credit Utilization Calculator">
-<meta property="og:description" content="Calculate your credit ratio and see exactly how to fix it fast to boost your credit score.">
+<meta property="og:title" content="Credit Utilization Calculator — Advanced | StoryBrain AI">
+<meta property="og:description" content="Advanced credit utilization calculator with per-card breakdown, What-If scenarios, credit score impact, payment planner, and goal calculator.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Credit Score Helper">
-<meta name="twitter:description" content="Find out exactly how to drop your credit utilization ratio below 30%.">
 {% endblock %}
-
 {% block head %}
+<style>
+.cu-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.cu-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.cu-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.cu-input:focus{border-color:var(--color-primary);outline:none}
+.cu-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.55rem .75rem;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:6px;touch-action:manipulation}
+.cu-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.cu-pri:active{transform:translateY(0)}
+.cu-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.45rem .7rem;font-weight:700;font-size:.65rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation}
+.cu-sec:hover{border-color:var(--color-base-content)}
+.cu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cu-result{background:var(--color-base-100);border-radius:1rem;padding:14px 12px;text-align:center;border:1px solid var(--color-base-300)}
+.cu-result .iv{font-size:20px;font-weight:900;font-family:monospace;line-height:1.2}
+.cu-result .il{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-top:4px}
+.cu-result.full{grid-column:1/-1}
+.cu-result.full .iv{font-size:26px}
+.cu-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.cu-toast.show{opacity:1;transform:translateY(0)}
+.cu-badge{display:inline-block;padding:4px 18px;border-radius:999px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em}
+.cu-whatif{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px}
+.cu-whatif button{padding:4px 6px;border-radius:6px;font-size:8px;font-weight:700;cursor:pointer;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;touch-action:manipulation}
+.cu-whatif button:hover{background:color-mix(in oklab,var(--color-primary) 10%,transparent);border-color:var(--color-primary)}
+.cu-whatif button.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.cu-hist{max-height:200px;overflow-y:auto}
+.cu-hist-item{padding:5px 8px;border-radius:.6rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:9px;font-weight:600;cursor:pointer;transition:all .12s;margin-bottom:2px}
+.cu-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.cu-hist-item .preview{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:8px;opacity:.55;min-width:0}
+.cu-hist-item .meta{font-size:7px;font-weight:700;opacity:.35;white-space:nowrap}
+.cu-hist-item .hdel{width:18px;height:18px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:8px}
+.cu-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.cu-empty{text-align:center;padding:20px 12px;font-size:10px;font-weight:600;opacity:.3}
+.cu-util-bar{height:18px;border-radius:9px;background:linear-gradient(to right,var(--color-success) 0%,var(--color-success) 10%,var(--color-primary) 10%,var(--color-primary) 30%,var(--color-warning) 30%,var(--color-warning) 50%,var(--color-error) 50%,var(--color-error) 100%);position:relative;overflow:hidden;margin-top:6px}
+.cu-util-bar .marker{position:absolute;top:0;bottom:0;width:3px;background:var(--color-base-content);border-radius:2px;transition:left .3s;z-index:2}
+.cu-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.3rem .6rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:10px;transition:all .12s}
+.cu-toggle:hover{background:var(--color-base-200)}
+.cu-toggle.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.cu-table{width:100%;border-collapse:collapse;font-size:10px;font-weight:600}
+.cu-table th{padding:4px 6px;text-align:right;font-size:7px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;opacity:.35;border-bottom:1px solid var(--color-base-300)}
+.cu-table th:first-child{text-align:left}
+.cu-table td{padding:4px 6px;text-align:right;font-family:monospace;border-bottom:1px solid var(--color-base-200)}
+.cu-table td:first-child{text-align:left;font-weight:800}
+.cu-table-wrap{max-height:240px;overflow-y:auto;border-radius:.75rem;border:1px solid var(--color-base-300)}
+.cu-inline{display:flex;align-items:center;gap:8px;font-size:9px;font-weight:600}
+.cu-inline .iv{font-weight:900;font-family:monospace;font-size:13px}
+</style>
 {% endblock %}
-
 {% block content %}
-{{ tool_hero_section("id-card", "Credit Score Helper Tool", "CREDIT UTILIZATION", "CALCULATOR", "Find out exactly what your credit card ratio is right now, then use smart tools to drop below the safe 30% zone.") }}
-
-  <!-- Main Content -->
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-
-    <!-- Inputs -->
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-xl font-black tracking-tight flex items-center gap-3">
-            {{ lucide_icon("credit-card","w-5 h-5", 20) | safe }} Your Credit Cards
-          </h2>
-          <select id="currency" class="input input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm w-auto" aria-label="Currency">
-            <option value="usd" selected>USD ($)</option>
-            <option value="eur">EUR (&euro;)</option>
-            <option value="gbp">GBP (&pound;)</option>
-            <option value="inr">INR (&#8377;)</option>
-            <option value="aud">AUD ($)</option>
-            <option value="cad">CAD ($)</option>
-          </select>
+{{ tool_hero_section("credit-card","Calculators","Credit Utilization","CALCULATOR","Track utilization across cards, plan payoff, set goals, and compare to benchmarks.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="cu-card">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("wallet","w-4 h-4",16) | safe }} Your Credit</h2>
+        <button type="button" id="cuModeTog" class="cu-toggle on" aria-expanded="true" aria-label="Toggle between per-card and simple mode">Per-Card</button>
+      </div>
+      <div id="cuPerCardMode">
+        <div class="flex flex-col gap-2">
+          <div><label class="cu-label" for="cuB1">Card 1 Balance ($)</label><input type="text" id="cuB1" class="cu-input" value="1500" inputmode="numeric" aria-label="Card 1 balance"></div>
+          <div><label class="cu-label" for="cuL1">Card 1 Limit ($)</label><input type="text" id="cuL1" class="cu-input" value="4000" inputmode="numeric" aria-label="Card 1 limit"></div>
+          <div><label class="cu-label" for="cuB2">Card 2 Balance ($)</label><input type="text" id="cuB2" class="cu-input" value="1200" inputmode="numeric" aria-label="Card 2 balance"></div>
+          <div><label class="cu-label" for="cuL2">Card 2 Limit ($)</label><input type="text" id="cuL2" class="cu-input" value="3500" inputmode="numeric" aria-label="Card 2 limit"></div>
+          <div><label class="cu-label" for="cuB3">Card 3 Balance ($)</label><input type="text" id="cuB3" class="cu-input" value="500" inputmode="numeric" aria-label="Card 3 balance"></div>
+          <div><label class="cu-label" for="cuL3">Card 3 Limit ($)</label><input type="text" id="cuL3" class="cu-input" value="2500" inputmode="numeric" aria-label="Card 3 limit"></div>
+          <div><label class="cu-label" for="cuB4">Card 4 Balance ($)</label><input type="text" id="cuB4" class="cu-input" value="0" inputmode="numeric" aria-label="Card 4 balance"></div>
+          <div><label class="cu-label" for="cuL4">Card 4 Limit ($)</label><input type="text" id="cuL4" class="cu-input" value="0" inputmode="numeric" aria-label="Card 4 limit"></div>
+          <div><label class="cu-label" for="cuB5">Card 5 Balance ($)</label><input type="text" id="cuB5" class="cu-input" value="0" inputmode="numeric" aria-label="Card 5 balance"></div>
+          <div><label class="cu-label" for="cuL5">Card 5 Limit ($)</label><input type="text" id="cuL5" class="cu-input" value="0" inputmode="numeric" aria-label="Card 5 limit"></div>
         </div>
-
-        <p class="text-sm text-base-content/60 mb-4">List all your active credit cards. Do not include home loans or car loans here.</p>
-
-        <div id="cardContainer"></div>
-
-        <button id="addCardBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm rounded-xl mb-6">
-          {{ lucide_icon("plus","w-5 h-5", 20) | safe }} Add Another Credit Card
-        </button>
-
-        <div class="divider-cinematic"></div>
-
-        <!-- Target Ratio Strategy -->
-        <div class="card-premium p-4" style="border-color:color-mix(in oklab, var(--color-warning) 25%, transparent)">
-          <div class="flex justify-between items-center mb-3">
-            <label class="label-cinematic" style="color:var(--color-warning)">The Target Ratio Strategy</label>
-            <span class="pill-cinematic text-xs" style="background:var(--color-warning);color:white;border-color:var(--color-warning)">Market Gap</span>
-          </div>
-          <p class="text-xs text-base-content/60 mb-2">Select a target goal below, and we will tell you exactly how much cash you need to pay down today.</p>
-          <select aria-label="Targetgoal" id="targetGoal" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl">
-            <option value="30">Target 30% Ratio (Good Credit)</option>
-            <option value="10">Target 10% Ratio (Excellent Credit)</option>
-            <option value="1">Target 1% Ratio (Perfect Score Zone)</option>
-          </select>
+      </div>
+      <div id="cuSimpleMode" hidden>
+        <div class="flex flex-col gap-3">
+          <div><label class="cu-label" for="cuSTotalB">Total Balance ($)</label><input type="text" id="cuSTotalB" class="cu-input" value="3200" inputmode="numeric" aria-label="Total credit card balance"></div>
+          <div><label class="cu-label" for="cuSTotalL">Total Limit ($)</label><input type="text" id="cuSTotalL" class="cu-input" value="10000" inputmode="numeric" aria-label="Total credit card limit"></div>
         </div>
-
-        <!-- Zero-Dollar Strategy -->
-        <div class="card-premium p-4" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-          <div class="flex justify-between items-center mb-3">
-            <label class="label-cinematic" style="color:var(--color-success)">The Zero-Dollar Strategy</label>
-            <span class="pill-cinematic text-xs" style="background:var(--color-success);color:white;border-color:var(--color-success)">Market Gap</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <input aria-label="Limithacktoggle" type="checkbox" role="switch" id="limitHackToggle" class="toggle toggle-sm">
-            <label class="text-xs text-base-content/60 font-bold tracking-wider uppercase" for="limitHackToggle">I don't have cash. How do I fix my ratio for free?</label>
-          </div>
-          <div id="limitHackInfo" class="hidden mt-3">
-            <p class="text-xs font-bold" style="color:var(--color-success)">Instead of paying down debt, we will calculate exactly how much you need to ask the bank to INCREASE your credit limit by to instantly fix your score.</p>
-          </div>
-        </div>
-
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button type="button" id="cuCalcBtn" class="cu-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
+        <button type="button" id="cuCopyBtn" class="cu-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="cuDlBtn" class="cu-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
       </div>
     </div>
-
-    <!-- Results -->
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <div class="flex justify-between items-center mb-6 pb-4 border-b border-base-content/10 flex-wrap gap-3">
-          <h3 class="text-xl font-black tracking-tight flex items-center gap-3">
-            {{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Your Credit Health
-          </h3>
+    <div class="cu-card mt-4">
+      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("calendar","w-4 h-4",16) | safe }} Payment Plan</h2>
+      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">See how monthly payments reduce your utilization</p>
+      <div class="flex flex-col gap-2">
+        <div><label class="cu-label" for="cuMonthlyPay">Monthly Payment ($)</label><input type="text" id="cuMonthlyPay" class="cu-input" value="500" inputmode="numeric" aria-label="Monthly payment amount"></div>
+      </div>
+      <div class="cu-inline mt-2"><span class="il">Time to 30%:</span><span class="iv" id="cuTimeToTarget" style="color:var(--color-primary)">—</span></div>
+      <div id="cuPayWrap" class="mt-2"><div class="cu-table-wrap"><table class="cu-table"><thead><tr><th>Month</th><th>Payment</th><th>Balance</th><th>Utilization</th><th>Status</th></tr></thead><tbody id="cuPayBody"></tbody></table></div></div>
+    </div>
+    <div class="cu-card mt-4">
+      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("zap","w-3 h-3",12) | safe }} What-If</h2>
+      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">Test different scenarios instantly</p>
+      <div class="cu-whatif" id="cuWhatIf"><button type="button" class="on" data-wi="current">Current</button><button type="button" data-wi="pay-half">Pay Down 50%</button><button type="button" data-wi="double-bal">Double Balance</button><button type="button" data-wi="limit-up">+$5k Limit</button><button type="button" data-wi="pay-to-30">Pay to 30%</button><button type="button" data-wi="best-case">Best Case</button></div>
+    </div>
+    <div class="cu-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
+        <div class="flex items-center gap-2"><button type="button" id="cuHiToggle" class="cu-toggle" aria-expanded="false" aria-controls="cuHiWrap">History <span id="cuHiCount"></span></button><button type="button" id="cuHiClear" class="cu-sec" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
+      </div>
+      <div id="cuHiWrap" hidden class="mt-2"><div id="cuHiList" class="cu-hist"></div></div>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="cu-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} Utilization Results</h2>
+      <div class="cu-grid" id="cuResults">
+        <div class="cu-result full"><div class="iv" id="cuRatio" style="color:var(--color-primary)">0.0%</div><div class="il">Overall Utilization</div></div>
+        <div class="cu-result" style="padding:8px"><span class="cu-badge" id="cuRating">—</span></div>
+        <div class="cu-result" style="padding:8px"><span class="cu-badge" id="cuScoreImpact">—</span></div>
+        <div class="cu-result"><div class="iv" id="cuAvailable">$0</div><div class="il">Available Credit</div></div>
+        <div class="cu-result"><div class="iv" id="cuTargetPay">$0</div><div class="il">Pay Down for 30%</div></div>
+        <div class="cu-result"><div class="iv" id="cuSuggested">$0</div><div class="il">Suggested Limit</div></div>
+      </div>
+      <p class="text-[7px] font-bold opacity-25 uppercase tracking-wider text-center mt-1" id="cuRatioLabel"></p>
+    </div>
+    <div class="cu-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("credit-card","w-4 h-4",16) | safe }} Per-Card Breakdown</h2>
+        <button type="button" id="cuCardTog" class="cu-toggle on" aria-expanded="true" aria-controls="cuCardWrap">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
+      </div>
+      <div id="cuCardWrap"><div class="cu-table-wrap mt-2"><table class="cu-table" id="cuCardTable"><thead><tr><th>Card</th><th>Balance</th><th>Limit</th><th>Utilization</th><th>Status</th></tr></thead><tbody id="cuCardBody"></tbody></table></div></div>
+    </div>
+    <div class="cu-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("target","w-4 h-4",16) | safe }} Goal & Benchmark</h2>
+        <button type="button" id="cuGoalTog" class="cu-toggle on" aria-expanded="true" aria-controls="cuGoalWrap">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
+      </div>
+      <div id="cuGoalWrap">
+        <div class="flex items-center gap-3 mt-2">
+          <div class="flex-1"><label class="cu-label" for="cuTargetPct">Target Utilization (%)</label><input type="text" id="cuTargetPct" class="cu-input" value="30" inputmode="numeric" aria-label="Target utilization percentage"></div>
         </div>
-
-        <!-- Ratio -->
-        <div class="card-premium p-6 text-center mb-6" style="border-color:color-mix(in oklab, var(--color-primary) 25%, transparent)">
-          <span class="label-cinematic block mb-2">Your Total Utilization Ratio</span>
-          <output id="resRatio" class="metric-cinematic metric-cinematic--xl text-primary block mb-2">0%</output>
-          <span id="resHealthStatus" class="pill-cinematic text-xs" style="background:var(--color-success);color:white;border-color:var(--color-success)">Excellent</span>
+        <div class="cu-grid mt-2">
+          <div class="cu-result"><div class="iv" id="cuGoalPay">$0</div><div class="il">Payment Needed</div></div>
+          <div class="cu-result"><div class="iv" id="cuGoalLimit">$0</div><div class="il">Limit Needed</div></div>
         </div>
-
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <div class="stat-cinematic text-center">
-            <span class="label-cinematic block mb-2">Total Credit Limit</span>
-            <div class="flex justify-center items-center">
-              <span class="text-sm opacity-50 currency-sym mr-1">$</span>
-              <output id="resTotalLimit" class="metric-cinematic metric-cinematic--sm font-mono">0</output>
-            </div>
-          </div>
-          <div class="stat-cinematic text-center">
-            <span class="label-cinematic block mb-2">Total Balance (Debt)</span>
-            <div class="flex justify-center items-center">
-              <span class="text-sm opacity-50 currency-sym mr-1">$</span>
-              <output id="resTotalBalance" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-error)">0</output>
-            </div>
-          </div>
-        </div>
-
-        <!-- Target Action Plan -->
-        <div id="targetCard" class="card-premium p-5 mb-4 hidden" style="border-color:color-mix(in oklab, var(--color-warning) 25%, transparent)">
-          <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
-            <h4 class="text-lg font-black tracking-tight flex items-center gap-2" style="color:var(--color-warning)">
-              {{ lucide_icon("crosshair","w-5 h-5", 20) | safe }} The Action Plan
-            </h4>
-            <span class="pill-cinematic text-xs" style="background:var(--color-warning);color:white;border-color:var(--color-warning)">Market Gap</span>
-          </div>
-          <p class="text-sm font-bold" id="targetText"></p>
-        </div>
-
-        <!-- Zero-Dollar Fix -->
-        <div id="hackResultCard" class="card-premium p-5 mb-4 hidden" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-          <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
-            <h4 class="text-lg font-black tracking-tight flex items-center gap-2" style="color:var(--color-success)">
-              {{ lucide_icon("unlock","w-5 h-5", 20) | safe }} The Zero-Dollar Fix
-            </h4>
-            <span class="pill-cinematic text-xs" style="background:var(--color-success);color:white;border-color:var(--color-success)">Market Gap</span>
-          </div>
-          <p class="text-sm font-bold" id="hackText"></p>
-        </div>
-
-        <!-- Individual Card Penalty -->
-        <div id="penaltyCard" class="card-premium p-5 hidden" style="border-color:color-mix(in oklab, var(--color-error) 25%, transparent)">
-          <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
-            <h4 class="text-lg font-black tracking-tight flex items-center gap-2" style="color:var(--color-error)">
-              {{ lucide_icon("alert-triangle","w-5 h-5", 20) | safe }} Individual Card Penalty
-            </h4>
-            <span class="pill-cinematic text-xs" style="background:var(--color-error);color:white;border-color:var(--color-error)">Market Gap</span>
-          </div>
-          <p class="text-sm font-bold" style="color:var(--color-error)" id="penaltyText"></p>
-        </div>
-
+        <div class="cu-inline mt-2 justify-center"><span class="il">Benchmark:</span><span class="iv" id="cuBenchmark" style="font-size:11px">—</span></div>
       </div>
     </div>
   </div>
 </div>
-
+<div id="cuToast" class="cu-toast" role="status" aria-live="polite"></div>
 <script>
-function formatCurrency(val){return val.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});}
-document.addEventListener('DOMContentLoaded',()=>{let cards=[{id:1,name:'Visa Card',limit:5000,balance:2500},{id:2,name:'Store Card',limit:1000,balance:800}];let nextId=3;const cardContainer=document.getElementById('cardContainer');const addCardBtn=document.getElementById('addCardBtn');const targetGoalSel=document.getElementById('targetGoal');const limitHackToggle=document.getElementById('limitHackToggle');const limitHackInfo=document.getElementById('limitHackInfo');const currencySel=document.getElementById('currency');const resRatio=document.getElementById('resRatio');const resHealthStatus=document.getElementById('resHealthStatus');const resTotalLimit=document.getElementById('resTotalLimit');const resTotalBalance=document.getElementById('resTotalBalance');const targetCard=document.getElementById('targetCard');const targetText=document.getElementById('targetText');const hackResultCard=document.getElementById('hackResultCard');const hackText=document.getElementById('hackText');const penaltyCard=document.getElementById('penaltyCard');const penaltyText=document.getElementById('penaltyText');let currentSym='$';function renderCards(){cardContainer.innerHTML='';cards.forEach((card)=>{const row=document.createElement('div');row.className='glass-cinematic rounded-2xl p-4 mb-3';row.innerHTML='<div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end"><div><label class="label-cinematic mb-1 block">Card Name</label><input aria-label="Input field" type="text" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl card-name" data-id="'+card.id+'" value="'+card.name+'"></div><div class="flex gap-2"><div><label class="label-cinematic mb-1 block">Limit</label><div class="flex"><span class="inline-flex items-center px-2 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-xs rounded-xl rounded-r-none currency-sym">'+currentSym+'</span><input aria-label="Input field" type="number" class="input w-24 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl rounded-l-none card-limit" data-id="'+card.id+'" value="'+card.limit+'" min="1"></div></div><div><label class="label-cinematic mb-1 block">Balance</label><div class="flex"><span class="inline-flex items-center px-2 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-xs rounded-xl rounded-r-none currency-sym">'+currentSym+'</span><input aria-label="Input field" type="number" class="input w-24 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl rounded-l-none card-balance" data-id="'+card.id+'" value="'+card.balance+'" min="0"></div></div><button class="btn btn-cinematic text-xs py-1 px-2 self-end delete-btn" data-id="'+card.id+'">'+'X'+'</button></div></div>';cardContainer.appendChild(row);});attachRowListeners();}function attachRowListeners(){document.querySelectorAll('.card-name').forEach(el=>el.addEventListener('input',updateCardData));document.querySelectorAll('.card-limit').forEach(el=>el.addEventListener('input',updateCardData));document.querySelectorAll('.card-balance').forEach(el=>el.addEventListener('input',updateCardData));document.querySelectorAll('.delete-btn').forEach(btn=>{btn.addEventListener('click',(e)=>{const id=parseInt(e.currentTarget.getAttribute('data-id'));cards=cards.filter(d=>d.id!==id);renderCards();calculate();});});}function updateCardData(e){const id=parseInt(e.target.getAttribute('data-id'));const cls=e.target.className;const val=e.target.value;const card=cards.find(d=>d.id===id);if(card){if(cls.includes('card-name'))card.name=val;if(cls.includes('card-limit'))card.limit=parseFloat(val)||0;if(cls.includes('card-balance'))card.balance=parseFloat(val)||0;}calculate();}addCardBtn.addEventListener('click',()=>{cards.push({id:nextId++,name:'Credit Card '+(cards.length+1),limit:2000,balance:500});renderCards();calculate();});targetGoalSel.addEventListener('change',calculate);limitHackToggle.addEventListener('change',()=>{if(limitHackToggle.checked){limitHackInfo.classList.remove('hidden');}else{limitHackInfo.classList.add('hidden');}calculate();});currencySel.addEventListener('change',()=>{currentSym='$';const c=currencySel.value;if(c==='inr')currentSym='\u20b9';if(c==='eur')currentSym='\u20ac';if(c==='gbp')currentSym='\u00a3';renderCards();calculate();});function calculate(){if(cards.length===0){resTotalLimit.innerText='0';resTotalBalance.innerText='0';resRatio.innerText='0%';resHealthStatus.innerText='No Cards';targetCard.classList.add('hidden');hackResultCard.classList.add('hidden');penaltyCard.classList.add('hidden');return;}const totalLimit=cards.reduce((sum,c)=>sum+Math.max(c.limit,0.01),0);const totalBalance=cards.reduce((sum,c)=>sum+Math.max(c.balance,0),0);const ratio=(totalBalance/totalLimit)*100;resTotalLimit.innerText=formatCurrency(totalLimit);resTotalBalance.innerText=formatCurrency(totalBalance);resRatio.innerText=ratio.toFixed(1)+'%';if(ratio>30){resHealthStatus.innerText='Bad for Credit Score';resHealthStatus.className='pill-cinematic text-xs';resHealthStatus.style.background='var(--color-error)';resHealthStatus.style.color='white';}else if(ratio>10){resHealthStatus.innerText='Good (Safe Zone)';resHealthStatus.className='pill-cinematic text-xs';resHealthStatus.style.background='var(--color-warning)';resHealthStatus.style.color='white';}else{resHealthStatus.innerText='Excellent for Credit Score';resHealthStatus.className='pill-cinematic text-xs';resHealthStatus.style.background='var(--color-success)';resHealthStatus.style.color='white';}const targetPercent=parseFloat(targetGoalSel.value)/100;const targetAllowedBalance=totalLimit*targetPercent;const amountToPayoff=totalBalance-targetAllowedBalance;if(amountToPayoff>0){targetText.innerHTML='To reach a '+targetGoalSel.value+'% ratio, you need to pay exactly <strong class="text-lg" style="color:var(--color-warning)">'+currentSym+formatCurrency(amountToPayoff)+'</strong> toward your debt right now.';targetCard.classList.remove('hidden');}else{targetText.innerHTML='You are already below the '+targetGoalSel.value+'% target! Great job!';targetCard.classList.remove('hidden');}if(limitHackToggle.checked){if(ratio>parseFloat(targetGoalSel.value)){const requiredLimit=totalBalance/targetPercent;const limitIncreaseNeeded=requiredLimit-totalLimit;hackText.innerHTML='Call your bank and ask them to increase your total credit limit by <strong class="text-lg" style="color:var(--color-success)">'+currentSym+formatCurrency(limitIncreaseNeeded)+'</strong>. Your ratio will instantly drop to '+targetGoalSel.value+'% and you pay $0 today!';hackResultCard.classList.remove('hidden');}else{hackText.innerHTML='You don\'t need a limit increase to hit your goal! You are already there.';hackResultCard.classList.remove('hidden');}}else{hackResultCard.classList.add('hidden');}let maxedCard=null;let maxedRatio=0;cards.forEach(c=>{if(c.limit>0){const r=(c.balance/c.limit)*100;if(r>=80&&r>maxedRatio){maxedRatio=r;maxedCard=c.name;}}});if(maxedCard){penaltyText.innerHTML='Warning! Your <strong>'+maxedCard+'</strong> is at '+maxedRatio.toFixed(0)+'% capacity. Pay this card down immediately!';penaltyCard.classList.remove('hidden');}else{penaltyCard.classList.add('hidden');}}renderCards();calculate();});
+(function(){'use strict';
+var wi='current',perCard=true,cardTable=true,goalOn=true;
+var history=[];try{var h=JSON.parse(localStorage.getItem('sb_cu')||'[]');if(Array.isArray(h))history=h}catch(e){}
+var saved=null;try{var s=JSON.parse(localStorage.getItem('sb_cu_i')||'null');if(s&&typeof s==='object')saved=s}catch(e){}
+
+function el(id){return document.getElementById(id)}
+var b1=el('cuB1'),l1=el('cuL1'),b2=el('cuB2'),l2=el('cuL2'),b3=el('cuB3'),l3=el('cuL3'),b4=el('cuB4'),l4=el('cuL4'),b5=el('cuB5'),l5=el('cuL5');
+var sB=el('cuSTotalB'),sL=el('cuSTotalL');
+var calcBtn=el('cuCalcBtn'),copyBtn=el('cuCopyBtn'),dlBtn=el('cuDlBtn'),whatifEl=el('cuWhatIf'),modeTog=el('cuModeTog');
+var ratio=el('cuRatio'),rating=el('cuRating'),scoreImpact=el('cuScoreImpact'),available=el('cuAvailable'),targetPay=el('cuTargetPay'),suggested=el('cuSuggested'),ratioLabel=el('cuRatioLabel');
+var cardBody=el('cuCardBody');
+var mp=el('cuMonthlyPay'),timeToTarget=el('cuTimeToTarget'),payBody=el('cuPayBody');
+var tgtPct=el('cuTargetPct'),goalPay=el('cuGoalPay'),goalLimit=el('cuGoalLimit'),benchmark=el('cuBenchmark');
+var hiToggle=el('cuHiToggle'),hiCount=el('cuHiCount'),hiClear=el('cuHiClear'),hiWrap=el('cuHiWrap'),hiList=el('cuHiList');
+var cardTog=el('cuCardTog'),cardWrap=el('cuCardWrap'),goalTog=el('cuGoalTog'),goalWrap=el('cuGoalWrap');
+var perCardMode=el('cuPerCardMode'),simpleMode=el('cuSimpleMode');
+var toastEl=el('cuToast'),tt;
+var cards=[],payData=[];
+
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function v(e){var n=parseFloat(e.value.replace(/,/g,''));return isNaN(n)?0:n}
+function fmtCurrency(n){if(isNaN(n)||n===0)return'$0';return'$'+Math.round(n).toLocaleString('en-US')}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+function applyWI(){
+var bl=[v(b1),v(b2),v(b3),v(b4),v(b5)],lm=[v(l1),v(l2),v(l3),v(l4),v(l5)];
+if(!perCard){bl=[v(sB)];lm=[v(sL)]}
+if(wi!=='current'){var totalB=bl.reduce(function(a,b){return a+b},0);var totalL=lm.reduce(function(a,b){return a+b},0);
+if(wi==='pay-half'){totalB*=0.5}
+else if(wi==='double-bal'){totalB*=2}
+else if(wi==='limit-up'){totalL+=5000}
+else if(wi==='pay-to-30'){totalB=totalL*0.3}
+else if(wi==='best-case'){totalB*=0.5;totalL+=5000}
+if(perCard&&totalL>0){var r2=totalB/totalL;if(wi!=='current'){cards.forEach(function(c,i){if(i<5){bl[i]=Math.round(c.b*r2);lm[i]=c.l}});bl[0]=totalB-bl[1]-bl[2]-bl[3]-bl[4];if(bl[0]<0)bl[0]=0}}
+else if(!perCard){bl=[totalB];lm=[totalL]}}
+return{bl:bl,lm:lm}
+}
+
+function calc(){
+var d=applyWI();var nCards=perCard?5:1;
+cards=[];
+for(var i=0;i<nCards;i++){cards.push({b:d.bl[i]||0,l:d.lm[i]||0,pct:(d.lm[i]||0)>0?((d.bl[i]||0)/(d.lm[i]||1)*100):0})}
+var totalB=cards.reduce(function(s,c){return s+c.b},0);
+var totalL=cards.reduce(function(s,c){return s+c.l},0);
+if(totalL<=0){ratio.textContent='0.0%';rating.textContent='—';rating.style.background='transparent';rating.style.color='var(--color-base-content)';scoreImpact.textContent='—';scoreImpact.style.background='transparent';scoreImpact.style.color='var(--color-base-content)';available.textContent='$0';targetPay.textContent='$0';suggested.textContent='$0';ratioLabel.textContent='';cardBody.innerHTML='';payBody.innerHTML='';timeToTarget.textContent='—';goalPay.textContent='$0';goalLimit.textContent='$0';benchmark.textContent='—';return}
+var pct=totalB/totalL*100;
+var r='',rc='';
+if(pct<=10){r='Excellent';rc='var(--color-success)'}
+else if(pct<=30){r='Good';rc='var(--color-primary)'}
+else if(pct<=50){r='Fair';rc='var(--color-warning)'}
+else{r='Poor';rc='var(--color-error)'}
+ratio.textContent=pct.toFixed(1)+'%';ratio.style.color=pct<=30?'var(--color-success)':pct<=50?'var(--color-warning)':'var(--color-error)';
+rating.textContent=r;rating.style.background='color-mix(in oklab,'+rc+' 12%,transparent)';rating.style.color=rc;
+var scoreText='',scoreRc='';
+if(pct<=10){scoreText='750-850';scoreRc='var(--color-success)'}
+else if(pct<=30){scoreText='700-780';scoreRc='var(--color-primary)'}
+else if(pct<=50){scoreText='620-700';scoreRc='var(--color-warning)'}
+else if(pct<=70){scoreText='550-650';scoreRc='var(--color-error)'}
+else{scoreText='450-580';scoreRc='var(--color-error)'}
+scoreImpact.textContent=scoreText;scoreImpact.style.background='color-mix(in oklab,'+scoreRc+' 12%,transparent)';scoreImpact.style.color=scoreRc;
+available.textContent=fmtCurrency(totalL-totalB);
+var target30=totalL*0.3;targetPay.textContent=totalB>target30?fmtCurrency(Math.round(totalB-target30)):'$0';
+suggested.textContent=totalB>0?fmtCurrency(Math.round(totalB/0.3)):fmtCurrency(totalL);
+ratioLabel.textContent='Excellent ≤10%   Good ≤30%   Fair ≤50%   Poor >50%';
+renderUtilBar(pct);renderCards();renderPayPlan(totalB,totalL);renderGoal(totalB,totalL);saveInputs();
+}
+
+function renderUtilBar(pct){
+var existing=document.querySelector('.cu-util-bar');if(existing)existing.remove();
+var bar=document.createElement('div');bar.className='cu-util-bar';
+var marker=document.createElement('div');marker.className='marker';marker.style.left=Math.min(pct,100)+'%';
+bar.appendChild(marker);ratioLabel.parentNode.insertBefore(bar,ratioLabel);
+}
+
+function renderCards(){
+if(!perCard){cardBody.innerHTML='<tr><td colspan="5" style="text-align:center;opacity:.3;padding:20px">Switch to per-card mode</td></tr>';return}
+var h='';cards.forEach(function(c,i){
+if(c.l<=0)return;var p=c.pct;var s='',sc='';
+if(p<=10){s='Excellent';sc='var(--color-success)'}
+else if(p<=30){s='Good';sc='var(--color-primary)'}
+else if(p<=50){s='Fair';sc='var(--color-warning)'}
+else{s='Poor';sc='var(--color-error)'}
+h+='<tr><td>Card '+(i+1)+'</td><td>'+fmtCurrency(c.b)+'</td><td>'+fmtCurrency(c.l)+'</td><td style="color:'+sc+'">'+p.toFixed(1)+'%</td><td style="color:'+sc+';font-weight:800;font-size:7px">'+s+'</td></tr>';
+});
+cardBody.innerHTML=h||'<tr><td colspan="5" style="text-align:center;opacity:.3;padding:20px">No cards with limits</td></tr>';
+}
+
+function renderPayPlan(totalB,totalL){
+var payment=v(mp);if(payment<=0||totalL<=0){payBody.innerHTML='';timeToTarget.textContent='—';return}
+var targetUtil=0.3;var targetBal=totalL*targetUtil;var bal=totalB;var months=0;var rows=[];var maxMonths=60;
+while(bal>targetBal&&months<maxMonths){months++;var pay=Math.min(payment,bal);bal-=pay;var pct2=bal/totalL*100;rows.push({m:months,pay:pay,bal:bal,pct:pct2});}
+if(rows.length){var last=rows[rows.length-1];timeToTarget.textContent=last.m+' mo';timeToTarget.style.color=last.m<=12?'var(--color-success)':last.m<=24?'var(--color-primary)':'var(--color-warning)';
+if(totalB<=targetBal){timeToTarget.textContent='Already at target'}
+}else{timeToTarget.textContent=payment>=totalB?'1 mo':'—'}
+var h='';rows.forEach(function(rw){
+var s='',sc='';
+if(rw.pct<=10){s='Excellent';sc='var(--color-success)'}
+else if(rw.pct<=30){s='Good';sc='var(--color-primary)'}
+else if(rw.pct<=50){s='Fair';sc='var(--color-warning)'}
+else{s='Poor';sc='var(--color-error)'}
+h+='<tr><td>'+rw.m+'</td><td>'+fmtCurrency(rw.pay)+'</td><td>'+fmtCurrency(rw.bal)+'</td><td style="color:'+sc+'">'+rw.pct.toFixed(1)+'%</td><td style="color:'+sc+';font-size:7px;font-weight:800">'+s+'</td></tr>';
+});
+if(totalB<=targetBal){h='<tr><td colspan="5" style="text-align:center;opacity:.3;padding:12px">Already at or below target</td></tr>'}
+payBody.innerHTML=h||'<tr><td colspan="5" style="text-align:center;opacity:.3;padding:12px">Not enough to reach target</td></tr>';
+}
+
+function renderGoal(totalB,totalL){
+var tp=v(tgtPct)/100;if(tp<=0||totalL<=0){goalPay.textContent='$0';goalLimit.textContent='$0';benchmark.textContent='—';return}
+var neededBal=totalL*tp;
+goalPay.textContent=totalB>neededBal?fmtCurrency(Math.round(totalB-neededBal)):'$0';
+goalLimit.textContent=totalB>0?fmtCurrency(Math.round(totalB/tp)):fmtCurrency(totalL);
+var avgUtil=30;var diff=pct-totalB/totalL*100;
+benchmark.textContent='Avg US utilization ~'+avgUtil+'%';
+}
+
+function saveInputs(){
+var obj={b1:v(b1),l1:v(l1),b2:v(b2),l2:v(l2),b3:v(b3),l3:v(l3),b4:v(b4),l4:v(l4),b5:v(b5),l5:v(l5),sb:v(sB),sl:v(sL),wi:wi,pm:v(mp),tg:v(tgtPct),pc:perCard?1:0};
+try{localStorage.setItem('sb_cu_i',JSON.stringify(obj))}catch(e){}
+}
+
+function saveHistory(){
+var d=applyWI();var totalB=cards.reduce(function(s,c){return s+c.b},0);var totalL=cards.reduce(function(s,c){return s+c.l},0);
+var pct2=totalL>0?(totalB/totalL*100).toFixed(1):0;
+var label=pct2+'% util · '+rating.textContent;
+history.unshift({b1:v(b1),l1:v(l1),b2:v(b2),l2:v(l2),b3:v(b3),l3:v(l3),b4:v(b4),l4:v(l4),b5:v(b5),l5:v(l5),sb:v(sB),sl:v(sL),wi:wi,pc:perCard?1:0,label:label,ts:Date.now()});
+if(history.length>30)history.pop();
+try{localStorage.setItem('sb_cu',JSON.stringify(history))}catch(e){}renderHistory();
+}
+
+function renderHistory(){
+hiCount.textContent=history.length?'('+history.length+')':'';hiClear.hidden=!history.length;
+if(!history.length){hiList.innerHTML='<div class="cu-empty">No calculations yet</div>';return}
+var h='';history.forEach(function(item,i){
+var d2=new Date(item.ts);var diff=Math.round((Date.now()-d2)/1000);
+var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+h+='<div class="cu-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
+});hiList.innerHTML=h;
+}
+
+function copyAll(){
+var txt='Credit Utilization Report\nScenario: '+wi.replace(/-/g,' ')+'\n\nTotal Balance: '+fmtCurrency(cards.reduce(function(s,c){return s+c.b},0))+'\nTotal Limit: '+fmtCurrency(cards.reduce(function(s,c){return s+c.l},0))+'\n\nUtilization: '+ratio.textContent+'\nRating: '+rating.textContent+'\nEst. Score Range: '+scoreImpact.textContent+'\nAvailable: '+available.textContent+'\nPay Down to 30%: '+targetPay.textContent+'\nSuggested Limit: '+suggested.textContent+'\nTime to 30% Target: '+timeToTarget.textContent+'\nGoal Payment Needed: '+goalPay.textContent+'\nGoal Limit Needed: '+goalLimit.textContent+'\n\nPer-Card:\n';
+cards.forEach(function(c,i){if(c.l>0)txt+='Card '+(i+1)+': Bal '+fmtCurrency(c.b)+' / Limit '+fmtCurrency(c.l)+' = '+c.pct.toFixed(1)+'%\n'});
+navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')});
+}
+
+function dlReport(){
+var txt='=== Credit Utilization Report ===\nDate: '+new Date().toISOString().slice(0,10)+'\nScenario: '+wi.replace(/-/g,' ')+'\n\nTotal Balance: '+fmtCurrency(cards.reduce(function(s,c){return s+c.b},0))+'\nTotal Limit: '+fmtCurrency(cards.reduce(function(s,c){return s+c.l},0))+'\n\nUtilization: '+ratio.textContent+'\nRating: '+rating.textContent+'\nEst. Score Range: '+scoreImpact.textContent+'\nAvailable: '+available.textContent+'\nPay Down to 30%: '+targetPay.textContent+'\nSuggested Limit: '+suggested.textContent+'\nTime to 30% Target: '+timeToTarget.textContent+'\nGoal Payment Needed: '+goalPay.textContent+'\nGoal Limit Needed: '+goalLimit.textContent+'\n\nPer-Card:\n';
+cards.forEach(function(c,i){if(c.l>0)txt+='Card '+(i+1)+': Bal '+fmtCurrency(c.b)+' / Limit '+fmtCurrency(c.l)+' = '+c.pct.toFixed(1)+'%\n'});
+var b2=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b2);a.download='credit-utilization-report-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded');
+}
+
+modeTog.addEventListener('click',function(){perCard=modeTog.getAttribute('aria-expanded')==='true'?false:true;modeTog.setAttribute('aria-expanded',perCard);modeTog.classList.toggle('on');modeTog.textContent=perCard?'Per-Card':'Simple';perCardMode.hidden=!perCard;simpleMode.hidden=perCard;calc()});
+
+whatifEl.addEventListener('click',function(e){
+var b=e.target.closest('button[data-wi]');if(!b)return;
+wi=b.getAttribute('data-wi');whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+calc();saveHistory();
+});
+
+calcBtn.addEventListener('click',function(){calc();saveHistory()});
+copyBtn.addEventListener('click',copyAll);
+dlBtn.addEventListener('click',dlReport);
+
+hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
+hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_cu',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});
+hiList.addEventListener('click',function(e){
+var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_cu',JSON.stringify(history))}catch(e){}renderHistory();return}
+var item=e.target.closest('.cu-hist-item');if(!item)return;
+var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
+b1.value=h.b1||0;l1.value=h.l1||0;b2.value=h.b2||0;l2.value=h.l2||0;b3.value=h.b3||0;l3.value=h.l3||0;b4.value=h.b4||0;l4.value=h.l4||0;b5.value=h.b5||0;l5.value=h.l5||0;
+sB.value=h.sb||0;sL.value=h.sl||0;
+perCard=h.pc!==0;modeTog.setAttribute('aria-expanded',perCard);modeTog.classList.toggle('on',perCard);modeTog.textContent=perCard?'Per-Card':'Simple';perCardMode.hidden=!perCard;simpleMode.hidden=perCard;
+wi=h.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+history.splice(idx,1);try{localStorage.setItem('sb_cu',JSON.stringify(history))}catch(e){}renderHistory();calc();
+});
+
+cardTog.addEventListener('click',function(){cardTable=cardTog.getAttribute('aria-expanded')==='true'?false:true;cardTog.setAttribute('aria-expanded',cardTable);cardWrap.hidden=!cardTable;cardTog.classList.toggle('on')});
+goalTog.addEventListener('click',function(){goalOn=goalTog.getAttribute('aria-expanded')==='true'?false:true;goalTog.setAttribute('aria-expanded',goalOn);goalWrap.hidden=!goalOn;goalTog.classList.toggle('on')});
+
+[b1,l1,b2,l2,b3,l3,b4,l4,b5,l5,sB,sL,mp,tgtPct].forEach(function(el){el.addEventListener('input',calc)});
+
+if(saved){b1.value=saved.b1||1500;l1.value=saved.l1||4000;b2.value=saved.b2||1200;l2.value=saved.l2||3500;b3.value=saved.b3||500;l3.value=saved.l3||2500;b4.value=saved.b4||0;l4.value=saved.l4||0;b5.value=saved.b5||0;l5.value=saved.l5||0;sB.value=saved.sb||3200;sL.value=saved.sl||10000;mp.value=saved.pm||500;tgtPct.value=saved.tg||30;
+perCard=saved.pc!==0;modeTog.setAttribute('aria-expanded',perCard);modeTog.classList.toggle('on',perCard);modeTog.textContent=perCard?'Per-Card':'Simple';perCardMode.hidden=!perCard;simpleMode.hidden=perCard;
+wi=saved.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)})}
+calc();
+})();
 </script>
-
-{{ tool_json_ld({
-"@type":"SoftwareApplication","name":"Credit Utilization Ratio Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Web browser","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Learn how to lower credit utilization fast without paying. Calculate your exact ratio and find out how much you should pay down to get 30 percent utilization."}
-) }}
-
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

@@ -19,7 +19,7 @@ class CatalogService:
     def get_categorized_tools(self):
         if self._is_cache_valid():
             return self._cat_cache
-        tools_dir = os.path.join(self.settings.TEMPLATES_DIR, "tools")
+        tools_dir = os.path.join(self.settings.templates_dir, "tools")
         category_map = {
             "meme-coin-detector": ("AI & Crypto", "Check if a crypto token is a high-risk meme coin or rug pull"),
             "nft-generator-ai": ("AI & Crypto", "Plan NFT collections with metadata and rarity estimates"),
@@ -45,25 +45,25 @@ class CatalogService:
             "scientific-calculator": ("Calculators", "Solve advanced mathematical and scientific equations online"),
             "calculator": ("Calculators", "Simple, fast standard calculator for everyday math"),
             "percentage-calculator": ("Calculators", "Calculate percentages, increases, decreases, and fractions"),
+            "adsense-calculator": ("Calculators", "Estimate AdSense earnings based on page views, RPM, and CTR"),
+            "burn-rate-calculator": ("Calculators", "Calculate startup cash burn rate, net burn, and runway"),
             "age-calculator": ("Calculators", "Calculate your exact age in years, months, weeks, and days"),
             "profit-margin-calculator": ("Calculators", "Determine sales revenue, profit margin, and markup"),
             "mrr-calculator": ("Calculators", "Calculate SaaS Monthly Recurring Revenue growth metrics"),
-            "cac-calculator": ("Calculators", "Calculate Customer Acquisition Cost for marketing campaigns"),
-            "burn-rate-calculator": ("Calculators", "Track cash runway and monthly cash burn rates for startups"),
+            "cac-calculator": ("Calculators", "Calculate customer acquisition cost, CAC payback, and LTV:CAC ratio"),
             "gst-calculator": ("Calculators", "Calculate Goods and Services Tax (GST) for products and services"),
-            "emi-calculator": ("Calculators", "Estimate monthly loan repayments (Equated Monthly Installment)"),
-            "adsense-calculator": ("Calculators", "Estimate Google AdSense earnings based on page views and CTR"),
-            "instagram-calculator": ("Calculators", "Calculate Instagram engagement rates and post earnings"),
+            "emi-calculator": ("Calculators", "Calculate monthly loan EMI, total interest, and total payment"),
             "youtube-calculator": ("Calculators", "Estimate YouTube channel earnings based on views and RPM"),
-            "compound-calculator": ("Calculators", "Calculate compound interest gains over time"),
+            "instagram-calculator": ("Calculators", "Calculate Instagram engagement rate, reach, earnings per post, and optimal posting frequency"),
+            "compound-calculator": ("Calculators", "Calculate compound interest growth with monthly contributions"),
             "debt-calculator": ("Calculators", "Compare snowball and avalanche debt payoff methods and see when you'll be debt-free"),
             "credit-utilization-calculator": ("Calculators", "Determine credit utilization ratio for credit cards"),
-            "loan-affordability-calculator": ("Calculators", "Calculate maximum loan amounts based on monthly budget"),
+            "loan-affordability-calculator": ("Calculators", "Find out how much loan you can afford based on your income and monthly debts"),
             "mortgage-overpayment-calculator": ("Calculators", "Calculate interest savings from mortgage overpayments"),
             "salary-calculator": ("Calculators", "Convert hourly wage to weekly, monthly, and annual salary"),
-            "fd-calculator": ("Calculators", "Calculate Fixed Deposit interest earnings and maturity amounts"),
             "date-calculator": ("Calculators", "Add or subtract days, weeks, months, or years from a date"),
-            "eway-bill-calculator": ("Calculators", "Calculate E-Way Bill distance limits and validity criteria"),
+            "eway-bill-calculator": ("Calculators", "Check e-Way Bill requirement and validity period by distance"),
+            "fd-calculator": ("Calculators", "Calculate fixed deposit maturity amount and total interest earned"),
             "sip-calculator": ("Calculators", "Calculate mutual fund SIP returns and maturity values"),
             "api-tester": ("Developer & SEO", "Test REST APIs and HTTP requests directly from your browser"),
             "base64-tool": ("Developer & SEO", "Encode and decode text and files using Base64 format"),
@@ -88,8 +88,8 @@ class CatalogService:
             "pdf-converter": ("Productivity & Utilities", "Convert images and office files to and from PDF format"),
             "resume-analyzer": ("Productivity & Utilities", "Analyze your resume content, formatting, and ATS compatibility score"),
             "resume-generator": ("Productivity & Utilities", "Build a professional, modern resume using premium templates"),
-            "task-manager": ("Productivity & Utilities", "Organize tasks and projects using a Kanban board"),
-            "time-tracker": ("Productivity & Utilities", "Track work hours and generate simple invoice logs"),
+            "task-manager": ("Productivity & Utilities", "Manage daily tasks with priorities, due dates, categories, and search"),
+            "time-tracker": ("Productivity & Utilities", "Track work hours, log sessions, and export CSV timesheets"),
             "habit-tracker": ("Productivity & Utilities", "Track daily routines and build positive habits"),
             "note-organizer": ("Productivity & Utilities", "Write, save, and organize notes locally in your browser"),
             "text-case-converter": ("Productivity & Utilities", "Convert text to uppercase, lowercase, titlecase, and more"),
@@ -116,7 +116,7 @@ class CatalogService:
             sorted_categorized[cat] = sorted(categorized_tools[cat], key=lambda x: x["name"])
 
         static_pages = []
-        pages_dir = os.path.join(self.settings.TEMPLATES_DIR, "pages")
+        pages_dir = os.path.join(self.settings.templates_dir, "pages")
         if os.path.exists(pages_dir):
             for f in os.listdir(pages_dir):
                 if f.endswith(".html") and f != "sitemap.html":
@@ -131,7 +131,7 @@ class CatalogService:
     def get_valid_tools(self):
         if self._is_cache_valid() and self._tools_cache is not None:
             return self._tools_cache
-        tools_dir = os.path.join(self.settings.TEMPLATES_DIR, "tools")
+        tools_dir = os.path.join(self.settings.templates_dir, "tools")
         if not os.path.exists(tools_dir):
             self._tools_cache = []
             return []

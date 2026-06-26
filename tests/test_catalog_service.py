@@ -1,4 +1,3 @@
-import pytest
 from app.services.catalog_service import CatalogService
 
 

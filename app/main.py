@@ -7,13 +7,6 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.core.config import settings
-from app.core.exceptions import register_exception_handlers
-from app.core.log import setup_logging
-from app.core.metrics import MetricsMiddleware
-from app.core.middleware import RequestIDMiddleware, SecurityHeadersMiddleware
-
-setup_logging()
 from app.api.routes import (
     analytics,
     health,
@@ -29,6 +22,13 @@ from app.api.routes import (
     tools_qr,
 )
 from app.api.routes import jobs as jobs_router
+from app.core.config import settings
+from app.core.exceptions import register_exception_handlers
+from app.core.log import setup_logging
+from app.core.metrics import MetricsMiddleware
+from app.core.middleware import RequestIDMiddleware, SecurityHeadersMiddleware
+
+setup_logging()
 
 
 @asynccontextmanager
@@ -58,9 +58,9 @@ app.add_middleware(
 )
 
 try:
-    os.makedirs(os.path.join(settings.STATIC_DIR, "css"), exist_ok=True)
-    os.makedirs(os.path.join(settings.STATIC_DIR, "js"), exist_ok=True)
-    os.makedirs(os.path.join(settings.TEMPLATES_DIR, "tools"), exist_ok=True)
+    os.makedirs(os.path.join(settings.static_dir, "css"), exist_ok=True)
+    os.makedirs(os.path.join(settings.static_dir, "js"), exist_ok=True)
+    os.makedirs(os.path.join(settings.templates_dir, "tools"), exist_ok=True)
 except OSError:
     pass
 
@@ -73,7 +73,7 @@ class CachedStaticFiles(StaticFiles):
         return response
 
 
-app.mount("/static", CachedStaticFiles(directory=settings.STATIC_DIR), name="static")
+app.mount("/static", CachedStaticFiles(directory=settings.static_dir), name="static")
 
 app.include_router(health.router)
 app.include_router(seo.router)
@@ -92,4 +92,4 @@ app.include_router(jobs_router.router)
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
-    return FileResponse(os.path.join(settings.STATIC_DIR, "favicon.svg"))
+    return FileResponse(os.path.join(settings.static_dir, "favicon.svg"))

@@ -10,7 +10,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-DATA_DIR = os.path.join(settings.BASE_DIR, "var", "data")
+DATA_DIR = os.path.join(settings.base_dir, "var", "data")
 DB_PATH = os.path.join(DATA_DIR, "analytics.db")
 
 _RETENTION_DAYS = 90

@@ -1,6 +1,7 @@
 import pytest
+
+from app.core.exceptions import ValidationException
 from app.services.proxy_service import ProxyService
-from app.core.exceptions import ServiceError, ValidationException
 
 
 class TestProxyService:

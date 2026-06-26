@@ -1,6 +1,7 @@
 import pytest
-from app.services.image_service import ImageService
+
 from app.core.exceptions import ServiceError, ValidationException
+from app.services.image_service import ImageService
 
 
 class TestImageService:

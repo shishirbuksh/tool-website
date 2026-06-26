@@ -1,279 +1,251 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section, tool_json_ld %}
-
-{% block title %}Fixed Deposit (FD) Maturity Calculator | TDS & Senior Citizen Rates{% endblock %}
-{% block meta_description %}Calculate your exact Fixed Deposit maturity amount. Automatically add senior citizen interest rates, check your bank TDS tax deduction, and find your true in-hand cash.{% endblock %}
-{% block meta_keywords %}fixed deposit maturity calculator with tds, senior citizen extra interest on fixed deposits, how to calculate fd interest compounded quarterly, how much tax is deducted on fd interest, bank fd return calculator, how to use Fd Calculator for free online, best free Fd Calculator alternative, Fd Calculator without sign up, browser-based utility, secure processing, no installation required, instant results, data privacy, cloud alternative, free Fd Calculator, online Fd Calculator, fastest local browser Fd Calculator, secure private Fd Calculator no tracking{% endblock %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+{% block title %}FD Calculator — Maturity, Growth Table, TDS, Inflation & Goal Planning | Free Online{% endblock %}
+{% block meta_description %}Free advanced FD calculator. Calculate maturity, year-wise growth, TDS on interest, inflation-adjusted return, compare compounding rates, and plan goals with target-based principal.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/fd-calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/fd-calculator">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="FD Maturity Calculator with TDS Tax Check">
-<meta property="og:description" content="Calculate your exact FD maturity. Apply senior citizen bonus rates and see exactly how much bank tax (TDS) will be deducted from your interest.">
+<meta property="og:title" content="FD Calculator — Maturity, Growth, TDS, Inflation & Goal Planning">
+<meta property="og:description" content="Free advanced FD calculator with maturity, year-wise growth, TDS, inflation-adjusted returns, compounding comparison, and goal planning.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Fixed Deposit (FD) Calculator">
-<meta name="twitter:description" content="Find out exactly how much your Fixed Deposit will pay out after bank taxes.">
 {% endblock %}
-
 {% block head %}
+<style>
+.fc-card{background:var(--color-base-200);border-radius:1.5rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.fc-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:4px;display:block}
+.fc-input{border-radius:.85rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .2s;box-sizing:border-box;color-scheme:light dark}
+.fc-input:focus{border-color:var(--color-primary);outline:none;box-shadow:0 0 0 3px color-mix(in oklab,var(--color-primary) 18%,transparent)}
+.fc-sel{border-radius:.85rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;cursor:pointer;transition:border-color .2s;box-sizing:border-box;color-scheme:light dark;-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:14px;padding-right:32px}
+.fc-sel:focus{border-color:var(--color-primary);outline:none;box-shadow:0 0 0 3px color-mix(in oklab,var(--color-primary) 18%,transparent)}
+.fc-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em}
+.fc-badge-senior{background:color-mix(in oklab,var(--color-warning) 18%,transparent);color:var(--color-warning)}
+.fc-result{font-size:30px;font-weight:900;font-family:monospace;line-height:1.15;text-align:center;padding:14px 12px}
+.fc-result .num{color:var(--color-primary)}
+.fc-result .sub{font-size:12px;font-weight:700;font-family:sans-serif;opacity:.45;margin-top:4px;color:var(--color-base-content)}
+.fc-stat{background:var(--color-base-100);border-radius:1.15rem;padding:14px;border:1px solid var(--color-base-300);text-align:center}
+.fc-stat .num{font-size:24px;font-weight:900;font-family:monospace;color:var(--color-primary)}
+.fc-stat .lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-top:3px}
+.fc-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.fc-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.fc-toast.show{opacity:1;transform:translateY(0)}
+.fc-bar{display:flex;height:28px;border-radius:999px;overflow:hidden;border:1px solid var(--color-base-300)}
+.fc-bar .seg{display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;transition:width .4s;min-width:0}
+.fc-bar .seg-pri{background:color-mix(in oklab,var(--color-info) 60%,var(--color-primary))}
+.fc-bar .seg-int{background:var(--color-primary)}
+.fc-note{font-size:11px;font-weight:600;opacity:.4;line-height:1.5;padding:12px 16px;background:var(--color-base-100);border-radius:.85rem;border:1px solid var(--color-base-200);margin-top:10px}
+.fc-table{width:100%;border-collapse:collapse;font-size:11px;font-weight:600}
+.fc-table th{text-align:left;font-size:8px;text-transform:uppercase;letter-spacing:0.06em;opacity:.35;padding:5px 8px;border-bottom:1px solid var(--color-base-300)}
+.fc-table td{padding:5px 8px;border-bottom:1px solid var(--color-base-200)}
+.fc-table tr:last-child td{border-bottom:none}
+.fc-table .hl td{color:var(--color-primary);font-weight:800}
+.fc-tab{display:flex;gap:4px;background:var(--color-base-100);border-radius:999px;padding:3px;margin-bottom:14px;border:1px solid var(--color-base-200)}
+.fc-tab button{padding:6px 16px;border-radius:999px;font-size:10px;font-weight:800;cursor:pointer;border:none;background:transparent;color:var(--color-base-content);transition:all .15s;touch-action:manipulation;text-transform:uppercase;letter-spacing:0.04em;font-family:inherit}
+.fc-tab button.on{background:var(--color-primary);color:#fff}
+.fc-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.3rem .6rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:10px;transition:all .12s;font-family:inherit}
+.fc-toggle:hover{background:var(--color-base-200)}
+.fc-toggle.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.fc-cb{-webkit-appearance:none;-moz-appearance:none;appearance:none;width:18px;height:18px;border-radius:5px;border:2px solid color-mix(in oklab,var(--color-base-content) 28%,transparent);background:color-mix(in oklab,var(--color-base-content) 6%,transparent);cursor:pointer;flex-shrink:0;transition:all .12s;margin:0;vertical-align:middle;color-scheme:light dark}
+.fc-cb:checked{background:var(--color-success);border-color:var(--color-success);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center;background-size:12px}
+.fc-cb:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.fc-hist{max-height:180px;overflow-y:auto}
+.fc-hist-item{padding:6px 10px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10px;font-weight:600;cursor:pointer;transition:all .12s}
+.fc-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.fc-hist-item .preview{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:9px;opacity:.5;min-width:0}
+.fc-hist-item .meta{font-size:8px;font-weight:700;opacity:.3;white-space:nowrap}
+.fc-hist-item .hdel{width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:10px}
+.fc-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.fc-empty{text-align:center;padding:20px 16px;font-size:11px;font-weight:600;opacity:.3}
+.fc-section{display:none}
+.fc-section.active{display:block}
+.fc-glow{box-shadow:0 0 0 2px color-mix(in oklab,var(--color-primary) 25%,transparent)}
+</style>
 {% endblock %}
-
 {% block content %}
-{{ tool_hero_section("shield-check", "Smart Banking Tool", "FIXED DEPOSIT", "CALCULATOR", "Calculate your exact bank maturity amount. Apply Senior Citizen bonus rates and see exactly how much bank tax (TDS) will be deducted.") }}
-
-  <!-- Main Content -->
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-
-    <!-- Calculator Inputs -->
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3" style="color:var(--color-info)">
-          {{ lucide_icon("landmark","w-5 h-5", 20) | safe }} FD Details
-        </h2>
-        <form id="calcForm" class="flex flex-col gap-5">
-
-          <!-- Currency Selector -->
-          <div class="flex justify-between items-center">
-            <label class="label-cinematic" for="currency">Currency</label>
-            <select aria-label="Currency" id="currency" class="input input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm w-auto">
-              <option value="inr" selected>INR (&#8377;)</option>
-              <option value="usd">USD ($)</option>
-              <option value="eur">EUR (&euro;)</option>
-              <option value="gbp">GBP (&pound;)</option>
-              <option value="aud">AUD ($)</option>
-              <option value="cad">CAD ($)</option>
-            </select>
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Deposit Amount -->
-          <div>
-            <div class="flex justify-between items-end mb-2">
-              <label class="label-cinematic" for="deposit">Total Deposit Amount</label>
-              <div class="flex">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">&#8377;</span>
-                <input aria-label="Deposit" type="number" id="deposit" class="input w-32 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none" value="100000" min="0">
-              </div>
-            </div>
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Tenure -->
-          <div>
-            <label class="label-cinematic mb-3 block">Time Period (Tenure)</label>
-            <div class="grid grid-cols-2 gap-3">
-              <div class="flex">
-                <input aria-label="Years" type="number" id="years" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-r-none" value="3" min="0" max="50">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">Yrs</span>
-              </div>
-              <div class="flex">
-                <input aria-label="Months" type="number" id="months" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-r-none" value="0" min="0" max="11">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">Mos</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Interest Rate & Senior Citizen -->
-          <div>
-            <div class="flex justify-between items-end mb-2">
-              <label class="label-cinematic" for="rate">Bank Interest Rate</label>
-              <div class="flex">
-                <input aria-label="Rate" type="number" id="rate" class="input w-20 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-r-none" value="7.0" min="0" step="0.1">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">%</span>
-              </div>
-            </div>
-
-            <div class="card-premium p-4 mt-3" style="border-color:color-mix(in oklab, var(--color-info) 25%, transparent)">
-              <div class="flex justify-between items-center gap-2">
-                <div class="flex items-center gap-2">
-                  <input aria-label="Seniortoggle" type="checkbox" role="switch" id="seniorToggle" class="toggle toggle-sm">
-                  <label class="text-xs font-bold tracking-wider uppercase" for="seniorToggle" style="color:var(--color-info)">Senior Citizen (60+)</label>
-                </div>
-                <span class="pill-cinematic text-xs" style="background:var(--color-info);color:white;border-color:var(--color-info)">Market Gap</span>
-              </div>
-              <p class="text-xs text-base-content/40 mt-2">Automatically adds +0.50% extra bank interest.</p>
-            </div>
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Compounding Frequency -->
-          <div class="flex justify-between items-center">
-            <label class="label-cinematic" for="compoundFreq">Compounding Frequency</label>
-            <select aria-label="Compoundfreq" id="compoundFreq" class="input input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm w-auto">
-              <option value="12">Monthly</option>
-              <option value="4" selected>Quarterly (Default)</option>
-              <option value="2">Half-Yearly</option>
-              <option value="1">Yearly</option>
-            </select>
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- TDS Tax -->
-          <div class="card-premium p-4" style="border-color:color-mix(in oklab, var(--color-error) 25%, transparent)">
-            <div class="flex justify-between items-center mb-3">
-              <label class="label-cinematic" style="color:var(--color-error)">The Tax (TDS) Reality Check</label>
-              <span class="pill-cinematic text-xs" style="background:var(--color-error);color:white;border-color:var(--color-error)">Market Gap</span>
-            </div>
-            <div class="flex items-center gap-2 mb-3">
-              <input aria-label="Taxtoggle" type="checkbox" role="switch" id="taxToggle" class="toggle toggle-sm">
-              <label class="text-xs text-base-content/60 font-bold tracking-wider uppercase" for="taxToggle">Deduct Bank Tax (TDS) from Interest</label>
-            </div>
-            <div id="taxInputBox" class="hidden">
-              <div class="flex w-1/2 mt-2">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none">Rate</span>
-                <input type="number" id="taxRate" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none" value="10.0" step="0.1" aria-label="Tax Rate">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">%</span>
-              </div>
-              <p class="text-xs text-base-content/40 mt-1">Usually 10% if PAN card is provided.</p>
-            </div>
-          </div>
-
-          <!-- Inflation Reality Check -->
-          <div class="card-premium p-4" style="border-color:color-mix(in oklab, var(--color-warning) 25%, transparent)">
-            <div class="flex justify-between items-center mb-3">
-              <label class="label-cinematic" style="color:var(--color-warning)">Inflation Reality Check</label>
-              <span class="pill-cinematic text-xs" style="background:var(--color-warning);color:white;border-color:var(--color-warning)">Market Gap</span>
-            </div>
-            <div class="flex items-center gap-2 mb-3">
-              <input aria-label="Inflationtoggle" type="checkbox" role="switch" id="inflationToggle" class="toggle toggle-sm">
-              <label class="text-xs text-base-content/60 font-bold tracking-wider uppercase" for="inflationToggle">Adjust for Real Purchasing Power</label>
-            </div>
-            <div id="inflationInputBox" class="hidden">
-              <div class="flex w-1/2 mt-2">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none">Rate</span>
-                <input type="number" id="inflationRate" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none" value="6.0" step="0.1" aria-label="Inflation Rate">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">%</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- FD vs Mutual Fund -->
-          <div class="card-premium p-4" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-            <div class="flex justify-between items-center mb-3">
-              <label class="label-cinematic" style="color:var(--color-success)">FD vs Mutual Fund Check</label>
-              <span class="pill-cinematic text-xs" style="background:var(--color-success);color:white;border-color:var(--color-success)">Market Gap</span>
-            </div>
-            <div class="flex items-center gap-2 mb-3">
-              <input aria-label="Mftoggle" type="checkbox" role="switch" id="mfToggle" class="toggle toggle-sm">
-              <label class="text-xs text-base-content/60 font-bold tracking-wider uppercase" for="mfToggle">Compare with Index Fund / Mutual Fund</label>
-            </div>
-            <div id="mfInputBox" class="hidden">
-              <div class="flex w-1/2 mt-2">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none">Return</span>
-                <input type="number" id="mfRate" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none" value="12.0" step="0.1" aria-label="Mf Rate">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">%</span>
-              </div>
-            </div>
-          </div>
-
-        </form>
+{{ tool_hero_section("landmark","Calculators","FD","CALCULATOR","Maturity, year-wise growth, TDS, inflation-adjusted returns, compounding comparison, and goal planning.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="fc-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2">{{ lucide_icon("landmark","w-4 h-4",16) | safe }} FD Details</h2>
+      <div class="mb-3"><label class="fc-label" for="fcPrincipal">Principal (₹)</label><input type="number" id="fcPrincipal" class="fc-input" value="100000" min="0" step="1000"></div>
+      <div class="fc-grid-2 mb-3">
+        <div><label class="fc-label" for="fcRate">Rate (%)</label><input type="number" id="fcRate" class="fc-input" value="7.0" min="0" max="50" step="0.1"></div>
+        <div><label class="fc-label" for="fcTenure">Tenure (Years)</label><input type="number" id="fcTenure" class="fc-input" value="3" min="0.1" max="50" step="0.5"></div>
+      </div>
+      <div class="fc-grid-2 mb-3">
+        <div><label class="fc-label" for="fcComp">Compounding</label><select id="fcComp" class="fc-sel"><option value="12">Monthly</option><option value="4" selected>Quarterly</option><option value="2">Half-Yearly</option><option value="1">Yearly</option></select></div>
+        <div><label class="fc-label">Senior Citizen</label><div style="padding-top:6px"><label class="flex items-center gap-2 text-xs font-bold opacity-60 cursor-pointer" style="touch-action:manipulation"><input type="checkbox" id="fcSenior" class="fc-cb"> +0.5% extra rate</label></div></div>
+      </div>
+      <div class="fc-card mb-3" style="background:var(--color-base-100);padding:1rem">
+        <div class="fc-grid-2">
+          <div><label class="fc-label" for="fcGoal">Goal Amount (₹)</label><input type="number" id="fcGoal" class="fc-input" value="0" min="0" step="5000"></div>
+          <div><label class="fc-label" for="fcMonthly">Monthly Addition (₹)</label><input type="number" id="fcMonthly" class="fc-input" value="0" min="0" step="500"></div>
+        </div>
+      </div>
+      <div class="fc-result" id="fcResult"><span class="num" style="font-size:18px;opacity:.3;display:block">Enter values</span><span class="sub">Adjust inputs to see results</span></div>
+      <div class="flex items-center gap-2 mt-3">
+        <button type="button" id="fcCopyBtn" class="dc-sec" style="background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.5rem .75rem;font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:inherit">{{ lucide_icon("copy","w-3 h-3",12) | safe }} Copy</button>
+        <button type="button" id="fcDlBtn" class="dc-sec" style="background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.5rem .75rem;font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:inherit">{{ lucide_icon("download","w-3 h-3",12) | safe }} .txt</button>
       </div>
     </div>
-
-    <!-- Results Dashboard -->
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-
-        <div class="flex justify-between items-center mb-6 pb-4 border-b border-base-content/10 flex-wrap gap-3">
-          <h3 class="text-xl font-black tracking-tight flex items-center gap-3" style="color:var(--color-info)">
-            {{ lucide_icon("receipt","w-5 h-5", 20) | safe }} Maturity Report
-          </h3>
+    <div class="fc-card mt-6">
+      <div class="flex items-center justify-between"><h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-4 h-4",16) | safe }} History</h2><button type="button" id="fcHiToggle" class="fc-toggle" aria-expanded="false">Show <span id="fcHiCount"></span></button></div>
+      <div id="fcHiWrap" hidden class="mt-3"><div id="fcHiList" class="fc-hist"></div><button type="button" id="fcHiClear" class="fc-toggle mt-2" hidden>Clear All</button></div>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="fc-tab" id="fcTabs" role="tablist">
+      <button type="button" class="on" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+      <button type="button" data-tab="growth" role="tab" aria-selected="false">Growth</button>
+      <button type="button" data-tab="compare" role="tab" aria-selected="false">Compare</button>
+      <button type="button" data-tab="tax" role="tab" aria-selected="false">Tax</button>
+    </div>
+    <div id="fcTabOverview" class="fc-section active">
+      <div class="fc-card">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-3">{{ lucide_icon("pie-chart","w-4 h-4",16) | safe }} Maturity Overview</h2>
+        <div id="fcBar" class="fc-bar mb-4" aria-label="Principal vs Interest breakdown"><div class="seg seg-pri" id="fcBarPri" style="width:50%">Principal</div><div class="seg seg-int" id="fcBarInt" style="width:50%">Interest</div></div>
+        <div id="fcOverviewGrid" class="fc-grid-4"><div class="fc-stat"><div class="num" id="fcOvMaturity">—</div><div class="lbl">Maturity</div></div><div class="fc-stat"><div class="num" id="fcOvInterest">—</div><div class="lbl">Interest</div></div><div class="fc-stat"><div class="num" id="fcOvYield">—</div><div class="lbl">Yield</div></div><div class="fc-stat"><div class="num" id="fcOvDate" style="font-size:13px">—</div><div class="lbl">Maturity Date</div></div></div>
+        <div id="fcOvSummary" class="fc-note"></div>
+      </div>
+    </div>
+    <div id="fcTabGrowth" class="fc-section">
+      <div class="fc-card">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-3">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} Year-wise Growth</h2>
+        <p id="fcGEmpty" style="text-align:center;padding:16px;font-size:11px;font-weight:600;opacity:.3">Enter values to see year-wise growth</p>
+        <div id="fcGTable" hidden><table class="fc-table"><thead><tr><th>Year</th><th>Opening</th><th>Interest</th><th>Addition</th><th>Closing</th></tr></thead><tbody id="fcGBody"></tbody></table></div>
+      </div>
+    </div>
+    <div id="fcTabCompare" class="fc-section">
+      <div class="fc-card">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-3">{{ lucide_icon("git-compare","w-4 h-4",16) | safe }} Compounding Comparison</h2>
+        <p class="text-xs font-semibold opacity-40 mb-3">Maturity at different compounding frequencies</p>
+        <div class="fc-grid-2">
+          <div class="fc-comp-card" style="background:var(--color-base-100);border-radius:.85rem;padding:12px;border:1px solid var(--color-base-300)" id="fcCcM"><div class="lbl" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;opacity:.4">Monthly</div><div class="val" style="font-size:16px;font-weight:900;font-family:monospace;color:var(--color-primary)" id="fcCcMVal">—</div></div>
+          <div class="fc-comp-card" style="background:var(--color-base-100);border-radius:.85rem;padding:12px;border:1px solid var(--color-base-300)" id="fcCcQ"><div class="lbl" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;opacity:.4">Quarterly</div><div class="val" style="font-size:16px;font-weight:900;font-family:monospace;color:var(--color-primary)" id="fcCcQVal">—</div></div>
+          <div class="fc-comp-card" style="background:var(--color-base-100);border-radius:.85rem;padding:12px;border:1px solid var(--color-base-300)" id="fcCcH"><div class="lbl" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;opacity:.4">Half-Yearly</div><div class="val" style="font-size:16px;font-weight:900;font-family:monospace;color:var(--color-primary)" id="fcCcHVal">—</div></div>
+          <div class="fc-comp-card" style="background:var(--color-base-100);border-radius:.85rem;padding:12px;border:1px solid var(--color-base-300)" id="fcCcY"><div class="lbl" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;opacity:.4">Yearly</div><div class="val" style="font-size:16px;font-weight:900;font-family:monospace;color:var(--color-primary)" id="fcCcYVal">—</div></div>
         </div>
-
-        <!-- Total Maturity -->
-        <div class="card-premium p-6 text-center mb-6" style="border-color:color-mix(in oklab, var(--color-info) 25%, transparent)">
-          <span class="label-cinematic block mb-2" style="color:var(--color-info)">Total Maturity Amount</span>
-          <div class="flex justify-center items-center gap-2 mb-2">
-            <span class="metric-cinematic metric-cinematic--lg opacity-60 currency-sym" style="color:var(--color-info)">&#8377;</span>
-            <span id="resTotal" class="metric-cinematic metric-cinematic--xl" style="color:var(--color-info)">0</span>
-          </div>
-          <div id="taxAlert" class="hidden mt-2 text-xs font-bold" style="color:var(--color-error)"></div>
+        <div class="fc-note mt-4" style="margin-top:12px"><strong>Difference:</strong> Monthly compounding gives <span id="fcCompDiff" style="font-weight:900;color:var(--color-primary)">—</span> more than yearly.</div>
+      </div>
+    </div>
+    <div id="fcTabTax" class="fc-section">
+      <div class="fc-card">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-3">{{ lucide_icon("receipt","w-4 h-4",16) | safe }} TDS & Inflation</h2>
+        <div id="fcTaxInfo" style="text-align:center;padding:12px;font-size:11px;font-weight:600;opacity:.3">Enter values to see tax and inflation impact</div>
+        <div id="fcTaxGrid" hidden class="fc-grid-2">
+          <div class="fc-comp-card" style="background:var(--color-base-100);border-radius:.85rem;padding:12px;border:1px solid var(--color-base-300)"><div class="lbl" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;opacity:.4">Total Interest</div><div class="val" style="font-size:16px;font-weight:900;font-family:monospace;color:var(--color-primary)" id="fcTaxInt">—</div></div>
+          <div class="fc-comp-card" style="background:var(--color-base-100);border-radius:.85rem;padding:12px;border:1px solid var(--color-base-300)"><div class="lbl" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;opacity:.4">TDS (10% if &gt;₹40K)</div><div class="val" style="font-size:16px;font-weight:900;font-family:monospace;color:var(--color-error)" id="fcTaxTds">—</div></div>
+          <div class="fc-comp-card" style="background:var(--color-base-100);border-radius:.85rem;padding:12px;border:1px solid var(--color-base-300)"><div class="lbl" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;opacity:.4">Net Interest (After TDS)</div><div class="val" style="font-size:16px;font-weight:900;font-family:monospace;color:var(--color-primary)" id="fcTaxNet">—</div></div>
+          <div class="fc-comp-card" style="background:var(--color-base-100);border-radius:.85rem;padding:12px;border:1px solid var(--color-base-300)"><div class="lbl" style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;opacity:.4">Inflation-Adj. Return</div><div class="val" style="font-size:16px;font-weight:900;font-family:monospace" id="fcTaxInfl">—</div></div>
         </div>
-
-        <!-- Secondary Metrics -->
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <div class="stat-cinematic text-center">
-            <span class="label-cinematic block mb-2">Total Deposit</span>
-            <div class="flex justify-center items-center">
-              <span class="text-sm opacity-50 currency-sym mr-1">&#8377;</span>
-              <output id="resPrincipal" class="metric-cinematic metric-cinematic--sm font-mono">0</output>
-            </div>
-          </div>
-          <div class="stat-cinematic text-center relative">
-            <span class="label-cinematic block mb-2" style="color:var(--color-green-500)">Interest Earned</span>
-            <div class="flex justify-center items-center">
-              <span class="text-sm opacity-50 currency-sym mr-1">&#8377;</span>
-              <output id="resInterest" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-green-500)">0</output>
-            </div>
-            <span id="rateBadge" class="pill-cinematic text-xs absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2" style="background:var(--color-success);color:white;border-color:var(--color-success)">@ 7.0%</span>
-          </div>
-        </div>
-
-        <!-- Progress Bar -->
-        <div class="mb-6">
-          <div class="flex justify-between text-xs font-bold mb-2">
-            <span class="text-base-content/60">Your Deposit</span>
-            <span class="text-success">Bank Interest</span>
-          </div>
-          <div class="h-3 rounded-full overflow-hidden" style="background:color-mix(in oklab, var(--color-base-content) 5%, transparent)">
-            <div class="flex h-full">
-              <div id="barPrincipal" class="h-full transition-all duration-500" style="background:var(--color-base-content);opacity:0.3"></div>
-              <div id="barInterest" class="h-full transition-all duration-500" style="background:var(--color-green-500)"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- MF Comparison Result -->
-        <div id="mfResultCard" class="card-premium p-5 hidden" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-          <h4 class="label-cinematic mb-3" style="color:var(--color-success)">What if you invested in a Mutual Fund instead?</h4>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="glass-cinematic rounded-xl p-4 text-center">
-              <span class="label-cinematic block mb-2">FD Maturity</span>
-              <div class="flex justify-center items-center">
-                <span class="text-sm opacity-50 currency-sym mr-1">&#8377;</span>
-                <output id="resMFdTotal" class="metric-cinematic metric-cinematic--sm font-mono">0</output>
-              </div>
-            </div>
-            <div class="glass-cinematic rounded-xl p-4 text-center" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-              <span class="label-cinematic block mb-2" style="color:var(--color-success)">MF Potential Value</span>
-              <div class="flex justify-center items-center">
-                <span class="text-sm opacity-50 currency-sym mr-1">&#8377;</span>
-                <output id="resMfValue" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-success)">0</output>
-              </div>
-            </div>
-          </div>
-        </div>
-
+        <div class="fc-note mt-3"><strong>Note:</strong> TDS at 10% applies if total interest exceeds ₹40,000 in a financial year (₹50,000 for senior citizens). File Form 15G/15H to avoid TDS.</div>
       </div>
     </div>
   </div>
 </div>
-
+<div id="fcToast" class="fc-toast" role="status" aria-live="polite"></div>
 <script>
-function formatCurrency(val){return val.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});}
-document.addEventListener('DOMContentLoaded',()=>{const els={deposit:document.getElementById('deposit'),years:document.getElementById('years'),months:document.getElementById('months'),rate:document.getElementById('rate'),compoundFreq:document.getElementById('compoundFreq'),currency:document.getElementById('currency'),seniorToggle:document.getElementById('seniorToggle'),taxToggle:document.getElementById('taxToggle'),taxRate:document.getElementById('taxRate'),taxInputBox:document.getElementById('taxInputBox'),inflationToggle:document.getElementById('inflationToggle'),inflationRate:document.getElementById('inflationRate'),inflationInputBox:document.getElementById('inflationInputBox'),mfToggle:document.getElementById('mfToggle'),mfRate:document.getElementById('mfRate'),mfInputBox:document.getElementById('mfInputBox'),resTotal:document.getElementById('resTotal'),resPrincipal:document.getElementById('resPrincipal'),resInterest:document.getElementById('resInterest'),taxAlert:document.getElementById('taxAlert'),rateBadge:document.getElementById('rateBadge'),barPrincipal:document.getElementById('barPrincipal'),barInterest:document.getElementById('barInterest'),mfResultCard:document.getElementById('mfResultCard'),resMFdTotal:document.getElementById('resMFdTotal'),resMfValue:document.getElementById('resMfValue'),syms:document.querySelectorAll('.currency-sym')};Object.values(els).forEach(el=>{if(el&&el!==els.syms)el.addEventListener('input',calculate);if(el&&el!==els.syms&&el.type==='checkbox')el.addEventListener('change',calculate);});els.seniorToggle.addEventListener('change',calculate);els.taxToggle.addEventListener('change',()=>{if(els.taxToggle.checked){els.taxInputBox.classList.remove('hidden');}else{els.taxInputBox.classList.add('hidden');}
-calculate();});els.inflationToggle.addEventListener('change',()=>{if(els.inflationToggle.checked){els.inflationInputBox.classList.remove('hidden');}else{els.inflationInputBox.classList.add('hidden');}
-calculate();});els.mfToggle.addEventListener('change',()=>{if(els.mfToggle.checked){els.mfInputBox.classList.remove('hidden');}else{els.mfInputBox.classList.add('hidden');}
-calculate();});els.currency.addEventListener('change',()=>{let s="\u20b9";if(els.currency.value==='usd')s="$";if(els.currency.value==='eur')s="\u20ac";if(els.currency.value==='gbp')s="\u00a3";if(els.currency.value==='aud')s="A$";if(els.currency.value==='cad')s="C$";els.syms.forEach(el=>el.innerText=s);});function calculate(){const P=parseFloat(els.deposit.value)||0;const yrs=parseInt(els.years.value)||0;const mos=parseInt(els.months.value)||0;const totalYears=yrs+(mos/12);let r=parseFloat(els.rate.value)||0;if(els.seniorToggle.checked)r+=0.5;const n=parseInt(els.compoundFreq.value);const rDec=r/100;let maturity=P*Math.pow(1+rDec/n,n*totalYears);const totalPrincipal=P;let interest=maturity-totalPrincipal;if(interest<0)interest=0;let taxHTML='';let maturityAfterTax=maturity;if(els.taxToggle.checked){const tRate=parseFloat(els.taxRate.value)||0;const taxAmt=interest*(tRate/100);maturityAfterTax=maturity-taxAmt;interest=maturityAfterTax-totalPrincipal;if(interest<0)interest=0;taxHTML='TDS Deducted: '+els.syms[0].innerText+formatCurrency(taxAmt);}
-if(els.inflationToggle.checked){const iRate=parseFloat(els.inflationRate.value)||0;const inflator=Math.pow(1+iRate/100,totalYears);maturityAfterTax=maturityAfterTax/inflator;}
-els.rateBadge.innerText='@ '+r+'%';els.resTotal.innerText=formatCurrency(maturityAfterTax);els.resPrincipal.innerText=formatCurrency(totalPrincipal);els.resInterest.innerText=formatCurrency(interest);if(taxHTML){els.taxAlert.innerHTML=taxHTML;els.taxAlert.classList.remove('hidden');}else{els.taxAlert.classList.add('hidden');}
-let pPct=(totalPrincipal/maturityAfterTax)*100;let iPct=(interest/maturityAfterTax)*100;if(maturityAfterTax===0){pPct=50;iPct=50;}
-if(pPct>100){pPct=100;iPct=0;}
-els.barPrincipal.style.width=pPct+'%';els.barInterest.style.width=iPct+'%';if(els.mfToggle.checked){const mfR=parseFloat(els.mfRate.value)||0;const mfRDec=mfR/100;const mfVal=P*Math.pow(1+mfRDec/n,n*totalYears);els.mfResultCard.classList.remove('hidden');els.resMFdTotal.innerText=formatCurrency(maturityAfterTax);els.resMfValue.innerText=formatCurrency(mfVal);}else{els.mfResultCard.classList.add('hidden');}}
-calculate();});
+(function(){'use strict';
+var pEl=document.getElementById('fcPrincipal'),rEl=document.getElementById('fcRate'),tEl=document.getElementById('fcTenure');
+var cEl=document.getElementById('fcComp'),sEl=document.getElementById('fcSenior'),gEl=document.getElementById('fcGoal');
+var mEl=document.getElementById('fcMonthly');
+var resEl=document.getElementById('fcResult');
+var barPri=document.getElementById('fcBarPri'),barInt=document.getElementById('fcBarInt');
+var ovM=document.getElementById('fcOvMaturity'),ovI=document.getElementById('fcOvInterest'),ovY=document.getElementById('fcOvYield'),ovD=document.getElementById('fcOvDate'),ovS=document.getElementById('fcOvSummary');
+var gEmpty=document.getElementById('fcGEmpty'),gTable=document.getElementById('fcGTable'),gBody=document.getElementById('fcGBody');
+var ccM=document.getElementById('fcCcMVal'),ccQ=document.getElementById('fcCcQVal'),ccH=document.getElementById('fcCcHVal'),ccY=document.getElementById('fcCcYVal'),ccDiff=document.getElementById('fcCompDiff');
+var tInfo=document.getElementById('fcTaxInfo'),tGrid=document.getElementById('fcTaxGrid');
+var tInt=document.getElementById('fcTaxInt'),tTds=document.getElementById('fcTaxTds'),tNet=document.getElementById('fcTaxNet'),tInfl=document.getElementById('fcTaxInfl');
+var copyBtn=document.getElementById('fcCopyBtn'),dlBtn=document.getElementById('fcDlBtn'),toastEl=document.getElementById('fcToast');
+var hiToggle=document.getElementById('fcHiToggle'),hiCount=document.getElementById('fcHiCount'),hiClear=document.getElementById('fcHiClear'),hiWrap=document.getElementById('fcHiWrap'),hiList=document.getElementById('fcHiList');
+var history=[];try{var h=JSON.parse(localStorage.getItem('sb_fd3')||'[]');if(Array.isArray(h))history=h}catch(e){}
+var tabs=document.getElementById('fcTabs');var sections={overview:document.getElementById('fcTabOverview'),growth:document.getElementById('fcTabGrowth'),compare:document.getElementById('fcTabCompare'),tax:document.getElementById('fcTabTax')};
+tabs.addEventListener('click',function(e){var b=e.target.closest('button[data-tab]');if(!b)return;var tab=b.getAttribute('data-tab');tabs.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-tab')===tab);el.setAttribute('aria-selected',el.getAttribute('data-tab')===tab)});Object.keys(sections).forEach(function(k){sections[k].classList.toggle('active',k===tab)})});
+function fmtReadable(d){return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function numFmt(n){return '₹'+Number(n).toLocaleString('en-IN',{maximumFractionDigits:2})}
+function numFmtN(n){return Number(n).toLocaleString('en-IN',{maximumFractionDigits:2})}
+function calcFD(P,r,t,n,monthly){
+var rate=r/100;var A=0,totalInt=0;
+if(monthly>0){
+var periods=Math.round(t*n);var periodRate=rate/n;var balance=P;
+for(var i=0;i<periods;i++){var intEarned=balance*periodRate;balance+=intEarned+monthly;totalInt+=intEarned}
+A=balance;
+}else{A=P*Math.pow(1+rate/n,n*t);totalInt=A-P}
+return{A:A,int:totalInt}
+}
+function calc(){
+var P=parseFloat(pEl.value)||0,ra=parseFloat(rEl.value)||0,t=parseFloat(tEl.value)||0,n=parseInt(cEl.value)||4;
+var monthly=parseFloat(mEl.value)||0,goal=parseFloat(gEl.value)||0,senior=sEl.checked;
+if(senior)ra+=0.5;
+if(P<=0||ra<=0||t<=0){resEl.innerHTML='<span class="num" style="font-size:18px;opacity:.3;display:block">Enter values</span><span class="sub">Enter principal, rate and tenure</span>';return}
+var fd=calcFD(P,ra,t,n,monthly);
+var effYield=(Math.pow(1+ra/100/n,n)-1)*100;
+var pctPri=Math.round(P/fd.A*100);var pctInt=100-pctPri;
+barPri.style.width=pctPri+'%';barInt.style.width=pctInt+'%';
+barPri.textContent='P '+(monthly>0?numFmt(P+monthly*12*t):numFmt(P));barInt.textContent='I '+numFmt(fd.int);
+var matDate=new Date();matDate.setFullYear(matDate.getFullYear()+Math.floor(t));matDate.setMonth(matDate.getMonth()+Math.round((t%1)*12));
+ovM.textContent=numFmt(fd.A);ovI.textContent=numFmt(fd.int);ovY.textContent=effYield.toFixed(2)+'%';ovD.textContent=fmtReadable(matDate);
+resEl.innerHTML='<span class="num">'+esc(numFmt(fd.A))+'</span><span class="sub">Maturity on '+esc(fmtReadable(matDate))+'</span>';
+var goalNote='';
+if(goal>0){var reqP=goal/Math.pow(1+ra/100/n,n*t);var shortfall=goal>fd.A?goal-fd.A:0;goalNote=' <strong>Goal '+esc(numFmt(goal))+':</strong>'+(goal<=fd.A?' You reach it! Surplus of '+esc(numFmt(fd.A-goal))+'.':' Shortfall of '+esc(numFmt(shortfall))+'. Need ₹'+esc(numFmt(reqP.toFixed(0)))+' principal.')}
+ovS.innerHTML='You invest <strong>'+esc(numFmt(P))+'</strong> for <strong>'+t+' year'+(t>1?'s':'')+'</strong> at <strong>'+ra+'%</strong> ('+cEl.options[cEl.selectedIndex].text+'). Total interest: <strong>'+esc(numFmt(fd.int))+'</strong>, maturity: <strong>'+esc(numFmt(fd.A))+'</strong>.'+goalNote;
+var yrs=Math.ceil(t);var rows='';var bal=P;var cumInt=0;
+for(var y=1;y<=yrs;y++){
+var yearT=Math.min(y,t);var yearFd=calcFD(bal,ra,yearT-(y-1),n,monthly);
+var yearInt=yearFd.int-cumInt;var opBal=bal;var add=monthly*12;bal=yearFd.A;
+var isLast=y===yrs;rows+='<tr'+(isLast?' class="hl"':'')+'><td>Year '+y+'</td><td>'+esc(numFmt(opBal))+'</td><td>'+esc(numFmt(yearInt))+'</td><td>'+(monthly>0?esc(numFmt(add)):'—')+'</td><td>'+esc(numFmt(bal))+'</td></tr>';
+cumInt=yearFd.int
+}
+gEmpty.hidden=true;gTable.hidden=false;gBody.innerHTML=rows;
+var comps=[{n:12,el:ccM,card:document.getElementById('fcCcM')},{n:4,el:ccQ,card:document.getElementById('fcCcQ')},{n:2,el:ccH,card:document.getElementById('fcCcH')},{n:1,el:ccY,card:document.getElementById('fcCcY')}];
+var compVals=[];comps.forEach(function(cp){var a=P*Math.pow(1+ra/100/cp.n,cp.n*t);cp.el.textContent=numFmt(a);cp.card.classList.toggle('hl',cp.n===n);compVals.push(a)});
+var diff=compVals[0]-compVals[3];ccDiff.textContent=numFmt(diff);ccDiff.style.color='var(--color-primary)';
+tInfo.style.display='none';tGrid.hidden=false;
+var tds=fd.int>40000?fd.int*0.1:0;var infl=((1+ra/100)/(1+0.05)-1)*100;
+tInt.textContent=numFmt(fd.int);tTds.textContent=numFmt(tds);
+tNet.textContent=numFmt(fd.int-tds);tInfl.textContent=infl.toFixed(2)+'%';tInfl.style.color=infl>0?'var(--color-success)':'var(--color-error)';
+}
+pEl.addEventListener('input',calc);rEl.addEventListener('input',calc);tEl.addEventListener('input',calc);
+cEl.addEventListener('change',calc);sEl.addEventListener('change',calc);gEl.addEventListener('input',calc);mEl.addEventListener('input',calc);
+function saveHistory(P,r,t,n,sen,label){
+history.unshift({P:P,r:r,t:t,n:n,sen:sen,label:label,ts:Date.now()});
+if(history.length>50)history.pop();
+try{localStorage.setItem('sb_fd3',JSON.stringify(history))}catch(e){}
+renderHistory()
+}
+function renderHistory(){
+hiCount.textContent=history.length?'('+history.length+')':'';
+hiClear.hidden=!history.length;
+if(!history.length){hiList.innerHTML='<div class="fc-empty">No calculations yet</div>';return}
+var h='';history.forEach(function(item,i){
+var d=new Date(item.ts),now=new Date();
+var diff=Math.round((now-d)/1000);
+var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+h+='<div class="fc-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label||'')+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
+});
+hiList.innerHTML=h;
+}
+hiToggle.addEventListener('click',function(){var o=!hiWrap.hidden;hiWrap.hidden=o;hiToggle.textContent=o?'Show':'Hide';if(!o)renderHistory()});
+hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_fd3',JSON.stringify(history))}catch(e){}renderHistory();toast('Cleared')});
+hiList.addEventListener('click',function(e){
+var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_fd3',JSON.stringify(history))}catch(e){}renderHistory();return}
+var item=e.target.closest('.fc-hist-item');if(!item)return;
+var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
+pEl.value=h.P;rEl.value=h.r;tEl.value=h.t;cEl.value=h.n;if(h.sen)sEl.checked=h.sen;
+calc();history.splice(idx,1);try{localStorage.setItem('sb_fd3',JSON.stringify(history))}catch(e){}renderHistory();toast('Restored')
+});
+var lastP,lastR,lastT;
+var saveTimer=null;
+function autoSave(){var pv=pEl.value,rv=rEl.value,tv=tEl.value;if(pv!==lastP||rv!==lastR||tv!==lastT){lastP=pv;lastR=rv;lastT=tv;clearTimeout(saveTimer);saveTimer=setTimeout(function(){calc();saveHistory(parseFloat(pv)||0,parseFloat(rv)||0,parseFloat(tv)||0,parseInt(cEl.value)||4,sEl.checked,'₹'+Number(pv).toLocaleString('en-IN')+' @ '+rv+'% for '+tv+'y')},800)}}
+pEl.addEventListener('input',autoSave);rEl.addEventListener('input',autoSave);tEl.addEventListener('input',autoSave);
+copyBtn.addEventListener('click',function(){var P=parseFloat(pEl.value)||0,r=parseFloat(rEl.value)||0,t=parseFloat(tEl.value)||0,n=parseInt(cEl.value)||4;var fd=calcFD(P,r,t,n,parseFloat(mEl.value)||0);var txt='FD Calculator Report\n'+'='.repeat(40)+'\nPrincipal: '+numFmt(P)+'\nRate: '+r+'%\nTenure: '+t+' years\nCompounding: '+cEl.options[cEl.selectedIndex].text+'\nMonthly Addition: '+numFmt(parseFloat(mEl.value)||0)+'\n\nMaturity: '+numFmt(fd.A)+'\nInterest: '+numFmt(fd.int)+'\nYield: '+((Math.pow(1+r/100/n,n)-1)*100).toFixed(2)+'%\nTDS (10%): '+numFmt(fd.int>40000?fd.int*0.1:0)+'\nInflation-Adj: '+(((1+r/100)/(1+0.05)-1)*100).toFixed(2)+'%\nDate: '+new Date().toISOString().slice(0,10);navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')})});
+dlBtn.addEventListener('click',function(){function f(n){return '₹'+Number(n).toLocaleString('en-IN',{maximumFractionDigits:2})}var P=parseFloat(pEl.value)||0,r=parseFloat(rEl.value)||0,t=parseFloat(tEl.value)||0,n=parseInt(cEl.value)||4,m=parseFloat(mEl.value)||0;var fd=calcFD(P,r,t,n,m);var txt='FD Calculator Report\n'+'='.repeat(40)+'\nPrincipal: '+f(P)+'\nRate: '+r+'%\nTenure: '+t+' years\nCompounding: '+cEl.options[cEl.selectedIndex].text+'\nMonthly Addition: '+f(m)+'\nSenior Citizen: '+(sEl.checked?'Yes (+0.5%)':'No')+'\nGoal Amount: '+(parseFloat(gEl.value)||0?f(parseFloat(gEl.value)):'N/A')+'\n\nMaturity: '+f(fd.A)+'\nInterest: '+f(fd.int)+'\nYield: '+((Math.pow(1+r/100/n,n)-1)*100).toFixed(2)+'%\nMaturity Date: '+(function(){var d=new Date();d.setFullYear(d.getFullYear()+Math.floor(t));d.setMonth(d.getMonth()+Math.round((t%1)*12));return fmtReadable(d)})()+'\n\n--- Comparison ---\nMonthly: '+f(P*Math.pow(1+r/100/12,12*t))+'\nQuarterly: '+f(P*Math.pow(1+r/100/4,4*t))+'\nHalf-Yearly: '+f(P*Math.pow(1+r/100/2,2*t))+'\nYearly: '+f(P*Math.pow(1+r/100/1,1*t))+'\n\nTDS (10% if >₹40K): '+f(fd.int>40000?fd.int*0.1:0)+'\nNet Interest: '+f(fd.int-(fd.int>40000?fd.int*0.1:0))+'\nInflation-Adj Return: '+(((1+r/100)/(1+0.05)-1)*100).toFixed(2)+'%\n\nDate: '+new Date().toISOString().slice(0,10);var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='fd-calculator-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded')});
+calc();
+})();
 </script>
-
-{{ tool_json_ld({
-"@type":"SoftwareApplication","name":"Fixed Deposit (FD) Maturity Calculator","applicationCategory":"FinanceApplication","operatingSystem":"Web browser","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Calculate your exact Fixed Deposit maturity amount with TDS tax deduction and senior citizen bonus rates."
-}) }}
-
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

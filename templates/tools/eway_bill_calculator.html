@@ -1,58 +1,453 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}E-Way Bill Calculator | GST E-Way Bill Value & Validity Calculator{% endblock %}
-{% block meta_description %}Calculate e-way bill value, validity period, and extension requirements for GST interstate and intrastate transport. Free e-way bill calculator for Indian businesses.{% endblock %}
+{% block title %}E-Way Bill Calculator — Validity, Extension, State Pair, Penalty & Compliance | Free Online{% endblock %}
+{% block meta_description %}Free advanced e-way bill calculator with state pair analysis, Part A date with exact expiry dates, extension calculator, penalty estimator, compliance checklist, and Validity & Extension Rules.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/eway-bill-calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/eway-bill-calculator">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="E-Way Bill Calculator - GST Value & Validity">
-<meta property="og:description" content="Calculate e-way bill value, validity period, and extension requirements.">
+<meta property="og:title" content="E-Way Bill Calculator — State Pair, Penalty, Expiry Dates & Compliance">
+<meta property="og:description" content="Free advanced e-way bill calculator with state pair analysis, Part A date with exact expiry dates, extension calculator, penalty estimator, compliance checklist, and Validity & Extension Rules.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
 {% endblock %}
-{% block head %}{% endblock %}
+{% block head %}
+<style>
+.ec-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.ec-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.ec-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;box-sizing:border-box;color-scheme:light dark}
+.ec-input:focus{border-color:var(--color-primary);outline:none;box-shadow:0 0 0 3px color-mix(in oklab,var(--color-primary) 20%,transparent)}
+.ec-input::placeholder{color:var(--color-base-content);opacity:.3}
+.ec-sel{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;cursor:pointer;transition:border-color .18s;box-sizing:border-box;color-scheme:light dark;-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:14px;padding-right:32px}
+.ec-sel:focus{border-color:var(--color-primary);outline:none;box-shadow:0 0 0 3px color-mix(in oklab,var(--color-primary) 20%,transparent)}
+.ec-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 14px;border-radius:999px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em}
+.ec-badge-yes{background:color-mix(in oklab,var(--color-success) 15%,transparent);color:var(--color-success)}
+.ec-badge-no{background:color-mix(in oklab,var(--color-base-300) 40%,transparent);color:var(--color-base-content);opacity:.5}
+.ec-badge-info{background:color-mix(in oklab,var(--color-info) 15%,transparent);color:var(--color-info)}
+.ec-badge-warn{background:color-mix(in oklab,var(--color-warning) 20%,transparent);color:var(--color-warning)}
+.ec-result{font-size:28px;font-weight:900;font-family:monospace;line-height:1.2;color:var(--color-primary);text-align:center;padding:16px 12px}
+.ec-result .sub{font-size:13px;font-weight:700;font-family:sans-serif;opacity:.5;margin-top:4px;color:var(--color-base-content)}
+.ec-stat{background:var(--color-base-100);border-radius:1rem;padding:16px;border:1px solid var(--color-base-300);text-align:center}
+.ec-stat .num{font-size:28px;font-weight:900;font-family:monospace;color:var(--color-primary)}
+.ec-stat .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-top:4px}
+.ec-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.ec-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.ec-toast.show{opacity:1;transform:translateY(0)}
+.ec-table{width:100%;border-collapse:collapse;font-size:12px;font-weight:600}
+.ec-table th{text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;padding:6px 8px;border-bottom:1px solid var(--color-base-300)}
+.ec-table td{padding:6px 8px;border-bottom:1px solid var(--color-base-200)}
+.ec-table tr:last-child td{border-bottom:none}
+.ec-table .hl td{color:var(--color-primary);font-weight:800}
+.ec-timeline{display:flex;align-items:center;gap:0;background:var(--color-base-100);border-radius:999px;height:28px;overflow:hidden;border:1px solid var(--color-base-300);position:relative}
+.ec-timeline .seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.04em;transition:width .3s;flex-shrink:0;color:#fff}
+.ec-ext-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.ec-ext-card{background:var(--color-base-100);border-radius:.85rem;padding:12px;border:1px solid var(--color-base-300)}
+.ec-ext-card .val{font-size:18px;font-weight:900;font-family:monospace;color:var(--color-primary)}
+.ec-ext-card .lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;opacity:.4}
+.ec-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.35rem .65rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:11px;transition:all .12s;font-family:inherit}
+.ec-toggle:hover{background:var(--color-base-200)}
+.ec-toggle.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.ec-chk{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-200);cursor:pointer;transition:all .12s;margin-bottom:6px;font-size:12px;font-weight:600;touch-action:manipulation}
+.ec-chk:hover{border-color:var(--color-base-300)}
+.ec-chk.done{opacity:.45;text-decoration:line-through}
+.ec-chk .box{width:20px;height:20px;border-radius:5px;border:2px solid color-mix(in oklab,var(--color-base-content) 35%,transparent);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s;font-size:11px;color:transparent;background:color-mix(in oklab,var(--color-base-content) 8%,transparent)}
+.ec-chk.done .box{background:var(--color-success);border-color:var(--color-success);color:#fff}
+.ec-cb{-webkit-appearance:none;-moz-appearance:none;appearance:none;width:20px;height:20px;border-radius:5px;border:2px solid color-mix(in oklab,var(--color-base-content) 35%,transparent);background:color-mix(in oklab,var(--color-base-content) 8%,transparent);cursor:pointer;flex-shrink:0;transition:all .12s;margin:0;vertical-align:middle;color-scheme:light dark}
+.ec-cb:checked{background:var(--color-success);border-color:var(--color-success);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center;background-size:14px}
+.ec-cb:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.ec-hist{max-height:200px;overflow-y:auto}
+.ec-hist-item{padding:6px 10px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10px;font-weight:600;cursor:pointer;transition:all .12s}
+.ec-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.ec-hist-item .preview{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:9px;opacity:.55;min-width:0}
+.ec-hist-item .meta{font-size:8px;font-weight:700;opacity:.35;white-space:nowrap}
+.ec-hist-item .hdel{width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:10px}
+.ec-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.ec-empty{text-align:center;padding:24px 16px;font-size:11px;font-weight:600;opacity:.3}
+.ec-range-wrap{position:relative;padding:0 0 8px}
+.ec-range{width:100%;height:8px;-webkit-appearance:none;-moz-appearance:none;appearance:none;background:var(--color-base-300);border-radius:999px;outline:none;cursor:pointer;color-scheme:light dark}
+.ec-range::-webkit-slider-runnable-track{height:8px;border-radius:999px;background:var(--color-base-300)}
+.ec-range::-moz-range-track{height:8px;border-radius:999px;background:var(--color-base-300)}
+.ec-range::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--color-primary);border:3px solid var(--color-base-200);cursor:pointer;transition:all .12s;margin-top:-6px}
+.ec-range::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--color-primary);border:3px solid var(--color-base-200);cursor:pointer}
+.ec-range:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.ec-range-labels{display:flex;justify-content:space-between;font-size:8px;font-weight:700;opacity:.3;margin-top:2px}
+.ec-amt{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+.ec-collapse{border-radius:.75rem;background:var(--color-base-100);border:1px solid var(--color-base-200);overflow:hidden;transition:all .18s}
+.ec-collapse-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;touch-action:manipulation;transition:background .12s;user-select:none}
+.ec-collapse-header:hover{background:color-mix(in oklab,var(--color-base-200) 50%,transparent)}
+.ec-collapse-body{padding:10px 14px 14px;border-top:1px solid var(--color-base-200)}
+.ec-collapse-body.hidden{display:none}
+.ec-summary{background:linear-gradient(135deg,color-mix(in oklab,var(--color-primary) 8%,transparent),transparent);border:1px solid color-mix(in oklab,var(--color-primary) 15%,var(--color-base-300));border-radius:1.25rem;padding:1.25rem}
+.ec-summary .row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--color-base-200);font-size:11px;font-weight:600}
+.ec-summary .row:last-child{border-bottom:none}
+.ec-summary .row .val{font-weight:800;font-family:monospace;color:var(--color-primary)}
+</style>
+{% endblock %}
 {% block content %}
-{{ tool_hero_section("truck", "GST Transport", "E-WAY BILL", "CALCULATOR", "Calculate e-way bill value, validity period, and extension requirements for GST transport.") }}
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Bill Details</h2>
-        <form class="flex flex-col gap-5">
-          <div><label class="label-cinematic" for="invoiceValue">Invoice Value (₹)</label><input aria-label="Invoicevalue" type="number" id="invoiceValue" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="50000" min="0"></div>
-          <div><label class="label-cinematic" for="transportDistance">Transport Distance (km)</label><input aria-label="Transportdistance" type="number" id="transportDistance" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="500" min="0"></div>
-          <div><label class="label-cinematic" for="vehicleType">Vehicle Type</label><select aria-label="Vehicletype" id="vehicleType" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"><option value="regular">Regular</option><option value="overdimensional">Over Dimensional Cargo (ODC)</option></select></div>
-          <button type="button" id="ewayCalcBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("calculator","w-5 h-5", 20) | safe }} CALCULATE</button>
-        </form>
+{{ tool_hero_section("truck","Calculators","E-WAY BILL","CALCULATOR","Complete GST e-way bill tool. State pair analysis, Part A date with exact expiry dates, penalty estimator, extension calculator, compliance checklist and Validity & Extension Rules.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="ec-card mb-6">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("map-pin","w-4 h-4",16) | safe }} State & Distance</h2>
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="ec-label" for="ecFromState">From State</label>
+          <select id="ecFromState" class="ec-sel">
+            <option value="">— Select —</option>
+          </select>
+        </div>
+        <div>
+          <label class="ec-label" for="ecToState">To State</label>
+          <select id="ecToState" class="ec-sel">
+            <option value="">— Select —</option>
+          </select>
+        </div>
+      </div>
+      <div class="ec-range-wrap mb-4">
+        <label class="ec-label" for="ecDistRange">Distance ({{ lucide_icon("route","w-3 h-3",12) | safe }} <span id="ecDistVal">100</span> km)</label>
+        <input type="range" id="ecDistRange" class="ec-range" min="0" max="5000" value="100" step="1" aria-label="Distance slider">
+        <div class="ec-range-labels"><span>0 km</span><span>5000 km</span></div>
+      </div>
+      <div class="ec-amt mb-4">
+        <div>
+          <label class="ec-label" for="ecDistNum">km</label>
+          <input type="number" id="ecDistNum" class="ec-input" value="100" min="0" max="99999" step="1">
+        </div>
+        <div>
+          <label class="ec-label" for="ecValue">Shipment Value (₹)</label>
+          <input type="number" id="ecValue" class="ec-input" value="50000" min="0" step="1000">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="ec-label" for="ecDocType">Document</label>
+          <select id="ecDocType" class="ec-sel">
+            <option value="Tax Invoice">Tax Invoice</option>
+            <option value="Bill of Supply">Bill of Supply</option>
+            <option value="Bill of Entry">Bill of Entry</option>
+            <option value="Delivery Challan">Delivery Challan</option>
+            <option value="Others">Others</option>
+          </select>
+        </div>
+        <div>
+          <label class="ec-label" for="ecTransMode">Transport</label>
+          <select id="ecTransMode" class="ec-sel">
+            <option value="Road">Road</option>
+            <option value="Rail">Rail</option>
+            <option value="Air">Air</option>
+            <option value="Water">Water</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="ec-label" for="ecTransType">Transaction</label>
+          <select id="ecTransType" class="ec-sel">
+            <option value="Interstate">Interstate (IGST)</option>
+            <option value="Intrastate">Intrastate (CGST+SGST)</option>
+          </select>
+        </div>
+        <div>
+          <label class="ec-label" for="ecGenerator">Generated By</label>
+          <select id="ecGenerator" class="ec-sel">
+            <option value="Supplier">Supplier</option>
+            <option value="Recipient">Recipient</option>
+            <option value="Transporter">Transporter</option>
+          </select>
+        </div>
+      </div>
+      <div class="ec-collapse mb-4">
+        <div class="ec-collapse-header" id="ecAdvToggle" role="button" tabindex="0" aria-expanded="false">{{ lucide_icon("settings","w-3 h-3",12) | safe }} Advanced Options <span id="ecAdvArrow" style="transition:transform .18s">▼</span></div>
+        <div class="ec-collapse-body hidden" id="ecAdvBody">
+          <div class="mb-3">
+            <label class="ec-label" for="ecPartADate">Part A Generation Date</label>
+            <input type="date" id="ecPartADate" class="ec-input">
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label class="ec-label" for="ecVehicleNo">Vehicle No.</label>
+              <input type="text" id="ecVehicleNo" class="ec-input" placeholder="e.g. HR38AB1234" maxlength="20">
+            </div>
+            <div>
+              <label class="ec-label" for="ecVehicleType">Vehicle Type</label>
+              <select id="ecVehicleType" class="ec-sel">
+                <option value="Regular">Regular</option>
+                <option value="Open Body">Open Body</option>
+                <option value="Container">Container</option>
+                <option value="Multi-Axle">Multi-Axle</option>
+                <option value="Others">Others</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="ec-label" for="ecInvoiceCount">No. of Invoices</label>
+              <input type="number" id="ecInvoiceCount" class="ec-input" value="1" min="1" max="100" step="1">
+            </div>
+            <div>
+              <label class="ec-label">&nbsp;</label>
+              <div class="flex items-center gap-3" style="padding-top:4px">
+                <label class="flex items-center gap-2 text-xs font-bold opacity-60 cursor-pointer" style="touch-action:manipulation"><input type="checkbox" id="ecRejected" class="ec-cb"> Rejected Goods</label>
+                <label class="flex items-center gap-2 text-xs font-bold opacity-60 cursor-pointer" style="touch-action:manipulation"><input type="checkbox" id="ecTransship" class="ec-cb"> Transshipment</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="ec-stat mb-4">
+        <div id="ecRequired" class="ec-badge ec-badge-no">Not Required</div>
+        <p id="ecReqText" class="text-xs font-semibold opacity-40 mt-2">e-way bill not needed</p>
+      </div>
+      <div class="ec-result" id="ecResult">
+        <span style="font-size:14px;opacity:.3">Adjust inputs to see validity</span>
+      </div>
+      <div class="flex items-center gap-2 mt-3">
+        <button type="button" id="ecCopyBtn" class="dc-sec" style="background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.5rem .75rem;font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:inherit">{{ lucide_icon("copy","w-3 h-3",12) | safe }} Copy</button>
+        <button type="button" id="ecDlBtn" class="dc-sec" style="background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.5rem .75rem;font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:inherit">{{ lucide_icon("download","w-3 h-3",12) | safe }} .txt</button>
       </div>
     </div>
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} E-Way Bill Report</h3>
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <div class="card-premium p-5 text-center" style="border-color:color-mix(in oklab, var(--color-primary) 25%, transparent)">
-            <span class="label-cinematic block mb-2 text-primary">E-Way Bill Required?</span>
-            <output id="resEWayRequired" class="pill-cinematic font-bold">Yes</output>
-          </div>
-          <div class="card-premium p-5 text-center" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-            <span class="label-cinematic block mb-2 text-success">Max Validity Period</span>
-            <output id="resValidity" class="metric-cinematic metric-cinematic--lg text-success">0 days</output>
-          </div>
-          <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Validity in Hours</span><output id="resValidityHours" class="metric-cinematic metric-cinematic--md font-mono">0</output></div>
-          <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Extension Available?</span><output id="resExtension" class="pill-cinematic font-bold">Yes</output></div>
+    <div class="ec-card">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-4 h-4",16) | safe }} History</h2>
+        <div class="flex items-center gap-2"><button type="button" id="ecHiToggle" class="ec-toggle" aria-expanded="false" aria-controls="ecHiWrap">History <span id="ecHiCount"></span></button><button type="button" id="ecHiClear" class="dc-sec" style="background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.5rem .75rem;font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:inherit" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
+      </div>
+      <div id="ecHiWrap" hidden><div id="ecHiList" class="ec-hist"></div></div>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="ec-summary mb-6">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("clipboard-list","w-4 h-4",16) | safe }} E-Way Bill Summary</h2>
+      <div id="ecSummaryBody">
+        <div class="row"><span>Requirement</span><span class="val" id="ecSReq">—</span></div>
+        <div class="row"><span>Transaction Type</span><span class="val" id="ecSTransType">—</span></div>
+        <div class="row"><span>Validity Period</span><span class="val" id="ecSValidity">—</span></div>
+        <div class="row"><span>Distance Range</span><span class="val" id="ecSDistRange">—</span></div>
+        <div class="row"><span>Extensions</span><span class="val" id="ecSExt">—</span></div>
+        <div class="row"><span>Total Max Validity</span><span class="val" id="ecSMax">—</span></div>
+        <div class="row"><span>Penalty (if non-compliant)</span><span class="val" id="ecSPenalty">—</span></div>
+      </div>
+    </div>
+    <div class="ec-card mb-6">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3">{{ lucide_icon("calendar","w-4 h-4",16) | safe }} Validity Timeline with Dates</h2>
+      <div id="ecBD" style="text-align:center;padding:8px;font-size:11px;font-weight:600;opacity:.3">Select Part A date to see exact dates</div>
+      <div id="ecDatesWrap" hidden class="mb-3">
+        <div class="ec-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="ec-stat"><div class="num" id="ecDateInit" style="font-size:12px"></div><div class="lbl">Initial Expiry</div></div>
+          <div class="ec-stat"><div class="num" id="ecDateExt1" style="font-size:12px"></div><div class="lbl">Ext 1 Expiry</div></div>
+          <div class="ec-stat"><div class="num" id="ecDateExt2" style="font-size:12px"></div><div class="lbl">Ext 2 Expiry</div></div>
         </div>
+      </div>
+      <div id="ecTimelineWrap" hidden>
+        <div class="flex items-center justify-between mb-2"><span class="text-[9px] font-black uppercase tracking-widest opacity-40">Generated</span><span class="text-[9px] font-black uppercase tracking-widest opacity-40">Expires</span></div>
+        <div class="ec-timeline" id="ecTimeline" aria-label="Validity timeline">
+          <div class="seg" id="ecSegValid" style="width:60%;background:var(--color-primary)">Valid</div>
+          <div class="seg" id="ecSegExt1" style="width:20%;background:var(--color-warning)">Ext 1</div>
+          <div class="seg" id="ecSegExt2" style="width:20%;background:var(--color-info)">Ext 2</div>
+        </div>
+        <div class="flex items-center justify-between mt-1"><span class="text-[8px] font-bold opacity-30">Day 0</span><span id="ecTimelineEnd" class="text-[8px] font-bold opacity-30"></span></div>
+        <div id="ecStatusBadge" class="mt-2 text-center"></div>
+      </div>
+    </div>
+    <div class="ec-card mb-6">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3">{{ lucide_icon("plus-circle","w-4 h-4",16) | safe }} Extension Calculator</h2>
+      <p class="text-xs font-semibold opacity-40 mb-3">E-way bill can be extended twice (8 days each) before expiry.</p>
+      <div id="ecExtInfo" style="text-align:center;padding:8px;font-size:11px;font-weight:600;opacity:.3">Adjust inputs to see extension details</div>
+      <div id="ecExtGrid" class="ec-ext-grid" hidden>
+        <div class="ec-ext-card"><div class="lbl">Max Extensions</div><div class="val" id="ecExtCount">2</div></div>
+        <div class="ec-ext-card"><div class="lbl">Per Extension</div><div class="val" id="ecExtPer">8 Days</div></div>
+        <div class="ec-ext-card"><div class="lbl">Max Extended</div><div class="val" id="ecExtTotal"></div></div>
+        <div class="ec-ext-card"><div class="lbl">Total</div><div class="val" id="ecExtGrand"></div></div>
+      </div>
+    </div>
+    <div class="ec-card mb-6">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3">{{ lucide_icon("alert-triangle","w-4 h-4",16) | safe }} Penalty Estimator</h2>
+      <p class="text-xs font-semibold opacity-40 mb-3">Non-compliance penalty: higher of 100% of tax due or ₹10,000 per e-way bill.</p>
+      <div id="ecPenaltyBody" style="text-align:center;padding:8px;font-size:11px;font-weight:600;opacity:.3">Enter shipment value to see estimated penalty</div>
+      <div id="ecPenaltyGrid" class="ec-ext-grid" hidden>
+        <div class="ec-ext-card"><div class="lbl">Estimated Tax (18% GST)</div><div class="val" id="ecPenTax">—</div></div>
+        <div class="ec-ext-card"><div class="lbl">Penalty (100% Tax)</div><div class="val" id="ecPenPct">—</div></div>
+        <div class="ec-ext-card"><div class="lbl">Flat Penalty</div><div class="val" id="ecPenFlat">₹10,000</div></div>
+        <div class="ec-ext-card"><div class="lbl">Applicable Penalty</div><div class="val" id="ecPenFinal">—</div></div>
+      </div>
+    </div>
+    <div class="ec-card mb-6">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3">{{ lucide_icon("check-square","w-4 h-4",16) | safe }} Compliance Checklist</h2>
+      <p class="text-xs font-semibold opacity-40 mb-3">Tap items to mark them done.</p>
+      <div id="ecChecklist">
+        <div class="ec-chk" data-c="0"><div class="box">✓</div> Shipment value ≥ ₹50,000 requires e-way bill</div>
+        <div class="ec-chk" data-c="1"><div class="box">✓</div> Generate Part A on the GST portal or via API</div>
+        <div class="ec-chk" data-c="2"><div class="box">✓</div> Add Part B (transporter/vehicle) before moving goods</div>
+        <div class="ec-chk" data-c="3"><div class="box">✓</div> Ensure validity covers the total transit time</div>
+        <div class="ec-chk" data-c="4"><div class="box">✓</div> Extend e-way bill before expiry if needed</div>
+        <div class="ec-chk" data-c="5"><div class="box">✓</div> Carry e-way bill copy (physical or digital) during transit</div>
+        <div class="ec-chk" data-c="6"><div class="box">✓</div> Verify documents match e-way bill details</div>
+        <div class="ec-chk" data-c="7"><div class="box">✓</div> Update Part B if vehicle changes mid-transit</div>
+      </div>
+      <div class="flex items-center justify-between mt-3">
+        <span class="text-xs font-bold opacity-40" id="ecChkCount">0 of 8 done</span>
+        <button type="button" id="ecChkReset" class="ec-toggle">Reset</button>
+      </div>
+    </div>
+    <div class="ec-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3">{{ lucide_icon("list","w-4 h-4",16) | safe }} Validity & Extension Rules</h2>
+      <table class="ec-table mb-4">
+        <thead><tr><th>Distance</th><th>Initial Validity</th><th>Hours</th><th>Extensions</th></tr></thead>
+        <tbody>
+          <tr id="ecRow1"><td>Up to 100 km</td><td>1 Day</td><td>24 hrs</td><td>2 × 8 days</td></tr>
+          <tr id="ecRow2"><td>101 – 300 km</td><td>3 Days</td><td>72 hrs</td><td>2 × 8 days</td></tr>
+          <tr id="ecRow3"><td>301 – 500 km</td><td>5 Days</td><td>120 hrs</td><td>2 × 8 days</td></tr>
+          <tr id="ecRow4"><td>501 – 1000 km</td><td>10 Days</td><td>240 hrs</td><td>2 × 8 days</td></tr>
+          <tr id="ecRow5"><td>Above 1000 km</td><td>15 Days</td><td>360 hrs</td><td>2 × 8 days</td></tr>
+        </tbody>
+      </table>
+      <div class="text-xs font-bold opacity-30 leading-relaxed">
+        <p><strong>Extension Rules:</strong> E-way bill can be extended up to <strong>2 times</strong>, each for <strong>8 days</strong>, before the original validity expires. Total maximum validity including extensions is <strong>31 days</strong>.</p>
+        <p class="mt-1"><strong>Part B:</strong> Must be added within the validity period. If Part B is not added before expiry, the e-way bill becomes invalid.</p>
+        <p class="mt-1"><strong>Penalty:</strong> Higher of 100% of tax payable or ₹10,000 per e-way bill for non-compliance.</p>
       </div>
     </div>
   </div>
 </div>
+<div id="ecToast" class="ec-toast" role="status" aria-live="polite"></div>
 <script>
-(function(){'use strict';function calculate(){const val=parseFloat(document.getElementById('invoiceValue').value)||0;const dist=parseFloat(document.getElementById('transportDistance').value)||0;const vehicle=document.getElementById('vehicleType').value;const required=val>=50000?'<span style="background:var(--color-success);color:white;padding:4px 12px;border-radius:9999px;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">Yes</span>':'<span style="background:var(--color-muted);color:white;padding:4px 12px;border-radius:9999px;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">No</span>';document.getElementById('resEWayRequired').innerHTML=required;let validityHrs=0;if(vehicle==='regular'){if(dist<=100)validityHrs=24;else validityHrs=24+Math.ceil((dist-100)/100);}else{if(dist<=20)validityHrs=24;else validityHrs=24+Math.ceil((dist-20)/20);}
-const days=Math.floor(validityHrs/24);const hours=validityHrs%24;document.getElementById('resValidity').innerText=days>0?`${days} day${days>1?'s':''}${hours>0?` ${hours} hr`:''}`:`${hours} hours`;document.getElementById('resValidityHours').innerText=validityHrs+` hrs${dist>0?' (updated for '+dist+' km)':''}`;document.getElementById('resExtension').innerHTML=dist>100?'<span style="background:var(--color-success);color:white;padding:4px 12px;border-radius:9999px;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">Yes</span>':'<span style="background:var(--color-error);color:white;padding:4px 12px;border-radius:9999px;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em">No</span>';}
-document.addEventListener('DOMContentLoaded',function(){calculate();document.getElementById('ewayCalcBtn').addEventListener('click',calculate);document.querySelectorAll('input, select').forEach(function(el){el.addEventListener('input',calculate);});});})();
+(function(){'use strict';
+var STATES=["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman & Nicobar","Chandigarh","Dadra & Nagar Haveli","Delhi","Jammu & Kashmir","Ladakh","Lakshadweep","Puducherry"];
+var rules=[{max:100,days:1,hours:24,label:'Up to 100 km'},{max:300,days:3,hours:72,label:'101 – 300 km'},{max:500,days:5,hours:120,label:'301 – 500 km'},{max:1000,days:10,hours:240,label:'501 – 1000 km'},{max:Infinity,days:15,hours:360,label:'Above 1000 km'}];
+var THRESHOLD=50000,EXT_DAYS=8,MAX_EXT=2,GST_RATE=0.18;
+(function(){
+var fs=document.getElementById('ecFromState'),ts=document.getElementById('ecToState');
+STATES.forEach(function(s){var o=document.createElement('option');o.value=s;o.textContent=s;fs.appendChild(o.cloneNode(true));ts.appendChild(o)})
+})();
+var fromState=document.getElementById('ecFromState'),toState=document.getElementById('ecToState');
+var distRange=document.getElementById('ecDistRange'),distNum=document.getElementById('ecDistNum'),distVal=document.getElementById('ecDistVal');
+var valEl=document.getElementById('ecValue'),docType=document.getElementById('ecDocType'),transMode=document.getElementById('ecTransMode');
+var transType=document.getElementById('ecTransType'),generator=document.getElementById('ecGenerator');
+var partADate=document.getElementById('ecPartADate'),vehicleNo=document.getElementById('ecVehicleNo'),vehicleType=document.getElementById('ecVehicleType');
+var invoiceCount=document.getElementById('ecInvoiceCount'),rejected=document.getElementById('ecRejected'),transship=document.getElementById('ecTransship');
+var reqEl=document.getElementById('ecRequired'),reqText=document.getElementById('ecReqText');
+var resEl=document.getElementById('ecResult'),bdEl=document.getElementById('ecBD');
+var datesWrap=document.getElementById('ecDatesWrap'),dateInit=document.getElementById('ecDateInit'),dateExt1=document.getElementById('ecDateExt1'),dateExt2=document.getElementById('ecDateExt2');
+var timelineWrap=document.getElementById('ecTimelineWrap'),timeline=document.getElementById('ecTimeline');
+var segValid=document.getElementById('ecSegValid'),segExt1=document.getElementById('ecSegExt1'),segExt2=document.getElementById('ecSegExt2');
+var tlEnd=document.getElementById('ecTimelineEnd'),statusBadge=document.getElementById('ecStatusBadge');
+var extInfo=document.getElementById('ecExtInfo'),extGrid=document.getElementById('ecExtGrid');
+var extCount=document.getElementById('ecExtCount'),extPer=document.getElementById('ecExtPer');
+var extTotal=document.getElementById('ecExtTotal'),extGrand=document.getElementById('ecExtGrand');
+var penaltyBody=document.getElementById('ecPenaltyBody'),penaltyGrid=document.getElementById('ecPenaltyGrid');
+var penTax=document.getElementById('ecPenTax'),penPct=document.getElementById('ecPenPct'),penFlat=document.getElementById('ecPenFlat'),penFinal=document.getElementById('ecPenFinal');
+var sReq=document.getElementById('ecSReq'),sTransType=document.getElementById('ecSTransType'),sValidity=document.getElementById('ecSValidity');
+var sDistRange=document.getElementById('ecSDistRange'),sExt=document.getElementById('ecSExt'),sMax=document.getElementById('ecSMax'),sPenalty=document.getElementById('ecSPenalty');
+var copyBtn=document.getElementById('ecCopyBtn'),dlBtn=document.getElementById('ecDlBtn');
+var toastEl=document.getElementById('ecToast');
+var rows=[document.getElementById('ecRow1'),document.getElementById('ecRow2'),document.getElementById('ecRow3'),document.getElementById('ecRow4'),document.getElementById('ecRow5')];
+var chkEls=document.querySelectorAll('.ec-chk'),chkCount=document.getElementById('ecChkCount'),chkReset=document.getElementById('ecChkReset');
+var advToggle=document.getElementById('ecAdvToggle'),advBody=document.getElementById('ecAdvBody'),advArrow=document.getElementById('ecAdvArrow');
+var hiToggle=document.getElementById('ecHiToggle'),hiCount=document.getElementById('ecHiCount'),hiClear=document.getElementById('ecHiClear'),hiWrap=document.getElementById('ecHiWrap'),hiList=document.getElementById('ecHiList');
+var history=[];try{var h=JSON.parse(localStorage.getItem('sb_ew2')||'[]');if(Array.isArray(h))history=h}catch(e){}
+var chkState=[];try{var cs=JSON.parse(localStorage.getItem('sb_ewc2')||'[]');if(Array.isArray(cs))chkState=cs}catch(e){}
+chkEls.forEach(function(el,i){if(chkState[i]){el.classList.add('done')}el.addEventListener('click',function(){el.classList.toggle('done');chkState[i]=el.classList.contains('done');try{localStorage.setItem('sb_ewc2',JSON.stringify(chkState))}catch(e){}renderChk()})});
+function renderChk(){var n=0;chkEls.forEach(function(el){if(el.classList.contains('done'))n++});chkCount.textContent=n+' of '+chkEls.length+' done'}
+chkReset.addEventListener('click',function(){chkEls.forEach(function(el){el.classList.remove('done')});chkState=[];try{localStorage.setItem('sb_ewc2',JSON.stringify(chkState))}catch(e){}renderChk();toast('Checklist reset')});
+renderChk();
+advToggle.addEventListener('click',function(){var o=advBody.classList.contains('hidden');advBody.classList.toggle('hidden');advToggle.setAttribute('aria-expanded',!o);advArrow.style.transform=o?'rotate(180deg)':'rotate(0deg)'});
+advToggle.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' ')e.preventDefault();advToggle.click()});
+function fmtDate(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}
+function fmtReadable(d){return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}
+function addDays(d,n){var r=new Date(d);r.setDate(r.getDate()+n);return r}
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function numFmt(n){return '₹'+Number(n).toLocaleString('en-IN')}
+function getRule(dist){return rules.find(function(r){return dist<=r.max})}
+function saveHistory(dist,val,docs,transM,transT,gen,rqd,rule,f,t){
+var label=(rqd?'Reqd':'Not')+' | '+dist+'km | '+rule.days+'d';
+history.unshift({dist:dist,val:val,docs:docs,transM:transM,transT:transT,gen:gen,fs:f,ts:t,label:label,ts:Date.now()});
+if(history.length>50)history.pop();
+try{localStorage.setItem('sb_ew2',JSON.stringify(history))}catch(e){}
+renderHistory()
+}
+function renderHistory(){
+hiCount.textContent=history.length?'('+history.length+')':'';
+hiClear.hidden=!history.length;
+if(!history.length){hiList.innerHTML='<div class="ec-empty">No calculations yet</div>';return}
+var h='';history.forEach(function(item,i){
+var d=new Date(item.ts),now=new Date();
+var diff=Math.round((now-d)/1000);
+var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+h+='<div class="ec-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label||'')+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
+});
+hiList.innerHTML=h;
+}
+hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
+hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_ew2',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});
+hiList.addEventListener('click',function(e){
+var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_ew2',JSON.stringify(history))}catch(e){}renderHistory();return}
+var item=e.target.closest('.ec-hist-item');if(!item)return;
+var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
+distNum.value=h.dist;distRange.value=h.dist;distVal.textContent=h.dist;
+valEl.value=h.val;docType.value=h.docs;transMode.value=h.transM;transType.value=h.transT;generator.value=h.gen;
+if(h.fs)fromState.value=h.fs;if(h.ts)toState.value=h.ts;
+calc();history.splice(idx,1);try{localStorage.setItem('sb_ew2',JSON.stringify(history))}catch(e){}renderHistory();toast('Restored')
+});
+function calc(){
+var dist=parseFloat(distNum.value)||0;if(dist<0)dist=0;if(dist>99999)dist=99999;
+distRange.value=dist;distVal.textContent=Math.round(dist);
+var val=parseFloat(valEl.value)||0;
+var docs=docType.value,transM=transMode.value,transT=transType.value,gen=generator.value;
+var fs=fromState.value,ts=toState.value;
+var invCnt=parseInt(invoiceCount.value)||1,isRej=rejected.checked,isTrans=transship.checked;
+var d=partADate.value?new Date(partADate.value+'T12:00:00'):null;
+if(fs&&ts){transType.value=fs===ts?'Intrastate':'Interstate';transT=transType.value}
+var required=val>=THRESHOLD||invCnt>1;
+if(required&&isRej)required=false;
+if(required){reqEl.textContent='Required';reqEl.className='ec-badge ec-badge-yes';reqText.textContent='e-way bill is required'}else{reqEl.textContent='Not Required';reqEl.className='ec-badge ec-badge-no';reqText.textContent='e-way bill is not needed'}
+var rule=getRule(dist);
+if(dist<=0){resEl.innerHTML='<span style="font-size:14px;opacity:.3">Enter distance</span>';bdEl.innerHTML='<span style="font-size:11px;font-weight:600;opacity:.3">Enter distance to see details</span>';timelineWrap.hidden=true;datesWrap.hidden=true;extGrid.hidden=true;extInfo.style.display='';penaltyGrid.hidden=true;penaltyBody.style.display='';sReq.textContent='—';sTransType.textContent='—';sValidity.textContent='—';sDistRange.textContent='—';sExt.textContent='—';sMax.textContent='—';sPenalty.textContent='—';rows.forEach(function(r){r.classList.remove('hl')});return}
+resEl.innerHTML=esc(rule.days+' Day'+(rule.days>1?'s':''))+'<div class="sub">'+esc(rule.hours+' hrs | '+rule.label)+'</div>';
+var extPossible=dist<=2000?MAX_EXT:0;
+var totalExt=rule.days+EXT_DAYS*MAX_EXT;
+bdEl.innerHTML='<div class="ec-grid"><div class="ec-stat"><div class="num">'+rule.days+'</div><div class="lbl">Day'+(rule.days>1?'s':'')+'</div></div><div class="ec-stat"><div class="num">'+rule.hours+'</div><div class="lbl">Hours</div></div><div class="ec-stat"><div class="num" style="font-size:14px">'+esc(rule.label)+'</div><div class="lbl">Distance</div></div><div class="ec-stat"><div class="num">'+(required?'Yes':'No')+'</div><div class="lbl">Required</div></div></div>'+(fs||ts?'<div class="grid grid-cols-2 gap-2 mt-3 text-left"><div class="text-[10px] font-bold opacity-40">From: <span class="opacity-70">'+(fs||'—')+'</span></div><div class="text-[10px] font-bold opacity-40">To: <span class="opacity-70">'+(ts||'—')+'</span></div></div>':'')+'<div class="grid grid-cols-2 gap-2 mt-2 text-left"><div class="text-[10px] font-bold opacity-40">Document: <span class="opacity-70">'+esc(docs)+'</span></div><div class="text-[10px] font-bold opacity-40">Transport: <span class="opacity-70">'+esc(transM)+'</span></div></div>';
+rows.forEach(function(r,i){r.classList.toggle('hl',i===rules.indexOf(rule))});
+if(d&&extPossible>0&&dist>0){
+var initEnd=addDays(d,rule.days);var e1End=addDays(initEnd,EXT_DAYS);var e2End=addDays(e1End,EXT_DAYS);
+dateInit.textContent=fmtReadable(initEnd);dateExt1.textContent=fmtReadable(e1End);dateExt2.textContent=fmtReadable(e2End);datesWrap.hidden=false;
+var now=new Date();var statusEls=[];
+if(now<initEnd){statusBadge.innerHTML='<span class="ec-badge ec-badge-yes">Valid — Expires '+fmtReadable(initEnd)+'</span>'}
+else if(now<e1End){statusBadge.innerHTML='<span class="ec-badge ec-badge-warn">In Extension 1 — Expires '+fmtReadable(e1End)+'</span>'}
+else if(now<e2End){statusBadge.innerHTML='<span class="ec-badge ec-badge-warn">In Extension 2 — Expires '+fmtReadable(e2End)+'</span>'}
+else{statusBadge.innerHTML='<span class="ec-badge ec-badge-no">Expired — Was valid till '+fmtReadable(e2End)+'</span>'}
+}else{datesWrap.hidden=true;statusBadge.innerHTML=''}
+if(extPossible>0&&dist>0){
+var pValid=Math.round(rule.days/totalExt*100);var pExt1=Math.round(EXT_DAYS/totalExt*100);var pExt2=Math.max(0,100-pValid-pExt1);
+segValid.style.width=pValid+'%';segExt1.style.width=pExt1+'%';segExt2.style.width=pExt2+'%';
+segValid.textContent=d?rule.days+'d':rule.days+'d';segExt1.textContent=d?'+8d':'+8d';segExt2.textContent=d?'+8d':'+8d';
+tlEnd.textContent=d?fmtReadable(addDays(d,totalExt)):'Day '+totalExt;timelineWrap.hidden=false
+}else{timelineWrap.hidden=true}
+if(extPossible>0&&dist>0){extInfo.style.display='none';extGrid.hidden=false;extCount.textContent=MAX_EXT;extPer.textContent=EXT_DAYS+' Days';extTotal.textContent=EXT_DAYS*MAX_EXT+' Days';extGrand.textContent=totalExt+' Days'}else{extInfo.style.display='';extInfo.textContent=dist>2000?'Extension N/A >2000 km':'Adjust inputs';extGrid.hidden=true}
+var taxAmt=val*GST_RATE;var penPctAmt=taxAmt;var penFlatAmt=10000*Math.max(1,invCnt);var penFinalAmt=Math.max(penPctAmt,penFlatAmt);
+penTax.textContent=numFmt(Math.round(taxAmt));penPct.textContent=numFmt(Math.round(penPctAmt));penFlat.textContent=numFmt(penFlatAmt);
+penFinal.textContent=numFmt(Math.round(penFinalAmt));penFinal.style.color='var(--color-error)';
+if(val>0){penaltyBody.style.display='none';penaltyGrid.hidden=false}else{penaltyBody.style.display='';penaltyBody.textContent='Enter shipment value to see estimated penalty';penaltyGrid.hidden=true}
+sReq.textContent=required?'Required':'Not Required';sReq.style.color=required?'var(--color-success)':'inherit';
+sTransType.textContent=transT;sValidity.textContent=rule.days+' day'+(rule.days>1?'s':'');
+sDistRange.textContent=rule.label;sExt.textContent=extPossible>0?MAX_EXT+' × '+EXT_DAYS+' days':'Not available';
+sMax.textContent=extPossible>0?totalExt+' days':'—';
+sPenalty.textContent=val>0?numFmt(Math.round(penFinalAmt)):'—';
+}
+distRange.addEventListener('input',function(){distNum.value=distRange.value;calc()});
+distNum.addEventListener('input',function(){var v=parseFloat(distNum.value)||0;if(v<0)v=0;if(v>99999)v=99999;distRange.value=v;distVal.textContent=Math.round(v);calc()});
+valEl.addEventListener('input',calc);
+fromState.addEventListener('change',calc);toState.addEventListener('change',calc);
+docType.addEventListener('change',calc);transMode.addEventListener('change',calc);transType.addEventListener('change',calc);generator.addEventListener('change',calc);
+partADate.addEventListener('change',calc);vehicleNo.addEventListener('input',calc);vehicleType.addEventListener('change',calc);
+invoiceCount.addEventListener('input',calc);rejected.addEventListener('change',calc);transship.addEventListener('change',calc);
+copyBtn.addEventListener('click',function(){var r=getRule(parseFloat(distNum.value)||0);if(!r)return;var txt='E-Way Bill Report\n'+'='.repeat(40)+'\nFrom: '+(fromState.value||'—')+'\nTo: '+(toState.value||'—')+'\nDistance: '+distNum.value+' km\nValue: '+numFmt(parseFloat(valEl.value)||0)+'\nDocument: '+docType.value+'\nTransport: '+transMode.value+'\nType: '+transType.value+'\nBy: '+generator.value+'\nRequired: '+reqEl.textContent+'\nValidity: '+r.days+' days ('+r.hours+' hrs)\nExtensions: '+MAX_EXT+' × '+EXT_DAYS+' days\nTotal Max: '+(r.days+EXT_DAYS*MAX_EXT)+' days\nPenalty: '+numFmt(Math.round(Math.max((parseFloat(valEl.value)||0)*GST_RATE,10000*Math.max(1,parseInt(invoiceCount.value)||1))))+'\nDate: '+new Date().toISOString().slice(0,10);navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')})});
+dlBtn.addEventListener('click',function(){var r=getRule(parseFloat(distNum.value)||0);if(!r)return;var txt='E-Way Bill Report\n'+'='.repeat(40)+'\nFrom State: '+(fromState.value||'—')+'\nTo State: '+(toState.value||'—')+'\nDistance: '+distNum.value+' km\nShipment Value: '+numFmt(parseFloat(valEl.value)||0)+'\nDocument Type: '+docType.value+'\nTransport Mode: '+transMode.value+'\nTransaction Type: '+transType.value+'\nGenerated By: '+generator.value+'\nVehicle No: '+(vehicleNo.value||'—')+'\nVehicle Type: '+vehicleType.value+'\nInvoices: '+invoiceCount.value+'\nRejected Goods: '+(rejected.checked?'Yes':'No')+'\nTransshipment: '+(transship.checked?'Yes':'No')+'\nPart A Date: '+(partADate.value||'—')+'\n\nRequirement: '+reqEl.textContent+'\nInitial Validity: '+r.days+' days ('+r.hours+' hrs)\nDistance Range: '+r.label+'\nMax Extensions: '+MAX_EXT+' × '+EXT_DAYS+' days\nTotal Max Validity: '+(r.days+EXT_DAYS*MAX_EXT)+' days\n\nPenalty (Non-Compliance):\nEstimated Tax (18%): '+numFmt(Math.round((parseFloat(valEl.value)||0)*GST_RATE))+'\nPenalty (100% Tax): '+numFmt(Math.round((parseFloat(valEl.value)||0)*GST_RATE))+'\nFlat Penalty: '+numFmt(10000*Math.max(1,parseInt(invoiceCount.value)||1))+'\nApplicable: '+numFmt(Math.round(Math.max((parseFloat(valEl.value)||0)*GST_RATE,10000*Math.max(1,parseInt(invoiceCount.value)||1))))+'\n\nDate: '+new Date().toISOString().slice(0,10);var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='eway-bill-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded')});
+var lastDist=distNum.value,lastVal=valEl.value,lastFS=fromState.value,lastTS=toState.value;
+var saveTimer=null;
+function autoSave(){var d=distNum.value,v=valEl.value,f=fromState.value,t=toState.value;if(d!==lastDist||v!==lastVal||f!==lastFS||t!==lastTS){lastDist=d;lastVal=v;lastFS=f;lastTS=t;clearTimeout(saveTimer);saveTimer=setTimeout(function(){calc();var r=getRule(parseFloat(d)||0);if(d>0&&r){saveHistory(parseFloat(d),parseFloat(v),docType.value,transMode.value,transType.value,generator.value,parseFloat(v)>=THRESHOLD,r,f,t)}},800)}}
+distNum.addEventListener('input',autoSave);valEl.addEventListener('input',autoSave);fromState.addEventListener('change',autoSave);toState.addEventListener('change',autoSave);
+calc();
+})();
 </script>
-
-
-
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

@@ -1,6 +1,7 @@
 import pytest
-from app.services.crypto_service import CryptoService
+
 from app.core.exceptions import ServiceError
+from app.services.crypto_service import CryptoService
 
 
 class TestCryptoService:

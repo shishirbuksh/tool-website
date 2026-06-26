@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 
 @router.post("/convert-to-pdf")
-async def convert_to_pdf(file: UploadFile = File(...)):
+async def convert_to_pdf(file: UploadFile = File(...)):  # noqa: B008
     filename = file.filename.lower()
     base_name = os.path.splitext(file.filename)[0]
     max_size = 5 * 1024 * 1024

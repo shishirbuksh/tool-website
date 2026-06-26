@@ -1,77 +1,494 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}Free Online Task Manager & To-Do List App{% endblock %}
-{% block meta_description %}Manage your tasks with drag-and-drop priority, categories, and deadlines. Free online task manager for individuals and teams. No sign-up required.{% endblock %}
+{% block title %}Task Manager — Free Online To-Do List with Priorities & Due Dates{% endblock %}
+{% block meta_description %}Manage your daily tasks with priorities, due dates, and categories. Add, complete, filter, search, and track your progress — all in your browser, no sign-up needed.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/task-manager{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/task-manager">
-<meta property="og:title" content="Free Online Task Manager & To-Do List">
-<meta property="og:description" content="Manage tasks with drag-and-drop priority, categories, and deadlines.">
+<meta property="og:site_name" content="StoryBrain AI">
+<meta property="og:title" content="Task Manager — Free Online To-Do List">
+<meta property="og:description" content="Manage daily tasks with priorities, due dates, and categories. Filter, search, and track progress — no sign-up needed.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
 {% endblock %}
-{% block head %}{% endblock %}
+{% block head %}
+<style>
+.tm-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.65rem 1.2rem;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:7px;touch-action:manipulation;white-space:nowrap}
+.tm-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.tm-pri:active{transform:translateY(0)}
+.tm-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid color-mix(in oklab,var(--color-base-content) 45%,var(--color-base-100));border-radius:.75rem;padding:.5rem .8rem;font-weight:700;font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation;white-space:nowrap}
+.tm-sec:hover{border-color:var(--color-base-content)}
+.tm-pill{background:transparent;border:none;padding:.35rem .8rem;border-radius:999px;font-weight:700;font-size:11px;cursor:pointer;transition:all .12s;touch-action:manipulation;color:var(--color-base-content);opacity:.65}
+.tm-pill:hover{opacity:1;background:color-mix(in oklab,var(--color-base-content) 12%,var(--color-base-100))}
+.tm-pill.active{opacity:1;background:color-mix(in oklab,var(--color-primary) 22%,var(--color-base-100));color:var(--color-primary)}
+.tm-pill.active-p{opacity:1;background:color-mix(in oklab,var(--color-warning) 22%,var(--color-base-100));color:var(--color-warning)}
+.tm-pill.active-p[data-pf="2"]{background:color-mix(in oklab,var(--color-error) 22%,var(--color-base-100));color:var(--color-error)}
+.tm-pill.active-p[data-pf="0"]{background:color-mix(in oklab,var(--color-success) 22%,var(--color-base-100));color:var(--color-success)}
+.tm-pp{width:28px;height:28px;border-radius:50%;border:2px solid color-mix(in oklab,var(--color-base-content) 45%,var(--color-base-100));background:transparent;cursor:pointer;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;color:var(--color-base-content);padding:0}
+.tm-pp:hover{opacity:1;border-color:var(--color-base-content)}
+.tm-pp.active{opacity:1;border-color:var(--color-warning);color:var(--color-warning)}
+.tm-pp[data-p="0"].active{border-color:var(--color-success);color:var(--color-success)}
+.tm-pp[data-p="2"].active{border-color:var(--color-error);color:var(--color-error)}
+.tm-pbadge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;font-weight:800;font-size:10px;cursor:pointer;touch-action:manipulation;border:1px solid transparent}
+.tm-pbadge.p-h{background:color-mix(in oklab,var(--color-error) 25%,var(--color-base-100));color:var(--color-error);border-color:color-mix(in oklab,var(--color-error) 50%,var(--color-base-100))}
+.tm-pbadge.p-m{background:color-mix(in oklab,var(--color-warning) 25%,var(--color-base-100));color:var(--color-warning);border-color:color-mix(in oklab,var(--color-warning) 50%,var(--color-base-100))}
+.tm-pbadge.p-l{background:color-mix(in oklab,var(--color-success) 25%,var(--color-base-100));color:var(--color-success);border-color:color-mix(in oklab,var(--color-success) 50%,var(--color-base-100))}
+.tm-pbadge:hover{filter:brightness(1.25)}
+.tm-cbadge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;border:1px solid color-mix(in oklab,var(--color-base-content) 35%,var(--color-base-100));background:color-mix(in oklab,var(--color-base-content) 10%,var(--color-base-100));color:var(--color-base-content)}
+.tm-cbadge:hover{filter:brightness(1.25)}
+.tm-cat-pill{background:transparent;border:1px solid color-mix(in oklab,var(--color-base-content) 35%,var(--color-base-100));padding:.2rem .6rem;border-radius:999px;font-weight:700;font-size:10px;cursor:pointer;transition:all .12s;touch-action:manipulation;color:var(--color-base-content)}
+.tm-cat-pill:hover{opacity:1;background:color-mix(in oklab,var(--color-base-content) 10%,var(--color-base-100))}
+.tm-cat-pill.active{opacity:1;background:color-mix(in oklab,var(--color-base-content) 22%,var(--color-base-100));border-color:var(--color-base-content)}
+.tm-task{display:flex;align-items:center;gap:6px;padding:.5rem .65rem;border-radius:.65rem;transition:all .12s;border:1px solid transparent}
+.tm-task:hover{background:color-mix(in oklab,var(--color-base-content) 8%,var(--color-base-100));border-color:color-mix(in oklab,var(--color-base-content) 20%,var(--color-base-100))}
+.tm-task.done .tm-task-text{text-decoration:line-through;opacity:.5}
+.tm-task.done .tm-pbadge,.tm-task.done .tm-cbadge,.tm-task.done .tm-due{opacity:.5}
+.tm-circle{width:22px;height:22px;border-radius:50%;border:2px solid color-mix(in oklab,var(--color-base-content) 50%,var(--color-base-100));background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;touch-action:manipulation;padding:0}
+.tm-circle:hover{border-color:var(--color-primary)}
+.tm-circle.checked{background:var(--color-success);border-color:var(--color-success)}
+.tm-circle.checked svg{opacity:1}
+.tm-circle svg{width:14px;height:14px;opacity:0;color:#fff;transition:opacity .12s;stroke-width:3}
+.tm-due{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;font-weight:700;font-size:10px;cursor:pointer;touch-action:manipulation;border:1px solid color-mix(in oklab,var(--color-base-content) 35%,var(--color-base-100));background:transparent;color:var(--color-base-content)}
+.tm-due.overdue{border-color:var(--color-error);background:color-mix(in oklab,var(--color-error) 20%,var(--color-base-100));color:var(--color-error)}
+.tm-due.today{border-color:var(--color-warning);background:color-mix(in oklab,var(--color-warning) 20%,var(--color-base-100));color:var(--color-warning)}
+.tm-due:hover{filter:brightness(1.15)}
+.tm-del{width:26px;height:26px;border-radius:50%;border:none;background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:all .12s;touch-action:manipulation;color:var(--color-base-content)}
+.tm-task:hover .tm-del{opacity:.6}
+.tm-del:hover{opacity:1!important;background:color-mix(in oklab,var(--color-error) 22%,var(--color-base-100));color:var(--color-error)}
+.tm-edit-input{background:transparent;border:none;border-bottom:2px solid var(--color-primary);font:inherit;color:inherit;padding:0;outline:none;width:100%;min-width:50px;font-weight:700;font-size:inherit}
+.tm-empty{text-align:center;padding:2.5rem 1rem;color:var(--color-base-content);opacity:.55;font-weight:700;font-size:13px}
+.tm-stats{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:8px;padding-top:10px;border-top:1px solid color-mix(in oklab,var(--color-base-content) 15%,var(--color-base-100))}
+.tm-progress-wrap{flex:1;min-width:80px}
+.tm-progress-bar{height:6px;border-radius:99px;background:color-mix(in oklab,var(--color-base-content) 15%,var(--color-base-100));overflow:hidden}
+.tm-progress-bar div{height:100%;border-radius:99px;background:var(--color-primary);transition:width .3s}
+.tm-stat-text{font-size:11px;font-weight:700;opacity:.6;white-space:nowrap}
+.tm-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.tm-section-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.35rem .65rem;border-radius:8px;border:1px solid color-mix(in oklab,var(--color-base-content) 40%,var(--color-base-100));background:transparent;color:var(--color-base-content);font-weight:600;font-size:11px;transition:all .12s}
+.tm-section-toggle:hover{background:color-mix(in oklab,var(--color-base-content) 10%,var(--color-base-100))}
+.tm-hist-item{padding:.5rem .65rem;border-radius:.65rem;background:var(--color-base-100);border:1px solid color-mix(in oklab,var(--color-base-content) 18%,var(--color-base-100));display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;font-weight:600;cursor:pointer;transition:all .12s}
+.tm-hist-item:hover{border-color:var(--color-base-content)}
+.tm-hist-item .tm-hist-del{width:24px;height:24px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.5;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation}
+.tm-hist-item .tm-hist-del:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 22%,var(--color-base-100));color:var(--color-error)}
+.tm-label-sm{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.6}
+.tm-search-wrap{position:relative}
+.tm-search-wrap input{padding-left:28px}
+.tm-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:.5;pointer-events:none}
+.tm-move{width:20px;height:20px;border-radius:50%;border:1px solid color-mix(in oklab,var(--color-base-content) 35%,var(--color-base-100));background:color-mix(in oklab,var(--color-base-content) 8%,var(--color-base-100));cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;touch-action:manipulation;color:var(--color-base-content);padding:0;font-size:13px;font-weight:700;line-height:1}
+.tm-move:hover{background:color-mix(in oklab,var(--color-base-content) 18%,var(--color-base-100));border-color:var(--color-base-content)}
+.tm-move:active{transform:scale(.9)}
+.tm-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--color-base-100);border:1px solid color-mix(in oklab,var(--color-base-content) 40%,var(--color-base-100));border-radius:12px;padding:.65rem 1rem;box-shadow:0 8px 32px color-mix(in oklab,var(--color-base-content) 15%,var(--color-base-100));display:flex;align-items:center;gap:12px;font-size:12px;font-weight:700;transition:all .25s;opacity:0;pointer-events:none;white-space:nowrap}
+.tm-toast.show{opacity:1;pointer-events:auto}
+.tm-toast .tm-toast-btn{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:8px;padding:.35rem .7rem;font-weight:700;font-size:10px;text-transform:uppercase;cursor:pointer;touch-action:manipulation}
+.tm-toast .tm-toast-btn:hover{filter:brightness(1.1)}
+.tm-toast .tm-toast-close{width:22px;height:22px;border-radius:50%;border:none;background:transparent;cursor:pointer;opacity:.5;display:flex;align-items:center;justify-content:center;color:var(--color-base-content);padding:0;touch-action:manipulation}
+.tm-toast .tm-toast-close:hover{opacity:1}
+.tm-pp-group{display:flex;gap:2px;flex-shrink:0}
+.tm-sort-select{background:transparent;border:1px solid color-mix(in oklab,var(--color-base-content) 35%,var(--color-base-100));border-radius:8px;padding:.25rem .5rem;font-weight:700;font-size:10px;color:var(--color-base-content);cursor:pointer;touch-action:manipulation;outline:none}
+.tm-task[draggable]{cursor:grab}
+.tm-task.dragging{opacity:.4}
+.tm-task.drag-over{border-color:var(--color-primary)!important;background:color-mix(in oklab,var(--color-primary) 12%,var(--color-base-100))!important}
+.tm-mark-all{background:transparent;border:none;color:var(--color-base-content);cursor:pointer;display:inline-flex;align-items:center;gap:3px;font-weight:700;font-size:9px;padding:.25rem .5rem;border-radius:6px;touch-action:manipulation;opacity:.7;transition:all .12s}
+.tm-mark-all:hover{opacity:1;background:color-mix(in oklab,var(--color-success) 18%,var(--color-base-100));color:var(--color-success)}
+</style>
+{% endblock %}
 {% block content %}
-{{ tool_hero_section("check-square", "Productivity Tool", "TASK", "MANAGER", "Manage your tasks with drag-and-drop priority, categories, and deadlines.") }}
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("plus","w-5 h-5", 20) | safe }} New Task</h2>
-        <form class="flex flex-col gap-5">
-          <div><label class="label-cinematic" for="taskTitle">Task Title</label><input aria-label="Tasktitle" type="text" id="taskTitle" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" placeholder="Enter task title..."></div>
-          <div><label class="label-cinematic" for="taskDesc">Description</label><textarea aria-label="Taskdesc" id="taskDesc" rows="3" class="textarea w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm leading-relaxed" placeholder="Optional description"></textarea></div>
-          <div class="flex gap-3">
-            <div class="flex-1"><label class="label-cinematic" for="taskPriority">Priority</label><select aria-label="Taskpriority" id="taskPriority" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="urgent">Urgent</option></select></div>
-            <div class="flex-1"><label class="label-cinematic" for="taskCategory">Category</label><select aria-label="Taskcategory" id="taskCategory" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"><option value="Work">Work</option><option value="Personal">Personal</option><option value="Health">Health</option><option value="Finance">Finance</option></select></div>
-          </div>
-          <div><label class="label-cinematic" for="taskDeadline">Deadline</label><input aria-label="Taskdeadline" type="date" id="taskDeadline" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"></div>
-          <button type="button" id="addTaskBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("plus","w-5 h-5", 20) | safe }} ADD TASK</button>
-        </form>
+{{ tool_hero_section("check-square", "Productivity Tool", "TASK", "MANAGER", "Add, prioritize, and track your daily tasks. Set due dates, organize by category, search, and monitor your progress. All saved in your browser.") }}
+<div class="max-w-[600px] mx-auto w-full reveal" style="animation-delay:0.2s" itemscope itemtype="https://schema.org/SoftwareApplication" itemprop="application">
+  <div class="card-premium p-6 md:p-8">
+    <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("list","w-5 h-5", 20) | safe }} My Tasks</h2>
+    <div class="flex gap-2 mb-3">
+      <input type="text" id="tmInput" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm" placeholder="Add a new task..." autocomplete="off" maxlength="200">
+      <div class="tm-pp-group" role="group" aria-label="Priority">
+        <button type="button" class="tm-pp" data-p="0" aria-label="Low priority">L</button>
+        <button type="button" class="tm-pp active" data-p="1" aria-label="Medium priority">M</button>
+        <button type="button" class="tm-pp" data-p="2" aria-label="High priority">H</button>
+      </div>
+      <button type="button" id="tmAddBtn" class="tm-pri">{{ lucide_icon("plus","w-4 h-4", 16) | safe }} Add</button>
+    </div>
+    <div class="tm-search-wrap mb-3">
+      {{ lucide_icon("search","tm-search-icon w-3.5 h-3.5", 14) | safe }}
+      <input type="text" id="tmSearch" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm" placeholder="Search tasks..." autocomplete="off">
+    </div>
+    <div class="flex gap-1 mb-1" role="tablist" aria-label="Filter by status">
+      <button type="button" class="tm-pill active" data-filter="all" role="tab" aria-selected="true">All</button>
+      <button type="button" class="tm-pill" data-filter="active" role="tab" aria-selected="false">Active</button>
+      <button type="button" class="tm-pill" data-filter="completed" role="tab" aria-selected="false">Completed</button>
+    </div>
+    <div class="flex gap-1 mb-2" role="group" aria-label="Filter by priority">
+      <button type="button" class="tm-pill active-p" data-pf="">All</button>
+      <button type="button" class="tm-pill" data-pf="2">🔴 High</button>
+      <button type="button" class="tm-pill" data-pf="1">🟡 Med</button>
+      <button type="button" class="tm-pill" data-pf="0">🟢 Low</button>
+    </div>
+    <div id="tmCatFilters" class="flex gap-1 flex-wrap mb-2"></div>
+    <div class="flex items-center gap-2 mb-2">
+      <div class="flex gap-1 flex-wrap flex-1" id="tmFiltersMeta"></div>
+      <select id="tmSort" class="tm-sort-select" aria-label="Sort tasks">
+        <option value="custom">Custom</option>
+        <option value="priority">Priority</option>
+        <option value="due">Due date</option>
+        <option value="created">Created</option>
+        <option value="alpha">A-Z</option>
+      </select>
+    </div>
+    <div id="tmList" aria-live="polite" role="list" aria-label="Task list"></div>
+    <div id="tmStats" class="tm-stats">
+      <div class="tm-progress-wrap">
+        <div class="tm-progress-bar"><div id="tmProgress" style="width:0%"></div></div>
+        <span id="tmStatText" class="tm-stat-text">0 tasks</span>
+      </div>
+      <div class="tm-actions">
+        <button type="button" id="tmClearBtn" class="tm-sec" style="padding:.3rem .6rem;font-size:9px">{{ lucide_icon("trash-2","w-3 h-3", 12) | safe }} Completed</button>
+        <button type="button" id="tmExportBtn" class="tm-sec" style="padding:.3rem .6rem;font-size:9px" aria-label="Export tasks">{{ lucide_icon("download","w-3 h-3", 12) | safe }}</button>
+        <button type="button" id="tmHistToggle" class="tm-section-toggle" aria-expanded="false" aria-controls="tmHistWrap">{{ lucide_icon("clock","w-3 h-3", 12) | safe }}</button>
+        <button type="button" id="tmMarkAllBtn" class="tm-mark-all" aria-label="Mark all visible complete">{{ lucide_icon("check","w-3 h-3", 12) | safe }} All done</button>
       </div>
     </div>
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("list","w-5 h-5", 20) | safe }} Tasks</h3>
-        <div class="flex gap-2 mb-4">
-          <input aria-label="Searchtasks" type="text" id="searchTasks" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" placeholder="Search tasks...">
-          <select aria-label="Filterpriority" id="filterPriority" class="input w-auto input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"><option value="all">All</option><option value="urgent">Urgent</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
+    <div id="tmUndoToast" class="tm-toast" role="alert" aria-live="assertive">{{ lucide_icon("trash-2","w-3.5 h-3.5", 14) | safe }} <span id="tmToastMsg">Task deleted</span><button type="button" id="tmUndoBtn" class="tm-toast-btn">{{ lucide_icon("rotate-ccw","w-3 h-3", 12) | safe }} Undo</button><button type="button" id="tmToastClose" class="tm-toast-close" aria-label="Dismiss">{{ lucide_icon("x","w-3 h-3", 12) | safe }}</button></div>
+    <div id="tmHistWrap" hidden class="mt-3">
+      <div class="flex items-center justify-between mb-2">
+        <span class="tm-label-sm">Saved lists</span>
+        <div class="flex gap-2">
+          <button type="button" id="tmHistSave" class="tm-sec" style="padding:.25rem .5rem;font-size:9px">{{ lucide_icon("save","w-3 h-3", 12) | safe }} Save</button>
+          <button type="button" id="tmHistClear" class="tm-sec" style="padding:.25rem .5rem;font-size:9px">{{ lucide_icon("trash-2","w-3 h-3", 12) | safe }} Clear</button>
         </div>
-        <div id="taskList" class="flex flex-col gap-3 max-h-[500px] overflow-y-auto"><p class="text-base-content/40 text-sm text-center py-8">No tasks yet. Create your first task!</p></div>
       </div>
+      <div id="tmHistList" class="flex flex-col gap-1.5"></div>
     </div>
   </div>
 </div>
 <script>
-(function(){
-'use strict';
-var tasks=JSON.parse(localStorage.getItem('tasks')||'[]');
-function addTask(){var title=document.getElementById('taskTitle').value.trim();if(!title)return;var desc=document.getElementById('taskDesc').value.trim();var pri=document.getElementById('taskPriority').value;var cat=document.getElementById('taskCategory').value;var dl=document.getElementById('taskDeadline').value;tasks.push({id:Date.now(),title:title,desc:desc,priority:pri,category:cat,deadline:dl,done:false,created:new Date().toISOString()});localStorage.setItem('tasks',JSON.stringify(tasks));document.getElementById('taskTitle').value='';document.getElementById('taskDesc').value='';renderTasks();}
-function toggleTask(id){var t=null;for(var i=0;i<tasks.length;i++){if(tasks[i].id===id){t=tasks[i];break;}}if(t)t.done=!t.done;localStorage.setItem('tasks',JSON.stringify(tasks));renderTasks();}
-function deleteTask(id){tasks=tasks.filter(function(t){return t.id!==id;});localStorage.setItem('tasks',JSON.stringify(tasks));renderTasks();}
-function renderTasks(){var search=document.getElementById('searchTasks').value.toLowerCase();var filterP=document.getElementById('filterPriority').value;var container=document.getElementById('taskList');var filtered=tasks.filter(function(t){if(filterP!=='all'&&t.priority!==filterP)return false;return t.title.toLowerCase().includes(search)||t.desc.toLowerCase().includes(search);});filtered.sort(function(a,b){var p={urgent:0,high:1,medium:2,low:3};return (a.done?1:0)-(b.done?1:0)||p[a.priority]-p[b.priority];});if(filtered.length===0){container.innerHTML='<p class="text-base-content/40 text-sm text-center py-8">No tasks found.</p>';return;}
-container.innerHTML=filtered.map(function(t){var priColors={urgent:'bg-error text-error border-error/20',high:'bg-warning text-warning border-warning/20',medium:'bg-primary text-primary border-primary/20',low:'bg-base-300/30 text-base-content/60 border-base-content/20'};return'<div class="card-premium p-4 flex items-start gap-3 '+(t.done?'opacity-50':'')+'"><input aria-label="Input field" type="checkbox" '+(t.done?'checked':'')+' data-action="toggle-task" data-task-id="'+t.id+'" class="checkbox checkbox-cinematic rounded-md border-base-content/30 mt-1"><div class="flex-1 min-w-0"><div class="flex items-center gap-2 mb-1"><span class="pill-cinematic text-xs '+(priColors[t.priority]||priColors.medium)+'">'+t.priority.toUpperCase()+'</span><span class="text-xs text-base-content/40">'+t.category+'</span>'+(t.deadline?'<span class="text-xs text-base-content/40">• '+new Date(t.deadline).toLocaleDateString()+'</span>':'')+'</div><h4 class="font-bold text-sm '+(t.done?'line-through':'')+'">'+escapeHtml(t.title)+'</h4>'+(t.desc?'<p class="text-xs text-base-content/60 mt-1">'+escapeHtml(t.desc)+'</p>':'')+'</div><button data-action="delete-task" data-task-id="'+t.id+'" class="btn btn-cinematic py-1 px-2 text-xs !rounded-lg shrink-0">🗑</button></div>';}).join('');}
-function escapeHtml(t){var d=document.createElement('div');d.innerText=t;return d.innerHTML;}
-document.addEventListener('DOMContentLoaded',function(){renderTasks();document.getElementById('taskDeadline').value=new Date().toISOString().split('T')[0];
-document.getElementById('addTaskBtn').addEventListener('click',addTask);
-document.getElementById('searchTasks').addEventListener('input',renderTasks);
-document.getElementById('filterPriority').addEventListener('change',renderTasks);
-document.getElementById('taskList').addEventListener('change',function(e){
-  var cb=e.target.closest('[data-action="toggle-task"]');
-  if(!cb)return;
-  var id=parseInt(cb.getAttribute('data-task-id'),10);
-  toggleTask(id);
+(function(){'use strict';
+var LS_KEY='sb_tm2';
+var inp=document.getElementById('tmInput'),addBtn=document.getElementById('tmAddBtn');
+var searchInp=document.getElementById('tmSearch');
+var list=document.getElementById('tmList');
+var progressBar=document.getElementById('tmProgress'),statText=document.getElementById('tmStatText');
+var clearBtn=document.getElementById('tmClearBtn'),exportBtn=document.getElementById('tmExportBtn');
+var filterBtns=document.querySelectorAll('.tm-pill[data-filter]');
+var pfBtns=document.querySelectorAll('.tm-pill[data-pf]');
+var ppBtns=document.querySelectorAll('.tm-pp');
+var catFilters=document.getElementById('tmCatFilters');
+var histToggle=document.getElementById('tmHistToggle'),histWrap=document.getElementById('tmHistWrap');
+var histList=document.getElementById('tmHistList'),histSave=document.getElementById('tmHistSave'),histClear=document.getElementById('tmHistClear');
+
+var toast=document.getElementById('tmUndoToast');
+var toastMsg=document.getElementById('tmToastMsg'),undoBtn=document.getElementById('tmUndoBtn'),toastClose=document.getElementById('tmToastClose');
+var toastTimer=null;var deletedTask=null;var deletedIdx=-1;
+
+var tasks=[];var nextId=1;
+var currentFilter='all';var currentPf='';var currentCat='';var currentSearch='';var currentSort='custom';
+var activeP=1;
+var CAT_ICONS={work:'💼',personal:'🏠',shopping:'🛒',health:'💪',finance:'💰'};
+var CAT_LIST=['work','personal','shopping','health','finance'];
+
+function loadTasks(){
+  try{var d=JSON.parse(localStorage.getItem(LS_KEY));if(d&&Array.isArray(d.tasks)){tasks=d.tasks;nextId=d.nextId||1;var mx=0;tasks.forEach(function(t){if(t.id>mx)mx=t.id});if(mx>=nextId)nextId=mx+1}}catch(e){}
+}
+function saveTasks(){
+  try{localStorage.setItem(LS_KEY,JSON.stringify({tasks:tasks,nextId:nextId}))}catch(e){}
+}
+
+function esc(s){var d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML}
+
+function taskPassesFilter(t){
+  if(currentFilter==='active'&&t.d)return false;
+  if(currentFilter==='completed'&&!t.d)return false;
+  if(currentPf!==''&&String(t.p||0)!==currentPf)return false;
+  if(currentCat!==''&&(t.cat||'')!==currentCat)return false;
+  if(currentSearch){var q=currentSearch.toLowerCase();if(t.t.toLowerCase().indexOf(q)===-1)return false}
+  return true;
+}
+
+function formatDate(dStr){
+  if(!dStr)return'';var m=dStr.substring(5,7),d=dStr.substring(8,10);return m+'/'+d;
+}
+
+function dueClass(dStr){
+  if(!dStr)return'';
+  var due=new Date(dStr+'T23:59:59');
+  var today=new Date();today.setHours(0,0,0,0);
+  var to=due.getTime(),td=today.getTime();
+  if(to<td)return' overdue';
+  if(to>=td&&to<td+86400000)return' today';
+  return'';
+}
+
+function getSortedIndices(){
+  var idxs=[];
+  for(var i=0;i<tasks.length;i++) idxs.push(i);
+  if(currentSort==='custom') return idxs;
+  idxs.sort(function(a,b){
+    var ta=tasks[a],tb=tasks[b];
+    if(currentSort==='priority') return (tb.p||0)-(ta.p||0);
+    if(currentSort==='due') return (ta.due||'9999-12-31').localeCompare(tb.due||'9999-12-31');
+    if(currentSort==='created') return (tb.ts||0)-(ta.ts||0);
+    if(currentSort==='alpha') return ta.t.localeCompare(tb.t);
+    return 0;
+  });
+  return idxs;
+}
+
+function render(){
+  var html='';var shown=0;
+  var indices=getSortedIndices();
+  for(var si=0;si<indices.length;si++){
+    var i=indices[si];var t=tasks[i];if(!taskPassesFilter(t))continue;shown++;
+    var p=t.p||0;
+    var pCls=['p-l','p-m','p-h'][p];
+    var pLbl=['Low','Med','High'][p];
+    var cat=t.cat||'';
+    var catLbl=cat?cat.charAt(0).toUpperCase()+cat.slice(1):'';
+    var dueDisp=formatDate(t.due);
+    var dueCls=dueClass(t.due);
+    var isSorted=currentSort!=='custom';
+    html+='<div class="tm-task'+(t.d?' done':'')+'" draggable="true" role="listitem" data-idx="'+i+'">'+
+      (isSorted?'':'<button type="button" class="tm-move tm-up" data-idx="'+i+'" aria-label="Move up">&#9650;</button>')+
+      (isSorted?'':'<button type="button" class="tm-move tm-down" data-idx="'+i+'" aria-label="Move down">&#9660;</button>')+
+      '<button type="button" class="tm-circle'+(t.d?' checked':'')+'" data-idx="'+i+'" aria-label="'+(t.d?'Mark incomplete':'Mark complete')+'">{{ lucide_icon("check","w-3 h-3", 12) | safe }}</button>'+
+      '<span class="tm-task-text flex-1 text-sm font-semibold" data-idx="'+i+'" role="button" tabindex="0" aria-label="Edit task">'+esc(t.t)+'</span>'+
+      (cat?'<button type="button" class="tm-cbadge" data-idx="'+i+'" aria-label="Category: '+catLbl+'">'+(CAT_ICONS[cat]||'')+catLbl+'</button>':'')+
+      '<button type="button" class="tm-pbadge '+pCls+'" data-idx="'+i+'" aria-label="Priority: '+pLbl+'">'+(p===2?'🔴':p===1?'🟡':'🟢')+pLbl+'</button>'+
+      '<button type="button" class="tm-due'+dueCls+'" data-idx="'+i+'" aria-label="Due date">📅'+(dueDisp?' '+dueDisp:'')+'</button>'+
+      '<button type="button" class="tm-del" data-idx="'+i+'" aria-label="Delete task">{{ lucide_icon("x","w-3 h-3", 12) | safe }}</button></div>';
+  }
+  if(!shown){
+    var msg=currentSearch?'No tasks match "'+esc(currentSearch)+'".':currentCat?'No tasks in this category.':currentPf!==''?'No tasks at this priority level.':currentFilter==='all'?'No tasks yet. Add one above.':currentFilter==='active'?'No active tasks.':'No completed tasks.';
+    list.innerHTML='<div class="tm-empty">'+msg+'</div>';
+  }else{list.innerHTML=html}
+  var total=tasks.length,active=tasks.filter(function(t){return!t.d}).length;
+  var pct=total?Math.round((total-active)/total*100):0;
+  progressBar.style.width=pct+'%';
+  statText.textContent=active+' active'+(total?', '+total+' total':'')+(pct?' · '+pct+'% done':'');
+  renderCatFilters();
+  renderFilterCounts();
+}
+
+function renderFilterCounts(){
+  var total=tasks.length;
+  var active=tasks.filter(function(t){return!t.d}).length;
+  var done=total-active;
+  filterBtns.forEach(function(b){
+    var f=b.getAttribute('data-filter');
+    var cnt=f==='all'?total:f==='active'?active:done;
+    var label=f.charAt(0).toUpperCase()+f.slice(1);
+    b.textContent=label+(cnt?' ('+cnt+')':'');
+  });
+  var pfCounts={};tasks.forEach(function(t){var k=String(t.p||0);pfCounts[k]=(pfCounts[k]||0)+1});
+  pfBtns.forEach(function(b){
+    var pf=b.getAttribute('data-pf');
+    if(pf===''){b.textContent='All'+(total?' ('+total+')':'')}
+    else{var cnt=pfCounts[pf]||0;var em=pf==='2'?'🔴':pf==='1'?'🟡':'🟢';b.textContent=em+' '+(cnt?cnt+' ':'')+({2:'High',1:'Med',0:'Low'}[pf])}
+  });
+}
+
+function renderCatFilters(){
+  var counts={};tasks.forEach(function(t){var c=t.cat||'';counts[c]=(counts[c]||0)+1});
+  var html='<button type="button" class="tm-cat-pill'+(currentCat===''?' active':'')+'" data-cat="">All'+(counts['']?' ('+counts['']+')':'')+'</button>';
+  for(var ci=0;ci<CAT_LIST.length;ci++){
+    var c=CAT_LIST[ci];var cnt=counts[c]||0;if(!cnt&&currentCat!==c)continue;
+    var lbl=c.charAt(0).toUpperCase()+c.slice(1);
+    html+='<button type="button" class="tm-cat-pill'+(currentCat===c?' active':'')+'" data-cat="'+c+'">'+(CAT_ICONS[c]||'')+' '+lbl+(cnt?' ('+cnt+')':'')+'</button>';
+  }
+  catFilters.innerHTML=html;
+  catFilters.querySelectorAll('.tm-cat-pill').forEach(function(el){el.addEventListener('click',function(){currentCat=this.getAttribute('data-cat');renderCatFilters();render()})});
+}
+
+function addTask(){
+  var t=inp.value.trim();if(!t)return;
+  tasks.push({id:nextId++,t:t,d:false,p:activeP,cat:'',due:'',ts:Date.now()});
+  inp.value='';inp.focus();saveTasks();render();
+}
+
+function toggleTask(idx){
+  if(idx<0||idx>=tasks.length)return;
+  tasks[idx].d=!tasks[idx].d;saveTasks();render();
+}
+
+function deleteTask(idx){
+  if(idx<0||idx>=tasks.length)return;
+  var t=tasks.splice(idx,1)[0];deletedTask=t;deletedIdx=idx;
+  saveTasks();render();showToast();
+}
+
+function hideToast(){toast.classList.remove('show');if(toastTimer){clearTimeout(toastTimer);toastTimer=null}}
+function showToast(){hideToast();toast.classList.add('show');toastTimer=setTimeout(function(){hideToast();deletedTask=null;deletedIdx=-1},4000)}
+function undoDelete(){hideToast();if(!deletedTask||deletedIdx<0)return;tasks.splice(deletedIdx,0,deletedTask);deletedTask=null;deletedIdx=-1;saveTasks();render()}
+
+function moveTask(idx,dir){
+  if(idx<0||idx>=tasks.length)return;
+  var nidx=idx+dir;if(nidx<0||nidx>=tasks.length)return;
+  var tmp=tasks[idx];tasks[idx]=tasks[nidx];tasks[nidx]=tmp;saveTasks();render();
+}
+
+function clearCompleted(){
+  tasks=tasks.filter(function(t){return!t.d});saveTasks();render();
+}
+
+function markAllVisible(){
+  var changed=false;
+  for(var i=0;i<tasks.length;i++){
+    if(!tasks[i].d&&taskPassesFilter(tasks[i])){tasks[i].d=true;changed=true}
+  }
+  if(changed){saveTasks();render()}
+}
+
+function cyclePriority(idx){
+  if(idx<0||idx>=tasks.length)return;
+  tasks[idx].p=((tasks[idx].p||0)+1)%3;saveTasks();render();
+}
+
+function cycleCategory(idx){
+  if(idx<0||idx>=tasks.length)return;
+  var cur=tasks[idx].cat||'';var pos=CAT_LIST.indexOf(cur);
+  tasks[idx].cat=pos<CAT_LIST.length-1?CAT_LIST[pos+1]:'';saveTasks();render();
+}
+
+function setDue(idx,val){
+  if(idx<0||idx>=tasks.length)return;
+  tasks[idx].due=val||'';saveTasks();render();
+}
+
+function startEdit(idx,textEl){
+  var t=tasks[idx];if(!t)return;
+  if(textEl.querySelector('input'))return;
+  var orig=t.t;
+  var inpEl=document.createElement('input');
+  inpEl.type='text';inpEl.className='tm-edit-input';inpEl.value=orig;
+  inpEl.setAttribute('aria-label','Edit task text');
+  textEl.textContent='';textEl.appendChild(inpEl);inpEl.focus();inpEl.select();
+  function finish(save){
+    if(save){var v=inpEl.value.trim();if(v){t.t=v;saveTasks();render()}else{render()}}
+    else{render()}
+  }
+  inpEl.addEventListener('blur',function(){finish(true)});
+  inpEl.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){e.preventDefault();inpEl.blur()}
+    if(e.key==='Escape'){e.preventDefault();finish(false)}
+  });
+}
+
+function exportTasks(){
+  var lines=['=== Task List ===','Exported: '+new Date().toLocaleString(),'',''];
+  var active=tasks.filter(function(t){return!t.d});
+  var done=tasks.filter(function(t){return t.d});
+  if(active.length){lines.push('--- Active ('+active.length+') ---');active.forEach(function(t){lines.push('[ ] '+t.t+prioLabel(t.p)+catLabel(t.cat)+dueLabel(t.due))})}
+  if(done.length){lines.push('--- Completed ('+done.length+') ---');done.forEach(function(t){lines.push('[x] '+t.t+prioLabel(t.p)+catLabel(t.cat)+dueLabel(t.due))})}
+  lines.push('','--- Stats ---');
+  lines.push('Total: '+tasks.length+' | Active: '+active.length+' | Completed: '+done.length);
+  lines.push('Progress: '+((tasks.length?Math.round((tasks.length-active.length)/tasks.length*100):0))+'%');
+  var blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tasks-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);
+}
+function prioLabel(p){var ls=[' Low',' Med',' High'];return' ['+ls[p||0]+']'}
+function catLabel(c){return c?' ('+c.charAt(0).toUpperCase()+c.slice(1)+')':''}
+function dueLabel(d){return d?' Due: '+d:''}
+
+function saveHistory(){
+  try{var h=JSON.parse(localStorage.getItem(LS_KEY+'hist'))||[];var active=tasks.filter(function(t){return!t.d}).length;
+  h.unshift({tasks:JSON.parse(JSON.stringify(tasks)),count:tasks.length,active:active,ts:Date.now()});
+  if(h.length>10)h=h.slice(0,10);localStorage.setItem(LS_KEY+'hist',JSON.stringify(h));renderHistory()}catch(e){}
+}
+
+function renderHistory(){
+  try{var h=JSON.parse(localStorage.getItem(LS_KEY+'hist'))||[];
+  if(!h.length){histList.innerHTML='<span class="text-[10px] font-bold opacity-30 text-center py-2 block">No saved lists</span>';return}
+  var html='';for(var i=0;i<h.length;i++){
+    var d=new Date(h[i].ts),now=new Date();var diff=Math.round((now-d)/1000);
+    var rel=diff<60?'just now':diff<3600?Math.floor(diff/60)+'m ago':diff<86400?Math.floor(diff/3600)+'h ago':Math.floor(diff/86400)+'d ago';
+    html+='<div class="tm-hist-item" data-idx="'+i+'" role="button" tabindex="0" aria-label="Load list from '+rel+'">'+
+      '<div class="flex items-center gap-2.5"><span class="font-bold">'+h[i].count+' tasks</span><span class="opacity-40">·</span><span class="opacity-40">'+(h[i].active||0)+' active</span><span class="opacity-40">·</span><span class="opacity-40">'+rel+'</span></div>'+
+      '<button type="button" class="tm-hist-del" data-del="'+i+'" aria-label="Delete history item">{{ lucide_icon("x","w-3 h-3", 12) | safe }}</button></div>'}
+  histList.innerHTML=html;
+  histList.querySelectorAll('.tm-hist-item').forEach(function(el){el.addEventListener('click',function(e){if(e.target.closest('.tm-hist-del'))return;loadHistory(parseInt(this.getAttribute('data-idx')))})});
+  histList.querySelectorAll('.tm-hist-del').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();deleteHistory(parseInt(this.getAttribute('data-del')))})})}catch(e){}
+}
+
+function loadHistory(idx){
+  try{var h=JSON.parse(localStorage.getItem(LS_KEY+'hist'))||[];if(!h[idx])return;
+  tasks=JSON.parse(JSON.stringify(h[idx].tasks));var mx=0;tasks.forEach(function(t){if(t.id>mx)mx=t.id});nextId=mx+1;
+  saveTasks();render();histWrap.hidden=true;histToggle.setAttribute('aria-expanded','false')}catch(e){}
+}
+
+function deleteHistory(idx){
+  try{var h=JSON.parse(localStorage.getItem(LS_KEY+'hist'))||[];h.splice(idx,1);localStorage.setItem(LS_KEY+'hist',JSON.stringify(h));renderHistory()}catch(e){}
+}
+
+addBtn.addEventListener('click',addTask);
+inp.addEventListener('keydown',function(e){if(e.key==='Enter')addTask()});
+searchInp.addEventListener('input',function(){currentSearch=searchInp.value.trim();render()});
+clearBtn.addEventListener('click',clearCompleted);
+exportBtn.addEventListener('click',exportTasks);
+document.getElementById('tmMarkAllBtn').addEventListener('click',markAllVisible);
+document.getElementById('tmSort').addEventListener('change',function(){currentSort=this.value;render()});
+
+var dragIdx=null;
+list.addEventListener('dragstart',function(e){
+  var el=e.target.closest('[data-idx]');if(!el)return;
+  if(currentSort!=='custom'){e.preventDefault();return}
+  dragIdx=parseInt(el.getAttribute('data-idx'));
+  el.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
 });
-document.getElementById('taskList').addEventListener('click',function(e){
-  var btn=e.target.closest('[data-action="delete-task"]');
-  if(!btn)return;
-  var id=parseInt(btn.getAttribute('data-task-id'),10);
-  deleteTask(id);
-});});
+list.addEventListener('dragend',function(e){
+  var el=e.target.closest('[data-idx]');if(el)el.classList.remove('dragging');
+  list.querySelectorAll('.drag-over').forEach(function(x){x.classList.remove('drag-over')});
+});
+list.addEventListener('dragover',function(e){
+  e.preventDefault();e.dataTransfer.dropEffect='move';
+  var el=e.target.closest('[data-idx]');if(!el||dragIdx===null)return;
+  list.querySelectorAll('.drag-over').forEach(function(x){x.classList.remove('drag-over')});
+  el.classList.add('drag-over');
+});
+list.addEventListener('drop',function(e){
+  e.preventDefault();if(dragIdx===null)return;
+  var el=e.target.closest('[data-idx]');if(!el)return;
+  var dropIdx=parseInt(el.getAttribute('data-idx'));
+  if(dragIdx!==dropIdx){
+    var tmp=tasks.splice(dragIdx,1)[0];
+    var newIdx=dropIdx>dragIdx?dropIdx-1:dropIdx;
+    tasks.splice(newIdx,0,tmp);
+    saveTasks();render();
+  }
+  dragIdx=null;
+  list.querySelectorAll('.drag-over').forEach(function(x){x.classList.remove('drag-over')});
+});
+
+ppBtns.forEach(function(b){b.addEventListener('click',function(){var p=parseInt(this.getAttribute('data-p'));activeP=p;ppBtns.forEach(function(x){x.classList.toggle('active',x===b)})})});
+
+filterBtns.forEach(function(b){b.addEventListener('click',function(){currentFilter=this.getAttribute('data-filter');filterBtns.forEach(function(x){var is=x.getAttribute('data-filter')===currentFilter;x.classList.toggle('active',is);x.setAttribute('aria-selected',is)});render()})});
+
+pfBtns.forEach(function(b){b.addEventListener('click',function(){currentPf=this.getAttribute('data-pf');pfBtns.forEach(function(x){x.classList.toggle('active-p',x.getAttribute('data-pf')===currentPf)});render()})});
+
+list.addEventListener('click',function(e){
+  var el=e.target.closest('[data-idx]');if(!el)return;
+  var idx=parseInt(el.getAttribute('data-idx'));
+  if(isNaN(idx))return;
+  if(el.classList.contains('tm-circle')){toggleTask(idx);return}
+  if(el.classList.contains('tm-del')){deleteTask(idx);return}
+  if(el.classList.contains('tm-up')){moveTask(idx,-1);return}
+  if(el.classList.contains('tm-down')){moveTask(idx,1);return}
+  if(el.classList.contains('tm-pbadge')){cyclePriority(idx);return}
+  if(el.classList.contains('tm-cbadge')){cycleCategory(idx);return}
+  if(el.classList.contains('tm-due')){
+    var t=tasks[idx];if(!t)return;
+    var currentDue=t.due||'';
+    var newDue=prompt('Enter due date (YYYY-MM-DD) or leave empty to remove:',currentDue);
+    if(newDue!==null){newDue=newDue.trim();if(newDue&&!/^\d{4}-\d{2}-\d{2}$/.test(newDue)){alert('Use YYYY-MM-DD format (e.g. 2026-07-15)');return}setDue(idx,newDue)}
+    return
+  }
+  if(el.classList.contains('tm-task-text')){startEdit(idx,el);return}
+});
+
+undoBtn.addEventListener('click',undoDelete);
+toastClose.addEventListener('click',hideToast);
+
+histToggle.addEventListener('click',function(){var o=histToggle.getAttribute('aria-expanded')==='true';histToggle.setAttribute('aria-expanded',!o);histWrap.hidden=o;if(!o)renderHistory()});
+histSave.addEventListener('click',saveHistory);
+histClear.addEventListener('click',function(){if(confirm('Clear all saved lists?')){localStorage.removeItem(LS_KEY+'hist');renderHistory()}});
+
+loadTasks();render();
 })();
 </script>
-
-
 
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

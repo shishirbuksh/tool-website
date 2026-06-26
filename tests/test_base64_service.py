@@ -1,6 +1,7 @@
 import pytest
-from app.services.base64_service import Base64Service
+
 from app.core.exceptions import ValidationException
+from app.services.base64_service import Base64Service
 
 
 class TestBase64Service:

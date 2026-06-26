@@ -1,286 +1,279 @@
-{% extends"base.html" %}
+{% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}Advanced CAC Calculator | LTV, CPL & Channel Matrix{% endblock %}
-{% block meta_description %}Learn how to calculate customer acquisition cost formula instantly. Our advanced calculator tracks CPL, CRC, Net LTV, and CAC by channel.{% endblock %}
-{% block meta_keywords %}how to calculate customer acquisition cost formula, free blended cac vs paid cac calculator, what is a good ltv to cac ratio for saas, cost per lead calculator, customer retention cost formula, how to use Cac Calculator for free online, best free Cac Calculator alternative, Cac Calculator without sign up, browser-based utility, secure processing, no installation required, instant results, data privacy, cloud alternative, free Cac Calculator, online Cac Calculator, fastest local browser Cac Calculator, secure private Cac Calculator no tracking{% endblock %}
+{% block title %}CAC Calculator — Customer Acquisition Cost, LTV:CAC & Scenarios | Free Online{% endblock %}
+{% block meta_description %}Advanced CAC calculator for startups. Calculate blended CAC, payback period, LTV:CAC ratio, revenue impact, and channel breakdown. What-If scenarios and industry benchmarks.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/cac-calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/cac-calculator">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Ultra-Advanced Customer Acquisition Cost Calculator">
-<meta property="og:description" content="Calculate your Blended CAC, Net LTV, Cost Per Lead (CPL), and break down CAC by Ad Channel.">
+<meta property="og:title" content="CAC Calculator — Customer Acquisition Cost & Scenarios">
+<meta property="og:description" content="Advanced CAC calculator. Blended CAC, payback, LTV:CAC, revenue impact, What-If scenarios, and benchmarks. Free.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Advanced CAC Calculator">
-<meta name="twitter:description" content="Calculate your Blended vs Paid Customer Acquisition Cost, CPL, and Net LTV instantly.">
 {% endblock %}
-
 {% block head %}
-<script src="/static/js/vendor/chart.min.js"></script>
+<style>
+.cc-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.cc-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.cc-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.cc-input:focus{border-color:var(--color-primary);outline:none}
+.cc-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.55rem .75rem;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:6px;touch-action:manipulation}
+.cc-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.cc-pri:active{transform:translateY(0)}
+.cc-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.45rem .7rem;font-weight:700;font-size:.65rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation}
+.cc-sec:hover{border-color:var(--color-base-content)}
+.cc-sec.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.cc-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.3rem .6rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:10px;transition:all .12s}
+.cc-toggle:hover{background:var(--color-base-200)}
+.cc-toggle.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.cc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.cc-toast.show{opacity:1;transform:translateY(0)}
+.cc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cc-result{background:var(--color-base-100);border-radius:1rem;padding:12px 10px;text-align:center;border:1px solid var(--color-base-300)}
+.cc-result .iv{font-size:18px;font-weight:900;font-family:monospace;line-height:1.2}
+.cc-result .il{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-top:3px}
+.cc-result.full{grid-column:1/-1}
+.cc-result.full .iv{font-size:24px}
+.cc-health{display:inline-block;padding:3px 14px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;margin-top:6px}
+.cc-whatif{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px}
+.cc-whatif button{padding:4px 6px;border-radius:6px;font-size:8px;font-weight:700;cursor:pointer;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;touch-action:manipulation}
+.cc-whatif button:hover{background:color-mix(in oklab,var(--color-primary) 10%,transparent);border-color:var(--color-primary)}
+.cc-whatif button.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.cc-hist{max-height:200px;overflow-y:auto}
+.cc-hist-item{padding:5px 8px;border-radius:.6rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:9px;font-weight:600;cursor:pointer;transition:all .12s;margin-bottom:2px}
+.cc-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.cc-hist-item .preview{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:8px;opacity:.55;min-width:0}
+.cc-hist-item .meta{font-size:7px;font-weight:700;opacity:.35;white-space:nowrap}
+.cc-hist-item .hdel{width:18px;height:18px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:8px}
+.cc-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.cc-empty{text-align:center;padding:20px 12px;font-size:10px;font-weight:600;opacity:.3}
+.cc-bench{background:var(--color-base-100);border-radius:.75rem;padding:12px;border:1px solid var(--color-base-300)}
+.cc-bench .br{display:flex;align-items:center;justify-content:space-between;padding:4px 0;font-size:9px;font-weight:600;border-bottom:1px solid var(--color-base-200)}
+.cc-bench .br:last-child{border-bottom:none}
+.cc-bench .bv{font-weight:800;font-family:monospace}
+.cc-hint{font-size:9px;font-weight:600;opacity:.5;padding:6px 10px;background:var(--color-base-100);border-radius:.6rem;border:1px solid var(--color-base-300);margin-top:6px}
+</style>
 {% endblock %}
-
 {% block content %}
-{{ tool_hero_section("award", "Ultra-Advanced Edition", "CAC", "CALCULATOR", "The ultimate tool for tracking Cost Per Lead (CPL), Net LTV, and Channel-Specific Acquisition Costs.") }}
-
-  <!-- Main Content -->
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <!-- Inputs -->
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-2xl font-black tracking-tight flex items-center gap-3" style="color:var(--color-amber-500)">
-            {{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Engine Inputs
-          </h2>
-          <select id="currency" class="input input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm w-auto" aria-label="Currency">
-            <option value="usd" selected>USD ($)</option>
-            <option value="eur">EUR (&euro;)</option>
-            <option value="gbp">GBP (&pound;)</option>
-            <option value="inr">INR (&#8377;)</option>
-          </select>
-        </div>
-
-        <form id="calcForm" class="flex flex-col gap-6">
-
-          <!-- Funnel Math -->
-          <div>
-            <h4 class="label-cinematic mb-3 flex items-center gap-2" style="color:var(--color-info)">
-              <span class="w-2 h-2 rounded-full bg-info inline-block"></span> 1. Funnel Math
-            </h4>
-            <div class="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label class="label-cinematic mb-2 block" for="totalLeads">Total Leads Generated</label>
-                <input aria-label="Totalleads" type="number" id="totalLeads" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl calc-input" value="1000" min="1">
-              </div>
-              <div>
-                <label class="label-cinematic mb-2 block" for="totalCustomers">Total New Customers</label>
-                <input aria-label="Totalcustomers" type="number" id="totalCustomers" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl calc-input" value="50" min="1">
-              </div>
-            </div>
-            <div>
-              <label class="label-cinematic mb-2 block" for="paidPercentage">% From Paid Channels</label>
-              <div class="flex">
-                <input aria-label="Paidpercentage" type="number" id="paidPercentage" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-r-none calc-input" value="80" min="0" max="100">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">%</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Acquisition Expenses -->
-          <div>
-            <h4 class="label-cinematic mb-3 flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full inline-block" style="background:var(--color-base-content)"></span> 2. Acquisition Expenses
-            </h4>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="label-cinematic mb-2 block" for="googleSpend">Google Ads Spend</label>
-                <div class="flex">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                  <input aria-label="Googlespend" type="number" id="googleSpend" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none calc-input" value="2500" min="0">
-                </div>
-              </div>
-              <div>
-                <label class="label-cinematic mb-2 block" for="metaSpend">Meta Ads Spend</label>
-                <div class="flex">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                  <input aria-label="Metaspend" type="number" id="metaSpend" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none calc-input" value="3500" min="0">
-                </div>
-              </div>
-              <div>
-                <label class="label-cinematic mb-2 block" for="otherMktg">Other Mktg (Agency/Tools)</label>
-                <div class="flex">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                  <input aria-label="Othermktg" type="number" id="otherMktg" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none calc-input" value="1500" min="0">
-                </div>
-              </div>
-              <div>
-                <label class="label-cinematic mb-2 block" for="salesSpend">Sales Team (Salaries)</label>
-                <div class="flex">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                  <input aria-label="Salesspend" type="number" id="salesSpend" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none calc-input" value="4000" min="0">
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Channel Matrix -->
-          <div>
-            <h4 class="label-cinematic mb-3 flex items-center gap-2" style="color:var(--color-amber-500)">
-              <span class="w-2 h-2 rounded-full bg-warning inline-block"></span> 3. Channel Matrix
-            </h4>
-            <p class="text-xs text-base-content/40 mb-3">To find CAC by channel, enter how many paid customers came from each platform.</p>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="label-cinematic mb-2 block" for="googleCustomers">Google Customers</label>
-                <input aria-label="Googlecustomers" type="number" id="googleCustomers" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl calc-input" value="15" min="0">
-              </div>
-              <div>
-                <label class="label-cinematic mb-2 block" for="metaCustomers">Meta Customers</label>
-                <input aria-label="Metacustomers" type="number" id="metaCustomers" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl calc-input" value="20" min="0">
-              </div>
-            </div>
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Retention & Unit Economics -->
-          <div>
-            <h4 class="label-cinematic mb-3 flex items-center gap-2 text-primary">
-              <span class="w-2 h-2 rounded-full bg-primary inline-block"></span> 4. Retention &amp; Economics
-            </h4>
-            <div class="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label class="label-cinematic mb-2 block" for="successSpend">Cust. Success Spend</label>
-                <div class="flex">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                  <input aria-label="Successspend" type="number" id="successSpend" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none calc-input" value="2000" min="0">
-                </div>
-              </div>
-              <div>
-                <label class="label-cinematic mb-2 block" for="churnInput">Monthly Churn Rate</label>
-                <div class="flex">
-                  <input aria-label="Churninput" type="number" id="churnInput" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-r-none calc-input" value="4.0" min="0.1" step="0.1">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">%</span>
-                </div>
-              </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="label-cinematic mb-2 block" for="arpuInput">ARPU (Revenue/User)</label>
-                <div class="flex">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                  <input aria-label="Arpuinput" type="number" id="arpuInput" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none calc-input" value="150" min="0">
-                </div>
-              </div>
-              <div>
-                <label class="label-cinematic mb-2 block" for="marginInput">Gross Margin</label>
-                <div class="flex">
-                  <input aria-label="Margininput" type="number" id="marginInput" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-r-none calc-input" value="80" min="1" max="100">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-        </form>
+{{ tool_hero_section("users","SaaS Metrics","CAC","CALCULATOR","Blended CAC, payback, LTV:CAC ratio, revenue impact, What-If scenarios, and industry benchmarks.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="cc-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("wallet","w-4 h-4",16) | safe }} Costs & Customers</h2>
+      <div class="flex flex-col gap-3">
+        <div><label class="cc-label" for="ccMarketing">Monthly Marketing Spend ($)</label><input type="text" id="ccMarketing" class="cc-input" value="10000" inputmode="numeric" aria-label="Monthly marketing spend"></div>
+        <div><label class="cc-label" for="ccSales">Monthly Sales Spend ($)</label><input type="text" id="ccSales" class="cc-input" value="15000" inputmode="numeric" aria-label="Monthly sales spend"></div>
+        <div><label class="cc-label" for="ccCustomers">New Customers (per month)</label><input type="text" id="ccCustomers" class="cc-input" value="50" inputmode="numeric" aria-label="New customers per month"></div>
+        <hr style="border:none;border-top:1px solid var(--color-base-300);margin:4px 0">
+        <div><label class="cc-label" for="ccARPU">Avg Revenue Per Customer ($/mo)</label><input type="text" id="ccARPU" class="cc-input" value="120" inputmode="decimal" aria-label="Average revenue per customer per month"></div>
+        <div><label class="cc-label" for="ccLifespan">Avg Customer Lifespan (months)</label><input type="text" id="ccLifespan" class="cc-input" value="24" inputmode="numeric" aria-label="Average customer lifespan in months"></div>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button type="button" id="ccCalcBtn" class="cc-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
+        <button type="button" id="ccCopyBtn" class="cc-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="ccDlBtn" class="cc-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
       </div>
     </div>
-
-    <!-- Results -->
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-6 pb-4 border-b border-base-content/10 flex-wrap gap-3">
-          <h3 class="text-2xl font-black tracking-tight flex items-center gap-3" style="color:var(--color-amber-500)">
-            {{ lucide_icon("pie-chart","w-5 h-5", 20) | safe }} Advanced Dashboard
-          </h3>
-          <button class="pill-cinematic text-xs" id="copyBtn">{{ lucide_icon("copy","w-4 h-4", 16) | safe }} Copy Report</button>
-        </div>
-
-        <!-- Top Row: CAC & Funnel -->
-        <div class="grid grid-cols-3 gap-4 mb-6">
-          <div class="card-premium p-4 text-center" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-            <span class="label-cinematic block mb-2 text-success">Blended CAC</span>
-            <div class="flex justify-center items-center gap-1">
-              <span class="text-lg opacity-60 currency-sym text-success">$</span>
-              <span id="resBlendedCAC" class="metric-cinematic metric-cinematic--md font-display text-success">0</span>
-            </div>
-          </div>
-          <div class="card-premium p-4 text-center" style="border-color:color-mix(in oklab, var(--color-warning) 25%, transparent)">
-            <span class="label-cinematic block mb-2" style="color:var(--color-warning)">Paid CAC</span>
-            <div class="flex justify-center items-center gap-1">
-              <span class="text-lg opacity-60 currency-sym" style="color:var(--color-warning)">$</span>
-              <span id="resPaidCAC" class="metric-cinematic metric-cinematic--md font-display" style="color:var(--color-warning)">0</span>
-            </div>
-          </div>
-          <div class="card-premium p-4 text-center" style="border-color:color-mix(in oklab, var(--color-info) 25%, transparent)">
-            <span class="label-cinematic block mb-2" style="color:var(--color-info)">Cost Per Lead</span>
-            <div class="flex justify-center items-center gap-1">
-              <span class="text-lg opacity-60 currency-sym" style="color:var(--color-info)">$</span>
-              <span id="resCPL" class="metric-cinematic metric-cinematic--md font-display" style="color:var(--color-info)">0</span>
-            </div>
-            <span class="text-xs text-base-content/40 block mt-1">Conv Rate: <strong id="resConvRate" class="text-info">0%</strong></span>
-          </div>
-        </div>
-
-        <!-- Charts -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div class="glass-cinematic rounded-2xl p-5 flex flex-col">
-            <h4 class="label-cinematic text-center mb-3">Expense Breakdown</h4>
-            <div style="position:relative;height:180px;width:100%" class="mt-auto">
-              <canvas id="expenseChart"></canvas>
-              <div class="text-center mt-2 text-sm font-bold text-base-content/60">
-                Total Cash Burn: <span id="resTotalBurn" class="text-error currency-sym">$</span><span id="resTotalBurnVal" class="text-error">0</span>
-              </div>
-            </div>
-          </div>
-          <div class="glass-cinematic rounded-2xl p-5 flex flex-col">
-            <h4 class="label-cinematic text-center mb-3">Channel Acquisition Cost</h4>
-            <div style="position:relative;height:180px;width:100%" class="mt-auto">
-              <canvas id="channelChart"></canvas>
-              <div class="text-center mt-2 text-sm text-base-content/40 hidden" id="channelWarning">
-                {{ lucide_icon("alert-triangle","w-4 h-4", 16) | safe }} Missing channel allocation
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Net Unit Economics -->
-        <div class="card-premium p-5" style="border-color:color-mix(in oklab, var(--color-primary) 25%, transparent)">
-          <h4 class="label-cinematic mb-4 text-primary flex items-center gap-2">
-            {{ lucide_icon("scale","w-4 h-4", 16) | safe }} Net Unit Economics
-          </h4>
-          <div class="grid grid-cols-4 gap-4">
-            <div class="text-center">
-              <span class="label-cinematic block mb-2">CRC / User</span>
-              <div class="flex justify-center items-center">
-                <span class="text-sm text-base-content/40 currency-sym mr-1">$</span>
-                <span id="resCRC" class="metric-cinematic metric-cinematic--sm font-mono">0</span>
-              </div>
-            </div>
-            <div class="text-center">
-              <span class="label-cinematic block mb-2">Net LTV</span>
-              <div class="flex justify-center items-center">
-                <span class="text-sm text-success/60 currency-sym mr-1">$</span>
-                <span id="resNetLTV" class="metric-cinematic metric-cinematic--sm font-mono text-success">0</span>
-              </div>
-            </div>
-            <div class="text-center">
-              <span class="label-cinematic block mb-2">LTV:CAC</span>
-              <span id="resLTVCAC" class="metric-cinematic metric-cinematic--sm font-mono text-primary">0:1</span>
-            </div>
-            <div class="text-center">
-              <span class="label-cinematic block mb-2">Payback</span>
-              <span id="resPayback" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-warning)">0 Mo</span>
-            </div>
-          </div>
-          <div class="mt-4 pt-4 border-t border-base-content/10 text-center">
-            <span id="healthVerdict" class="text-sm font-bold text-success">Exceptional Net Unit Economics! Ready to scale.</span>
-          </div>
-        </div>
-
+    <div class="cc-card mt-4">
+      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("zap","w-3 h-3",12) | safe }} What-If</h2>
+      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">Test how changes affect your unit economics</p>
+      <div class="cc-whatif" id="ccWhatIf"><button type="button" class="on" data-wi="current">Current</button><button type="button" data-wi="cut-spend-20">Cut Spend 20%</button><button type="button" data-wi="double-cust">x2 Customers</button><button type="button" data-wi="higher-arpu">Higher ARPU</button><button type="button" data-wi="longer-life">Longer Life</button><button type="button" data-wi="best-case">Best Case</button></div>
+    </div>
+    <div class="cc-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
+        <div class="flex items-center gap-2"><button type="button" id="ccHiToggle" class="cc-toggle" aria-expanded="false" aria-controls="ccHiWrap">History <span id="ccHiCount"></span></button><button type="button" id="ccHiClear" class="cc-sec" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
       </div>
+      <div id="ccHiWrap" hidden class="mt-2"><div id="ccHiList" class="cc-hist"></div></div>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="cc-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} CAC Metrics</h2>
+      <div class="cc-grid" id="ccResults">
+        <div class="cc-result full"><div class="iv" id="ccBlended" style="color:var(--color-primary)">$0.00</div><div class="il">Blended CAC</div></div>
+        <div class="cc-result"><div class="iv" id="ccMarketingCac">$0.00</div><div class="il">Marketing CAC</div></div>
+        <div class="cc-result"><div class="iv" id="ccSalesCac">$0.00</div><div class="il">Sales CAC</div></div>
+        <div class="cc-result"><div class="iv" id="ccPayback">0 mo</div><div class="il">CAC Payback</div></div>
+        <div class="cc-result"><div class="iv" id="ccLTV">$0.00</div><div class="il">Customer LTV</div></div>
+        <div class="cc-result full" style="padding:8px"><div class="iv" id="ccLtvRatio" style="font-size:22px">0.0:1</div><div class="il">LTV:CAC Ratio</div></div>
+        <div class="cc-result" style="grid-column:1/-1;padding:8px"><span class="cc-health" id="ccHealth">—</span></div>
+      </div>
+    </div>
+    <div class="cc-card mt-4">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("trending-up","w-4 h-4",16) | safe }} Revenue Impact</h2>
+      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mb-2">Projected revenue from new customers at current CAC</p>
+      <div class="cc-grid">
+        <div class="cc-result"><div class="iv" id="ccMoRev" style="font-size:18px">$0</div><div class="il">Monthly New Rev</div></div>
+        <div class="cc-result"><div class="iv" id="ccAnnRev" style="font-size:18px">$0</div><div class="il">Annual New Rev</div></div>
+        <div class="cc-result"><div class="iv" id="ccTotalCost" style="font-size:18px">$0</div><div class="il">Monthly Cost</div></div>
+        <div class="cc-result"><div class="iv" id="ccGrossMargin" style="font-size:18px">$0</div><div class="il">Monthly Gross</div></div>
+      </div>
+    </div>
+    <div class="cc-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("globe","w-4 h-4",16) | safe }} Industry Benchmark</h2>
+        <button type="button" id="ccBenchTog" class="cc-toggle" aria-expanded="false" aria-controls="ccBenchWrap">{{ lucide_icon("arrow-left-right","w-3 h-3",12) | safe }}</button>
+      </div>
+      <div id="ccBenchWrap" hidden class="mt-2"><div class="cc-bench" id="ccBenchGrid"></div><div class="cc-hint">Compare your CAC and LTV:CAC to industry averages.</div></div>
     </div>
   </div>
 </div>
-
+<div id="ccToast" class="cc-toast" role="status" aria-live="polite"></div>
 <script>
-function formatCurrency(val){return val.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});}
-function formatDecimal(val){return val.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1});}
-document.addEventListener('DOMContentLoaded',()=>{const els={leads:document.getElementById('totalLeads'),custs:document.getElementById('totalCustomers'),paidPct:document.getElementById('paidPercentage'),gSpend:document.getElementById('googleSpend'),mSpend:document.getElementById('metaSpend'),oMktg:document.getElementById('otherMktg'),sales:document.getElementById('salesSpend'),gCust:document.getElementById('googleCustomers'),mCust:document.getElementById('metaCustomers'),succSpend:document.getElementById('successSpend'),churn:document.getElementById('churnInput'),arpu:document.getElementById('arpuInput'),margin:document.getElementById('marginInput'),currency:document.getElementById('currency'),syms:document.querySelectorAll('.currency-sym')};let expChart=null;let chChart=null;Object.values(els).forEach(el=>{if(el!==els.syms)el.addEventListener('input',calculate);});els.currency.addEventListener('change',()=>{let s="$";if(els.currency.value==='eur')s="\u20ac";if(els.currency.value==='gbp')s="\u00a3";if(els.currency.value==='inr')s="\u20b9";els.syms.forEach(el=>el.innerText=s);calculate();});function drawCharts(gs,ms,om,sl,sc,gcac,mcac,pcac){const ctxE=document.getElementById('expenseChart').getContext('2d');const ctxC=document.getElementById('channelChart').getContext('2d');const isDark=document.documentElement.getAttribute('data-theme')==='night';const txtC=isDark?'rgba(255, 255, 255, 0.6)':'rgba(0, 0, 0, 0.6)';const sym=els.currency.options[els.currency.selectedIndex].text.match(/\((.*?)\)/)[1];if(expChart){expChart.data.datasets[0].data=[gs,ms,om,sl,sc];expChart.options.plugins.legend.labels.color=txtC;expChart.update();}else{Chart.defaults.font.family='Inter, sans-serif';expChart=new Chart(ctxE,{type:'doughnut',data:{labels:['Google Ads','Meta Ads','Other Mktg','Sales Team','Cust Success'],datasets:[{data:[gs,ms,om,sl,sc],backgroundColor:['#4285F4','#1877F2','#fcd34d','#10b981','#8b5cf6'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:'70%',plugins:{legend:{display:true,position:'right',labels:{color:txtC,boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:(c)=>sym+' '+formatCurrency(c.parsed)}}}}});}
-if(chChart){chChart.data.datasets[0].data=[gcac,mcac,pcac];chChart.options.scales.x.ticks.color=txtC;chChart.options.scales.y.ticks.color=txtC;chChart.update();}else{chChart=new Chart(ctxC,{type:'bar',data:{labels:['Google','Meta','Avg Paid'],datasets:[{label:'CAC',data:[gcac,mcac,pcac],backgroundColor:['#4285F4','#1877F2','#f59e0b'],borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>sym+' '+formatCurrency(c.parsed.y)}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(128,128,128,0.1)'},ticks:{color:txtC}},x:{grid:{display:false},ticks:{color:txtC}}}}});}}
-function calculate(){const v=(id)=>parseFloat(document.getElementById(id).value)||0;const leads=v('totalLeads')||1;const custs=v('totalCustomers')||1;let paidPct=v('paidPercentage');if(paidPct>100)paidPct=100;if(paidPct<0)paidPct=0;const gs=v('googleSpend');const ms=v('metaSpend');const om=v('otherMktg');const sl=v('salesSpend');const sc=v('successSpend');const gCust=v('googleCustomers');const mCust=v('metaCustomers');const arpu=v('arpuInput');const margin=v('marginInput')/100;const churn=v('churnInput')/100;const convRate=(custs/leads)*100;const totalAcqSpend=gs+ms+om+sl;const totalBurn=totalAcqSpend+sc;const cpl=totalAcqSpend/leads;const paidCusts=custs*(paidPct/100);const blendedCAC=totalAcqSpend/custs;const paidCAC=paidCusts>0?(totalAcqSpend/paidCusts):0;const googleCAC=gCust>0?(gs/gCust):0;const metaCAC=mCust>0?(ms/mCust):0;const crcPerUser=sc/custs;const netProfitPerUserPerMonth=(arpu*margin)-crcPerUser;let netLTV=0;if(churn>0&&netProfitPerUserPerMonth>0){netLTV=netProfitPerUserPerMonth/churn;}
-let ltvCacRatio=blendedCAC>0?(netLTV/blendedCAC):0;let payback=(netProfitPerUserPerMonth>0&&blendedCAC>0)?(blendedCAC/netProfitPerUserPerMonth):0;document.getElementById('resCPL').innerText=formatDecimal(cpl);document.getElementById('resConvRate').innerText=formatDecimal(convRate)+'%';document.getElementById('resBlendedCAC').innerText=formatCurrency(blendedCAC);document.getElementById('resPaidCAC').innerText=formatCurrency(paidCAC);document.getElementById('resTotalBurnVal').innerText=formatCurrency(totalBurn);document.getElementById('resCRC').innerText=formatCurrency(crcPerUser);document.getElementById('resNetLTV').innerText=formatCurrency(netLTV);const lRatio=document.getElementById('resLTVCAC');lRatio.innerText=formatDecimal(ltvCacRatio)+':1';lRatio.className='metric-cinematic metric-cinematic--sm font-mono '+(ltvCacRatio>=3?'text-success':(ltvCacRatio>=1?'text-warning':'text-error'));const pBack=document.getElementById('resPayback');pBack.innerText=payback>0?(formatDecimal(payback)+' Mo'):'Never';pBack.className='metric-cinematic metric-cinematic--sm font-mono '+(payback>0&&payback<=12?'text-success':(payback>0&&payback<=24?'text-warning':'text-error'));const verdict=document.getElementById('healthVerdict');if(ltvCacRatio>=3&&payback<=12){verdict.innerText="Exceptional Net Unit Economics! Ready to scale.";verdict.className="text-sm font-bold text-success";}else if(ltvCacRatio<1||netProfitPerUserPerMonth<=0){verdict.innerText="Danger: You are losing money on every customer acquired.";verdict.className="text-sm font-bold text-error";}else{verdict.innerText="Warning: Margins are tight. Work on reducing CAC or CRC.";verdict.className="text-sm font-bold text-warning";}
-drawCharts(gs,ms,om,sl,sc,googleCAC,metaCAC,paidCAC);}
-calculate();new MutationObserver(calculate).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});});
+(function(){'use strict';
+var wi='current',benchTog=false;
+var history=[]; try{var h=JSON.parse(localStorage.getItem('sb_cc1')||'[]');if(Array.isArray(h))history=h}catch(e){}
+var saved=null; try{var s=JSON.parse(localStorage.getItem('sb_cc1_i')||'null');if(s&&typeof s==='object')saved=s}catch(e){}
+
+var IND_BENCH={
+saas:{name:'SaaS',cac:150,ltvCac:4.5},
+ecommerce:{name:'Ecommerce',cac:45,ltvCac:3.0},
+fintech:{name:'Fintech',cac:250,ltvCac:5.0},
+marketplace:{name:'Marketplace',cac:80,ltvCac:3.5},
+enterprise:{name:'Enterprise',cac:500,ltvCac:6.0},
+consumer:{name:'Consumer',cac:35,ltvCac:2.5},
+};
+
+function el(id){return document.getElementById(id)}
+var marketing=el('ccMarketing'),sales=el('ccSales'),customers=el('ccCustomers'),arpu=el('ccARPU'),lifespan=el('ccLifespan');
+var calcBtn=el('ccCalcBtn'),copyBtn=el('ccCopyBtn'),dlBtn=el('ccDlBtn'),whatifEl=el('ccWhatIf');
+var blended=el('ccBlended'),mktCac=el('ccMarketingCac'),salesCac=el('ccSalesCac'),payback=el('ccPayback'),ltv=el('ccLTV'),ltvRatio=el('ccLtvRatio'),health=el('ccHealth');
+var moRev=el('ccMoRev'),annRev=el('ccAnnRev'),totalCost=el('ccTotalCost'),grossMargin=el('ccGrossMargin');
+var benchTogEl=el('ccBenchTog'),benchWrap=el('ccBenchWrap'),benchGrid=el('ccBenchGrid');
+var hiToggle=el('ccHiToggle'),hiCount=el('ccHiCount'),hiClear=el('ccHiClear'),hiWrap=el('ccHiWrap'),hiList=el('ccHiList');
+var toastEl=el('ccToast'),tt;
+
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function v(e){var n=parseFloat(e.value.replace(/,/g,''));return isNaN(n)?0:n}
+function fmtCurrency(n){var s='$'+(n>=0?Math.round(n).toLocaleString('en-US'):'0');return s}
+function fmtCurrency2(n){if(isNaN(n)||n===0)return'$0.00';return'$'+n.toFixed(2)}
+function fmtRatio(n){return n.toFixed(1)}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+function applyWI(){
+var m=v(marketing),s=v(sales),c=v(customers)||1,a=v(arpu),l=v(lifespan);
+if(wi==='cut-spend-20'){m*=0.8;s*=0.8}
+else if(wi==='double-cust'){c*=2}
+else if(wi==='higher-arpu'){a*=1.3}
+else if(wi==='longer-life'){l*=1.5}
+else if(wi==='best-case'){m*=0.8;s*=0.8;c*=2;a*=1.3;l*=1.5}
+return{m:m,s:s,c:c,a:a,l:l}
+}
+
+function calc(){
+var d=applyWI();
+var m=d.m,s=d.s,c=d.c,a=d.a,l=d.l;
+var totalSpend=m+s;
+var cacBlended=totalSpend/c;
+var cacMkt=m/c;
+var cacSales=s/c;
+var ltvValue=a*l;
+var paybackMonths=cacBlended>0?(a>0?cacBlended/a:0):0;
+var ltvCac=cacBlended>0?ltvValue/cacBlended:0;
+var monthlyNewRev=c*a;
+var annualNewRev=monthlyNewRev*12;
+var monthlyGross=monthlyNewRev-totalSpend;
+blended.textContent=fmtCurrency2(cacBlended);
+mktCac.textContent=fmtCurrency2(cacMkt);
+salesCac.textContent=fmtCurrency2(cacSales);
+payback.textContent=paybackMonths<=0?'0 mo':paybackMonths<1?'<1 mo':Math.round(paybackMonths)+' mo';
+payback.style.color=paybackMonths<=12?'var(--color-success)':paybackMonths<=24?'var(--color-warning)':'var(--color-error)';
+ltv.textContent=fmtCurrency2(ltvValue);
+ltvRatio.textContent=fmtRatio(ltvCac)+':1';ltvRatio.style.color=ltvCac>=5?'var(--color-success)':ltvCac>=3?'var(--color-primary)':ltvCac>=1?'var(--color-warning)':'var(--color-error)';
+var h,hl;if(ltvCac>=5){h='Excellent';hl='var(--color-success)'}else if(ltvCac>=3){h='Good';hl='var(--color-primary)'}else if(ltvCac>=1){h='Poor';hl='var(--color-warning)'}else{h='Critical';hl='var(--color-error)'}
+health.textContent=h;health.style.background='color-mix(in oklab,'+hl+' 12%,transparent)';health.style.color=hl;
+moRev.textContent=fmtCurrency(monthlyNewRev);moRev.style.color=monthlyNewRev>0?'var(--color-success)':'var(--color-error)';
+annRev.textContent=fmtCurrency(annualNewRev);
+totalCost.textContent=fmtCurrency(totalSpend);
+grossMargin.textContent=fmtCurrency(monthlyGross);grossMargin.style.color=monthlyGross>=0?'var(--color-success)':'var(--color-error)';
+renderBench(cacBlended,ltvCac);
+saveInputs();
+}
+
+function renderBench(cacBlended,ltvCac){
+if(!benchTog)return;
+var h='';var keys=Object.keys(IND_BENCH);
+keys.forEach(function(k){
+var b=IND_BENCH[k];
+var cacDiff=((cacBlended-b.cac)/b.cac*100).toFixed(0);
+var ltvDiff=((ltvCac-b.ltvCac)/b.ltvCac*100).toFixed(0);
+var cacColor=cacBlended<=b.cac?'var(--color-success)':'var(--color-error)';
+var ltvColor=ltvCac>=b.ltvCac?'var(--color-success)':'var(--color-error)';
+h+='<div class="br"><span>'+esc(b.name)+'</span><span><span class="bv" style="color:'+cacColor+'">'+fmtCurrency2(b.cac)+'</span> vs <span class="bv" style="color:'+ltvColor+'">'+fmtRatio(b.ltvCac)+':1</span></span></div>';
+});
+benchGrid.innerHTML=h;
+}
+
+function saveHistory(){
+var d=applyWI();
+var label=fmtCurrency(d.m+d.s)+' spend · '+Math.round(d.c)+' customers';
+history.unshift({m:d.m,s:d.s,c:d.c,a:d.a,l:d.l,wi:wi,label:label,ts:Date.now()});
+if(history.length>30)history.pop();
+try{localStorage.setItem('sb_cc1',JSON.stringify(history))}catch(e){}
+renderHistory();
+}
+
+function renderHistory(){
+hiCount.textContent=history.length?'('+history.length+')':'';
+hiClear.hidden=!history.length;
+if(!history.length){hiList.innerHTML='<div class="cc-empty">No calculations yet</div>';return}
+var h='';history.forEach(function(item,i){
+var d=new Date(item.ts);var diff=Math.round((Date.now()-d)/1000);
+var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+h+='<div class="cc-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
+});
+hiList.innerHTML=h;
+}
+
+function saveInputs(){
+var d=applyWI();
+var obj={m:d.m,s:d.s,c:d.c,a:d.a,l:d.l,wi:wi};
+try{localStorage.setItem('sb_cc1_i',JSON.stringify(obj))}catch(e){}
+}
+
+function copyAll(){
+var d=applyWI();
+var txt='CAC Report\nScenario: '+wi.replace(/-/g,' ')+'\nMarketing: '+fmtCurrency(d.m)+'/mo\nSales: '+fmtCurrency(d.s)+'/mo\nCustomers: '+Math.round(d.c)+'/mo\nBlended CAC: '+blended.textContent+'\nMarketing CAC: '+mktCac.textContent+'\nSales CAC: '+salesCac.textContent+'\nPayback: '+payback.textContent+'\nLTV: '+ltv.textContent+'\nLTV:CAC: '+ltvRatio.textContent+'\nHealth: '+health.textContent+'\nMo. New Rev: '+moRev.textContent+'\nAnn. New Rev: '+annRev.textContent+'\nMo. Gross: '+grossMargin.textContent;
+navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')});
+}
+
+function dlReport(){
+var d=applyWI();
+var txt='=== CAC Report ===\nDate: '+new Date().toISOString().slice(0,10)+'\nScenario: '+wi.replace(/-/g,' ')+'\n\nInputs\nMarketing Spend: '+fmtCurrency(d.m)+'/mo\nSales Spend: '+fmtCurrency(d.s)+'/mo\nNew Customers: '+Math.round(d.c)+'/mo\nARPU: '+fmtCurrency2(d.a)+'/mo\nLifespan: '+Math.round(d.l)+' mo\n\nUnit Economics\nBlended CAC: '+blended.textContent+'\nMarketing CAC: '+mktCac.textContent+'\nSales CAC: '+salesCac.textContent+'\nCAC Payback: '+payback.textContent+'\nCustomer LTV: '+ltv.textContent+'\nLTV:CAC Ratio: '+ltvRatio.textContent+'\nHealth: '+health.textContent+'\n\nRevenue Impact\nMonthly New Revenue: '+moRev.textContent+'\nAnnual New Revenue: '+annRev.textContent+'\nMonthly Cost: '+totalCost.textContent+'\nMonthly Gross: '+grossMargin.textContent;
+var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='cac-report-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded');
+}
+
+whatifEl.addEventListener('click',function(e){
+var b=e.target.closest('button[data-wi]');if(!b)return;
+wi=b.getAttribute('data-wi');whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+calc();saveHistory();
+});
+
+calcBtn.addEventListener('click',function(){calc();saveHistory()});
+copyBtn.addEventListener('click',copyAll);
+dlBtn.addEventListener('click',dlReport);
+
+benchTogEl.addEventListener('click',function(){benchTog=benchTogEl.getAttribute('aria-expanded')==='true'?false:true;benchTogEl.setAttribute('aria-expanded',benchTog);benchWrap.hidden=!benchTog;benchTogEl.classList.toggle('on');if(benchTog){var d=applyWI();var cac=(d.m+d.s)/d.c;var ltvCac=(d.a*d.l)/cac;renderBench(cac,ltvCac)}});
+
+hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
+hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_cc1',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});
+hiList.addEventListener('click',function(e){
+var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_cc1',JSON.stringify(history))}catch(e){}renderHistory();return}
+var item=e.target.closest('.cc-hist-item');if(!item)return;
+var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
+marketing.value=h.m;sales.value=h.s;customers.value=h.c;arpu.value=h.a||120;lifespan.value=h.l||24;
+wi=h.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+history.splice(idx,1);try{localStorage.setItem('sb_cc1',JSON.stringify(history))}catch(e){}renderHistory();calc();
+});
+
+if(saved){
+marketing.value=saved.m||10000;sales.value=saved.s||15000;customers.value=saved.c||50;arpu.value=saved.a||120;lifespan.value=saved.l||24;
+wi=saved.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+}
+
+calc();
+})();
 </script>
-
-
-
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

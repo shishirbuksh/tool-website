@@ -1,58 +1,232 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}Instagram Calculator | Engagement Rate & Follower Growth{% endblock %}
-{% block meta_description %}Calculate your Instagram engagement rate, follower growth, optimal posting frequency, and estimated reach. Free Instagram analytics calculator for creators and brands.{% endblock %}
+{% block title %}Instagram Calculator — Engagement Rate, Reach, Growth & Earnings{% endblock %}
+{% block meta_description %}Advanced Instagram calculator: engagement rate, reach, story views, follower growth projection, earnings, likes-to-comment ratio, and history. All in your browser.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/instagram-calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/instagram-calculator">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Instagram Calculator - Engagement Rate & Follower Growth">
-<meta property="og:description" content="Calculate your Instagram engagement rate, follower growth, and more.">
+<meta property="og:title" content="Instagram Calculator — Engagement, Growth & Earnings">
+<meta property="og:description" content="Advanced Instagram calculator: engagement rate, reach, story views, follower growth, earnings, ratio analysis & history. Free. No sign-up.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
 {% endblock %}
-{% block head %}{% endblock %}
+{% block head %}
+<style>
+.ic-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.ic-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.ic-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.ic-input:focus{border-color:var(--color-primary);outline:none}
+.ic-input-sm{border-radius:.65rem;padding:.35rem .55rem;font-weight:600;font-size:.75rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.ic-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.55rem .75rem;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:6px;touch-action:manipulation}
+.ic-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.ic-pri:active{transform:translateY(0)}
+.ic-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.45rem .7rem;font-weight:700;font-size:.65rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation}
+.ic-sec:hover{border-color:var(--color-base-content)}
+.ic-sec.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.ic-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.3rem .6rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:10px;transition:all .12s}
+.ic-toggle:hover{background:var(--color-base-200)}
+.ic-toggle.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.ic-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.ic-toast.show{opacity:1;transform:translateY(0)}
+.ic-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ic-result{background:var(--color-base-100);border-radius:1rem;padding:12px 10px;text-align:center;border:1px solid var(--color-base-300)}
+.ic-result .iv{font-size:20px;font-weight:900;font-family:monospace;line-height:1.2}
+.ic-result .il{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-top:3px}
+.ic-result.full{grid-column:1/-1}
+.ic-result.full .iv{font-size:28px}
+.ic-result.half{grid-column:span 1}
+.ic-score{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;display:inline-block;padding:3px 12px;border-radius:999px}
+.ic-hint{font-size:11px;font-weight:600;opacity:.5;text-align:center;padding:8px;background:var(--color-base-100);border-radius:.75rem;border:1px solid var(--color-base-300);margin-top:8px}
+.ic-proj{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--color-base-100);border-radius:.75rem;border:1px solid var(--color-base-300);margin-top:8px}
+.ic-proj .bar-wrap{flex:1;height:8px;border-radius:4px;background:var(--color-base-300);overflow:hidden}
+.ic-proj .bar-fill{height:100%;border-radius:4px;transition:width .4s cubic-bezier(.22,1,.36,1)}
+.ic-hist{max-height:200px;overflow-y:auto}
+.ic-hist-item{padding:5px 8px;border-radius:.6rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:9px;font-weight:600;cursor:pointer;transition:all .12s;margin-bottom:2px}
+.ic-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.ic-hist-item .preview{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:8px;opacity:.55;min-width:0}
+.ic-hist-item .meta{font-size:7px;font-weight:700;opacity:.35;white-space:nowrap}
+.ic-hist-item .hdel{width:18px;height:18px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:8px}
+.ic-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.ic-empty{text-align:center;padding:20px 12px;font-size:10px;font-weight:600;opacity:.3}
+.ic-whatif{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px}
+.ic-whatif button{padding:4px 6px;border-radius:6px;font-size:8px;font-weight:700;cursor:pointer;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;touch-action:manipulation}
+.ic-whatif button:hover{background:color-mix(in oklab,var(--color-primary) 10%,transparent);border-color:var(--color-primary)}
+.ic-whatif button.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+</style>
+{% endblock %}
 {% block content %}
-{{ tool_hero_section("camera", "Social Media", "INSTAGRAM", "CALCULATOR", "Calculate your Instagram engagement rate, follower growth, and estimated reach.") }}
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Instagram Metrics</h2>
-        <form class="flex flex-col gap-5">
-          <div><label class="label-cinematic" for="followers">Total Followers</label><input aria-label="Followers" type="number" id="followers" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="10000" min="0"></div>
-          <div><label class="label-cinematic" for="avgLikes">Average Likes per Post</label><input aria-label="Avglikes" type="number" id="avgLikes" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="500" min="0"></div>
-          <div><label class="label-cinematic" for="avgComments">Average Comments per Post</label><input aria-label="Avgcomments" type="number" id="avgComments" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="25" min="0"></div>
-          <div><label class="label-cinematic" for="postsPerWeek">Posts per Week</label><input aria-label="Postsperweek" type="number" id="postsPerWeek" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="5" min="0"></div>
-          <button type="button" id="igCalcBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("calculator","w-5 h-5", 20) | safe }} CALCULATE</button>
-        </form>
+{{ tool_hero_section("camera","Social Media","INSTAGRAM","CALCULATOR","Engagement rate, story views, follower growth, earnings projection, ratio analysis & history.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="ic-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("sliders","w-4 h-4",16) | safe }} Profile</h2>
+      <div class="flex flex-col gap-3">
+        <div><label class="ic-label" for="icFol">Followers</label><input type="text" id="icFol" class="ic-input" value="10000" inputmode="numeric" aria-label="Followers"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="ic-label" for="icLike">Avg Likes</label><input type="text" id="icLike" class="ic-input" value="450" inputmode="numeric" aria-label="Avg likes per post"></div>
+          <div><label class="ic-label" for="icComm">Avg Comments</label><input type="text" id="icComm" class="ic-input" value="20" inputmode="numeric" aria-label="Avg comments per post"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="ic-label" for="icStory">Story Views</label><input type="text" id="icStory" class="ic-input" value="200" inputmode="numeric" aria-label="Avg story views"></div>
+          <div><label class="ic-label" for="icPost">Posts/Week</label><input type="text" id="icPost" class="ic-input" value="5" inputmode="numeric" aria-label="Posts per week"></div>
+        </div>
+        <div><label class="ic-label" for="icGrow">Weekly Follower Growth</label><input type="text" id="icGrow" class="ic-input" value="50" inputmode="numeric" aria-label="New followers per week"></div>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button type="button" id="icCalcBtn" class="ic-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
+        <button type="button" id="icCopyBtn" class="ic-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }} Copy</button>
+        <button type="button" id="icDlBtn" class="ic-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }} .txt</button>
       </div>
     </div>
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Analytics Report</h3>
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <div class="card-premium p-5 text-center" style="border-color:color-mix(in oklab, var(--color-primary) 25%, transparent)">
-            <span class="label-cinematic block mb-2 text-primary">Engagement Rate</span>
-            <output id="resEngRate" class="metric-cinematic metric-cinematic--xl text-primary">0%</output>
-          </div>
-          <div class="card-premium p-5 text-center" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-            <span class="label-cinematic block mb-2 text-success">Weekly Engagement</span>
-            <output id="resWeeklyEng" class="metric-cinematic metric-cinematic--lg text-success">0</output>
-          </div>
-          <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Monthly Impressions Est.</span><output id="resImpressions" class="metric-cinematic metric-cinematic--md font-mono">0</output></div>
-          <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Engagement Score</span><output id="resScore" class="metric-cinematic metric-cinematic--sm font-mono">Average</output></div>
-        </div>
+    <div class="ic-card mt-4">
+      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("zap","w-3 h-3",12) | safe }} What-If Simulator</h2>
+      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">Click a scenario to see how changes affect your metrics</p>
+      <div class="ic-whatif" id="icWhatIf"><button type="button" class="on" data-wi="current">Current</button><button type="button" data-wi="double-likes">x2 Likes</button><button type="button" data-wi="half-likes">x0.5 Likes</button><button type="button" data-wi="double-fol">x2 Followers</button><button type="button" data-wi="double-comm">x2 Comments</button><button type="button" data-wi="growth-x2">x2 Growth</button></div>
+    </div>
+    <div class="ic-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
+        <div class="flex items-center gap-2"><button type="button" id="icHiToggle" class="ic-toggle" aria-expanded="false" aria-controls="icHiWrap">History <span id="icHiCount"></span></button><button type="button" id="icHiClear" class="ic-sec" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
       </div>
+      <div id="icHiWrap" hidden class="mt-2"><div id="icHiList" class="ic-hist"></div></div>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="ic-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} Metrics</h2>
+      <div class="ic-grid" id="icResults">
+        <div class="ic-result full"><div class="iv" id="icRate" style="color:var(--color-primary)">0.00%</div><div class="il">Engagement Rate</div></div>
+        <div class="ic-result"><div class="iv" id="icReach">0</div><div class="il">Weekly Reach</div></div>
+        <div class="ic-result"><div class="iv" id="icEarn">$0</div><div class="il">Est. Per Post</div></div>
+        <div class="ic-result half"><div class="iv" id="icStoryRate">0%</div><div class="il">Story View Rate</div></div>
+        <div class="ic-result half"><div class="iv" id="icLikeRatio">0</div><div class="il">Like/Comment Ratio</div></div>
+        <div class="ic-result"><div class="iv" id="icMonthly">$0</div><div class="il">Est. Monthly Revenue</div></div>
+        <div class="ic-result full" style="padding:10px"><span class="ic-score" id="icScore">—</span></div>
+      </div>
+      <div id="icProjWrap"></div>
+      <div class="ic-hint" id="icHint">Enter your numbers and click Calculate.</div>
     </div>
   </div>
 </div>
+<div id="icToast" class="ic-toast" role="status" aria-live="polite"></div>
 <script>
-(function(){'use strict';function calculate(){const f=parseFloat(document.getElementById('followers').value)||0;const l=parseFloat(document.getElementById('avgLikes').value)||0;const c=parseFloat(document.getElementById('avgComments').value)||0;const p=parseFloat(document.getElementById('postsPerWeek').value)||0;const engPerPost=l+c;const engRate=f>0?(engPerPost/f*100):0;const weeklyEng=engPerPost*p;const impressions=weeklyEng*6;document.getElementById('resEngRate').innerText=engRate.toFixed(2)+'%';document.getElementById('resWeeklyEng').innerText=Math.round(weeklyEng).toLocaleString();document.getElementById('resImpressions').innerText=Math.round(impressions).toLocaleString();const score=document.getElementById('resScore');if(engRate>=5){score.innerText='Excellent';score.style.color='var(--color-success)';}else if(engRate>=3){score.innerText='Good';score.style.color='var(--color-primary)';}else if(engRate>=1){score.innerText='Average';score.style.color='var(--color-warning)';}else{score.innerText='Low';score.style.color='var(--color-error)';}}
-document.addEventListener('DOMContentLoaded',function(){calculate();document.getElementById('igCalcBtn').addEventListener('click',calculate);document.querySelectorAll('input').forEach(function(el){el.addEventListener('input',calculate);});});})();
+(function(){'use strict';
+var wi='current';
+var history=[]; try{var h=JSON.parse(localStorage.getItem('sb_ic1')||'[]');if(Array.isArray(h))history=h}catch(e){}
+
+function el(id){return document.getElementById(id)}
+var fol=el('icFol'),like=el('icLike'),comm=el('icComm'),story=el('icStory'),post=el('icPost'),grow=el('icGrow');
+var calcBtn=el('icCalcBtn'),copyBtn=el('icCopyBtn'),dlBtn=el('icDlBtn'),whatifEl=el('icWhatIf');
+var rate=el('icRate'),reach=el('icReach'),earn=el('icEarn'),storyRate=el('icStoryRate'),likeRatio=el('icLikeRatio'),monthly=el('icMonthly'),score=el('icScore'),hint=el('icHint'),proj=el('icProjWrap');
+var hiToggle=el('icHiToggle'),hiCount=el('icHiCount'),hiClear=el('icHiClear'),hiWrap=el('icHiWrap'),hiList=el('icHiList');
+var toastEl=el('icToast'),tt;
+
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function v(e){var n=parseFloat(e.value.replace(/,/g,''));return isNaN(n)?0:n}
+function fmt(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return Math.round(n/1e3)+'K';return String(Math.round(n))}
+
+function applyWI(){
+var f=v(fol),l=v(like),c=v(comm),s=v(story),p=v(post)||1,g=v(grow);
+if(wi==='double-likes'){l*=2}
+else if(wi==='half-likes'){l*=0.5}
+else if(wi==='double-fol'){f*=2}
+else if(wi==='double-comm'){c*=2}
+else if(wi==='growth-x2'){g*=2}
+return{f:f,l:l,c:c,s:s,p:p,g:g}
+}
+
+function calc(){
+var d=applyWI();
+var eng=d.l+d.c,engRate=d.f>0?(eng/d.f*100):0,weeklyEng=eng*d.p,weeklyReach=weeklyEng*6;
+var storyRt=d.f>0?(d.s/d.f*100):0,lcRatio=d.c>0?Math.round(d.l/d.c):d.l;
+var estPerPost=0;if(engRate>=5)estPerPost=eng*0.5;else if(engRate>=3)estPerPost=eng*0.25;else if(engRate>=1)estPerPost=eng*0.1;
+var monthlyRev=estPerPost*d.p*4.33;
+var sc,scCl;if(engRate>=5){sc='Excellent';scCl='var(--color-success)'}else if(engRate>=3){sc='Good';scCl='var(--color-primary)'}else if(engRate>=1){sc='Average';scCl='var(--color-warning)'}else{sc='Low';scCl='var(--color-error)'}
+rate.textContent=engRate.toFixed(2)+'%';rate.style.color=scCl;
+reach.textContent=fmt(weeklyReach);
+earn.textContent='$'+estPerPost.toFixed(2);
+storyRate.textContent=storyRt.toFixed(1)+'%';
+likeRatio.textContent=fmt(lcRatio);
+monthly.textContent='$'+monthlyRev.toFixed(2);
+score.textContent=sc;score.style.color=scCl;score.style.background='color-mix(in oklab,'+scCl+' 12%,transparent)';
+var h='';if(engRate<1)h='Low engagement — try polls, reels, and interactive stories.';else if(engRate<3)h='Average engagement — consistent posting and audience interaction helps.';else if(engRate<5)h='Good engagement — try carousels and longer captions.';else h='Excellent engagement — your community is highly active!';
+if(d.p<3)h+=' Post 4-5x/week for better reach.';else if(d.p>10)h+=' ' + d.p + 'x/week is high — prioritize quality.';
+hint.textContent=h;
+renderProj(d.f,d.g);
+}
+
+function renderProj(curFol,weeklyGrow){
+if(!weeklyGrow){proj.innerHTML='';return}
+var months=[1,3,6,12];var h='<div class="ic-label" style="margin-top:8px">Follower Growth Projection</div>';
+h+='<div class="ic-proj"><span style="font-size:9px;font-weight:700;min-width:50px">Now: '+fmt(curFol)+'</span><div class="bar-wrap"><div class="bar-fill" style="width:'+Math.min(100,20)+'%;background:var(--color-primary)"></div></div></div>';
+months.forEach(function(m){
+var projected=Math.round(curFol+weeklyGrow*4.33*m);
+var bars=[curFol,projected];var min=Math.min.apply(null,bars),max=Math.max.apply(null,bars),range=max-min||1;
+var pct=(projected-curFol)/range*100;if(pct<5)pct=5;if(pct>100)pct=100;
+h+='<div class="ic-proj"><span style="font-size:9px;font-weight:700;min-width:50px">'+m+'mo: '+fmt(projected)+'</span><div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%;background:var(--color-success)"></div></div></div>';
+});
+proj.innerHTML=h;
+}
+
+function copyAll(){
+var d=applyWI();
+var txt='Instagram Analytics Report\n'+(d.f.toLocaleString()+' followers · '+d.l.toLocaleString()+' likes/post · '+d.c.toLocaleString()+' comments/post\nEngagement Rate: '+rate.textContent+'\nWeekly Reach: '+reach.textContent+'\nStory View Rate: '+storyRate.textContent+'\nLike/Comment Ratio: '+likeRatio.textContent+'\nEst. Per Post: '+earn.textContent+'\nEst. Monthly: '+monthly.textContent+'\nScore: '+score.textContent+'\nScenario: '+wi.replace(/-/g,' '));
+navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')});
+}
+
+function dlReport(){
+var d=applyWI();
+var txt='=== Instagram Analytics Report ===\nDate: '+new Date().toISOString().slice(0,10)+'\nScenario: '+wi.replace(/-/g,' ')+'\n\nProfile\nFollowers: '+d.f.toLocaleString()+'\nLikes/Post: '+d.l.toLocaleString()+'\nComments/Post: '+d.c.toLocaleString()+'\nPosts/Week: '+d.p+'\nStory Views: '+d.s+'\nWeekly Growth: '+d.g+'\n\nMetrics\nEngagement Rate: '+rate.textContent+'\nWeekly Reach: '+reach.textContent+'\nStory View Rate: '+storyRate.textContent+'\nLike/Comment Ratio: '+likeRatio.textContent+'\nEst. Per Post: '+earn.textContent+'\nEst. Monthly: '+monthly.textContent+'\nScore: '+score.textContent+'\n\nTip: '+hint.textContent;
+var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='instagram-report-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded');
+}
+
+function saveHistory(){
+var d=applyWI();
+var label=fmt(d.f)+' fol · '+rate.textContent;
+history.unshift({f:d.f,l:d.l,c:d.c,s:d.s,p:d.p,g:d.g,wi:wi,label:label,ts:Date.now()});
+if(history.length>30)history.pop();
+try{localStorage.setItem('sb_ic1',JSON.stringify(history))}catch(e){}
+renderHistory();
+}
+
+function renderHistory(){
+hiCount.textContent=history.length?'('+history.length+')':'';
+hiClear.hidden=!history.length;
+if(!history.length){hiList.innerHTML='<div class="ic-empty">No calculations yet</div>';return}
+var h='';history.forEach(function(item,i){
+var d=new Date(item.ts);var diff=Math.round((Date.now()-d)/1000);
+var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+h+='<div class="ic-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
+});
+hiList.innerHTML=h;
+}
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+whatifEl.addEventListener('click',function(e){
+var b=e.target.closest('button[data-wi]');if(!b)return;
+wi=b.getAttribute('data-wi');whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+calc();saveHistory();
+});
+
+calcBtn.addEventListener('click',function(){calc();saveHistory()});
+copyBtn.addEventListener('click',copyAll);
+dlBtn.addEventListener('click',dlReport);
+
+hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
+hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_ic1',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});
+hiList.addEventListener('click',function(e){
+var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_ic1',JSON.stringify(history))}catch(e){}renderHistory();return}
+var item=e.target.closest('.ic-hist-item');if(!item)return;
+var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
+fol.value=h.f;like.value=h.l;comm.value=h.c;story.value=h.s;post.value=h.p;grow.value=h.g;
+wi=h.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+history.splice(idx,1);try{localStorage.setItem('sb_ic1',JSON.stringify(history))}catch(e){}renderHistory();calc();
+});
+
+calc();
+})();
 </script>
-
-
-
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

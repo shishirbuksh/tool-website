@@ -146,6 +146,24 @@ CATEGORY_DEFAULTS = {
 
 
 OVERRIDES: dict[str, dict[str, Any]] = {
+    "gst-calculator": {
+        "icon": "receipt",
+        "app_category": "FinanceApplication",
+        "faqs": [
+            {"q": "What is the difference between exclusive and inclusive GST?", "a": "Exclusive GST means the amount entered is before tax — GST is added on top. Inclusive GST means the amount entered already includes tax — GST is extracted to find the base price."},
+            {"q": "What is the difference between CGST+SGST and IGST?", "a": "CGST (Central GST) and SGST (State GST) apply to intra-state transactions (within the same state), split equally. IGST (Integrated GST) applies to inter-state transactions (across states), collected as a single tax."},
+            {"q": "What GST slabs are available in India?", "a": "India has six main GST slabs: 0% (essential goods), 3% (gold/diamond), 5% (basic necessities), 12% (standard goods), 18% (majority of goods/services), and 28% (luxury/demerit goods)."},
+            {"q": "Can I use a custom GST rate?", "a": "Yes, click the Custom button and enter any rate. This is useful for special rates or non-Indian GST calculations."},
+            {"q": "How does the Invoice Itemizer work?", "a": "Add multiple items with different prices, quantities, and GST rates. The itemizer calculates the taxable value, total GST, and grand total for the entire invoice."},
+        ],
+        "howto_steps": [
+            {"title": "Enter Amount", "desc": "Type the amount and select exclusive (add GST) or inclusive (remove GST) mode using the toggle."},
+            {"title": "Pick GST Rate", "desc": "Choose a slab (0-28%) or enter a custom rate. Results update instantly with CGST/SGST or IGST breakdown."},
+            {"title": "Itemize Invoice", "desc": "Use the invoice itemizer to add multiple line items with different rates. The grand total updates automatically."},
+        ],
+        "about_title": "About the GST Calculator",
+        "about_body": "<p>The GST Calculator is a free online tool for calculating Goods and Services Tax for Indian tax slabs. It supports exclusive and inclusive modes, intra-state (CGST+SGST) and inter-state (IGST) transactions, and includes an invoice itemizer for multi-item invoices.</p><p>All calculations happen locally in your browser. No data is sent to any server, no sign-up required, and your calculation history is saved in local storage for reference between visits.</p>",
+    },
     "calculator": {
         "icon": "calculator",
         "app_category": "UtilitiesApplication",
@@ -243,6 +261,268 @@ OVERRIDES: dict[str, dict[str, Any]] = {
     "resume-generator": {
         "icon": "file",
         "app_category": "BusinessApplication",
+        "faqs": [
+            {"q": "What resume templates are available?", "a": "Three templates: Modern (clean sans-serif layout), Classic (serif-based traditional style with centered headers), and Minimal (compact dense layout for experienced professionals)."},
+            {"q": "How does the ATS score work?", "a": "The ATS (Applicant Tracking System) score checks your resume for common issues: missing sections, short descriptions, lack of bullet points, missing contact info, and keyword density. A score of 80+ means your resume is likely ATS-friendly."},
+            {"q": "Can I save my resume and come back later?", "a": "Yes, all your data is automatically saved in your browser's local storage. It persists between visits. You can also export your full resume as JSON for manual backup."},
+            {"q": "How do I print or save as PDF?", "a": "Click the Print button to open a print-ready version in a new tab. Use your browser's Print dialog (Ctrl+P) to save as PDF or print on paper."},
+            {"q": "Can I add custom sections?", "a": "Yes, click 'Add Custom Section' to create sections with your own title and content. Useful for Publications, Volunteer Work, Awards, or any other section."},
+        ],
+        "howto_steps": [
+            {"title": "Fill Your Info", "desc": "Enter your name, contact details, summary, experience, education, certifications, projects, skills, and languages."},
+            {"title": "Choose Style", "desc": "Pick a template (Modern, Classic, or Minimal) and accent color. Toggle section visibility to customize the layout."},
+            {"title": "Export & Share", "desc": "Print as PDF, copy as plain text, download as .txt, or export full data as JSON for backup."},
+        ],
+        "about_title": "About the Resume Builder",
+        "about_body": "<p>The Resume Builder is a free, browser-based tool for creating professional resumes. It features multiple templates, live preview, ATS compatibility checking, section visibility controls, and export options including PDF, plain text, and JSON.</p><p>All data is processed locally in your browser. Nothing is uploaded to any server, no sign-up is required, and the tool works offline after the initial page load. Your resume data auto-saves between visits, and you can export/import JSON for full backup and restore.</p>",
+    },
+    "task-manager": {
+        "icon": "check-square",
+        "app_category": "BusinessApplication",
+    },
+    "time-tracker": {
+        "icon": "timer",
+        "app_category": "UtilitiesApplication",
+        "faqs": [
+            {"q": "How do I track time?", "a": "Enter a task name, set your hourly rate, and click Start. The timer runs live. Click Stop to log the session. You can also add entries manually using the Add Entry form."},
+            {"q": "Can I add entries without using the timer?", "a": "Yes, use the date, task, duration, and rate fields to add entries directly to the log. Duration is in hours (e.g. 2.5 for 2h30m)."},
+            {"q": "Is my data saved between visits?", "a": "Yes, all entries are saved in your browser's local storage. They persist until you clear browser data or click Clear All."},
+            {"q": "Can I export my timesheet?", "a": "Yes, click Export CSV to download your entire log as a CSV file compatible with Excel, Google Sheets, and payroll software."},
+        ],
+        "howto_steps": [
+            {"title": "Set Up", "desc": "Enter a task name and your hourly rate. The rate auto-applies to new entries."},
+            {"title": "Track Time", "desc": "Click Start to begin timing. Click Stop to save the session to your log."},
+            {"title": "Export", "desc": "Review all entries with totals, then click Export CSV for your timesheet."},
+        ],
+        "about_title": "About the Time Tracker",
+        "about_body": "<p>The Time Tracker is a free browser-based tool for logging work hours and calculating billable earnings. Use the live timer for active tracking or add entries manually. All data stays in your browser — nothing is uploaded.</p><p>Perfect for freelancers, contractors, and remote workers who need a simple timesheet without signing up for a subscription service. Export your log as CSV for payroll, invoicing, or expense reporting.</p>",
+    },
+    "unit-converter": {
+        "icon": "arrow-left-right",
+        "app_category": "UtilitiesApplication",
+        "faqs": [
+            {"q": "How many unit categories are supported?", "a": "12 categories: Length, Mass, Volume, Temperature, Area, Speed, Time, Digital Storage, Energy, Pressure, Frequency, and Data Transfer Rate — over 80 units total."},
+            {"q": "How does the batch view work?", "a": "Click 'All Units' to see the converted value in every unit within the current category. Click Copy on any row to copy that specific converted value."},
+            {"q": "What is the precision slider?", "a": "The precision slider controls how many decimal places are shown in the result. Slide from 0 (whole numbers) to 10 (maximum detail)."},
+            {"q": "How does temperature conversion work?", "a": "Temperature uses proper formulas (not simple factors). Celsius, Fahrenheit, and Kelvin convert correctly using their respective offset formulas."},
+            {"q": "Is my data saved between visits?", "a": "Yes, your conversion history is saved in your browser's local storage. It persists until you clear browser data or click Clear."},
+        ],
+        "howto_steps": [
+            {"title": "Pick a Category", "desc": "Select from 12 categories using the grid at the top. Each category has its own set of units."},
+            {"title": "Enter Your Value", "desc": "Type a number, select From and To units, and see the result instantly. Adjust precision with the slider."},
+            {"title": "Use Quick Conversions", "desc": "Click any common conversion button to instantly set up a popular conversion pair."},
+        ],
+        "about_title": "About the Unit Converter",
+        "about_body": "<p>The Unit Converter is a comprehensive, free online tool for converting between 80+ units across 12 categories. Whether you need to convert length, mass, volume, temperature, or digital storage units, this tool handles it all in your browser.</p><p>All processing is done client-side using JavaScript. No data is sent to any server, no sign-up required, and no tracking. The tool works offline after the initial page load and remembers your conversion history between visits.</p>",
+    },
+    "timezone-converter": {
+        "icon": "globe",
+        "app_category": "UtilitiesApplication",
+        "faqs": [
+            {"q": "How do I add timezones to the world clock?", "a": "Select a timezone from the dropdown and click Add. The clock appears instantly with current time, date, UTC offset, and DST indicator. You can add as many timezones as you need."},
+            {"q": "How does the meeting planner work?", "a": "The meeting planner shows a 24-hour grid for all your added timezones. Business hours (9am–5pm local time) are highlighted in blue. Overlapping business hours across all zones are highlighted in green, making it easy to find meeting times."},
+            {"q": "Does this tool handle Daylight Saving Time?", "a": "Yes. The tool uses the browser's Intl API for all timezone conversions, which is DST-aware automatically. Clocks currently in DST show a green left border and a DST label."},
+            {"q": "Is my data saved between visits?", "a": "Yes, your selected timezones and conversion history are saved in your browser's local storage. They persist until you clear browser data."},
+            {"q": "Can I share my timezone list?", "a": "Yes, click the Copy button above the world clocks to copy all your timezones with current times and offsets as formatted text."},
+        ],
+        "howto_steps": [
+            {"title": "Add Timezones", "desc": "Use the dropdown to add cities/timezones to your world clock dashboard. Sort them by offset or search by name."},
+            {"title": "Convert Times", "desc": "Select From/To timezones, pick a date and time, and click Convert. The result shows the converted time with date and offset difference."},
+            {"title": "Plan Meetings", "desc": "Use the meeting planner grid to find overlapping business hours across all your timezones at a glance."},
+        ],
+        "about_title": "About the Timezone Converter",
+        "about_body": "<p>The Timezone Converter is a free, browser-based tool for managing time across multiple timezones. It combines a world clock dashboard, timezone converter, meeting planner, and timezone browser into one integrated tool.</p><p>All processing is done locally using the browser's built-in Intl API — no data is sent to any server, no tracking, no sign-up required. The tool is fully DST-aware and works offline after the initial page load.</p>",
+    },
+    "text-case-converter": {
+        "icon": "text-cursor",
+        "app_category": "UtilitiesApplication",
+        "faqs": [
+            {"q": "What text case formats are supported?", "a": "Ten formats: UPPERCASE, lowercase, Title Case, Sentence case, camelCase, PascalCase, snake_case, kebab-case, CONSTANT_CASE, and dot.case."},
+            {"q": "Does the converter work in real time?", "a": "Yes. The output updates instantly as you type or switch formats. There's also a Convert button if you prefer manual control."},
+            {"q": "Can I swap input and output?", "a": "Yes, click the Swap button to use the converted result as new input — useful for multi-step conversions."},
+            {"q": "Is my text sent to a server?", "a": "No. All conversion happens locally in your browser. Your text never leaves your device."},
+        ],
+        "howto_steps": [
+            {"title": "Type or Paste Text", "desc": "Enter your text into the input area. The output updates automatically as you type."},
+            {"title": "Select a Format", "desc": "Click any case format button (UPPER, lower, Title, etc.) to apply it instantly."},
+            {"title": "Copy the Result", "desc": "Click Copy to save the converted text to your clipboard, or use Swap to continue editing."},
+        ],
+        "about_title": "About the Text Case Converter",
+        "about_body": "<p>The Text Case Converter is a fast, privacy-first tool that transforms text between 10 different case formats. Whether you need to fix inconsistent capitalization in a document, generate camelCase variable names for code, or convert headings to Title Case for SEO, this tool handles it instantly in your browser.</p><p>All processing is done client-side using JavaScript — no text is sent to any server, no data is stored or tracked. The tool is free, requires no sign-up, and works offline after the initial page load.</p>",
+    },
+    "date-calculator": {
+        "icon": "calendar",
+        "app_category": "UtilitiesApplication",
+        "faqs": [
+            {"q": "How do I calculate the difference between two dates?", "a": "Enter a start and end date, then click Calculate Difference. The tool shows the exact span in years, months, and days, plus the total number of days."},
+            {"q": "What can I do with the Add/Subtract date feature?", "a": "Pick a start date, choose Add or Subtract, then enter any combination of years, months, weeks, and days. The result shows the new date with the full weekday name."},
+            {"q": "Does this tool include the end date in the count?", "a": "Yes, by default the Include End Date option adds 1 day so the range is inclusive. Toggle it off to count only full 24-hour periods between dates."},
+            {"q": "Can I calculate business days between dates?", "a": "Yes, use the Business Days mode which counts only weekdays (Mon-Fri) and optionally excludes weekends for work-day calculations."},
+            {"q": "Is my calculation history saved?", "a": "Yes, every calculation is saved in your browser's local storage. You can click any history entry to restore it, or clear the history at any time."},
+        ],
+        "howto_steps": [
+            {"title": "Choose a Mode", "desc": "Pick Date Difference to find the span between two dates, or Add/Subtract to shift a date by a specific amount of time."},
+            {"title": "Enter Dates", "desc": "Select dates using the date pickers. For the difference mode, toggle Include End Date if you want the range to be inclusive."},
+            {"title": "Get Results", "desc": "Results update instantly showing years/months/days breakdown plus total days. Use the preset buttons for quick common ranges."},
+        ],
+        "about_title": "About the Date Calculator",
+        "about_body": "<p>The Date Calculator is a free online tool for computing date differences and adding or subtracting time from any date. It supports years, months, weeks, and days for date shifting, plus precise duration calculations between any two dates.</p><p>All processing happens locally in your browser. No data is sent to any server, no sign-up required, and your calculation history is saved in local storage for reference between visits.</p>",
+    },
+    "age-calculator": {
+        "icon": "hourglass",
+        "app_category": "UtilitiesApplication",
+        "faqs": [
+            {"q": "How is my age calculated?", "a": "Your age is calculated by comparing your date of birth to the current date. The tool accounts for leap years and month-day boundaries to give exact years, months, and days."},
+            {"q": "Does the age update in real time?", "a": "Yes, click 'Start Live Counter' to see your age tick forward in real time — years, months, days, hours, minutes, and seconds all update live."},
+            {"q": "What information does this tool show besides my age?", "a": "It shows your exact age breakdown, total days lived, upcoming birthday countdown, day of the week you were born, zodiac sign, Chinese zodiac animal, and birthstone."},
+            {"q": "Is my birth date saved between visits?", "a": "If you want to save it, click Save. The date is stored in your browser's local storage — nothing is sent to any server."},
+        ],
+        "howto_steps": [
+            {"title": "Enter Date of Birth", "desc": "Select your date of birth using the date picker and click Calculate to see your exact age."},
+            {"title": "View Your Stats", "desc": "See your age in years/months/days, total days lived, day of birth, zodiac sign, Chinese zodiac, and birthstone all at a glance."},
+            {"title": "Start the Live Counter", "desc": "Click Start Live Counter to watch your age update in real-time, or check your next birthday countdown."},
+        ],
+        "about_title": "About the Age Calculator",
+        "about_body": "<p>The Age Calculator is a free online tool that computes your exact age based on your date of birth. It provides a detailed breakdown in years, months, and days, along with total days lived, zodiac sign information, and a live counter that ticks in real time.</p><p>All processing is done locally in your browser. No data is uploaded to any server, no sign-up required, and your birth date can optionally be saved in local storage for convenience between visits.</p>",
+    },
+    "percentage-calculator": {
+        "icon": "percent",
+        "app_category": "UtilitiesApplication",
+        "faqs": [
+            {"q": "What percentage calculations are supported?", "a": "Six modes: what percent X is of Y, X% of Y, percentage change from old to new, percentage difference between two numbers, margin vs markup, and tip calculator."},
+            {"q": "How does the percentage change calculator work?", "a": "Enter the old value and the new value. The tool calculates the percentage increase or decrease using the formula: (new - old) / old × 100."},
+            {"q": "What is the difference between margin and markup?", "a": "Margin is profit as a percentage of the selling price. Markup is profit as a percentage of the cost price. Margin = (Price - Cost) / Price × 100. Markup = (Price - Cost) / Cost × 100."},
+            {"q": "Is my calculation history saved?", "a": "Yes, every calculation is saved in your browser's local storage. Click any history entry to restore it, or clear the history at any time."},
+        ],
+        "howto_steps": [
+            {"title": "Select a Mode", "desc": "Choose from 6 calculation modes: Ratio, Value, Change, Difference, Margin, or Tip using the mode selector."},
+            {"title": "Enter Values", "desc": "Fill in the input fields for your selected mode. Results update instantly as you type."},
+            {"title": "Copy or Save", "desc": "Click the result to copy it to your clipboard, or let it auto-save to your calculation history."},
+        ],
+        "about_title": "About the Percentage Calculator",
+        "about_body": "<p>The Percentage Calculator is a versatile online tool that handles 6 different percentage calculation modes: ratio finding (X is what % of Y), value finding (X% of Y), percentage change, percentage difference, margin vs markup, and tip calculation.</p><p>All calculations are performed locally in your browser. No data is sent to any server, no sign-up required, and your calculation history is saved in local storage for reference between visits.</p>",
+    },
+    "instagram-calculator": {
+        "icon": "camera",
+        "app_category": "UtilitiesApplication",
+        "faqs": [
+            {"q": "What is engagement rate on Instagram?", "a": "Engagement rate is the percentage of your followers who interact with your posts. It is calculated by dividing total likes and comments by your follower count, then times 100. A rate above 3% is good, above 5% is excellent."},
+            {"q": "How is estimated earnings per post calculated?", "a": "Estimated earnings are based on your engagement level. Higher engagement means more value to sponsors. The tool estimates earnings at different tiers: excellent engagement earns the most per post, while low engagement earns less."},
+            {"q": "What is a good story view rate?", "a": "Story view rate is your average story views divided by followers. A rate above 5% is good, above 10% is excellent. Low story views may mean your stories need more interactive elements like polls and questions."},
+            {"q": "What is the like-to-comment ratio?", "a": "The like-to-comment ratio shows how many likes you get per comment. A lower ratio (e.g. 10:1 or less) means more people are commenting — which signals deep engagement. High ratios (50:1+) suggest content that gets passive likes but not conversations."},
+            {"q": "How does the follower growth projection work?", "a": "The tool projects your follower count at 1, 3, 6, and 12 months based on your weekly follower growth rate. It shows a visual bar chart comparing current vs projected numbers so you can see your growth trajectory."},
+            {"q": "What is the What-If Simulator?", "a": "The simulator lets you test different scenarios like doubling your likes or followers. Click any scenario button to instantly see how that change would affect all your metrics — useful for setting growth targets."},
+            {"q": "Is my data saved between visits?", "a": "Yes, your calculation history is saved in your browser's local storage. You can click any history entry to restore it, or clear history at any time. Your actual numbers never leave your device."},
+        ],
+        "howto_steps": [
+            {"title": "Enter Profile Data", "desc": "Type your followers, average likes, comments, story views, posts per week, and weekly follower growth."},
+            {"title": "Check All Metrics", "desc": "See engagement rate, weekly reach, story view rate, like/comment ratio, earnings per post, monthly revenue, and a personalized growth tip."},
+            {"title": "Run What-If Scenarios", "desc": "Click any scenario button (x2 Likes, x2 Followers, etc.) to instantly see how changes affect your metrics. Great for goal setting."},
+            {"title": "Track History", "desc": "Every calculation is saved automatically. Click any history entry to restore past data, or export your report as a text file."},
+        ],
+        "about_title": "About the Instagram Calculator",
+        "about_body": "<p>The Instagram Calculator is a free online tool that helps creators, influencers, and brands measure and project their Instagram performance. It goes beyond basic engagement rate to include story view rate, like-to-comment ratio analysis, follower growth projections up to 12 months, and a What-If Simulator for goal setting.</p><p>All calculations happen in your browser. No data is sent to any server, no sign-up required, no tracking. Your calculation history is saved locally so you can track changes over time. Enter your numbers once and get a complete picture of your Instagram health.</p>",
+    },
+    "burn-rate-calculator": {
+        "icon": "flame",
+        "app_category": "FinanceApplication",
+        "faqs": [
+            {"q": "What is burn rate for a startup?", "a": "Burn rate is how fast a startup spends its cash each month. Gross burn is total monthly expenses. Net burn is expenses minus monthly revenue. It shows how efficiently a startup manages its money."},
+            {"q": "What is the difference between gross and net burn rate?", "a": "Gross burn is your total monthly spending on all expenses. Net burn is what you actually lose each month after subtracting revenue from expenses. Net burn determines how many months your cash will last."},
+            {"q": "How is cash runway calculated?", "a": "Runway = current cash balance divided by net monthly burn. For example, $500,000 cash with $25,000 net monthly burn gives 20 months of runway. If revenue covers all expenses, net burn is zero and runway is infinite."},
+            {"q": "What is a healthy burn rate?", "a": "A healthy burn rate depends on your stage. Early startups should have 12-18 months of runway. Later-stage startups with revenue should aim to reduce net burn over time and work toward profitability. A burn rate above 50% of cash per year is generally risky."},
+        ],
+        "about_title": "About the Burn Rate Calculator",
+        "about_body": "<p>The Burn Rate Calculator is an advanced free online tool for startups to calculate gross burn, net burn, cash runway, break-even revenue, and funding needs. It includes a 12-month cash projection chart, What-If scenario simulator, expense category breakdown, and funding calculator.</p><p>All calculations happen locally in your browser. No data is sent to any server, no sign-up required, and no tracking. Your calculation history and inputs are saved in local storage so you can track changes between visits.</p>",
+        "howto_steps": [
+            {"title": "Enter Cash, Revenue & Expenses", "desc": "Type your current cash balance, monthly revenue, and monthly expenses. Pick a What-If scenario to test changes."},
+            {"title": "Review All Metrics", "desc": "See gross burn, net burn, runway, break-even revenue, funding needs, and the 12-month cash projection chart."},
+            {"title": "Analyze & Plan", "desc": "Use the expense breakdown to understand your cost structure. Adjust the funding calculator for different runway targets."},
+        ],
+    },
+    "cac-calculator": {
+        "icon": "users",
+        "app_category": "FinanceApplication",
+        "faqs": [
+            {"q": "What is customer acquisition cost (CAC)?", "a": "CAC is the total cost to acquire a new customer. Add all marketing and sales costs for a period, then divide by the number of new customers gained. It tells you how much you spend on average to win each customer."},
+            {"q": "What is a good LTV:CAC ratio?", "a": "A ratio above 3:1 is considered healthy. Between 1:1 and 3:1 means you are acquiring customers profitably but have room to improve. Below 1:1 means you spend more to acquire a customer than they will ever pay you — which is unsustainable."},
+            {"q": "How is CAC payback period calculated?", "a": "CAC payback = blended CAC divided by average monthly revenue per customer. It shows how many months it takes to earn back what you spent acquiring each customer. A payback under 12 months is good for most SaaS businesses."},
+        ],
+        "about_title": "About the CAC Calculator",
+        "about_body": "<p>The CAC (Customer Acquisition Cost) Calculator is an advanced free online tool for startups and SaaS businesses to measure customer acquisition efficiency. It calculates blended CAC, marketing and sales CAC, payback period, customer LTV, LTV:CAC ratio, revenue impact, and includes a What-If scenario simulator and industry benchmark comparison.</p><p>All calculations happen locally in your browser. No data is sent to any server, no sign-up required, and no tracking. Your calculation history and inputs are saved in local storage so you can track changes between visits.</p>",
+        "howto_steps": [
+            {"title": "Enter Costs & Customers", "desc": "Type your marketing spend, sales spend, new customers, ARPU, and customer lifespan. Pick a What-If scenario to test changes."},
+            {"title": "Review All Metrics", "desc": "See blended CAC, payback, LTV:CAC ratio, revenue impact, and how you compare to industry benchmarks."},
+            {"title": "Optimize & Plan", "desc": "Use the scenarios and benchmarks to identify improvement areas and set unit economics targets."},
+        ],
+    },
+    "credit-utilization-calculator": {
+        "icon": "credit-card",
+        "app_category": "FinanceApplication",
+        "faqs": [
+            {"q": "What is credit utilization?", "a": "Credit utilization is the percentage of your available credit that you are using. It is calculated by dividing your total credit card balance by your total credit limit. It is one of the most important factors in your credit score."},
+            {"q": "What is a good credit utilization rate?", "a": "Below 30% is considered good, and below 10% is excellent. Most experts recommend keeping your utilization under 30% to avoid negatively impacting your credit score. Above 50% is generally considered poor."},
+            {"q": "How does credit utilization affect my credit score?", "a": "Credit utilization accounts for about 30% of your FICO score. Higher utilization suggests you may be overextended, which lowers your score. Paying down balances is one of the fastest ways to improve your score."},
+            {"q": "What is the 30% rule for credit cards?", "a": "The 30% rule recommends never using more than 30% of your total credit limit at any time. For example, if your total limit is $10,000, try to keep your balance below $3,000 for optimal credit health."},
+        ],
+        "howto_steps": [
+            {"title": "Enter Your Numbers", "desc": "Type your total credit card balance and total credit limit across all cards."},
+            {"title": "Review Your Ratio", "desc": "See your utilization percentage and rating — Excellent, Good, Fair, or Poor — with color-coded feedback."},
+            {"title": "Set a Target", "desc": "Check how much to pay down to reach 30% utilization, or what limit would give you a healthy ratio."},
+        ],
+        "about_title": "About the Credit Utilization Calculator",
+        "about_body": "<p>The Credit Utilization Calculator is a free online tool that helps you understand your credit utilization ratio — a key factor in your credit score. Enter your total balance and total credit limit to see your utilization percentage, rating, available credit, and actionable suggestions to improve your ratio.</p><p>All calculations happen locally in your browser. No data is sent to any server, no sign-up required, and your input values are saved in local storage for convenience between visits.</p>",
+    },
+    "compound-calculator": {
+        "icon": "layers",
+        "app_category": "FinanceApplication",
+        "faqs": [
+            {"q": "What is compound interest?", "a": "Compound interest is interest calculated on the initial principal plus all accumulated interest from previous periods. Your money grows faster over time because you earn interest on your interest — this is called the snowball effect."},
+            {"q": "How often should I compound my investments?", "a": "Higher compounding frequency means faster growth. Monthly compounding earns more than annual, and daily earns more than monthly. Most savings accounts compound daily, while investments like FDs may compound quarterly or annually."},
+            {"q": "What is the difference between simple and compound interest?", "a": "Simple interest is calculated only on the principal amount every year. Compound interest is calculated on the principal plus all interest already earned. Over 10 years at 8%, $10,000 earns $8,000 with simple interest but $11,589 with monthly compound interest."},
+            {"q": "Can I add monthly contributions?", "a": "Yes. Enter a monthly contribution amount and the calculator adds it each month before applying interest. Regular contributions dramatically boost your total value — try comparing $0 vs $500/month to see the difference."},
+        ],
+        "howto_steps": [
+            {"title": "Enter Your Numbers", "desc": "Type your starting principal, monthly contribution, annual interest rate, and time period in years."},
+            {"title": "Choose Frequency", "desc": "Select how often interest compounds: annually, semi-annually, quarterly, or monthly."},
+            {"title": "Review Growth", "desc": "See total value, total contributions, interest earned, and effective annual rate all at a glance."},
+        ],
+        "about_title": "About the Compound Interest Calculator",
+        "about_body": "<p>The Compound Interest Calculator is a free online tool that shows how your investments grow over time with compound interest and regular monthly contributions. It calculates total value, total interest earned, and effective annual rate for any principal, rate, time period, and compounding frequency.</p><p>All calculations happen locally in your browser. No data is sent to any server, no sign-up required, and your input values are saved in local storage for convenience between visits.</p>",
+    },
+    "emi-calculator": {
+        "icon": "banknote",
+        "app_category": "FinanceApplication",
+        "faqs": [
+            {"q": "What is EMI?", "a": "EMI (Equated Monthly Installment) is a fixed monthly payment you make to repay a loan. Each EMI includes both principal repayment and interest. The EMI amount depends on the loan amount, interest rate, and tenure."},
+            {"q": "How is EMI calculated?", "a": "EMI is calculated using the formula: EMI = P × r × (1+r)^n / ((1+r)^n - 1), where P is the loan amount, r is the monthly interest rate, and n is the number of monthly installments."},
+            {"q": "What factors affect my EMI?", "a": "Three main factors: loan amount (higher amount = higher EMI), interest rate (higher rate = higher EMI), and tenure (longer tenure = lower EMI but more total interest)."},
+            {"q": "Can I prepay my loan to reduce EMI?", "a": "Yes. Prepaying part of your loan reduces the principal balance, which lowers the total interest. You can either reduce the EMI amount or shorten the tenure."},
+        ],
+        "howto_steps": [
+            {"title": "Enter Loan Details", "desc": "Type the loan amount, annual interest rate, and loan tenure in years."},
+            {"title": "View Your EMI", "desc": "See the monthly EMI, total payment, and total interest instantly."},
+            {"title": "Plan Your Finances", "desc": "Use the results to compare different loan offers or plan your monthly budget."},
+        ],
+        "about_title": "About the EMI Calculator",
+        "about_body": "<p>The EMI Calculator is a free online tool that calculates monthly loan installments for any loan amount, interest rate, and tenure. It shows your monthly EMI, total payment over the loan term, and total interest payable.</p><p>All calculations happen locally in your browser. No data is sent to any server, no sign-up required, and your input values are saved in local storage for convenience between visits.</p>",
+    },
+    "adsense-calculator": {
+        "icon": "dollar-sign",
+        "app_category": "FinanceApplication",
+        "faqs": [
+            {"q": "What is RPM in AdSense?", "a": "RPM stands for Revenue Per Mille (thousand impressions). It combines your CTR and CPC into a single earnings metric: RPM = (Estimated Earnings / Page Views) × 1000. A higher RPM means you earn more per thousand page views."},
+            {"q": "How are monthly AdSense earnings calculated?", "a": "Monthly earnings are calculated by dividing your total monthly page views by 1,000 and multiplying by your RPM. For example, 50,000 views at $8.50 RPM = {name} estimates $425 per month before any deductions."},
+            {"q": "What is the difference between RPM and CPM?", "a": "RPM is your effective revenue across all ad units and impressions (accounting for unfilled ad slots and different ad types). CPM is the cost per 1,000 impressions for a single ad campaign. RPM is typically equal to or lower than CPM."},
+            {"q": "Is my traffic data stored or uploaded?", "a": "No. All calculations happen locally in your browser using JavaScript. Your page view numbers, RPM, and CTR never leave your device. Nothing is uploaded to any server."},
+        ],
+        "howto_steps": [
+            {"title": "Enter Traffic Data", "desc": "Type your monthly page views, RPM, CTR, and sessions per visitor into the input fields."},
+            {"title": "Review Metrics", "desc": "See daily, monthly, and yearly earnings plus effective RPM, CPM, unique visitors, and ad clicks all at a glance."},
+            {"title": "Run Scenarios", "desc": "Click any What-If button (x2 Traffic, x2 RPM, x0.5 Traffic, etc.) to instantly see how changes affect your earnings."},
+        ],
+        "about_title": "About the AdSense Calculator",
+        "about_body": "<p>The AdSense Calculator is a free online tool for estimating Google AdSense earnings from traffic data. It projects daily, monthly, and yearly revenue based on your page views, RPM, CTR, and sessions per visitor. The tool includes a What-If Simulator for testing scenarios like doubling traffic or RPM, plus a revenue breakdown bar chart comparing monthly vs yearly earnings.</p><p>All calculations happen locally in your browser. No data is sent to any server, no sign-up required, and no tracking. Your calculation history is saved in local storage so you can track changes over time between visits.</p>",
     },
 }
 
@@ -326,7 +606,7 @@ class SeoService:
                 ][:6]
 
                 date_modified = ""
-                tmpl_path = os.path.join(self.settings.TEMPLATES_DIR, "tools", f"{slug.replace('-', '_')}.html")
+                tmpl_path = os.path.join(self.settings.templates_dir, "tools", f"{slug.replace('-', '_')}.html")
                 try:
                     mtime = os.path.getmtime(tmpl_path)
                     date_modified = datetime.fromtimestamp(mtime, tz=UTC).strftime("%Y-%m-%d")

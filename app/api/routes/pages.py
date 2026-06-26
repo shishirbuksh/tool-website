@@ -14,13 +14,13 @@ router = APIRouter()
 catalog_service = CatalogService(settings)
 seo_service = SeoService(settings)
 
-templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
+templates = Jinja2Templates(directory=settings.templates_dir)
 templates.env.globals["lucide_icon"] = lucide_icon
 templates.env.globals["today"] = lambda: datetime.now(UTC).strftime("%Y-%m-%d")
 
 def get_app_css():
     try:
-        with open(os.path.join(settings.STATIC_DIR, "css", "app.css"), encoding="utf-8") as f:
+        with open(os.path.join(settings.static_dir, "css", "app.css"), encoding="utf-8") as f:
             return f.read()
     except Exception:
         return ""
@@ -106,7 +106,7 @@ async def offline_page(request: Request):
 @router.get("/sw.js", include_in_schema=False)
 async def service_worker():
     headers = {"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"}
-    return FileResponse(os.path.join(settings.STATIC_DIR, "sw.js"), headers=headers)
+    return FileResponse(os.path.join(settings.static_dir, "sw.js"), headers=headers)
 
 
 @router.get("/{page_name}", response_class=HTMLResponse)
@@ -131,7 +131,7 @@ async def get_page(request: Request, page_name: str):
             },
         )
 
-    pages_dir = os.path.join(settings.TEMPLATES_DIR, "pages")
+    pages_dir = os.path.join(settings.templates_dir, "pages")
     valid_pages = (
         [f[:-5] for f in os.listdir(pages_dir) if f.endswith(".html")]
         if os.path.exists(pages_dir)

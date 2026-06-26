@@ -1,7 +1,6 @@
-import pytest
 from starlette import status
 
-from app.core.exceptions import AppException, NotFoundException, ValidationException, ServiceError
+from app.core.exceptions import AppException, NotFoundException, ServiceError, ValidationException
 
 
 class TestExceptions:

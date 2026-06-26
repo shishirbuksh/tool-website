@@ -1,17 +1,16 @@
 import asyncio
 import logging
 from datetime import timedelta
+from typing import Any
 
 import numpy as np
-from typing import Any
 
 from app.core.cache import get_cache
 from app.core.config import Settings
 from app.core.exceptions import ServiceError
+from app.core.log import get_logger
 
 logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
-
-from app.core.log import get_logger
 
 logger = get_logger(__name__)
 
@@ -99,10 +98,7 @@ class CryptoService:
         df = df.dropna()
         pd = self._get_pd()
 
-        if isinstance(df.columns, pd.MultiIndex):
-            close_prices = df["Close"][symbol].values
-        else:
-            close_prices = df["Close"].values
+        close_prices = df["Close"][symbol].values if isinstance(df.columns, pd.MultiIndex) else df["Close"].values
 
         timestamps = df.index.strftime("%Y-%m-%d").tolist()
         min_points = 50 if include_ta else 30

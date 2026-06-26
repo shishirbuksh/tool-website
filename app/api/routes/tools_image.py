@@ -20,7 +20,7 @@ def _check_size(upload: UploadFile) -> int:
 
 @router.post("/remove-background")
 async def remove_background(
-    image: UploadFile = File(...),
+    image: UploadFile = File(...),  # noqa: B008
     bg_color: str = Form(""),
     smooth_edges: bool = Form(False),
 ):
@@ -33,8 +33,8 @@ async def remove_background(
 
 @router.post("/remove-watermark")
 async def remove_watermark(
-    image: UploadFile = File(...),
-    mask: UploadFile = File(...),
+    image: UploadFile = File(...),  # noqa: B008
+    mask: UploadFile = File(...),  # noqa: B008
     algorithm: str = Form("telea"),
 ):
     if _check_size(image) > MAX_IMAGE_SIZE or _check_size(mask) > MAX_IMAGE_SIZE:

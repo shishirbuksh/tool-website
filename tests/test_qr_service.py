@@ -1,4 +1,3 @@
-import pytest
 from app.services.qr_service import QRService
 
 

@@ -1,238 +1,327 @@
-{% extends"base.html" %}
+{% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}Startup Burn Rate Calculator | Runway, Scenarios & Funding Predictor{% endblock %}
-{% block meta_description %}Our advanced startup burn rate calculator features granular expense breakdowns, dynamic runway sliders, and a funding predictor to check if you are default alive.{% endblock %}
-{% block meta_keywords %}how to calculate startup burn rate formula, free startup cash runway calculator, default alive vs default dead calculator, gross burn vs net burn formula, startup runway calculator, funding required calculator, how to use Burn Rate Calculator for free online, best free Burn Rate Calculator alternative, Burn Rate Calculator without sign up, browser-based utility, secure processing, no installation required, instant results, data privacy, cloud alternative, free Burn Rate Calculator, online Burn Rate Calculator, fastest local browser Burn Rate Calculator, secure private Burn Rate Calculator no tracking{% endblock %}
+{% block title %}Burn Rate Calculator — Cash Runway, Projection & Scenarios | Free Online{% endblock %}
+{% block meta_description %}Advanced startup burn rate calculator. Calculate gross burn, net burn, and cash runway. What-If scenarios, 12-month projection, break-even target, funding calculator, expense breakdown. All in your browser.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/burn-rate-calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/burn-rate-calculator">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Ultra-Advanced Startup Burn Rate Calculator">
-<meta property="og:description" content="Use real-time sliders to calculate your Cash Runway, Expense Breakdown, and exactly how much funding you need to raise.">
+<meta property="og:title" content="Burn Rate Calculator — Runway, Projection & What-If">
+<meta property="og:description" content="Advanced burn rate calculator with 12-month projection, What-If scenarios, break-even target, and funding calculator. Free.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Startup Burn Rate & Runway Calculator">
-<meta name="twitter:description" content="Calculate your startup's cash runway, test scenarios, and predict funding needs.">
 {% endblock %}
-
 {% block head %}
-<script src="/static/js/vendor/chart.min.js"></script>
+<style>
+.bc-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.bc-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.bc-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.bc-input:focus{border-color:var(--color-primary);outline:none}
+.bc-input-sm{border-radius:.65rem;padding:.35rem .55rem;font-weight:600;font-size:.75rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.bc-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.55rem .75rem;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:6px;touch-action:manipulation}
+.bc-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.bc-pri:active{transform:translateY(0)}
+.bc-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.45rem .7rem;font-weight:700;font-size:.65rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation}
+.bc-sec:hover{border-color:var(--color-base-content)}
+.bc-sec.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.bc-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.3rem .6rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:10px;transition:all .12s}
+.bc-toggle:hover{background:var(--color-base-200)}
+.bc-toggle.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.bc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.bc-toast.show{opacity:1;transform:translateY(0)}
+.bc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bc-result{background:var(--color-base-100);border-radius:1rem;padding:12px 10px;text-align:center;border:1px solid var(--color-base-300)}
+.bc-result .iv{font-size:20px;font-weight:900;font-family:monospace;line-height:1.2}
+.bc-result .il{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-top:3px}
+.bc-result.full{grid-column:1/-1}
+.bc-result.full .iv{font-size:28px}
+.bc-health{display:inline-block;padding:3px 14px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;margin-top:6px}
+.bc-whatif{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px}
+.bc-whatif button{padding:4px 6px;border-radius:6px;font-size:8px;font-weight:700;cursor:pointer;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;touch-action:manipulation}
+.bc-whatif button:hover{background:color-mix(in oklab,var(--color-primary) 10%,transparent);border-color:var(--color-primary)}
+.bc-whatif button.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.bc-proj{display:flex;align-items:center;gap:6px;padding:4px 8px;background:var(--color-base-100);border-radius:.6rem;border:1px solid var(--color-base-300)}
+.bc-proj .bar-wrap{flex:1;height:8px;border-radius:4px;background:var(--color-base-300);overflow:hidden}
+.bc-proj .bar-fill{height:100%;border-radius:4px;transition:width .5s cubic-bezier(.22,1,.36,1);min-width:2%}
+.bc-proj .bar-label{font-size:8px;font-weight:700;min-width:44px;text-align:right}
+.bc-proj .bar-month{font-size:8px;font-weight:700;min-width:32px;opacity:.45}
+.bc-fund{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:6px}
+.bc-fund button{padding:6px 8px;border-radius:8px;font-size:9px;font-weight:800;cursor:pointer;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;touch-action:manipulation}
+.bc-fund button:hover{background:color-mix(in oklab,var(--color-primary) 10%,transparent);border-color:var(--color-primary)}
+.bc-fund button.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.bc-exp{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.bc-exp-item{background:var(--color-base-100);border-radius:.65rem;padding:10px;border:1px solid var(--color-base-300)}
+.bc-exp-item .sl-wrap{display:flex;align-items:center;gap:5px;margin-top:4px}
+.bc-exp-item input[type=range]{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:var(--color-base-300);border-radius:2px;outline:none;cursor:pointer}
+.bc-exp-item input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:var(--color-primary);cursor:pointer;border:2px solid var(--color-base-200)}
+.bc-exp-item .sp{font-size:9px;font-weight:700;min-width:26px;text-align:right}
+.bc-exp-item .sr{font-size:8px;font-weight:600;opacity:.45;margin-top:3px}
+.bc-hist{max-height:200px;overflow-y:auto}
+.bc-hist-item{padding:5px 8px;border-radius:.6rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:9px;font-weight:600;cursor:pointer;transition:all .12s;margin-bottom:2px}
+.bc-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.bc-hist-item .preview{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:8px;opacity:.55;min-width:0}
+.bc-hist-item .meta{font-size:7px;font-weight:700;opacity:.35;white-space:nowrap}
+.bc-hist-item .hdel{width:18px;height:18px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:8px}
+.bc-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.bc-empty{text-align:center;padding:20px 12px;font-size:10px;font-weight:600;opacity:.3}
+.bc-hint{font-size:9px;font-weight:600;opacity:.5;padding:6px 10px;background:var(--color-base-100);border-radius:.6rem;border:1px solid var(--color-base-300);margin-top:6px}
+</style>
 {% endblock %}
-
 {% block content %}
-{{ tool_hero_section("flame", "Modern Enterprise Edition", "BURN RATE", "CALCULATOR", "The most advanced free startup cash runway calculator. Features dynamic scenario sliders, expense tracking, and an automated Funding Predictor.") }}
-
-  <!-- Main Content -->
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <!-- Inputs -->
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-2xl font-black tracking-tight flex items-center gap-3" style="color:var(--color-red-500)">
-            {{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Operations
-          </h2>
-          <select id="currency" class="input input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm w-auto" aria-label="Currency">
-            <option value="usd" selected>USD ($)</option>
-            <option value="eur">EUR (&euro;)</option>
-            <option value="gbp">GBP (&pound;)</option>
-            <option value="inr">INR (&#8377;)</option>
-          </select>
-        </div>
-
-        <form id="calcForm" class="flex flex-col gap-6">
-
-          <!-- Core Financials -->
-          <div>
-            <h4 class="label-cinematic mb-3 flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-success inline-block"></span> 1. Cash &amp; Revenue
-            </h4>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="label-cinematic mb-2 block" for="cashBalance">Current Cash</label>
-                <div class="flex">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                  <input aria-label="Cashbalance" type="number" id="cashBalance" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none calc-input" value="500000" min="0">
-                </div>
-              </div>
-              <div>
-                <label class="label-cinematic mb-2 block" for="mrr">Monthly Rev (MRR)</label>
-                <div class="flex">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                  <input aria-label="Mrr" type="number" id="mrr" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none calc-input" value="20000" min="0">
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Granular Expenses -->
-          <div>
-            <h4 class="label-cinematic mb-3 flex items-center gap-2" style="color:var(--color-amber-500)">
-              <span class="w-2 h-2 rounded-full bg-warning inline-block"></span> 2. Granular Expenses
-            </h4>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="label-cinematic mb-2 block" for="expPayroll">Payroll &amp; Team</label>
-                <div class="flex">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                  <input aria-label="Exppayroll" type="number" id="expPayroll" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none calc-input" value="40000" min="0">
-                </div>
-              </div>
-              <div>
-                <label class="label-cinematic mb-2 block" for="expInfra">Software &amp; AWS</label>
-                <div class="flex">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                  <input aria-label="Expinfra" type="number" id="expInfra" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none calc-input" value="5000" min="0">
-                </div>
-              </div>
-              <div>
-                <label class="label-cinematic mb-2 block" for="expMarketing">Marketing &amp; Ads</label>
-                <div class="flex">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                  <input aria-label="Expmarketing" type="number" id="expMarketing" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none calc-input" value="10000" min="0">
-                </div>
-              </div>
-              <div>
-                <label class="label-cinematic mb-2 block" for="expOther">Office &amp; Legal</label>
-                <div class="flex">
-                  <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                  <input aria-label="Expother" type="number" id="expOther" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none calc-input" value="5000" min="0">
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Interactive Scenarios -->
-          <div>
-            <h4 class="label-cinematic mb-3 flex items-center gap-2" style="color:var(--color-info)">
-              <span class="w-2 h-2 rounded-full bg-info inline-block"></span> 3. Interactive Scenarios
-            </h4>
-            <div class="mb-4">
-              <div class="flex justify-between mb-2">
-                <label class="label-cinematic" for="growthSlider">MRR Growth Rate</label>
-                <span class="text-sm font-bold text-success"><span id="growthLabel">10</span>% / mo</span>
-              </div>
-              <input aria-label="Growthslider" type="range" class="slider-cinematic" id="growthSlider" min="0" max="50" step="1" value="10">
-            </div>
-            <div>
-              <div class="flex justify-between mb-2">
-                <label class="label-cinematic" for="scenarioSlider">Hiring / Cuts Scenario</label>
-                <span class="text-sm font-bold" style="color:var(--color-info)"><span class="currency-sym">$</span><span id="scenarioLabel">0</span></span>
-              </div>
-              <input aria-label="Scenarioslider" type="range" class="slider-cinematic" id="scenarioSlider" min="-50000" max="50000" step="1000" value="0">
-              <div class="flex justify-between text-xs text-base-content/40 mt-1">
-                <span>{{ lucide_icon("scissors","w-3 h-3", 12) | safe }} Cut Costs</span>
-                <span>{{ lucide_icon("user-plus","w-3 h-3", 12) | safe }} Hire Team</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Funding Predictor -->
-          <div>
-            <h4 class="label-cinematic mb-3 flex items-center gap-2 text-primary">
-              <span class="w-2 h-2 rounded-full bg-primary inline-block"></span> 4. Funding Predictor
-            </h4>
-            <div>
-              <label class="label-cinematic mb-2 block" for="targetRunway">Target Runway (Months)</label>
-              <select aria-label="Targetrunway" id="targetRunway" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl">
-                <option value="12">12 Months (Seed Minimum)</option>
-                <option value="18" selected>18 Months (Standard Series A)</option>
-                <option value="24">24 Months (Conservative)</option>
-                <option value="36">36 Months (War Chest)</option>
-              </select>
-            </div>
-          </div>
-
-        </form>
+{{ tool_hero_section("flame","Finance","BURN RATE","CALCULATOR","Runway, 12-month projection, What-If scenarios, break-even target, funding calculator, and expense breakdown.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="bc-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("wallet","w-4 h-4",16) | safe }} Cash & Revenue</h2>
+      <div class="flex flex-col gap-3">
+        <div><label class="bc-label" for="bcCash">Current Cash Balance ($)</label><input type="text" id="bcCash" class="bc-input" value="500000" inputmode="numeric" aria-label="Current cash balance"></div>
+        <div><label class="bc-label" for="bcRevenue">Monthly Revenue ($)</label><input type="text" id="bcRevenue" class="bc-input" value="30000" inputmode="numeric" aria-label="Monthly revenue"></div>
+        <div><label class="bc-label" for="bcExpenses">Monthly Expenses ($)</label><input type="text" id="bcExpenses" class="bc-input" value="55000" inputmode="numeric" aria-label="Monthly expenses"></div>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button type="button" id="bcCalcBtn" class="bc-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
+        <button type="button" id="bcCopyBtn" class="bc-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="bcDlBtn" class="bc-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
       </div>
     </div>
-
-    <!-- Results -->
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <!-- Header -->
-        <div class="flex justify-between items-center mb-6 pb-4 border-b border-base-content/10 flex-wrap gap-3">
-          <h3 class="text-2xl font-black tracking-tight flex items-center gap-3" style="color:var(--color-red-500)">
-            {{ lucide_icon("plane","w-5 h-5", 20) | safe }} Runway Dashboard
-          </h3>
-          <button class="pill-cinematic text-xs" id="copyBtn">{{ lucide_icon("copy","w-4 h-4", 16) | safe }} Copy Report</button>
-        </div>
-
-        <!-- Core Metrics -->
-        <div class="grid grid-cols-3 gap-4 mb-6">
-          <div class="card-premium p-4 text-center" style="border-color:color-mix(in oklab, var(--color-error) 25%, transparent)">
-            <span class="label-cinematic block mb-2" style="color:var(--color-error)">Gross Burn</span>
-            <div class="flex justify-center items-center gap-1">
-              <span class="text-lg opacity-60 currency-sym" style="color:var(--color-error)">$</span>
-              <span id="resGrossBurn" class="metric-cinematic metric-cinematic--md font-display" style="color:var(--color-error)">0</span>
-            </div>
-          </div>
-          <div class="card-premium p-4 text-center" style="border-color:color-mix(in oklab, var(--color-warning) 25%, transparent)">
-            <span class="label-cinematic block mb-2" style="color:var(--color-warning)">Net Burn</span>
-            <div class="flex justify-center items-center gap-1">
-              <span class="text-lg opacity-60 currency-sym" style="color:var(--color-warning)">$</span>
-              <span id="resNetBurn" class="metric-cinematic metric-cinematic--md font-display" style="color:var(--color-warning)">0</span>
-            </div>
-          </div>
-          <div class="card-premium p-4 text-center" style="border-color:color-mix(in oklab, var(--color-primary) 25%, transparent)">
-            <span class="label-cinematic block mb-2 text-primary">Funding Needed</span>
-            <div class="flex justify-center items-center gap-1">
-              <span class="text-lg opacity-60 currency-sym text-primary">$</span>
-              <span id="resFunding" class="metric-cinematic metric-cinematic--md font-display text-primary">0</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Verdict -->
-        <div class="card-premium p-5 mb-6 text-center" id="verdictBox">
-          <div class="flex items-center justify-center gap-3 mb-2">
-            <span class="pulse-dot pulse-dot--success" id="verdictDot"></span>
-            <output class="text-3xl md:text-4xl font-black font-display" id="resVerdictTitle">DEFAULT ALIVE</output>
-          </div>
-          <p class="text-sm text-base-content/60" id="resVerdictSub">You will reach profitability before running out of cash.</p>
-        </div>
-
-        <!-- Charts -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="glass-cinematic rounded-2xl p-5 flex flex-col">
-            <h4 class="label-cinematic text-center mb-3">Expense Breakdown</h4>
-            <div style="position:relative;height:200px;width:100%" class="mt-auto">
-              <canvas id="expenseChart"></canvas>
-            </div>
-          </div>
-          <div class="glass-cinematic rounded-2xl p-5 flex flex-col">
-            <h4 class="label-cinematic text-center mb-3">Cash Projection</h4>
-            <div style="position:relative;height:200px;width:100%" class="mt-auto">
-              <canvas id="runwayChart"></canvas>
-            </div>
-          </div>
-        </div>
-
+    <div class="bc-card mt-4">
+      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("target","w-3 h-3",12) | safe }} Break-Even & Funding</h2>
+      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">Revenue needed to break even · Funding to extend runway</p>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="bc-result" style="padding:8px"><div class="iv" id="bcBreakEven" style="font-size:14px">$0</div><div class="il">Break-Even Revenue</div></div>
+        <div class="bc-result" style="padding:8px"><div class="iv" id="bcAdditional" style="font-size:14px">$0</div><div class="il">Additional Needed</div></div>
       </div>
+      <div class="bc-fund" id="bcFund"><button type="button" class="on" data-months="18">18mo</button><button type="button" data-months="24">24mo</button><button type="button" data-months="36">36mo</button></div>
+      <div class="bc-result" style="padding:8px;margin-top:4px"><div class="iv" id="bcFundNeeded" style="font-size:15px">$0</div><div class="il">Funding Needed</div></div>
+    </div>
+    <div class="bc-card mt-4">
+      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("zap","w-3 h-3",12) | safe }} What-If</h2>
+      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">Test different scenarios</p>
+      <div class="bc-whatif" id="bcWhatIf"><button type="button" class="on" data-wi="current">Current</button><button type="button" data-wi="cut-20">Cut Expenses 20%</button><button type="button" data-wi="grow-rev-50">Grow Revenue 50%</button><button type="button" data-wi="cut-grow">Cut + Grow</button><button type="button" data-wi="double-exp">Double Expenses</button><button type="button" data-wi="half-rev">Half Revenue</button></div>
+    </div>
+    <div class="bc-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
+        <div class="flex items-center gap-2"><button type="button" id="bcHiToggle" class="bc-toggle" aria-expanded="false" aria-controls="bcHiWrap">History <span id="bcHiCount"></span></button><button type="button" id="bcHiClear" class="bc-sec" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
+      </div>
+      <div id="bcHiWrap" hidden class="mt-2"><div id="bcHiList" class="bc-hist"></div></div>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="bc-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("activity","w-4 h-4",16) | safe }} Burn Metrics</h2>
+      <div class="bc-grid" id="bcResults">
+        <div class="bc-result"><div class="iv" id="bcGrossBurn" style="color:var(--color-error)">$0</div><div class="il">Gross Burn /mo</div></div>
+        <div class="bc-result"><div class="iv" id="bcNetBurn">$0</div><div class="il">Net Burn /mo</div></div>
+        <div class="bc-result full"><div class="iv" id="bcRunway" style="color:var(--color-primary)">0 mo</div><div class="il">Cash Runway</div></div>
+        <div class="bc-result"><div class="iv" id="bcRunwayEnd">—</div><div class="il">Runway Ends</div></div>
+        <div class="bc-result"><div class="iv" id="bcRatio">0%</div><div class="il">Revenue / Expense</div></div>
+        <div class="bc-result"><div class="iv" id="bcMonthlyProfit">$0</div><div class="il">Monthly P&L</div></div>
+        <div class="bc-result" style="grid-column:1/-1;padding:8px"><span class="bc-health" id="bcHealth">—</span></div>
+      </div>
+    </div>
+    <div class="bc-card mt-4">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("trending-down","w-4 h-4",16) | safe }} Cash Projection</h2>
+      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mb-2">Cash balance over the next 12 months</p>
+      <div id="bcProjWrap"></div>
+    </div>
+    <div class="bc-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("pie-chart","w-4 h-4",16) | safe }} Expense Breakdown</h2>
+        <button type="button" id="bcExpTog" class="bc-toggle" aria-expanded="false" aria-controls="bcExpWrap">{{ lucide_icon("arrow-left-right","w-3 h-3",12) | safe }}</button>
+      </div>
+      <div id="bcExpWrap" hidden class="mt-2"><div class="bc-exp" id="bcExpGrid"></div><div class="bc-hint" id="bcExpHint"></div></div>
     </div>
   </div>
 </div>
-
+<div id="bcToast" class="bc-toast" role="status" aria-live="polite"></div>
 <script>
-function formatCurrency(val){return val.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});}
-function formatDecimal(val){return val.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1});}
-document.addEventListener('DOMContentLoaded',()=>{const els={cash:document.getElementById('cashBalance'),mrr:document.getElementById('mrr'),ePay:document.getElementById('expPayroll'),eInf:document.getElementById('expInfra'),eMkt:document.getElementById('expMarketing'),eOth:document.getElementById('expOther'),growth:document.getElementById('growthSlider'),scenario:document.getElementById('scenarioSlider'),targetRunway:document.getElementById('targetRunway'),currency:document.getElementById('currency'),syms:document.querySelectorAll('.currency-sym')};let runwayChart=null;let expenseChart=null;Object.values(els).forEach(el=>{if(el!==els.syms)el.addEventListener('input',()=>{if(el===els.growth)document.getElementById('growthLabel').innerText=el.value;if(el===els.scenario)document.getElementById('scenarioLabel').innerText=formatCurrency(parseFloat(el.value));calculate();});});els.currency.addEventListener('change',()=>{let s="$";if(els.currency.value==='eur')s="€";if(els.currency.value==='gbp')s="£";if(els.currency.value==='inr')s="₹";els.syms.forEach(el=>el.innerText=s);calculate();});function drawCharts(labels,cashData,zeroIndex,profitIndex,pay,inf,mkt,oth){const isDark=document.documentElement.getAttribute('data-bs-theme')==='dark';const txtC=isDark?'rgba(255, 255, 255, 0.6)':'rgba(0, 0, 0, 0.6)';const gridC=isDark?'rgba(255, 255, 255, 0.1)':'rgba(0, 0, 0, 0.1)';const sym=els.currency.options[els.currency.selectedIndex].text.match(/\((.*?)\)/)[1];let lineColor='#10b981';if(zeroIndex!==-1&&(profitIndex===-1||zeroIndex<profitIndex))lineColor='#ef4444';if(runwayChart){runwayChart.data.labels=labels;runwayChart.data.datasets[0].data=cashData;runwayChart.data.datasets[0].borderColor=lineColor;runwayChart.data.datasets[0].backgroundColor=lineColor+'20';runwayChart.options.scales.x.ticks.color=txtC;runwayChart.options.scales.y.ticks.color=txtC;runwayChart.options.scales.x.grid.color=gridC;runwayChart.options.scales.y.grid.color=gridC;runwayChart.update();}else{const ctxR=document.getElementById('runwayChart').getContext('2d');Chart.defaults.font.family='Inter, sans-serif';runwayChart=new Chart(ctxR,{type:'line',data:{labels:labels,datasets:[{label:'Cash Balance',data:cashData,borderColor:lineColor,backgroundColor:lineColor+'20',borderWidth:3,fill:true,tension:0.3,pointRadius:0,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:(c)=>`Cash:${sym}${formatCurrency(c.parsed.y)}`}}},scales:{y:{grid:{color:gridC},ticks:{color:txtC,callback:v=>v>=1000000?v/1000000+'M':(v>=1000?v/1000+'k':v)}},x:{grid:{color:gridC},ticks:{color:txtC,maxTicksLimit:8}}}}});}
-if(expenseChart){expenseChart.data.datasets[0].data=[pay,inf,mkt,oth];expenseChart.options.plugins.legend.labels.color=txtC;expenseChart.update();}else{const ctxE=document.getElementById('expenseChart').getContext('2d');expenseChart=new Chart(ctxE,{type:'doughnut',data:{labels:['Payroll','Software','Marketing','Other'],datasets:[{data:[pay,inf,mkt,oth],backgroundColor:['#ef4444','#3b82f6','#fcd34d','#8b5cf6'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:'70%',plugins:{legend:{display:true,position:'right',labels:{color:txtC,boxWidth:10,font:{size:10}}},tooltip:{callbacks:{label:(c)=>`${sym}${formatCurrency(c.parsed)}`}}}}});}}
-function calculate(){const v=(id)=>parseFloat(document.getElementById(id).value)||0;const cash=v('cashBalance');const mrr=v('mrr');const pay=v('expPayroll');const inf=v('expInfra');const mkt=v('expMarketing');const oth=v('expOther');const growth=v('growthSlider')/100;const scenario=v('scenarioSlider');const targetMonths=parseInt(els.targetRunway.value);const baseExp=pay+inf+mkt+oth;const totalExp=baseExp+scenario;const grossBurn=totalExp;let netBurn=totalExp-mrr;if(netBurn<0)netBurn=0;let labels=[];let cashData=[];let currentCash=cash;let currentMrr=mrr;let zeroIndex=-1;let profitIndex=-1;for(let i=0;i<=48;i++){labels.push('Month '+i);cashData.push(currentCash);if(currentCash<=0&&zeroIndex===-1)zeroIndex=i;if(currentMrr>=totalExp&&profitIndex===-1)profitIndex=i;let currentNetBurn=totalExp-currentMrr;currentCash-=currentNetBurn;currentMrr=currentMrr*(1+growth);if(currentCash<0&&zeroIndex!==-1&&i>zeroIndex+2)break;}
-let simulatedCashZero=0;let simMrr=mrr;for(let i=0;i<targetMonths;i++){let curNetBurn=totalExp-simMrr;simulatedCashZero-=curNetBurn;simMrr=simMrr*(1+growth);}
-const totalBurnedOverTarget=Math.abs(Math.min(0,simulatedCashZero));let fundingNeeded=totalBurnedOverTarget-cash;if(fundingNeeded<0)fundingNeeded=0;document.getElementById('resGrossBurn').innerText=formatCurrency(grossBurn);document.getElementById('resNetBurn').innerText=formatCurrency(netBurn);document.getElementById('resFunding').innerText=formatCurrency(fundingNeeded);const vBox=document.getElementById('verdictBox');const vTitle=document.getElementById('resVerdictTitle');const vSub=document.getElementById('resVerdictSub');if(mrr>=totalExp){vTitle.innerText="PROFITABLE";vTitle.className="display-5 fw-black mb-1 font-display text-success";vBox.className="p-4 rounded-4 bg-theme-surface border border-success mb-4 text-center success-card";vSub.innerText="You are already making more money than you spend.";}else if(profitIndex!==-1&&(zeroIndex===-1||profitIndex<=zeroIndex)){vTitle.innerText="DEFAULT ALIVE";vTitle.className="display-5 fw-black mb-1 font-display text-success";vBox.className="p-4 rounded-4 bg-theme-surface border border-success mb-4 text-center success-card";vSub.innerText=`You hit profitability in Month ${profitIndex}.You do not need to raise funding.`;}else if(zeroIndex!==-1){vTitle.innerText="DEFAULT DEAD";vTitle.className="display-5 fw-black mb-1 font-display text-danger";vBox.className="p-4 rounded-4 bg-theme-surface border border-danger mb-4 text-center danger-card";vSub.innerText=`You run out of cash in Month ${zeroIndex}.You must raise ${els.syms[0].innerText}${formatCurrency(fundingNeeded)}to survive ${targetMonths}months.`;}else{vTitle.innerText="DANGER ZONE";vTitle.className="display-5 fw-black mb-1 font-display text-warning";vBox.className="p-4 rounded-4 bg-theme-surface border border-warning mb-4 text-center warning-card";vSub.innerText="Runway exceeds 4 years, but profitability is far away.";}
-drawCharts(labels,cashData,zeroIndex,profitIndex,pay,inf,mkt,oth);}
-calculate();new MutationObserver(calculate).observe(document.documentElement,{attributes:true,attributeFilter:['data-bs-theme']});document.getElementById('copyBtn').addEventListener('click',function(){const title=document.getElementById('resVerdictTitle').innerText;const text=`Burn Rate Report:\nGross Burn:${document.getElementById('resGrossBurn').innerText}\nNet Burn:${document.getElementById('resNetBurn').innerText}\nFunding Required(${els.targetRunway.value}Mo):${document.getElementById('resFunding').innerText}\nVerdict:${title}`;navigator.clipboard.writeText(text).then(()=>{const originalHTML=this.innerHTML;this.innerHTML='<i class="bi bi-check-lg me-1"></i> Copied!';this.classList.replace('btn-outline-secondary','btn-success');this.classList.replace('text-theme','text-white');setTimeout(()=>{this.innerHTML=originalHTML;this.classList.replace('btn-success','btn-outline-secondary');},2000);});});});
+(function(){'use strict';
+var wi='current',fundMonths=18,expTog=false;
+var history=[]; try{var h=JSON.parse(localStorage.getItem('sb_bc1')||'[]');if(Array.isArray(h))history=h}catch(e){}
+var saved=null; try{var s=JSON.parse(localStorage.getItem('sb_bc1_i')||'null');if(s&&typeof s==='object')saved=s}catch(e){}
+
+function el(id){return document.getElementById(id)}
+var cash=el('bcCash'),revenue=el('bcRevenue'),expenses=el('bcExpenses');
+var calcBtn=el('bcCalcBtn'),copyBtn=el('bcCopyBtn'),dlBtn=el('bcDlBtn'),whatifEl=el('bcWhatIf');
+var breakEven=el('bcBreakEven'),additional=el('bcAdditional'),fundEl=el('bcFund'),fundNeeded=el('bcFundNeeded');
+var grossBurn=el('bcGrossBurn'),netBurn=el('bcNetBurn'),runway=el('bcRunway'),runwayEnd=el('bcRunwayEnd'),ratio=el('bcRatio'),monthlyProfit=el('bcMonthlyProfit'),health=el('bcHealth');
+var projWrap=el('bcProjWrap');
+var expTogEl=el('bcExpTog'),expWrap=el('bcExpWrap'),expGrid=el('bcExpGrid'),expHint=el('bcExpHint');
+var hiToggle=el('bcHiToggle'),hiCount=el('bcHiCount'),hiClear=el('bcHiClear'),hiWrap=el('bcHiWrap'),hiList=el('bcHiList');
+var toastEl=el('bcToast'),tt;
+
+var EXP_CATS=['Salaries','Marketing','Infrastructure','Other'];
+var EXP_DEFAULTS=[55,20,10,15];
+
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function v(e){var n=parseFloat(e.value.replace(/,/g,''));return isNaN(n)?0:n}
+function fmtCurrency(n){if(!n||isNaN(n))return'$0';var s=n<0?'−$':'$';n=Math.abs(n);if(n>=1e6)s+=(n/1e6).toFixed(1)+'M';else s+=Math.round(n).toLocaleString('en-US');return s}
+function fmtMonth(n){if(n<0)return'∞';if(n<1)return'<1 mo';return n.toFixed(1)+' mo'}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+function applyWI(){
+var c=v(cash),r=v(revenue),e=v(expenses);
+if(wi==='cut-20'){e*=0.8}
+else if(wi==='grow-rev-50'){r*=1.5}
+else if(wi==='cut-grow'){e*=0.8;r*=1.5}
+else if(wi==='double-exp'){e*=2}
+else if(wi==='half-rev'){r*=0.5}
+return{c:c,r:r,e:e}
+}
+
+function calc(){
+var d=applyWI();
+var c=d.c,r=d.r,e=d.e;
+var gross=e;
+var net=e-r;
+var rw=net>0?c/net:Infinity;
+var endDate='—';if(Number.isFinite(rw)&&rw>0){var dt=new Date();dt.setMonth(dt.getMonth()+Math.ceil(rw));endDate=dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+var revRatio=e>0?(r/e*100):0;
+var pnl=r-e;
+grossBurn.textContent=fmtCurrency(gross);
+netBurn.textContent=fmtCurrency(net);netBurn.style.color=net>0?'var(--color-error)':'var(--color-success)';
+runway.textContent=fmtMonth(rw);runway.style.color=rw>=12?'var(--color-success)':rw>=6?'var(--color-warning)':'var(--color-error)';
+runwayEnd.textContent=endDate;
+ratio.textContent=revRatio.toFixed(0)+'%';ratio.style.color=revRatio>=75?'var(--color-success)':revRatio>=50?'var(--color-primary)':revRatio>=25?'var(--color-warning)':'var(--color-error)';
+monthlyProfit.textContent=fmtCurrency(pnl);monthlyProfit.style.color=pnl>=0?'var(--color-success)':'var(--color-error)';
+var h,hl;if(rw>=12){h='Safe';hl='var(--color-success)'}else if(rw>=6){h='Warning';hl='var(--color-warning)'}else if(rw>=3){h='Caution';hl='var(--color-warning)'}else{h='Critical';hl='var(--color-error)'}
+health.textContent=h;health.style.background='color-mix(in oklab,'+hl+' 12%,transparent)';health.style.color=hl;
+calcBe(r,e);
+calcFund(r,e);
+renderProj(c,r,e);
+saveInputs();
+}
+
+function calcBe(r,e){
+var be=e;
+var addNeeded=Math.max(0,e-r);
+breakEven.textContent=fmtCurrency(be);
+additional.textContent=fmtCurrency(addNeeded);additional.style.color=addNeeded>0?'var(--color-warning)':'var(--color-success)';
+}
+
+function calcFund(r,e){
+var net=e-r;
+var months=fundMonths;
+var needed=0;if(net>0)needed=months*net;
+fundNeeded.textContent=fmtCurrency(needed);fundNeeded.style.color=needed>0?'var(--color-error)':'var(--color-success)';
+}
+
+function renderProj(c,r,e){
+var months=12;
+var balances=[];var bal=c;var zeroMonth=null;
+for(var i=0;i<months;i++){
+bal=bal+r-e;
+if(bal<0)bal=0;
+balances.push(Math.round(bal));
+if(bal<=0&&zeroMonth===null)zeroMonth=i+1;
+}
+var maxBal=c;balances.forEach(function(b){if(b>maxBal)maxBal=b});
+if(maxBal<1)maxBal=1;
+var h='<div class="bc-proj" style="margin-bottom:4px"><span class="bar-month">Now</span><div class="bar-wrap"><div class="bar-fill" style="width:100%;background:var(--color-primary)"></div></div><span class="bar-label">'+fmtCurrency(c)+'</span></div>';
+balances.forEach(function(b,i){
+var pct=Math.max(2,(b/maxBal)*100);
+var label=b===0?'$0':fmtCurrency(b);
+var color=b>0?i>=(zeroMonth||999)?'var(--color-warning)':'var(--color-success)':'var(--color-error)';
+h+='<div class="bc-proj"><span class="bar-month">M'+(i+1)+'</span><div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div><span class="bar-label">'+label+'</span></div>';
+});
+if(zeroMonth)h+='<div class="bc-hint" style="margin-top:6px">Cash runs out in month '+zeroMonth+' at current burn rate.</div>';
+else h+='<div class="bc-hint" style="margin-top:6px;background:color-mix(in oklab,var(--color-success) 10%,transparent);border-color:color-mix(in oklab,var(--color-success) 25%,transparent)">Revenue covers expenses — cash is sustainable.</div>';
+projWrap.innerHTML=h;
+}
+
+function renderExpenses(){
+if(!expTog)return;
+var total=v(expenses);
+var pcts=[];var sliders=expGrid.querySelectorAll('input[type=range]');
+sliders.forEach(function(sl){pcts.push(parseFloat(sl.value)||0)});
+var sum=0;pcts.forEach(function(p){sum+=p});
+if(sum>0)pcts=pcts.map(function(p){return p/sum*100});else pcts=[55,20,10,15];
+var h='';
+pcts.forEach(function(p,i){
+var val=total*(p/100);
+h+='<div class="bc-exp-item"><div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:9px;font-weight:800">'+esc(EXP_CATS[i])+'</span><span style="font-size:9px;font-weight:700;opacity:.45">'+fmtCurrency(val)+'</span></div>';
+h+='<div class="sl-wrap"><input type="range" min="0" max="100" value="'+Math.round(p)+'" data-cat="'+i+'"><span class="sp">'+Math.round(p)+'%</span></div></div>';
+});
+expGrid.innerHTML=h;
+expGrid.querySelectorAll('input[type=range]').forEach(function(sl){sl.addEventListener('input',renderExpenses)});
+expHint.textContent='Expenses distributed across '+EXP_CATS.length+' categories. Adjust sliders to match your spend.';
+}
+
+function saveHistory(){
+var d=applyWI();
+var label=fmtCurrency(d.c)+' cash · '+fmtCurrency(d.e)+' exp';
+history.unshift({c:d.c,r:d.r,e:d.e,wi:wi,label:label,ts:Date.now()});
+if(history.length>30)history.pop();
+try{localStorage.setItem('sb_bc1',JSON.stringify(history))}catch(e){}
+renderHistory();
+}
+
+function renderHistory(){
+hiCount.textContent=history.length?'('+history.length+')':'';
+hiClear.hidden=!history.length;
+if(!history.length){hiList.innerHTML='<div class="bc-empty">No calculations yet</div>';return}
+var h='';history.forEach(function(item,i){
+var d=new Date(item.ts);var diff=Math.round((Date.now()-d)/1000);
+var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+h+='<div class="bc-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
+});
+hiList.innerHTML=h;
+}
+
+function saveInputs(){
+var obj={c:v(cash),r:v(revenue),e:v(expenses),wi:wi};
+try{localStorage.setItem('sb_bc1_i',JSON.stringify(obj))}catch(e){}
+}
+
+function copyAll(){
+var d=applyWI();
+var txt='Burn Rate Report\nCash: '+fmtCurrency(d.c)+'\nRevenue: '+fmtCurrency(d.r)+'/mo\nExpenses: '+fmtCurrency(d.e)+'/mo\nGross Burn: '+grossBurn.textContent+'/mo\nNet Burn: '+netBurn.textContent+'/mo\nRunway: '+runway.textContent+'\nRunway Ends: '+runwayEnd.textContent+'\nRev/Expense: '+ratio.textContent+'\nMonthly P&L: '+monthlyProfit.textContent+'\nBreak-Even: '+breakEven.textContent+'/mo\nFunding ('+fundMonths+'mo): '+fundNeeded.textContent+'\nHealth: '+health.textContent+'\nScenario: '+wi.replace(/-/g,' ');
+navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')});
+}
+
+function dlReport(){
+var d=applyWI();
+var txt='=== Burn Rate Report ===\nDate: '+new Date().toISOString().slice(0,10)+'\nScenario: '+wi.replace(/-/g,' ')+'\n\nInputs\nCash Balance: '+fmtCurrency(d.c)+'\nMonthly Revenue: '+fmtCurrency(d.r)+'\nMonthly Expenses: '+fmtCurrency(d.e)+'\n\nResults\nGross Burn: '+grossBurn.textContent+'/mo\nNet Burn: '+netBurn.textContent+'/mo\nRunway: '+runway.textContent+'\nRunway Ends: '+runwayEnd.textContent+'\nRevenue/Expense Ratio: '+ratio.textContent+'\nMonthly P&L: '+monthlyProfit.textContent+'\nBreak-Even Revenue: '+breakEven.textContent+'/mo\nAdditional Revenue Needed: '+additional.textContent+'/mo\nFunding Needed ('+fundMonths+'mo): '+fundNeeded.textContent+'\nHealth: '+health.textContent;
+var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='burn-rate-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded');
+}
+
+whatifEl.addEventListener('click',function(e){
+var b=e.target.closest('button[data-wi]');if(!b)return;
+wi=b.getAttribute('data-wi');whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+calc();saveHistory();
+});
+
+calcBtn.addEventListener('click',function(){calc();saveHistory()});
+copyBtn.addEventListener('click',copyAll);
+dlBtn.addEventListener('click',dlReport);
+
+fundEl.addEventListener('click',function(e){
+var b=e.target.closest('button[data-months]');if(!b)return;
+fundMonths=parseInt(b.getAttribute('data-months'));fundEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-months')==String(fundMonths))});
+calc();
+});
+
+expTogEl.addEventListener('click',function(){expTog=expTogEl.getAttribute('aria-expanded')==='true'?false:true;expTogEl.setAttribute('aria-expanded',expTog);expWrap.hidden=!expTog;expTogEl.classList.toggle('on');if(expTog)renderExpenses()});
+
+hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
+hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_bc1',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});
+hiList.addEventListener('click',function(e){
+var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_bc1',JSON.stringify(history))}catch(e){}renderHistory();return}
+var item=e.target.closest('.bc-hist-item');if(!item)return;
+var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
+cash.value=h.c;revenue.value=h.r;expenses.value=h.e;
+wi=h.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+history.splice(idx,1);try{localStorage.setItem('sb_bc1',JSON.stringify(history))}catch(e){}renderHistory();calc();
+});
+
+if(saved){
+cash.value=saved.c||500000;revenue.value=saved.r||30000;expenses.value=saved.e||55000;
+wi=saved.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+}
+
+calc();
+})();
 </script>
-
-
-
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

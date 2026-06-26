@@ -24,16 +24,16 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = ""
 
     @functools.cached_property
-    def BASE_DIR(self) -> str:
+    def base_dir(self) -> str:
         return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
     @functools.cached_property
-    def TEMPLATES_DIR(self) -> str:
-        return os.path.join(self.BASE_DIR, "templates")
+    def templates_dir(self) -> str:
+        return os.path.join(self.base_dir, "templates")
 
     @functools.cached_property
-    def STATIC_DIR(self) -> str:
-        return os.path.join(self.BASE_DIR, "static")
+    def static_dir(self) -> str:
+        return os.path.join(self.base_dir, "static")
 
     @property
     def cors_origins_list(self) -> list[str]:

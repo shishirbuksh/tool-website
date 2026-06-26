@@ -1,75 +1,248 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}Exact Age Calculator by Date of Birth | How Old Am I Tool{% endblock %}
-{% block meta_description %}Use our free online exact age calculator by date of birth. Find out exactly how old you are in years, months, and days with our simple chronological age tool.{% endblock %}
-{% block meta_keywords %}exact age calculator by date of birth, chronological age calculator, how old am i tool, calculate age in days and months, what is my age today, free age calculator, date of birth calculator, how many days have i lived, exact age counter, current age calculator{% endblock %}
+{% block title %}Age Calculator — Exact Age in Years, Months, Days | Free Online{% endblock %}
+{% block meta_description %}Free online age calculator. Find your exact age in years, months, days, hours, minutes, and seconds. Live counter, next birthday countdown, zodiac, Chinese zodiac & birthstone. No sign-up.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/age-calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/age-calculator">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Exact Age Calculator by Date of Birth | How Old Am I Tool">
-<meta property="og:description" content="Use our free online exact age calculator by date of birth. Find out exactly how old you are in years, months, and days with our simple chronological age tool.">
+<meta property="og:title" content="Age Calculator — Exact Age, Live Counter & Birthday Countdown">
+<meta property="og:description" content="Calculate your exact age with live counter, zodiac info, and next birthday countdown. Free.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Exact Age Calculator by Date of Birth">
-<meta name="twitter:description" content="Calculate your chronological age exactly down to the days, months, and years you've been alive.">
 {% endblock %}
-
+{% block head %}
+<style>
+.ac-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.ac-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.ac-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.ac-input:focus{border-color:var(--color-primary);outline:none}
+.ac-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.65rem;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:7px;touch-action:manipulation}
+.ac-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.ac-pri:active{transform:translateY(0)}
+.ac-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.5rem .75rem;font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation}
+.ac-sec:hover{border-color:var(--color-base-content)}
+.ac-sec.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.ac-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.35rem .65rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:11px;transition:all .12s}
+.ac-toggle:hover{background:var(--color-base-200)}
+.ac-toggle.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.ac-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.ac-toast.show{opacity:1;transform:translateY(0)}
+.ac-metric{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ac-metric-item{background:var(--color-base-100);border-radius:1rem;padding:14px;text-align:center;border:1px solid var(--color-base-300)}
+.ac-metric-item .val{font-size:26px;font-weight:900;font-family:monospace;line-height:1.2;color:var(--color-primary)}
+.ac-metric-item .lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-top:2px}
+.ac-metric-item.lg{grid-column:1/-1}
+.ac-metric-item.lg .val{font-size:36px}
+.ac-pulse{animation:pulse 1s ease-in-out}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.03)}100%{transform:scale(1)}}
+.ac-info-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.ac-info-card{background:var(--color-base-100);border-radius:.75rem;padding:10px;text-align:center;border:1px solid var(--color-base-300)}
+.ac-info-card .iv{font-size:13px;font-weight:800;line-height:1.3}
+.ac-info-card .il{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-top:2px}
+.ac-hist{max-height:220px;overflow-y:auto}
+.ac-hist-item{padding:6px 10px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10px;font-weight:600;cursor:pointer;transition:all .12s}
+.ac-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.ac-hist-item .preview{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:9px;opacity:.55;min-width:0}
+.ac-hist-item .meta{font-size:8px;font-weight:700;opacity:.35;white-space:nowrap}
+.ac-hist-item .hdel{width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:10px}
+.ac-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.ac-empty{text-align:center;padding:24px 16px;font-size:11px;font-weight:600;opacity:.3}
+.ac-countdown{background:var(--color-base-100);border-radius:1rem;padding:12px 16px;border:1px solid var(--color-base-300);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-top:12px}
+.ac-countdown .cd-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4}
+.ac-countdown .cd-val{font-size:18px;font-weight:900;font-family:monospace;color:var(--color-primary)}
+</style>
+{% endblock %}
 {% block content %}
-{{ tool_hero_section("hourglass", "Chrono Engine", "FREE AGE", "CALCULATOR", "Precise Lifetime Analytics — Know Exactly How Old You Are") }}
-
-  <!-- Main Content -->
-  <div class="flex flex-col lg:flex-row gap-6 items-start reveal" style="animation-delay:0.2s">
-    <!-- Input Column -->
-    <div class="w-full lg:w-5/12 space-y-4">
-      <div class="card-premium p-6 md:p-8">
-        <label class="label-cinematic mb-3 block">Select Date of Birth</label>
-        <input type="date" id="dob" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content rounded-xl" aria-label="Date of birth">
-        <button id="calcBtn" class="btn btn-cinematic w-full mt-5 py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">
-          {{ lucide_icon("hourglass","w-5 h-5", 20) | safe }} CALCULATE EXACT AGE
-        </button>
-        <button id="resetBtn" class="btn btn-ghost btn-cinematic w-full mt-3 py-2 text-sm font-bold rounded-xl opacity-60 hover:opacity-100">RESET FORM</button>
+{{ tool_hero_section("hourglass","Chrono Engine","AGE","CALCULATOR","Exact age breakdown, live counter, birthday countdown, zodiac & more.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="ac-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("calendar","w-4 h-4",16) | safe }} Date of Birth</h2>
+      <div class="mb-3"><label class="ac-label" for="aDob">Date of Birth</label><input type="date" id="aDob" class="ac-input" aria-label="Date of birth"></div>
+      <button type="button" id="aCalcBtn" class="ac-pri w-full mb-2">{{ lucide_icon("hourglass","w-4 h-4",16) | safe }} Calculate Age</button>
+      <div class="flex gap-2 mb-3">
+        <button type="button" id="aLiveBtn" class="ac-sec flex-1">{{ lucide_icon("play","w-3 h-3",12) | safe }} <span id="aLiveLbl">Live Counter</span></button>
+        <button type="button" id="aSave" class="ac-sec">{{ lucide_icon("save","w-3 h-3",12) | safe }} Save</button>
+        <button type="button" id="aClear" class="ac-sec">{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button>
       </div>
     </div>
-
-    <!-- Results Column -->
-    <div class="w-full lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <label class="label-cinematic text-center block mb-6">CURRENT AGE BREAKDOWN</label>
-        <div class="flex gap-3 justify-center">
-          <div class="stat-cinematic flex-1 text-center p-6">
-            <span id="resYears" class="metric-cinematic metric-cinematic--2xl text-primary block">0</span>
-            <span class="label-cinematic block mt-2">Years</span>
-          </div>
-          <div class="stat-cinematic flex-1 text-center p-6">
-            <span id="resMonths" class="metric-cinematic metric-cinematic--2xl text-primary block">0</span>
-            <span class="label-cinematic block mt-2">Months</span>
-          </div>
-          <div class="stat-cinematic flex-1 text-center p-6">
-            <span id="resDays" class="metric-cinematic metric-cinematic--2xl text-primary block">0</span>
-            <span class="label-cinematic block mt-2">Days</span>
-          </div>
-        </div>
-        <div class="card-premium mt-6 p-5 text-center">
-          <label class="label-cinematic block mb-2">TOTAL DAYS LIVED</label>
-          <output id="totalDays" class="metric-cinematic metric-cinematic--xl font-mono text-primary">0</output>
-        </div>
+    <div class="ac-card mt-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("info","w-4 h-4",16) | safe }} Fun Facts</h2>
       </div>
+      <div id="aInfo" style="text-align:center;padding:20px 8px;font-size:10px;font-weight:600;opacity:.3">Enter your date of birth to see fun facts</div>
     </div>
   </div>
-
-  <!-- JSON-LD -->
-  
+  <div class="lg:w-7/12">
+    <div class="ac-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3">{{ lucide_icon("activity","w-4 h-4",16) | safe }} Your Age</h2>
+      <div id="aEmpty" class="ac-empty">Enter your date of birth and click Calculate</div>
+      <div id="aResults" hidden>
+        <div class="ac-metric mb-3" id="aAgeGrid"></div>
+        <div id="aCountdown" class="ac-countdown"><span class="cd-lbl">Next Birthday</span><span class="cd-val" id="aBirthdayCountdown">—</span></div>
+      </div>
+    </div>
+    <div class="ac-card mt-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-4 h-4",16) | safe }} History</h2>
+        <div class="flex items-center gap-2"><button type="button" id="aHiToggle" class="ac-toggle" aria-expanded="false" aria-controls="aHiWrap">History <span id="aHiCount"></span></button><button type="button" id="aHiClear" class="ac-sec" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
+      </div>
+      <div id="aHiWrap" hidden><div id="aHiList" class="ac-hist"></div></div>
+    </div>
+  </div>
 </div>
-
+<div id="aToast" class="ac-toast" role="status" aria-live="polite"></div>
 <script>
-document.addEventListener('DOMContentLoaded',()=>{const dobInput=document.getElementById('dob');const calcBtn=document.getElementById('calcBtn');const resetBtn=document.getElementById('resetBtn');const today=new Date().toISOString().split('T')[0];dobInput.setAttribute('max',today);calcBtn.addEventListener('click',calculateAge);resetBtn.addEventListener('click',()=>{dobInput.value='';animateValue('resYears',parseInt(document.getElementById('resYears').innerHTML),0,500);animateValue('resMonths',parseInt(document.getElementById('resMonths').innerHTML),0,500);animateValue('resDays',parseInt(document.getElementById('resDays').innerHTML),0,500);animateValue('totalDays',parseInt(document.getElementById('totalDays').innerHTML),0,500);});function calculateAge(){if(!dobInput.value)return;const dob=new Date(dobInput.value);const now=new Date();let years=now.getFullYear()-dob.getFullYear();let months=now.getMonth()-dob.getMonth();let days=now.getDate()-dob.getDate();if(days<0){months--;const prevMonth=new Date(now.getFullYear(),now.getMonth(),0);days+=prevMonth.getDate();}
-if(months<0){years--;months+=12;}
-const totalDays=Math.floor(Math.abs(now-dob)/(1000*60*60*24));animateValue('resYears',parseInt(document.getElementById('resYears').innerHTML)||0,years,800);animateValue('resMonths',parseInt(document.getElementById('resMonths').innerHTML)||0,months,800);animateValue('resDays',parseInt(document.getElementById('resDays').innerHTML)||0,days,800);animateValue('totalDays',parseInt(document.getElementById('totalDays').innerHTML)||0,totalDays,1000);}
-function animateValue(id,start,end,duration){if(start===end)return;const obj=document.getElementById(id);let startTimestamp=null;const step=(timestamp)=>{if(!startTimestamp)startTimestamp=timestamp;const progress=Math.min((timestamp-startTimestamp)/duration,1);obj.innerHTML=Math.floor(progress*(end-start)+start);if(progress<1)window.requestAnimationFrame(step);else obj.innerHTML=end;};window.requestAnimationFrame(step);}});
-</script>
+(function(){'use strict';
+var live=false,raf=null;
+var history=[]; try{var h=JSON.parse(localStorage.getItem('sb_ac1')||'[]');if(Array.isArray(h))history=h}catch(e){}
 
+function el(id){return document.getElementById(id)}
+var dobEl=el('aDob'),calcBtn=el('aCalcBtn'),liveBtn=el('aLiveBtn'),liveLbl=el('aLiveLbl');
+var saveBtn=el('aSave'),clearBtn=el('aClear');
+var emptyEl=el('aEmpty'),resultsEl=el('aResults'),ageGrid=el('aAgeGrid'),countdownEl=el('aBirthdayCountdown');
+var infoEl=el('aInfo');
+var hiToggle=el('aHiToggle'),hiCount=el('aHiCount'),hiClear=el('aHiClear'),hiWrap=el('aHiWrap'),hiList=el('aHiList');
+var toastEl=el('aToast');
+
+var savedDob=localStorage.getItem('sb_ac1_dob');if(savedDob){dobEl.value=savedDob}
+var maxDate=new Date().toISOString().slice(0,10);dobEl.setAttribute('max',maxDate);
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+
+var zodiac=[
+{name:'Capricorn',sym:'♑',start:[12,22],end:[1,19]},{name:'Aquarius',sym:'♒',start:[1,20],end:[2,18]},
+{name:'Pisces',sym:'♓',start:[2,19],end:[3,20]},{name:'Aries',sym:'♈',start:[3,21],end:[4,19]},
+{name:'Taurus',sym:'♉',start:[4,20],end:[5,20]},{name:'Gemini',sym:'♊',start:[5,21],end:[6,20]},
+{name:'Cancer',sym:'♋',start:[6,21],end:[7,22]},{name:'Leo',sym:'♌',start:[7,23],end:[8,22]},
+{name:'Virgo',sym:'♍',start:[8,23],end:[9,22]},{name:'Libra',sym:'♎',start:[9,23],end:[10,22]},
+{name:'Scorpio',sym:'♏',start:[10,23],end:[11,21]},{name:'Sagittarius',sym:'♐',start:[11,22],end:[12,21]}];
+
+function getZodiac(m,d){
+for(var i=0;i<zodiac.length;i++){
+var z=zodiac[i];if((m+1===z.start[0]&&d>=z.start[1])||(m+1===z.end[0]&&d<=z.end[1]))return z}
+return zodiac[9]
+}
+
+var chineseZodiac=['Rat','Ox','Tiger','Rabbit','Dragon','Snake','Horse','Goat','Monkey','Rooster','Dog','Pig'];
+function getChineseZodiac(y){return chineseZodiac[(y-4)%12]}
+
+var stones=['Garnet','Amethyst','Aquamarine','Diamond','Emerald','Pearl','Ruby','Peridot','Sapphire','Opal','Topaz','Turquoise'];
+function getStone(m){return stones[m]}
+
+function calcAge(dobStr){
+if(!dobStr)return null;
+var sp=dobStr.split('-');var dob=new Date(sp[0],sp[1]-1,sp[2],12,0,0);
+var now=new Date();var y=now.getFullYear()-dob.getFullYear();var m=now.getMonth()-dob.getMonth();var d=now.getDate()-dob.getDate();
+if(d<0){m--;var prev=new Date(now.getFullYear(),now.getMonth(),0);d+=prev.getDate()}
+if(m<0){y--;m+=12}
+var totalDays=Math.floor((now-dob)/86400000);
+var totalHours=Math.floor((now-dob)/3600000);
+var totalMinutes=Math.floor((now-dob)/60000);
+var totalSeconds=Math.floor((now-dob)/1000);
+return{y:y,m:m,d:d,totalDays:totalDays,totalHours:totalHours,totalMinutes:totalMinutes,totalSeconds:totalSeconds,dob:dob}
+}
+
+function getWeekday(d){return['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()]}
+
+function calcCountdown(dobStr){
+if(!dobStr)return null;
+var sp=dobStr.split('-');var now=new Date();
+var bd=new Date(now.getFullYear(),parseInt(sp[1])-1,parseInt(sp[2]),12,0,0);
+if(bd<=now)bd.setFullYear(bd.getFullYear()+1);
+var diff=bd-now;if(diff<=0)return null;
+var days=Math.floor(diff/86400000);var hrs=Math.floor((diff%86400000)/3600000);var mins=Math.floor((diff%3600000)/60000);var secs=Math.floor((diff%60000)/1000);
+return{d:days,h:hrs,m:mins,s:secs}
+}
+
+function render(){
+var dob=dobEl.value;
+if(!dob){emptyEl.hidden=false;resultsEl.hidden=true;return}
+var age=calcAge(dob);if(!age){emptyEl.hidden=false;resultsEl.hidden=true;return}
+emptyEl.hidden=true;resultsEl.hidden=false;
+ageGrid.innerHTML=
+'<div class="ac-metric-item lg"><div class="val">'+age.y+'</div><div class="lbl">Years</div></div>'+
+'<div class="ac-metric-item"><div class="val">'+age.m+'</div><div class="lbl">Months</div></div>'+
+'<div class="ac-metric-item"><div class="val">'+age.d+'</div><div class="lbl">Days</div></div>'+
+'<div class="ac-metric-item"><div class="val">'+age.totalDays.toLocaleString()+'</div><div class="lbl">Days Lived</div></div>';
+var cd=calcCountdown(dob);
+countdownEl.textContent=cd?cd.d+'d '+cd.h+'h '+cd.m+'m '+cd.s+'s':'Happy Birthday!';
+if(cd&&cd.d===0&&cd.h===0&&cd.m===0&&cd.s<=60)countdownEl.style.color='var(--color-primary)';else countdownEl.style.color='';
+renderInfo(dob);
+}
+
+function renderInfo(dobStr){
+if(!dobStr){infoEl.innerHTML='<span style="font-size:10px;font-weight:600;opacity:.3">Enter your date of birth</span>';return}
+var sp=dobStr.split('-');var m=parseInt(sp[1])-1,d=parseInt(sp[2]),y=parseInt(sp[0]);
+var z=getZodiac(m,d);var cz=getChineseZodiac(y);var st=getStone(m);
+var dt=new Date(y,m,d,12,0,0);var wd=getWeekday(dt);
+infoEl.innerHTML='<div class="ac-info-grid">'+
+'<div class="ac-info-card"><div class="iv">'+esc(wd)+'</div><div class="il">Born On</div></div>'+
+'<div class="ac-info-card"><div class="iv">'+esc(z.sym+' '+z.name)+'</div><div class="il">Zodiac</div></div>'+
+'<div class="ac-info-card"><div class="iv">'+esc(cz)+'</div><div class="il">Chinese Zodiac</div></div>'+
+'<div class="ac-info-card"><div class="iv">'+esc(st)+'</div><div class="il">Birthstone</div></div></div>';
+}
+
+function liveTick(){
+if(!live)return;
+var dob=dobEl.value;
+if(!dob){render();raf=requestAnimationFrame(liveTick);return}
+var age=calcAge(dob);
+if(!age){render();raf=requestAnimationFrame(liveTick);return}
+var hrs=age.totalHours%24;var mins=age.totalMinutes%60;var secs=age.totalSeconds%60;
+ageGrid.innerHTML=
+'<div class="ac-metric-item lg"><div class="val">'+age.y+'</div><div class="lbl">Years</div></div>'+
+'<div class="ac-metric-item"><div class="val">'+age.m+'</div><div class="lbl">Months</div></div>'+
+'<div class="ac-metric-item"><div class="val">'+age.d+'</div><div class="lbl">Days</div></div>'+
+'<div class="ac-metric-item"><div class="val">'+String(hrs).padStart(2,'0')+':'+String(mins).padStart(2,'0')+':'+String(secs).padStart(2,'0')+'</div><div class="lbl">Live Clock</div></div>';
+var cd=calcCountdown(dob);
+countdownEl.textContent=cd?cd.d+'d '+cd.h+'h '+cd.m+'m '+cd.s+'s':'Happy Birthday!';
+raf=requestAnimationFrame(liveTick);
+}
+
+function toggleLive(){
+if(live){cancelAnimationFrame(raf);live=false;liveLbl.textContent='Live Counter';liveBtn.classList.remove('on')}
+else{if(!dobEl.value){toast('Enter DOB first');return}live=true;liveLbl.textContent='Stop';liveBtn.classList.add('on');liveTick()}
+}
+
+function saveHistory(){
+var dob=dobEl.value;if(!dob)return;
+var age=calcAge(dob);if(!age)return;
+history.unshift({d:dob,y:age.y,m:age.m,day:age.d,td:age.totalDays,label:dob+' ('+age.y+'y '+age.m+'m '+age.d+'d)',ts:Date.now()});
+if(history.length>50)history.pop();
+try{localStorage.setItem('sb_ac1',JSON.stringify(history))}catch(e){}renderHistory();
+}
+
+function renderHistory(){
+hiCount.textContent=history.length?'('+history.length+')':'';
+hiClear.hidden=!history.length;
+if(!history.length){hiList.innerHTML='<div class="ac-empty">No calculations yet</div>';return}
+var h='';history.forEach(function(item,i){
+var d=new Date(item.ts),now=new Date();var diff=Math.round((now-d)/1000);
+var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+h+='<div class="ac-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
+});
+hiList.innerHTML=h;
+}
+
+calcBtn.addEventListener('click',function(){if(live)toggleLive();render();saveHistory()});
+liveBtn.addEventListener('click',toggleLive);
+saveBtn.addEventListener('click',function(){if(!dobEl.value){toast('No DOB to save');return}try{localStorage.setItem('sb_ac1_dob',dobEl.value)}catch(e){}toast('Saved!')});
+clearBtn.addEventListener('click',function(){dobEl.value='';emptyEl.hidden=false;resultsEl.hidden=true;infoEl.innerHTML='<span style="font-size:10px;font-weight:600;opacity:.3">Enter your date of birth to see fun facts</span>';if(live)toggleLive();toast('Cleared')});
+
+hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
+hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_ac1',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});
+hiList.addEventListener('click',function(e){
+var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_ac1',JSON.stringify(history))}catch(e){}renderHistory();return}
+var item=e.target.closest('.ac-hist-item');if(!item)return;
+var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
+dobEl.value=h.d;if(live)toggleLive();render();saveHistory();
+});
+
+if(dobEl.value)render();
+})();
+</script>
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

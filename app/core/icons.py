@@ -18,11 +18,19 @@ def lucide_icon(name: str, class_name: str = "", size: int = 24) -> str:
         svg = _icons[name]
         _cache[cache_key] = svg
 
-    # Inject class, size, and aria-hidden (remove original class/width/height from source)
-    svg = re.sub(
-        r'<svg ([^>]*)>',
-        lambda m: f'<svg class="{class_name}" width="{size}" height="{size}" style="display:inline-block" aria-hidden="true" focusable="false">',
-        svg,
-        count=1,
-    )
+    # Inject class, size, and aria-hidden; preserve essential SVG attributes
+    has_color_class = bool(re.search(r'\btext-(?:primary|secondary|accent|base-content|success|warning|error|info|neutral)\b', class_name))
+    base_color = '' if has_color_class else 'color:var(--color-base-content);'
+
+    def _replace_svg(m):
+        original = m.group(1)
+        keep = []
+        for attr in ['xmlns', 'viewBox', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin']:
+            found = re.search(rf'{re.escape(attr)}="[^"]*"', original)
+            if found:
+                keep.append(found.group(0))
+        kept = ' '.join(keep)
+        return f'<svg class="{class_name}" width="{size}" height="{size}" {kept} style="display:inline-block;{base_color}" aria-hidden="true" focusable="false">'
+
+    svg = re.sub(r'<svg ([^>]*)>', _replace_svg, svg, count=1)
     return svg

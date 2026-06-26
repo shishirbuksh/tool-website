@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 from starlette.requests import Request
@@ -8,8 +8,8 @@ from starlette.responses import Response
 class TestRequestIDMiddleware:
     @pytest.mark.asyncio
     async def test_adds_request_id_header(self):
-        from app.core.middleware import RequestIDMiddleware
         from app.core.log import get_request_id_filter
+        from app.core.middleware import RequestIDMiddleware
 
         filt = get_request_id_filter()
 
@@ -29,9 +29,6 @@ class TestRequestIDMiddleware:
     @pytest.mark.asyncio
     async def test_generates_request_id_if_missing(self):
         from app.core.middleware import RequestIDMiddleware
-        from app.core.log import get_request_id_filter
-
-        filt = get_request_id_filter()
 
         mock_request = AsyncMock(spec=Request)
         mock_request.headers = {}

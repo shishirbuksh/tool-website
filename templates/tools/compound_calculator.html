@@ -1,242 +1,325 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}Compound Interest Calculator | Investment Growth & Return Estimator{% endblock %}
-{% block meta_description %}Calculate your compound interest with monthly contributions. Use our inflation adjusted return tool to find out your true purchasing power and retirement income.{% endblock %}
-{% block meta_keywords %}compound interest calculator, investment growth calculator, inflation adjusted return, 4 percent rule calculator, FIRE movement calculator, retirement income calculator, passive income calculator, compound interest calculator with monthly contributions, investment return calculator, calculate compound interest online, wealth growth estimator{% endblock %}
+{% block title %}Compound Interest Calculator — Free Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Advanced compound interest calculator with What-If scenarios, year-by-year growth table, and milestones. Calculate total value, total interest, and EAR with monthly contributions.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/compound-calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/compound-calculator">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Compound Interest Calculator | Investment Growth Estimator">
-<meta property="og:description" content="Calculate your compound interest with monthly contributions. Use our inflation adjusted return tool to find out your true purchasing power and retirement income.">
+<meta property="og:title" content="Compound Interest Calculator — Advanced | StoryBrain AI">
+<meta property="og:description" content="Advanced compound interest calculator with What-If scenarios, year-by-year growth table, and milestones. See contribution vs interest breakdown.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Compound Interest Calculator">
-<meta name="twitter:description" content="Find out exactly how much your investments will grow over time, accounting for inflation and monthly deposits.">
 {% endblock %}
-
 {% block head %}
+<style>
+.cp-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.cp-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.cp-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.cp-input:focus{border-color:var(--color-primary);outline:none}
+.cp-select{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;cursor:pointer;transition:border-color .18s;appearance:auto;box-sizing:border-box}
+.cp-select:focus{border-color:var(--color-primary);outline:none}
+.cp-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.55rem .75rem;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:6px;touch-action:manipulation}
+.cp-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.cp-pri:active{transform:translateY(0)}
+.cp-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.45rem .7rem;font-weight:700;font-size:.65rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation}
+.cp-sec:hover{border-color:var(--color-base-content)}
+.cp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cp-result{background:var(--color-base-100);border-radius:1rem;padding:14px 12px;text-align:center;border:1px solid var(--color-base-300)}
+.cp-result .iv{font-size:20px;font-weight:900;font-family:monospace;line-height:1.2}
+.cp-result .il{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-top:4px}
+.cp-result.full{grid-column:1/-1}
+.cp-result.full .iv{font-size:26px}
+.cp-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.cp-toast.show{opacity:1;transform:translateY(0)}
+.cp-whatif{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px}
+.cp-whatif button{padding:4px 6px;border-radius:6px;font-size:8px;font-weight:700;cursor:pointer;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;touch-action:manipulation}
+.cp-whatif button:hover{background:color-mix(in oklab,var(--color-primary) 10%,transparent);border-color:var(--color-primary)}
+.cp-whatif button.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.cp-hist{max-height:200px;overflow-y:auto}
+.cp-hist-item{padding:5px 8px;border-radius:.6rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:9px;font-weight:600;cursor:pointer;transition:all .12s;margin-bottom:2px}
+.cp-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.cp-hist-item .preview{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:8px;opacity:.55;min-width:0}
+.cp-hist-item .meta{font-size:7px;font-weight:700;opacity:.35;white-space:nowrap}
+.cp-hist-item .hdel{width:18px;height:18px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:8px}
+.cp-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.cp-empty{text-align:center;padding:20px 12px;font-size:10px;font-weight:600;opacity:.3}
+.cp-table{width:100%;border-collapse:collapse;font-size:10px;font-weight:600}
+.cp-table th{padding:4px 6px;text-align:right;font-size:7px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;opacity:.35;border-bottom:1px solid var(--color-base-300)}
+.cp-table th:first-child{text-align:left}
+.cp-table td{padding:4px 6px;text-align:right;font-family:monospace;border-bottom:1px solid var(--color-base-200)}
+.cp-table td:first-child{text-align:left;font-weight:800}
+.cp-table-wrap{max-height:280px;overflow-y:auto;border-radius:.75rem;border:1px solid var(--color-base-300)}
+.cp-milestone{background:var(--color-base-100);border-radius:.75rem;padding:12px;border:1px solid var(--color-base-300);display:flex;align-items:center;justify-content:space-between}
+.cp-milestone .mv{font-size:14px;font-weight:900;font-family:monospace}
+.cp-milestone .ml{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4}
+.cp-ratio{display:flex;align-items:stretch;gap:6px;margin-top:8px}
+.cp-ratio .rb{height:20px;border-radius:6px;transition:width .3s;min-width:4px}
+.cp-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.3rem .6rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:10px;transition:all .12s}
+.cp-toggle:hover{background:var(--color-base-200)}
+.cp-toggle.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+</style>
 {% endblock %}
-
 {% block content %}
-{{ tool_hero_section("trending-up", "Ultimate Wealth Tool", "COMPOUND", "INTEREST CALCULATOR", "Watch your money grow. Calculate your true purchasing power after inflation and find your exact retirement passive income.") }}
-
-  <!-- Main Content -->
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-
-    <!-- Calculator Inputs -->
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3" style="color:var(--color-green-500)">
-          {{ lucide_icon("piggy-bank","w-5 h-5", 20) | safe }} Investment Details
-        </h2>
-        <form id="calcForm" class="flex flex-col gap-5">
-
-          <!-- Currency Selector -->
-          <div class="flex justify-between items-center">
-            <label class="label-cinematic" for="currency">Currency</label>
-            <select aria-label="Currency" id="currency" class="input input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm w-auto">
-              <option value="usd" selected>USD ($)</option>
-              <option value="eur">EUR (&euro;)</option>
-              <option value="gbp">GBP (&pound;)</option>
-              <option value="inr">INR (&#8377;)</option>
-              <option value="aud">AUD ($)</option>
-              <option value="cad">CAD ($)</option>
-            </select>
-          </div>
-
-          <!-- Initial Investment -->
-          <div>
-            <div class="flex justify-between items-end mb-2">
-              <label class="label-cinematic" for="initial">Initial Deposit</label>
-              <div class="flex">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                <input aria-label="Initial" type="number" id="initial" class="input w-28 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none" value="10000" min="0">
-              </div>
-            </div>
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Monthly Contribution -->
-          <div>
-            <div class="flex justify-between items-end mb-2">
-              <label class="label-cinematic" for="monthly">Monthly Contribution</label>
-              <div class="flex">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none currency-sym">$</span>
-                <input aria-label="Monthly" type="number" id="monthly" class="input w-28 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none" value="500" min="0">
-              </div>
-            </div>
-            <input type="range" id="monthlySlider" min="0" max="10000" step="50" value="500" class="slider-cinematic" aria-label="Monthly">
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Years -->
-          <div>
-            <div class="flex justify-between items-end mb-2">
-              <label class="label-cinematic" for="years">Years to Grow</label>
-              <div class="flex">
-                <input aria-label="Years" type="number" id="years" class="input w-20 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-r-none" value="20" min="1" max="100">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">Yrs</span>
-              </div>
-            </div>
-            <input type="range" id="yearsSlider" min="1" max="60" step="1" value="20" class="slider-cinematic" aria-label="Years">
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Interest Rate -->
-          <div>
-            <div class="flex justify-between items-end mb-2">
-              <label class="label-cinematic" for="rate">Estimated Return</label>
-              <div class="flex">
-                <input aria-label="Rate" type="number" id="rate" class="input w-20 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-r-none" value="8.0" min="0" step="0.1">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">%</span>
-              </div>
-            </div>
-            <p class="text-xs text-base-content/40 mt-1">The stock market (S&P 500) historical average is about 8-10% per year.</p>
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Inflation Adjuster -->
-          <div class="card-premium p-4" style="border-color:color-mix(in oklab, var(--color-error) 25%, transparent)">
-            <div class="flex justify-between items-center mb-3">
-              <label class="label-cinematic" style="color:var(--color-error)">The Inflation Reality Check</label>
-              <span class="pill-cinematic text-xs" style="background:var(--color-error);color:white;border-color:var(--color-error)">Market Gap</span>
-            </div>
-            <div class="flex items-center gap-2 mb-3">
-              <input aria-label="Inflationtoggle" type="checkbox" role="switch" id="inflationToggle" class="toggle toggle-sm" checked>
-              <label class="text-xs text-base-content/60 font-bold tracking-wider uppercase" for="inflationToggle">Adjust final amount for Inflation</label>
-            </div>
-            <div id="inflationInputBox">
-              <div class="flex w-1/2">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none">Inflation</span>
-                <input type="number" id="inflationRate" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none" value="3.0" step="0.1" aria-label="Inflation Rate">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">%</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tax Simulator -->
-          <div class="card-premium p-4" style="border-color:color-mix(in oklab, var(--color-warning) 25%, transparent)">
-            <div class="flex justify-between items-center mb-3">
-              <label class="label-cinematic" style="color:var(--color-warning)">Global Tax Simulator</label>
-              <span class="pill-cinematic text-xs" style="background:var(--color-warning);color:white;border-color:var(--color-warning)">Market Gap</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <input aria-label="Taxtoggle" type="checkbox" role="switch" id="taxToggle" class="toggle toggle-sm">
-              <label class="text-xs text-base-content/60 font-bold tracking-wider uppercase" for="taxToggle">Pay Capital Gains Tax on Profit</label>
-            </div>
-            <p class="text-xs text-base-content/40 mt-2">Automatically applies estimated stock tax based on your currency region.</p>
-          </div>
-
-        </form>
+{{ tool_hero_section("layers","Calculators","Compound Interest","CALCULATOR","See how your money grows with compound interest. Add monthly contributions and choose your compounding frequency.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="cp-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("dollar-sign","w-4 h-4",16) | safe }} Investment Details</h2>
+      <div class="flex flex-col gap-3">
+        <div><label class="cp-label" for="cpPrincipal">Principal Amount ($)</label><input type="text" id="cpPrincipal" class="cp-input" value="10000" inputmode="numeric" aria-label="Initial investment amount"></div>
+        <div><label class="cp-label" for="cpContribution">Monthly Contribution ($)</label><input type="text" id="cpContribution" class="cp-input" value="500" inputmode="numeric" aria-label="Monthly contribution amount"></div>
+        <hr style="border:none;border-top:1px solid var(--color-base-300);margin:4px 0">
+        <div><label class="cp-label" for="cpRate">Annual Interest Rate (%)</label><input type="text" id="cpRate" class="cp-input" value="8" inputmode="decimal" aria-label="Annual interest rate as percentage"></div>
+        <div><label class="cp-label" for="cpYears">Time Period (years)</label><input type="text" id="cpYears" class="cp-input" value="10" inputmode="numeric" aria-label="Investment time period in years"></div>
+        <div><label class="cp-label" for="cpFreq">Compound Frequency</label><select id="cpFreq" class="cp-select" aria-label="How often interest compounds"><option value="1">Annually</option><option value="2">Semi-Annually</option><option value="4" selected>Quarterly</option><option value="12">Monthly</option></select></div>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button type="button" id="cpCalcBtn" class="cp-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
+        <button type="button" id="cpCopyBtn" class="cp-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="cpDlBtn" class="cp-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
       </div>
     </div>
-
-    <!-- Results Dashboard -->
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-
-        <div class="flex justify-between items-center mb-6 pb-4 border-b border-base-content/10 flex-wrap gap-3">
-          <h3 class="text-xl font-black tracking-tight flex items-center gap-3" style="color:var(--color-green-500)">
-            {{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Wealth Report
-          </h3>
-        </div>
-
-        <!-- Total Future Value -->
-        <div class="card-premium p-6 text-center mb-6" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-          <span class="label-cinematic block mb-2" style="color:var(--color-green-500)">Total Future Value</span>
-          <div class="flex justify-center items-center gap-2 mb-2">
-            <span class="metric-cinematic metric-cinematic--lg opacity-60 currency-sym" style="color:var(--color-green-500)">$</span>
-            <span id="resTotal" class="metric-cinematic metric-cinematic--xl" style="color:var(--color-green-500)">0</span>
-          </div>
-          <div id="inflationAlert" class="text-xs font-bold mt-2 space-y-1" style="color:var(--color-error)"></div>
-        </div>
-
-        <!-- Secondary Metrics -->
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <div class="stat-cinematic text-center">
-            <span class="label-cinematic block mb-2">Your Total Deposits</span>
-            <div class="flex justify-center items-center">
-              <span class="text-sm opacity-50 currency-sym mr-1">$</span>
-              <output id="resPrincipal" class="metric-cinematic metric-cinematic--sm font-mono">0</output>
-            </div>
-          </div>
-          <div class="stat-cinematic text-center">
-            <span class="label-cinematic block mb-2" style="color:var(--color-green-500)">Free Interest Earned</span>
-            <div class="flex justify-center items-center">
-              <span class="text-sm opacity-50 currency-sym mr-1">$</span>
-              <output id="resInterest" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-green-500)">0</output>
-            </div>
-          </div>
-        </div>
-
-        <!-- Progress Bar -->
-        <div class="mb-6">
-          <div class="flex justify-between text-xs font-bold mb-2">
-            <span class="text-base-content/60">Your Money</span>
-            <span class="text-success">Compound Interest</span>
-          </div>
-          <div class="h-3 rounded-full overflow-hidden" style="background:color-mix(in oklab, var(--color-base-content) 5%, transparent)">
-            <div class="flex h-full">
-              <div id="barPrincipal" class="h-full transition-all duration-500" style="background:var(--color-base-content);opacity:0.3"></div>
-              <div id="barInterest" class="h-full transition-all duration-500" style="background:var(--color-green-500)"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- FIRE Simulator -->
-        <div class="card-premium p-5" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-          <div class="flex justify-between items-center mb-3 flex-wrap gap-2">
-            <h4 class="text-lg font-black tracking-tight flex items-center gap-2" style="color:var(--color-green-500)">
-              {{ lucide_icon("coffee","w-5 h-5", 20) | safe }} The "Retire Early" Simulator
-            </h4>
-            <span class="pill-cinematic text-xs" style="background:var(--color-success);color:white;border-color:var(--color-success)">Market Gap Feature</span>
-          </div>
-          <p class="text-sm text-base-content/60 mb-4">Using the famous <strong>4% Safe Withdrawal Rule</strong>, here is how much passive income this money will pay you every month, forever, without ever running out.</p>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="glass-cinematic rounded-xl p-4 text-center">
-              <span class="label-cinematic block mb-2">Yearly Passive Income</span>
-              <div class="flex justify-center items-center">
-                <span class="text-lg opacity-50 currency-sym mr-1" style="color:var(--color-green-500)">$</span>
-                <output id="resYearlyIncome" class="metric-cinematic metric-cinematic--md font-mono" style="color:var(--color-green-500)">0</output>
-              </div>
-            </div>
-            <div class="glass-cinematic rounded-xl p-4 text-center" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-              <span class="label-cinematic block mb-2" style="color:var(--color-green-500)">Monthly "Quit Your Job" Income</span>
-              <div class="flex justify-center items-center">
-                <span class="text-lg opacity-60 currency-sym mr-1" style="color:var(--color-green-500)">$</span>
-                <output id="resMonthlyIncome" class="metric-cinematic metric-cinematic--lg font-mono" style="color:var(--color-green-500)">0</output>
-              </div>
-            </div>
-          </div>
-        </div>
-
+    <div class="cp-card mt-4">
+      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("zap","w-3 h-3",12) | safe }} What-If</h2>
+      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">Test different scenarios instantly</p>
+      <div class="cp-whatif" id="cpWhatIf"><button type="button" class="on" data-wi="current">Current</button><button type="button" data-wi="x2-contrib">x2 Contribution</button><button type="button" data-wi="higher-rate">+2% Rate</button><button type="button" data-wi="longer">+5 Years</button><button type="button" data-wi="no-contrib">No Contributions</button><button type="button" data-wi="best-case">Best Case</button></div>
+    </div>
+    <div class="cp-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
+        <div class="flex items-center gap-2"><button type="button" id="cpHiToggle" class="cp-toggle" aria-expanded="false" aria-controls="cpHiWrap">History <span id="cpHiCount"></span></button><button type="button" id="cpHiClear" class="cp-sec" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
+      </div>
+      <div id="cpHiWrap" hidden class="mt-2"><div id="cpHiList" class="cp-hist"></div></div>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="cp-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("trending-up","w-4 h-4",16) | safe }} Growth Results</h2>
+      <div class="cp-grid" id="cpResults">
+        <div class="cp-result full"><div class="iv" id="cpTotalValue" style="color:var(--color-primary)">$0.00</div><div class="il">Total Value</div></div>
+        <div class="cp-result"><div class="iv" id="cpContributions">$0.00</div><div class="il">Total Contributions</div></div>
+        <div class="cp-result"><div class="iv" id="cpInterest" style="color:var(--color-success)">$0.00</div><div class="il">Total Interest Earned</div></div>
+        <div class="cp-result"><div class="iv" id="cpEar">0.00%</div><div class="il">Effective Annual Rate</div></div>
+      </div>
+      <div class="cp-ratio" id="cpRatioBar" aria-label="Contributions vs interest breakdown"></div>
+      <p class="text-[7px] font-bold opacity-25 uppercase tracking-wider text-center mt-1" id="cpRatioLabel"></p>
+    </div>
+    <div class="cp-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} Year-by-Year Growth</h2>
+        <button type="button" id="cpTableToggle" class="cp-toggle" aria-expanded="true" aria-controls="cpTableWrap">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
+      </div>
+      <div id="cpTableWrap"><div class="cp-table-wrap mt-2"><table class="cp-table" id="cpYearTable"><thead><tr><th>Year</th><th>Start</th><th>Contributions</th><th>Interest</th><th>End</th></tr></thead><tbody id="cpYearBody"></tbody></table></div></div>
+    </div>
+    <div class="cp-card mt-4">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("flag","w-4 h-4",16) | safe }} Milestones</h2>
+      <div class="flex flex-col gap-2">
+        <div class="cp-milestone"><span class="ml">Time to Double</span><span class="mv" id="cpDouble">—</span></div>
+        <div class="cp-milestone"><span class="ml">Value at End</span><span class="mv" id="cpFinalVal">—</span></div>
       </div>
     </div>
   </div>
 </div>
-
+<div id="cpToast" class="cp-toast" role="status" aria-live="polite"></div>
 <script>
-function formatCurrency(val){return val.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0});}
-document.addEventListener('DOMContentLoaded',()=>{const initialInput=document.getElementById('initial');const monthlyInput=document.getElementById('monthly');const monthlySlider=document.getElementById('monthlySlider');const yearsInput=document.getElementById('years');const yearsSlider=document.getElementById('yearsSlider');const rateInput=document.getElementById('rate');const inflationToggle=document.getElementById('inflationToggle');const inflationInputBox=document.getElementById('inflationInputBox');const inflationRate=document.getElementById('inflationRate');const taxToggle=document.getElementById('taxToggle');const currencySel=document.getElementById('currency');const resTotal=document.getElementById('resTotal');const resPrincipal=document.getElementById('resPrincipal');const resInterest=document.getElementById('resInterest');const inflationAlert=document.getElementById('inflationAlert');const barPrincipal=document.getElementById('barPrincipal');const barInterest=document.getElementById('barInterest');const resYearlyIncome=document.getElementById('resYearlyIncome');const resMonthlyIncome=document.getElementById('resMonthlyIncome');const currencySymbols=document.querySelectorAll('.currency-sym');function sync(input,slider){input.addEventListener('input',()=>{let val=parseFloat(input.value)||0;slider.value=val;calculate();});slider.addEventListener('input',()=>{input.value=slider.value;calculate();});}
-sync(monthlyInput,monthlySlider);sync(yearsInput,yearsSlider);initialInput.addEventListener('input',calculate);rateInput.addEventListener('input',calculate);inflationRate.addEventListener('input',calculate);taxToggle.addEventListener('change',calculate);inflationToggle.addEventListener('change',()=>{if(inflationToggle.checked){inflationInputBox.style.display='block';}else{inflationInputBox.style.display='none';}
-calculate();});currencySel.addEventListener('change',()=>{let sym="$";const c=currencySel.value;if(c==='eur')sym="\u20ac";if(c==='gbp')sym="\u00a3";if(c==='inr')sym="\u20b9";if(c==='aud')sym="A$";if(c==='cad')sym="C$";currencySymbols.forEach(el=>el.innerText=sym);});function calculate(){const P=parseFloat(initialInput.value)||0;const PMT=parseFloat(monthlyInput.value)||0;const t=parseFloat(yearsInput.value)||0;const r=parseFloat(rateInput.value)||0;const n=12;const rateDecimal=r/100;const nt=n*t;let futureValue=0;if(rateDecimal===0){futureValue=P+(PMT*12*t);}else{const rn=rateDecimal/n;const compoundFactor=Math.pow(1+rn,nt);const pFuture=P*compoundFactor;const pmtFuture=PMT*((compoundFactor-1)/rn);futureValue=pFuture+pmtFuture;}
-const totalPrincipal=P+(PMT*12*t);let totalInterest=futureValue-totalPrincipal;if(totalInterest<0)totalInterest=0;let alertHTML='';if(inflationToggle.checked){const iRate=parseFloat(inflationRate.value)||0;const inflationDiscount=Math.pow(1+(iRate/100),t);futureValue=futureValue/inflationDiscount;alertHTML+='<div>Adjusted for '+iRate+'% Inflation</div>';totalInterest=futureValue-totalPrincipal;if(totalInterest<0)totalInterest=0;}
-if(taxToggle.checked){const cSel=currencySel.value;let taxRate=0.15;if(cSel==='eur')taxRate=0.25;if(cSel==='gbp')taxRate=0.20;if(cSel==='inr')taxRate=0.125;if(cSel==='aud')taxRate=0.23;if(cSel==='cad')taxRate=0.25;const taxPaid=totalInterest*taxRate;futureValue-=taxPaid;totalInterest-=taxPaid;if(totalInterest<0)totalInterest=0;alertHTML+='<div>Paid '+(taxRate*100)+'% Capital Gains Tax (-'+formatCurrency(taxPaid)+')</div>';}
-if(alertHTML!==''){inflationAlert.innerHTML=alertHTML;}else{inflationAlert.innerHTML='';}
-resTotal.innerText=formatCurrency(futureValue);resPrincipal.innerText=formatCurrency(totalPrincipal);resInterest.innerText=formatCurrency(totalInterest);let pPct=(totalPrincipal/futureValue)*100;let iPct=(totalInterest/futureValue)*100;if(futureValue===0){pPct=50;iPct=50;}
-if(pPct>100){pPct=100;iPct=0;}
-barPrincipal.style.width=pPct+"%";barInterest.style.width=iPct+"%";const yearlyPassive=futureValue*0.04;const monthlyPassive=yearlyPassive/12;resYearlyIncome.innerText=formatCurrency(yearlyPassive);resMonthlyIncome.innerText=formatCurrency(monthlyPassive);}
-calculate();});
+(function(){'use strict';
+var wi='current',tableOn=true;
+var history=[];try{var h=JSON.parse(localStorage.getItem('sb_cp')||'[]');if(Array.isArray(h))history=h}catch(e){}
+var saved=null;try{var s=JSON.parse(localStorage.getItem('sb_cp_i')||'null');if(s&&typeof s==='object')saved=s}catch(e){}
+
+function el(id){return document.getElementById(id)}
+var principal=el('cpPrincipal'),contribution=el('cpContribution'),rate=el('cpRate'),years=el('cpYears'),freq=el('cpFreq');
+var calcBtn=el('cpCalcBtn'),copyBtn=el('cpCopyBtn'),dlBtn=el('cpDlBtn'),whatifEl=el('cpWhatIf');
+var totalValue=el('cpTotalValue'),contributions=el('cpContributions'),interest=el('cpInterest'),ear=el('cpEar');
+var ratioBar=el('cpRatioBar'),ratioLabel=el('cpRatioLabel');
+var yearBody=el('cpYearBody'),doubleV=el('cpDouble'),finalV=el('cpFinalVal');
+var hiToggle=el('cpHiToggle'),hiCount=el('cpHiCount'),hiClear=el('cpHiClear'),hiWrap=el('cpHiWrap'),hiList=el('cpHiList');
+var tableToggle=el('cpTableToggle'),tableWrap=el('cpTableWrap');
+var toastEl=el('cpToast'),tt;
+var yearlyData=[],finalBalance=0,totalContribs=0,totalInterest=0,earVal=0;
+
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function v(e){var n=parseFloat(e.value.replace(/,/g,''));return isNaN(n)?0:n}
+function fmtCurrency(n){if(isNaN(n)||n===0)return'$0.00';return'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+function applyWI(){
+var p=v(principal),m=v(contribution),r=v(rate)/100,t=v(years),n=parseInt(freq.value);
+if(wi==='x2-contrib'){m*=2}
+else if(wi==='higher-rate'){r+=0.02}
+else if(wi==='longer'){t+=5}
+else if(wi==='no-contrib'){m=0}
+else if(wi==='best-case'){m*=2;r+=0.02;t+=5}
+return{p:p,m:m,r:r,t:t,n:n}
+}
+
+function calc(){
+var d=applyWI();
+var p=d.p,m=d.m,r=d.r,t=d.t,n=d.n;
+if(t<=0){t=1}
+var balance=p,_totalContribs=p;
+var monthsPerPeriod=12/n;
+if(monthsPerPeriod<1)monthsPerPeriod=1;
+var periodicRate=r/n;
+var totalMonths=Math.round(t*12);
+var yearlySnapshots=[];var year=0;var yearEndBal=balance;var yearStart=p;var yearContrib=p;var yearInterest=0;var monthsThisYear=0;
+yearlySnapshots.push({y:0,start:0,contrib:p,interest:0,end:p});
+
+for(var i=1;i<=totalMonths;i++){
+var prevBal=balance;
+if(m>0){balance+=m;_totalContribs+=m;yearContrib+=m}
+var compApplied=false;
+if(n===12){balance*=(1+periodicRate);compApplied=true}
+else{monthsPerPeriod>=1&&(((i)%monthsPerPeriod===0)||i===totalMonths)?(balance*=(1+periodicRate),compApplied=true):0}
+if(compApplied&&i>0){yearInterest+=balance-prevBal-m}
+monthsThisYear++;
+if(i%12===0||i===totalMonths){
+year++;
+var yEnd=balance;
+yearlySnapshots.push({y:year,start:yearStart,contrib:yearContrib,interest:yearInterest,end:yEnd});
+yearStart=yEnd;yearContrib=0;yearInterest=0;monthsThisYear=0;
+}
+}
+
+finalBalance=balance;
+totalContribs=_totalContribs;
+var _totalInterest=finalBalance-p-totalContribs;
+if(_totalInterest<0)_totalInterest=0;
+totalInterest=_totalInterest;
+earVal=r>0?Math.pow(1+periodicRate,n)-1:0;
+yearlyData=yearlySnapshots;
+
+totalValue.textContent=fmtCurrency(finalBalance);
+contributions.textContent=fmtCurrency(p+_totalContribs);
+interest.textContent=fmtCurrency(totalInterest);
+interest.style.color=totalInterest>0?'var(--color-success)':'var(--color-base-content)';
+ear.textContent=(earVal*100).toFixed(2)+'%';
+
+renderRatio(p+_totalContribs,totalInterest);
+renderTable();
+renderMilestones(p,m,r,t,n);
+saveInputs();
+}
+
+function renderRatio(contribAmt,intAmt){
+var total=contribAmt+intAmt;
+if(total<=0){ratioBar.innerHTML='';ratioLabel.textContent='';return}
+var cpct=((contribAmt/total)*100).toFixed(1);
+var ipct=((intAmt/total)*100).toFixed(1);
+ratioBar.innerHTML='<div class="rb" style="width:'+cpct+'%;background:color-mix(in oklab,var(--color-primary) 50%,transparent)" title="Contributions: '+cpct+'%"></div><div class="rb" style="width:'+ipct+'%;background:color-mix(in oklab,var(--color-success) 50%,transparent)" title="Interest: '+ipct+'%"></div>';
+ratioLabel.textContent='Contributions: '+cpct+'%    Interest: '+ipct+'%';
+}
+
+function renderTable(){
+var h='';
+yearlyData.forEach(function(yr){
+if(yr.y===0)return;
+h+='<tr><td>Year '+yr.y+'</td><td>'+fmtCurrency(yr.start)+'</td><td>'+fmtCurrency(yr.contrib)+'</td><td style="color:'+(yr.interest>0?'var(--color-success)':'')+'">'+fmtCurrency(yr.interest)+'</td><td style="font-weight:900">'+fmtCurrency(yr.end)+'</td></tr>';
+});
+yearBody.innerHTML=h||'<tr><td colspan="5" style="text-align:center;opacity:.3;padding:20px">No data</td></tr>';
+}
+
+function renderMilestones(p,m,r,t,n){
+var periodsPerYear=n;
+var periodicRate=r/n;
+var totalPeriods=n*t;
+var monthlyContrib=m;
+var target=p*2;
+var found=false;
+for(var yr=1;yr<=t;yr++){
+var bal=p;var _c=p;
+for(var mo=1;mo<=yr*12;mo++){
+_bal:for(var mi=1;mi<=yr*12;mi++){
+if(mi===1){bal=p;_c=p}
+if(mi<=mo){bal+=monthlyContrib;_c+=monthlyContrib}
+if(mi%Math.round(12/periodsPerYear)===0||mi===yr*12){bal*=(1+periodicRate)}
+if(mi===mo&&bal>=target){doubleV.textContent='Year '+yr;found=true;break _bal}
+}
+if(found)break;
+}
+if(found)break;
+}
+if(!found||t<=0){doubleV.textContent='Not within term'}
+doubleV.style.color=found?'var(--color-success)':'var(--color-base-content)';
+finalV.textContent=fmtCurrency(finalBalance);
+}
+
+function saveHistory(){
+var d=applyWI();
+var label=fmtCurrency(d.p)+' · '+fmtCurrency(finalBalance)+' value';
+history.unshift({p:d.p,m:d.m,r:d.r,t:d.t,n:d.n,wi:wi,label:label,ts:Date.now()});
+if(history.length>30)history.pop();
+try{localStorage.setItem('sb_cp',JSON.stringify(history))}catch(e){}
+renderHistory();
+}
+
+function renderHistory(){
+hiCount.textContent=history.length?'('+history.length+')':'';
+hiClear.hidden=!history.length;
+if(!history.length){hiList.innerHTML='<div class="cp-empty">No calculations yet</div>';return}
+var h='';history.forEach(function(item,i){
+var d2=new Date(item.ts);var diff=Math.round((Date.now()-d2)/1000);
+var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+h+='<div class="cp-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
+});
+hiList.innerHTML=h;
+}
+
+function saveInputs(){
+var obj={p:v(principal),m:v(contribution),r:v(rate),t:v(years),n:parseInt(freq.value),wi:wi};
+try{localStorage.setItem('sb_cp_i',JSON.stringify(obj))}catch(e){}
+}
+
+function copyAll(){
+var d=applyWI();
+var txt='Compound Interest Report\nScenario: '+wi.replace(/-/g,' ')+'\nPrincipal: '+fmtCurrency(d.p)+'\nMonthly Contribution: '+fmtCurrency(d.m)+'\nAnnual Rate: '+(d.r*100).toFixed(2)+'%\nPeriod: '+d.t+' years\nFrequency: '+freq.options[freq.selectedIndex].text+'\n\nTotal Value: '+totalValue.textContent+'\nTotal Contributions: '+contributions.textContent+'\nTotal Interest: '+interest.textContent+'\nEffective Annual Rate: '+ear.textContent+'\nDouble Time: '+doubleV.textContent+'\n\nYear-by-Year:\n';
+yearlyData.forEach(function(yr){
+if(yr.y===0)return;
+txt+='Year '+yr.y+': Start '+fmtCurrency(yr.start)+' +Contrib '+fmtCurrency(yr.contrib)+' +Interest '+fmtCurrency(yr.interest)+' = '+fmtCurrency(yr.end)+'\n';
+});
+navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')});
+}
+
+function dlReport(){
+var d=applyWI();
+var txt='=== Compound Interest Report ===\nDate: '+new Date().toISOString().slice(0,10)+'\nScenario: '+wi.replace(/-/g,' ')+'\n\nInputs\nPrincipal: '+fmtCurrency(d.p)+'\nMonthly Contribution: '+fmtCurrency(d.m)+'\nAnnual Rate: '+(d.r*100).toFixed(2)+'%\nPeriod: '+d.t+' years\nFrequency: '+freq.options[freq.selectedIndex].text+'\n\nResults\nTotal Value: '+totalValue.textContent+'\nTotal Contributions: '+contributions.textContent+'\nTotal Interest: '+interest.textContent+'\nEffective Annual Rate: '+ear.textContent+'\nDouble Time: '+doubleV.textContent+'\n\nYear-by-Year:\n';
+yearlyData.forEach(function(yr){
+if(yr.y===0)return;
+txt+='Year '+yr.y+': Start '+fmtCurrency(yr.start)+' +Contrib '+fmtCurrency(yr.contrib)+' +Interest '+fmtCurrency(yr.interest)+' = '+fmtCurrency(yr.end)+'\n';
+});
+var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='compound-interest-report-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded');
+}
+
+whatifEl.addEventListener('click',function(e){
+var b=e.target.closest('button[data-wi]');if(!b)return;
+wi=b.getAttribute('data-wi');whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+calc();saveHistory();
+});
+
+calcBtn.addEventListener('click',function(){calc();saveHistory()});
+copyBtn.addEventListener('click',copyAll);
+dlBtn.addEventListener('click',dlReport);
+
+hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
+hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_cp',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});
+hiList.addEventListener('click',function(e){
+var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_cp',JSON.stringify(history))}catch(e){}renderHistory();return}
+var item=e.target.closest('.cp-hist-item');if(!item)return;
+var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
+principal.value=h.p;contribution.value=h.m;rate.value=(h.r*100).toFixed(2);years.value=h.t;freq.value=h.n||4;
+wi=h.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+history.splice(idx,1);try{localStorage.setItem('sb_cp',JSON.stringify(history))}catch(e){}renderHistory();calc();
+});
+
+tableToggle.addEventListener('click',function(){tableOn=tableToggle.getAttribute('aria-expanded')==='true'?false:true;tableToggle.setAttribute('aria-expanded',tableOn);tableWrap.hidden=!tableOn;tableToggle.classList.toggle('on')});
+
+[principal,contribution,rate,years].forEach(function(el){el.addEventListener('input',calc)});
+freq.addEventListener('change',calc);
+
+if(saved){principal.value=saved.p||10000;contribution.value=saved.m||500;rate.value=saved.r||8;years.value=saved.t||10;freq.value=saved.n||4;wi=saved.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)})}
+calc();
+})();
 </script>
-
-
-
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

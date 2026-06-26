@@ -22,23 +22,23 @@ class SitemapService:
 
     def _get_lastmod(self, file_path: str) -> str:
         try:
-            full_path = os.path.join(self.settings.BASE_DIR, file_path)
+            full_path = os.path.join(self.settings.base_dir, file_path)
             return datetime.datetime.fromtimestamp(os.path.getmtime(full_path)).strftime("%Y-%m-%d")
         except Exception:
             return datetime.datetime.now().strftime("%Y-%m-%d")
 
     def _get_pri(self, slug: str) -> float:
         tool_priority = {
-            "calculator": 0.9, "age-calculator": 0.9, "percentage-calculator": 0.9,
+            "calculator": 0.9, "adsense-calculator": 0.9, "age-calculator": 0.9, "percentage-calculator": 0.9,
             "scientific-calculator": 0.9, "profit-margin-calculator": 0.9,
             "gst-calculator": 0.9, "emi-calculator": 0.9, "compound-calculator": 0.9,
             "mrr-calculator": 0.9, "cac-calculator": 0.9, "burn-rate-calculator": 0.9,
-            "salary-calculator": 0.9, "fd-calculator": 0.9, "sip-calculator": 0.9,
+            "salary-calculator": 0.9, "sip-calculator": 0.9, "fd-calculator": 0.9,
             "loan-affordability-calculator": 0.9, "mortgage-overpayment-calculator": 0.9,
             "credit-utilization-calculator": 0.9,
             "debt-calculator": 0.9,
             "date-calculator": 0.9, "eway-bill-calculator": 0.9,
-            "youtube-calculator": 0.8, "instagram-calculator": 0.8, "adsense-calculator": 0.8,
+            "youtube-calculator": 0.8, "instagram-calculator": 0.8,
         }
         if slug in tool_priority:
             return tool_priority[slug]
@@ -61,7 +61,7 @@ class SitemapService:
             {"url": "/", "file": "templates/index.html", "freq": "weekly", "pri": "1.0"},
         ]
 
-        tools_dir = os.path.join(self.settings.TEMPLATES_DIR, "tools")
+        tools_dir = os.path.join(self.settings.templates_dir, "tools")
         if os.path.exists(tools_dir):
             for f in os.listdir(tools_dir):
                 if f.endswith(".html"):
@@ -74,7 +74,7 @@ class SitemapService:
                         "pri": f"{pri:.1f}",
                     })
 
-        pages_dir = os.path.join(self.settings.TEMPLATES_DIR, "pages")
+        pages_dir = os.path.join(self.settings.templates_dir, "pages")
         if os.path.exists(pages_dir):
             for f in os.listdir(pages_dir):
                 if f.endswith(".html"):
@@ -171,7 +171,7 @@ class SitemapService:
                "crypto tools, image processing utilities, calculators, and more.\n\n"
                "## Available Tools\n\n")
 
-        tools_dir = os.path.join(self.settings.TEMPLATES_DIR, "tools")
+        tools_dir = os.path.join(self.settings.templates_dir, "tools")
         if os.path.exists(tools_dir):
             tools = [f[:-5] for f in os.listdir(tools_dir) if f.endswith(".html")]
             for t in sorted(tools):
@@ -180,7 +180,7 @@ class SitemapService:
                 txt += f"- [{name}](https://www.storybrainai.com/tool/{slug})\n"
 
         txt += "\n## Other Pages\n\n"
-        pages_dir = os.path.join(self.settings.TEMPLATES_DIR, "pages")
+        pages_dir = os.path.join(self.settings.templates_dir, "pages")
         if os.path.exists(pages_dir):
             pages = [f[:-5] for f in os.listdir(pages_dir) if f.endswith(".html")]
             for p in sorted(pages):

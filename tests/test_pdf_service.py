@@ -1,8 +1,8 @@
 import io
-import pytest
+
 from PIL import Image
+
 from app.services.pdf_service import PDFService
-from app.core.exceptions import ValidationException
 
 
 class TestPDFService:
@@ -50,5 +50,5 @@ class TestPDFService:
 
     def test_convert_text_to_pdf_unicode(self, settings):
         svc = PDFService(settings)
-        result = svc.convert_text_to_pdf("ñooño".encode("utf-8"))
+        result = svc.convert_text_to_pdf("ñooño".encode())
         assert result[:5] == b"%PDF-"

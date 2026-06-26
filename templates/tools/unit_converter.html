@@ -1,56 +1,369 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
-
-{% block title %}Unit Converter | Free Online Unit Conversion Calculator{% endblock %}
-{% block meta_description %}Convert between length, mass, volume, temperature, area, speed, time, and more. Free all-in-one unit converter.{% endblock %}
+{% block title %}Unit Converter — 12 Categories, 80+ Units | Free Online{% endblock %}
+{% block meta_description %}Free online unit converter with 12 categories and 80+ units. Convert length, mass, volume, temperature, area, speed, time, digital storage, energy, pressure, frequency, and data transfer. Batch view, history, precision control. No sign-up.{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/unit-converter{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/unit-converter">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Unit Converter - All-in-One Conversion Tool">
-<meta property="og:description" content="Convert between length, mass, volume, temperature, area, speed, time, and more.">
+<meta property="og:title" content="Unit Converter — All-in-One Conversion Tool">
+<meta property="og:description" content="Convert between 80+ units across 12 categories: length, mass, volume, temperature, area, speed, time, digital storage, energy, pressure, frequency, data transfer. Free, no sign-up.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
 {% endblock %}
-{% block head %}{% endblock %}
+{% block head %}
+<style>
+.uc-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.uc-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.uc-ta{width:100%;border-radius:.75rem;padding:.65rem 1rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);resize:vertical;min-height:110px;font-family:inherit;transition:border-color .18s;box-sizing:border-box;line-height:1.6}
+.uc-ta:focus{border-color:var(--color-primary);outline:none}
+.uc-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.65rem;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:7px;touch-action:manipulation}
+.uc-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.uc-pri:active{transform:translateY(0)}
+.uc-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.5rem .75rem;font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation}
+.uc-sec:hover{border-color:var(--color-base-content)}
+.uc-sec:disabled{opacity:.35;cursor:not-allowed;border-color:var(--color-base-300)}
+.uc-sec.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.uc-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.35rem .65rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:11px;transition:all .12s}
+.uc-toggle:hover{background:var(--color-base-200)}
+.uc-toggle.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.uc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.uc-toast.show{opacity:1;transform:translateY(0)}
+.uc-select{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;cursor:pointer}
+.uc-select:focus{border-color:var(--color-primary);outline:none}
+.uc-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:inherit;transition:border-color .18s;box-sizing:border-box;width:100%}
+.uc-input:focus{border-color:var(--color-primary);outline:none}
+.uc-result{background:var(--color-base-100);border-radius:1rem;padding:16px;border:1px solid var(--color-base-300);text-align:center}
+.uc-result .rv{font-size:28px;font-weight:900;font-family:monospace;line-height:1.2;word-break:break-all}
+.uc-result .rl{font-size:12px;font-weight:600;opacity:.45;margin-top:3px}
+.uc-result .rf{font-size:9px;font-weight:700;opacity:.3;margin-top:2px;font-family:monospace}
+.uc-batch{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:400px;overflow-y:auto}
+.uc-batch-item{padding:8px 10px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-300);transition:border-color .12s;display:flex;justify-content:space-between;align-items:center}
+.uc-batch-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.uc-batch-item .bl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;opacity:.45}
+.uc-batch-item .bv{font-size:12px;font-weight:700;font-family:monospace;text-align:right}
+.uc-batch-item .bcp{font-size:8px;font-weight:700;cursor:pointer;border:none;background:color-mix(in oklab,var(--color-primary) 10%,transparent);color:var(--color-primary);padding:2px 8px;border-radius:4px;transition:all .12s;touch-action:manipulation;margin-left:6px;flex-shrink:0}
+.uc-batch-item .bcp:hover{background:var(--color-primary);color:#fff}
+.uc-prec{display:flex;align-items:center;gap:6px}
+.uc-prec input[type=range]{-webkit-appearance:none;appearance:none;background:var(--color-base-300);height:4px;border-radius:2px;cursor:pointer;flex:1;padding:0;border:none}
+.uc-prec input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--color-primary);margin-top:-5px;border:2px solid var(--color-base-100)}
+.uc-prec input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--color-primary);border:2px solid var(--color-base-100)}
+.uc-prec .pv{font-size:11px;font-weight:800;font-family:monospace;min-width:24px;text-align:center}
+.uc-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:4px}
+.uc-cat-grid button{padding:6px 8px;border-radius:8px;font-size:9px;font-weight:700;cursor:pointer;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;touch-action:manipulation;text-align:center;text-transform:uppercase;letter-spacing:0.04em}
+.uc-cat-grid button:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.uc-cat-grid button.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.uc-hist{max-height:220px;overflow-y:auto}
+.uc-hist-item{padding:6px 10px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:10px;font-weight:600;cursor:pointer;transition:all .12s}
+.uc-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.uc-hist-item .preview{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:9px;opacity:.55;min-width:0}
+.uc-hist-item .meta{font-size:8px;font-weight:700;opacity:.35;white-space:nowrap}
+.uc-hist-item .hdel{width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:10px}
+.uc-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.uc-common{display:flex;gap:4px;flex-wrap:wrap}
+.uc-common button{padding:4px 10px;border-radius:6px;font-size:8px;font-weight:800;cursor:pointer;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;touch-action:manipulation;text-transform:uppercase;letter-spacing:0.04em}
+.uc-common button:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent);background:color-mix(in oklab,var(--color-primary) 6%,transparent)}
+.uc-vtoggle{display:flex;gap:3px;background:var(--color-base-100);border-radius:999px;padding:3px;border:1px solid var(--color-base-300)}
+.uc-vtoggle button{padding:4px 14px;border-radius:999px;font-size:9px;font-weight:800;cursor:pointer;border:none;background:transparent;color:var(--color-base-content);transition:all .12s;touch-action:manipulation;text-transform:uppercase;letter-spacing:0.04em}
+.uc-vtoggle button.on{background:var(--color-primary);color:#fff}
+.uc-empty{text-align:center;padding:24px 16px;font-size:11px;font-weight:600;opacity:.3}
+</style>
+{% endblock %}
 {% block content %}
-{{ tool_hero_section("arrow-left-right", "Universal Tool", "UNIT", "CONVERTER", "Convert between length, mass, volume, temperature, area, speed, time, and more.") }}
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Conversion</h2>
-        <form class="flex flex-col gap-5">
-          <div><label class="label-cinematic" for="category">Category</label><select aria-label="Category" id="category" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"><option value="length">Length</option><option value="mass">Mass / Weight</option><option value="volume">Volume</option><option value="temperature">Temperature</option><option value="area">Area</option><option value="speed">Speed</option><option value="time">Time</option></select></div>
-          <div><label class="label-cinematic" for="fromUnit">From</label><select aria-label="Fromunit" id="fromUnit" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"></select></div>
-          <div><label class="label-cinematic" for="toUnit">To</label><select aria-label="Tounit" id="toUnit" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"></select></div>
-          <div><label class="label-cinematic" for="value">Value</label><input aria-label="Value" type="number" id="value" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="1" step="any"></div>
-          <button type="button" id="unitConvBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("arrow-left-right","w-5 h-5", 20) | safe }} CONVERT</button>
-        </form>
+{{ tool_hero_section("arrow-left-right","Productivity","UNIT","CONVERTER","Convert between 80+ units across 12 categories with batch view, history, and precision control.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="uc-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("layers","w-4 h-4",16) | safe }} Category</h2>
+      <div class="uc-cat-grid mb-4" id="ucCats" role="tablist" aria-label="Unit categories"></div>
+      <div class="grid grid-cols-2 gap-3 mb-3">
+        <div><label class="uc-label" for="ucFrom">From</label><select id="ucFrom" class="uc-select" aria-label="From unit"></select></div>
+        <div><label class="uc-label" for="ucTo">To</label><select id="ucTo" class="uc-select" aria-label="To unit"></select></div>
+      </div>
+      <div class="flex items-center gap-2 mb-2">
+        <label class="uc-label" for="ucVal" style="margin-bottom:0">Value</label>
+        <button type="button" id="ucSwapBtn" class="uc-sec" aria-label="Swap units" style="margin-left:auto">{{ lucide_icon("arrow-left-right","w-3 h-3",12) | safe }} Swap</button>
+      </div>
+      <input type="text" id="ucVal" class="uc-input mb-3" value="1" inputmode="decimal" autocomplete="off">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="uc-prec flex-1">
+          <span class="uc-label" style="margin-bottom:0;font-size:8px">Precision</span>
+          <input type="range" id="ucPrec" min="0" max="10" value="6" aria-label="Decimal precision">
+          <span class="pv" id="ucPrecVal">6</span>
+        </div>
+      </div>
+      <div class="uc-result mb-3" id="ucResult">
+        <div class="rv" id="ucResVal">—</div>
+        <div class="rl" id="ucResLabel">Enter a value</div>
+        <div class="rf" id="ucResFormula"></div>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button type="button" id="ucCopyBtn" class="uc-sec" aria-label="Copy result">{{ lucide_icon("copy","w-3 h-3",12) | safe }} Copy</button>
+        <button type="button" id="ucViewToggle" class="uc-toggle" aria-expanded="false" aria-controls="ucBatchWrap" aria-label="Toggle batch view">{{ lucide_icon("grid","w-3 h-3",12) | safe }} All Units</button>
+      </div>
+      <div id="ucBatchWrap" hidden class="mt-3">
+        <div class="uc-batch" id="ucBatch"></div>
       </div>
     </div>
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Result</h3>
-        <div class="card-premium p-8 text-center" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-          <span class="label-cinematic block mb-3 text-success">Converted Value</span>
-          <output id="resResult" class="metric-cinematic metric-cinematic--xl text-success">0</output>
-          <p id="resDetail" class="text-base-content/60 text-sm mt-3 font-mono"></p>
+    <div class="uc-card mt-6">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("zap","w-4 h-4",16) | safe }} Common Conversions</h2>
+      <div class="uc-common" id="ucCommon"></div>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="uc-card">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-4 h-4",16) | safe }} History</h2>
+        <div class="flex items-center gap-2">
+          <button type="button" id="ucHiToggle" class="uc-toggle" aria-expanded="false" aria-controls="ucHiWrap">History <span id="ucHiCount"></span></button>
+          <button type="button" id="ucHiClear" class="uc-sec" aria-label="Clear history" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button>
         </div>
+      </div>
+      <div id="ucHiWrap" hidden>
+        <div id="ucHiList" class="uc-hist"></div>
       </div>
     </div>
   </div>
 </div>
+<div id="ucToast" class="uc-toast" role="status" aria-live="polite"></div>
 <script>
 (function(){'use strict';
-const units={length:{from:{meter:1,kilometer:0.001,centimeter:100,millimeter:1000,mile:0.000621371,yard:1.09361,foot:3.28084,inch:39.3701},labels:['Meter','Kilometer','Centimeter','Millimeter','Mile','Yard','Foot','Inch'],keys:['meter','kilometer','centimeter','millimeter','mile','yard','foot','inch']},mass:{from:{kilogram:1,gram:1000,milligram:1e6,pound:2.20462,ounce:35.274,stone:0.157473,ton:0.001},labels:['Kilogram','Gram','Milligram','Pound','Ounce','Stone','Metric Ton'],keys:['kilogram','gram','milligram','pound','ounce','stone','ton']},volume:{from:{liter:1,milliliter:1000,gallon:0.264172,quart:1.05669,pint:2.11338,cup:4.22675,tablespoon:67.628,teaspoon:202.884},labels:['Liter','Milliliter','Gallon (US)','Quart (US)','Pint (US)','Cup (US)','Tablespoon','Teaspoon'],keys:['liter','milliliter','gallon','quart','pint','cup','tablespoon','teaspoon']},temperature:{from:{celsius:1,fahrenheit:1,kelvin:1},labels:['Celsius','Fahrenheit','Kelvin'],keys:['celsius','fahrenheit','kelvin']},area:{from:{sqmeter:1,sqkilometer:1e-6,sqmile:3.861e-7,sqyard:1.19599,sqfoot:10.7639,sqinch:1550,acre:0.000247105,hectare:0.0001},labels:['Square Meter','Square Kilometer','Square Mile','Square Yard','Square Foot','Square Inch','Acre','Hectare'],keys:['sqmeter','sqkilometer','sqmile','sqyard','sqfoot','sqinch','acre','hectare']},speed:{from:{mps:1,kmph:3.6,mph:2.23694,knot:1.94384,fps:3.28084},labels:['Meter/sec','Kilometer/hour','Miles/hour','Knot','Feet/sec'],keys:['mps','kmph','mph','knot','fps']},time:{from:{second:1,minute:1/60,hour:1/3600,day:1/86400,week:1/604800,month:1/2628000,year:1/31536000},labels:['Second','Minute','Hour','Day','Week','Month','Year'],keys:['second','minute','hour','day','week','month','year']}};
-function populateUnits(){const cat=document.getElementById('category').value;const data=units[cat];const fromSel=document.getElementById('fromUnit');const toSel=document.getElementById('toUnit');fromSel.innerHTML='';toSel.innerHTML='';for(let i=0;i<data.keys.length;i++){const opt1=document.createElement('option');opt1.value=data.keys[i];opt1.textContent=data.labels[i];fromSel.appendChild(opt1);const opt2=document.createElement('option');opt2.value=data.keys[i];opt2.textContent=data.labels[i];if(i===1)opt2.selected=true;toSel.appendChild(opt2);}}
-function convert(){const cat=document.getElementById('category').value;const from=document.getElementById('fromUnit').value;const to=document.getElementById('toUnit').value;const val=parseFloat(document.getElementById('value').value)||0;let result;if(cat==='temperature'){let c;if(from==='celsius')c=val;else if(from==='fahrenheit')c=(val-32)*5/9;else c=val-273.15;if(to==='celsius')result=c;else if(to==='fahrenheit')result=c*9/5+32;else result=c+273.15;}else{const data=units[cat];result=val/data.from[from]*data.from[to];}
-document.getElementById('resResult').innerText=result.toFixed(6);document.getElementById('resDetail').innerText=`${val} ${from} = ${result.toFixed(6)} ${to}`;}
-document.addEventListener('DOMContentLoaded',function(){document.getElementById('unitConvBtn').addEventListener('click',convert);populateUnits();convert();document.getElementById('category').addEventListener('change',function(){populateUnits();convert();});document.querySelectorAll('select, input').forEach(function(el){el.addEventListener('input',convert);});});
+var curCat='length',curFrom='meter',curTo='kilometer',precision=6;
+var history=[]; try{var h=JSON.parse(localStorage.getItem('sb_uc1')||'[]');if(Array.isArray(h))history=h}catch(e){}
+
+var DATA={
+length:{base:'meter',units:[{k:'meter',l:'Meter',f:1},{k:'kilometer',l:'Kilometer',f:0.001},{k:'centimeter',l:'Centimeter',f:100},{k:'millimeter',l:'Millimeter',f:1000},{k:'micrometer',l:'Micrometer',f:1e6},{k:'nanometer',l:'Nanometer',f:1e9},{k:'mile',l:'Mile',f:0.000621371},{k:'yard',l:'Yard',f:1.09361},{k:'foot',l:'Foot',f:3.28084},{k:'inch',l:'Inch',f:39.3701},{k:'nautical-mile',l:'Nautical Mile',f:0.000539957}],common:[['1 inch to cm','1','inch','centimeter'],['1 foot to meter','1','foot','meter'],['1 mile to km','1','mile','kilometer'],['1 meter to feet','1','meter','foot']]},
+mass:{base:'kilogram',units:[{k:'kilogram',l:'Kilogram',f:1},{k:'gram',l:'Gram',f:1000},{k:'milligram',l:'Milligram',f:1e6},{k:'microgram',l:'Microgram',f:1e9},{k:'ton',l:'Metric Ton',f:0.001},{k:'pound',l:'Pound',f:2.20462},{k:'ounce',l:'Ounce',f:35.274},{k:'stone',l:'Stone',f:0.157473},{k:'grain',l:'Grain',f:15432.4},{k:'carat',l:'Carat',f:5000}],common:[['1 kg to lbs','1','kilogram','pound'],['1 lb to kg','1','pound','kilogram'],['1 oz to g','1','ounce','gram'],['1 stone to kg','1','stone','kilogram']]},
+volume:{base:'liter',units:[{k:'liter',l:'Liter',f:1},{k:'milliliter',l:'Milliliter',f:1000},{k:'gallon-us',l:'Gallon (US)',f:0.264172},{k:'quart-us',l:'Quart (US)',f:1.05669},{k:'pint-us',l:'Pint (US)',f:2.11338},{k:'cup-us',l:'Cup (US)',f:4.22675},{k:'tablespoon',l:'Tablespoon',f:67.628},{k:'teaspoon',l:'Teaspoon',f:202.884},{k:'cubic-meter',l:'Cubic Meter',f:0.001},{k:'cubic-foot',l:'Cubic Foot',f:0.0353147},{k:'cubic-inch',l:'Cubic Inch',f:61.0237},{k:'gallon-uk',l:'Gallon (UK)',f:0.219969}],common:[['1 gallon to liters','1','gallon-us','liter'],['1 liter to quarts','1','liter','quart-us'],['1 cup to ml','1','cup-us','milliliter'],['1 tbsp to ml','1','tablespoon','milliliter']]},
+temperature:{base:'celsius',temp:true,units:[{k:'celsius',l:'Celsius',f:1,o:0},{k:'fahrenheit',l:'Fahrenheit',f:9/5,o:32},{k:'kelvin',l:'Kelvin',f:1,o:273.15}],common:[['0°C to °F','0','celsius','fahrenheit'],['100°C to °F','100','celsius','fahrenheit'],['32°F to °C','32','fahrenheit','celsius'],['212°F to °C','212','fahrenheit','celsius']]},
+area:{base:'sq-meter',units:[{k:'sq-meter',l:'Square Meter',f:1},{k:'sq-kilometer',l:'Square Kilometer',f:1e-6},{k:'sq-mile',l:'Square Mile',f:3.861e-7},{k:'sq-yard',l:'Square Yard',f:1.19599},{k:'sq-foot',l:'Square Foot',f:10.7639},{k:'sq-inch',l:'Square Inch',f:1550},{k:'acre',l:'Acre',f:0.000247105},{k:'hectare',l:'Hectare',f:0.0001},{k:'sq-centimeter',l:'Square Centimeter',f:10000}],common:[['1 acre to sq ft','1','acre','sq-foot'],['1 hectare to acres','1','hectare','acre'],['1 sq m to sq ft','1','sq-meter','sq-foot'],['1 sq mile to sq km','1','sq-mile','sq-kilometer']]},
+speed:{base:'meter-per-sec',units:[{k:'meter-per-sec',l:'Meter/sec',f:1},{k:'km-per-hour',l:'Kilometer/hour',f:3.6},{k:'mile-per-hour',l:'Mile/hour',f:2.23694},{k:'knot',l:'Knot',f:1.94384},{k:'foot-per-sec',l:'Foot/sec',f:3.28084},{k:'mach',l:'Mach (at sea level)',f:0.002915}],common:[['60 mph to km/h','60','mile-per-hour','km-per-hour'],['100 km/h to mph','100','km-per-hour','mile-per-hour'],['1 knot to mph','1','knot','mile-per-hour'],['10 m/s to km/h','10','meter-per-sec','km-per-hour']]},
+time:{base:'second',units:[{k:'second',l:'Second',f:1},{k:'millisecond',l:'Millisecond',f:1000},{k:'minute',l:'Minute',f:1/60},{k:'hour',l:'Hour',f:1/3600},{k:'day',l:'Day',f:1/86400},{k:'week',l:'Week',f:1/604800},{k:'month',l:'Month (30d)',f:1/2592000},{k:'year',l:'Year (365d)',f:1/31536000},{k:'decade',l:'Decade',f:1/315360000},{k:'century',l:'Century',f:1/3153600000}],common:[['1 hour to minutes','1','hour','minute'],['1 day to hours','1','day','hour'],['1 week to days','1','week','day'],['1 year to days','1','year','day']]},
+digital:{base:'byte',units:[{k:'bit',l:'Bit',f:8},{k:'byte',l:'Byte',f:1},{k:'kilobyte',l:'Kilobyte (KB)',f:0.001},{k:'megabyte',l:'Megabyte (MB)',f:1e-6},{k:'gigabyte',l:'Gigabyte (GB)',f:1e-9},{k:'terabyte',l:'Terabyte (TB)',f:1e-12},{k:'petabyte',l:'Petabyte (PB)',f:1e-15},{k:'kibibyte',l:'Kibibyte (KiB)',f:0.000976563},{k:'mebibyte',l:'Mebibyte (MiB)',f:9.5367e-7},{k:'gibibyte',l:'Gibibyte (GiB)',f:9.3132e-10}],common:[['1 GB to MB','1','gigabyte','megabyte'],['1 MB to KB','1','megabyte','kilobyte'],['1 TB to GB','1','terabyte','gigabyte'],['1 KiB to KB','1','kibibyte','kilobyte']]},
+energy:{base:'joule',units:[{k:'joule',l:'Joule',f:1},{k:'kilojoule',l:'Kilojoule',f:0.001},{k:'calorie',l:'Calorie',f:0.239006},{k:'kilocalorie',l:'Kilocalorie',f:0.000239006},{k:'watt-hour',l:'Watt-hour',f:0.000277778},{k:'kilowatt-hour',l:'Kilowatt-hour',f:2.7778e-7},{k:'btu',l:'BTU',f:0.000947817},{k:'electronvolt',l:'Electronvolt',f:6.242e18},{k:'foot-pound',l:'Foot-pound',f:0.737562}],common:[['1 kWh to J','1','kilowatt-hour','joule'],['1 calorie to J','1','calorie','joule'],['1 BTU to kWh','1','btu','kilowatt-hour'],['1 eV to J','1','electronvolt','joule']]},
+pressure:{base:'pascal',units:[{k:'pascal',l:'Pascal (Pa)',f:1},{k:'kilopascal',l:'Kilopascal (kPa)',f:0.001},{k:'megapascal',l:'Megapascal (MPa)',f:1e-6},{k:'bar',l:'Bar',f:1e-5},{k:'psi',l:'PSI',f:0.000145038},{k:'atmosphere',l:'Atmosphere (atm)',f:9.8692e-6},{k:'mmhg',l:'mmHg',f:0.00750062},{k:'torr',l:'Torr',f:0.00750062},{k:'inch-hg',l:'Inch Hg',f:0.0002953}],common:[['1 atm to psi','1','atmosphere','psi'],['1 bar to kPa','1','bar','kilopascal'],['1 psi to kPa','1','psi','kilopascal'],['1 mmHg to Pa','1','mmhg','pascal']]},
+frequency:{base:'hertz',units:[{k:'hertz',l:'Hertz (Hz)',f:1},{k:'kilohertz',l:'Kilohertz (kHz)',f:0.001},{k:'megahertz',l:'Megahertz (MHz)',f:1e-6},{k:'gigahertz',l:'Gigahertz (GHz)',f:1e-9},{k:'terahertz',l:'Terahertz (THz)',f:1e-12}],common:[['1 MHz to Hz','1','megahertz','hertz'],['1 GHz to MHz','1','gigahertz','megahertz'],['1 kHz to Hz','1','kilohertz','hertz'],['1 THz to GHz','1','terahertz','gigahertz']]},
+data_transfer:{base:'bps',units:[{k:'bps',l:'Bit/sec (bps)',f:1},{k:'kbps',l:'Kilobit/sec (Kbps)',f:0.001},{k:'mbps',l:'Megabit/sec (Mbps)',f:1e-6},{k:'gbps',l:'Gigabit/sec (Gbps)',f:1e-9},{k:'tbps',l:'Terabit/sec (Tbps)',f:1e-12},{k:'Bps',l:'Byte/sec (Bps)',f:0.125},{k:'KBps',l:'Kilobyte/sec (KBps)',f:0.000125},{k:'MBps',l:'Megabyte/sec (MBps)',f:1.25e-7}],common:[['100 Mbps to MB/s','100','mbps','MBps'],['1 Gbps to Mbps','1','gbps','mbps'],['10 Mbps to Kbps','10','mbps','kbps'],['1000 Kbps to Mbps','1000','kbps','mbps']]}
+};
+
+var catKeys=['length','mass','volume','temperature','area','speed','time','digital','energy','pressure','frequency','data_transfer'];
+var catLabels={'length':'Length','mass':'Mass','volume':'Volume','temperature':'Temp','area':'Area','speed':'Speed','time':'Time','digital':'Storage','energy':'Energy','pressure':'Pressure','frequency':'Freq','data_transfer':'Transfer'};
+var catIcons={'length':'ruler','mass':'weight','volume':'beaker','temperature':'thermometer','area':'square','speed':'gauge','time':'clock','digital':'hard-drive','energy':'zap','pressure':'wind','frequency':'radio','data_transfer':'wifi'};
+
+function el(id){return document.getElementById(id)}
+var catsEl=el('ucCats'),fromSel=el('ucFrom'),toSel=el('ucTo'),valInp=el('ucVal'),precSlider=el('ucPrec'),precVal=el('ucPrecVal');
+var resVal=el('ucResVal'),resLabel=el('ucResLabel'),resFormula=el('ucResFormula');
+var swapBtn=el('ucSwapBtn'),copyBtn=el('ucCopyBtn'),viewToggle=el('ucViewToggle'),batchWrap=el('ucBatchWrap'),batchEl=el('ucBatch');
+var commonEl=el('ucCommon');
+var hiToggle=el('ucHiToggle'),hiCount=el('ucHiCount'),hiClear=el('ucHiClear'),hiWrap=el('ucHiWrap'),hiList=el('ucHiList');
+var toastEl=el('ucToast');
+
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function toast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function saveHistory(){localStorage.setItem('sb_uc1',JSON.stringify(history))}
+
+function getUnitByKey(cat,key){return DATA[cat]&&DATA[cat].units.find(function(u){return u.k===key})}
+
+function convert(val,fromKey,toKey,cat){
+if(isNaN(val)||val===''||val===null)return null;
+var catData=DATA[cat];if(!catData)return null;
+var fromU=getUnitByKey(cat,fromKey),toU=getUnitByKey(cat,toKey);
+if(!fromU||!toU)return null;
+val=parseFloat(val);
+if(catData.temp){
+var c=(val-fromU.o)/fromU.f;
+return c*toU.f+toU.o;
+}
+return val/fromU.f*toU.f;
+}
+
+function formatNum(n,prec){
+if(n===null||n===undefined||isNaN(n))return'—';
+if(!isFinite(n))return n>0?'∞':'-∞';
+if(Math.abs(n)>=1e15||(Math.abs(n)<1e-10&&n!==0))return n.toExponential(prec);
+return n.toFixed(prec);
+}
+
+function getFormula(fromKey,toKey,cat){
+var catData=DATA[cat];if(!catData)return'';
+var fromU=getUnitByKey(cat,fromKey),toU=getUnitByKey(cat,toKey);
+if(!fromU||!toU)return'';
+if(catData.temp){
+if(fromKey===toKey)return'1 × 1 = 1';
+var ck=fromKey==='celsius'?'':fromU.l+' → Celsius → '+toU.l;
+return'('+fromU.l+' − '+fromU.o+') ÷ '+fromU.f+' × '+toU.f+' + '+toU.o;
+}
+var factor=toU.f/fromU.f;
+if(factor===1)return'1 × 1 = 1';
+return'1 '+fromU.l+' = '+formatNum(factor,6)+' '+toU.l;
+}
+
+function renderCats(){
+var h='';catKeys.forEach(function(k){
+var icon=catIcons[k]||'circle';
+h+='<button type="button" data-cat="'+k+'" class="'+(k===curCat?'on':'')+'" role="tab" aria-selected="'+(k===curCat?'true':'false')+'">'+(catLabels[k]||k)+'</button>';
+});
+catsEl.innerHTML=h;
+}
+
+function renderUnits(){
+var catData=DATA[curCat];if(!catData)return;
+var h='';catData.units.forEach(function(u){
+var sel=u.k===curFrom?' selected':'';
+h+='<option value="'+u.k+'"'+sel+'>'+esc(u.l)+'</option>';
+});
+fromSel.innerHTML=h;
+h='';catData.units.forEach(function(u){
+var sel=u.k===curTo?' selected':'';
+h+='<option value="'+u.k+'"'+sel+'>'+esc(u.l)+'</option>';
+});
+toSel.innerHTML=h;
+}
+
+function renderCommon(){
+var catData=DATA[curCat];if(!catData||!catData.common){commonEl.innerHTML='';return}
+var h='';catData.common.forEach(function(c){
+h+='<button type="button" data-val="'+c[1]+'" data-from="'+c[2]+'" data-to="'+c[3]+'">'+esc(c[0])+'</button>';
+});
+commonEl.innerHTML=h;
+}
+
+function renderResult(){
+var val=valInp.value;
+var result=convert(val,fromSel.value,toSel.value,curCat);
+if(result===null){resVal.textContent='—';resLabel.textContent='Enter a valid number';resFormula.textContent='';return}
+var prec=parseInt(precSlider.value);
+resVal.textContent=formatNum(result,prec);
+var fromU=getUnitByKey(curCat,fromSel.value);
+var toU=getUnitByKey(curCat,toSel.value);
+var fLabel=fromU?fromU.l:fromSel.value;
+var tLabel=toU?toU.l:toSel.value;
+resLabel.textContent=esc(val)+' '+esc(fLabel)+' = '+formatNum(result,prec)+' '+esc(tLabel);
+resFormula.textContent=getFormula(fromSel.value,toSel.value,curCat);
+curFrom=fromSel.value;curTo=toSel.value;
+renderBatch();
+}
+
+function renderBatch(){
+if(viewToggle.getAttribute('aria-expanded')!=='true')return;
+var catData=DATA[curCat];if(!catData){batchEl.innerHTML='';return}
+var val=valInp.value;
+var h='';
+catData.units.forEach(function(u){
+var result=convert(val,fromSel.value,u.k,curCat);
+var prec=parseInt(precSlider.value);
+h+='<div class="uc-batch-item"><div><span class="bl">'+esc(u.l)+'</span></div><div style="display:flex;align-items:center;gap:4px"><span class="bv">'+formatNum(result,prec)+'</span><button type="button" class="bcp" data-unit="'+u.k+'" data-val="'+formatNum(result,10)+'" aria-label="Copy '+esc(u.l)+' value">Copy</button></div></div>';
+});
+batchEl.innerHTML=h;
+}
+
+function renderHistory(){
+hiCount.textContent=history.length?'('+history.length+')':'';
+hiClear.hidden=!history.length;
+if(!history.length){hiList.innerHTML='<div class="uc-empty">No conversions yet</div>';return}
+var h='';history.forEach(function(item,i){
+var d=new Date(item.ts),now=new Date();
+var diff=Math.round((now-d)/1000);
+var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+var fromName=(item.from||'').split('-').map(function(w){return w.charAt(0).toUpperCase()+w.slice(1)}).join(' ');
+var toName=(item.to||'').split('-').map(function(w){return w.charAt(0).toUpperCase()+w.slice(1)}).join(' ');
+h+='<div class="uc-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.val)+' '+esc(fromName)+' → '+formatNum(item.result,4)+' '+esc(toName)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete from history">✕</button></div>';
+});
+hiList.innerHTML=h;
+}
+
+function addHistory(){
+var val=valInp.value;
+var result=convert(val,fromSel.value,toSel.value,curCat);
+if(result===null)return;
+history.unshift({cat:curCat,from:fromSel.value,to:toSel.value,val:val,result:result,ts:Date.now()});
+if(history.length>50)history.pop();
+saveHistory();renderHistory();
+}
+
+function switchCat(cat){
+curCat=cat;curFrom=DATA[cat].units[0].k;curTo=DATA[cat].units[1]?DATA[cat].units[1].k:DATA[cat].units[0].k;
+renderCats();renderUnits();renderCommon();renderResult();
+}
+
+function switchView(mode){
+var isBatch=mode==='batch';
+viewToggle.setAttribute('aria-expanded',isBatch?'true':'false');
+viewToggle.classList.toggle('on',isBatch);
+batchWrap.hidden=!isBatch;
+if(isBatch)renderBatch();
+}
+
+catsEl.addEventListener('click',function(e){
+var b=e.target.closest('button[data-cat]');if(!b)return;
+switchCat(b.getAttribute('data-cat'));
+});
+
+fromSel.addEventListener('change',function(){curFrom=this.value;renderResult()});
+toSel.addEventListener('change',function(){curTo=this.value;renderResult()});
+valInp.addEventListener('input',renderResult);
+
+swapBtn.addEventListener('click',function(){
+var tmp=fromSel.value;fromSel.value=toSel.value;toSel.value=tmp;
+curFrom=fromSel.value;curTo=toSel.value;
+renderResult();
+});
+
+precSlider.addEventListener('input',function(){
+precision=parseInt(this.value);precVal.textContent=precision;
+renderResult();
+});
+
+copyBtn.addEventListener('click',function(){
+var t=resVal.textContent;
+if(!t||t==='—'){toast('Nothing to copy');return}
+navigator.clipboard.writeText(t).then(function(){toast('Copied!');addHistory()}).catch(function(){toast('Copy failed')});
+});
+
+viewToggle.addEventListener('click',function(){
+var o=viewToggle.getAttribute('aria-expanded')==='true';
+switchView(o?'single':'batch');
+});
+
+batchEl.addEventListener('click',function(e){
+var b=e.target.closest('.bcp');if(!b)return;
+var val=b.getAttribute('data-val');
+if(!val){toast('Nothing to copy');return}
+navigator.clipboard.writeText(val).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')});
+});
+
+commonEl.addEventListener('click',function(e){
+var b=e.target.closest('button[data-val]');if(!b)return;
+valInp.value=b.getAttribute('data-val');
+fromSel.value=b.getAttribute('data-from');
+toSel.value=b.getAttribute('data-to');
+curFrom=fromSel.value;curTo=toSel.value;
+renderResult();
+});
+
+hiToggle.addEventListener('click',function(){
+var o=hiToggle.getAttribute('aria-expanded')==='true';
+hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;
+hiToggle.classList.toggle('on');
+if(!o)renderHistory();
+});
+
+hiClear.addEventListener('click',function(){
+history=[];saveHistory();renderHistory();toast('History cleared');
+});
+
+hiList.addEventListener('click',function(e){
+var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);saveHistory();renderHistory();return}
+var item=e.target.closest('.uc-hist-item');if(!item)return;
+var idx=parseInt(item.getAttribute('data-idx'));
+var h=history[idx];if(!h)return;
+switchCat(h.cat);valInp.value=h.val;fromSel.value=h.from;toSel.value=h.to;
+curFrom=h.from;curTo=h.to;
+renderResult();history.splice(idx,1);saveHistory();renderHistory();
+});
+
+renderCats();renderUnits();renderCommon();renderResult();renderHistory();
 })();
 </script>
-
-
-
 {{ tool_seo_all(seo_data) }}
 {% endblock %}

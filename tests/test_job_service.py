@@ -1,6 +1,7 @@
 import pytest
-from app.services.job_service import JobService
+
 from app.models.job import JobStatus
+from app.services.job_service import JobService
 
 
 class TestJobService:

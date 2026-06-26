@@ -16,5 +16,5 @@ class Base64Service:
         try:
             decoded_bytes = base64.b64decode(text.encode("utf-8"))
             return decoded_bytes.decode("utf-8")
-        except Exception:
-            raise ValidationException("Invalid Base64 string")
+        except Exception as e:
+            raise ValidationException("Invalid Base64 string") from e
