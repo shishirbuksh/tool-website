@@ -38,13 +38,13 @@ class ImageService:
         return self._cv2
 
     def remove_background(self, image_data: bytes, bg_color: str = "", smooth_edges: bool = False) -> bytes:
-        rembg = self._get_rembg()
-        input_img = Image.open(io.BytesIO(image_data)).convert("RGBA")
-        max_dim = 800 if smooth_edges else 2048
-        if input_img.width > max_dim or input_img.height > max_dim:
-            input_img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
-
         try:
+            rembg = self._get_rembg()
+            input_img = Image.open(io.BytesIO(image_data)).convert("RGBA")
+            max_dim = 800 if smooth_edges else 2048
+            if input_img.width > max_dim or input_img.height > max_dim:
+                input_img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+
             try:
                 from rembg import new_session
 

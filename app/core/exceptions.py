@@ -43,7 +43,16 @@ def _generic_exception_handler(request, exc: Exception):
     )
 
 
+async def _global_exception_handler(request, exc: Exception):
+    logger.error("Unhandled server exception: %s", exc, exc_info=True)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Internal server error"},
+    )
+
+
 def register_exception_handlers(app: FastAPI):
     app.add_exception_handler(AppException, _app_exception_handler)
+    app.add_exception_handler(Exception, _global_exception_handler)
     app.add_exception_handler(HTTPException, _http_exception_handler)
     app.add_exception_handler(Exception, _generic_exception_handler)
