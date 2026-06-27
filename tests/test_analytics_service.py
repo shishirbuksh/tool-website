@@ -2,17 +2,22 @@ import os
 
 import pytest
 
-from app.services.analytics_service import DB_PATH, get_counts, track
+import tempfile
+import app.services.analytics_service as analytics_service
 
+TEST_DB_PATH = os.path.join(tempfile.gettempdir(), "test_analytics.db")
+analytics_service.DB_PATH = TEST_DB_PATH
+from app.services.analytics_service import get_counts, track
 
 @pytest.fixture(autouse=True)
 def cleanup_db():
+    if os.path.exists(TEST_DB_PATH):
+        try: os.remove(TEST_DB_PATH)
+        except OSError: pass
     yield
-    try:
-        if os.path.exists(DB_PATH):
-            os.remove(DB_PATH)
-    except OSError:
-        pass
+    if os.path.exists(TEST_DB_PATH):
+        try: os.remove(TEST_DB_PATH)
+        except OSError: pass
 
 
 class TestAnalyticsService:
