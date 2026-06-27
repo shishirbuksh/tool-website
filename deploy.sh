@@ -49,6 +49,12 @@ fix_service_paths() {
 install_python() {
     log_info "Installing Python core dependencies..."
     pip install -q --no-cache-dir -r "$APP_DIR/requirements.txt"
+    
+    # Install heavy optional dependencies (rembg)
+    if ! python3 -c "import rembg" 2>/dev/null; then
+        log_info "Installing heavy optional dependency: rembg[cpu]"
+        pip install -q "rembg[cpu]"
+    fi
 }
 
 build_rust() {
