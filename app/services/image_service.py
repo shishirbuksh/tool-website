@@ -20,6 +20,11 @@ class ImageService:
     def _get_rembg(self):
         if self._rembg is None:
             try:
+                import os
+                if "U2NET_HOME" not in os.environ:
+                    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                    os.environ["U2NET_HOME"] = os.path.join(base_dir, ".u2net")
+                    
                 import rembg
                 self._rembg = rembg
             except Exception as e:
