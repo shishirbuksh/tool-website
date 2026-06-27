@@ -12,7 +12,6 @@ from app.api.routes import (
     health,
     pages,
     seo,
-    tools_b64,
     tools_crypto,
     tools_fng,
     tools_image,
@@ -85,7 +84,6 @@ app.include_router(tools_crypto.router)
 app.include_router(tools_fng.router)
 app.include_router(tools_proxy.router)
 app.include_router(tools_nft.router)
-app.include_router(tools_b64.router)
 app.include_router(analytics.router)
 app.include_router(jobs_router.router)
 

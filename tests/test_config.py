@@ -6,17 +6,17 @@ from app.core.config import Settings
 class TestSettings:
     def test_base_dir_is_absolute(self):
         s = Settings()
-        assert os.path.isabs(s.BASE_DIR)
+        assert os.path.isabs(s.base_dir)
 
     def test_templates_dir_ends_with_templates(self):
         s = Settings()
-        assert s.TEMPLATES_DIR.endswith("templates")
-        assert os.path.isabs(s.TEMPLATES_DIR)
+        assert s.templates_dir.endswith("templates")
+        assert os.path.isabs(s.templates_dir)
 
     def test_static_dir_ends_with_static(self):
         s = Settings()
-        assert s.STATIC_DIR.endswith("static")
-        assert os.path.isabs(s.STATIC_DIR)
+        assert s.static_dir.endswith("static")
+        assert os.path.isabs(s.static_dir)
 
     def test_default_project_name(self):
         s = Settings()

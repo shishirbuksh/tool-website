@@ -1,58 +1,441 @@
-{% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section %}
+﻿{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
 
-{% block title %}Salary Calculator | Hourly to Annual Salary Converter{% endblock %}
-{% block meta_description %}Convert between hourly, weekly, monthly, and annual salary instantly. Free salary calculator for job offers, budgeting, and pay comparisons.{% endblock %}
-{% block meta_keywords %}salary hourly, salary hourly tool, salary hourly free, free online salary hourly, storybrain ai{% endblock %}
+{% block title %}Salary Calculator - Convert Pay, Estimate Taxes, Compare, Breakdown, Plan{% endblock %}
+{% block meta_description %}Free salary calculator with 5 tools: convert hourly to annual pay, estimate 2025 federal taxes, compare job offers, view pay breakdown with overtime, and plan raises/freelance rates/savings. Supports 16 currencies.{% endblock %}
+{% block meta_keywords %}salary calculator, hourly to annual, tax estimator, job comparison, pay converter, take home pay calculator, salary comparison{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/salary-calculator{% endblock %}
+
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/salary-calculator">
-<meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Salary Calculator - Hourly to Annual Converter">
-<meta property="og:description" content="Convert between hourly, weekly, monthly, and annual salary instantly.">
-<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta property="og:title" content="Salary Calculator - Convert Pay, Estimate Taxes, Compare Job Offers">
+<meta property="og:description" content="Free salary calculator: convert pay periods, estimate taxes, compare offers, view breakdown with overtime, plan raises and savings. 16 currencies.">
 {% endblock %}
-{% block head %}{% endblock %}
+
+{% block head %}
+<style>
+.input-visible{background-color:color-mix(in oklab,var(--color-base-100) 85%,var(--color-base-300));border-color:var(--color-base-content);color:var(--color-base-content);font-weight:700}
+.input-visible:focus{border-color:var(--color-primary);box-shadow:0 0 0 3px color-mix(in oklab,var(--color-primary) 25%,transparent);outline:none}
+.currency-sym{color:var(--color-base-content);font-weight:700;opacity:.85}
+.tab-btn{color:var(--color-base-content);opacity:.45;cursor:pointer;transition:all .3s var(--cinematic-ease);background:0 0;border:2px solid color-mix(in oklab,var(--color-base-content) 12%,transparent);padding:.625rem 1.25rem;border-radius:.75rem;font-size:.875rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.tab-btn.active,.tab-btn:hover{opacity:1;background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary);border-color:var(--color-primary)}
+.tab-content.hidden{display:none}
+.stat-card{padding:.75rem;border-radius:.75rem;background:color-mix(in oklab,var(--color-base-100) 60%,var(--color-base-200))}
+</style>
+{% endblock %}
+
 {% block content %}
-{{ tool_hero_section("banknote", "Pay Converter", "SALARY", "CALCULATOR", "Convert between hourly, weekly, monthly, and annual salary instantly.") }}
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Enter Salary</h2>
-        <form class="flex flex-col gap-5">
-          <div><label class="label-cinematic" for="salaryAmount">Amount</label><input aria-label="Salaryamount" type="number" id="salaryAmount" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="50000" min="0"></div>
-          <div><label class="label-cinematic" for="salaryPeriod">Period</label><select aria-label="Salaryperiod" id="salaryPeriod" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"><option value="hourly">Hourly</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="annual" selected>Annual</option></select></div>
-          <div><label class="label-cinematic" for="hoursPerWeek">Hours per Week</label><input aria-label="Hoursperweek" type="number" id="hoursPerWeek" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="40" min="1" max="168"></div>
-          <div><label class="label-cinematic" for="daysPerWeek">Days per Week</label><input aria-label="Daysperweek" type="number" id="daysPerWeek" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="5" min="1" max="7"></div>
-          <button type="button" id="salCalcBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("calculator","w-5 h-5", 20) | safe }} CONVERT SALARY</button>
-        </form>
+{{ tool_hero_section("wallet","Free Tool","SALARY","CALCULATOR","Convert between hourly, daily, weekly, monthly, and annual pay. Estimate 2025 federal taxes and compare job offers. 16 currencies.") }}
+
+<div class="glass-card rounded-2xl p-5 md:p-6 max-w-5xl mx-auto reveal">
+  <div class="flex flex-wrap gap-2 mb-6">
+    <button type="button" class="tab-btn active px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" data-tab="converter">Pay Converter</button>
+    <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" data-tab="takehome">Take-Home Pay</button>
+    <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" data-tab="compare">Compare Offers</button>
+    <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" data-tab="breakdown">Pay Breakdown</button>
+    <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" data-tab="planner">Career Planner</button>
+  </div>
+
+  <div id="tab-converter" class="tab-content">
+    <div class="flex flex-wrap gap-4 mb-5">
+      <div class="min-w-[140px] flex-1">
+        <label for="scCurrency" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-2 block">Currency</label>
+        <select id="scCurrency" aria-label="Select currency" class="select w-full rounded-xl text-sm font-bold bg-base-200 border-base-content/20 h-11">
+          <option value="USD">🇺🇸 USD</option>
+          <option value="EUR">🇪🇺 EUR</option>
+          <option value="GBP">🇬🇧 GBP</option>
+          <option value="JPY">🇯🇵 JPY</option>
+          <option value="INR">🇮🇳 INR</option>
+          <option value="CAD">🇨🇦 CAD</option>
+          <option value="AUD">🇦🇺 AUD</option>
+          <option value="CHF">🇨🇭 CHF</option>
+          <option value="CNY">🇨🇳 CNY</option>
+          <option value="BRL">🇧🇷 BRL</option>
+          <option value="KRW">🇰🇷 KRW</option>
+          <option value="SEK">🇸🇪 SEK</option>
+          <option value="NZD">🇳🇿 NZD</option>
+          <option value="SGD">🇸🇬 SGD</option>
+          <option value="HKD">🇭🇰 HKD</option>
+          <option value="ZAR">🇿🇦 ZAR</option>
+        </select>
+      </div>
+      <div class="flex-1 min-w-[100px]">
+        <label for="scHours" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-2 block">Hours / Week</label>
+        <input type="number" id="scHours" aria-label="Hours per week" class="input input-visible w-full rounded-xl text-sm font-bold h-11" value="40" min="1" max="168" step="1">
+      </div>
+      <div class="flex-1 min-w-[100px]">
+        <label for="scDays" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-2 block">Days / Week</label>
+        <input type="number" id="scDays" aria-label="Days per week" class="input input-visible w-full rounded-xl text-sm font-bold h-11" value="5" min="1" max="7" step="1">
       </div>
     </div>
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Salary Breakdown</h3>
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Hourly Rate</span><output id="resHourly" class="metric-cinematic metric-cinematic--md font-mono text-primary">$0.00</output></div>
-          <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Daily Rate</span><output id="resDaily" class="metric-cinematic metric-cinematic--md font-mono">$0.00</output></div>
-          <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Weekly Pay</span><output id="resWeekly" class="metric-cinematic metric-cinematic--md font-mono">$0.00</output></div>
-          <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Monthly Pay</span><output id="resMonthly" class="metric-cinematic metric-cinematic--md font-mono">$0.00</output></div>
-          <div class="card-premium p-5 text-center col-span-2" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-            <span class="label-cinematic block mb-2 text-success">Annual Salary</span>
-            <output id="resAnnual" class="metric-cinematic metric-cinematic--xl text-success">$0.00</output>
+    <div class="space-y-3">
+      <div>
+        <label for="scHourly" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Hourly</label>
+        <div class="relative">
+          <span id="symHourly" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
+          <input type="number" id="scHourly" aria-label="Hourly pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="25" min="0" step="0.01">
+        </div>
+      </div>
+      <div>
+        <label for="scDaily" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Daily</label>
+        <div class="relative">
+          <span id="symDaily" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
+          <input type="number" id="scDaily" aria-label="Daily pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="200" min="0" step="0.01">
+        </div>
+      </div>
+      <div>
+        <label for="scWeekly" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Weekly</label>
+        <div class="relative">
+          <span id="symWeekly" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
+          <input type="number" id="scWeekly" aria-label="Weekly pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="1000" min="0" step="0.01">
+        </div>
+      </div>
+      <div>
+        <label for="scMonthly" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Monthly</label>
+        <div class="relative">
+          <span id="symMonthly" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
+          <input type="number" id="scMonthly" aria-label="Monthly pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="4333.33" min="0" step="0.01">
+        </div>
+      </div>
+      <div>
+        <label for="scAnnual" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Annual</label>
+        <div class="relative">
+          <span id="symAnnual" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
+          <input type="number" id="scAnnual" aria-label="Annual pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="52000" min="0" step="0.01">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-takehome" class="tab-content hidden">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <div class="mb-4">
+          <label for="thAnnual" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Annual Gross Salary ($)</label>
+          <input type="number" id="thAnnual" aria-label="Annual gross salary" class="input input-visible w-full rounded-xl text-sm" value="60000" min="0" step="1000">
+        </div>
+        <div class="mb-4">
+          <label for="thStatus" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Filing Status</label>
+          <select id="thStatus" aria-label="Tax filing status" class="select w-full rounded-xl text-sm font-bold bg-base-200 border-base-content/20 h-11">
+            <option value="single">Single</option>
+            <option value="married">Married Filing Jointly</option>
+          </select>
+        </div>
+        <div class="text-xs text-base-content/40 leading-relaxed p-3 rounded-xl bg-base-200/30">
+          <strong>Standard deduction:</strong> <span class="currency-sym" id="thDedSym">$</span><span id="thDedLabel">15,000</span> (Single).<br>
+          Based on 2025 US federal tax brackets. Simplified estimate — does not include credits or additional deductions.
+        </div>
+      </div>
+      <div class="space-y-3">
+        <div class="stat-card">
+          <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Taxable Income</div>
+          <output id="thTaxable" aria-live="polite">$45,000.00</output>
+        </div>
+        <div class="stat-card">
+          <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Estimated Federal Tax</div>
+          <output id="thTax" aria-live="polite">$5,812.50</output>
+        </div>
+        <div class="stat-card">
+          <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Take-Home Pay</div>
+          <output id="thTakeHome" aria-live="polite">$54,187.50</output>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="stat-card">
+            <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Effective Rate</div>
+            <output id="thRate" aria-live="polite">12.9%</output>
+          </div>
+          <div class="stat-card">
+            <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Marginal Rate</div>
+            <output id="thMarginal" aria-live="polite">22%</output>
           </div>
         </div>
       </div>
     </div>
   </div>
+
+  <div id="tab-compare" class="tab-content hidden">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div class="rounded-xl p-4" style="background:color-mix(in oklab,var(--color-primary) 6%,transparent);border:1px solid color-mix(in oklab,var(--color-primary) 15%,transparent)">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><span class="text-primary">Job A</span></h3>
+        <div class="mb-3">
+          <label for="cp1Amt" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">Amount</label>
+          <input type="number" id="cp1Amt" aria-label="Job A amount" class="input input-visible w-full rounded-xl text-sm" value="50000" min="0" step="1000">
+        </div>
+        <div class="mb-3">
+          <label for="cp1Period" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">Period</label>
+          <select id="cp1Period" aria-label="Job A pay period" class="select w-full rounded-xl text-sm font-bold bg-base-200 border-base-content/20 h-11">
+            <option value="annual">Annual</option><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="daily">Daily</option><option value="hourly">Hourly</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="cp1Hrs" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">Hours / Week</label>
+          <input type="number" id="cp1Hrs" aria-label="Job A hours per week" class="input input-visible w-full rounded-xl text-sm" value="40" min="1" max="168" step="1">
+        </div>
+        <div class="text-lg font-bold">Annual: <span id="cpAnn1" class="text-primary">$50,000.00</span></div>
+      </div>
+      <div class="rounded-xl p-4" style="background:color-mix(in oklab,var(--color-accent) 6%,transparent);border:1px solid color-mix(in oklab,var(--color-accent) 15%,transparent)">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><span class="text-accent">Job B</span></h3>
+        <div class="mb-3">
+          <label for="cp2Amt" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">Amount</label>
+          <input type="number" id="cp2Amt" aria-label="Job B amount" class="input input-visible w-full rounded-xl text-sm" value="30" min="0" step="1">
+        </div>
+        <div class="mb-3">
+          <label for="cp2Period" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">Period</label>
+          <select id="cp2Period" aria-label="Job B pay period" class="select w-full rounded-xl text-sm font-bold bg-base-200 border-base-content/20 h-11">
+            <option value="annual">Annual</option><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="daily">Daily</option><option value="hourly" selected>Hourly</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="cp2Hrs" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">Hours / Week</label>
+          <input type="number" id="cp2Hrs" aria-label="Job B hours per week" class="input input-visible w-full rounded-xl text-sm" value="40" min="1" max="168" step="1">
+        </div>
+        <div class="text-lg font-bold">Annual: <span id="cpAnn2" class="text-accent">$62,400.00</span></div>
+      </div>
+    </div>
+    <div class="text-center p-4 rounded-xl font-bold text-lg" id="cpWinner" style="background:color-mix(in oklab,var(--color-success) 10%,transparent);border:1px solid color-mix(in oklab,var(--color-success) 25%,transparent);color:var(--color-success)">Job B pays $12,400.00 more per year</div>
+  </div>
+
+  <div id="tab-breakdown" class="tab-content hidden">
+    <div class="mb-4">
+      <label for="bdAnnual" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Annual Salary</label>
+      <input type="number" id="bdAnnual" aria-label="Annual salary for breakdown" class="input input-visible w-full rounded-xl text-sm max-w-xs" value="52000" min="0" step="1000">
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div class="stat-card"><div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Weekly</div><output id="bdWeekly" aria-live="polite">$1,000.00</output></div>
+      <div class="stat-card"><div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Bi-Weekly</div><output id="bdBiweekly" aria-live="polite">$2,000.00</output></div>
+      <div class="stat-card"><div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Semi-Monthly</div><output id="bdSemi" aria-live="polite">$2,166.67</output></div>
+      <div class="stat-card"><div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Monthly</div><output id="bdMonthly" aria-live="polite">$4,333.33</output></div>
+    </div>
+    <div class="border-t border-base-300/15 pt-4">
+      <h3 class="text-sm font-bold mb-3">Overtime Calculator</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+        <div>
+          <label for="bdOtHours" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">OT Hours / Week</label>
+          <input type="number" id="bdOtHours" aria-label="Overtime hours per week" class="input input-visible w-full rounded-xl text-sm" value="5" min="0" step="0.5">
+        </div>
+        <div>
+          <label for="bdOtMult" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">OT Multiplier</label>
+          <input type="number" id="bdOtMult" aria-label="Overtime multiplier" class="input input-visible w-full rounded-xl text-sm" value="1.5" min="1" step="0.25">
+        </div>
+        <div>
+          <label for="bdOtRate" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">OT Rate (calc)</label>
+          <output id="bdOtRate" class="input input-visible w-full rounded-xl text-sm flex items-center px-3 font-bold" aria-live="polite">$28.13</output>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="stat-card"><div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Regular Weekly</div><output id="bdRegWeekly" aria-live="polite">$1,000.00</output></div>
+        <div class="stat-card"><div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">OT Pay</div><output id="bdOtPay" aria-live="polite">$140.63</output></div>
+        <div class="stat-card col-span-2"><div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Total Weekly with OT</div><output id="bdTotal" aria-live="polite"><strong>$1,140.63</strong></output></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-planner" class="tab-content hidden">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <h3 class="text-sm font-bold mb-3">Raise Simulator</h3>
+        <div class="mb-3">
+          <label for="plCurSal" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">Current Salary</label>
+          <input type="number" id="plCurSal" aria-label="Current salary for raise" class="input input-visible w-full rounded-xl text-sm" value="50000" min="0" step="1000">
+        </div>
+        <div class="mb-3">
+          <label for="plRaisePct" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">Raise %</label>
+          <input type="number" id="plRaisePct" aria-label="Raise percentage" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" step="0.5">
+        </div>
+        <div class="mb-3">
+          <label for="plNewSal" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">New Salary (auto)</label>
+          <output id="plNewSal" class="input input-visible w-full rounded-xl text-sm flex items-center px-3 font-bold" aria-live="polite">$55,000.00</output>
+        </div>
+        <div class="stat-card"><div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Annual Increase</div><output id="plIncrease" aria-live="polite">$5,000.00</output></div>
+      </div>
+      <div>
+        <h3 class="text-sm font-bold mb-3">Freelance Rate Converter</h3>
+        <div class="mb-3">
+          <label for="plFrlTarget" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">Target Annual Income</label>
+          <input type="number" id="plFrlTarget" aria-label="Target freelance income" class="input input-visible w-full rounded-xl text-sm" value="75000" min="0" step="1000">
+        </div>
+        <div class="mb-3">
+          <label for="plFrlOverhead" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">Overhead %</label>
+          <input type="number" id="plFrlOverhead" aria-label="Freelance overhead percentage" class="input input-visible w-full rounded-xl text-sm" value="30" min="0" step="5">
+        </div>
+        <div class="mb-3">
+          <label for="plFrlHours" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">Billable Hours / Year</label>
+          <input type="number" id="plFrlHours" aria-label="Billable hours per year" class="input input-visible w-full rounded-xl text-sm" value="1920" min="1" step="100">
+        </div>
+        <div class="stat-card"><div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Required Hourly Rate</div><output id="plFrlRate" aria-live="polite">$50.78</output></div>
+      </div>
+    </div>
+    <div class="border-t border-base-300/15 pt-4 mt-4">
+      <h3 class="text-sm font-bold mb-3">Savings Projection</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+        <div>
+          <label for="plSaveMonthly" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">Monthly Savings</label>
+          <input type="number" id="plSaveMonthly" aria-label="Monthly savings amount" class="input input-visible w-full rounded-xl text-sm" value="500" min="0" step="50">
+        </div>
+        <div>
+          <label for="plSaveReturn" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1 block">Annual Return %</label>
+          <input type="number" id="plSaveReturn" aria-label="Annual return percentage" class="input input-visible w-full rounded-xl text-sm" value="8" min="0" step="0.5">
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="stat-card"><div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">In 5 Years</div><output id="plSave5" aria-live="polite">$36,808.85</output></div>
+        <div class="stat-card"><div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">In 10 Years</div><output id="plSave10" aria-live="polite">$91,473.06</output></div>
+      </div>
+    </div>
+  </div>
 </div>
+
 <script>
-(function(){'use strict';function calculate(){const amt=parseFloat(document.getElementById('salaryAmount').value)||0;const period=document.getElementById('salaryPeriod').value;const hours=parseFloat(document.getElementById('hoursPerWeek').value)||40;const days=parseFloat(document.getElementById('daysPerWeek').value)||5;let annual=0;switch(period){case'hourly':annual=amt*hours*52;break;case'weekly':annual=amt*52;break;case'monthly':annual=amt*12;break;case'annual':annual=amt;break;}
-const hourly=annual/(hours*52);const daily=hourly*hours/days;const weekly=hourly*hours;const monthly=annual/12;document.getElementById('resHourly').innerText='$'+hourly.toFixed(2);document.getElementById('resDaily').innerText='$'+daily.toFixed(2);document.getElementById('resWeekly').innerText='$'+weekly.toFixed(2);document.getElementById('resMonthly').innerText='$'+monthly.toFixed(2);document.getElementById('resAnnual').innerText='$'+annual.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
-document.addEventListener('DOMContentLoaded',function(){calculate();document.getElementById('salCalcBtn').addEventListener('click',calculate);document.querySelectorAll('input, select').forEach(function(el){el.addEventListener('input',calculate);});});})();
+(function(){'use strict';
+var c=document.getElementById('scCurrency'),h=document.getElementById('scHours'),d=document.getElementById('scDays');
+var ids=['Hourly','Daily','Weekly','Monthly','Annual'];
+var inp={};ids.forEach(function(id){inp[id]=document.getElementById('sc'+id);});
+var currencies={USD:{sym:'$',loc:'en-US'},EUR:{sym:'€',loc:'de-DE'},GBP:{sym:'£',loc:'en-GB'},JPY:{sym:'¥',loc:'ja-JP'},INR:{sym:'₹',loc:'en-IN'},CAD:{sym:'CA$',loc:'en-CA'},AUD:{sym:'AU$',loc:'en-AU'},CHF:{sym:'CHF ',loc:'de-CH'},CNY:{sym:'¥',loc:'zh-CN'},BRL:{sym:'R$',loc:'pt-BR'},KRW:{sym:'₩',loc:'ko-KR'},SEK:{sym:'kr ',loc:'sv-SE'},NZD:{sym:'NZ$',loc:'en-NZ'},SGD:{sym:'S$',loc:'en-SG'},HKD:{sym:'HK$',loc:'en-HK'},ZAR:{sym:'R ',loc:'en-ZA'}};
+function cur(){return currencies[c.value];}
+var currSym='$',thDedSym=document.getElementById('thDedSym');function setCurr(){var o=cur();currSym=o.sym;ids.forEach(function(id){var e=document.getElementById('sym'+id);if(e)e.textContent=o.sym;});if(thDedSym)thDedSym.textContent=o.sym;convRecalc();calcTax();calcCompare();calcBd();calcPl();}
+function convRecalc(from){
+  var hr=parseFloat(h.value)||40,dy=parseFloat(d.value)||5;
+  if(!from){ids.forEach(function(id){if(parseFloat(inp[id].value)>0&&!from)from=id;});if(!from)from='Annual';}
+  var val=parseFloat(inp[from].value)||0,annual=0;
+  if(from==='Hourly')annual=val*hr*52;else if(from==='Daily')annual=val*dy*52;else if(from==='Weekly')annual=val*52;else if(from==='Monthly')annual=val*12;else annual=val;
+  inp.Hourly.value=(annual/hr/52).toFixed(2);inp.Daily.value=(annual/dy/52).toFixed(2);
+  inp.Weekly.value=(annual/52).toFixed(2);inp.Monthly.value=(annual/12).toFixed(2);inp.Annual.value=annual.toFixed(2);
+}
+c.addEventListener('change',setCurr);
+h.addEventListener('input',function(){convRecalc();});
+d.addEventListener('input',function(){convRecalc();});
+ids.forEach(function(id){inp[id].addEventListener('input',function(){convRecalc(id);});});
+
+var thAnn=document.getElementById('thAnnual'),thStat=document.getElementById('thStatus');
+var thTaxable=document.getElementById('thTaxable'),thTax=document.getElementById('thTax');
+var thTakeHome=document.getElementById('thTakeHome'),thRate=document.getElementById('thRate'),thMarginal=document.getElementById('thMarginal'),thDedLabel=document.getElementById('thDedLabel');
+var taxSingle=[{min:0,max:11925,rate:.1},{min:11925,max:48475,rate:.12},{min:48475,max:103350,rate:.22},{min:103350,max:197300,rate:.24},{min:197300,max:250525,rate:.32},{min:250525,max:626350,rate:.35},{min:626350,rate:.37}];
+var taxMarried=[{min:0,max:23850,rate:.1},{min:23850,max:96950,rate:.12},{min:96950,max:206700,rate:.22},{min:206700,max:394600,rate:.24},{min:394600,max:501050,rate:.32},{min:501050,max:751600,rate:.35},{min:751600,rate:.37}];
+function calcTax(){
+  var s=parseFloat(thAnn.value)||0,status=thStat.value,ded=status==='married'?30000:15000;
+  thDedLabel.textContent=ded.toLocaleString('en-US');
+  var taxable=Math.max(0,s-ded),tax=0,marginal=0,brackets=status==='married'?taxMarried:taxSingle;
+  for(var i=0;i<brackets.length;i++){
+    var b=brackets[i],top=b.max||1/0;
+    if(taxable>b.min){var inc=Math.min(taxable,top)-b.min;tax+=inc*b.rate;}
+    if(taxable>=b.min&&taxable<=top)marginal=b.rate*100;
+  }
+  var rate=taxable>0?tax/taxable*100:0;
+  thTaxable.textContent=currSym+taxable.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  thTax.textContent=currSym+tax.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  thTakeHome.textContent=currSym+(s-tax).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  thRate.textContent=rate.toFixed(1)+'%';
+  thMarginal.textContent=marginal+'%';
+}
+thAnn.addEventListener('input',calcTax);thStat.addEventListener('change',calcTax);
+
+var cp1=document.getElementById('cp1Amt'),cp1p=document.getElementById('cp1Period'),cp1h=document.getElementById('cp1Hrs');
+var cp2=document.getElementById('cp2Amt'),cp2p=document.getElementById('cp2Period'),cp2h=document.getElementById('cp2Hrs');
+var ca1=document.getElementById('cpAnn1'),ca2=document.getElementById('cpAnn2'),cw=document.getElementById('cpWinner');
+function calcCompare(){
+  function ta(amt,per,hrs){if(per==='hourly')return amt*hrs*52;if(per==='daily')return amt*5*52;if(per==='weekly')return amt*52;if(per==='monthly')return amt*12;return amt;}
+  var a1=ta(parseFloat(cp1.value)||0,cp1p.value,parseFloat(cp1h.value)||40);
+  var a2=ta(parseFloat(cp2.value)||0,cp2p.value,parseFloat(cp2h.value)||40);
+  ca1.textContent=currSym+a1.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  ca2.textContent=currSym+a2.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  var df=Math.abs(a1-a2),fs=df.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(a1>a2){cw.innerHTML='Job A pays <strong>'+currSym+fs+'</strong> more per year';cw.style.color='var(--color-success)';cw.style.borderColor='color-mix(in oklab,var(--color-success) 25%,transparent)';}
+  else if(a2>a1){cw.innerHTML='Job B pays <strong>'+currSym+fs+'</strong> more per year';cw.style.color='var(--color-success)';cw.style.borderColor='color-mix(in oklab,var(--color-success) 25%,transparent)';}
+  else{cw.innerHTML='Both jobs pay the same annual salary';cw.style.color='var(--color-base-content)';cw.style.borderColor='color-mix(in oklab,var(--color-base-content) 15%,transparent)';}
+}
+function cb(n){[document.getElementById('cp'+n+'Amt'),document.getElementById('cp'+n+'Period'),document.getElementById('cp'+n+'Hrs')].forEach(function(el){el.addEventListener('input',calcCompare);el.addEventListener('change',calcCompare);});}
+cb('1');cb('2');
+
+var bdAnn=document.getElementById('bdAnnual'),bdWeekly=document.getElementById('bdWeekly'),bdBi=document.getElementById('bdBiweekly'),bdSemi=document.getElementById('bdSemi'),bdMonthly=document.getElementById('bdMonthly');
+var bdOtH=document.getElementById('bdOtHours'),bdOtM=document.getElementById('bdOtMult'),bdOtR=document.getElementById('bdOtRate'),bdRegW=document.getElementById('bdRegWeekly'),bdOtP=document.getElementById('bdOtPay'),bdTot=document.getElementById('bdTotal');
+function calcBd(){
+  var a=parseFloat(bdAnn.value)||0,hrs=parseFloat(h.value)||40,otH=parseFloat(bdOtH.value)||0,otM=parseFloat(bdOtM.value)||1.5;
+  var wk=a/52,hr=hrs>0?wk/hrs:0;
+  bdWeekly.textContent=currSym+wk.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  bdBi.textContent=currSym+(a/26).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  bdSemi.textContent=currSym+(a/24).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  bdMonthly.textContent=currSym+(a/12).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  var otRate=hr*otM;
+  bdOtR.textContent=currSym+otRate.toFixed(2);
+  var otPay=otH*otRate;
+  bdRegW.textContent=currSym+wk.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  bdOtP.textContent=currSym+otPay.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  bdTot.innerHTML='<strong>'+currSym+(wk+otPay).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</strong>';
+}
+bdAnn.addEventListener('input',calcBd);bdOtH.addEventListener('input',calcBd);bdOtM.addEventListener('input',calcBd);
+
+var plCur=document.getElementById('plCurSal'),plPct=document.getElementById('plRaisePct'),plNew=document.getElementById('plNewSal'),plInc=document.getElementById('plIncrease');
+var plFt=document.getElementById('plFrlTarget'),plFo=document.getElementById('plFrlOverhead'),plFh=document.getElementById('plFrlHours'),plFr=document.getElementById('plFrlRate');
+var plSm=document.getElementById('plSaveMonthly'),plSr=document.getElementById('plSaveReturn'),plS5=document.getElementById('plSave5'),plS10=document.getElementById('plSave10');
+function calcPl(){
+  var cur=parseFloat(plCur.value)||0,pct=parseFloat(plPct.value)||0;
+  var nsal=cur*(1+pct/100);
+  plNew.textContent=currSym+nsal.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  plInc.textContent=currSym+(nsal-cur).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  var ti=parseFloat(plFt.value)||0,oh=parseFloat(plFo.value)||0,bh=parseFloat(plFh.value)||1920;
+  var frRate=bh>0?(ti*(1+oh/100))/bh:0;
+  plFr.textContent=currSym+frRate.toFixed(2);
+  var pmt=parseFloat(plSm.value)||0,ar=parseFloat(plSr.value)||0,mr=ar/100/12;
+  function fv(n){if(mr<=0)return pmt*n;return pmt*((Math.pow(1+mr,n)-1)/mr)*(1+mr);}
+  plS5.textContent=currSym+fv(60).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  plS10.textContent=currSym+fv(120).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+plCur.addEventListener('input',calcPl);plPct.addEventListener('input',calcPl);plFt.addEventListener('input',calcPl);plFo.addEventListener('input',calcPl);plFh.addEventListener('input',calcPl);plSm.addEventListener('input',calcPl);plSr.addEventListener('input',calcPl);
+
+document.querySelectorAll('.tab-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+    this.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(function(t){t.classList.add('hidden');});
+    var tab=document.getElementById('tab-'+this.getAttribute('data-tab'));
+    if(tab)tab.classList.remove('hidden');
+  });
+});
+setCurr();calcTax();calcCompare();calcBd();calcPl();
+})();
 </script>
 
-
-
-{{ tool_seo_all(seo_data) }}
+{% set seo = {
+  "name": "Salary Calculator",
+  "description": "Free online salary calculator with pay period converter, take-home pay estimator using 2025 US federal tax brackets, and job offer comparison tool. Supports 16 currencies.",
+  "app_category": "FinanceApplication",
+  "date_modified": "2026-06-27",
+  "faqs": [
+    {"q": "How do I convert hourly wage to annual salary?", "a": "Multiply your hourly rate by hours per week, then by 52 weeks. Example: $25/hour × 40 hours × 52 weeks = $52,000 per year. Use the Pay Converter tab."},
+    {"q": "How do I convert annual salary to hourly rate?", "a": "Divide your annual salary by 52 weeks, then by your weekly hours. Example: $50,000 ÷ 52 ÷ 40 = $24.04/hour."},
+    {"q": "How much tax will I pay on my salary?", "a": "Use the Take-Home Pay tab. Enter your annual gross salary and filing status. Uses 2025 US federal tax brackets and standard deduction."},
+    {"q": "How do I compare two job offers?", "a": "Use the Compare Offers tab. Enter the amount, pay period, and hours per week for each job. The tool converts both to annual salary and shows which pays more."},
+    {"q": "How is monthly pay calculated?", "a": "Monthly pay = annual salary ÷ 12. For hourly workers: hourly rate × hours/week × 52 ÷ 12."},
+    {"q": "How is weekly pay calculated?", "a": "Weekly pay = hourly rate × hours per week. Or annual salary ÷ 52 weeks."},
+    {"q": "What is the standard deduction for 2025?", "a": "For 2025 US federal taxes, the standard deduction is approximately $15,000 for Single filers and $30,000 for Married Filing Jointly."},
+    {"q": "What currencies does this calculator support?", "a": "The Pay Converter supports 16 currencies: USD, EUR, GBP, JPY, INR, CAD, AUD, CHF, CNY, BRL, KRW, SEK, NZD, SGD, HKD, and ZAR."},
+    {"q": "Can I adjust hours per week for the comparison?", "a": "Yes. Each job in the Compare Offers tab has its own Hours/Week input, so you can compare different schedules."},
+    {"q": "How do I calculate overtime pay?", "a": "In the Pay Breakdown tab, enter your annual salary, overtime hours per week, and the overtime multiplier (default 1.5x). The calculator shows your regular weekly pay, overtime pay, and total weekly earnings."},
+    {"q": "How do I determine my freelance hourly rate?", "a": "In the Career Planner tab, enter your target annual income, overhead percentage (default 30%), and billable hours per year (default 1,920). The calculator gives your required hourly rate to meet that target."},
+    {"q": "How much will my savings grow over time?", "a": "Use the Savings Projection in the Career Planner tab. Enter your monthly savings amount and expected annual return rate. The calculator shows the future value after 5 and 10 years using compound interest with monthly compounding."},
+    {"q": "Is this salary calculator free?", "a": "Yes, completely free. No sign-up or payment required. All calculations run in your browser."}
+  ],
+  "howto_steps": [
+    {"title": "Convert Pay Periods", "desc": "In the Pay Converter tab, enter any amount into a pay field. All other periods update instantly."},
+    {"title": "Select Currency", "desc": "Use the currency dropdown to switch between 16 supported currencies with automatic formatting."},
+    {"title": "Estimate Take-Home Pay", "desc": "Switch to Take-Home Pay tab. Enter your annual salary and filing status to see estimated federal tax."},
+    {"title": "Compare Job Offers", "desc": "Use Compare Offers tab to enter two salaries with different periods and hours. See the better deal instantly."},
+    {"title": "View Pay Breakdown", "desc": "The Pay Breakdown tab shows your pay per period (weekly to monthly) and includes an overtime calculator."},
+    {"title": "Plan with Raise & Freelance Tools", "desc": "Use Career Planner to simulate raises, calculate freelance rates with overhead, and project savings growth."},
+    {"title": "Adjust Your Schedule", "desc": "Modify Hours/Week or Days/Week to match your actual work schedule for accurate conversions."}
+  ],
+  "howto_calculate": "<p><strong>Annual from Hourly:</strong> Hourly × Hours/Week × 52</p><p><strong>Annual from Daily:</strong> Daily × Days/Week × 52</p><p><strong>Annual from Weekly:</strong> Weekly × 52</p><p><strong>Annual from Monthly:</strong> Monthly × 12</p><p><strong>Federal Tax (2025 brackets):</strong> Progressive tax with 10% to 37% rates. Taxable income = gross − standard deduction.</p><p><strong>Effective Tax Rate:</strong> Total Tax ÷ Taxable Income × 100</p><p><strong>Overtime Pay:</strong> Overtime Rate = Hourly Rate × OT Multiplier. Overtime Pay = OT Hours × OT Rate. Total Weekly = Regular Weekly + OT Pay.</p><p><strong>Freelance Rate:</strong> Required Rate = (Target Income × (1 + Overhead%)) ÷ Billable Hours.</p><p><strong>Compound Savings (Future Value):</strong> FV = Monthly Savings × ((1 + Monthly Return)^N − 1) ÷ Monthly Return × (1 + Monthly Return). Based on N months of compounding at the annual return rate.</p>",
+  "about_title": "About the Salary Calculator",
+  "about_body": "<p>This free Salary Calculator is a complete toolkit for understanding your earnings. Use the Pay Converter to instantly convert between hourly, daily, weekly, monthly, and annual pay. The Take-Home Pay tab estimates your 2025 US federal income tax. The Compare Offers tab helps you evaluate two job offers side by side. The Pay Breakdown tab shows your pay across weekly, bi-weekly, semi-monthly, and monthly periods with an overtime calculator. The Career Planner tab lets you simulate raises, calculate freelance rates, and project compound savings growth.</p><p>The Pay Converter supports 16 currencies with automatic locale-aware formatting. All tax calculations use standard deduction amounts and 2025 IRS tax brackets for Single and Married Filing Jointly statuses.</p><p>All calculations run locally in your browser — no data is sent to any server. Free to use, no sign-up required.</p>",
+  "related": [
+    {"name": "Percentage Calculator", "url": "/tool/percentage-calculator"},
+    {"name": "Budget Calculator", "url": "/tool/budget-calculator"},
+    {"name": "Expense Tracker", "url": "/tool/expense-tracker"},
+    {"name": "CAC Calculator", "url": "/tool/cac-calculator"},
+    {"name": "Burn Rate Calculator", "url": "/tool/burn-rate-calculator"},
+    {"name": "Profit Margin Calculator", "url": "/tool/profit-margin-calculator"}
+  ]
+} %}
+{{ tool_seo_all(seo) }}
 {% endblock %}

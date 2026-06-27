@@ -1,100 +1,1095 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
 
-{% block title %}Free Profit Margin Calculator Online | StoryBrain AI{% endblock %}
-{% block meta_description %}Instantly calculate gross profit, profit margin, markup, and revenue with our free online profit margin calculator. Perfect for e-commerce, retail, and business planning.{% endblock %}
-{% block meta_keywords %}profit margin calculator, gross margin calculator, markup calculator, business profit calculator, revenue calculator online, how to use Profit Margin Calculator for free online, best free Profit Margin Calculator alternative, Profit Margin Calculator without sign up, browser-based utility, secure processing, no installation required, instant results, data privacy, cloud alternative, free Profit Margin Calculator, online Profit Margin Calculator, fastest local browser Profit Margin Calculator, secure private Profit Margin Calculator no tracking{% endblock %}
+{% block title %}Profit Margin Calculator — Free Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Calculate gross profit, profit margin, markup, and selling price instantly. Enter cost + margin for revenue, or cost + revenue for margin and markup. Free online profit margin calculator for retail, e-commerce, and business.{% endblock %}
+{% block meta_keywords %}profit margin calculator, gross margin calculator, markup calculator, selling price calculator, business profit calculator, revenue calculator, cost plus margin{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/profit-margin-calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/profit-margin-calculator">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="Profit Margin Calculator - Free Online Tool | StoryBrain AI">
-<meta property="og:description" content="Calculate gross profit, profit margin, and markup instantly. Free online profit margin calculator for business.">
+<meta property="og:title" content="Profit Margin Calculator — Free Online">
+<meta property="og:description" content="Calculate gross profit, profit margin, markup, and selling price instantly. Free profit margin calculator for retail and business.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Profit Margin Calculator - Free Online | StoryBrain AI">
-<meta name="twitter:description" content="Calculate gross profit, profit margin, and markup instantly. Free online profit margin calculator for business.">
+<meta name="twitter:title" content="Profit Margin Calculator — Free Online | StoryBrain AI">
+<meta name="twitter:description" content="Calculate gross profit, profit margin, markup, and selling price. Free profit margin calculator for retail and business.">
 {% endblock %}
-
 {% block head %}
+<style>
+  .input-visible { background-color: color-mix(in oklab, var(--color-base-100) 85%, var(--color-base-300)); border-color: var(--color-base-content); color: var(--color-base-content); font-weight: 700; }
+  .input-visible:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 25%, transparent); outline: none; }
+  .currency-sym { color: var(--color-base-content); font-weight: 700; opacity: 0.85; }
+  .result-card { transition: transform 0.15s; }
+  .table-header { position: sticky; top: 0; z-index: 1; }
+  .tab-btn { transition: all 0.2s; cursor: pointer; }
+  .tab-btn.active { border-color: var(--color-primary); color: var(--color-primary); background: color-mix(in oklab, var(--color-primary) 10%, transparent); }
+  .tab-btn:hover:not(.active) { border-color: var(--color-base-content); opacity: 0.7; }
+  .stat-value { font-variant-numeric: tabular-nums; }
+  .btn-preset { transition: all 0.15s; }
+  .btn-preset.active { border-color: var(--color-primary); background: color-mix(in oklab, var(--color-primary) 15%, transparent); color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary); }
+</style>
 {% endblock %}
-
 {% block content %}
-{{ tool_hero_section("pie-chart", "Business Calculator", "Profit Margin", "Calculator", "Enter your cost and desired margin, or cost and revenue, to instantly calculate gross profit and markup. Perfectly optimized for retail and e-commerce pricing.") }}
+{{ tool_hero_section("percent", "Business Calculator", "PROFIT MARGIN", "CALCULATOR", "Calculate gross profit, margin, markup, and selling price. Enter cost + margin for revenue, or cost + revenue for margin and markup.") }}
 
-  <!-- Main Calculator Area -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 reveal" style="animation-delay:0.2s">
+<!-- ════════ TAB NAV ════════ -->
+<div class="flex flex-wrap gap-2 mb-6 reveal" style="animation-delay:0.1s">
+  <button type="button" class="tab-btn active px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2 border-base-content/20" data-tab="margin">Margin Calculator</button>
+  <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2 border-base-content/20" data-tab="multiproduct">Multi Product</button>
+  <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2 border-base-content/20" data-tab="breakeven">Break Even</button>
+  <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2 border-base-content/20" data-tab="analysis">Analysis</button>
+</div>
 
-    <!-- Method 1: Cost + Margin → Revenue & Profit -->
-    <div class="card-premium p-6 md:p-8">
-      <h2 class="text-lg font-black tracking-tight mb-5">{{ lucide_icon("dollar-sign","w-5 h-5", 20) | safe }} Cost + Margin</h2>
-      <div class="flex flex-col gap-4 mb-6">
+<!-- ════════ TAB: MARGIN CALCULATOR ════════ -->
+<div id="tab-margin" class="tab-content">
+  <!-- Scenario Presets -->
+  <div class="flex flex-wrap items-center gap-2 mb-4 reveal" style="animation-delay:0.12s">
+    <span class="text-xs font-bold tracking-widest uppercase text-base-content/40 mr-1">Presets:</span>
+    <button type="button" class="btn-preset active px-3 py-1.5 rounded-lg text-xs font-bold border border-base-content/20" data-margin="40">Standard 40%</button>
+    <button type="button" class="btn-preset px-3 py-1.5 rounded-lg text-xs font-bold border border-base-content/20" data-margin="20">Low Margin 20%</button>
+    <button type="button" class="btn-preset px-3 py-1.5 rounded-lg text-xs font-bold border border-base-content/20" data-margin="65">Premium 65%</button>
+    <button type="button" class="btn-preset px-3 py-1.5 rounded-lg text-xs font-bold border border-base-content/20" data-margin="80">Luxury 80%</button>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 reveal" style="animation-delay:0.15s">
+    <!-- CARD: Cost + Margin -->
+    <div class="card-premium p-6">
+      <h2 class="text-base font-bold tracking-tight mb-4 flex items-center gap-2">{{ lucide_icon("dollar-sign","w-4 h-4", 16) | safe }} Cost + Margin</h2>
+      <div class="flex flex-col gap-3 mb-4">
         <div>
-          <label class="label-cinematic" for="cost1">Cost Price ($)</label>
-          <input aria-label="Cost1" type="number" id="cost1" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="100" min="0">
+          <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="cost1">Cost Price</label>
+          <div class="relative">
+            <span id="sym1" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+            <input aria-label="Cost price" type="number" id="cost1" class="input input-visible w-full pl-8 rounded-xl text-sm" value="100" min="0" step="1">
+          </div>
         </div>
         <div>
-          <label class="label-cinematic" for="margin1">Desired Margin (%)</label>
-          <div class="flex">
-            <input aria-label="Margin1" type="number" id="margin1" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl rounded-r-none" value="40" min="0" max="100">
-            <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">%</span>
+          <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="margin1">Desired Margin</label>
+          <div class="relative">
+            <input aria-label="Desired profit margin percentage" type="number" id="margin1" class="input input-visible w-full pr-12 rounded-xl text-sm" value="40" min="0" max="100" step="0.1">
+            <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-bold text-base-content/50">%</span>
           </div>
         </div>
       </div>
-      <button id="profitM1Btn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl mb-6">
-        {{ lucide_icon("calculator","w-5 h-5", 20) | safe }} CALCULATE
-      </button>
       <div class="grid grid-cols-2 gap-3">
-        <div class="glass-cinematic rounded-xl p-4 text-center">
-          <span class="label-cinematic block mb-2">Revenue</span>
-          <output id="rev1" class="metric-cinematic metric-cinematic--sm font-mono text-primary">$0</output>
+        <div class="rounded-xl bg-base-content/[0.04] p-3.5 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-1">Selling Price</p>
+          <output id="resRev1" class="text-lg font-black text-primary font-mono stat-value" aria-live="polite">$166.67</output>
         </div>
-        <div class="glass-cinematic rounded-xl p-4 text-center">
-          <span class="label-cinematic block mb-2">Gross Profit</span>
-          <output id="profit1" class="metric-cinematic metric-cinematic--sm font-mono text-success">$0</output>
+        <div class="rounded-xl bg-base-content/[0.04] p-3.5 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-1">Gross Profit</p>
+          <output id="resProfit1" class="text-lg font-black text-success font-mono stat-value" aria-live="polite">$66.67</output>
         </div>
       </div>
     </div>
 
-    <!-- Method 2: Cost + Revenue → Margin & Profit -->
-    <div class="card-premium p-6 md:p-8">
-      <h2 class="text-lg font-black tracking-tight mb-5">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Cost + Revenue</h2>
-      <div class="flex flex-col gap-4 mb-6">
+    <!-- CARD: Cost + Revenue -->
+    <div class="card-premium p-6">
+      <h2 class="text-base font-bold tracking-tight mb-4 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4", 16) | safe }} Cost + Revenue</h2>
+      <div class="flex flex-col gap-3 mb-4">
         <div>
-          <label class="label-cinematic" for="cost2">Cost Price ($)</label>
-          <input aria-label="Cost2" type="number" id="cost2" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="100" min="0">
+          <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="cost2">Cost Price</label>
+          <div class="relative">
+            <span id="sym2" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+            <input aria-label="Cost price" type="number" id="cost2" class="input input-visible w-full pl-8 rounded-xl text-sm" value="100" min="0" step="1">
+          </div>
         </div>
         <div>
-          <label class="label-cinematic" for="revenue2">Revenue ($)</label>
-          <input aria-label="Revenue2" type="number" id="revenue2" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="200" min="0">
+          <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="revenue2">Selling Price</label>
+          <div class="relative">
+            <span id="symRev" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+            <input aria-label="Selling price" type="number" id="revenue2" class="input input-visible w-full pl-8 rounded-xl text-sm" value="200" min="0" step="1">
+          </div>
         </div>
       </div>
-      <button id="profitM2Btn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl mb-6">
-        {{ lucide_icon("calculator","w-5 h-5", 20) | safe }} CALCULATE
-      </button>
-      <div class="grid grid-cols-2 gap-3">
-        <div class="glass-cinematic rounded-xl p-4 text-center">
-          <span class="label-cinematic block mb-2">Margin</span>
-          <output id="margin2" class="metric-cinematic metric-cinematic--sm font-mono text-primary">0%</output>
+      <div class="grid grid-cols-3 gap-2">
+        <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Margin</p>
+          <output id="resMargin2" class="text-base font-black text-primary font-mono stat-value" aria-live="polite">50.00%</output>
         </div>
-        <div class="glass-cinematic rounded-xl p-4 text-center">
-          <span class="label-cinematic block mb-2">Markup</span>
-          <output id="markup2" class="metric-cinematic metric-cinematic--sm font-mono text-success">0%</output>
+        <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Markup</p>
+          <output id="resMarkup2" class="text-base font-black text-success font-mono stat-value" aria-live="polite">100.00%</output>
         </div>
+        <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Profit</p>
+          <output id="resProfit2" class="text-base font-black font-mono stat-value" aria-live="polite">$100.00</output>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Currency Selector + Summary Bar -->
+  <div class="flex flex-wrap items-center justify-between gap-3 mt-6 p-4 rounded-xl bg-base-content/[0.03] border border-base-content/10 reveal" style="animation-delay:0.18s">
+    <div class="flex items-center gap-3">
+      <label class="text-xs font-bold tracking-widest uppercase text-base-content/40" for="currencySelect">Currency</label>
+      <select aria-label="Select currency" id="currencySelect" class="select select-sm rounded-lg text-sm font-bold bg-base-200 border-base-content/20">
+        <option value="USD">🇺🇸 USD</option>
+        <option value="EUR">🇪🇺 EUR</option>
+        <option value="GBP">🇬🇧 GBP</option>
+        <option value="JPY">🇯🇵 JPY</option>
+        <option value="INR">🇮🇳 INR</option>
+        <option value="CAD">🇨🇦 CAD</option>
+        <option value="AUD">🇦🇺 AUD</option>
+        <option value="CHF">🇨🇭 CHF</option>
+        <option value="CNY">🇨🇳 CNY</option>
+        <option value="BRL">🇧🇷 BRL</option>
+        <option value="KRW">🇰🇷 KRW</option>
+        <option value="SEK">🇸🇪 SEK</option>
+        <option value="NZD">🇳🇿 NZD</option>
+        <option value="SGD">🇸🇬 SGD</option>
+        <option value="HKD">🇭🇰 HKD</option>
+        <option value="ZAR">🇿🇦 ZAR</option>
+      </select>
+    </div>
+    <div class="flex items-center gap-4 text-sm">
+      <span class="text-base-content/40 text-xs tracking-wider">Revenue: <strong id="summaryRev" class="text-base-content font-mono">$166.67</strong></span>
+      <span class="text-base-content/40 text-xs tracking-wider">Cost: <strong id="summaryCost" class="text-base-content font-mono">$100.00</strong></span>
+      <span class="text-base-content/40 text-xs tracking-wider">Profit: <strong id="summaryProfit" class="text-success font-mono">$66.67</strong></span>
+      <span class="text-base-content/40 text-xs tracking-wider">Margin: <strong id="summaryMargin" class="text-primary font-mono">40.00%</strong></span>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ TAB: MULTI-PRODUCT ════════ -->
+<div id="tab-multiproduct" class="tab-content hidden">
+  <div class="card-premium p-6">
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <h2 class="text-base font-bold tracking-tight flex items-center gap-2">{{ lucide_icon("layers","w-4 h-4", 16) | safe }} Multi-Product Profit Analysis</h2>
+      <div class="flex gap-2">
+        <button type="button" id="addRowBtn" class="btn btn-sm rounded-lg px-3 text-xs font-bold uppercase border border-primary text-primary" style="background:color-mix(in oklab,var(--color-primary) 10%,transparent)">{{ lucide_icon("plus","w-3 h-3", 12) | safe }} Add</button>
+        <button type="button" id="csvExportBtn" class="btn btn-sm rounded-lg px-3 text-xs font-bold uppercase border border-base-content/30 text-base-content/70">{{ lucide_icon("download","w-3 h-3", 12) | safe }} CSV</button>
+      </div>
+    </div>
+    <div class="overflow-x-auto -mx-2" style="max-height:380px;overflow-y:auto">
+      <table class="w-full text-sm" role="table" aria-label="Multi-product profit margin breakdown">
+        <thead class="table-header">
+          <tr class="text-[10px] font-bold tracking-widest uppercase text-base-content/40 border-b border-base-content/10" style="background:var(--color-base-200)">
+            <th class="text-left py-2.5 pl-2 pr-2 w-1/4">Product</th>
+            <th class="text-right px-2 py-2.5">Cost</th>
+            <th class="text-right px-2 py-2.5">Selling Price</th>
+            <th class="text-right px-2 py-2.5">Profit</th>
+            <th class="text-right px-2 py-2.5">Margin</th>
+            <th class="text-right px-2 py-2.5">Markup</th>
+            <th class="text-center pl-2 py-2.5 w-8"></th>
+          </tr>
+        </thead>
+        <tbody id="productTableBody"></tbody>
+      </table>
+    </div>
+    <div class="mt-4 pt-4 border-t border-base-content/10 flex flex-wrap gap-2">
+      <div class="flex-1 min-w-[100px] rounded-lg bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Products</p>
+        <output id="resTotalItems" class="text-lg font-black font-mono" aria-live="polite">3</output>
+      </div>
+      <div class="flex-1 min-w-[100px] rounded-lg bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Total Cost</p>
+        <output id="resTotalCost" class="text-lg font-black font-mono" aria-live="polite">$350.00</output>
+      </div>
+      <div class="flex-1 min-w-[100px] rounded-lg bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Total Revenue</p>
+        <output id="resTotalRev" class="text-lg font-black font-mono" aria-live="polite">$520.00</output>
+      </div>
+      <div class="flex-1 min-w-[100px] rounded-lg bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Avg Margin</p>
+        <output id="resAvgMargin" class="text-lg font-black text-primary font-mono" aria-live="polite">32.69%</output>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ TAB: BREAK-EVEN ════════ -->
+<div id="tab-breakeven" class="tab-content hidden">
+  <div class="card-premium p-6">
+    <h2 class="text-base font-bold tracking-tight mb-4 flex items-center gap-2">{{ lucide_icon("chart-bar","w-4 h-4", 16) | safe }} Break-Even Analysis</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+      <div>
+        <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="beFixed">Fixed Costs</label>
+        <div class="relative">
+          <span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+          <input aria-label="Fixed costs" type="number" id="beFixed" class="input input-visible w-full pl-8 rounded-xl text-sm" value="5000" min="0" step="100">
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="beVarCost">Variable Cost / Unit</label>
+        <div class="relative">
+          <span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+          <input aria-label="Variable cost per unit" type="number" id="beVarCost" class="input input-visible w-full pl-8 rounded-xl text-sm" value="25" min="0" step="1">
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="bePrice">Selling Price / Unit</label>
+        <div class="relative">
+          <span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+          <input aria-label="Selling price per unit" type="number" id="bePrice" class="input input-visible w-full pl-8 rounded-xl text-sm" value="50" min="0" step="1">
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="rounded-xl bg-base-content/[0.04] p-4 text-center border border-base-content/5">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-1">Break-Even Units</p>
+        <output id="resBEUnits" class="text-xl font-black text-primary font-mono" aria-live="polite">200</output>
+      </div>
+      <div class="rounded-xl bg-base-content/[0.04] p-4 text-center border border-base-content/5">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-1">BE Revenue</p>
+        <output id="resBERev" class="text-xl font-black font-mono" aria-live="polite">$10,000</output>
+      </div>
+      <div class="rounded-xl bg-base-content/[0.04] p-4 text-center border border-base-content/5">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-1">Contribution Margin</p>
+        <output id="resBECM" class="text-xl font-black text-success font-mono" aria-live="polite">$25.00</output>
+      </div>
+      <div class="rounded-xl bg-base-content/[0.04] p-4 text-center border border-base-content/5">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-1">CM Ratio</p>
+        <output id="resBECMRatio" class="text-xl font-black font-mono" aria-live="polite">50.00%</output>
+      </div>
+    </div>
+    <!-- Profit at different volumes -->
+    <div class="mt-5 pt-4 border-t border-base-content/10">
+      <p class="text-xs font-bold tracking-widest uppercase text-base-content/40 mb-3">Profit Projection by Volume</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div class="rounded-lg bg-base-content/[0.03] px-3 py-2.5 text-center border border-base-content/5">
+          <p class="text-[10px] text-base-content/30 font-semibold">100 units</p>
+          <output id="beProf100" class="text-sm font-bold font-mono -text-success">-$2,500</output>
+        </div>
+        <div class="rounded-lg bg-base-content/[0.03] px-3 py-2.5 text-center border border-base-content/5">
+          <p class="text-[10px] text-base-content/30 font-semibold">200 units</p>
+          <output id="beProf200" class="text-sm font-bold font-mono">$0</output>
+        </div>
+        <div class="rounded-lg bg-base-content/[0.03] px-3 py-2.5 text-center border border-base-content/5">
+          <p class="text-[10px] text-base-content/30 font-semibold">500 units</p>
+          <output id="beProf500" class="text-sm font-bold font-mono text-success">$7,500</output>
+        </div>
+        <div class="rounded-lg bg-base-content/[0.03] px-3 py-2.5 text-center border border-base-content/5">
+          <p class="text-[10px] text-base-content/30 font-semibold">1,000 units</p>
+          <output id="beProf1000" class="text-sm font-bold font-mono text-success">$20,000</output>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ TAB: ANALYSIS ════════ -->
+<div id="tab-analysis" class="tab-content hidden">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6" style="animation-delay:0.2s">
+
+    <!-- Goal Seek: Target Profit -->
+    <div class="card-premium p-6">
+      <h2 class="text-base font-bold tracking-tight mb-4 flex items-center gap-2">{{ lucide_icon("crosshair","w-4 h-4", 16) | safe }} Goal Seek</h2>
+      <div class="flex flex-col gap-3 mb-4">
+        <div>
+          <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="gsCost">Your Cost</label>
+          <div class="relative">
+            <span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+            <input aria-label="Cost for goal seek" type="number" id="gsCost" class="input input-visible w-full pl-8 rounded-xl text-sm" value="100" min="0" step="1">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="gsTargetProfit">Target Profit</label>
+            <div class="relative">
+              <span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+              <input aria-label="Target profit amount" type="number" id="gsTargetProfit" class="input input-visible w-full pl-8 rounded-xl text-sm" value="60" min="0" step="1">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="gsTargetMargin">Target Margin</label>
+            <div class="relative">
+              <input aria-label="Target margin percentage" type="number" id="gsTargetMargin" class="input input-visible w-full pr-12 rounded-xl text-sm" value="40" min="0" max="99.9" step="0.1">
+              <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-bold text-base-content/50">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Req. Revenue</p>
+          <output id="resGSRev" class="text-base font-black text-primary font-mono" aria-live="polite">$166.67</output>
+        </div>
+        <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Req. Price</p>
+          <output id="resGSPrice" class="text-base font-black font-mono" aria-live="polite">$166.67</output>
+        </div>
+        <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Actual Margin</p>
+          <output id="resGSMargin" class="text-base font-black text-success font-mono" aria-live="polite">40.00%</output>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discount Impact -->
+    <div class="card-premium p-6">
+      <h2 class="text-base font-bold tracking-tight mb-4 flex items-center gap-2">{{ lucide_icon("percent-badge","w-4 h-4", 16) | safe }} Discount Impact</h2>
+      <div class="flex flex-col gap-3 mb-4">
+        <div>
+          <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="diCost">Cost Price</label>
+          <div class="relative">
+            <span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+            <input aria-label="Cost for discount analysis" type="number" id="diCost" class="input input-visible w-full pl-8 rounded-xl text-sm" value="100" min="0" step="1">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="diListPrice">List Price</label>
+            <div class="relative">
+              <span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+              <input aria-label="List price before discount" type="number" id="diListPrice" class="input input-visible w-full pl-8 rounded-xl text-sm" value="200" min="0" step="1">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="diDiscount">Discount</label>
+            <div class="relative">
+              <input aria-label="Discount percentage" type="number" id="diDiscount" class="input input-visible w-full pr-12 rounded-xl text-sm" value="20" min="0" max="100" step="1">
+              <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-bold text-base-content/50">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Original Margin</p>
+          <output id="resDIOrigMarg" class="text-base font-black text-success font-mono" aria-live="polite">50.00%</output>
+        </div>
+        <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Effective Margin</p>
+          <output id="resDIEffMarg" class="text-base font-black font-mono" aria-live="polite">37.50%</output>
+        </div>
+      </div>
+      <div class="mt-3 rounded-xl bg-warning/10 p-3 text-center border border-warning/20">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-warning/60 mb-0.5">Effective Price After Discount</p>
+        <output id="resDIEffPrice" class="text-base font-black font-mono" aria-live="polite">$160.00</output>
+      </div>
+    </div>
+
+    <!-- Cost Change Simulator -->
+    <div class="card-premium p-6">
+      <h2 class="text-base font-bold tracking-tight mb-4 flex items-center gap-2">{{ lucide_icon("trending-up","w-4 h-4", 16) | safe }} Cost Change Impact</h2>
+      <div class="flex flex-col gap-3 mb-4">
+        <div>
+          <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="ciCurrentCost">Current Cost</label>
+          <div class="relative">
+            <span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+            <input aria-label="Current cost" type="number" id="ciCurrentCost" class="input input-visible w-full pl-8 rounded-xl text-sm" value="100" min="0" step="1">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="ciCurrentPrice">Current Price</label>
+            <div class="relative">
+              <span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+              <input aria-label="Current selling price" type="number" id="ciCurrentPrice" class="input input-visible w-full pl-8 rounded-xl text-sm" value="200" min="0" step="1">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="ciCostChange">Cost Change</label>
+            <div class="relative">
+              <input aria-label="Cost change percentage" type="number" id="ciCostChange" class="input input-visible w-full pr-12 rounded-xl text-sm" value="15" min="-99" max="999" step="1">
+              <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-bold text-base-content/50">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Current Margin</p>
+          <output id="resCICurrMarg" class="text-base font-black text-success font-mono" aria-live="polite">50.00%</output>
+        </div>
+        <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">New Margin</p>
+          <output id="resCINewMarg" class="text-base font-black font-mono" aria-live="polite">41.30%</output>
+        </div>
+      </div>
+      <div class="mt-3 rounded-xl bg-primary/10 p-3 text-center border border-primary/20">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-primary/60 mb-0.5">Price Needed to Maintain Margin</p>
+        <output id="resCIMaintPrice" class="text-base font-black text-primary font-mono" aria-live="polite">$230.00</output>
+      </div>
+    </div>
+
+    <!-- Volume Compensator -->
+    <div class="card-premium p-6">
+      <h2 class="text-base font-bold tracking-tight mb-4 flex items-center gap-2">{{ lucide_icon("package","w-4 h-4", 16) | safe }} Volume Compensator</h2>
+      <div class="flex flex-col gap-3 mb-4">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="vcCurrentPrice">Current Price</label>
+            <div class="relative">
+              <span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+              <input aria-label="Current price" type="number" id="vcCurrentPrice" class="input input-visible w-full pl-8 rounded-xl text-sm" value="50" min="0" step="1">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="vcVarCost">Variable Cost</label>
+            <div class="relative">
+              <span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-base">$</span>
+              <input aria-label="Variable cost per unit" type="number" id="vcVarCost" class="input input-visible w-full pl-8 rounded-xl text-sm" value="25" min="0" step="1">
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="vcCurrentVolume">Current Volume</label>
+            <div class="relative">
+              <input aria-label="Current sales volume" type="number" id="vcCurrentVolume" class="input input-visible w-full pr-12 rounded-xl text-sm" value="1000" min="0" step="10">
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="vcPriceDrop">Price Drop</label>
+            <div class="relative">
+              <input aria-label="Price reduction percentage" type="number" id="vcPriceDrop" class="input input-visible w-full pr-12 rounded-xl text-sm" value="10" min="0" max="100" step="0.5">
+              <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-bold text-base-content/50">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">Current Profit</p>
+          <output id="resVCCurrProf" class="text-base font-black text-success font-mono" aria-live="polite">$25,000</output>
+        </div>
+        <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+          <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-0.5">New Price</p>
+          <output id="resVCNewPrice" class="text-base font-black font-mono" aria-live="polite">$45.00</output>
+        </div>
+      </div>
+      <div class="mt-3 rounded-xl bg-primary/10 p-3 text-center border border-primary/20">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-primary/60 mb-0.5">Volume Needed to Maintain Profit</p>
+        <output id="resVCNeededVol" class="text-lg font-black text-primary font-mono" aria-live="polite">1,250</output>
+      </div>
+      <div class="mt-2 text-center">
+        <span class="text-[10px] font-semibold text-base-content/30">New Contribution Margin: </span>
+        <output id="resVCNewCM" class="text-xs font-bold font-mono" aria-live="polite">$20.00</output>
       </div>
     </div>
 
   </div>
 
-  <script>
-  (function(){'use strict';function calcMethod1(){const cost=parseFloat(document.getElementById('cost1').value)||0;const margin=parseFloat(document.getElementById('margin1').value)||0;const revenue=cost/(1-margin/100);const profit=revenue-cost;document.getElementById('rev1').innerText='$'+revenue.toFixed(2);document.getElementById('profit1').innerText='$'+profit.toFixed(2);}
-  function calcMethod2(){const cost=parseFloat(document.getElementById('cost2').value)||0;const revenue=parseFloat(document.getElementById('revenue2').value)||0;const profit=revenue-cost;const margin=(profit/revenue)*100;const markup=(profit/cost)*100;document.getElementById('margin2').innerText=margin.toFixed(2)+'%';document.getElementById('markup2').innerText=markup.toFixed(2)+'%';}
-  document.addEventListener('DOMContentLoaded',function(){calcMethod1();calcMethod2();document.getElementById('profitM1Btn').addEventListener('click',calcMethod1);document.getElementById('profitM2Btn').addEventListener('click',calcMethod2);document.querySelectorAll('#cost1, #margin1').forEach(function(el){el.addEventListener('input',calcMethod1);});document.querySelectorAll('#cost2, #revenue2').forEach(function(el){el.addEventListener('input',calcMethod2);});});})();
-  </script>
+  <!-- Scenario Comparison -->
+  <div class="card-premium p-6 mt-6" style="animation-delay:0.25s">
+    <h2 class="text-base font-bold tracking-tight mb-4 flex items-center gap-2">{{ lucide_icon("git-compare","w-4 h-4", 16) | safe }} Scenario Comparison</h2>
+    <div class="overflow-x-auto -mx-2">
+      <table class="w-full text-sm" role="table" aria-label="Scenario comparison">
+        <thead class="table-header">
+          <tr class="text-[10px] font-bold tracking-widest uppercase text-base-content/40 border-b border-base-content/10" style="background:var(--color-base-200)">
+            <th class="text-left py-2.5 pl-2 pr-2 w-28"></th>
+            <th class="text-center px-2 py-2.5 text-primary">Conservative</th>
+            <th class="text-center px-2 py-2.5 text-success">Moderate</th>
+            <th class="text-center px-2 py-2.5 text-warning">Aggressive</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b border-base-content/5">
+            <td class="py-2 pl-2 pr-2 text-xs font-bold text-base-content/50">Cost / Unit</td>
+            <td class="py-2 px-2"><div class="relative"><span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-2 text-xs">$</span><input aria-label="Conservative scenario cost" type="number" id="scCost1" class="input input-visible w-full rounded-md text-xs py-1.5 pl-5 pr-2 text-center" value="100" min="0" step="1"></div></td>
+            <td class="py-2 px-2"><div class="relative"><span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-2 text-xs">$</span><input aria-label="Moderate scenario cost" type="number" id="scCost2" class="input input-visible w-full rounded-md text-xs py-1.5 pl-5 pr-2 text-center" value="100" min="0" step="1"></div></td>
+            <td class="py-2 px-2"><div class="relative"><span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-2 text-xs">$</span><input aria-label="Aggressive scenario cost" type="number" id="scCost3" class="input input-visible w-full rounded-md text-xs py-1.5 pl-5 pr-2 text-center" value="90" min="0" step="1"></div></td>
+          </tr>
+          <tr class="border-b border-base-content/5">
+            <td class="py-2 pl-2 pr-2 text-xs font-bold text-base-content/50">Sell Price</td>
+            <td class="py-2 px-2"><div class="relative"><span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-2 text-xs">$</span><input aria-label="Conservative scenario price" type="number" id="scPrice1" class="input input-visible w-full rounded-md text-xs py-1.5 pl-5 pr-2 text-center" value="180" min="0" step="1"></div></td>
+            <td class="py-2 px-2"><div class="relative"><span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-2 text-xs">$</span><input aria-label="Moderate scenario price" type="number" id="scPrice2" class="input input-visible w-full rounded-md text-xs py-1.5 pl-5 pr-2 text-center" value="200" min="0" step="1"></div></td>
+            <td class="py-2 px-2"><div class="relative"><span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-2 text-xs">$</span><input aria-label="Aggressive scenario price" type="number" id="scPrice3" class="input input-visible w-full rounded-md text-xs py-1.5 pl-5 pr-2 text-center" value="250" min="0" step="1"></div></td>
+          </tr>
+          <tr class="border-b border-base-content/5">
+            <td class="py-2 pl-2 pr-2 text-xs font-bold text-base-content/50">Volume</td>
+            <td class="py-2 px-2"><input aria-label="Conservative scenario volume" type="number" id="scVol1" class="input input-visible w-full rounded-md text-xs py-1.5 px-2 text-center" value="500" min="0" step="10"></td>
+            <td class="py-2 px-2"><input aria-label="Moderate scenario volume" type="number" id="scVol2" class="input input-visible w-full rounded-md text-xs py-1.5 px-2 text-center" value="400" min="0" step="10"></td>
+            <td class="py-2 px-2"><input aria-label="Aggressive scenario volume" type="number" id="scVol3" class="input input-visible w-full rounded-md text-xs py-1.5 px-2 text-center" value="250" min="0" step="10"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid grid-cols-3 gap-3 mt-4">
+      <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-1">Conservative</p>
+        <p class="text-[10px] text-base-content/40">Rev: <output id="scRev1" class="font-bold font-mono text-base-content">$90,000</output></p>
+        <p class="text-[10px] text-base-content/40">Profit: <output id="scProfit1" class="font-bold font-mono text-success">$40,000</output></p>
+        <p class="text-[10px] text-base-content/40">Margin: <output id="scMargin1" class="font-bold font-mono text-primary">44.44%</output></p>
+      </div>
+      <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-success/20">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-success/60 mb-1">Moderate ★</p>
+        <p class="text-[10px] text-base-content/40">Rev: <output id="scRev2" class="font-bold font-mono text-base-content">$80,000</output></p>
+        <p class="text-[10px] text-base-content/40">Profit: <output id="scProfit2" class="font-bold font-mono text-success">$40,000</output></p>
+        <p class="text-[10px] text-base-content/40">Margin: <output id="scMargin2" class="font-bold font-mono text-primary">50.00%</output></p>
+      </div>
+      <div class="rounded-xl bg-base-content/[0.04] p-3 text-center border border-base-content/5">
+        <p class="text-[10px] font-bold tracking-widest uppercase text-base-content/30 mb-1">Aggressive</p>
+        <p class="text-[10px] text-base-content/40">Rev: <output id="scRev3" class="font-bold font-mono text-base-content">$62,500</output></p>
+        <p class="text-[10px] text-base-content/40">Profit: <output id="scProfit3" class="font-bold font-mono text-success">$40,000</output></p>
+        <p class="text-[10px] text-base-content/40">Margin: <output id="scMargin3" class="font-bold font-mono text-primary">64.00%</output></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Price Sensitivity -->
+  <div class="card-premium p-6 mt-6" style="animation-delay:0.3s">
+    <h2 class="text-base font-bold tracking-tight mb-4 flex items-center gap-2">{{ lucide_icon("line-chart","w-4 h-4", 16) | safe }} Price Sensitivity</h2>
+    <div class="flex flex-col sm:flex-row gap-3 mb-4">
+      <div class="flex-1">
+        <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="psCost">Cost / Unit</label>
+        <div class="relative">
+          <span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-sm">$</span>
+          <input aria-label="Cost per unit for price sensitivity" type="number" id="psCost" class="input input-visible w-full pl-8 rounded-xl text-sm" value="100" min="0" step="1">
+        </div>
+      </div>
+      <div class="flex-1">
+        <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="psBasePrice">Base Price</label>
+        <div class="relative">
+          <span class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-sm">$</span>
+          <input aria-label="Base price for price sensitivity" type="number" id="psBasePrice" class="input input-visible w-full pl-8 rounded-xl text-sm" value="200" min="0" step="1">
+        </div>
+      </div>
+      <div class="flex-1">
+        <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="psStep">Step</label>
+        <div class="relative">
+          <input aria-label="Price step percentage" type="number" id="psStep" class="input input-visible w-full pr-12 rounded-xl text-sm" value="10" min="1" max="50" step="1">
+          <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-bold text-base-content/50">%</span>
+        </div>
+      </div>
+    </div>
+    <div class="overflow-x-auto -mx-2" style="max-height:200px;overflow-y:auto">
+      <table class="w-full text-sm" role="table" aria-label="Price sensitivity matrix">
+        <thead class="table-header">
+          <tr class="text-[10px] font-bold tracking-widest uppercase text-base-content/40 border-b border-base-content/10" style="background:var(--color-base-200)">
+            <th class="text-left py-2 pl-2 pr-1">Price Point</th>
+            <th class="text-right px-1 py-2">Change</th>
+            <th class="text-right px-1 py-2">Price</th>
+            <th class="text-right px-1 py-2">Profit / Unit</th>
+            <th class="text-right px-1 py-2">Margin</th>
+            <th class="text-right pr-2 pl-1 py-2">Markup</th>
+          </tr>
+        </thead>
+        <tbody id="psTableBody">
+          <tr class="border-b border-base-content/5 text-xs"><td class="py-1.5 pl-2 pr-1 font-bold">-20%</td><td class="py-1.5 px-1 text-right text-error">-20%</td><td class="py-1.5 px-1 text-right font-mono">-</td><td class="py-1.5 px-1 text-right font-mono">-</td><td class="py-1.5 px-1 text-right font-mono">-</td><td class="py-1.5 pr-2 pl-1 text-right font-mono">-</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
+<!-- ════════ CONVERTER + REFERENCE (always visible) ════════ -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 reveal mt-6" style="animation-delay:0.3s">
+  <div class="card-premium p-6">
+    <h2 class="text-base font-bold tracking-tight mb-4 flex items-center gap-2">{{ lucide_icon("repeat","w-4 h-4", 16) | safe }} Markup ↔ Margin</h2>
+    <div class="flex flex-col gap-3">
+      <div>
+        <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="convMargin">Margin</label>
+        <div class="relative">
+          <input aria-label="Convert margin to markup" type="number" id="convMargin" class="input input-visible w-full pr-12 rounded-xl text-sm" value="40" min="0" max="99.9" step="0.1">
+          <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-bold text-base-content/50">%</span>
+        </div>
+        <output id="resConvMargin" class="block text-xs font-semibold text-base-content/50 mt-1.5">→ Markup: 66.67%</output>
+      </div>
+      <div class="text-center text-[10px] font-bold tracking-widest text-base-content/20 uppercase my-0.5">or</div>
+      <div>
+        <label class="text-xs font-semibold tracking-wider text-base-content/50 mb-1 block" for="convMarkup">Markup</label>
+        <div class="relative">
+          <input aria-label="Convert markup to margin" type="number" id="convMarkup" class="input input-visible w-full pr-12 rounded-xl text-sm" value="66.67" min="0" max="9999" step="0.1">
+          <span class="absolute inset-y-0 right-0 flex items-center pr-3 text-xs font-bold text-base-content/50">%</span>
+        </div>
+        <output id="resConvMarkup" class="block text-xs font-semibold text-base-content/50 mt-1.5">→ Margin: 40.00%</output>
+      </div>
+    </div>
+  </div>
 
+  <div class="card-premium p-6">
+    <h2 class="text-base font-bold tracking-tight mb-4 flex items-center gap-2">{{ lucide_icon("table-2","w-4 h-4", 16) | safe }} Quick Reference</h2>
+    <div class="overflow-x-auto -mx-2" style="max-height:260px;overflow-y:auto">
+      <table class="w-full text-sm" role="table" aria-label="Common margin and markup reference table">
+        <thead class="table-header">
+          <tr class="text-[10px] font-bold tracking-widest uppercase text-base-content/40 border-b border-base-content/10" style="background:var(--color-base-200)">
+            <th class="text-left py-2 pl-2 pr-1">Margin</th>
+            <th class="text-right px-1 py-2">Markup</th>
+            <th class="text-right px-1 py-2">Multiplier</th>
+            <th class="text-right pr-2 pl-1 py-2">Profit / $100</th>
+          </tr>
+        </thead>
+        <tbody id="refTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
-{{ tool_seo_all(seo_data) }}
+<script>
+(function(){'use strict';
+var cost1=document.getElementById('cost1');
+var margin1=document.getElementById('margin1');
+var cost2=document.getElementById('cost2');
+var revenue2=document.getElementById('revenue2');
+var sym1=document.getElementById('sym1');
+var sym2=document.getElementById('sym2');
+var symRev=document.getElementById('symRev');
+var currencySel=document.getElementById('currencySelect');
+var currentCurrency='USD';
+
+var currencies={
+  USD:{sym:'$',loc:'en-US'},
+  EUR:{sym:'\u20AC',loc:'de-DE'},
+  GBP:{sym:'\u00A3',loc:'en-GB'},
+  JPY:{sym:'\u00A5',loc:'ja-JP'},
+  INR:{sym:'\u20B9',loc:'en-IN'},
+  CAD:{sym:'CA$',loc:'en-CA'},
+  AUD:{sym:'AU$',loc:'en-AU'},
+  CHF:{sym:'CHF ',loc:'de-CH'},
+  CNY:{sym:'\u00A5',loc:'zh-CN'},
+  BRL:{sym:'R$',loc:'pt-BR'},
+  KRW:{sym:'\u20A9',loc:'ko-KR'},
+  SEK:{sym:'kr ',loc:'sv-SE'},
+  NZD:{sym:'NZ$',loc:'en-NZ'},
+  SGD:{sym:'S$',loc:'en-SG'},
+  HKD:{sym:'HK$',loc:'en-HK'},
+  ZAR:{sym:'R ',loc:'en-ZA'}
+};
+
+function getCurr(){return currencies[currentCurrency]||currencies.USD;}
+function fmt(n){
+  var c=getCurr();
+  try{return c.sym+n.toLocaleString(c.loc,{minimumFractionDigits:2,maximumFractionDigits:2});}catch(e){return c.sym+n.toFixed(2);}
+}
+
+function calcAll(){
+  var c1=parseFloat(cost1.value)||0;
+  var m1=parseFloat(margin1.value)||0;
+  var rev1,pr1;
+  if(m1<100&&c1>0){
+    rev1=c1/(1-m1/100);
+    pr1=rev1-c1;
+  }else{rev1=0;pr1=0;}
+  document.getElementById('resRev1').textContent=rev1?fmt(rev1):'\u2014';
+  document.getElementById('resProfit1').textContent=pr1?fmt(pr1):'\u2014';
+
+  var c2=parseFloat(cost2.value)||0;
+  var r2=parseFloat(revenue2.value)||0;
+  if(c2>0&&r2>0){
+    var p2=r2-c2;
+    var mg2=(p2/r2)*100;
+    var mu2=(p2/c2)*100;
+    document.getElementById('resMargin2').textContent=mg2.toFixed(2)+'%';
+    document.getElementById('resMarkup2').textContent=mu2.toFixed(2)+'%';
+    document.getElementById('resProfit2').textContent=fmt(p2);
+  }else{
+    document.getElementById('resMargin2').textContent='\u2014';
+    document.getElementById('resMarkup2').textContent='\u2014';
+    document.getElementById('resProfit2').textContent='\u2014';
+  }
+
+  // Summary bar uses Card 1 results
+  document.getElementById('summaryRev').textContent=rev1?fmt(rev1):'\u2014';
+  document.getElementById('summaryCost').textContent=c1?fmt(c1):'\u2014';
+  document.getElementById('summaryProfit').textContent=pr1?fmt(pr1):'\u2014';
+  document.getElementById('summaryMargin').textContent=m1>=0?m1.toFixed(2)+'%':'\u2014';
+}
+
+function setCurrency(curr){
+  currentCurrency=curr;
+  var c=getCurr();
+  sym1.textContent=c.sym;
+  sym2.textContent=c.sym;
+  symRev.textContent=c.sym;
+  // Update all currency symbols
+  document.querySelectorAll('#beFixed,#beVarCost,#bePrice,#gsCost,#gsTargetProfit,#diCost,#diListPrice,#ciCurrentCost,#ciCurrentPrice,#vcCurrentPrice,#vcVarCost,#scCost1,#scCost2,#scCost3,#scPrice1,#scPrice2,#scPrice3,#psCost,#psBasePrice').forEach(function(el){
+    var parent=el.parentElement;
+    var sym=parent.querySelector('.currency-sym');
+    if(sym)sym.textContent=c.sym;
+  });
+  calcAll();
+  calcProducts();
+  calcBE();
+  calcGoalSeek();
+  calcDiscount();
+  calcCostImpact();
+  calcVolumeComp();
+  calcScenarios();
+  calcPriceSense();
+  buildRefTable();
+}
+
+// Preset buttons
+document.querySelectorAll('.btn-preset').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.btn-preset').forEach(function(b){b.classList.remove('active');});
+    this.classList.add('active');
+    document.getElementById('margin1').value=this.getAttribute('data-margin');
+    calcAll();
+  });
+});
+
+// Tabs
+document.querySelectorAll('.tab-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+    this.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(function(t){t.classList.add('hidden');});
+    document.getElementById('tab-'+this.getAttribute('data-tab')).classList.remove('hidden');
+  });
+});
+
+// Multi-Product
+var productRows=0;
+var productData=[];
+
+function addProductRow(name,cost,revenue){
+  var tb=document.getElementById('productTableBody');
+  var idx=productRows;
+  var tr=document.createElement('tr');
+  tr.id='prodRow'+idx;
+  tr.className='border-b border-base-content/5';
+  tr.innerHTML='<td class="py-2 pl-2 pr-1"><input aria-label="Product name" type="text" id="pName'+idx+'" class="input input-visible w-full rounded-md text-xs py-1.5 px-2" value="'+(name||'Product '+(idx+1))+'"></td>'+
+    '<td class="py-2 px-1"><input aria-label="Product cost" type="number" id="pCost'+idx+'" class="input input-visible w-full rounded-md text-xs py-1.5 px-2 text-right" value="'+(cost||100)+'" min="0" step="1"></td>'+
+    '<td class="py-2 px-1"><input aria-label="Product selling price" type="number" id="pRev'+idx+'" class="input input-visible w-full rounded-md text-xs py-1.5 px-2 text-right" value="'+(revenue||150)+'" min="0" step="1"></td>'+
+    '<td id="pProfit'+idx+'" class="py-2 px-1 text-right text-xs font-bold text-success font-mono">$50.00</td>'+
+    '<td id="pMargin'+idx+'" class="py-2 px-1 text-right text-xs font-bold text-primary font-mono">33.33%</td>'+
+    '<td id="pMarkup'+idx+'" class="py-2 px-1 text-right text-xs font-bold font-mono">50.00%</td>'+
+    '<td class="py-2 pl-1 pr-2 text-center"><button type="button" class="delRowBtn text-error/50 hover:text-error text-base leading-none font-bold" data-idx="'+idx+'" aria-label="Remove product row">&times;</button></td>';
+  tb.appendChild(tr);
+  productData.push({idx:idx,nameEl:document.getElementById('pName'+idx),costEl:document.getElementById('pCost'+idx),revEl:document.getElementById('pRev'+idx),profitEl:document.getElementById('pProfit'+idx),marginEl:document.getElementById('pMargin'+idx),markupEl:document.getElementById('pMarkup'+idx)});
+  productRows++;
+  document.getElementById('pName'+idx).addEventListener('input',calcProducts);
+  document.getElementById('pCost'+idx).addEventListener('input',calcProducts);
+  document.getElementById('pRev'+idx).addEventListener('input',calcProducts);
+  calcProducts();
+}
+
+function calcProducts(){
+  var totalCost=0,totalRev=0;
+  productData.forEach(function(p){
+    var c=parseFloat(p.costEl.value)||0;
+    var r=parseFloat(p.revEl.value)||0;
+    if(r>0&&c>0){
+      var profit=r-c;
+      var margin=(profit/r)*100;
+      var markup=(profit/c)*100;
+      p.profitEl.textContent=fmt(profit);
+      p.marginEl.textContent=margin.toFixed(2)+'%';
+      p.markupEl.textContent=markup.toFixed(2)+'%';
+    }else{
+      p.profitEl.textContent='\u2014';
+      p.marginEl.textContent='\u2014';
+      p.markupEl.textContent='\u2014';
+    }
+    totalCost+=c;
+    totalRev+=r;
+  });
+  var totalProfit=totalRev-totalCost;
+  var avgMargin=totalRev>0?(totalProfit/totalRev)*100:0;
+  document.getElementById('resTotalItems').textContent=productData.length;
+  document.getElementById('resTotalCost').textContent=fmt(totalCost);
+  document.getElementById('resTotalRev').textContent=fmt(totalRev);
+  document.getElementById('resAvgMargin').textContent=avgMargin.toFixed(2)+'%';
+}
+
+function deleteProductRow(idx){
+  var row=document.getElementById('prodRow'+idx);
+  if(row){row.remove();}
+  productData=productData.filter(function(p){return p.idx!==idx;});
+  calcProducts();
+}
+
+function exportProductsCSV(){
+  var rows=[['Product','Cost','Selling Price','Profit','Margin %','Markup %']];
+  productData.forEach(function(p){
+    var c=parseFloat(p.costEl.value)||0;
+    var r=parseFloat(p.revEl.value)||0;
+    var name=p.nameEl.value||'Product';
+    var profit=(r-c).toFixed(2);
+    var margin=r>0?((r-c)/r*100).toFixed(2):'0.00';
+    var markup=c>0?((r-c)/c*100).toFixed(2):'0.00';
+    rows.push(['"'+name.replace(/"/g,'""')+'"',c.toFixed(2),r.toFixed(2),profit,margin,markup]);
+  });
+  if(productData.length>0){
+    var tc=0,tr=0;
+    productData.forEach(function(p){tc+=parseFloat(p.costEl.value)||0;tr+=parseFloat(p.revEl.value)||0;});
+    rows.push(['Totals',tc.toFixed(2),tr.toFixed(2),(tr-tc).toFixed(2),tr>0?((tr-tc)/tr*100).toFixed(2):'0.00','']);
+  }
+  var csv=rows.map(function(r){return r.join(',')}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='profit_margin_products.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Break-Even
+function calcBE(){
+  var fc=parseFloat(document.getElementById('beFixed').value)||0;
+  var vc=parseFloat(document.getElementById('beVarCost').value)||0;
+  var sp=parseFloat(document.getElementById('bePrice').value)||0;
+  var cm=sp-vc;
+  var beUnits=cm>0?Math.ceil(fc/cm):0;
+  var beRev=beUnits*sp;
+  var cmRatio=sp>0?(cm/sp*100):0;
+  document.getElementById('resBEUnits').textContent=beUnits;
+  document.getElementById('resBERev').textContent=fmt(beRev);
+  document.getElementById('resBECM').textContent=fmt(cm);
+  document.getElementById('resBECMRatio').textContent=cmRatio.toFixed(2)+'%';
+  [100,200,500,1000].forEach(function(v){
+    var el=document.getElementById('beProf'+v);
+    var profit=(cm*v)-fc;
+    el.textContent=fmt(profit);
+    el.className='text-sm font-bold font-mono'+(profit>0?' text-success':profit<0?' text-error':'');
+  });
+}
+
+// Converter
+function convMarginToMarkup(){
+  var m=parseFloat(document.getElementById('convMargin').value)||0;
+  if(m>=100){document.getElementById('resConvMargin').textContent='\u2014';return;}
+  var markup=m>0?(m/(100-m)*100):0;
+  document.getElementById('resConvMargin').textContent='\u2192 Markup: '+markup.toFixed(2)+'%';
+}
+function convMarkupToMargin(){
+  var m=parseFloat(document.getElementById('convMarkup').value)||0;
+  var margin=m>0?(m/(100+m)*100):0;
+  document.getElementById('resConvMarkup').textContent='\u2192 Margin: '+margin.toFixed(2)+'%';
+}
+
+// Reference table
+function buildRefTable(){
+  var tb=document.getElementById('refTableBody');
+  tb.innerHTML='';
+  [5,10,15,20,25,30,33.33,35,40,45,50,55,60,65,70,75,80,85,90].forEach(function(m){
+    var markup=m>=100?0:(m/(100-m)*100);
+    var tr=document.createElement('tr');
+    tr.className='border-b border-base-content/5 text-xs';
+    tr.innerHTML='<td class="py-1.5 pl-2 pr-1 font-bold">'+m.toFixed(m%1===0?0:2)+'%</td>'+
+      '<td class="py-1.5 px-1 text-right font-mono">'+markup.toFixed(2)+'%</td>'+
+      '<td class="py-1.5 px-1 text-right font-mono">x'+(1+markup/100).toFixed(2)+'</td>'+
+      '<td class="py-1.5 pr-2 pl-1 text-right font-mono text-success">'+getCurr().sym+markup.toFixed(2)+'</td>';
+    tb.appendChild(tr);
+  });
+}
+
+// Goal Seek
+function calcGoalSeek(){
+  var cost=parseFloat(document.getElementById('gsCost').value)||0;
+  var targetProfit=parseFloat(document.getElementById('gsTargetProfit').value)||0;
+  var targetMargin=parseFloat(document.getElementById('gsTargetMargin').value)||0;
+  if(cost>0&&targetMargin>0&&targetMargin<100){
+    var revFromMargin=cost/(1-targetMargin/100);
+    document.getElementById('resGSRev').textContent=fmt(revFromMargin);
+    document.getElementById('resGSPrice').textContent=fmt(revFromMargin);
+    document.getElementById('resGSMargin').textContent=targetMargin.toFixed(2)+'%';
+  }else if(cost>0&&targetProfit>0){
+    var marginFromProfit=targetProfit/(cost+targetProfit)*100;
+    var revFromProfit=cost+targetProfit;
+    document.getElementById('resGSRev').textContent=fmt(revFromProfit);
+    document.getElementById('resGSPrice').textContent=fmt(revFromProfit);
+    document.getElementById('resGSMargin').textContent=marginFromProfit.toFixed(2)+'%';
+  }else{
+    document.getElementById('resGSRev').textContent='\u2014';
+    document.getElementById('resGSPrice').textContent='\u2014';
+    document.getElementById('resGSMargin').textContent='\u2014';
+  }
+}
+
+// Discount Impact
+function calcDiscount(){
+  var cost=parseFloat(document.getElementById('diCost').value)||0;
+  var list=parseFloat(document.getElementById('diListPrice').value)||0;
+  var disc=parseFloat(document.getElementById('diDiscount').value)||0;
+  if(cost>0&&list>0){
+    var origMarg=(list-cost)/list*100;
+    var effPrice=list*(1-disc/100);
+    var effMarg=cost>0?(effPrice-cost)/effPrice*100:0;
+    document.getElementById('resDIOrigMarg').textContent=origMarg.toFixed(2)+'%';
+    document.getElementById('resDIEffMarg').textContent=effMarg.toFixed(2)+'%';
+    document.getElementById('resDIEffPrice').textContent=fmt(effPrice);
+  }else{
+    document.getElementById('resDIOrigMarg').textContent='\u2014';
+    document.getElementById('resDIEffMarg').textContent='\u2014';
+    document.getElementById('resDIEffPrice').textContent='\u2014';
+  }
+}
+
+// Cost Change
+function calcCostImpact(){
+  var currCost=parseFloat(document.getElementById('ciCurrentCost').value)||0;
+  var currPrice=parseFloat(document.getElementById('ciCurrentPrice').value)||0;
+  var pctChange=parseFloat(document.getElementById('ciCostChange').value)||0;
+  if(currCost>0&&currPrice>0){
+    var currMarg=(currPrice-currCost)/currPrice*100;
+    var newCost=currCost*(1+pctChange/100);
+    var newMarg=(currPrice-newCost)/currPrice*100;
+    var maintPrice=newCost/(1-currMarg/100);
+    document.getElementById('resCICurrMarg').textContent=currMarg.toFixed(2)+'%';
+    document.getElementById('resCINewMarg').textContent=newMarg.toFixed(2)+'%';
+    document.getElementById('resCIMaintPrice').textContent=fmt(maintPrice);
+  }else{
+    document.getElementById('resCICurrMarg').textContent='\u2014';
+    document.getElementById('resCINewMarg').textContent='\u2014';
+    document.getElementById('resCIMaintPrice').textContent='\u2014';
+  }
+}
+
+// Volume Compensator
+function calcVolumeComp(){
+  var currPrice=parseFloat(document.getElementById('vcCurrentPrice').value)||0;
+  var vc=parseFloat(document.getElementById('vcVarCost').value)||0;
+  var currVol=parseFloat(document.getElementById('vcCurrentVolume').value)||0;
+  var drop=parseFloat(document.getElementById('vcPriceDrop').value)||0;
+  if(currPrice>0&&currVol>0){
+    var currCM=currPrice-vc;
+    var currProfit=currCM*currVol;
+    var newPrice=currPrice*(1-drop/100);
+    var newCM=newPrice-vc;
+    var neededVol=newCM>0?Math.ceil(currProfit/newCM):0;
+    document.getElementById('resVCCurrProf').textContent=fmt(currProfit);
+    document.getElementById('resVCNewPrice').textContent=fmt(newPrice);
+    document.getElementById('resVCNeededVol').textContent=neededVol.toLocaleString(getCurr().loc||'en-US');
+    document.getElementById('resVCNewCM').textContent=fmt(newCM);
+  }else{
+    document.getElementById('resVCCurrProf').textContent='\u2014';
+    document.getElementById('resVCNewPrice').textContent='\u2014';
+    document.getElementById('resVCNeededVol').textContent='\u2014';
+    document.getElementById('resVCNewCM').textContent='\u2014';
+  }
+}
+
+// Scenario Comparison
+function calcScenarios(){
+  for(var i=1;i<=3;i++){
+    var cost=parseFloat(document.getElementById('scCost'+i).value)||0;
+    var price=parseFloat(document.getElementById('scPrice'+i).value)||0;
+    var vol=parseFloat(document.getElementById('scVol'+i).value)||0;
+    if(cost>0&&price>0){
+      var unitProfit=price-cost;
+      var margin=(unitProfit/price)*100;
+      var rev=price*vol;
+      var profit=unitProfit*vol;
+      document.getElementById('scRev'+i).textContent=fmt(rev);
+      document.getElementById('scProfit'+i).textContent=fmt(profit);
+      document.getElementById('scMargin'+i).textContent=margin.toFixed(2)+'%';
+    }else{
+      document.getElementById('scRev'+i).textContent='\u2014';
+      document.getElementById('scProfit'+i).textContent='\u2014';
+      document.getElementById('scMargin'+i).textContent='\u2014';
+    }
+  }
+}
+
+// Price Sensitivity
+function calcPriceSense(){
+  var cost=parseFloat(document.getElementById('psCost').value)||0;
+  var base=parseFloat(document.getElementById('psBasePrice').value)||0;
+  var step=parseFloat(document.getElementById('psStep').value)||0;
+  var tb=document.getElementById('psTableBody');
+  tb.innerHTML='';
+  if(cost<=0||base<=0||step<=0){return;}
+  var steps=[-2,-1,0,1,2];
+  steps.forEach(function(mult){
+    var pct=mult*step;
+    var price=base*(1+pct/100);
+    var unitProfit=price-cost;
+    var margin=price>0?(unitProfit/price)*100:0;
+    var markup=cost>0?(unitProfit/cost)*100:0;
+    var tr=document.createElement('tr');
+    tr.className='border-b border-base-content/5 text-xs'+(pct===0?' bg-primary/[0.04]':'');
+    var pctStr=(pct>0?'+':'')+pct.toFixed(0)+'%';
+    tr.innerHTML='<td class="py-1.5 pl-2 pr-1 font-bold">'+pctStr+'</td>'+
+      '<td class="py-1.5 px-1 text-right'+(pct>0?' text-success':pct<0?' text-error':'')+'">'+pctStr+'</td>'+
+      '<td class="py-1.5 px-1 text-right font-mono">'+fmt(price)+'</td>'+
+      '<td class="py-1.5 px-1 text-right font-mono'+(unitProfit>0?' text-success':' text-error')+'">'+fmt(unitProfit)+'</td>'+
+      '<td class="py-1.5 px-1 text-right font-mono">'+margin.toFixed(2)+'%</td>'+
+      '<td class="py-1.5 pr-2 pl-1 text-right font-mono">'+markup.toFixed(2)+'%</td>';
+    tb.appendChild(tr);
+  });
+}
+
+// Init
+addProductRow('Product A',100,150);
+addProductRow('Product B',50,90);
+addProductRow('Product C',200,280);
+
+currencySel.addEventListener('change',function(){setCurrency(this.value);});
+cost1.addEventListener('input',calcAll);
+margin1.addEventListener('input',calcAll);
+cost2.addEventListener('input',calcAll);
+revenue2.addEventListener('input',calcAll);
+document.getElementById('addRowBtn').addEventListener('click',function(){addProductRow();});
+document.getElementById('csvExportBtn').addEventListener('click',exportProductsCSV);
+document.addEventListener('click',function(e){
+  if(e.target.classList.contains('delRowBtn')){
+    deleteProductRow(parseInt(e.target.getAttribute('data-idx')));
+  }
+});
+document.getElementById('convMargin').addEventListener('input',function(){convMarginToMarkup();document.getElementById('convMarkup').value='';});
+document.getElementById('convMarkup').addEventListener('input',function(){convMarkupToMargin();document.getElementById('convMargin').value='';});
+document.getElementById('beFixed').addEventListener('input',calcBE);
+document.getElementById('beVarCost').addEventListener('input',calcBE);
+document.getElementById('bePrice').addEventListener('input',calcBE);
+document.getElementById('gsCost').addEventListener('input',calcGoalSeek);
+document.getElementById('gsTargetProfit').addEventListener('input',calcGoalSeek);
+document.getElementById('gsTargetMargin').addEventListener('input',calcGoalSeek);
+document.getElementById('diCost').addEventListener('input',calcDiscount);
+document.getElementById('diListPrice').addEventListener('input',calcDiscount);
+document.getElementById('diDiscount').addEventListener('input',calcDiscount);
+document.getElementById('ciCurrentCost').addEventListener('input',calcCostImpact);
+document.getElementById('ciCurrentPrice').addEventListener('input',calcCostImpact);
+document.getElementById('ciCostChange').addEventListener('input',calcCostImpact);
+document.getElementById('vcCurrentPrice').addEventListener('input',calcVolumeComp);
+document.getElementById('vcVarCost').addEventListener('input',calcVolumeComp);
+document.getElementById('vcCurrentVolume').addEventListener('input',calcVolumeComp);
+document.getElementById('vcPriceDrop').addEventListener('input',calcVolumeComp);
+for(var i=1;i<=3;i++){
+  document.getElementById('scCost'+i).addEventListener('input',calcScenarios);
+  document.getElementById('scPrice'+i).addEventListener('input',calcScenarios);
+  document.getElementById('scVol'+i).addEventListener('input',calcScenarios);
+}
+document.getElementById('psCost').addEventListener('input',calcPriceSense);
+document.getElementById('psBasePrice').addEventListener('input',calcPriceSense);
+document.getElementById('psStep').addEventListener('input',calcPriceSense);
+calcAll();
+calcProducts();
+calcBE();
+calcGoalSeek();
+calcDiscount();
+calcCostImpact();
+calcVolumeComp();
+calcScenarios();
+calcPriceSense();
+convMarginToMarkup();
+convMarkupToMargin();
+buildRefTable();
+})();
+</script>
+
+{% set seo = {
+  "faqs": [
+    {"q": "What is profit margin and how is it different from markup?", "a": "Profit margin is the percentage of revenue that is profit, calculated as (Revenue − Cost) / Revenue × 100. Markup is the percentage above cost, calculated as (Revenue − Cost) / Cost × 100. For example, if an item costs $100 and sells for $150, the margin is 33.3% and the markup is 50%."},
+    {"q": "What is a good profit margin for small business?", "a": "Healthy profit margins vary by industry. Retail typically sees 5-20%, restaurants 3-15%, consulting 20-50%, and software 60-80%. A 40% margin is considered strong for most product-based businesses."},
+    {"q": "How do I calculate selling price from cost and margin?", "a": "Use the formula: Selling Price = Cost / (1 − Margin%). For example, if an item costs $100 and you want a 40% margin: $100 / (1 − 0.40) = $166.67. Enter cost and desired margin in Card 1 to see the result instantly."},
+    {"q": "What is the difference between gross margin and net margin?", "a": "Gross margin only considers the direct cost of goods sold (COGS). Net margin includes all operating expenses, taxes, and interest. This calculator computes gross margin, not net margin."},
+    {"q": "What is a break-even point?", "a": "The break-even point is when total revenue equals total costs (fixed + variable). Calculate it as: Fixed Costs / (Selling Price − Variable Cost per Unit). Our Break-Even tab shows units needed and revenue required to break even."},
+    {"q": "How does the multi-product calculator work?", "a": "Add multiple products with their cost and selling price. The table shows per-product profit, margin, and markup, plus totals for cost, revenue, profit, and weighted average margin across all products. Export the data as CSV for your records."},
+    {"q": "How do I convert between margin and markup?", "a": "Use the Markup ↔ Margin converter. Enter a margin percentage to get the equivalent markup, or enter a markup to get the margin. For example, a 40% margin equals a 66.67% markup."},
+    {"q": "How does Goal Seek work?", "a": "Enter your cost, target profit, and target margin. The tool calculates the required selling price and revenue to hit your profit goal at your desired margin. If both profit and margin are provided, margin takes priority."},
+    {"q": "How does a discount affect my profit margin?", "a": "Use the Discount Impact tool. Enter your cost, list price, and discount percentage to see both the original margin and the effective margin after the discount. For example, a 20% discount on a product with 50% margin drops your effective margin to 37.5%."},
+    {"q": "How do cost increases impact my margin?", "a": "The Cost Change Impact tool shows how a cost increase or decrease affects your margin at the current price, and calculates the new price needed to maintain your original margin percentage."},
+    {"q": "How much more volume do I need after a price cut?", "a": "The Volume Compensator answers: if I lower my price by X%, how many more units must I sell to maintain the same total profit? Enter your current price, variable cost, volume, and planned price drop to find out."},
+    {"q": "What is Scenario Comparison?", "a": "Compare three pricing strategies side by side: Conservative (lower price, higher volume), Moderate (balanced), and Aggressive (higher price, lower volume). Each scenario shows total revenue, profit, and margin at a glance."},
+    {"q": "How does Price Sensitivity work?", "a": "Enter a base price and step percentage. The tool shows profit per unit, margin, and markup at five price levels (from -20% to +20% in configured steps) so you can find the optimal price point for your product."}
+  ],
+  "howto_steps": [
+    {"title": "Margin Calculator", "desc": "Choose Cost + Margin to find selling price from cost and desired margin, or Cost + Revenue to find margin and markup from cost and selling price. Use preset buttons for quick scenarios."},
+    {"title": "Multi-Product Analysis", "desc": "Enter multiple products with cost and selling price in the table. View per-product margins and weighted averages. Add or remove rows, export to CSV."},
+    {"title": "Break-Even Analysis", "desc": "Enter fixed costs, variable cost per unit, and selling price to find break-even units, revenue, contribution margin, and profit projections at various volume levels."},
+    {"title": "Analysis Tools", "desc": "Goal Seek finds the price needed for a target profit at a given margin. Discount Impact shows how discounts erode margin. Cost Change simulates cost increases/decreases. Volume Compensator shows the volume needed after a price cut to maintain profit."},
+    {"title": "Scenario Comparison", "desc": "Compare three pricing strategies side by side. Enter cost, price, and volume for Conservative, Moderate, and Aggressive scenarios to see revenue, profit, and margin for each."},
+    {"title": "Price Sensitivity", "desc": "Enter cost, base price, and step % to see profit, margin, and markup at five price levels. Find the optimal price point for maximum profitability."},
+    {"title": "Markup ↔ Margin Converter", "desc": "Enter either a margin or markup percentage to instantly see the equivalent value. The Quick Reference table shows common margin-markup pairs for rapid lookup."}
+  ],
+  "howto_calculate": "<p><strong>Margin Calculation:</strong> Profit Margin = (Revenue − Cost) / Revenue × 100. This shows what percentage of your selling price is profit.</p><p><strong>Markup Calculation:</strong> Markup = (Revenue − Cost) / Cost × 100. This shows how much you added above cost.</p><p><strong>Selling Price from Margin:</strong> Revenue = Cost / (1 − Margin%). Divide the cost by 1 minus the desired margin percentage to get the required selling price.</p><p><strong>Break-Even:</strong> Break-Even Units = Fixed Costs / (Selling Price − Variable Cost per Unit). The contribution margin (price minus variable cost) shows how much each unit contributes to covering fixed costs.</p><p><strong>Discount Impact:</strong> Effective Margin = (Discounted Price − Cost) / Discounted Price × 100. A discount reduces both price and margin percentage.</p><p><strong>Volume Compensator:</strong> Needed Volume = Current Profit / (New Price − Variable Cost). Shows how many units at the new lower price generate the same total profit.</p><p>All calculations run in your browser — no data is sent to any server.</p>",
+  "about_title": "About the Profit Margin Calculator",
+  "about_body": "<p>This free online Profit Margin Calculator helps business owners, retailers, and e-commerce sellers quickly determine selling prices, gross profit, margin percentages, and markup percentages. Supports both cost-plus-margin and cost-plus-revenue methods.</p><p>Advanced features include a multi-product calculator with CSV export, a bidirectional markup↔margin converter, a quick reference table, a full break-even analysis, and a suite of analysis tools: Goal Seek, Discount Impact, Cost Change Simulator, and Volume Compensator. With 16 currencies and locale-aware formatting, this tool works for businesses worldwide.</p>",
+  "related": [
+    {"name": "Percentage Calculator", "url": "/tool/percentage-calculator"},
+    {"name": "CAC Calculator", "url": "/tool/cac-calculator"},
+    {"name": "Burn Rate Calculator", "url": "/tool/burn-rate-calculator"}
+  ]
+} %}
+{{ tool_seo_all(seo) }}
 {% endblock %}

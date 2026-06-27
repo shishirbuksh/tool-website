@@ -1,62 +1,585 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
 
-{% block title %}MRR Calculator | Monthly Recurring Revenue Calculator{% endblock %}
-{% block meta_description %}Calculate your Monthly Recurring Revenue (MRR), ARPU, churn rate, and projected annual revenue. Free SaaS MRR calculator for startups and subscription businesses.{% endblock %}
-{% block meta_keywords %}mrr monthly, mrr monthly tool, mrr monthly free, free online mrr monthly, storybrain ai{% endblock %}
+{% block title %}MRR Calculator — Free Online SaaS Revenue Calculator | StoryBrain AI{% endblock %}
+{% block meta_description %}Calculate monthly recurring revenue (MRR), net new MRR, expansion MRR, churn impact, ARPU, LTV, and quick ratio. Includes 12-month MRR growth projection chart. Free SaaS revenue calculator.{% endblock %}
+{% block meta_keywords %}MRR calculator, monthly recurring revenue, SaaS revenue calculator, net new MRR, expansion MRR, churn rate, quick ratio SaaS, ARPU calculator, LTV, subscription revenue, MRR growth chart{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/mrr-calculator{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/mrr-calculator">
 <meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="MRR Calculator - Monthly Recurring Revenue">
-<meta property="og:description" content="Track your SaaS growth with our free MRR calculator.">
+<meta property="og:title" content="MRR Calculator — Free SaaS Revenue Calculator">
+<meta property="og:description" content="Track MRR, net new MRR, expansion revenue, churn, quick ratio, and see a 12-month MRR growth projection chart. Free SaaS revenue calculator.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="MRR Calculator — Free SaaS Revenue Calculator | StoryBrain AI">
+<meta name="twitter:description" content="Track MRR, net new MRR, expansion revenue, churn, quick ratio, and see a 12-month MRR growth projection chart. Free SaaS revenue calculator.">
 {% endblock %}
-
-{% block head %}{% endblock %}
-
+{% block head %}
+<script src="/static/js/vendor/chart.min.js"></script>
+<style>
+  .input-visible { background-color: color-mix(in oklab, var(--color-base-100) 85%, var(--color-base-300)); border-color: var(--color-base-content); color: var(--color-base-content); font-weight: 700; }
+  .input-visible:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 25%, transparent); outline: none; }
+  .stat-mrr { border-left: 4px solid var(--color-primary); }
+  .stat-arr { border-left: 4px solid var(--color-secondary); }
+  .stat-net { border-left: 4px solid var(--color-success); }
+  .stat-churn { border-left: 4px solid var(--color-error); }
+  .stat-expansion { border-left: 4px solid #f97316; }
+  .stat-quick { border-left: 4px solid var(--color-info); }
+  .stat-ltv { border-left: 4px solid var(--color-accent); }
+  .table-header { position: sticky; top: 0; z-index: 1; }
+  .currency-sym { color: var(--color-base-content); font-weight: 700; opacity: 0.85; }
+</style>
+{% endblock %}
 {% block content %}
-{{ tool_hero_section("chart-line", "SaaS Metrics", "MRR", "CALCULATOR", "Calculate your Monthly Recurring Revenue, ARPU, churn rate, and projected annual revenue.") }}
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Revenue Inputs</h2>
-        <form class="flex flex-col gap-5">
-          <div><label class="label-cinematic" for="totalCustomers">Total Customers</label><input aria-label="Totalcustomers" type="number" id="totalCustomers" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="500" min="0"></div>
-          <div><label class="label-cinematic" for="avgRevenuePerCustomer">Avg Revenue Per Customer ($/mo)</label><input aria-label="Avgrevenuepercustomer" type="number" id="avgRevenuePerCustomer" class="input w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="50" min="0" step="0.01"></div>
-          <div><label class="label-cinematic" for="churnRate">Monthly Churn Rate (%)</label><div class="flex"><input aria-label="Churnrate" type="number" id="churnRate" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl rounded-r-none" value="5" min="0" step="0.1"><span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">%</span></div></div>
-          <button type="button" id="mrrCalcBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("calculator","w-5 h-5", 20) | safe }} CALCULATE MRR</button>
-        </form>
+{{ tool_hero_section("trending-up", "SaaS Metrics", "ADVANCED", "MRR CALCULATOR", "Full SaaS revenue analysis: calculate MRR, ARR, churn impact, expansion revenue, quick ratio, and see a 12-month MRR growth projection chart.") }}
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 reveal" style="animation-delay:0.15s">
+
+  <!-- INPUTS -->
+  <div class="lg:col-span-5">
+    <div class="card-premium p-6 md:p-8">
+      <h2 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Revenue Inputs</h2>
+      <div class="flex flex-col gap-5">
+
+        <div class="mb-5 pb-5 border-b border-base-content/10">
+          <label class="label-cinematic font-semibold" for="currencySelect">Currency</label>
+          <select aria-label="Select currency" id="currencySelect" class="input input-visible w-full mt-1 rounded-xl">
+            <option value="USD">🇺🇸 USD — US Dollar</option>
+            <option value="EUR">🇪🇺 EUR — Euro</option>
+            <option value="GBP">🇬🇧 GBP — British Pound</option>
+            <option value="JPY">🇯🇵 JPY — Japanese Yen</option>
+            <option value="INR">🇮🇳 INR — Indian Rupee</option>
+            <option value="CAD">🇨🇦 CAD — Canadian Dollar</option>
+            <option value="AUD">🇦🇺 AUD — Australian Dollar</option>
+            <option value="CHF">🇨🇭 CHF — Swiss Franc</option>
+            <option value="CNY">🇨🇳 CNY — Chinese Yuan</option>
+            <option value="BRL">🇧🇷 BRL — Brazilian Real</option>
+            <option value="KRW">🇰🇷 KRW — South Korean Won</option>
+            <option value="SEK">🇸🇪 SEK — Swedish Krona</option>
+            <option value="NZD">🇳🇿 NZD — New Zealand Dollar</option>
+            <option value="SGD">🇸🇬 SGD — Singapore Dollar</option>
+            <option value="HKD">🇭🇰 HKD — Hong Kong Dollar</option>
+            <option value="ZAR">🇿🇦 ZAR — South African Rand</option>
+          </select>
+        </div>
+
+        <div class="pb-4 border-b border-base-content/10">
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-3">Current Business</p>
+          <div class="flex flex-col gap-4">
+            <div>
+              <label class="label-cinematic font-semibold" for="totalCustomers">Paying Customers</label>
+              <input aria-label="Total paying customers" type="number" id="totalCustomers" class="input input-visible w-full mt-1 rounded-xl" value="500" min="0" step="1">
+            </div>
+            <div>
+              <label class="label-cinematic font-semibold" for="arpu">Avg Revenue Per User (ARPU)</label>
+              <div class="relative mt-1">
+                <span id="symARPU" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">$</span>
+                <input aria-label="Average revenue per user" type="number" id="arpu" class="input input-visible w-full pl-8 rounded-xl" value="50" min="0" step="1">
+              </div>
+            </div>
+            <div>
+              <label class="label-cinematic font-semibold" for="churnRate">Monthly Churn Rate</label>
+              <div class="relative mt-1">
+                <input aria-label="Monthly churn rate" type="number" id="churnRate" class="input input-visible w-full pr-14 rounded-xl" value="5" min="0" max="100" step="0.1">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-4 font-bold opacity-80 text-sm" style="color:var(--color-base-content)">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pb-4 border-b border-base-content/10">
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-3">Growth Drivers</p>
+          <div class="flex flex-col gap-4">
+            <div>
+              <label class="label-cinematic font-semibold" for="newCustomers">New Customers (per month)</label>
+              <input aria-label="New customers per month" type="number" id="newCustomers" class="input input-visible w-full mt-1 rounded-xl" value="30" min="0" step="1">
+            </div>
+            <div>
+              <label class="label-cinematic font-semibold" for="expansionPct">Expansion Revenue</label>
+              <div class="relative mt-1">
+                <input aria-label="Expansion revenue as percent of existing MRR" type="number" id="expansionPct" class="input input-visible w-full pr-14 rounded-xl" value="2" min="0" max="100" step="0.1">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-4 font-bold opacity-80 text-sm" style="color:var(--color-base-content)">%</span>
+              </div>
+              <p class="text-xs text-base-content/40 mt-1">Upsells and upgrades as percentage of current MRR.</p>
+            </div>
+            <div>
+              <label class="label-cinematic font-semibold" for="contractionPct">Contraction Rate</label>
+              <div class="relative mt-1">
+                <input aria-label="Contraction rate as percent of existing MRR" type="number" id="contractionPct" class="input input-visible w-full pr-14 rounded-xl" value="1" min="0" max="100" step="0.1">
+                <span class="absolute inset-y-0 right-0 flex items-center pr-4 font-bold opacity-80 text-sm" style="color:var(--color-base-content)">%</span>
+              </div>
+              <p class="text-xs text-base-content/40 mt-1">Downgrades as percentage of current MRR.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pb-4 border-b border-base-content/10">
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-3">Costs & Margin</p>
+          <div>
+            <label class="label-cinematic font-semibold" for="grossMargin">Gross Margin (COGS)</label>
+            <div class="relative mt-1">
+              <input aria-label="Gross margin percentage after COGS" type="number" id="grossMargin" class="input input-visible w-full pr-14 rounded-xl" value="80" min="0" max="100" step="1">
+              <span class="absolute inset-y-0 right-0 flex items-center pr-4 font-bold opacity-80 text-sm" style="color:var(--color-base-content)">%</span>
+            </div>
+            <p class="text-xs text-base-content/40 mt-1">Revenue retained after cost of goods sold.</p>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-3">Projection</p>
+          <div>
+            <label class="label-cinematic font-semibold" for="projectMonths">Projection Duration</label>
+            <select aria-label="Projection duration in months" id="projectMonths" class="input input-visible w-full mt-1 rounded-xl">
+              <option value="6">6 Months</option>
+              <option value="12" selected>12 Months</option>
+              <option value="24">24 Months</option>
+            </select>
+          </div>
+        </div>
+
       </div>
+
+      <!-- ─── SCENARIO QUICK PICKS ─── -->
+      <div class="mt-6 pt-6 border-t border-base-content/10">
+        <p class="label-cinematic font-semibold mb-3">Quick Scenario Picks</p>
+        <div class="flex flex-wrap gap-2" id="scenarioBtns">
+          <button type="button" class="btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-success);background-color:color-mix(in oklab,var(--color-success) 15%,transparent);color:var(--color-success)">Steady</button>
+          <button type="button" class="btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-primary);background-color:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary)">Growth</button>
+          <button type="button" class="btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:#f97316;background-color:color-mix(in oklab,#f97316 12%,transparent);color:#f97316">Hypergrowth</button>
+        </div>
+      </div>
+
     </div>
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Revenue Metrics</h3>
-        <div class="grid grid-cols-2 gap-4 mb-6">
-          <div class="card-premium p-5 text-center" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-            <span class="label-cinematic block mb-2 text-success">Monthly Recurring Revenue</span>
-            <output id="resMRR" class="metric-cinematic metric-cinematic--xl text-success">$0</output>
-          </div>
-          <div class="card-premium p-5 text-center" style="border-color:color-mix(in oklab, var(--color-primary) 25%, transparent)">
-            <span class="label-cinematic block mb-2 text-primary">Annual Recurring Revenue</span>
-            <output id="resARR" class="metric-cinematic metric-cinematic--xl text-primary">$0</output>
-          </div>
-          <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">ARPU</span><output id="resARPU" class="metric-cinematic metric-cinematic--md font-mono">$0</output></div>
-          <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Monthly Churned Revenue</span><output id="resChurned" class="metric-cinematic metric-cinematic--md font-mono">$0</output></div>
-          <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Avg Customer Lifetime (mo)</span><output id="resLTVmonths" class="metric-cinematic metric-cinematic--sm font-mono">0</output></div>
-          <div class="stat-cinematic text-center"><span class="label-cinematic block mb-2">Avg LTV ($)</span><output id="resLTV" class="metric-cinematic metric-cinematic--sm font-mono">$0</output></div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="lg:col-span-7 flex flex-col gap-6">
+
+    <!-- TOP ROW: MRR + ARR + Net New -->
+    <div class="card-premium p-6 md:p-8">
+      <h3 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Revenue Snapshot</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="stat-mrr rounded-xl bg-base-content/5 p-4 text-center">
+          <p class="text-xs font-semibold tracking-widest uppercase text-primary/70 mb-1">Gross MRR</p>
+          <output id="resMRR" class="text-2xl font-black text-primary font-mono" aria-live="polite">$25,000</output>
+        </div>
+        <div class="stat-arr rounded-xl bg-base-content/5 p-4 text-center">
+          <p class="text-xs font-semibold tracking-widest uppercase text-secondary/70 mb-1">ARR</p>
+          <output id="resARR" class="text-2xl font-black text-secondary font-mono" aria-live="polite">$300,000</output>
+        </div>
+        <div class="stat-net rounded-xl bg-base-content/5 p-4 text-center">
+          <p class="text-xs font-semibold tracking-widest uppercase text-success/70 mb-1">Net New MRR</p>
+          <output id="resNetNew" class="text-2xl font-black text-success font-mono" aria-live="polite">$0</output>
+          <p class="text-xs text-base-content/40 mt-1">New + Expansion − Churned − Contraction</p>
+        </div>
+        <div class="rounded-xl bg-base-content/5 p-4 text-center">
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Net MRR (after COGS)</p>
+          <output id="resNetMRR" class="text-2xl font-black font-mono" aria-live="polite">$0</output>
         </div>
       </div>
     </div>
+
+    <!-- MRR COMPONENTS -->
+    <div class="card-premium p-6 md:p-8">
+      <h3 class="text-lg font-black mb-4 tracking-tight flex items-center gap-2">{{ lucide_icon("layers","w-5 h-5", 20) | safe }} MRR Components</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="rounded-xl bg-base-content/5 p-3 text-center">
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">New MRR</p>
+          <output id="resNewMRR" class="text-lg font-black font-mono" aria-live="polite">$1,500</output>
+        </div>
+        <div class="stat-expansion rounded-xl bg-base-content/5 p-3 text-center" style="border-left-color:#f97316">
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1" style="color:#f97316">Expansion MRR</p>
+          <output id="resExpMRR" class="text-lg font-black font-mono" style="color:#f97316" aria-live="polite">$500</output>
+        </div>
+        <div class="stat-churn rounded-xl bg-base-content/5 p-3 text-center" style="border-left-color:var(--color-error)">
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1" style="color:var(--color-error)">Churned MRR</p>
+          <output id="resChurnedMRR" class="text-lg font-black font-mono" style="color:var(--color-error)" aria-live="polite">−$1,250</output>
+        </div>
+        <div class="rounded-xl bg-base-content/5 p-3 text-center">
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Contraction MRR</p>
+          <output id="resContMRR" class="text-lg font-black font-mono" aria-live="polite">−$250</output>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUICK RATIO + LTV -->
+    <div class="card-premium p-6 md:p-8">
+      <h3 class="text-lg font-black mb-4 tracking-tight flex items-center gap-2">{{ lucide_icon("gauge","w-5 h-5", 20) | safe }} Health Metrics</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="stat-quick rounded-xl bg-base-content/5 p-4 text-center">
+          <p class="text-xs font-semibold tracking-widest uppercase text-info/70 mb-1">Quick Ratio</p>
+          <output id="resQuickRatio" class="text-2xl font-black text-info font-mono" aria-live="polite">1.14</output>
+          <p class="text-xs text-base-content/40 mt-1">(New + Expansion) / (Churned + Contraction)</p>
+        </div>
+        <div class="rounded-xl bg-base-content/5 p-4 text-center">
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">ARPU</p>
+          <output id="resARPU" class="text-2xl font-black font-mono" aria-live="polite">$50.00</output>
+        </div>
+        <div class="stat-ltv rounded-xl bg-base-content/5 p-4 text-center">
+          <p class="text-xs font-semibold tracking-widest uppercase text-accent/70 mb-1">Avg LTV</p>
+          <output id="resLTV" class="text-2xl font-black font-mono" style="color:var(--color-accent)" aria-live="polite">$1,000</output>
+        </div>
+      </div>
+    </div>
+
+    <!-- MRR GROWTH CHART -->
+    <div class="card-premium p-6 md:p-8">
+      <h3 class="text-lg font-black mb-4 tracking-tight flex items-center gap-2">{{ lucide_icon("line-chart","w-5 h-5", 20) | safe }} MRR Growth Projection</h3>
+      <div class="rounded-2xl" style="min-height:260px;position:relative">
+        <canvas id="mrrChart" aria-label="MRR growth projection chart" role="img"></canvas>
+      </div>
+    </div>
+
+    <!-- MONTHLY PROJECTION TABLE -->
+    <div class="card-premium p-6 md:p-8">
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h3 class="text-lg font-black tracking-tight flex items-center gap-2">{{ lucide_icon("table-2","w-5 h-5", 20) | safe }} Monthly Projection</h3>
+        <button type="button" id="csvExportBtn" class="btn btn-sm rounded-xl px-3 py-1.5 text-xs font-bold tracking-wider uppercase border-2" style="border-color:var(--color-base-content);background-color:transparent;color:var(--color-base-content);transition:all 0.15s" onmouseover="this.style.backgroundColor='color-mix(in oklab,var(--color-base-content) 10%,transparent)'" onmouseout="this.style.backgroundColor='transparent'">{{ lucide_icon("download","w-3.5 h-3.5", 14) | safe }} CSV</button>
+      </div>
+      <div class="overflow-x-auto -mx-2" style="max-height:400px;overflow-y:auto">
+        <table class="w-full text-sm" role="table" aria-label="Monthly MRR projection breakdown">
+          <thead class="table-header">
+            <tr class="text-base-content/50 border-b border-base-content/10 text-xs font-bold tracking-wider uppercase" style="background:var(--color-base-200)">
+              <th class="text-left py-3 pr-2 pl-2">Month</th>
+              <th class="text-right px-2 py-3">Starting MRR</th>
+              <th class="text-right px-2 py-3">New</th>
+              <th class="text-right px-2 py-3">Expansion</th>
+              <th class="text-right px-2 py-3">Churned</th>
+              <th class="text-right px-2 py-3">Contraction</th>
+              <th class="text-right px-2 py-3">Net New</th>
+              <th class="text-right pl-2 py-3">Ending MRR</th>
+            </tr>
+          </thead>
+          <tbody id="mrrTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </div>
+
 <script>
-(function(){'use strict';function calculate(){const customers=parseFloat(document.getElementById('totalCustomers').value)||0;const arpu=parseFloat(document.getElementById('avgRevenuePerCustomer').value)||0;const churn=parseFloat(document.getElementById('churnRate').value)||0;const mrr=customers*arpu;const arr=mrr*12;const churnedRev=mrr*(churn/100);const months=churn>0?Math.round(1/(churn/100)):999;const ltv=months*arpu;document.getElementById('resMRR').innerText='$'+Math.round(mrr).toLocaleString();document.getElementById('resARR').innerText='$'+Math.round(arr).toLocaleString();document.getElementById('resARPU').innerText='$'+arpu.toFixed(2);document.getElementById('resChurned').innerText='$'+Math.round(churnedRev).toLocaleString();document.getElementById('resLTVmonths').innerText=months;document.getElementById('resLTV').innerText='$'+Math.round(ltv).toLocaleString();}
-document.addEventListener('DOMContentLoaded',function(){calculate();document.getElementById('mrrCalcBtn').addEventListener('click',calculate);document.querySelectorAll('input').forEach(function(el){el.addEventListener('input',calculate);});});})();
+(function(){'use strict';
+var cust=document.getElementById('totalCustomers');
+var arpu=document.getElementById('arpu');
+var churn=document.getElementById('churnRate');
+var newCust=document.getElementById('newCustomers');
+var expPct=document.getElementById('expansionPct');
+var contPct=document.getElementById('contractionPct');
+var grossMargin=document.getElementById('grossMargin');
+var projMonths=document.getElementById('projectMonths');
+var currentCurrency='USD';
+var chartInst=null;
+
+var currencies={
+  USD:{sym:'$',loc:'en-US'},
+  EUR:{sym:'\u20AC',loc:'de-DE'},
+  GBP:{sym:'\u00A3',loc:'en-GB'},
+  JPY:{sym:'\u00A5',loc:'ja-JP'},
+  INR:{sym:'\u20B9',loc:'en-IN'},
+  CAD:{sym:'CA$',loc:'en-CA'},
+  AUD:{sym:'AU$',loc:'en-AU'},
+  CHF:{sym:'CHF ',loc:'de-CH'},
+  CNY:{sym:'\u00A5',loc:'zh-CN'},
+  BRL:{sym:'R$',loc:'pt-BR'},
+  KRW:{sym:'\u20A9',loc:'ko-KR'},
+  SEK:{sym:'kr ',loc:'sv-SE'},
+  NZD:{sym:'NZ$',loc:'en-NZ'},
+  SGD:{sym:'S$',loc:'en-SG'},
+  HKD:{sym:'HK$',loc:'en-HK'},
+  ZAR:{sym:'R ',loc:'en-ZA'}
+};
+
+function getCurr(){return currencies[currentCurrency]||currencies.USD;}
+
+function fmt(n){
+  var c=getCurr();
+  try{return c.sym+Math.round(n).toLocaleString(c.loc);}catch(e){return c.sym+Math.round(n).toLocaleString();}
+}
+function fmt2(n){
+  var c=getCurr();
+  try{return c.sym+n.toLocaleString(c.loc,{minimumFractionDigits:2,maximumFractionDigits:2});}catch(e){return c.sym+n.toFixed(2);}
+}
+function fmtChart(n){
+  var c=getCurr();
+  try{return c.sym+n.toLocaleString(c.loc);}catch(e){return c.sym+n.toLocaleString();}
+}
+
+function pct(v){return v/100;}
+
+function setCurrency(curr){
+  currentCurrency=curr;
+  var c=getCurr();
+  document.getElementById('symARPU').textContent=c.sym;
+  document.querySelectorAll('[id^=res]').forEach(function(el){
+    if(el.id!=='resQuickRatio'&&el.id!=='resGM%'){el.textContent=c.sym+'0';}
+  });
+  calc();
+}
+
+function calc(){
+  var ct=parseFloat(cust.value)||0;
+  var a=parseFloat(arpu.value)||0;
+  var ch=parseFloat(churn.value)||0;
+  var nc=parseFloat(newCust.value)||0;
+  var ep=parseFloat(expPct.value)||0;
+  var cp=parseFloat(contPct.value)||0;
+  var gm=parseFloat(grossMargin.value)||100;
+  var months=parseInt(projMonths.value)||12;
+
+  var mrr=ct*a;
+  var arr=mrr*12;
+  var churned=mrr*pct(ch);
+  var newMRR=nc*a;
+  var expMRR=mrr*pct(ep);
+  var contMRR=mrr*pct(cp);
+  var netNew=newMRR+expMRR-churned-contMRR;
+  var netMRR=mrr*pct(gm);
+  var avgLife=ch>0?1/pct(ch):999;
+  var ltv=avgLife*a;
+  var qr=(newMRR+expMRR)>0?(newMRR+expMRR)/(churned+contMRR):(churned+contMRR)>0?0:0;
+
+  document.getElementById('resMRR').textContent=fmt(mrr);
+  document.getElementById('resARR').textContent=fmt(arr);
+  document.getElementById('resNetNew').textContent=fmt(netNew);
+  document.getElementById('resNetMRR').textContent=fmt(netMRR);
+  document.getElementById('resNewMRR').textContent=fmt(newMRR);
+  document.getElementById('resExpMRR').textContent=fmt(expMRR);
+  document.getElementById('resChurnedMRR').textContent='\u2212'+fmt(churned);
+  document.getElementById('resContMRR').textContent='\u2212'+fmt(contMRR);
+  var c=getCurr();
+  try{document.getElementById('resARPU').textContent=c.sym+a.toLocaleString(c.loc,{minimumFractionDigits:2,maximumFractionDigits:2});}catch(e){document.getElementById('resARPU').textContent=c.sym+a.toFixed(2);}
+  document.getElementById('resLTV').textContent=fmt(ltv);
+  document.getElementById('resQuickRatio').textContent=qr.toFixed(2);
+
+  // Build projection
+  var proj=[];
+  var curMRR=mrr;
+  for(var i=1;i<=months;i++){
+    var curChurned=curMRR*pct(ch);
+    var curExp=curMRR*pct(ep);
+    var curCont=curMRR*pct(cp);
+    var curNew=nc*a*(1+pct(ep));
+    var curNet=curNew+curExp-curChurned-curCont;
+    var endMRR=curMRR+curNet;
+    proj.push({m:i,start:curMRR,newMRR:curNew,exp:curExp,churned:curChurned,cont:curCont,net:curNet,end:endMRR});
+    curMRR=endMRR;
+  }
+
+  // Render table
+  var tb=document.getElementById('mrrTableBody');
+  tb.innerHTML='';
+  proj.forEach(function(r){
+    var tr=document.createElement('tr');
+    tr.className='border-b border-base-content/5 hover:bg-base-content/5 transition-colors';
+    tr.innerHTML='<td class="font-bold py-2 pr-2 pl-2 text-left">Month '+r.m+'</td>'+
+      '<td class="font-mono py-2 px-2 text-right">'+fmt(r.start)+'</td>'+
+      '<td class="font-mono py-2 px-2 text-right text-success">'+fmt(r.newMRR)+'</td>'+
+      '<td class="font-mono py-2 px-2 text-right" style="color:#f97316">'+fmt(r.exp)+'</td>'+
+      '<td class="font-mono py-2 px-2 text-right text-error">\u2212'+fmt(r.churned)+'</td>'+
+      '<td class="font-mono py-2 px-2 text-right text-base-content/60">\u2212'+fmt(r.cont)+'</td>'+
+      '<td class="font-mono py-2 px-2 text-right font-bold '+(r.net>=0?'text-success':'text-error')+'">'+fmt(r.net)+'</td>'+
+      '<td class="font-mono py-2 px-2 text-right font-bold text-right pr-2">'+fmt(r.end)+'</td>';
+    tb.appendChild(tr);
+  });
+
+  // Render chart
+  var labels=proj.map(function(r){return 'M'+r.m;});
+  var dataMRR=proj.map(function(r){return r.end;});
+  var dataNew=proj.map(function(r){return r.newMRR;});
+  var dataChurned=proj.map(function(r){return r.churned;});
+  renderChart(labels,dataMRR,dataNew,dataChurned);
+}
+
+function renderChart(labels,mrrData,newData,churnedData){
+  var ctx=document.getElementById('mrrChart').getContext('2d');
+  var isDark=document.documentElement.getAttribute('data-theme')==='night';
+  var grid=isDark?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.08)';
+  var text=isDark?'#adb5bd':'#6c757d';
+  var c=getCurr();
+  if(chartInst){
+    chartInst.data.labels=labels;
+    chartInst.data.datasets[0].data=mrrData;
+    chartInst.data.datasets[1].data=newData;
+    chartInst.data.datasets[2].data=churnedData;
+    chartInst.update();
+  }else{
+    chartInst=new Chart(ctx,{
+      type:'line',
+      data:{
+        labels:labels,
+        datasets:[{
+          label:'Ending MRR',
+          data:mrrData,
+          borderColor:'var(--color-primary)',
+          backgroundColor:'rgba(99,102,241,0.08)',
+          borderWidth:3,
+          pointRadius:0,
+          fill:true,
+          tension:0.3
+        },{
+          label:'New MRR',
+          data:newData,
+          borderColor:'var(--color-success)',
+          backgroundColor:'transparent',
+          borderWidth:2,
+          pointRadius:0,
+          fill:false,
+          tension:0.3,
+          borderDash:[5,5]
+        },{
+          label:'Churned MRR',
+          data:churnedData,
+          borderColor:'var(--color-error)',
+          backgroundColor:'transparent',
+          borderWidth:2,
+          pointRadius:0,
+          fill:false,
+          tension:0.3,
+          borderDash:[3,3]
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{
+            labels:{color:text,font:{size:11}}
+          },
+          tooltip:{
+            callbacks:{
+              label:function(ctx){
+                return ctx.dataset.label+': '+fmtChart(ctx.parsed.y);
+              }
+            }
+          }
+        },
+        scales:{
+          x:{
+            grid:{display:false,drawBorder:false},
+            ticks:{color:text,maxTicksLimit:12}
+          },
+          y:{
+            grid:{color:grid,drawBorder:false},
+            ticks:{
+              color:text,
+              callback:function(v){
+                var s=c.sym;
+                if(v>=1000000) return s+(v/1000000).toFixed(1)+'M';
+                if(v>=1000) return s+(v/1000).toFixed(0)+'K';
+                return s+v;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+}
+
+function exportCSV(){
+  var ct=parseFloat(cust.value)||0;
+  var a=parseFloat(arpu.value)||0;
+  var ch=parseFloat(churn.value)||0;
+  var nc=parseFloat(newCust.value)||0;
+  var ep=parseFloat(expPct.value)||0;
+  var cp=parseFloat(contPct.value)||0;
+  var months=parseInt(projMonths.value)||12;
+  var mrr=ct*a;
+  var rows=[['Month','Starting MRR','New MRR','Expansion MRR','Churned MRR','Contraction MRR','Net New MRR','Ending MRR']];
+  var cur=mrr;
+  for(var i=1;i<=months;i++){
+    var churned=cur*pct(ch);
+    var exp=cur*pct(ep);
+    var cont=cur*pct(cp);
+    var n=nc*a*(1+pct(ep));
+    var net=n+exp-churned-cont;
+    var end=cur+net;
+    rows.push([i,Math.round(cur),Math.round(n),Math.round(exp),Math.round(churned),Math.round(cont),Math.round(net),Math.round(end)]);
+    cur=end;
+  }
+  var csv=rows.map(function(r){return r.join(',')}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv'});
+  var url=URL.createObjectURL(blob);
+  var aEl=document.createElement('a');
+  aEl.href=url;
+  aEl.download='mrr_projection.csv';
+  document.body.appendChild(aEl);
+  aEl.click();
+  document.body.removeChild(aEl);
+  URL.revokeObjectURL(url);
+}
+
+function setScenario(scenario){
+  var vals={
+    steady:{newCust:15,churn:3,exp:1,cont:0.5},
+    growth:{newCust:30,churn:5,exp:2,cont:1},
+    hypergrowth:{newCust:80,churn:7,exp:4,cont:1.5}
+  };
+  var s=vals[scenario]||vals.growth;
+  newCust.value=s.newCust;
+  churn.value=s.churn;
+  expPct.value=s.exp;
+  contPct.value=s.cont;
+  document.querySelectorAll('#scenarioBtns button').forEach(function(b){b.classList.remove('active');});
+  calc();
+}
+
+document.getElementById('currencySelect').addEventListener('change',function(){setCurrency(this.value);});
+document.getElementById('csvExportBtn').addEventListener('click',exportCSV);
+document.querySelectorAll('#scenarioBtns button').forEach(function(btn,i){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('#scenarioBtns button').forEach(function(b){
+      b.style.borderColor=b.dataset.origBorder||b.style.borderColor;
+      b.style.backgroundColor=b.dataset.origBg||b.style.backgroundColor;
+      b.style.color=b.dataset.origColor||b.style.color;
+    });
+    btn.style.borderColor='var(--color-base-content)';
+    btn.style.backgroundColor='color-mix(in oklab,var(--color-base-content) 15%,transparent)';
+    btn.style.color='var(--color-base-content)';
+    var scenarios=['steady','growth','hypergrowth'];
+    setScenario(scenarios[i]);
+  });
+  btn.dataset.origBorder=btn.style.borderColor;
+  btn.dataset.origBg=btn.style.backgroundColor;
+  btn.dataset.origColor=btn.style.color;
+});
+cust.addEventListener('input',calc);
+arpu.addEventListener('input',calc);
+churn.addEventListener('input',calc);
+newCust.addEventListener('input',calc);
+expPct.addEventListener('input',calc);
+contPct.addEventListener('input',calc);
+grossMargin.addEventListener('input',calc);
+projMonths.addEventListener('change',calc);
+calc();
+})();
 </script>
 
-
-
-{{ tool_seo_all(seo_data) }}
+{% set seo = {
+  "faqs": [
+    {"q": "What is MRR and why does it matter?", "a": "MRR stands for Monthly Recurring Revenue. It is the predictable revenue your business earns each month from subscriptions. SaaS founders and investors use MRR to measure growth, forecast cash flow, and evaluate business health. Gross MRR is total revenue, while net new MRR shows growth after accounting for churn."},
+    {"q": "What is the difference between gross MRR and net new MRR?", "a": "Gross MRR is the total monthly revenue from all paying customers. Net new MRR is the change in MRR after adding new and expansion revenue and subtracting churned and contraction revenue. Net new MRR shows whether your business is truly growing month over month."},
+    {"q": "What is SaaS quick ratio?", "a": "Quick ratio measures revenue efficiency. It is calculated as (New MRR + Expansion MRR) / (Churned MRR + Contraction MRR). A ratio above 4 is excellent, above 2 is good, and below 1 means your business is shrinking."},
+    {"q": "What is expansion MRR?", "a": "Expansion MRR is additional revenue from existing customers through upsells, cross-sells, or plan upgrades. It is a key growth lever for SaaS businesses because it increases revenue without requiring new customer acquisition."},
+    {"q": "What is a healthy churn rate for SaaS?", "a": "A monthly churn rate below 5% is average, below 3% is good, and below 1% is world-class. High churn means you need a constant stream of new customers just to stay flat. Improving retention is usually more cost-effective than acquiring new customers."}
+  ],
+  "howto_steps": [
+    {"title": "Enter Customer Data", "desc": "Type your current customer count, ARPU, and monthly churn rate."},
+    {"title": "Add Growth Drivers", "desc": "Enter new customers per month, expansion rate (upsells), contraction rate (downgrades), and gross margin."},
+    {"title": "Compare Scenarios", "desc": "Try Steady, Growth, or Hypergrowth presets. Export the monthly projection table as CSV."}
+  ],
+  "howto_calculate": "<p>The calculator computes: <strong>Gross MRR = Customers x ARPU</strong>, <strong>Net New MRR = New MRR + Expansion MRR − Churned MRR − Contraction MRR</strong>, <strong>Net MRR = Gross MRR x Gross Margin</strong>, and <strong>Quick Ratio = (New + Expansion) / (Churned + Contraction)</strong>. The projection applies these rates iteratively each month, compounding growth and churn over time.</p><p>All calculations run in your browser — no data is sent to any server.</p>",
+  "about_title": "About the MRR Calculator",
+  "about_body": "<p>This advanced free MRR Calculator helps SaaS founders and subscription businesses analyze their full revenue picture: gross and net MRR, expansion and churn components, quick ratio, customer LTV, and net MRR after COGS. The 12-month projection chart gives a visual forecast of where your MRR is heading, with scenario presets and CSV export.</p><p>All calculations happen locally in your browser. No login, no data upload, no server processing.</p>",
+  "related": [
+    {"name": "CAC Calculator", "url": "/tool/cac-calculator"},
+    {"name": "Burn Rate Calculator", "url": "/tool/burn-rate-calculator"},
+    {"name": "Percentage Calculator", "url": "/tool/percentage-calculator"}
+  ]
+} %}
+{{ tool_seo_all(seo) }}
 {% endblock %}

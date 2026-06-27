@@ -1,4 +1,5 @@
 import os
+import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Request
@@ -18,7 +19,6 @@ templates = Jinja2Templates(directory=settings.templates_dir)
 templates.env.globals["lucide_icon"] = lucide_icon
 templates.env.globals["today"] = lambda: datetime.now(UTC).strftime("%Y-%m-%d")
 
-import uuid
 APP_VERSION = uuid.uuid4().hex[:8]
 templates.env.globals["app_version"] = APP_VERSION
 

@@ -1,214 +1,503 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section, tool_json_ld %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
 
-{% block title %}SIP Calculator Online - Mutual Fund Returns & Investment Planner{% endblock %}
-{% block meta_description %}Calculate your mutual fund returns instantly with our free SIP Calculator. Estimate your future wealth, see the power of compound interest, and use the Step-Up SIP feature to grow your investments faster.{% endblock %}
-{% block meta_keywords %}SIP calculator, mutual fund calculator, systematic investment plan calculator, SIP return calculator, online investment calculator, compound interest calculator for mutual funds, step up SIP calculator, wealth growth estimator, Lumpsum SIP{% endblock %}
+{% block title %}SIP Calculator - Systematic Investment Plan Calculator Free{% endblock %}
+{% block meta_description %}Free SIP calculator to estimate monthly mutual fund investment returns. Calculate maturity value, total invested, and estimated gains with 16 currencies.{% endblock %}
+{% block meta_keywords %}SIP calculator, systematic investment plan, mutual fund calculator, monthly investment calculator, SIP return calculator, investment planner{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/sip-calculator{% endblock %}
+
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/sip-calculator">
-<meta property="og:site_name" content="StoryBrain AI">
-<meta property="og:title" content="SIP Calculator Online - Mutual Fund Returns & Investment Planner">
-<meta property="og:description" content="Calculate your mutual fund returns instantly with our free SIP Calculator. Estimate your future wealth and see the power of compound interest.">
-<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="SIP Calculator Online - Mutual Fund Returns & Investment Planner">
-<meta name="twitter:description" content="Calculate your mutual fund returns instantly with our free SIP Calculator. Estimate your future wealth and see the power of compound interest.">
+<meta property="og:title" content="SIP Calculator - Systematic Investment Plan Calculator Free">
+<meta property="og:description" content="Free SIP calculator: estimate mutual fund investment returns, maturity value, and total gains. 16 currencies.">
 {% endblock %}
 
 {% block head %}
-<script src="/static/js/vendor/chart.min.js"></script>
+<style>
+.input-visible{background-color:color-mix(in oklab,var(--color-base-100) 85%,var(--color-base-300));border-color:var(--color-base-content);color:var(--color-base-content);font-weight:700}
+.input-visible:focus{border-color:var(--color-primary);box-shadow:0 0 0 3px color-mix(in oklab,var(--color-primary) 25%,transparent);outline:none}
+.currency-sym{color:var(--color-base-content);font-weight:700;opacity:.85}
+.stat-card{padding:.75rem;border-radius:.75rem;background:color-mix(in oklab,var(--color-base-100) 60%,var(--color-base-200))}
+.tab-btn{color:var(--color-base-content);opacity:.45;cursor:pointer;transition:all .3s var(--cinematic-ease);background:0 0;border:2px solid color-mix(in oklab,var(--color-base-content) 12%,transparent);padding:.625rem 1.25rem;border-radius:.75rem;font-size:.875rem;font-weight:700;letter-spacing:.025em;text-transform:uppercase;flex:1;text-align:center;white-space:nowrap}
+.tab-btn.active,.tab-btn:hover{opacity:1;background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary);border-color:var(--color-primary)}
+.tab-content.hidden{display:none}
+.bg-card{background:color-mix(in oklab,var(--color-base-100) 60%,var(--color-base-200));border-radius:.75rem;border:1px solid color-mix(in oklab,var(--color-base-content) 8%,transparent)}
+table.schedule{width:100%;border-collapse:collapse;font-size:.8125rem}
+table.schedule th{padding:.5rem .625rem;text-align:right;font-size:.6875rem;text-transform:uppercase;letter-spacing:.1em;color:var(--color-base-content);opacity:.45;border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 12%,transparent)}
+table.schedule td{padding:.4rem .625rem;text-align:right;border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 6%,transparent)}
+table.schedule td:first-child,table.schedule th:first-child{text-align:left}
+table.schedule tr:last-child td{border-bottom:none;font-weight:700}
+.compare-col{border:1px solid color-mix(in oklab,var(--color-base-content) 8%,transparent);border-radius:.75rem;padding:.75rem;background:color-mix(in oklab,var(--color-base-100) 40%,transparent);flex:1;min-width:220px}
+</style>
 {% endblock %}
 
 {% block content %}
-{{ tool_hero_section("trending-up", "Wealth Builder Series", "ADVANCED", "SIP CALCULATOR", "Easily calculate how your mutual fund investments will grow. Includes Step-Up SIP and charts to plan your future wealth.") }}
+{{ tool_hero_section("trending-up","Investment Tool","SIP","CALCULATOR","Calculate your Systematic Investment Plan returns. Enter monthly amount, expected return rate, and tenure to see your investment growth.") }}
 
-  <!-- Main Content -->
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-
-    <!-- Inputs -->
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">
-          {{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Investment Details
-        </h2>
-        <form id="sipForm" class="flex flex-col gap-5">
-
-          <!-- Monthly Investment -->
-          <div>
-            <label class="label-cinematic mb-2 flex justify-between" for="monthlyInvestment">
-              <span>Monthly Investment</span>
-              <span id="valAmountDisplay">&#8377; 10,000</span>
-            </label>
-            <div class="flex mb-2">
-              <span class="inline-flex items-center px-3 bg-base-300/30 border border-r-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-r-none">&#8377;</span>
-              <input aria-label="Monthlyinvestment" type="number" id="monthlyInvestment" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-l-none" value="10000" min="500" step="500">
-            </div>
-            <input type="range" id="monthlyInvestmentRange" min="500" max="1000000" step="500" value="10000" class="slider-cinematic" aria-label="Monthly Investment">
-          </div>
-
-          <!-- Expected Return -->
-          <div>
-            <label class="label-cinematic mb-2 flex justify-between" for="expectedReturn">
-              <span>Expected Return (Annual)</span>
-              <span id="valRateDisplay">12.0 %</span>
-            </label>
-            <div class="flex mb-2">
-              <input aria-label="Expectedreturn" type="number" id="expectedReturn" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-r-none" value="12" step="0.1" min="1" max="50">
-              <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">%</span>
-            </div>
-            <input type="range" id="expectedReturnRange" min="1" max="30" step="0.1" value="12" class="slider-cinematic" aria-label="Expected Return">
-          </div>
-
-          <!-- Time Period -->
-          <div>
-            <label class="label-cinematic mb-2 flex justify-between" for="investmentTenure">
-              <span>Time Period</span>
-              <span id="valTenureDisplay">10 Years</span>
-            </label>
-            <div class="flex mb-2">
-              <input aria-label="Investmenttenure" type="number" id="investmentTenure" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-r-none" value="10" min="1" max="50">
-              <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">Years</span>
-            </div>
-            <input type="range" id="investmentTenureRange" min="1" max="50" step="1" value="10" class="slider-cinematic" aria-label="Tenure">
-          </div>
-
-          <div class="divider-cinematic"></div>
-
-          <!-- Step Up SIP -->
-          <div>
-            <div class="flex items-center gap-2 mb-3">
-              <input aria-label="Enablestepup" type="checkbox" role="switch" id="enableStepUp" class="toggle toggle-sm">
-              <label class="text-xs text-base-content/60 font-bold tracking-wider uppercase" for="enableStepUp">Enable Step-Up SIP</label>
-            </div>
-            <div id="stepUpContainer" class="hidden">
-              <label class="label-cinematic mb-2 flex justify-between" for="stepUpRate">
-                <span>Annual Step-up Rate</span>
-                <span id="valStepUpDisplay">10 %</span>
-              </label>
-              <div class="flex mb-2">
-                <input aria-label="Stepuprate" type="number" id="stepUpRate" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold text-right rounded-xl rounded-r-none" value="10" step="1" min="1" max="100">
-                <span class="inline-flex items-center px-3 bg-base-300/30 border border-l-0 border-base-content/20 text-base-content/60 text-sm rounded-xl rounded-l-none">%</span>
-              </div>
-              <input type="range" id="stepUpRateRange" min="1" max="50" step="1" value="10" class="slider-cinematic" aria-label="Step Up Rate">
-              <p class="text-xs text-base-content/40 mt-1">Increases your monthly investment by this percentage every year.</p>
-            </div>
-          </div>
-
-          <button type="submit" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">
-            {{ lucide_icon("sparkles","w-5 h-5", 20) | safe }} CALCULATE RETURNS
-          </button>
-        </form>
+<div class="max-w-2xl mx-auto reveal">
+  <div class="glass-card rounded-2xl p-5 md:p-6 mb-4">
+    <div class="flex flex-wrap gap-4 mb-4">
+      <div class="min-w-[140px] flex-1">
+        <label for="sipCurrency" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-2 block">Currency</label>
+        <select id="sipCurrency" aria-label="Select currency" class="select w-full rounded-xl text-sm font-bold bg-base-200 border-base-content/20 h-11">
+          <option value="USD" selected>&#127482;&#127480; USD</option>
+          <option value="EUR">&#127466;&#127482; EUR</option>
+          <option value="GBP">&#127468;&#127463; GBP</option>
+          <option value="JPY">&#127471;&#127477; JPY</option>
+          <option value="INR">&#127470;&#127475; INR</option>
+          <option value="CAD">&#127464;&#127462; CAD</option>
+          <option value="AUD">&#127462;&#127482; AUD</option>
+          <option value="CHF">&#127464;&#127469; CHF</option>
+          <option value="CNY">&#127464;&#127475; CNY</option>
+          <option value="BRL">&#127463;&#127479; BRL</option>
+          <option value="KRW">&#127472;&#127479; KRW</option>
+          <option value="SEK">&#127480;&#127466; SEK</option>
+          <option value="NZD">&#127467;&#127482; NZD</option>
+          <option value="SGD">&#127480;&#127468; SGD</option>
+          <option value="HKD">&#127464;&#127467; HKD</option>
+          <option value="ZAR">&#127467;&#127466; ZAR</option>
+        </select>
       </div>
     </div>
+    <div class="flex flex-wrap gap-2" role="tablist" aria-label="SIP calculator tabs">
+      <button class="tab-btn active" data-tab="sip" role="tab" aria-selected="true" aria-controls="tab-sip">SIP Calculator</button>
+      <button class="tab-btn" data-tab="goal" role="tab" aria-selected="false" aria-controls="tab-goal">Goal Planner</button>
+      <button class="tab-btn" data-tab="schedule" role="tab" aria-selected="false" aria-controls="tab-schedule">Growth Schedule</button>
+      <button class="tab-btn" data-tab="compare" role="tab" aria-selected="false" aria-controls="tab-compare">Compare</button>
+    </div>
+  </div>
 
-    <!-- Results Dashboard -->
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <div class="flex justify-between items-center mb-6 pb-4 border-b border-base-content/10 flex-wrap gap-3">
-          <h3 class="text-xl font-black tracking-tight flex items-center gap-3">
-            {{ lucide_icon("shield-check","w-5 h-5", 20) | safe }} Wealth Projection
-          </h3>
-          <button class="pill-cinematic text-xs" id="copyBtn">{{ lucide_icon("copy","w-4 h-4", 16) | safe }} Copy Details</button>
-        </div>
-
-        <!-- Key Metrics -->
-        <div class="grid grid-cols-3 gap-4 mb-6">
-          <div class="card-premium p-4 text-center">
-            <span class="label-cinematic block mb-2">Total Value</span>
-            <div class="flex justify-center items-center gap-1">
-              <span class="text-sm opacity-50">&#8377;</span>
-              <span id="resTotalValue" class="metric-cinematic metric-cinematic--md font-mono text-primary">0</span>
-            </div>
-          </div>
-          <div class="card-premium p-4 text-center" style="border-color:color-mix(in oklab, var(--color-accent) 25%, transparent)">
-            <span class="label-cinematic block mb-2">Total Invested</span>
-            <div class="flex justify-center items-center gap-1">
-              <span class="text-sm opacity-50">&#8377;</span>
-              <output id="resInvested" class="metric-cinematic metric-cinematic--md font-mono" style="color:var(--color-accent)">0</output>
-            </div>
-          </div>
-          <div class="card-premium p-4 text-center" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-            <span class="label-cinematic block mb-2" style="color:var(--color-success)">Est. Returns</span>
-            <div class="flex justify-center items-center gap-1">
-              <span class="text-sm opacity-50">&#8377;</span>
-              <output id="resReturns" class="metric-cinematic metric-cinematic--md font-mono" style="color:var(--color-success)">0</output>
-            </div>
+  <div id="tab-sip" class="tab-content glass-card rounded-2xl p-5 md:p-6" role="tabpanel">
+    <div class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="sipLumpsum" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Initial Lumpsum <span class="opacity-40 text-[10px]">optional</span></label>
+          <div class="relative">
+            <span id="sipLsumSym" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
+            <input type="number" id="sipLumpsum" aria-label="Initial lumpsum investment" class="input input-visible w-full pl-8 rounded-xl text-sm" value="0" min="0" step="1000">
           </div>
         </div>
-
-        <!-- Investment vs Returns -->
-        <div class="card-premium p-5 mb-6">
-          <h4 class="label-cinematic mb-3 flex items-center gap-2">{{ lucide_icon("pie-chart","w-4 h-4", 16) | safe }} Investment vs Returns</h4>
-          <div class="h-3 rounded-full overflow-hidden mb-3" style="background:color-mix(in oklab, var(--color-base-content) 5%, transparent)">
-            <div class="flex h-full">
-              <div id="barInvested" class="h-full transition-all duration-500" style="background:var(--color-primary)"></div>
-              <div id="barReturns" class="h-full transition-all duration-500" style="background:var(--color-success)"></div>
-            </div>
-          </div>
-          <div class="flex justify-between text-xs font-bold">
-            <span class="flex items-center gap-1 text-base-content/60"><span class="w-2 h-2 rounded-full inline-block" style="background:var(--color-primary)"></span> Invested (<span id="pctInvested">50</span>%)</span>
-            <span class="flex items-center gap-1 text-base-content/60"><span class="w-2 h-2 rounded-full inline-block" style="background:var(--color-success)"></span> Returns (<span id="pctReturns">50</span>%)</span>
+        <div>
+          <label for="sipMonthly" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Monthly Investment</label>
+          <div class="relative">
+            <span id="sipSym" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
+            <input type="number" id="sipMonthly" aria-label="Monthly investment amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="5000" min="0" step="100">
           </div>
         </div>
-
-        <!-- Growth Chart -->
-        <div class="glass-cinematic rounded-2xl p-5" style="min-height:250px;position:relative">
-          <canvas id="growthChart"></canvas>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label for="sipRate" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Return Rate (%)</label>
+          <input type="number" id="sipRate" aria-label="Expected annual return percentage" class="input input-visible w-full rounded-xl text-sm" value="12" min="0" max="50" step="0.5">
+        </div>
+        <div>
+          <label for="sipStepup" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Step-up (%) <span class="opacity-40 text-[10px]">/yr</span></label>
+          <input type="number" id="sipStepup" aria-label="Annual step-up percentage" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="50" step="1">
+        </div>
+        <div>
+          <label for="sipInflation" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Inflation (%) <span class="opacity-40 text-[10px]">optional</span></label>
+          <input type="number" id="sipInflation" aria-label="Expected inflation rate" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="30" step="0.5">
+        </div>
+      </div>
+      <div>
+        <label class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Investment Period</label>
+        <div class="flex gap-2">
+          <input type="number" id="sipYears" aria-label="Investment years" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
+          <input type="number" id="sipMonths" aria-label="Additional months" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
         </div>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- Year-by-Year Schedule -->
-<div class="container-site px-4 max-w-5xl mx-auto mt-12 pt-8 border-t border-base-content/10 reveal" style="animation-delay:0.3s" id="scheduleSection">
-  <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-3">
-    <div>
-      <h3 class="text-2xl font-black tracking-tight flex items-center gap-2">{{ lucide_icon("calendar","w-5 h-5", 20) | safe }} Year-by-Year Growth</h3>
-      <p class="text-sm text-base-content/60">Detailed breakdown of how your wealth compounds annually.</p>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6">
+      <div class="stat-card">
+        <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Total Invested</div>
+        <output id="sipInvested" aria-live="polite">$600,000.00</output>
+      </div>
+      <div class="stat-card">
+        <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Lumpsum Growth</div>
+        <output id="sipLsumGrowth" aria-live="polite">$0.00</output>
+      </div>
+      <div class="stat-card" style="background:color-mix(in oklab,var(--color-primary) 10%,transparent);border:1px solid color-mix(in oklab,var(--color-primary) 20%,transparent)">
+        <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Maturity Value</div>
+        <output id="sipMaturity" aria-live="polite" class="font-black text-lg" style="color:var(--color-primary)">$1,120,508.28</output>
+      </div>
+      <div class="stat-card">
+        <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Estimated Returns</div>
+        <output id="sipReturns" aria-live="polite" class="text-success">$520,508.28</output>
+      </div>
+      <div class="stat-card">
+        <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Real Maturity <span class="opacity-40">(adj.)</span></div>
+        <output id="sipRealMat" aria-live="polite" class="text-info">$1,120,508.28</output>
+      </div>
+      <div class="stat-card">
+        <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Real Returns <span class="opacity-40">(adj.)</span></div>
+        <output id="sipRealRet" aria-live="polite">$520,508.28</output>
+      </div>
     </div>
   </div>
-  <div class="overflow-x-auto" style="max-height:500px;overflow-y:auto">
-    <table class="table-auto w-full text-sm">
-      <thead class="sticky top-0" style="z-index:1">
-        <tr class="border-b border-base-content/10">
-          <th class="text-left font-bold text-base-content/60 text-xs uppercase tracking-wider px-3 py-2">Year</th>
-          <th class="text-right font-bold text-base-content/60 text-xs uppercase tracking-wider px-3 py-2">Monthly SIP</th>
-          <th class="text-right font-bold text-base-content/60 text-xs uppercase tracking-wider px-3 py-2">Total Invested</th>
-          <th class="text-right font-bold text-base-content/60 text-xs uppercase tracking-wider px-3 py-2">Wealth Gained</th>
-          <th class="text-right font-bold text-base-content/60 text-xs uppercase tracking-wider px-3 py-2">End Value</th>
-        </tr>
-      </thead>
-      <tbody id="scheduleBody">
-      </tbody>
-    </table>
+
+  <div id="tab-goal" class="tab-content hidden glass-card rounded-2xl p-5 md:p-6" role="tabpanel">
+    <p class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/40 mb-4">Calculate the monthly SIP needed to reach your target corpus</p>
+    <div class="space-y-4">
+      <div>
+        <label for="goalTarget" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Target Maturity Amount</label>
+        <div class="relative">
+          <span id="goalSym" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
+          <input type="number" id="goalTarget" aria-label="Target maturity amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="1000000" min="0" step="10000">
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="goalRate" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Expected Return Rate (%)</label>
+          <input type="number" id="goalRate" aria-label="Expected return percentage" class="input input-visible w-full rounded-xl text-sm" value="12" min="0" max="50" step="0.5">
+        </div>
+        <div>
+          <label for="goalStepup" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Annual Step-up (%) <span class="opacity-40 text-[10px]">optional</span></label>
+          <input type="number" id="goalStepup" aria-label="Goal step-up percentage" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="50" step="1">
+        </div>
+      </div>
+      <div>
+        <label class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Investment Period</label>
+        <div class="flex gap-2">
+          <input type="number" id="goalYears" aria-label="Goal investment years" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
+          <input type="number" id="goalMonths" aria-label="Goal additional months" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-6">
+      <div class="stat-card" style="grid-column:1/-1">
+        <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Required Monthly SIP</div>
+        <output id="goalRequired" aria-live="polite" class="font-black text-lg" style="color:var(--color-primary)">$4,461.30</output>
+      </div>
+      <div class="stat-card">
+        <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Total Invested</div>
+        <output id="goalInvested" aria-live="polite">$535,356.00</output>
+      </div>
+      <div class="stat-card">
+        <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Total Returns</div>
+        <output id="goalReturns" aria-live="polite" class="text-success">$464,644.00</output>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-schedule" class="tab-content hidden glass-card rounded-2xl p-5 md:p-6" role="tabpanel">
+    <p class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/40 mb-4">Year-by-year growth breakdown for current SIP parameters</p>
+    <div class="overflow-x-auto">
+      <table class="schedule" aria-label="Yearly growth schedule">
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th>Yearly Investment</th>
+            <th>Cumulative Invested</th>
+            <th>Returns</th>
+            <th>Maturity Value</th>
+          </tr>
+        </thead>
+        <tbody id="scheduleBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-compare" class="tab-content hidden glass-card rounded-2xl p-5 md:p-6" role="tabpanel">
+    <p class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/40 mb-4">Compare up to 3 investment strategies side by side</p>
+    <div class="flex flex-wrap gap-3">
+      <div class="compare-col">
+        <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-3 text-center">Scenario A</div>
+        <div class="space-y-2.5">
+          <div>
+            <label for="cmpAmonthly" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Monthly</label>
+            <input type="number" id="cmpAmonthly" class="input input-visible w-full rounded-xl text-sm" value="5000" min="0" step="100">
+          </div>
+          <div>
+            <label for="cmpAlumpsum" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Lumpsum</label>
+            <input type="number" id="cmpAlumpsum" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" step="1000">
+          </div>
+          <div>
+            <label for="cmpArate" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Return %</label>
+            <input type="number" id="cmpArate" class="input input-visible w-full rounded-xl text-sm" value="12" min="0" max="50" step="0.5">
+          </div>
+          <div>
+            <label for="cmpAstepup" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Step-up %</label>
+            <input type="number" id="cmpAstepup" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="50" step="1">
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Period</label>
+            <div class="flex gap-1">
+              <input type="number" id="cmpAyears" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
+              <input type="number" id="cmpAmonths" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
+            </div>
+          </div>
+        </div>
+        <hr class="my-3 border-base-content/10">
+        <div class="space-y-1.5 text-sm">
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Total Invested</span><output id="cmpAinvested" class="font-bold">$600,000.00</output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Returns</span><output id="cmpAreturns" class="font-bold text-success">$520,508.28</output></div>
+          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Maturity</span><output id="cmpAmaturity" class="font-black">$1,120,508.28</output></div>
+        </div>
+      </div>
+      <div class="compare-col">
+        <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-3 text-center">Scenario B</div>
+        <div class="space-y-2.5">
+          <div>
+            <label for="cmpBmonthly" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Monthly</label>
+            <input type="number" id="cmpBmonthly" class="input input-visible w-full rounded-xl text-sm" value="5000" min="0" step="100">
+          </div>
+          <div>
+            <label for="cmpBlumpsum" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Lumpsum</label>
+            <input type="number" id="cmpBlumpsum" class="input input-visible w-full rounded-xl text-sm" value="50000" min="0" step="1000">
+          </div>
+          <div>
+            <label for="cmpBrate" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Return %</label>
+            <input type="number" id="cmpBrate" class="input input-visible w-full rounded-xl text-sm" value="15" min="0" max="50" step="0.5">
+          </div>
+          <div>
+            <label for="cmpBstepup" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Step-up %</label>
+            <input type="number" id="cmpBstepup" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Period</label>
+            <div class="flex gap-1">
+              <input type="number" id="cmpByears" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
+              <input type="number" id="cmpBmonths" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
+            </div>
+          </div>
+        </div>
+        <hr class="my-3 border-base-content/10">
+        <div class="space-y-1.5 text-sm">
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Total Invested</span><output id="cmpBinvested" class="font-bold">$650,000.00</output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Returns</span><output id="cmpBreturns" class="font-bold text-success">$2,354,786.01</output></div>
+          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Maturity</span><output id="cmpBmaturity" class="font-black">$3,004,786.01</output></div>
+        </div>
+      </div>
+      <div class="compare-col">
+        <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-3 text-center">Scenario C</div>
+        <div class="space-y-2.5">
+          <div>
+            <label for="cmpCmonthly" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Monthly</label>
+            <input type="number" id="cmpCmonthly" class="input input-visible w-full rounded-xl text-sm" value="10000" min="0" step="100">
+          </div>
+          <div>
+            <label for="cmpClumpsum" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Lumpsum</label>
+            <input type="number" id="cmpClumpsum" class="input input-visible w-full rounded-xl text-sm" value="100000" min="0" step="1000">
+          </div>
+          <div>
+            <label for="cmpCrate" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Return %</label>
+            <input type="number" id="cmpCrate" class="input input-visible w-full rounded-xl text-sm" value="12" min="0" max="50" step="0.5">
+          </div>
+          <div>
+            <label for="cmpCstepup" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Step-up %</label>
+            <input type="number" id="cmpCstepup" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="50" step="1">
+          </div>
+          <div>
+            <label class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Period</label>
+            <div class="flex gap-1">
+              <input type="number" id="cmpCyears" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
+              <input type="number" id="cmpCmonths" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
+            </div>
+          </div>
+        </div>
+        <hr class="my-3 border-base-content/10">
+        <div class="space-y-1.5 text-sm">
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Total Invested</span><output id="cmpCinvested" class="font-bold">$1,300,000.00</output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Returns</span><output id="cmpCreturns" class="font-bold text-success">$1,004,149.74</output></div>
+          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Maturity</span><output id="cmpCmaturity" class="font-black">$2,304,149.74</output></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-function formatCurrency(val){return parseFloat(val).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0});}
-document.addEventListener('DOMContentLoaded',()=>{const sipForm=document.getElementById('sipForm');const monthlyInvestment=document.getElementById('monthlyInvestment');const monthlyInvestmentRange=document.getElementById('monthlyInvestmentRange');const valAmountDisplay=document.getElementById('valAmountDisplay');const expectedReturn=document.getElementById('expectedReturn');const expectedReturnRange=document.getElementById('expectedReturnRange');const valRateDisplay=document.getElementById('valRateDisplay');const investmentTenure=document.getElementById('investmentTenure');const investmentTenureRange=document.getElementById('investmentTenureRange');const valTenureDisplay=document.getElementById('valTenureDisplay');const enableStepUp=document.getElementById('enableStepUp');const stepUpContainer=document.getElementById('stepUpContainer');const stepUpRate=document.getElementById('stepUpRate');const stepUpRateRange=document.getElementById('stepUpRateRange');const valStepUpDisplay=document.getElementById('valStepUpDisplay');const resTotalValue=document.getElementById('resTotalValue');const resInvested=document.getElementById('resInvested');const resReturns=document.getElementById('resReturns');const copyBtn=document.getElementById('copyBtn');const barInvested=document.getElementById('barInvested');const barReturns=document.getElementById('barReturns');const pctInvestedNode=document.getElementById('pctInvested');const pctReturnsNode=document.getElementById('pctReturns');const scheduleBody=document.getElementById('scheduleBody');let growthChartInstance=null;enableStepUp.addEventListener('change',(e)=>{if(e.target.checked){stepUpContainer.classList.remove('hidden');}else{stepUpContainer.classList.add('hidden');}
-calculateSIP();});function syncValue(input,range,display,formatter){input.addEventListener('input',()=>{range.value=input.value;display.innerText=formatter(input.value);calculateSIP();});range.addEventListener('input',()=>{input.value=range.value;display.innerText=formatter(range.value);calculateSIP();});}
-syncValue(monthlyInvestment,monthlyInvestmentRange,valAmountDisplay,v=>'\u20b9 '+formatCurrency(v));syncValue(expectedReturn,expectedReturnRange,valRateDisplay,v=>parseFloat(v).toFixed(1)+' %');syncValue(investmentTenure,investmentTenureRange,valTenureDisplay,v=>v+' Years');syncValue(stepUpRate,stepUpRateRange,valStepUpDisplay,v=>v+' %');function calculateSIP(){const monthly=parseFloat(monthlyInvestment.value)||0;const rateAnnual=parseFloat(expectedReturn.value)||0;const years=parseInt(investmentTenure.value)||0;const isStepUp=enableStepUp.checked;const stepUpPct=isStepUp?(parseFloat(stepUpRate.value)||0):0;if(monthly<=0||rateAnnual<=0||years<=0){resetUI();return;}
-let totalInvested=0;let futureValue=0;let currentMonthlySIP=monthly;const monthlyRate=rateAnnual/12/100;const schedule=[];const chartLabels=[];const chartInvestedData=[];const chartWealthData=[];for(let year=1;year<=years;year++){let yearInvested=0;for(let month=1;month<=12;month++){totalInvested+=currentMonthlySIP;yearInvested+=currentMonthlySIP;futureValue=(futureValue+currentMonthlySIP)*(1+monthlyRate);}
-schedule.push({year:year,monthlySIP:currentMonthlySIP,totalInvested:totalInvested,wealthGained:futureValue-totalInvested,endValue:futureValue});chartLabels.push('Year '+year);chartInvestedData.push(totalInvested);chartWealthData.push(futureValue);if(isStepUp&&stepUpPct>0){currentMonthlySIP=currentMonthlySIP*(1+(stepUpPct/100));}}
-const totalReturns=futureValue-totalInvested;resTotalValue.innerText=formatCurrency(Math.round(futureValue));resInvested.innerText='\u20b9'+formatCurrency(Math.round(totalInvested));resReturns.innerText='\u20b9'+formatCurrency(Math.round(totalReturns));const pctI=Math.round((totalInvested/futureValue)*100);const pctR=100-pctI;barInvested.style.width=pctI+'%';barReturns.style.width=pctR+'%';pctInvestedNode.innerText=pctI;pctReturnsNode.innerText=pctR;renderSchedule(schedule);renderChart(chartLabels,chartInvestedData,chartWealthData);}
-function resetUI(){resTotalValue.innerText='0';resInvested.innerText='\u20b9 0';resReturns.innerText='\u20b9 0';barInvested.style.width='50%';barReturns.style.width='50%';pctInvestedNode.innerText='50';pctReturnsNode.innerText='50';scheduleBody.innerHTML='<tr><td colspan="5" class="text-center text-base-content/60 py-4">Enter investment details to view growth schedule.</td></tr>';if(growthChartInstance){growthChartInstance.destroy();growthChartInstance=null;}}
-function renderSchedule(schedule){scheduleBody.innerHTML='';schedule.forEach(row=>{const tr=document.createElement('tr');tr.innerHTML='<td class="font-bold px-3 py-2">Year '+row.year+'</td><td class="font-mono text-base-content/60 text-right px-3 py-2">\u20b9'+formatCurrency(row.monthlySIP)+'</td><td class="font-mono text-right px-3 py-2" style="color:var(--color-accent)">\u20b9'+formatCurrency(row.totalInvested)+'</td><td class="font-mono text-success text-right px-3 py-2">\u20b9'+formatCurrency(row.wealthGained)+'</td><td class="font-mono font-bold text-right px-3 py-2">\u20b9'+formatCurrency(row.endValue)+'</td>';scheduleBody.appendChild(tr);});}
-function renderChart(labels,investedData,wealthData){const ctx=document.getElementById('growthChart').getContext('2d');const isDarkMode=document.documentElement.getAttribute('data-theme')==='night';const gridColor=isDarkMode?'rgba(255, 255, 255, 0.1)':'rgba(0, 0, 0, 0.1)';const textColor=isDarkMode?'#adb5bd':'#6c757d';if(growthChartInstance){growthChartInstance.data.labels=labels;growthChartInstance.data.datasets[0].data=investedData;growthChartInstance.data.datasets[1].data=wealthData;growthChartInstance.options.scales.x.ticks.color=textColor;growthChartInstance.options.scales.y.ticks.color=textColor;growthChartInstance.options.scales.y.grid.color=gridColor;growthChartInstance.update();}else{growthChartInstance=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{label:'Total Invested',data:investedData,borderColor:'#e94057',backgroundColor:'transparent',borderWidth:2,pointRadius:0,fill:false,tension:0.4},{label:'Total Wealth',data:wealthData,borderColor:'#198754',backgroundColor:'rgba(25, 135, 84, 0.1)',borderWidth:3,pointRadius:0,fill:true,tension:0.4}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:textColor,font:{family:"'Inter', sans-serif"}}},tooltip:{callbacks:{label:function(context){let label=context.dataset.label||'';if(label){label+=': ';}
-if(context.parsed.y!==null){label+='\u20b9'+formatCurrency(context.parsed.y);}
-return label;}}}},scales:{x:{grid:{display:false,drawBorder:false},ticks:{color:textColor,maxTicksLimit:10}},y:{grid:{color:gridColor,drawBorder:false},ticks:{color:textColor,callback:function(value){if(value>=10000000)return'\u20b9'+(value/10000000).toFixed(1)+' Cr';if(value>=100000)return'\u20b9'+(value/100000).toFixed(1)+' L';if(value>=1000)return'\u20b9'+(value/1000).toFixed(0)+' K';return'\u20b9'+value;}}}}}});}}
-sipForm.addEventListener('submit',(e)=>{e.preventDefault();calculateSIP();document.getElementById('scheduleSection').scrollIntoView({behavior:'smooth'});});copyBtn.addEventListener('click',()=>{const txt='SIP Calculation:\nMonthly Investment:\u20b9'+formatCurrency(monthlyInvestment.value)+'\nExpected Return:'+expectedReturn.value+'%\nTenure:'+investmentTenure.value+'Years\n'+(enableStepUp.checked?'Annual Step-Up: '+stepUpRate.value+'%\n':'')+'\nTotal Invested:'+resInvested.innerText+'\nEstimated Returns:'+resReturns.innerText+'\nTotal Wealth:\u20b9'+resTotalValue.innerText;navigator.clipboard.writeText(txt).then(()=>{const og=copyBtn.innerHTML;copyBtn.innerHTML='{{ lucide_icon("check","w-4 h-4", 16) | safe }} Copied';setTimeout(()=>copyBtn.innerHTML=og,2000);});});calculateSIP();});
+(function(){'use strict';
+var cs=document.getElementById('sipCurrency');
+var cu={USD:{sym:'$',loc:'en-US'},EUR:{sym:'\u20AC',loc:'de-DE'},GBP:{sym:'\u00A3',loc:'en-GB'},JPY:{sym:'\u00A5',loc:'ja-JP'},INR:{sym:'\u20B9',loc:'en-IN'},CAD:{sym:'CA$',loc:'en-CA'},AUD:{sym:'AU$',loc:'en-AU'},CHF:{sym:'CHF ',loc:'de-CH'},CNY:{sym:'\u00A5',loc:'zh-CN'},BRL:{sym:'R$',loc:'pt-BR'},KRW:{sym:'\u20A9',loc:'ko-KR'},SEK:{sym:'kr ',loc:'sv-SE'},NZD:{sym:'NZ$',loc:'en-NZ'},SGD:{sym:'S$',loc:'en-SG'},HKD:{sym:'HK$',loc:'en-HK'},ZAR:{sym:'R ',loc:'en-ZA'}};
+var csym='$',cloc='en-US';
+
+function fmt(v){return v.toLocaleString(cloc,{minimumFractionDigits:2,maximumFractionDigits:2})}
+
+function sipFV(p,rAnn,tm,step){
+  var ri=rAnn/100/12,si=step/100,fv=0;
+  if(!p||!tm)return 0;
+  if(ri<=0)return p*tm;
+  if(si>0){
+    var yr=Math.ceil(tm/12);
+    for(var i=0;i<yr;i++){
+      var pm=p*Math.pow(1+si,i),ym=Math.min(12,tm-i*12);
+      for(var j=0;j<ym;j++){var rem=(tm-(i*12+j));fv+=pm*Math.pow(1+ri,rem);}
+    }
+  }else{fv=p*((Math.pow(1+ri,tm)-1)/ri)*(1+ri);}
+  return fv;
+}
+
+function totalInv(p,tm,step){
+  if(!p)return 0;var t=0,si=step/100;
+  if(si>0){var yr=Math.ceil(tm/12);for(var i=0;i<yr;i++){var ym=Math.min(12,tm-i*12);t+=p*Math.pow(1+si,i)*ym;}}
+  else{t=p*tm;}
+  return t;
+}
+
+function lumpsumFV(l,rAnn,tm){
+  if(!l||!tm)return 0;var ri=rAnn/100/12;
+  if(ri<=0)return l;
+  return l*Math.pow(1+ri,tm);
+}
+
+function findSIP(target,rAnn,tm,step){
+  if(!target||!tm)return 0;
+  var lo=0,hi=target,mid,iter=0;
+  while(lo<hi&&iter<200){
+    mid=(lo+hi)/2;
+    var fv=sipFV(mid,rAnn,tm,step);
+    if(Math.abs(fv-target)<0.01)return mid;
+    if(fv<target)lo=mid;else hi=mid;iter++;
+  }
+  return mid||0;
+}
+
+function getSIPParams(){
+  return {
+    p:parseFloat(document.getElementById('sipMonthly').value)||0,
+    l:parseFloat(document.getElementById('sipLumpsum').value)||0,
+    r:parseFloat(document.getElementById('sipRate').value)||0,
+    s:parseFloat(document.getElementById('sipStepup').value)||0,
+    inf:parseFloat(document.getElementById('sipInflation').value)||0,
+    y:parseFloat(document.getElementById('sipYears').value)||0,
+    m:parseFloat(document.getElementById('sipMonths').value)||0
+  };
+}
+
+function calcRow(p,l,r,tm,s,infR){
+  var fvSip=sipFV(p,r,tm,s),fvLump=lumpsumFV(l,r,tm),fv=fvSip+fvLump;
+  var tl=totalInv(p,tm,s)+l,ret=fv-tl;
+  var realFv=fv,realRet=ret;
+  if(infR>0&&tm>0){var df=Math.pow(1+infR/100,tm/12);realFv=fv/df;realRet=realFv-tl;}
+  return {tl:tl,ret:ret,fv:fv,realFv:realFv,realRet:realRet};
+}
+
+function setCurr(){
+  var o=cu[cs.value];csym=o.sym;cloc=o.loc;
+  var syms=document.querySelectorAll('.currency-sym');
+  for(var i=0;i<syms.length;i++)syms[i].textContent=csym;
+  calcSIP();calcGoal();calcSchedule();calcCompare();
+}
+
+function calcSIP(){
+  var d=getSIPParams();
+  var tm=d.y*12+d.m,c=calcRow(d.p,d.l,d.r,tm,d.s,d.inf);
+  document.getElementById('sipInvested').textContent=csym+fmt(c.tl);
+  document.getElementById('sipLsumGrowth').textContent=csym+fmt(lumpsumFV(d.l,d.r,tm)-d.l);
+  document.getElementById('sipReturns').textContent=csym+fmt(c.ret);
+  document.getElementById('sipMaturity').textContent=csym+fmt(c.fv);
+  document.getElementById('sipRealMat').textContent=csym+fmt(c.realFv);
+  document.getElementById('sipRealRet').textContent=csym+fmt(c.realRet);
+}
+
+function calcGoal(){
+  var tg=document.getElementById('goalTarget'),rt=document.getElementById('goalRate');
+  var yr=document.getElementById('goalYears'),mo=document.getElementById('goalMonths'),st=document.getElementById('goalStepup');
+  var gr=document.getElementById('goalRequired'),gi=document.getElementById('goalInvested'),gR=document.getElementById('goalReturns');
+  var target=parseFloat(tg.value)||0,r=parseFloat(rt.value)||0,y=parseFloat(yr.value)||0,m=parseFloat(mo.value)||0,s=parseFloat(st.value)||0;
+  var tm=y*12+m,req=findSIP(target,r,tm,s),fv=sipFV(req,r,tm,s),tl=totalInv(req,tm,s);
+  gr.textContent=csym+fmt(req);gi.textContent=csym+fmt(tl);gR.textContent=csym+fmt(fv-tl);
+}
+
+function calcSchedule(){
+  var d=getSIPParams();
+  var sb=document.getElementById('scheduleBody');
+  var tm=d.y*12+d.m,ri=d.r/100/12,si=d.s/100,html='';
+  if(!d.p||!tm){sb.innerHTML='';return;}
+  var cumInv=0,lsFv=lumpsumFV(d.l,d.r,tm);
+  for(var i=0;i<Math.ceil(tm/12);i++){
+    var ym=Math.min(12,tm-i*12),pm=d.p*Math.pow(1+si,i),yi=pm*ym;
+    var yFv=0;
+    for(var j=0;j<ym;j++){var rem=(tm-(i*12+j));yFv+=pm*Math.pow(1+ri,rem);}
+    cumInv+=yi;
+    html+='<tr><td>'+(i+1)+'</td><td>'+csym+fmt(yi)+'</td><td>'+csym+fmt(cumInv+d.l)+'</td><td>'+csym+fmt(Math.max(0,lsFv+yFv-cumInv-d.l))+'</td><td>'+csym+fmt(lsFv+yFv)+'</td></tr>';
+  }
+  sb.innerHTML=html;
+}
+
+function calcCompare(){
+  var ids=['A','B','C'];
+  for(var i=0;i<ids.length;i++){
+    var id=ids[i];
+    var p=parseFloat(document.getElementById('cmp'+id+'monthly').value)||0;
+    var l=parseFloat(document.getElementById('cmp'+id+'lumpsum').value)||0;
+    var r=parseFloat(document.getElementById('cmp'+id+'rate').value)||0;
+    var s=parseFloat(document.getElementById('cmp'+id+'stepup').value)||0;
+    var y=parseFloat(document.getElementById('cmp'+id+'years').value)||0;
+    var mo=parseFloat(document.getElementById('cmp'+id+'months').value)||0;
+    var tm=y*12+mo,c=calcRow(p,l,r,tm,s,0);
+    document.getElementById('cmp'+id+'invested').textContent=csym+fmt(c.tl);
+    document.getElementById('cmp'+id+'returns').textContent=csym+fmt(c.ret);
+    document.getElementById('cmp'+id+'maturity').textContent=csym+fmt(c.fv);
+  }
+}
+
+cs.addEventListener('change',function(){setCurr();});
+
+var sipIds=['sipMonthly','sipLumpsum','sipRate','sipYears','sipMonths','sipStepup','sipInflation'];
+for(var i=0;i<sipIds.length;i++){var e=document.getElementById(sipIds[i]);if(e)e.addEventListener('input',function(){calcSIP();calcSchedule();});}
+
+var goalIds=['goalTarget','goalRate','goalYears','goalMonths','goalStepup'];
+for(var i=0;i<goalIds.length;i++){var e=document.getElementById(goalIds[i]);if(e)e.addEventListener('input',calcGoal);}
+
+var cmpPrefixes=['A','B','C'];
+var cmpSuffixes=['monthly','lumpsum','rate','stepup','years','months'];
+for(var i=0;i<cmpPrefixes.length;i++){for(var j=0;j<cmpSuffixes.length;j++){var e=document.getElementById('cmp'+cmpPrefixes[i]+cmpSuffixes[j]);if(e)e.addEventListener('input',calcCompare);}}
+
+var tabs=document.querySelectorAll('.tab-btn');
+for(var i=0;i<tabs.length;i++){
+  tabs[i].addEventListener('click',function(){
+    var t=this.getAttribute('data-tab');
+    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');b.setAttribute('aria-selected','false');});
+    this.classList.add('active');this.setAttribute('aria-selected','true');
+    document.querySelectorAll('.tab-content').forEach(function(c){c.classList.add('hidden');c.setAttribute('aria-hidden','true');});
+    var p=document.getElementById('tab-'+t);
+    if(p){p.classList.remove('hidden');p.setAttribute('aria-hidden','false');}
+    if(t==='schedule'||t==='compare'){if(t==='schedule')calcSchedule();if(t==='compare')calcCompare();}
+  });
+}
+
+setCurr();
+})();
 </script>
 
-{{ tool_json_ld({
-  "@context": "https://schema.org",
-  "@graph": [
-    {"@type": "SoftwareApplication", "name": "SIP Calculator", "applicationCategory": "FinanceApplication", "operatingSystem": "Web browser", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}, "description": "Calculate your mutual fund returns instantly with our free SIP Calculator. Estimate your future wealth with Step-Up SIP feature."}
+{% set seo = {
+  "name": "SIP Calculator",
+  "description": "Free advanced SIP calculator with goal planner, step-up SIP, lumpsum + SIP combo, inflation-adjusted returns, scenario comparison, and growth schedule. Estimate mutual fund returns with 16 currencies.",
+  "app_category": "FinanceApplication",
+  "date_modified": "2026-06-27",
+  "faqs": [
+    {"q": "What is an SIP?", "a": "SIP (Systematic Investment Plan) is investing a fixed amount regularly into mutual funds. It builds wealth through rupee-cost averaging and compounding."},
+    {"q": "How does SIP with lumpsum work?", "a": "You can add an initial lumpsum investment alongside your monthly SIP. The lumpsum grows at the same rate as the SIP, compounding from day one. For example, $50,000 lumpsum + $5,000/month for 10 years at 12% creates significantly higher returns than SIP alone."},
+    {"q": "What are inflation-adjusted returns?", "a": "Inflation-adjusted (real) returns show your purchasing power after accounting for inflation. If your investment grows to $1,000,000 in 10 years but inflation averages 6%, the real maturity value is only $558,394 in today's dollars. Enter the expected inflation rate to see both nominal and real returns."},
+    {"q": "What is a step-up SIP?", "a": "A step-up SIP automatically increases your monthly investment by a fixed percentage each year. A 10% step-up means $500/month in year 1, $550 in year 2, $605 in year 3 — helping you invest more as your income grows."},
+    {"q": "How does the Compare tab work?", "a": "The Compare tab lets you evaluate up to 3 investment strategies side by side. Each scenario (A, B, C) has independent monthly amount, lumpsum, return rate, step-up, and tenure. Instantly see which strategy builds the highest corpus."},
+    {"q": "How does the Goal Planner work?", "a": "The Goal Planner reverses the calculation: enter a target amount (e.g., $1,000,000), expected return, and tenure. It calculates the required monthly SIP, including optional step-up."},
+    {"q": "What is the best tenure for SIP?", "a": "Longer tenures (10+ years) maximize compounding. Most advisors recommend 5-7+ years for equity SIPs."},
+    {"q": "How does the Growth Schedule help?", "a": "It shows a year-by-year table of your investment growth: annual investment, cumulative invested, returns, and maturity value — demonstrating the power of compounding."},
+    {"q": "What return rate should I use?", "a": "Equity mutual funds historically average 10-15% annually. Debt funds average 6-9%. Use 10-12% for conservative equity estimates."},
+    {"q": "Is this SIP calculator free?", "a": "Yes, completely free. No sign-up. All calculations run in your browser."}
+  ],
+  "howto_steps": [
+    {"title": "Enter Monthly Amount", "desc": "Type your planned monthly investment. Add an initial lumpsum (optional) for combined growth."},
+    {"title": "Set Return, Step-up & Inflation", "desc": "Enter expected return rate, annual step-up (optional), and inflation rate for real returns."},
+    {"title": "Select Currency", "desc": "Use the currency dropdown to switch between 16 supported currencies."},
+    {"title": "Set Investment Period", "desc": "Enter years and months. Longer periods maximize compounding."},
+    {"title": "Explore All Tabs", "desc": "Goal Planner for target-based planning, Compare for strategy comparison, Growth Schedule for year-by-year table."}
+  ],
+  "howto_calculate": "<p><strong>SIP + Lumpsum:</strong> Total FV = SIP_FV + Lumpsum_FV</p><p><strong>SIP Formula:</strong> FV = P × ((1 + r)^n − 1) / r × (1 + r)</p><p><strong>Lumpsum:</strong> FV = L × (1 + r)^n</p><p><strong>Real Returns:</strong> Real_FV = Nominal_FV / (1 + inflation)^years</p><p><strong>Compare:</strong> Each scenario uses independent parameters for side-by-side evaluation.</p>",
+  "about_title": "About the SIP Calculator",
+  "about_body": "<p>This comprehensive SIP Calculator helps you plan mutual fund investments with 4 integrated tools:</p><p><strong>SIP Calculator:</strong> Standard and step-up SIP with optional lumpsum investment and inflation-adjusted returns. See 6 metrics: total invested, lumpsum growth, maturity value, estimated returns, real maturity, and real returns.</p><p><strong>Goal Planner:</strong> Reverse-calculate the monthly SIP needed to reach a target corpus with optional step-up.</p><p><strong>Compare:</strong> Evaluate 3 investment strategies side by side with independent parameters.</p><p><strong>Growth Schedule:</strong> Year-by-year breakdown of investment growth including lumpsum impact.</p><p>Uses future value of annuity due with monthly compounding. 16 currencies with locale formatting. Free, no sign-up.</p>",
+  "related": [
+    {"name": "FD Calculator", "url": "/tool/fd-calculator"},
+    {"name": "Compound Calculator", "url": "/tool/compound-calculator"},
+    {"name": "Salary Calculator", "url": "/tool/salary-calculator"},
+    {"name": "Budget Calculator", "url": "/tool/budget-calculator"},
+    {"name": "Expense Tracker", "url": "/tool/expense-tracker"},
+    {"name": "Profit Margin Calculator", "url": "/tool/profit-margin-calculator"}
   ]
-}) }}
-
-{{ tool_seo_all(seo_data) }}
+} %}
+{{ tool_seo_all(seo) }}
 {% endblock %}

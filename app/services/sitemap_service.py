@@ -46,10 +46,12 @@ class SitemapService:
             return 0.8
         if slug in ("image-compressor", "image-converter",
                      "image-background-remover", "watermark-remover", "meme-generator",
-                     "qr-generator", "base64-tool", "uuid-generator",
-                     "meta-tag-generator", "open-graph-generator", "schema-generator",
-                     "sitemap-generator", "robots-txt-generator", "api-tester",
-                      "keyword-data-analyzer"):
+                     "qr-generator", "uuid-generator", "base64-tool",
+                       "schema-generator",
+                       "sitemap-generator", "robots-txt-generator", "api-tester",
+                        "keyword-data-analyzer",
+                         "meta-tag-generator",
+                         "open-graph-generator"):
             return 0.8
         return 0.7
 

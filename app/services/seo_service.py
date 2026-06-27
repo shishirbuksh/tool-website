@@ -222,6 +222,71 @@ OVERRIDES: dict[str, dict[str, Any]] = {
             {"q": "What is JSON-LD schema?", "a": "JSON-LD is structured data that helps search engines understand your content and display rich snippets in results."},
         ],
     },
+    "keyword-data-analyzer": {
+        "icon": "search",
+        "app_category": "DeveloperApplication",
+        "faqs": [
+            {"q": "What is Keyword Difficulty?", "a": "Keyword Difficulty (0-100) estimates how hard it is to rank for a keyword in search results. Low (0-30) means easy to rank, Medium (31-60) requires solid content, High (61-80) is challenging, and Very High (81-100) is extremely competitive."},
+            {"q": "How is Traffic Potential calculated?", "a": "Traffic Potential is estimated as Monthly Search Volume multiplied by the expected Click-Through Rate (CTR). Higher difficulty keywords get lower estimated CTR because top-ranking results dominate the clicks."},
+            {"q": "What does the Opportunity Score mean?", "a": "The Opportunity Score (0-100%) combines keyword difficulty and competition level into a single metric. A score of 70% or higher means the keyword is highly recommended — good search volume with manageable competition. Below 40% means it may be difficult to break into."},
+        ],
+        "howto_steps": [
+            {"title": "Enter Keyword", "desc": "Type your target keyword and set the monthly search volume."},
+            {"title": "Set Difficulty & Competition", "desc": "Adjust the keyword difficulty slider and select the competition level based on your research."},
+            {"title": "Review Analysis", "desc": "Read the traffic potential, opportunity score, difficulty label, and verdict. Click Copy Report to save the results."},
+        ],
+        "about_title": "About the Keyword Data Analyzer",
+        "about_body": "<p>The Keyword Data Analyzer helps content planners and SEO professionals evaluate keyword opportunities. Enter a keyword with its estimated search volume, difficulty score (0-100), and competition level, and get instant analysis including traffic potential, opportunity score, and a clear verdict.</p><p>All calculations happen entirely in your browser — no data is sent to any server. Your recent analyses are saved locally for reference.</p>",
+    },
+    "base64-tool": {
+        "icon": "lock",
+        "app_category": "DeveloperApplication",
+        "faqs": [
+            {"q": "How do I encode text to Base64?", "a": "Select Encode mode, type or paste your text in the input box, and the encoded Base64 string appears instantly. Click Copy to copy it to your clipboard."},
+            {"q": "How do I decode Base64 back to text?", "a": "Select Decode mode, paste the Base64 string into the input box, and the decoded text appears instantly. If you see an error, check that the input is valid Base64 with correct padding."},
+            {"q": "Is my data sent to a server?", "a": "No. All encoding and decoding happens entirely in your browser using JavaScript's built-in btoa() and atob() functions. Your data never leaves your device."},
+            {"q": "Why do I get a decoding error?", "a": "Decoding errors usually mean the input is not valid Base64. Base64 strings must use A-Z, a-z, 0-9, +, / characters and have proper padding (= signs at the end)."},
+        ],
+        "howto_steps": [
+            {"title": "Choose Mode", "desc": "Select Encode to convert text to Base64, or Decode to convert Base64 back to text."},
+            {"title": "Enter Input", "desc": "Type or paste your text into the input box. The result updates automatically as you type."},
+            {"title": "Copy Result", "desc": "Click the Copy button to copy the encoded or decoded result to your clipboard."},
+        ],
+        "about_title": "About the Base64 Tool",
+        "about_body": "<p>The Base64 Tool lets you encode plain text to Base64 format or decode Base64 strings back to readable text. All processing happens locally in your browser using the built-in <code>btoa()</code> and <code>atob()</code> functions — your data never leaves your device.</p><p>Base64 encoding is commonly used for embedding binary data in text formats like JSON, HTML, or URLs. This tool makes it easy to quickly encode or decode without any external dependencies or server calls.</p>",
+    },
+    "meta-tag-generator": {
+        "icon": "tags",
+        "app_category": "DeveloperApplication",
+        "faqs": [
+            {"q": "What are meta tags and why are they important for SEO?", "a": "Meta tags are HTML elements that provide search engines with information about your web page. The most important ones are the title tag and meta description, which appear in search results and influence click-through rates."},
+            {"q": "What is Open Graph (OG) and how does it help?", "a": "Open Graph tags control how your content appears when shared on social media platforms like Facebook, LinkedIn, and Twitter. Proper OG tags ensure your page shows the right title, description, and image in social shares."},
+            {"q": "Do I need both OG tags and Twitter cards?", "a": "Twitter falls back to OG tags when Twitter card tags are missing, but adding both ensures optimal display across all platforms. Twitter cards also support additional features like large image cards."},
+        ],
+        "howto_steps": [
+            {"title": "Fill in Page Details", "desc": "Enter your page title, meta description, keywords, URL, site name, OG image URL, and optional Twitter handle."},
+            {"title": "Preview SERP Result", "desc": "Watch the Google-style search result preview update in real-time as you type. Check that the title and description are compelling."},
+            {"title": "Copy the Meta Tags", "desc": "Click the Copy Tags button to copy the complete HTML meta tags to your clipboard. Paste them into the head section of your HTML page."},
+        ],
+        "about_title": "About the Meta Tag Generator",
+        "about_body": "<p>The Meta Tag Generator helps web developers, content creators, and SEO professionals create properly formatted HTML meta tags for their web pages. Enter your page details and get instant output with title tags, meta descriptions, Open Graph tags for social sharing, and Twitter card tags.</p><p>The tool includes a live SERP preview so you can see how your page will appear in Google search results before publishing. All processing happens entirely in your browser — no data is sent to any server.</p>",
+    },
+    "open-graph-generator": {
+        "icon": "share-2",
+        "app_category": "DeveloperApplication",
+        "faqs": [
+            {"q": "What is Open Graph and why is it important?", "a": "Open Graph (OG) is a protocol that lets you control how your web pages appear on social media platforms like Facebook, LinkedIn, and Twitter. Adding OG meta tags ensures your content shows the correct title, description, and image when shared."},
+            {"q": "What is the difference between OG tags and Twitter cards?", "a": "OG tags control how your page appears on Facebook, LinkedIn, and other platforms. Twitter cards are similar but specific to Twitter. While Twitter falls back to OG tags if Twitter card tags are missing, adding both gives you optimal control over Twitter display."},
+            {"q": "What size should my OG image be?", "a": "The recommended OG image size is 1200x630 pixels. This ensures optimal display across Facebook, Twitter, and LinkedIn. The image should be less than 5MB and use JPEG or PNG format for best results."},
+        ],
+        "howto_steps": [
+            {"title": "Enter Page Details", "desc": "Fill in the OG title, description, image URL, page URL, site name, and optional Twitter handle."},
+            {"title": "Preview Social Cards", "desc": "Switch between Facebook and Twitter preview tabs to see how your page will appear when shared on each platform."},
+            {"title": "Copy OG Tags", "desc": "Click the Copy button to copy the generated Open Graph and Twitter card tags. Paste them into the head section of your HTML page."},
+        ],
+        "about_title": "About the Open Graph Generator",
+        "about_body": "<p>The Open Graph Generator helps web developers and content creators create proper OG meta tags and Twitter cards for their web pages. Enter your page details and see live previews of how your content will look when shared on Facebook and Twitter.</p><p>All processing happens entirely in your browser — no data is sent to any server. The tool generates both Open Graph (og:) and Twitter Card meta tags ready to paste into your HTML head section.</p>",
+    },
     "api-tester": {
         "icon": "globe",
         "app_category": "DeveloperApplication",
@@ -229,10 +294,6 @@ OVERRIDES: dict[str, dict[str, Any]] = {
     "sip-calculator": {
         "icon": "trending-up",
         "app_category": "FinanceApplication",
-    },
-    "base64-tool": {
-        "icon": "terminal",
-        "app_category": "DeveloperApplication",
     },
     "uuid-generator": {
         "icon": "fingerprint",

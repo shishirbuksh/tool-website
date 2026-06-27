@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from app.core.icons import LUCIDE_PATH, _cache, lucide_icon
+from app.core.icons import JSON_PATH, _cache, lucide_icon
 
 
 class TestLucideIcon:
@@ -15,7 +15,7 @@ class TestLucideIcon:
         assert 'not found' in result
 
     def test_icon_caches_result(self):
-        if not os.path.isdir(LUCIDE_PATH):
+        if not os.path.isdir(JSON_PATH):
             pytest.skip("lucide-static not installed")
         result1 = lucide_icon("home")
         result2 = lucide_icon("home")
@@ -23,7 +23,7 @@ class TestLucideIcon:
         assert 'icon-missing' not in result1
 
     def test_icon_with_class_and_size(self):
-        if not os.path.isdir(LUCIDE_PATH):
+        if not os.path.isdir(JSON_PATH):
             pytest.skip("lucide-static not installed")
         result = lucide_icon("home", class_name="my-icon", size=32)
         assert 'class="my-icon"' in result
@@ -32,7 +32,7 @@ class TestLucideIcon:
         assert 'aria-hidden="true"' in result
 
     def test_cache_hit_returns_same(self):
-        if not os.path.isdir(LUCIDE_PATH):
+        if not os.path.isdir(JSON_PATH):
             pytest.skip("lucide-static not installed")
         result1 = lucide_icon("home", class_name="x")
         result2 = lucide_icon("home", class_name="x")

@@ -55,7 +55,11 @@ class CryptoService:
         if self._rust_predictor is None:
             try:
                 import rust_predictor
-                self._rust_predictor = rust_predictor
+                if hasattr(rust_predictor, "train_and_predict"):
+                    self._rust_predictor = rust_predictor
+                else:
+                    logger.warning("rust_predictor native module not compiled — predictions will be degraded")
+                    self._rust_predictor = False
             except Exception:
                 logger.warning("rust_predictor not available — predictions will be degraded")
                 self._rust_predictor = False

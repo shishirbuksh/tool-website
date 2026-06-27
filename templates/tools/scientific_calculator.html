@@ -1,110 +1,661 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
 
-{% block title %}Free Scientific Calculator Online | Advanced Math{% endblock %}
-{% block meta_description %}Solve complex math problems with our free online scientific calculator. Trigonometry, logarithms, factorials, and more. No download required.{% endblock %}
-{% block meta_keywords %}scientific advanced, scientific advanced tool, scientific advanced free, free online scientific advanced, storybrain ai{% endblock %}
+{% block title %}Scientific Calculator - Free Online Advanced Math & Graph Calculator{% endblock %}
+{% block meta_description %}Free online scientific calculator with trigonometry, logarithms, exponentials, hyperbolic functions, memory, interactive function graph plotter, equation solver, and calculation history. Supports DEG/RAD modes and keyboard input.{% endblock %}
+{% block meta_keywords %}scientific calculator, online calculator, trig calculator, math solver, trigonometry, logarithm, exponential, algebra calculator, quadratic solver, equation solver, function grapher, graph plotter, math graph{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/scientific-calculator{% endblock %}
+
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/scientific-calculator">
-<meta property="og:title" content="Scientific Calculator - Free Online Tool">
-<meta property="og:description" content="Solve complex math problems with our free online scientific calculator.">
-<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta property="og:title" content="Scientific Calculator - Free Online Advanced Math Calculator">
+<meta property="og:description" content="Free online scientific calculator with trigonometry, logarithms, exponentials, hyperbolic functions, memory, equation solver, and calculation history.">
 {% endblock %}
-{% block head %}{% endblock %}
+
+{% block head %}
+<style>
+.sci-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.375rem}
+.sci-btn{padding:.5rem .25rem;border-radius:.625rem;font-weight:700;text-align:center;cursor:pointer;transition:all .15s;border:1px solid color-mix(in oklab,var(--color-base-content) 8%,transparent);background:color-mix(in oklab,var(--color-base-100) 60%,var(--color-base-200));color:var(--color-base-content);user-select:none;font-size:.75rem;line-height:1.2;min-height:2.5rem;display:flex;align-items:center;justify-content:center}
+.sci-btn:hover{background:color-mix(in oklab,var(--color-base-content) 10%,transparent);border-color:color-mix(in oklab,var(--color-primary) 30%,transparent)}
+.sci-btn:active{transform:scale(.95)}
+.sci-btn.op{background:color-mix(in oklab,var(--color-primary) 15%,transparent);color:var(--color-primary);border-color:color-mix(in oklab,var(--color-primary) 25%,transparent);font-size:1rem}
+.sci-btn.op:hover{background:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.sci-btn.fn{font-size:.65rem;color:var(--color-base-content);opacity:.7}
+.sci-btn.fn:hover{opacity:1}
+.sci-btn.eq{background:var(--color-primary);color:var(--color-primary-content);border-color:var(--color-primary);font-size:1.25rem}
+.sci-btn.eq:hover{background:color-mix(in oklab,var(--color-primary) 80%,black)}
+.sci-btn.cl{color:var(--color-error);font-size:.75rem}
+.sci-btn.cl:hover{background:color-mix(in oklab,var(--color-error) 10%,transparent);border-color:color-mix(in oklab,var(--color-error) 25%,transparent)}
+.sci-btn.mem{font-size:.65rem;opacity:.6}
+.sci-btn.mem:hover{opacity:1}
+.sci-btn.cons{font-size:.6rem;opacity:.7;min-height:1.8rem;padding:.2rem .15rem}
+.sci-btn.cons:hover{opacity:1}
+.display-area{background:color-mix(in oklab,var(--color-base-100) 50%,var(--color-base-200));border-radius:1rem;padding:.75rem 1rem;text-align:right;border:1px solid color-mix(in oklab,var(--color-base-content) 6%,transparent);min-height:4rem}
+.display-expr{font-size:.8rem;color:var(--color-base-content);opacity:.4;font-family:monospace;min-height:1.2rem;word-break:break-all}
+.display-main{font-size:2rem;font-weight:900;font-family:monospace;letter-spacing:-.02em;color:var(--color-base-content);line-height:1.2;word-break:break-all}
+.display-mode{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.4;padding:.15rem .5rem;border-radius:4px;border:1px solid color-mix(in oklab,var(--color-base-content) 10%,transparent)}
+.display-memory{font-size:.6rem;font-weight:700;opacity:.4}
+.tab-btn{color:var(--color-base-content);opacity:.45;cursor:pointer;transition:all .3s;background:0 0;border:2px solid color-mix(in oklab,var(--color-base-content) 12%,transparent);padding:.5rem 1rem;border-radius:.75rem;font-size:.75rem;font-weight:700;letter-spacing:.025em;text-transform:uppercase;flex:1;text-align:center}
+.tab-btn.active,.tab-btn:hover{opacity:1;background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary);border-color:var(--color-primary)}
+.tab-content.hidden{display:none}
+.hist-item{padding:.35rem .6rem;border-radius:.5rem;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:all .12s;font-size:.8rem;border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 4%,transparent)}
+.hist-item:hover{background:color-mix(in oklab,var(--color-primary) 8%,transparent)}
+.hist-expr{opacity:.6;font-family:monospace}
+.hist-result{font-weight:700;font-family:monospace}
+.step-box{padding:.5rem .75rem;border-radius:.5rem;background:color-mix(in oklab,var(--color-base-100) 50%,var(--color-base-200));font-size:.8rem;line-height:1.5;border:1px solid color-mix(in oklab,var(--color-base-content) 6%,transparent)}
+.step-box strong{color:var(--color-primary)}
+.solve-card{border:1px solid color-mix(in oklab,var(--color-base-content) 8%,transparent);border-radius:.75rem;padding:.75rem}
+.input-solve{background-color:color-mix(in oklab,var(--color-base-100) 85%,var(--color-base-300));border-color:var(--color-base-content);color:var(--color-base-content);font-weight:700;width:100%;border-radius:.75rem;padding:.5rem .75rem;font-size:.9rem;text-align:center}
+.input-solve:focus{border-color:var(--color-primary);box-shadow:0 0 0 3px color-mix(in oklab,var(--color-primary) 25%,transparent);outline:none}
+.gfunc-item{display:flex;align-items:center;gap:.5rem;padding:.25rem .5rem;border-radius:.5rem;transition:all .12s}
+.gfunc-item:hover{background:color-mix(in oklab,var(--color-base-content) 5%,transparent)}
+.gfunc-swatch{width:.75rem;height:.75rem;border-radius:999px;flex-shrink:0}
+.gfunc-expr{flex:1;font-family:monospace;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gfunc-btn{font-size:.65rem;opacity:.4;cursor:pointer;transition:opacity .12s;background:none;border:none;padding:0 .25rem;color:inherit}
+.gfunc-btn:hover{opacity:1}
+.gfunc-btn.del:hover{color:var(--color-error)}
+</style>
+{% endblock %}
+
 {% block content %}
-{{ tool_hero_section("flask-conical", "Math Engine", "FREE SCIENTIFIC", "CALCULATOR", "Advanced Precision Computing — solve complex math problems instantly.") }}
-<div class="max-w-md mx-auto px-4 reveal" style="animation-delay:0.2s">
-  <div class="card-premium rounded-2xl p-5 md:p-6 shadow-premium">
-    <div class="rounded-2xl p-6 md:p-8 mb-6 border border-base-content/5 shadow-[inset_0_4px_20px_rgba(0,0,0,0.4)] text-right relative overflow-hidden" style="background:color-mix(in oklab, var(--color-base-content) 5%, var(--color-base-100))">
-      <div id="calc-history" class="text-primary/40 font-mono text-xs mb-2 h-4 tracking-widest"></div>
-      <div id="calc-display" class="text-4xl md:text-5xl font-black font-mono tracking-tighter">0</div>
+{{ tool_hero_section("flask-conical","Math Engine","SCIENTIFIC","CALCULATOR","Advanced scientific calculator with trig, logs, exponentials, hyperbolic functions, memory, equation solver, constants library, interactive graph plotter, and calculation history.") }}
+
+<div class="max-w-lg mx-auto reveal">
+  <div class="glass-card rounded-2xl p-4 md:p-5 mb-4">
+    <div class="flex flex-wrap gap-2 mb-4" role="tablist">
+      <button class="tab-btn active" data-tab="calc" role="tab" aria-selected="true" aria-controls="tab-calc">Calculator</button>
+      <button class="tab-btn" data-tab="solve" role="tab" aria-selected="false" aria-controls="tab-solve">Solver</button>
+      <button class="tab-btn" data-tab="graph" role="tab" aria-selected="false" aria-controls="tab-graph">Graph</button>
     </div>
-    <div class="grid grid-cols-5 gap-2.5" id="calcButtons">
-      <button data-calc="sin" class="btn-cinematic focus-ring rounded-xl text-[10px] py-3 font-bold tracking-wider opacity-40 hover:opacity-80">sin</button>
-      <button data-calc="cos" class="btn-cinematic focus-ring rounded-xl text-[10px] py-3 font-bold tracking-wider opacity-40 hover:opacity-80">cos</button>
-      <button data-calc="tan" class="btn-cinematic focus-ring rounded-xl text-[10px] py-3 font-bold tracking-wider opacity-40 hover:opacity-80">tan</button>
-      <button data-calc="sqrt" class="btn-cinematic focus-ring rounded-xl text-[10px] py-3 font-bold tracking-wider opacity-40 hover:opacity-80">&radic;x</button>
-      <button data-calc="op-^" class="btn-cinematic focus-ring rounded-xl text-[10px] py-3 font-bold tracking-wider opacity-40 hover:opacity-80">x<sup>y</sup></button>
-      <button data-calc="asin" class="btn-cinematic focus-ring rounded-xl text-[9px] py-2.5 font-bold opacity-30 hover:opacity-60">sin⁻¹</button>
-      <button data-calc="acos" class="btn-cinematic focus-ring rounded-xl text-[9px] py-2.5 font-bold opacity-30 hover:opacity-60">cos⁻¹</button>
-      <button data-calc="atan" class="btn-cinematic focus-ring rounded-xl text-[9px] py-2.5 font-bold opacity-30 hover:opacity-60">tan⁻¹</button>
-      <button data-calc="log" class="btn-cinematic focus-ring rounded-xl text-[9px] py-2.5 font-bold opacity-30 hover:opacity-60">log</button>
-      <button data-calc="ln" class="btn-cinematic focus-ring rounded-xl text-[9px] py-2.5 font-bold opacity-30 hover:opacity-60">ln</button>
-      <div class="col-span-5 h-px bg-base-content/5 my-1"></div>
-      <button data-calc="const-pi" class="btn-cinematic focus-ring rounded-xl text-sm font-bold py-3 shadow-[0_2px_6px_rgba(0,0,0,0.12),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_6px_20px_rgba(0,0,0,0.18),0_1px_3px_rgba(255,255,255,0.05)_inset]">&pi;</button>
-      <button data-calc="const-e" class="btn-cinematic focus-ring rounded-xl text-sm font-bold py-3 shadow-[0_2px_6px_rgba(0,0,0,0.12),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_6px_20px_rgba(0,0,0,0.18),0_1px_3px_rgba(255,255,255,0.05)_inset]">e</button>
-      <button data-calc="fact" class="btn-cinematic focus-ring rounded-xl text-sm font-bold py-3 shadow-[0_2px_6px_rgba(0,0,0,0.12),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_6px_20px_rgba(0,0,0,0.18),0_1px_3px_rgba(255,255,255,0.05)_inset]">x!</button>
-      <button data-calc="percent" class="btn-cinematic focus-ring rounded-xl text-sm font-bold py-3 shadow-[0_2px_6px_rgba(0,0,0,0.12),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_6px_20px_rgba(0,0,0,0.18),0_1px_3px_rgba(255,255,255,0.05)_inset]">%</button>
-      <button data-calc="op-/" class="btn-cinematic focus-ring rounded-xl bg-primary text-primary-content text-lg font-black py-3.5 shadow-[0_4px_12px_rgba(99,102,241,0.3),0_1px_2px_rgba(255,255,255,0.05)_inset] hover:shadow-[0_8px_25px_rgba(99,102,241,0.4),0_1px_3px_rgba(255,255,255,0.06)_inset]">&divide;</button>
-      <button data-calc="digit-7" class="btn-cinematic focus-ring rounded-xl text-lg font-black py-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.15),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_8px_25px_rgba(0,0,0,0.2),0_1px_3px_rgba(255,255,255,0.05)_inset] bg-base-300/10">7</button>
-      <button data-calc="digit-8" class="btn-cinematic focus-ring rounded-xl text-lg font-black py-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.15),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_8px_25px_rgba(0,0,0,0.2),0_1px_3px_rgba(255,255,255,0.05)_inset] bg-base-300/10">8</button>
-      <button data-calc="digit-9" class="btn-cinematic focus-ring rounded-xl text-lg font-black py-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.15),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_8px_25px_rgba(0,0,0,0.2),0_1px_3px_rgba(255,255,255,0.05)_inset] bg-base-300/10">9</button>
-      <button data-calc="toggle-sign" class="btn-cinematic focus-ring rounded-xl text-xs font-bold py-[18px] shadow-[0_2px_6px_rgba(0,0,0,0.12),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_6px_20px_rgba(0,0,0,0.18),0_1px_3px_rgba(255,255,255,0.05)_inset]">+/−</button>
-      <button data-calc="op-*" class="btn-cinematic focus-ring rounded-xl bg-primary text-primary-content text-lg font-black py-3.5 shadow-[0_4px_12px_rgba(99,102,241,0.3),0_1px_2px_rgba(255,255,255,0.05)_inset] hover:shadow-[0_8px_25px_rgba(99,102,241,0.4),0_1px_3px_rgba(255,255,255,0.06)_inset]">&times;</button>
-      <button data-calc="digit-4" class="btn-cinematic focus-ring rounded-xl text-lg font-black py-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.15),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_8px_25px_rgba(0,0,0,0.2),0_1px_3px_rgba(255,255,255,0.05)_inset] bg-base-300/10">4</button>
-      <button data-calc="digit-5" class="btn-cinematic focus-ring rounded-xl text-lg font-black py-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.15),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_8px_25px_rgba(0,0,0,0.2),0_1px_3px_rgba(255,255,255,0.05)_inset] bg-base-300/10">5</button>
-      <button data-calc="digit-6" class="btn-cinematic focus-ring rounded-xl text-lg font-black py-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.15),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_8px_25px_rgba(0,0,0,0.2),0_1px_3px_rgba(255,255,255,0.05)_inset] bg-base-300/10">6</button>
-      <button data-calc="clear" class="btn-cinematic focus-ring rounded-xl text-xs font-black py-[18px] shadow-[0_2px_6px_rgba(0,0,0,0.12),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_6px_20px_rgba(0,0,0,0.18),0_1px_3px_rgba(255,255,255,0.05)_inset] text-error">AC</button>
-      <button data-calc="op--" class="btn-cinematic focus-ring rounded-xl bg-primary text-primary-content text-lg font-black py-3.5 shadow-[0_4px_12px_rgba(99,102,241,0.3),0_1px_2px_rgba(255,255,255,0.05)_inset] hover:shadow-[0_8px_25px_rgba(99,102,241,0.4),0_1px_3px_rgba(255,255,255,0.06)_inset]">&minus;</button>
-      <button data-calc="digit-1" class="btn-cinematic focus-ring rounded-xl text-lg font-black py-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.15),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_8px_25px_rgba(0,0,0,0.2),0_1px_3px_rgba(255,255,255,0.05)_inset] bg-base-300/10">1</button>
-      <button data-calc="digit-2" class="btn-cinematic focus-ring rounded-xl text-lg font-black py-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.15),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_8px_25px_rgba(0,0,0,0.2),0_1px_3px_rgba(255,255,255,0.05)_inset] bg-base-300/10">2</button>
-      <button data-calc="digit-3" class="btn-cinematic focus-ring rounded-xl text-lg font-black py-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.15),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_8px_25px_rgba(0,0,0,0.2),0_1px_3px_rgba(255,255,255,0.05)_inset] bg-base-300/10">3</button>
-      <button data-calc="backspace" class="btn-cinematic focus-ring rounded-xl text-sm py-[18px] shadow-[0_2px_6px_rgba(0,0,0,0.12),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_6px_20px_rgba(0,0,0,0.18),0_1px_3px_rgba(255,255,255,0.05)_inset]" aria-label="Backspace">{{ lucide_icon("delete","w-4 h-4", 16) | safe }}</button>
-      <button data-calc="op-+" class="btn-cinematic focus-ring rounded-xl bg-primary text-primary-content text-lg font-black py-3.5 shadow-[0_4px_12px_rgba(99,102,241,0.3),0_1px_2px_rgba(255,255,255,0.05)_inset] hover:shadow-[0_8px_25px_rgba(99,102,241,0.4),0_1px_3px_rgba(255,255,255,0.06)_inset]">+</button>
-      <button data-calc="digit-0" class="btn-cinematic focus-ring rounded-xl text-lg font-black py-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.15),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_8px_25px_rgba(0,0,0,0.2),0_1px_3px_rgba(255,255,255,0.05)_inset] bg-base-300/10 col-span-2" aria-label="0">0</button>
-      <button data-calc="decimal" class="btn-cinematic focus-ring rounded-xl text-lg font-black py-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.15),0_1px_2px_rgba(255,255,255,0.03)_inset] hover:shadow-[0_8px_25px_rgba(0,0,0,0.2),0_1px_3px_rgba(255,255,255,0.05)_inset] bg-base-300/10">.</button>
-      <button data-calc="result" class="btn-cinematic focus-ring rounded-xl bg-primary text-primary-content text-2xl font-black col-span-2 py-5 shadow-[0_8px_25px_rgba(99,102,241,0.35),0_1px_3px_rgba(255,255,255,0.06)_inset] hover:shadow-[0_12px_40px_rgba(99,102,241,0.5),0_1px_4px_rgba(255,255,255,0.08)_inset]" aria-label="Equals">=</button>
+  </div>
+
+  <div id="tab-calc" class="tab-content" role="tabpanel">
+    <div class="glass-card rounded-2xl p-4 md:p-5">
+      <div class="display-area mb-2">
+        <div class="flex justify-between items-center mb-1">
+          <div class="flex gap-2 items-center">
+            <span id="sciMode" class="display-mode">DEG</span>
+            <span id="sciMem" class="display-memory"></span>
+          </div>
+          <div class="display-expr" id="sciExpr"></div>
+        </div>
+        <div class="display-main" id="sciDisplay">0</div>
+      </div>
+
+      <div class="sci-grid mb-2">
+        <button class="sci-btn cons" data-action="const-c">c</button>
+        <button class="sci-btn cons" data-action="const-h">h</button>
+        <button class="sci-btn cons" data-action="const-G">G</button>
+        <button class="sci-btn cons" data-action="const-g">g</button>
+        <button class="sci-btn cons" data-action="const-atm">atm</button>
+        <button class="sci-btn cons" data-action="const-R">R</button>
+        <button class="sci-btn cons" data-action="const-k">k</button>
+        <button class="sci-btn cons" data-action="const-NA">N<sub>A</sub></button>
+        <button class="sci-btn cons" data-action="const-me">m<sub>e</sub></button>
+        <button class="sci-btn cons" data-action="const-mp">m<sub>p</sub></button>
+      </div>
+
+      <div class="space-y-1.5">
+        <div class="sci-grid">
+          <button class="sci-btn fn" data-action="left-paren">(</button>
+          <button class="sci-btn fn" data-action="right-paren">)</button>
+          <button class="sci-btn mem" data-action="mc">MC</button>
+          <button class="sci-btn mem" data-action="mr">MR</button>
+          <button class="sci-btn mem" data-action="mplus">M+</button>
+        </div>
+        <div class="sci-grid">
+          <button class="sci-btn fn" data-action="deg-rad">DEG</button>
+          <button class="sci-btn fn" data-action="inv">INV</button>
+          <button class="sci-btn fn" data-action="const-pi">π</button>
+          <button class="sci-btn fn" data-action="const-e">e</button>
+          <button class="sci-btn fn" data-action="fact">x!</button>
+        </div>
+        <div class="sci-grid">
+          <button class="sci-btn fn" data-action="sin">sin</button>
+          <button class="sci-btn fn" data-action="cos">cos</button>
+          <button class="sci-btn fn" data-action="tan">tan</button>
+          <button class="sci-btn fn" data-action="pow2">x²</button>
+          <button class="sci-btn fn" data-action="invx">1/x</button>
+        </div>
+        <div class="sci-grid">
+          <button class="sci-btn fn" data-action="log">log</button>
+          <button class="sci-btn fn" data-action="ln">ln</button>
+          <button class="sci-btn fn" data-action="sqrt">√</button>
+          <button class="sci-btn fn" data-action="pow3">x³</button>
+          <button class="sci-btn fn" data-action="powY">xʸ</button>
+        </div>
+        <div class="sci-grid">
+          <button class="sci-btn fn" data-action="sinh">sinh</button>
+          <button class="sci-btn fn" data-action="cosh">cosh</button>
+          <button class="sci-btn fn" data-action="tanh">tanh</button>
+          <button class="sci-btn fn" data-action="tenX">10ˣ</button>
+          <button class="sci-btn fn" data-action="eX">eˣ</button>
+        </div>
+        <hr class="border-base-content/8 my-1">
+        <div class="sci-grid">
+          <button class="sci-btn fn" data-action="asin">sin⁻¹</button>
+          <button class="sci-btn fn" data-action="acos">cos⁻¹</button>
+          <button class="sci-btn fn" data-action="atan">tan⁻¹</button>
+          <button class="sci-btn fn" data-action="cbrt">∛</button>
+          <button class="sci-btn fn" data-action="rootY">ʸ√x</button>
+        </div>
+        <div class="sci-grid">
+          <button class="sci-btn cl" data-action="clear">AC</button>
+          <button class="sci-btn cl" data-action="backspace">⌫</button>
+          <button class="sci-btn op" data-action="percent">%</button>
+          <button class="sci-btn op" data-action="toggle-sign">±</button>
+          <button class="sci-btn op" data-action="op-÷">÷</button>
+        </div>
+        <div class="sci-grid">
+          <button class="sci-btn" data-action="7">7</button>
+          <button class="sci-btn" data-action="8">8</button>
+          <button class="sci-btn" data-action="9">9</button>
+          <button class="sci-btn op" data-action="op-×">×</button>
+          <button class="sci-btn op" data-action="op-−">−</button>
+        </div>
+        <div class="sci-grid">
+          <button class="sci-btn" data-action="4">4</button>
+          <button class="sci-btn" data-action="5">5</button>
+          <button class="sci-btn" data-action="6">6</button>
+          <button class="sci-btn op" data-action="op-+">+</button>
+          <button class="sci-btn eq" data-action="equals">=</button>
+        </div>
+        <div class="sci-grid">
+          <button class="sci-btn" data-action="0">0</button>
+          <button class="sci-btn" data-action="decimal">.</button>
+          <button class="sci-btn fn" data-action="mminus">M−</button>
+          <button class="sci-btn fn" data-action="ms">MS</button>
+          <button class="sci-btn fn" data-action="pi-e">⏎</button>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <button id="histToggle" class="w-full text-[11px] uppercase tracking-[.15em] font-bold opacity-40 hover:opacity-80 transition-opacity py-1">History ({count})</button>
+        <div id="histPanel" class="hidden max-h-32 overflow-y-auto text-sm" style="scrollbar-width:thin"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-solve" class="tab-content hidden" role="tabpanel">
+    <div class="glass-card rounded-2xl p-5 md:p-6">
+      <p class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/40 mb-4">Solve quadratic and linear equations with step-by-step breakdown</p>
+      <div class="flex gap-2 mb-4">
+        <button id="solveModeQuad" class="tab-btn active flex-1" style="border-radius:.5rem;padding:.35rem .75rem;font-size:.7rem">Quadratic</button>
+        <button id="solveModeLin" class="tab-btn flex-1" style="border-radius:.5rem;padding:.35rem .75rem;font-size:.7rem">Linear</button>
+      </div>
+      <div id="solveQuad">
+        <p class="text-center text-lg font-bold font-mono mb-4">ax² + bx + c = 0</p>
+        <div class="grid grid-cols-3 gap-3 mb-4">
+          <div><label class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-1 text-center">a =</label><input type="number" id="solveA" class="input-solve" value="1" step="any"></div>
+          <div><label class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-1 text-center">b =</label><input type="number" id="solveB" class="input-solve" value="-3" step="any"></div>
+          <div><label class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-1 text-center">c =</label><input type="number" id="solveC" class="input-solve" value="2" step="any"></div>
+        </div>
+      </div>
+      <div id="solveLin" class="hidden">
+        <p class="text-center text-lg font-bold font-mono mb-4">ax + b = 0</p>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div><label class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-1 text-center">a =</label><input type="number" id="linA" class="input-solve" value="2" step="any"></div>
+          <div><label class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-1 text-center">b =</label><input type="number" id="linB" class="input-solve" value="-6" step="any"></div>
+        </div>
+      </div>
+      <div id="solveSteps" class="space-y-2"></div>
+      <div id="solveResults" class="grid grid-cols-2 gap-3 mt-4"></div>
+    </div>
+  </div>
+
+  <!-- Tab 3: Graph Plotter -->
+  <div id="tab-graph" class="tab-content hidden" role="tabpanel">
+    <div class="glass-card rounded-2xl p-4 md:p-5">
+      <p class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/40 mb-3">Plot y = f(x) functions on an interactive graph</p>
+
+      <div class="flex gap-2 mb-3">
+        <input id="graphInput" type="text" placeholder="f(x) = sin(x)" class="input-visible flex-1 min-w-0 px-3 py-2 rounded-xl text-sm font-mono">
+        <input type="color" id="graphColor" value="#3b82f6" class="w-9 h-9 rounded-xl cursor-pointer border-0 p-0.5 flex-shrink-0" title="Line color">
+        <button id="graphPlotBtn" class="btn btn-primary btn-sm rounded-xl px-4 font-bold flex-shrink-0" style="min-height:2.25rem">Plot</button>
+      </div>
+
+      <div id="graphFuncList" class="mb-3 space-y-0.5 max-h-28 overflow-y-auto" style="scrollbar-width:thin"><div class="text-[11px] opacity-40 italic text-center py-1">No functions plotted. Enter an expression and click Plot.</div></div>
+
+      <div class="relative rounded-xl overflow-hidden bg-base-200/30" style="aspect-ratio:7/4;min-height:200px">
+        <canvas id="graphCanvas" class="w-full h-full cursor-crosshair"></canvas>
+        <div id="graphCoords" class="absolute bottom-2 left-2 text-[10px] font-mono opacity-60 px-2 py-1 rounded bg-base-100/60 pointer-events-none">x: 0.00  y: 0.00</div>
+        <div id="graphLoading" class="absolute inset-0 flex items-center justify-center text-sm opacity-40 pointer-events-none">Loading graph...</div>
+      </div>
+
+      <div class="flex justify-center gap-2 mt-2">
+        <button id="graphZoomIn" class="sci-btn fn" style="min-height:1.8rem;padding:.3rem .7rem;font-size:.7rem">Zoom +</button>
+        <button id="graphZoomOut" class="sci-btn fn" style="min-height:1.8rem;padding:.3rem .7rem;font-size:.7rem">Zoom −</button>
+        <button id="graphFit" class="sci-btn fn" style="min-height:1.8rem;padding:.3rem .7rem;font-size:.7rem">Fit</button>
+        <button id="graphReset" class="sci-btn fn" style="min-height:1.8rem;padding:.3rem .7rem;font-size:.7rem">Reset</button>
+      </div>
+
+      <div class="text-[10px] opacity-40 text-center mt-2">Drag to pan · Scroll to zoom · Hover to trace coordinates</div>
     </div>
   </div>
 </div>
+
 <script>
-(function(){
-'use strict';
-let displayValue='0';let firstOperand=null;let waitingForSecondOperand=false;let operator=null;let historyStr='';const displayElement=document.getElementById('calc-display');const historyElement=document.getElementById('calc-history');function updateDisplay(pop=false){let showVal=displayValue;if(showVal.length>12){const num=parseFloat(showVal);if(!isNaN(num))showVal=num.toPrecision(8).replace(/(?:\.0+|(\.\d+?)0+)$/,'$1');}
-displayElement.textContent=showVal;historyElement.textContent=historyStr;if(pop){displayElement.style.transform='scale(1.05)';displayElement.style.color='var(--color-primary)';setTimeout(function(){displayElement.style.transform='scale(1)';displayElement.style.color='';},100);}}
-function inputDigit(digit){if(waitingForSecondOperand){displayValue=digit;waitingForSecondOperand=false;}
-else displayValue=displayValue==='0'?digit:displayValue+digit;updateDisplay();}
-function inputDecimal(){if(waitingForSecondOperand){displayValue='0.';waitingForSecondOperand=false;return updateDisplay();}
-if(!displayValue.includes('.'))displayValue+='.';updateDisplay();}
-function inputConstant(type){displayValue=String(type==='pi'?Math.PI:Math.E);waitingForSecondOperand=false;updateDisplay(true);}
-function setOperator(nextOp){const val=parseFloat(displayValue);if(operator&&waitingForSecondOperand){operator=nextOp;historyStr=historyStr.replace(/[+\-*/^]$/,operator);updateDisplay();return;}
-if(firstOperand==null&&!isNaN(val))firstOperand=val;else if(operator){const res=calculate(firstOperand,val,operator);displayValue=`${parseFloat(res.toFixed(12))}`;firstOperand=res;}
-waitingForSecondOperand=true;operator=nextOp;const sym=nextOp==='*'?'×':nextOp==='/'?'÷':nextOp==='+'?'+':nextOp==='-'?'−':'^';historyStr=`${firstOperand}${sym}`;updateDisplay();}
-function calculate(f,s,op){if(op==='+')return f+s;if(op==='-')return f-s;if(op==='*')return f*s;if(op==='/')return s===0?NaN:f/s;if(op==='^')return Math.pow(f,s);return s;}
-function calcFunc(func){if(displayValue==='Error'||isNaN(displayValue))return;const val=parseFloat(displayValue);let res=val;let name='';switch(func){case'sin':res=Math.sin(val*Math.PI/180);name='sin';break;case'cos':res=Math.cos(val*Math.PI/180);name='cos';break;case'tan':res=Math.tan(val*Math.PI/180);name='tan';break;case'asin':res=Math.asin(val)*180/Math.PI;name='asin';break;case'acos':res=Math.acos(val)*180/Math.PI;name='acos';break;case'atan':res=Math.atan(val)*180/Math.PI;name='atan';break;case'log':res=Math.log10(val);name='log';break;case'ln':res=Math.log(val);name='ln';break;case'sqrt':res=Math.sqrt(val);name='√';break;case'fact':if(val<0||!Number.isInteger(val))res=NaN;else{let f=1;for(let i=2;i<=val;i++)f*=i;res=f;}
-name='fact';break;}
-if(isNaN(res)){displayValue="Error";historyStr='';}
-else{if(Math.abs(res)<1e-10)res=0;displayValue=`${parseFloat(res.toFixed(10))}`;historyStr=`${name}(${val})=`;firstOperand=null;operator=null;waitingForSecondOperand=true;}
-updateDisplay(true);}
-function calculateResult(){if(!operator||waitingForSecondOperand)return;const val=parseFloat(displayValue);const res=calculate(firstOperand,val,operator);if(isNaN(res)||!isFinite(res)){displayValue="Error";historyStr='';}
-else{historyStr+=`${displayValue}=`;displayValue=`${parseFloat(res.toFixed(10))}`;}
-firstOperand=null;operator=null;waitingForSecondOperand=true;updateDisplay(true);}
-function clearCalc(){displayValue='0';firstOperand=null;waitingForSecondOperand=false;operator=null;historyStr='';updateDisplay();}
-function backspace(){if(waitingForSecondOperand||displayValue==='Error')return;displayValue=displayValue.length>1?displayValue.slice(0,-1):'0';updateDisplay();}
-function toggleSign(){if(["0","0.","Error"].includes(displayValue))return;displayValue=displayValue.charAt(0)==='-'?displayValue.slice(1):'-'+displayValue;updateDisplay();}
-function inputPercent(){if(displayValue==='Error')return;displayValue=`${parseFloat(displayValue)/100}`;updateDisplay();}
-document.getElementById('calcButtons').addEventListener('click',function(e){var btn=e.target.closest('[data-calc]');if(!btn)return;var action=btn.getAttribute('data-calc');if(action.startsWith('digit-')){inputDigit(action.replace('digit-',''));return;}
-if(action.startsWith('op-')){setOperator(action.replace('op-',''));return;}
-if(action==='const-pi'){inputConstant('pi');return;}
-if(action==='const-e'){inputConstant('e');return;}
-if(action==='toggle-sign'){toggleSign();return;}
-if(action==='percent'){inputPercent();return;}
-if(action==='clear'){clearCalc();return;}
-if(action==='backspace'){backspace();return;}
-if(action==='decimal'){inputDecimal();return;}
-if(action==='result'){calculateResult();return;}
-if(action==='sqrt'){calcFunc('sqrt');return;}
-if(action==='fact'){calcFunc('fact');return;}
-calcFunc(action);});
-document.addEventListener('keydown',function(e){if(e.key>='0'&&e.key<='9')inputDigit(e.key);if(e.key==='.')inputDecimal();if(e.key==='='||e.key==='Enter'){e.preventDefault();calculateResult();}
-if(e.key==='Backspace')backspace();if(e.key==='Escape')clearCalc();if(['+','-','*','/','^'].includes(e.key))setOperator(e.key);});
-updateDisplay();
+(function(){'use strict';
+var d=document.getElementById('sciDisplay'),e=document.getElementById('sciExpr'),md=document.getElementById('sciMode'),mi=document.getElementById('sciMem');
+var v='0',ex='',m=0,inv=false,deg=true,paren=0;
+var f=null,op=null,wait=false,justEq=false;
+var history=[],histPanel=document.getElementById('histPanel'),histToggle=document.getElementById('histToggle');
+
+function fmt(n){if(!isFinite(n)||isNaN(n))return'Error';if(Math.abs(n)>1e15||(Math.abs(n)<1e-10&&n!==0))return n.toExponential(6);var s=parseFloat(n.toFixed(10)).toString();return s;}
+
+function upd(){
+  var dv=v;if(dv.length>14&&!dv.includes('e')){var nu=parseFloat(dv);if(!isNaN(nu))dv=nu.toPrecision(10).replace(/(?:\.0+|(\.\d+?)0+)$/,'$1');}
+  d.textContent=dv;e.textContent=ex;md.textContent=deg?'DEG':'RAD';mi.textContent=m!==0?'M':'';
+}
+
+function addHist(exprRes,res){
+  history.unshift({expr:exprRes,result:res});if(history.length>50)history.pop();
+  histToggle.textContent='History ('+history.length+')';
+  if(!histPanel.classList.contains('hidden'))renderHist();
+}
+
+function renderHist(){
+  if(!history.length){histPanel.innerHTML='<div class="opacity-40 text-xs text-center py-2">No calculations yet</div>';return;}
+  var h='';for(var i=0;i<history.length;i++){h+='<div class="hist-item" data-idx="'+i+'"><span class="hist-expr">'+history[i].expr+'</span><span class="hist-result">'+history[i].result+'</span></div>';}
+  histPanel.innerHTML=h;
+  histPanel.querySelectorAll('.hist-item').forEach(function(el){el.addEventListener('click',function(){v=history[parseInt(this.getAttribute('data-idx'))].result;wait=false;justEq=false;upd();});});
+}
+
+function dig(x){
+  if(wait||justEq){v=x;wait=false;justEq=false;upd();return;}
+  if(v==='0'&&x!=='.')v=x;else v+=x;upd();
+}
+function dec(){
+  if(wait||justEq){v='0.';wait=false;justEq=false;upd();return;}
+  if(!v.includes('.'))v+='.';upd();
+}
+function setOp(nxt){
+  var cv=parseFloat(v);if(isNaN(cv))return;
+  if(f!==null&&op&&!wait){
+    var r=calc(f,cv,op);if(r==='Error'){v='Error';ex='';f=null;op=null;wait=false;upd();return;}
+    v=fmt(r);f=r;
+  }else{f=cv;}
+  wait=true;op=nxt;ex=f+[' + ',' − ',' × ',' ÷ ']['+-×÷'.indexOf(nxt)];
+  if(paren>0)ex='('.repeat(paren)+ex;upd();
+}
+function calc(a,b,o){
+  switch(o){case'+':return a+b;case'−':return a-b;case'×':return a*b;case'÷':return b===0?NaN:a/b;default:return b;}
+}
+function fnc(na){
+  var cv=parseFloat(v);if(isNaN(cv)||v==='Error')return;
+  var r=cv,sn=na,rad=deg?Math.PI/180:1,degR=deg?180/Math.PI:1;
+  if(na==='sin'){r=Math.sin(cv*rad);sn='sin';}else if(na==='cos'){r=Math.cos(cv*rad);sn='cos';}else if(na==='tan'){r=Math.tan(cv*rad);sn='tan';}
+  else if(na==='asin'){r=Math.asin(cv)*degR;sn='sin⁻¹';}else if(na==='acos'){r=Math.acos(cv)*degR;sn='cos⁻¹';}else if(na==='atan'){r=Math.atan(cv)*degR;sn='tan⁻¹';}
+  else if(na==='sinh'){r=Math.sinh(cv);sn='sinh';}else if(na==='cosh'){r=Math.cosh(cv);sn='cosh';}else if(na==='tanh'){r=Math.tanh(cv);sn='tanh';}
+  else if(na==='log'){r=Math.log10(cv);sn='log';}else if(na==='ln'){r=Math.log(cv);sn='ln';}else if(na==='sqrt'){r=Math.sqrt(cv);sn='√';}
+  else if(na==='cbrt'){r=Math.cbrt(cv);sn='∛';}else if(na==='invx'){r=1/cv;sn='1/';}
+  else if(na==='pow2'){r=cv*cv;sn='sq';}else if(na==='pow3'){r=cv*cv*cv;sn='cube';}
+  else if(na==='tenX'){r=Math.pow(10,cv);sn='10^';}else if(na==='eX'){r=Math.exp(cv);sn='e^';}
+  else if(na==='fact'){if(cv<0||!Number.isInteger(cv)||cv>170){r=NaN;sn='fact';}else{var f2=1;for(var i=2;i<=cv;i++)f2*=i;r=f2;sn='fact';}}
+  if(isNaN(r)||!isFinite(r)){v='Error';ex='';f=null;op=null;wait=false;upd();return;}
+  if(Math.abs(r)<1e-12)r=0;v=fmt(r);ex=sn+'('+cv+')';wait=true;justEq=false;upd();
+}
+function eq(){
+  if(!op)return;
+  var cv=parseFloat(v);if(isNaN(cv))return;
+  if(f===null){f=cv;wait=false;}
+  var r=calc(f,cv,op);if(isNaN(r)||!isFinite(r)){v='Error';ex='';f=null;op=null;wait=false;upd();return;}
+  ex+=cv+' =';v=fmt(r);addHist(ex.replace(' =','')+' =',v);f=r;op=null;wait=true;justEq=true;upd();
+}
+function clr(){v='0';ex='';f=null;op=null;wait=false;justEq=false;paren=0;upd();}
+function bsp(){if(wait||justEq||v==='Error')return;v=v.length>1?v.slice(0,-1):'0';upd();}
+function tgl(){if(['0','0.','Error'].includes(v))return;v=v[0]==='−'?v.slice(1):'−'+v;upd();}
+function pct(){if(v==='Error')return;v=fmt(parseFloat(v.replace('−','-'))/100);upd();}
+function lP(){paren++;ex+='(';upd();}
+function rP(){if(paren<=0)return;paren--;ex+=')';upd();}
+function cPI(){v=fmt(Math.PI);wait=false;justEq=false;upd();}
+function cE(){v=fmt(Math.E);wait=false;justEq=false;upd();}
+function tDR(){deg=!deg;md.textContent=deg?'DEG':'RAD';}
+function cConst(n){
+  var vals={c:'299792458',h:'6.62607015e-34',G:'6.6743e-11',g:'9.80665',atm:'101325',R:'8.314462618',k:'1.380649e-23',NA:'6.02214076e23',me:'9.1093837e-31',mp:'1.6726219e-27'};
+  v=vals[n];wait=false;justEq=false;upd();
+}
+
+histToggle.addEventListener('click',function(){
+  histPanel.classList.toggle('hidden');
+  renderHist();
+});
+
+// --- Equation Solver ---
+var qa=document.getElementById('solveA'),qb=document.getElementById('solveB'),qc=document.getElementById('solveC');
+var la=document.getElementById('linA'),lb=document.getElementById('linB');
+var steps=document.getElementById('solveSteps'),results=document.getElementById('solveResults');
+var modeQuad=document.getElementById('solveModeQuad'),modeLin=document.getElementById('solveModeLin');
+var qDiv=document.getElementById('solveQuad'),lDiv=document.getElementById('solveLin');
+
+function solveQuad(){
+  var a=parseFloat(qa.value)||0,b=parseFloat(qb.value)||0,c=parseFloat(qc.value)||0;
+  if(a===0){steps.innerHTML='<div class="step-box opacity-60">Not a quadratic equation (a=0). Switch to Linear mode.</div>';results.innerHTML='';return;}
+  var disc=b*b-4*a*c,sqrtD=Math.sqrt(Math.abs(disc)),x1=(-b+sqrtD)/(2*a),x2=(-b-sqrtD)/(2*a);
+  var s='';
+  s+='<div class="step-box"><strong>Step 1:</strong> Discriminant Δ = b² − 4ac = '+b.toFixed(4)+'² − 4·'+a.toFixed(4)+'·'+c.toFixed(4)+' = <strong>'+disc.toFixed(4)+'</strong></div>';
+  if(disc>0){
+    s+='<div class="step-box"><strong>Step 2:</strong> Δ > 0 → Two real roots</div>';
+    s+='<div class="step-box"><strong>Step 3:</strong> x = (−b ± √Δ) / 2a<br>x₁ = ('+(-b).toFixed(4)+' + '+sqrtD.toFixed(4)+') / '+(2*a).toFixed(4)+' = <strong>'+x1.toFixed(6)+'</strong><br>x₂ = ('+(-b).toFixed(4)+' − '+sqrtD.toFixed(4)+') / '+(2*a).toFixed(4)+' = <strong>'+x2.toFixed(6)+'</strong></div>';
+  }else if(disc===0){
+    s+='<div class="step-box"><strong>Step 2:</strong> Δ = 0 → One repeated real root</div>';
+    s+='<div class="step-box"><strong>Step 3:</strong> x = −b / 2a = '+(-b).toFixed(4)+' / '+(2*a).toFixed(4)+' = <strong>'+x1.toFixed(6)+'</strong></div>';
+  }else{
+    var realP=-b/(2*a),imagP=sqrtD/(2*a);
+    s+='<div class="step-box"><strong>Step 2:</strong> Δ < 0 → Two complex roots</div>';
+    s+='<div class="step-box"><strong>Step 3:</strong> x = (−b ± i√|Δ|) / 2a<br>x₁ = <strong>'+realP.toFixed(6)+' + '+imagP.toFixed(6)+'i</strong><br>x₂ = <strong>'+realP.toFixed(6)+' − '+imagP.toFixed(6)+'i</strong></div>';
+  }
+  steps.innerHTML=s;
+  if(disc>=0){results.innerHTML='<div class="solve-card text-center"><span class="text-[11px] uppercase tracking-[.15em] font-bold block opacity-45">x₁</span><span class="text-2xl font-black" style="color:var(--color-primary)">'+x1.toFixed(6)+'</span></div><div class="solve-card text-center"><span class="text-[11px] uppercase tracking-[.15em] font-bold block opacity-45">x₂</span><span class="text-2xl font-black" style="color:var(--color-primary)">'+x2.toFixed(6)+'</span></div>';}
+  else{results.innerHTML='<div class="solve-card text-center" style="grid-column:1/-1"><span class="text-[11px] uppercase tracking-[.15em] font-bold block opacity-45">Roots</span><span class="text-lg font-black" style="color:var(--color-primary)">'+realP.toFixed(6)+' ± '+imagP.toFixed(6)+'i</span></div>';}
+}
+
+function solveLin(){
+  var a=parseFloat(la.value)||0,b=parseFloat(lb.value)||0;
+  if(a===0){
+    if(b===0)steps.innerHTML='<div class="step-box">Infinite solutions (0 = 0)</div>';
+    else steps.innerHTML='<div class="step-box">No solution (contradiction: '+b.toFixed(4)+' ≠ 0)</div>';
+    results.innerHTML='';return;
+  }
+  var x=-b/a;
+  steps.innerHTML='<div class="step-box"><strong>Step 1:</strong> ax + b = 0 → x = −b / a = -('+b.toFixed(4)+') / '+a.toFixed(4)+'</div><div class="step-box"><strong>Solution:</strong> x = <strong>'+x.toFixed(6)+'</strong></div>';
+  results.innerHTML='<div class="solve-card text-center" style="grid-column:1/-1"><span class="text-[11px] uppercase tracking-[.15em] font-bold block opacity-45">Solution</span><span class="text-2xl font-black" style="color:var(--color-primary)">x = '+x.toFixed(6)+'</span></div>';
+}
+
+modeQuad.addEventListener('click',function(){modeQuad.classList.add('active');modeLin.classList.remove('active');qDiv.classList.remove('hidden');lDiv.classList.add('hidden');solveQuad();});
+modeLin.addEventListener('click',function(){modeLin.classList.add('active');modeQuad.classList.remove('active');lDiv.classList.remove('hidden');qDiv.classList.add('hidden');solveLin();});
+qa.addEventListener('input',solveQuad);qb.addEventListener('input',solveQuad);qc.addEventListener('input',solveQuad);
+la.addEventListener('input',solveLin);lb.addEventListener('input',solveLin);
+
+document.querySelectorAll('[data-action]').forEach(function(b){
+  b.addEventListener('click',function(){
+    var a=this.getAttribute('data-action');
+    if(a==='equals'){eq();return;}if(a==='clear'){clr();return;}if(a==='backspace'){bsp();return;}
+    if(a==='toggle-sign'){tgl();return;}if(a==='percent'){pct();return;}if(a==='decimal'){dec();return;}
+    if(a==='left-paren'){lP();return;}if(a==='right-paren'){rP();return;}
+    if(a==='const-pi'){cPI();return;}if(a==='const-e'){cE();return;}if(a==='deg-rad'){tDR();return;}
+    if(a==='inv'){inv=!inv;this.style.opacity=inv?'1':'0.6';return;}
+    if(a==='mc'){m=0;mi.textContent='';return;}if(a==='mr'){v=fmt(m);wait=false;justEq=false;upd();return;}
+    if(a==='mplus'){m+=parseFloat(v.replace('−','-'))||0;mi.textContent='M';return;}
+    if(a==='mminus'){m-=parseFloat(v.replace('−','-'))||0;mi.textContent='M';return;}
+    if(a==='ms'){m=parseFloat(v.replace('−','-'))||0;mi.textContent='M';return;}
+    if(a==='pi-e'){v=inv?fmt(Math.E):fmt(Math.PI);inv=false;document.querySelector('[data-action=inv]').style.opacity='0.6';wait=false;justEq=false;upd();return;}
+    if(a.startsWith('const-')){cConst(a.replace('const-',''));return;}
+    if(a.startsWith('op-')){var sym=a.replace('op-','');if(sym==='+')setOp('+');else if(sym==='−')setOp('−');else if(sym==='×')setOp('×');else if(sym==='÷')setOp('÷');return;}
+    if(a==='powY'){setOp('^');return;}if(a==='rootY'){setOp('√');return;}
+    var funcs=['sin','cos','tan','asin','acos','atan','sinh','cosh','tanh','log','ln','sqrt','cbrt','invx','pow2','pow3','tenX','eX','fact'];
+    if(funcs.includes(a)){fnc(a);return;}
+    if(a>='0'&&a<='9'){dig(a);return;}
+  });
+});
+
+document.addEventListener('keydown',function(ke){
+  var k=ke.key;
+  if(k>='0'&&k<='9'){dig(k);ke.preventDefault();}
+  else if(k==='.'){dec();ke.preventDefault();}
+  else if(k==='Enter'||k==='='){eq();ke.preventDefault();}
+  else if(k==='Backspace'){bsp();ke.preventDefault();}
+  else if(k==='Escape'){clr();ke.preventDefault();}
+  else if(k==='+'||k==='-'){setOp(k==='+'?'+':'−');ke.preventDefault();}
+  else if(k==='*'){setOp('×');ke.preventDefault();}
+  else if(k==='/'){setOp('÷');ke.preventDefault();}
+  else if(k==='^'){setOp('^');ke.preventDefault();}
+  else if(k==='%'){pct();ke.preventDefault();}
+  else if(k==='('){lP();ke.preventDefault();}
+  else if(k===')'){rP();ke.preventDefault();}
+});
+
+var tabs=document.querySelectorAll('.tab-btn[data-tab]');
+for(var i=0;i<tabs.length;i++){
+  tabs[i].addEventListener('click',function(){
+    var t=this.getAttribute('data-tab');
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(function(b){b.classList.remove('active');b.setAttribute('aria-selected','false');});
+    this.classList.add('active');this.setAttribute('aria-selected','true');
+    document.querySelectorAll('.tab-content').forEach(function(c){c.classList.add('hidden');c.setAttribute('aria-hidden','true');});
+    var p=document.getElementById('tab-'+t);
+    if(p){p.classList.remove('hidden');p.setAttribute('aria-hidden','false');}
+    if(t==='solve'){solveQuad();}
+    if(t==='graph'){initG();drawG();}
+  });
+}
+
+// --- Graph Plotter ---
+var gC = document.getElementById('graphCanvas'), gX = gC.getContext('2d');
+var gI = document.getElementById('graphInput'), gP = document.getElementById('graphPlotBtn');
+var gCol = document.getElementById('graphColor'), gList = document.getElementById('graphFuncList');
+var gCoord = document.getElementById('graphCoords'), gLoad = document.getElementById('graphLoading');
+var gZi = document.getElementById('graphZoomIn'), gZo = document.getElementById('graphZoomOut');
+var gFit = document.getElementById('graphFit'), gRst = document.getElementById('graphReset');
+var gFs = [], gInited = false;
+var gxM = -10, gxX = 10, gyM = -10, gyX = 10;
+var gPan = false, gPx, gPy, gPxM, gPxX, gPyM, gPyX;
+const gCL = ['#3b82f6','#ef4444','#22c55e','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+const gMr = {l:50,r:15,t:15,b:30};
+
+function initG(){
+  if(gInited)return; gInited=true;
+  // Event listeners
+  gP.addEventListener('click',addG);
+  gI.addEventListener('keydown',function(ke){if(ke.key==='Enter')addG();});
+  gZi.addEventListener('click',function(){zoomG(0.7);});
+  gZo.addEventListener('click',function(){zoomG(1.4);});
+  gFit.addEventListener('click',fitG);
+  gRst.addEventListener('click',resetG);
+  gC.addEventListener('mousedown',gMD); gC.addEventListener('mousemove',gMM);
+  gC.addEventListener('mouseup',gMU); gC.addEventListener('mouseleave',gMU);
+  gC.addEventListener('wheel',gWheel,{passive:true});
+  gC.addEventListener('dblclick',function(){fitG();});
+  window.addEventListener('resize',function(){if(!gC.closest('.hidden'))drawG();});
+}
+
+function resizeG(){
+  var p = gC.parentElement; if(!p)return;
+  var r = p.getBoundingClientRect();
+  var w = Math.floor(r.width), h = Math.floor(r.height);
+  if(!w||!h)return;
+  if(gC._w===w&&gC._h===h)return;
+  var dpr = window.devicePixelRatio||1;
+  gC.width = w*dpr; gC.height = h*dpr; gC._w = w; gC._h = h;
+}
+
+function setupG(){ resizeG(); var dpr = window.devicePixelRatio||1; gX.setTransform(dpr,0,0,dpr,0,0); }
+
+function compG(e){
+  var s = e.replace(/\^/g,'**').replace(/π/g,'('+Math.PI+')').replace(/\be\b/g,'('+Math.E+')');
+  var reps=[['sinh','Math.sinh'],['cosh','Math.cosh'],['tanh','Math.tanh'],['asin','Math.asin'],['acos','Math.acos'],['atan','Math.atan'],['sqrt','Math.sqrt'],['cbrt','Math.cbrt'],['ceil','Math.ceil'],['floor','Math.floor'],['round','Math.round'],['abs','Math.abs'],['sin','Math.sin'],['cos','Math.cos'],['tan','Math.tan'],['log','Math.log10'],['ln','Math.log'],['exp','Math.exp'],['sign','Math.sign']];
+  for(var i=0;i<reps.length;i++){s=s.replace(new RegExp(reps[i][0]+'\\(','g'),reps[i][1]+'(');}
+  try{return new Function('x','return '+s);}catch(e){return null;}
+}
+
+function x2S(x){var w=gC._w||500;return gMr.l+(x-gxM)/(gxX-gxM)*(w-gMr.l-gMr.r);}
+function y2S(y){var h=gC._h||300;return gMr.t+(gyX-y)/(gyX-gyM)*(h-gMr.t-gMr.b);}
+function s2X(sx){var w=gC._w||500;return (sx-gMr.l)/(w-gMr.l-gMr.r)*(gxX-gxM)+gxM;}
+function s2Y(sy){var h=gC._h||300;return gyX-(sy-gMr.t)/(h-gMr.t-gMr.b)*(gyX-gyM);}
+
+function nSt(r){var r2=r/6,m=Math.pow(10,Math.floor(Math.log10(r2))),n=r2/m;return n<1.5?m:n<3.5?2*m:n<7.5?5*m:10*m;}
+
+function cssC(v){
+  var sd=document.createElement('div');
+  sd.style.cssText='position:fixed;pointer-events:none;opacity:0;'+v;
+  document.body.appendChild(sd);
+  var c=getComputedStyle(sd).backgroundColor;
+  document.body.removeChild(sd);
+  return c||'rgba(100,116,139,0.3)';
+}
+
+function drawG(){
+  setupG(); var w=gC._w,h=gC._h; if(!w||!h)return;
+  var bg=cssC('background:color-mix(in oklab,var(--color-base-100) 50%,var(--color-base-200))');
+  var fg=cssC('color:color-mix(in oklab,var(--color-base-content) 55%,transparent)');
+  var ln=cssC('color:color-mix(in oklab,var(--color-base-content) 18%,transparent)');
+  var ax=cssC('color:color-mix(in oklab,var(--color-base-content) 50%,transparent)');
+  var lb=cssC('color:color-mix(in oklab,var(--color-base-content) 40%,transparent)');
+  // Fill bg
+  gX.fillStyle=bg; gX.fillRect(0,0,w,h);
+  // Clip
+  var pw=w-gMr.l-gMr.r,ph=h-gMr.t-gMr.b;
+  gX.save(); gX.beginPath(); gX.rect(gMr.l,gMr.t,pw,ph); gX.clip();
+  // Grid
+  var xS=nSt(gxX-gxM),yS=nSt(gyX-gyM);
+  var xSt=Math.ceil(gxM/xS)*xS,ySt=Math.ceil(gyM/yS)*yS;
+  gX.strokeStyle=ln; gX.lineWidth=0.5;
+  for(var x=xSt;x<=gxX;x+=xS){var sx=x2S(x);if(sx>=gMr.l&&sx<=w-gMr.r){gX.beginPath();gX.moveTo(sx,gMr.t);gX.lineTo(sx,h-gMr.b);gX.stroke();}}
+  for(var y=ySt;y<=gyX;y+=yS){var sy=y2S(y);if(sy>=gMr.t&&sy<=h-gMr.b){gX.beginPath();gX.moveTo(gMr.l,sy);gX.lineTo(w-gMr.r,sy);gX.stroke();}}
+  // Axes
+  var x0=x2S(0),y0=y2S(0); gX.strokeStyle=ax; gX.lineWidth=1.5;
+  if(x0>=gMr.l&&x0<=w-gMr.r){gX.beginPath();gX.moveTo(x0,gMr.t);gX.lineTo(x0,h-gMr.b);gX.stroke();}
+  if(y0>=gMr.t&&y0<=h-gMr.b){gX.beginPath();gX.moveTo(gMr.l,y0);gX.lineTo(w-gMr.r,y0);gX.stroke();}
+  gX.restore();
+  // Labels
+  gX.fillStyle=lb; gX.font='10px monospace'; gX.textAlign='center'; gX.textBaseline='top';
+  for(var x=xSt;x<=gxX;x+=xS){if(x===0)continue;var sx=x2S(x);if(sx>=gMr.l&&sx<=w-gMr.r){gX.fillText(parseFloat(x.toFixed(4)).toString(),sx,h-gMr.b+4);}}
+  gX.textAlign='right'; gX.textBaseline='middle';
+  for(var y=ySt;y<=gyX;y+=yS){if(y===0)continue;var sy=y2S(y);if(sy>=gMr.t&&sy<=h-gMr.b){gX.fillText(parseFloat(y.toFixed(4)).toString(),gMr.l-4,sy);}}
+  // Curves
+  var np=Math.min(Math.max(Math.floor(pw),200),1000);
+  for(var fi=0;fi<gFs.length;fi++){
+    if(!gFs[fi].v||!gFs[fi].fn)continue;
+    var fn=gFs[fi].fn,col=gFs[fi].c;
+    gX.strokeStyle=col; gX.lineWidth=2; gX.beginPath(); var st=false,pY=null;
+    for(var pi=0;pi<=np;pi++){
+      var xv=gxM+(gxX-gxM)*pi/np,yv; try{yv=fn(xv);}catch(e){yv=NaN;}
+      if(!isFinite(yv)||Math.abs(yv)>1e10){st=false;pY=null;continue;}
+      var sx=x2S(xv),sy=y2S(yv);
+      if(sx>=gMr.l-1&&sx<=w-gMr.r+1){
+        if(!st){gX.moveTo(sx,sy);st=true;}
+        else if(pY!==null&&Math.abs(yv-pY)<(gyX-gyM)*3){gX.lineTo(sx,sy);}
+        else{gX.moveTo(sx,sy);}
+        pY=yv;
+      }else{st=false;pY=null;}
+    }
+    gX.stroke();
+  }
+  if(gLoad)gLoad.classList.add('hidden');
+}
+
+function addG(){
+  var e=gI.value.trim();if(!e)return;
+  var fn=compG(e);
+  if(!fn){gI.style.borderColor='var(--color-error)';setTimeout(function(){gI.style.borderColor='';},1200);return;}
+  gI.style.borderColor='';
+  var ci=gFs.length%gCL.length;var col=gCol.value||gCL[ci];
+  gFs.push({e:e,fn:fn,c:col,v:true});gI.value='';
+  renderGList();fitG();
+}
+
+function rmG(i){gFs.splice(i,1);renderGList();drawG();}
+function tgG(i){gFs[i].v=!gFs[i].v;renderGList();drawG();}
+
+function renderGList(){
+  if(!gFs.length){gList.innerHTML='<div class="text-[11px] opacity-40 italic text-center py-1">No functions plotted. Enter an expression and click Plot.</div>';return;}
+  var h='';for(var i=0;i<gFs.length;i++){var f=gFs[i];
+    h+='<div class="gfunc-item"><span class="gfunc-swatch" style="background:'+f.c+'"></span>';
+    h+='<span class="gfunc-expr">'+(!f.v?'<s>':'')+'f<sub>'+(i+1)+'</sub>(x) = '+f.e+(!f.v?'</s>':'')+'</span>';
+    h+='<button class="gfunc-btn" data-gi="'+i+'">'+(f.v?'Hide':'Show')+'</button>';
+    h+='<button class="gfunc-btn del" data-gi="'+i+'">✕</button></div>';
+  }
+  gList.innerHTML=h;
+  gList.querySelectorAll('.gfunc-btn:not(.del)').forEach(function(b){b.addEventListener('click',function(){tgG(parseInt(this.getAttribute('data-gi')));});});
+  gList.querySelectorAll('.gfunc-btn.del').forEach(function(b){b.addEventListener('click',function(){rmG(parseInt(this.getAttribute('data-gi')));});});
+  drawG();
+}
+
+function fitG(){
+  if(!gFs.length){resetG();return;}
+  var aY=[];var np=300;
+  for(var fi=0;fi<gFs.length;fi++){if(!gFs[fi].v||!gFs[fi].fn)continue;
+    for(var pi=0;pi<=np;pi++){var xv=gxM+(gxX-gxM)*pi/np,yv;try{yv=gFs[fi].fn(xv);}catch(e){yv=NaN;}
+      if(isFinite(yv)&&Math.abs(yv)<1e10)aY.push(yv);}
+  }
+  if(!aY.length){resetG();return;}
+  var mn=Math.min.apply(null,aY),mx=Math.max.apply(null,aY),pd=(mx-mn)*0.15||1;
+  gyM=mn-pd;gyX=mx+pd;drawG();
+}
+
+function resetG(){gxM=-10;gxX=10;gyM=-10;gyX=10;drawG();}
+
+function zoomG(f,cx,cy){
+  if(cx===undefined){cx=(gMr.l+gC._w-gMr.r)/2;cy=(gMr.t+gC._h-gMr.b)/2;}
+  var mx=s2X(cx),my=s2Y(cy);
+  var pw=gC._w-gMr.l-gMr.r,ph=gC._h-gMr.t-gMr.b;
+  var nw=(gxX-gxM)*f,nh=(gyX-gyM)*f;
+  if(pw>0&&ph>0)nh=nw/(pw/ph);
+  gxM=mx-(mx-gxM)*f;gxX=mx+(gxX-mx)*f;gyM=my-(my-gyM)*f;gyX=my+(gyX-my)*f;drawG();
+}
+
+// Mouse handlers
+function gMD(me){
+  var r=gC.getBoundingClientRect();
+  gPan=true;gPx=me.clientX-r.left;gPy=me.clientY-r.top;
+  gPxM=gxM;gPxX=gxX;gPyM=gyM;gPyX=gyX;
+}
+
+function gMM(me){
+  var r=gC.getBoundingClientRect();
+  var cx=me.clientX-r.left,cy=me.clientY-r.top;
+  if(gPan){
+    var dx=(gPx-cx)/(gC._w-gMr.l-gMr.r)*(gPxX-gPxM);
+    var dy=(gPy-cy)/(gC._h-gMr.t-gMr.b)*(gPyX-gPyM);
+    gxM=gPxM+dx;gxX=gPxX+dx;gyM=gPyM+dy;gyX=gPyX+dy;drawG();
+  }else{
+    var mx=s2X(cx),my=s2Y(cy);
+    if(cx>=gMr.l&&cx<=gC._w-gMr.r&&cy>=gMr.t&&cy<=gC._h-gMr.b){
+      gCoord.textContent='x: '+mx.toFixed(4)+'  y: '+my.toFixed(4);
+    }
+  }
+}
+
+function gMU(){gPan=false;}
+
+function gWheel(we){
+  we.preventDefault();
+  var r=gC.getBoundingClientRect();
+  var cx=we.clientX-r.left,cy=we.clientY-r.top;
+  zoomG(we.deltaY>0?1.15:0.85,cx,cy);
+}
+
+upd();histToggle.textContent='History (0)';solveQuad();initG();
 })();
 </script>
 
-
-
-{{ tool_seo_all(seo_data) }}
+{% set seo = {
+  "name": "Scientific Calculator",
+  "description": "Free online advanced scientific calculator with trigonometry, logarithms, exponentials, hyperbolic functions, inverse trig, memory operations, expression history, interactive function graph plotter, quadratic/linear equation solver, and scientific constants library. Supports DEG/RAD modes and keyboard input.",
+  "app_category": "EducationApplication",
+  "date_modified": "2026-06-27",
+  "faqs": [
+    {"q": "How do I use the scientific calculator?", "a": "Click buttons or use your keyboard. Type digits with number keys, operators with + - * /, and press Enter for equals. Use trig functions (sin, cos, tan) in DEG or RAD mode. Memory buttons (MC, MR, M+, M−, MS) store and recall values."},
+    {"q": "What is the difference between DEG and RAD mode?", "a": "DEG (degrees) mode interprets trig function inputs in degrees (360° circle). RAD (radians) uses radians (2π circle). Toggle with the DEG/RAD button. Default is DEG."},
+    {"q": "How do I use inverse trig functions?", "a": "Use sin⁻¹, cos⁻¹, tan⁻¹ buttons directly. They calculate arcsin, arccos, arctan. In DEG mode results are in degrees; in RAD mode in radians."},
+    {"q": "What scientific constants are available?", "a": "c (speed of light: 299,792,458 m/s), h (Planck: 6.626×10⁻³⁴ J·s), G (gravitational: 6.674×10⁻¹¹ N·m²/kg²), g (gravity: 9.80665 m/s²), atm (standard atmosphere: 101,325 Pa), R (gas constant: 8.314 J/mol·K), k (Boltzmann: 1.381×10⁻²³ J/K), Nₐ (Avogadro: 6.022×10²³ mol⁻¹), mₑ (electron mass), mₚ (proton mass). Click any to insert into the display."},
+    {"q": "How does calculation history work?", "a": "Every time you press =, the calculation is saved to a history list. Click 'History (N)' to expand the panel showing past calculations. Click any history entry to recall its result into the display. Up to 50 entries stored."},
+    {"q": "How do I solve quadratic equations?", "a": "Switch to the Solver tab and select Quadratic mode. Enter coefficients a, b, c for ax² + bx + c = 0. The solver shows the discriminant, step-by-step solution, and the two roots (real or complex)."},
+    {"q": "How do I solve linear equations?", "a": "Switch to the Solver tab and select Linear mode. Enter coefficients a, b for ax + b = 0. The solver shows step-by-step solution for x = −b/a. Handles special cases (infinite/no solutions)."},
+    {"q": "How does the graph plotter work?", "a": "Switch to the Graph tab. Enter a function like sin(x), x^2, or 2*x+3 and click Plot. Multiple functions can be added with different colors. Drag to pan, scroll to zoom, hover to trace coordinates. Double-click to auto-fit the view."},
+    {"q": "What scientific functions are available?", "a": "Trig: sin, cos, tan, sin⁻¹, cos⁻¹, tan⁻¹. Hyperbolic: sinh, cosh, tanh. Logs: log (base 10), ln (natural). Powers: x², x³, xʸ, √, ∛, ʸ√x, 10ˣ, eˣ. Constants: c, h, G, g, atm, R, k, Nₐ, mₑ, mₚ, π, e. Other: x!, 1/x, ±, %."},
+    {"q": "Does the calculator show calculation history?", "a": "Yes, a collapsible History panel stores up to 50 past calculations. Click any entry to recall the result. Each entry shows the expression and result."},
+    {"q": "Is this calculator free to use?", "a": "Yes, completely free. No sign-up or download needed. All calculations run in your browser with full keyboard support."}
+  ],
+  "howto_steps": [
+    {"title": "Calculate", "desc": "Enter numbers and operators, press = for results. History stores past calculations for recall."},
+    {"title": "Use Scientific Functions", "desc": "Click trig, log, power, or constant buttons. Toggle DEG/RAD for trig mode. Functions apply to current display value."},
+    {"title": "Insert Constants", "desc": "The constants bar below the display has 10 scientific constants (c, h, G, g, atm, R, k, Nₐ, mₑ, mₚ). Click to insert."},
+    {"title": "Recall History", "desc": "Click 'History (N)' to expand. Click any past calculation to load its result back into the display."},
+    {"title": "Solve Equations", "desc": "Switch to Solver tab. Choose Quadratic (ax²+bx+c=0) or Linear (ax+b=0). See step-by-step solutions."},
+    {"title": "Graph Functions", "desc": "Switch to Graph tab. Enter f(x) expressions like sin(x) or x^2, click Plot. Drag to pan, scroll to zoom, hover to trace. Add multiple functions in different colors."}
+  ],
+  "howto_calculate": "<p><strong>Calculator:</strong> Enter numbers, choose operators, press = for results. Functions apply to the current display value. History panel stores past calculations.</p><p><strong>Constants:</strong> 10 scientific constants available as clickable buttons. Inserted directly into the display.</p><p><strong>Equation Solver (Quadratic):</strong> Enter a, b, c for ax² + bx + c = 0. The solver computes discriminant Δ = b² − 4ac, then finds roots: x = (−b ± √Δ) / 2a. Shows real or complex roots with step-by-step breakdown.</p><p><strong>Equation Solver (Linear):</strong> Enter a, b for ax + b = 0. Solution: x = −b/a. Handles edge cases (a=0).</p><p><strong>Graph Plotter:</strong> Plot y = f(x) functions on an interactive canvas. Supports multiple functions with color-coded lines. Drag to pan, scroll to zoom, hover to trace coordinates. Functions parsed: trig, hyperbolic, log, ln, sqrt, cbrt, powers, abs, exp. Supports e and π constants.</p>",
+  "about_title": "About the Scientific Calculator",
+  "about_body": "<p>This comprehensive scientific calculator handles everything from basic arithmetic to advanced equation solving and function graphing. Includes trigonometry (sin, cos, tan, sin⁻¹, cos⁻¹, tan⁻¹), hyperbolic functions (sinh, cosh, tanh), logarithms (log, ln), powers (x², x³, xʸ, √, ∛, ʸ√x, 10ˣ, eˣ), constants (π, e, c, h, G, g, atm, R, k, Nₐ, mₑ, mₚ), factorials, reciprocals, and memory operations.</p><p><strong>History:</strong> Stores up to 50 past calculations in a collapsible panel with click-to-recall.</p><p><strong>Equation Solver:</strong> Solves quadratic (ax²+bx+c=0) and linear (ax+b=0) equations with full step-by-step breakdown including discriminant, real/complex roots, and edge case handling.</p><p><strong>Graph Plotter:</strong> Plot y = f(x) functions on an interactive canvas. Supports multiple functions with color-coded lines. Drag to pan, scroll to zoom, hover to trace coordinates. Double-click to auto-fit view. Parses trig, hyperbolic, log, power, and algebraic expressions.</p><p>Features DEG/RAD mode toggle, parentheses grouping, percent calculations, and full keyboard support. All calculations run in your browser. Free to use, no sign-up required.</p>",
+  "related": [
+    {"name": "Calculator", "url": "/tool/calculator"},
+    {"name": "Percentage Calculator", "url": "/tool/percentage-calculator"},
+    {"name": "Unit Converter", "url": "/tool/unit-converter"},
+    {"name": "Date Calculator", "url": "/tool/date-calculator"},
+    {"name": "Time Zone Converter", "url": "/tool/timezone-converter"},
+    {"name": "Compound Calculator", "url": "/tool/compound-calculator"}
+  ]
+} %}
+{{ tool_seo_all(seo) }}
 {% endblock %}

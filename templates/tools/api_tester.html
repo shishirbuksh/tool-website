@@ -1,57 +1,535 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
 
-{% block title %}API Tester | Free Online REST API Tester{% endblock %}
-{% block meta_description %}Test and debug REST APIs with our free online API tester. Send GET, POST, PUT, DELETE requests with custom headers and body. No sign-up required.{% endblock %}
-{% block meta_keywords %}api tester, api tester tool, api tester free, free online api tester, storybrain ai{% endblock %}
+{% block title %}API Tester — Free Online REST API Client & Debugger | StoryBrain AI{% endblock %}
+{% block meta_description %}Test and debug REST APIs in your browser. Send GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS requests with custom headers, query params, JSON body, form data. Free online API client, no sign-up needed.{% endblock %}
+{% block meta_keywords %}api tester, rest api tester, api client, http request tester, api debugger, api testing tool, postman alternative, free api tester, api test online{% endblock %}
 {% block canonical_url %}https://www.storybrainai.com/tool/api-tester{% endblock %}
 {% block og_tags %}
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.storybrainai.com/tool/api-tester">
-<meta property="og:title" content="API Tester - Free REST API Testing Tool">
-<meta property="og:description" content="Test and debug REST APIs with GET, POST, PUT, DELETE requests.">
+<meta property="og:site_name" content="StoryBrain AI">
+<meta property="og:title" content="API Tester — Free Online REST API Client & Debugger">
+<meta property="og:description" content="Test and debug REST APIs in your browser. Send GET, POST, PUT, PATCH, DELETE requests with custom headers, query params, and body. Free, no sign-up.">
 <meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="API Tester — Free Online REST API Client & Debugger | StoryBrain AI">
+<meta name="twitter:description" content="Test and debug REST APIs in your browser. Free online API client, no sign-up needed.">
 {% endblock %}
-{% block head %}{% endblock %}
+{% block head %}
+<style>
+.input-visible{background-color:color-mix(in oklab,var(--color-base-100) 85%,var(--color-base-300));border-color:var(--color-base-content);color:var(--color-base-content);font-weight:700}
+.input-visible:focus{border-color:var(--color-primary);box-shadow:0 0 0 3px color-mix(in oklab,var(--color-primary) 25%,transparent);outline:none}
+.tab-btn{color:var(--color-base-content);opacity:.45;cursor:pointer;transition:all .3s;background:0 0;border:2px solid color-mix(in oklab,var(--color-base-content) 12%,transparent);padding:.5rem 1rem;border-radius:.75rem;font-size:.75rem;font-weight:700;letter-spacing:.025em;text-transform:uppercase;flex:1;text-align:center}
+.tab-btn.active,.tab-btn:hover{opacity:1;background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary);border-color:var(--color-primary)}
+.tab-content.hidden{display:none}
+.method-badge{display:inline-flex;align-items:center;padding:.15rem .55rem;border-radius:.375rem;font-size:.65rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;font-family:monospace}
+.kv-row{display:flex;gap:.375rem;align-items:center}
+.kv-del{opacity:.35;cursor:pointer;font-size:.9rem;line-height:1;padding:.2rem .4rem;border-radius:.375rem;transition:all .12s;background:none;border:none;color:inherit}
+.kv-del:hover{opacity:1;color:var(--color-error);background:color-mix(in oklab,var(--color-error) 10%,transparent)}
+.hist-item{padding:.4rem .6rem;border-radius:.5rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:all .12s;font-size:.8rem;border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 4%,transparent)}
+.hist-item:hover{background:color-mix(in oklab,var(--color-primary) 8%,transparent)}
+.resp-header{font-size:.7rem;font-family:monospace;word-break:break-all;padding:.2rem 0;border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 4%,transparent)}
+.saved-item{padding:.5rem .7rem;border-radius:.5rem;display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:all .12s;font-size:.8rem;border:1px solid color-mix(in oklab,var(--color-base-content) 6%,transparent);margin-bottom:.375rem}
+.saved-item:hover{background:color-mix(in oklab,var(--color-primary) 6%,transparent);border-color:color-mix(in oklab,var(--color-primary) 20%,transparent)}
+.saved-name{font-weight:700;font-size:.85rem;flex-shrink:0;max-width:7rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.saved-del{opacity:.3;cursor:pointer;font-size:.85rem;padding:.1rem .35rem;border-radius:.375rem;transition:all .12s;background:none;border:none;color:inherit}
+.saved-del:hover{opacity:1;color:var(--color-error)}
+[saved-method]{font-size:.65rem;font-weight:800;font-family:monospace;text-transform:uppercase;padding:.15rem .5rem;border-radius:.375rem;letter-spacing:.03em}
+.modal-wrap{position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:1rem}
+.modal-wrap.open{display:flex}
+.modal-box{background:var(--color-base-100);border-radius:1.25rem;padding:1.5rem;max-width:42rem;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.3)}
+.modal-box pre{background:color-mix(in oklab,var(--color-base-100) 60%,var(--color-base-300));border-radius:.75rem;padding:1rem;font-size:.75rem;font-family:monospace;overflow-x:auto;white-space:pre;line-height:1.5}
+.code-tab{padding:.3rem .7rem;border-radius:.5rem;font-size:.7rem;font-weight:700;cursor:pointer;transition:all .15s;border:1px solid color-mix(in oklab,var(--color-base-content) 10%,transparent);background:0 0;color:var(--color-base-content);opacity:.5}
+.code-tab.active,.code-tab:hover{opacity:1;border-color:var(--color-primary);background:color-mix(in oklab,var(--color-primary) 10%,transparent);color:var(--color-primary)}
+.auth-field{display:none}
+.auth-field.show{display:block}
+</style>
+{% endblock %}
 {% block content %}
-{{ tool_hero_section("plug", "Developer Tool", "API", "TESTER", "Test and debug REST APIs with GET, POST, PUT, DELETE requests. Add custom headers and body.") }}
-  <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-    <div class="lg:w-5/12">
-      <div class="card-premium p-6 md:p-8">
-        <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Request</h2>
-        <form class="flex flex-col gap-5">
-          <div class="flex gap-3">
-            <select aria-label="Method" id="method" class="input w-1/3 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl"><option value="GET">GET</option><option value="POST">POST</option><option value="PUT">PUT</option><option value="DELETE">DELETE</option></select>
-            <input aria-label="Url" type="url" id="url" class="input flex-1 input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="https://jsonplaceholder.typicode.com/posts/1" placeholder="https://api.example.com/endpoint">
-          </div>
-          <div><label class="label-cinematic" for="headers">Headers (JSON)</label><textarea aria-label="Headers" id="headers" rows="3" class="textarea w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm font-mono leading-relaxed">{"Content-Type": "application/json"}</textarea></div>
-          <div id="bodyField"><label class="label-cinematic" for="body">Request Body (JSON)</label><textarea aria-label="Body" id="body" rows="5" class="textarea w-full input-cinematic bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl text-sm font-mono leading-relaxed">{"title": "foo", "body": "bar", "userId": 1}</textarea></div>
-          <button type="button" id="apiSendBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("send","w-5 h-5", 20) | safe }} SEND REQUEST</button>
-        </form>
+{{ tool_hero_section("plug", "Developer Tool", "API", "TESTER", "Test and debug REST APIs in your browser. Send GET, POST, PUT, PATCH, DELETE requests with custom headers, query params, body, auth presets, and code generation. Free, no sign-up.") }}
+
+<div class="max-w-5xl mx-auto reveal">
+  <div class="glass-card rounded-2xl p-4 md:p-5 mb-4">
+    <div class="flex flex-wrap gap-2" role="tablist">
+      <button class="tab-btn active" data-tab="req" role="tab" aria-selected="true" aria-controls="tab-req">Request</button>
+      <button class="tab-btn" data-tab="hist" role="tab" aria-selected="false" aria-controls="tab-hist">History</button>
+      <button class="tab-btn" data-tab="saved" role="tab" aria-selected="false" aria-controls="tab-saved">Saved</button>
+    </div>
+  </div>
+
+  <div id="tab-req" class="tab-content" role="tabpanel">
+    <div class="glass-card rounded-2xl p-4 md:p-5">
+      <div class="flex flex-wrap gap-2 mb-3">
+        <select id="apiMethod" class="input-visible rounded-xl text-xs font-bold px-3 py-2 w-24 flex-shrink-0 text-center" style="font-family:monospace">
+          <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option>
+        </select>
+        <input type="text" id="apiUrl" class="input-visible flex-1 min-w-0 rounded-xl text-sm font-mono px-3 py-2" placeholder="https://api.example.com/endpoint" value="https://jsonplaceholder.typicode.com/posts/1">
+        <button id="apiSend" class="btn btn-primary rounded-xl px-5 font-bold text-sm flex-shrink-0" style="min-height:2.5rem">
+          <span id="apiSendText">Send</span>
+          <span id="apiSendSpin" class="hidden loading loading-spinner loading-sm ml-1"></span>
+        </button>
+        <button id="apiSaveBtn" class="btn btn-ghost border border-base-content/20 rounded-xl px-3 font-bold text-xs flex-shrink-0" style="min-height:2.5rem">Save</button>
+        <button id="apiCodeBtn" class="btn btn-ghost border border-base-content/20 rounded-xl px-3 font-bold text-xs flex-shrink-0" style="min-height:2.5rem">Code</button>
+      </div>
+
+      <details class="mb-3 text-sm" id="authSection">
+        <summary class="text-[11px] uppercase tracking-[.15em] font-bold opacity-40 cursor-pointer mb-1 hover:opacity-70 transition-opacity">Authentication</summary>
+        <select id="authType" class="text-[11px] font-bold bg-transparent border border-base-content/20 rounded-lg px-2 py-0.5 opacity-60 mb-2">
+          <option value="none">None</option><option value="basic">Basic Auth</option><option value="bearer">Bearer Token</option><option value="apikey">API Key</option>
+        </select>
+        <div id="authBasic" class="auth-field"><input id="authBasicUser" placeholder="Username" class="input-visible w-full rounded-xl text-sm font-mono mb-1.5 px-3 py-2"><input id="authBasicPass" type="password" placeholder="Password" class="input-visible w-full rounded-xl text-sm font-mono px-3 py-2"></div>
+        <div id="authBearer" class="auth-field"><input id="authBearerToken" placeholder="Enter your bearer token" class="input-visible w-full rounded-xl text-sm font-mono px-3 py-2"></div>
+        <div id="authApiKey" class="auth-field flex gap-1.5"><input id="authApiKeyName" placeholder="Key name" class="input-visible w-1/2 rounded-xl text-sm font-mono px-3 py-2"><input id="authApiKeyVal" placeholder="Value" class="input-visible w-1/2 rounded-xl text-sm font-mono px-3 py-2"></div>
+      </details>
+
+      <details class="mb-3 text-sm" id="queryParamsSection">
+        <summary class="text-[11px] uppercase tracking-[.15em] font-bold opacity-40 cursor-pointer mb-2 hover:opacity-70 transition-opacity">Query Parameters</summary>
+        <div id="queryParamsList" class="space-y-1.5"></div>
+        <button id="addQueryParam" class="text-[11px] uppercase tracking-[.1em] font-bold opacity-30 hover:opacity-70 transition-opacity mt-1">+ Add Param</button>
+      </details>
+
+      <details class="mb-3 text-sm" open>
+        <summary class="text-[11px] uppercase tracking-[.15em] font-bold opacity-40 cursor-pointer mb-2 hover:opacity-70 transition-opacity">Headers</summary>
+        <div id="headersList" class="space-y-1.5"></div>
+        <button id="addHeader" class="text-[11px] uppercase tracking-[.1em] font-bold opacity-30 hover:opacity-70 transition-opacity mt-1">+ Add Header</button>
+      </details>
+
+      <div id="apiBodySection">
+        <div class="flex gap-2 mb-2">
+          <span class="text-[11px] uppercase tracking-[.15em] font-bold opacity-40">Body</span>
+          <select id="apiBodyType" class="text-[11px] font-bold bg-transparent border border-base-content/20 rounded-lg px-2 py-0.5 opacity-60">
+            <option value="json">JSON</option><option value="form">Form Data</option><option value="text">Text</option><option value="none">None</option>
+          </select>
+        </div>
+        <div id="apiBodyJson"><textarea id="apiBodyInput" class="w-full input-visible rounded-xl text-sm font-mono p-3 min-h-[7rem]" placeholder='{"key": "value"}'></textarea></div>
+        <div id="apiBodyForm" class="hidden space-y-1.5"></div>
+        <button id="addFormField" class="hidden text-[11px] uppercase tracking-[.1em] font-bold opacity-30 hover:opacity-70 transition-opacity mt-1">+ Add Field</button>
       </div>
     </div>
-    <div class="lg:w-7/12">
-      <div class="card-premium p-6 md:p-8">
-        <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Response</h3>
-        <div class="card-premium p-6" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-          <div class="flex items-center gap-4 mb-4"><span class="text-xs font-mono text-base-content/60">Status:</span><output id="statusCode" class="pill-cinematic text-xs">—</output></div>
-          <pre id="responseOutput" class="block min-h-[200px] p-4 bg-base-300/20 rounded-xl text-xs font-mono text-base-content leading-relaxed overflow-x-auto whitespace-pre-wrap">Click Send Request</pre>
+
+    <div class="glass-card rounded-2xl p-4 md:p-5 mt-4">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div class="flex items-center gap-3">
+          <output id="respStatus" class="method-badge opacity-30">—</output>
+          <span id="respMeta" class="text-[11px] font-mono opacity-40"></span>
         </div>
+        <div class="flex items-center gap-2">
+          <button id="respCurl" class="text-[10px] uppercase tracking-[.15em] font-bold opacity-30 hover:opacity-70 transition-opacity px-2 py-1 rounded-lg border border-base-content/15">cURL</button>
+          <button id="respViewRaw" class="text-[10px] uppercase tracking-[.15em] font-bold opacity-30 hover:opacity-70 transition-opacity px-2 py-1 rounded-lg border border-base-content/15">Raw</button>
+          <button id="respViewPretty" class="text-[10px] uppercase tracking-[.15em] font-bold opacity-30 hover:opacity-70 transition-opacity px-2 py-1 rounded-lg border border-base-content/15">Pretty</button>
+          <button id="respCopy" class="text-[10px] uppercase tracking-[.15em] font-bold opacity-30 hover:opacity-70 transition-opacity px-2 py-1 rounded-lg border border-base-content/15">Copy</button>
+          <button id="respClear" class="text-[10px] uppercase tracking-[.15em] font-bold opacity-30 hover:opacity-70 transition-opacity px-2 py-1 rounded-lg border border-base-content/15">Clear</button>
+        </div>
+      </div>
+      <details class="text-sm mb-2" id="respHeadersSection">
+        <summary class="text-[11px] uppercase tracking-[.15em] font-bold opacity-30 cursor-pointer hover:opacity-60 transition-opacity">Response Headers</summary>
+        <div id="respHeadersList" class="mt-1 max-h-32 overflow-y-auto" style="scrollbar-width:thin"></div>
+      </details>
+      <pre id="respOutput" class="block min-h-[12rem] max-h-[30rem] overflow-auto p-4 rounded-xl text-xs font-mono leading-relaxed whitespace-pre-wrap" style="background:color-mix(in oklab,var(--color-base-100) 50%,var(--color-base-200));scrollbar-width:thin">Click Send or press Ctrl+Enter to make a request</pre>
+    </div>
+  </div>
+
+  <div id="tab-hist" class="tab-content hidden" role="tabpanel">
+    <div class="glass-card rounded-2xl p-4 md:p-5">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-[11px] uppercase tracking-[.15em] font-bold opacity-40">Past Requests</p>
+        <button id="histClearAll" class="text-[10px] uppercase tracking-[.15em] font-bold opacity-30 hover:opacity-70 hover:text-error transition-all px-3 py-1 rounded-lg border border-base-content/15">Clear All</button>
+      </div>
+      <div id="histList" class="max-h-96 overflow-y-auto" style="scrollbar-width:thin"><div class="text-[11px] opacity-40 italic text-center py-6">No requests yet.</div></div>
+    </div>
+  </div>
+
+  <div id="tab-saved" class="tab-content hidden" role="tabpanel">
+    <div class="glass-card rounded-2xl p-4 md:p-5">
+      <div class="flex items-center justify-between mb-3">
+        <p class="text-[11px] uppercase tracking-[.15em] font-bold opacity-40">Saved Collections</p>
+        <button id="savedClearAll" class="text-[10px] uppercase tracking-[.15em] font-bold opacity-30 hover:opacity-70 hover:text-error transition-all px-3 py-1 rounded-lg border border-base-content/15">Clear All</button>
+      </div>
+      <div id="savedList" class="max-h-96 overflow-y-auto" style="scrollbar-width:thin"><div class="text-[11px] opacity-40 italic text-center py-6">No saved requests.</div></div>
+      <div class="mt-3 flex gap-2">
+        <button id="savedExport" class="text-[10px] uppercase tracking-[.15em] font-bold opacity-35 hover:opacity-70 transition-opacity px-3 py-1.5 rounded-lg border border-base-content/15">Export All</button>
+        <button id="savedImport" class="text-[10px] uppercase tracking-[.15em] font-bold opacity-35 hover:opacity-70 transition-opacity px-3 py-1.5 rounded-lg border border-base-content/15">Import</button>
+        <input type="file" id="savedImportFile" accept=".json" class="hidden">
       </div>
     </div>
   </div>
 </div>
+
+<div id="codeModal" class="modal-wrap">
+  <div class="modal-box">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-sm font-bold tracking-widest uppercase opacity-60">Code Snippet</h3>
+      <span id="codeModalClose" style="cursor:pointer;font-size:1.5rem;line-height:1;opacity:.5;padding:0 .25rem">&times;</span>
+    </div>
+    <div class="flex gap-1.5 mb-3">
+      <span class="code-tab active" data-lang="curl" style="cursor:pointer">cURL</span>
+      <span class="code-tab" data-lang="python" style="cursor:pointer">Python</span>
+      <span class="code-tab" data-lang="javascript" style="cursor:pointer">JavaScript</span>
+    </div>
+    <pre id="codeOutput">Select a language</pre>
+    <button id="codeCopyBtn" class="mt-3 text-[10px] uppercase tracking-[.15em] font-bold opacity-35 hover:opacity-70 transition-opacity px-3 py-1.5 rounded-lg border border-base-content/15">Copy to Clipboard</button>
+  </div>
+</div>
+
 <script>
-(function(){'use strict';function toggleBody(){const m=document.getElementById('method').value;document.getElementById('bodyField').style.display=(m==='GET'||m==='DELETE')?'none':'block';}
-async function sendRequest(){const method=document.getElementById('method').value;const url=document.getElementById('url').value;let headers={};try{headers=JSON.parse(document.getElementById('headers').value)||{};}catch(e){document.getElementById('responseOutput').innerText='Error: Invalid JSON in headers';return;}
-const options={method,headers};if(method!=='GET'&&method!=='DELETE'){try{options.body=document.getElementById('body').value;}catch(e){document.getElementById('responseOutput').innerText='Error: Invalid JSON in body';return;}}
-try{const res=await fetch(url,options);document.getElementById('statusCode').innerText=res.status+' '+res.statusText;const st=document.getElementById('statusCode');if(res.ok){st.style.background='var(--color-success)';}else{st.style.background='var(--color-error)';}
-const text=await res.text();let formatted;try{formatted=JSON.stringify(JSON.parse(text),null,2);}catch(e){formatted=text;}
-document.getElementById('responseOutput').innerText=formatted;}catch(err){document.getElementById('statusCode').innerText='Error';document.getElementById('statusCode').style.background='var(--color-error)';document.getElementById('responseOutput').innerText='Request failed: '+err.message;}}
-document.addEventListener('DOMContentLoaded',function(){toggleBody();document.getElementById('apiSendBtn').addEventListener('click',sendRequest);document.getElementById('method').addEventListener('change',toggleBody);});})();
+(function(){'use strict';
+
+var m=$('apiMethod'),u=$('apiUrl'),s=$('apiSend'),st=$('apiSendText'),sp=$('apiSendSpin');
+var hl=$('headersList'),ql=$('queryParamsList'),bt=$('apiBodyType'),bj=$('apiBodyJson');
+var bf=$('apiBodyForm'),bi=$('apiBodyInput');
+var rs=$('respStatus'),rm=$('respMeta'),ro=$('respOutput'),rh=$('respHeadersList');
+var rvR=$('respViewRaw'),rvP=$('respViewPretty'),rCp=$('respCopy'),rCl=$('respClear'),rCu=$('respCurl');
+var hL=$('histList'),hCA=$('histClearAll');
+var svL=$('savedList'),svCA=$('savedClearAll'),svEx=$('savedExport'),svIm=$('savedImport'),svImF=$('savedImportFile');
+var svBtn=$('apiSaveBtn'),codeBtn=$('apiCodeBtn');
+var cMod=$('codeModal'),cOut=$('codeOutput'),cClose=$('codeModalClose'),cCopy=$('codeCopyBtn');
+var cTabs=document.querySelectorAll('.code-tab');
+var at=$('authType'),aB=$('authBasic'),aBe=$('authBearer'),aAk=$('authApiKey');
+
+function $(id){return document.getElementById(id);}
+
+var respRaw='',respPretty='',respView='pretty',respHeaders={};
+var history=JSON.parse(localStorage.getItem('apiHistory')||'[]');
+var saved=JSON.parse(localStorage.getItem('apiSaved')||'[]');
+
+function addKV(c,k,v){
+  var d=document.createElement('div');d.className='kv-row';
+  d.innerHTML='<input type="text" class="input-visible" style="flex:1;padding:.35rem .5rem;border-radius:.5rem;font-size:.75rem;font-family:monospace;font-weight:600" placeholder="Key" value="'+(k||'')+'"><input type="text" class="input-visible" style="flex:1;padding:.35rem .5rem;border-radius:.5rem;font-size:.75rem;font-family:monospace;font-weight:600" placeholder="Value" value="'+(v||'')+'"><button class="kv-del" type="button">&times;</button>';
+  c.appendChild(d);
+  d.querySelector('.kv-del').onclick=function(){d.remove();};
+  return d;
+}
+
+function initH(){addKV(hl,'Content-Type','application/json');addKV(hl,'Accept','application/json');}
+
+initH();
+$('addHeader').onclick=function(){addKV(hl);};
+$('addQueryParam').onclick=function(){addKV(ql);};
+var af=$('addFormField');
+af.onclick=function(){addKV(bf);};
+bt.onchange=function(){
+  var v=bt.value;
+  bj.style.display=v==='json'?'':'none';
+  bf.style.display=v==='form'?'':'none';
+  af.style.display=v==='form'?'':'none';
+};
+m.onchange=function(){
+  var h=m.value==='GET'||m.value==='HEAD';
+  $('apiBodySection').style.display=h?'none':'';
+};
+
+at.onchange=function(){
+  var v=at.value;
+  aB.className='auth-field'+(v==='basic'?' show':'');
+  aBe.className='auth-field'+(v==='bearer'?' show':'');
+  aAk.className='auth-field'+(v==='apikey'?' show':'');
+  syncA();
+};
+function syncA(){
+  [].forEach.call(hl.querySelectorAll('.kv-row'),function(r){
+    var k=r.querySelector('input').value.trim();
+    if(k==='Authorization'||k.toLowerCase().startsWith('x-api-'))r.remove();
+  });
+  var v=at.value;
+  if(v==='basic'){
+    var usr=$('authBasicUser').value,pwd=$('authBasicPass').value;
+    if(usr&&pwd)addKV(hl,'Authorization','Basic '+btoa(usr+':'+pwd));
+  }else if(v==='bearer'){
+    var tok=$('authBearerToken').value;
+    if(tok)addKV(hl,'Authorization','Bearer '+tok);
+  }else if(v==='apikey'){
+    var kn=$('authApiKeyName').value,kv=$('authApiKeyVal').value;
+    if(kn)addKV(hl,kn,kv);
+  }
+}
+['authBasicUser','authBasicPass','authBearerToken','authApiKeyName','authApiKeyVal'].forEach(function(id){
+  $(id).oninput=syncA;
+});
+
+async function sendReq(){
+  var method=m.value,url=u.value.trim();
+  if(!url){ro.textContent='Error: URL is required';return;}
+  st.textContent='Sending...';sp.style.display='';s.disabled=true;
+  syncA();
+  var headers={};
+  [].forEach.call(hl.querySelectorAll('.kv-row'),function(r){
+    var k=r.querySelectorAll('input')[0].value.trim(),v=r.querySelectorAll('input')[1].value.trim();
+    if(k)headers[k]=v;
+  });
+  var qps=[];
+  [].forEach.call(ql.querySelectorAll('.kv-row'),function(r){
+    var k=r.querySelectorAll('input')[0].value.trim(),v=r.querySelectorAll('input')[1].value.trim();
+    if(k)qps.push(encodeURIComponent(k)+'='+encodeURIComponent(v));
+  });
+  if(qps.length)url+=(url.includes('?')?'&':'?')+qps.join('&');
+  var body=undefined;
+  if(method!=='GET'&&method!=='HEAD'){
+    var btv=bt.value;
+    if(btv==='json'){var raw=bi.value.trim();if(raw)body=raw;}
+    else if(btv==='form'){
+      var fd=new URLSearchParams();
+      [].forEach.call(bf.querySelectorAll('.kv-row'),function(r){
+        var k=r.querySelectorAll('input')[0].value.trim(),v=r.querySelectorAll('input')[1].value.trim();
+        if(k)fd.append(k,v);
+      });
+      body=fd.toString();
+    }else if(btv==='text')body=bi.value;
+  }
+  var t0=performance.now();
+  try{
+    var res=await fetch(url,{method:method,headers:headers,body:body});
+    var t1=performance.now(),dt=(t1-t0).toFixed(1);
+    var buf=await res.text(),size=buf.length;
+    rs.textContent=res.status+' '+res.statusText;
+    var c='color-mix(in oklab,var(--color-';
+    if(res.status<300)c+='success';
+    else if(res.status<400)c+='info';
+    else if(res.status<500)c+='warning';
+    else c+='error';
+    rs.style.background=c+' 25%,transparent)';
+    rm.textContent=dt+'ms | '+fs(size);
+    respHeaders={};
+    res.headers.forEach(function(v,k){respHeaders[k]=v;});
+    rH();
+    respRaw=buf;
+    try{var j=JSON.parse(buf);respPretty=JSON.stringify(j,null,2);}catch(e){respPretty=buf;}
+    rR();
+    aH(method,url,res.status,dt,size);
+  }catch(err){
+    rs.textContent='Error';rs.style.background='color-mix(in oklab,var(--color-error) 25%,transparent)';
+    rm.textContent='';respRaw='';respPretty='';respHeaders={};rH();
+    ro.textContent='Request failed: '+err.message;
+  }
+  st.textContent='Send';sp.style.display='none';s.disabled=false;
+}
+function fs(n){if(n<1024)return n+'B';if(n<1048576)return (n/1024).toFixed(1)+'KB';return (n/1048576).toFixed(1)+'MB';}
+function rH(){var k=Object.keys(respHeaders);if(!k.length){rh.innerHTML='<div class="text-[11px] opacity-30 italic py-1">No headers</div>';return;}var h='';for(var i=0;i<k.length;i++){h+='<div class="resp-header"><strong>'+k[i]+':</strong> '+respHeaders[k[i]]+'</div>';}rh.innerHTML=h;}
+function rR(){ro.textContent=respView==='pretty'?respPretty:respRaw;}
+
+rvR.onclick=function(){respView='raw';rR();};
+rvP.onclick=function(){respView='pretty';rR();};
+rCp.onclick=function(){navigator.clipboard.writeText(respView==='pretty'?respPretty:respRaw).catch(function(){});};
+rCl.onclick=function(){
+  rs.textContent='\u2014';rs.style.background='';rm.textContent='';
+  ro.textContent='Click Send or press Ctrl+Enter to make a request';
+  respRaw='';respPretty='';respHeaders={};rH();
+};
+rCu.onclick=function(){showCode('curl');};
+s.onclick=sendReq;
+u.onkeydown=function(e){if(e.ctrlKey&&e.key==='Enter')sendReq();};
+
+function aH(method,url,status,time,size){
+  history.unshift({method:method,url:url,status:status,time:time,size:size,ts:Date.now()});
+  if(history.length>50)history.pop();
+  localStorage.setItem('apiHistory',JSON.stringify(history));
+  rHist();
+}
+function rHist(){
+  if(!history.length){hL.innerHTML='<div class="text-[11px] opacity-40 italic text-center py-6">No requests yet.</div>';return;}
+  var h='';for(var i=0;i<history.length;i++){var e=history[i];
+    h+='<div class="hist-item" data-idx="'+i+'"><span class="method-badge" style="background:'+gC(e.status)+'">'+e.method+'</span><span class="flex-1 truncate text-xs font-mono opacity-60">'+e.url+'</span><span class="method-badge" style="background:'+gC(e.status)+'">'+e.status+'</span><span class="text-[10px] font-mono opacity-35">'+e.time+'ms</span></div>';}
+  hL.innerHTML=h;
+  [].forEach.call(hL.querySelectorAll('.hist-item'),function(el){
+    el.onclick=function(){var idx=parseInt(this.getAttribute('data-idx'));loadR(history[idx]);sendReq();};
+  });
+}
+function gC(s){if(s<300)return 'color-mix(in oklab,var(--color-success) 25%,transparent)';if(s<400)return 'color-mix(in oklab,var(--color-info) 25%,transparent)';if(s<500)return 'color-mix(in oklab,var(--color-warning) 25%,transparent)';return 'color-mix(in oklab,var(--color-error) 25%,transparent)';}
+hCA.onclick=function(){history=[];localStorage.setItem('apiHistory',JSON.stringify(history));rHist();};
+
+function rSaved(){
+  if(!saved.length){svL.innerHTML='<div class="text-[11px] opacity-40 italic text-center py-6">No saved requests.</div>';return;}
+  var h='';for(var i=0;i<saved.length;i++){var e=saved[i];
+    h+='<div class="saved-item" data-idx="'+i+'"><span class="saved-name">'+esc(e.name)+'</span><span class="method-badge" style="background:'+gM(e.method)+'">'+e.method+'</span><span class="flex-1 truncate text-xs font-mono opacity-50">'+esc(e.url)+'</span><button class="saved-del" data-idx="'+i+'">&times;</button></div>';}
+  svL.innerHTML=h;
+  [].forEach.call(svL.querySelectorAll('.saved-item'),function(el){
+    el.onclick=function(ev){if(ev.target.classList.contains('saved-del'))return;var idx=parseInt(this.getAttribute('data-idx'));loadR(saved[idx]);switchT('req');};
+  });
+  [].forEach.call(svL.querySelectorAll('.saved-del'),function(b){
+    b.onclick=function(ev){ev.stopPropagation();var idx=parseInt(this.getAttribute('data-idx'));saved.splice(idx,1);localStorage.setItem('apiSaved',JSON.stringify(saved));rSaved();};
+  });
+}
+function gM(m){return m==='GET'?'color-mix(in oklab,var(--color-success) 25%,transparent)':m==='POST'?'color-mix(in oklab,var(--color-primary) 25%,transparent)':m==='PUT'||m==='PATCH'?'color-mix(in oklab,var(--color-warning) 25%,transparent)':m==='DELETE'?'color-mix(in oklab,var(--color-error) 25%,transparent)':'color-mix(in oklab,var(--color-info) 25%,transparent)';}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+svCA.onclick=function(){saved=[];localStorage.setItem('apiSaved',JSON.stringify(saved));rSaved();};
+svBtn.onclick=function(){
+  var name=prompt('Save request as:');
+  if(!name||!name.trim())return;
+  name=name.trim();syncA();
+  var req=collectR();req.name=name;req.ts=Date.now();
+  saved.unshift(req);
+  if(saved.length>100)saved.pop();
+  localStorage.setItem('apiSaved',JSON.stringify(saved));rSaved();
+  svBtn.textContent='Saved!';setTimeout(function(){svBtn.textContent='Save';},1500);
+};
+svEx.onclick=function(){
+  if(!saved.length)return;
+  var blob=new Blob([JSON.stringify(saved,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='api-collections.json';a.click();
+  URL.revokeObjectURL(a.href);
+};
+svIm.onclick=function(){svImF.click();};
+svImF.onchange=function(){
+  var file=svImF.files[0];if(!file)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    try{var d=JSON.parse(e.target.result);if(Array.isArray(d)){saved=d;localStorage.setItem('apiSaved',JSON.stringify(saved));rSaved();}}catch(err){alert('Invalid JSON file');}
+  };
+  r.readAsText(file);svImF.value='';
+};
+
+function collectR(){
+  var method=m.value,url=u.value.trim();
+  var headers={};
+  [].forEach.call(hl.querySelectorAll('.kv-row'),function(r){var k=r.querySelectorAll('input')[0].value.trim(),v=r.querySelectorAll('input')[1].value.trim();if(k)headers[k]=v;});
+  var qps=[];
+  [].forEach.call(ql.querySelectorAll('.kv-row'),function(r){var k=r.querySelectorAll('input')[0].value.trim(),v=r.querySelectorAll('input')[1].value.trim();if(k)qps.push({k:k,v:v});});
+  var btv=bt.value,body=bi.value.trim();
+  return {method:method,url:url,headers:headers,queryParams:qps,bodyType:btv,body:body,authType:at.value};
+}
+function loadR(req){
+  m.value=req.method||'GET';u.value=req.url||'';
+  hl.innerHTML='';if(req.headers){var keys=Object.keys(req.headers);for(var i=0;i<keys.length;i++){addKV(hl,keys[i],req.headers[keys[i]]);}}
+  if(!hl.children.length)initH();
+  ql.innerHTML='';if(req.queryParams){for(var i=0;i<req.queryParams.length;i++){addKV(ql,req.queryParams[i].k||req.queryParams[i].key,req.queryParams[i].v||req.queryParams[i].value);}}
+  if(req.bodyType){bt.value=req.bodyType;bt.onchange();}
+  if(req.body!==undefined)bi.value=req.body;
+  if(req.authType){at.value=req.authType;at.onchange();}
+}
+function switchT(t){
+  [].forEach.call(document.querySelectorAll('.tab-btn[data-tab]'),function(b){b.classList.remove('active');b.setAttribute('aria-selected','false');});
+  var tb=document.querySelector('[data-tab="'+t+'"]');
+  if(tb){tb.classList.add('active');tb.setAttribute('aria-selected','true');}
+  [].forEach.call(document.querySelectorAll('.tab-content'),function(c){c.classList.add('hidden');c.setAttribute('aria-hidden','true');});
+  var p=$('tab-'+t);if(p){p.classList.remove('hidden');p.setAttribute('aria-hidden','false');}
+  if(t==='hist')rHist();if(t==='saved')rSaved();
+}
+
+function getRD(){
+  syncA();
+  var method=m.value,url=u.value.trim();
+  var headers={};
+  [].forEach.call(hl.querySelectorAll('.kv-row'),function(r){var k=r.querySelectorAll('input')[0].value.trim(),v=r.querySelectorAll('input')[1].value.trim();if(k)headers[k]=v;});
+  var qps=[];
+  [].forEach.call(ql.querySelectorAll('.kv-row'),function(r){var k=r.querySelectorAll('input')[0].value.trim(),v=r.querySelectorAll('input')[1].value.trim();if(k)qps.push(encodeURIComponent(k)+'='+encodeURIComponent(v));});
+  if(qps.length)url+=(url.includes('?')?'&':'?')+qps.join('&');
+  var body=undefined;
+  if(method!=='GET'&&method!=='HEAD'){
+    var btv=bt.value;
+    if(btv==='json'){var raw=bi.value.trim();if(raw)body=raw;}
+    else if(btv==='form'){var fd=new URLSearchParams();[].forEach.call(bf.querySelectorAll('.kv-row'),function(r){var k=r.querySelectorAll('input')[0].value.trim(),v=r.querySelectorAll('input')[1].value.trim();if(k)fd.append(k,v);});body=fd.toString();}
+    else if(btv==='text')body=bi.value;
+  }
+  return {method:method,url:url,headers:headers,body:body};
+}
+function gCurl(d){
+  var p=['curl -X',d.method,"'"+d.url+"'"];
+  var hk=Object.keys(d.headers);
+  for(var i=0;i<hk.length;i++){p.push("-H '"+hk[i]+": "+d.headers[hk[i]]+"'");}
+  if(d.body!==undefined&&d.body!==''){p.push("-d '"+d.body.replace(/'/g,"\\'")+"'");}
+  return p.join(' \\\n  ');
+}
+function gPy(d){
+  var l=['import requests','','url = "'+d.url+'"','headers = {'];
+  var hk=Object.keys(d.headers);
+  for(var i=0;i<hk.length;i++){l.push('    "'+hk[i]+'": "'+d.headers[hk[i]]+'",');}
+  l.push('}');
+  if(d.body!==undefined&&d.body!==''&&d.method!=='GET'&&d.method!=='HEAD'){
+    try{var j=JSON.parse(d.body);l.push('','data = '+JSON.stringify(j,null,2).replace(/\n/g,'\n'),'','response = requests.'+d.method.toLowerCase()+'(url, headers=headers, json=data)');}catch(e){l.push('','data = """'+d.body.replace(/"""/g,'\\"\\"\\"')+'"""','','response = requests.'+d.method.toLowerCase()+'(\''+d.url+'\', headers=headers, data=data)');}
+  }else{l.push('','response = requests.'+d.method.toLowerCase()+'(\''+d.url+'\', headers=headers)');}
+  l.push('print(response.status_code)','print(response.json())');
+  return l.join('\n');
+}
+function gJS(d){
+  var l=['fetch("'+d.url+'", {','  method: "'+d.method+'",'];
+  var hk=Object.keys(d.headers);
+  if(hk.length){l.push('  headers: {');for(var i=0;i<hk.length;i++){l.push('    "'+hk[i]+'": "'+d.headers[hk[i]]+'",');}l.push('  },');}
+  if(d.body!==undefined&&d.body!==''&&d.method!=='GET'&&d.method!=='HEAD'){
+    try{JSON.parse(d.body);l.push('  body: JSON.stringify('+JSON.stringify(JSON.parse(d.body)).replace(/\n/g,'')+'),');}catch(e){l.push('  body: `'+d.body.replace(/`/g,'\\`')+'`,');}
+  }
+  l.push('})','.then(res => res.json())','.then(data => console.log(data))','.catch(err => console.error(err));');
+  return l.join('\n');
+}
+function showCode(lang){
+  var d=getRD();
+  if(lang==='curl')cOut.textContent=gCurl(d);
+  else if(lang==='python')cOut.textContent=gPy(d);
+  else cOut.textContent=gJS(d);
+}
+
+// Modal
+codeBtn.onclick=function(){cMod.className='modal-wrap open';showCode('curl');};
+cClose.onclick=function(){cMod.className='modal-wrap';};
+cMod.onclick=function(e){if(e.target===cMod)cMod.className='modal-wrap';};
+
+cCopy.onclick=function(){navigator.clipboard.writeText(cOut.textContent).catch(function(){});};
+
+// Code tab switching
+[].forEach.call(cTabs,function(t){
+  t.onclick=function(){
+    [].forEach.call(cTabs,function(x){x.classList.remove('active');});
+    this.classList.add('active');
+    showCode(this.getAttribute('data-lang'));
+  };
+});
+
+// Tab switching
+[].forEach.call(document.querySelectorAll('.tab-btn[data-tab]'),function(t){
+  t.onclick=function(){
+    var tb=this.getAttribute('data-tab');
+    [].forEach.call(document.querySelectorAll('.tab-btn[data-tab]'),function(b){b.classList.remove('active');b.setAttribute('aria-selected','false');});
+    this.classList.add('active');this.setAttribute('aria-selected','true');
+    [].forEach.call(document.querySelectorAll('.tab-content'),function(c){c.classList.add('hidden');c.setAttribute('aria-hidden','true');});
+    var p=$('tab-'+tb);if(p){p.classList.remove('hidden');p.setAttribute('aria-hidden','false');}
+    if(tb==='hist')rHist();if(tb==='saved')rSaved();
+  };
+});
+
+// Global keyboard
+document.onkeydown=function(e){
+  if(e.key==='Escape')cMod.className='modal-wrap';
+  if(e.ctrlKey&&e.key==='Enter')sendReq();
+};
+
+rHist();rSaved();
+})();
 </script>
 
-
-
-{{ tool_seo_all(seo_data) }}
+{% set seo = {
+  "name": "API Tester",
+  "description": "Free online REST API tester and debugger. Send HTTP requests (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS) with custom headers, query parameters, JSON body, form data. Auth presets (Basic Auth, Bearer Token, API Key). Save collections, generate code snippets (cURL, Python, JavaScript), export/import. Request history, response headers viewer, raw/pretty formatting.",
+  "app_category": "DeveloperApplication",
+  "date_modified": "2026-06-27",
+  "faqs": [
+    {"q": "How do I use the API tester?", "a": "Select an HTTP method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS), enter a URL, add optional headers and body, then click Send or press Ctrl+Enter. The response status, headers, and body are displayed below."},
+    {"q": "What HTTP methods are supported?", "a": "GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS. The body section is hidden for GET and HEAD requests since they don't support request bodies."},
+    {"q": "How do auth presets work?", "a": "Open the Authentication section and select Basic Auth, Bearer Token, or API Key. Fill in the credentials and they automatically populate the Authorization header. Switch back to None to remove auth headers."},
+    {"q": "How do I save and reload requests?", "a": "Click the Save button next to Send to save the current request with a name. Switch to the Saved tab to browse, load, or delete saved requests. You can also Export all as JSON and Import collections."},
+    {"q": "Can I generate code from my request?", "a": "Yes. Click the Code button next to Send to open the code snippet generator. Choose from cURL, Python (requests), or JavaScript (fetch). Copy the generated code with one click."},
+    {"q": "How do I add custom headers?", "a": "Click the + Add Header button below the Headers section. Enter the header name (e.g., Authorization) and value (e.g., Bearer token). Default headers Content-Type and Accept are pre-filled."},
+    {"q": "What request body types are supported?", "a": "JSON (auto-formatted), Form Data (key-value pairs converted to URL-encoded format), Text (raw text), and None (no body). Select the type from the Body dropdown."},
+    {"q": "How do I add query parameters?", "a": "Open the Query Parameters section. Add key-value pairs and they are automatically appended to the URL."},
+    {"q": "Is there a request history?", "a": "Yes. Switch to the History tab to see past requests with method, URL, status, and response time. Click any entry to replay it. History is stored in your browser (localStorage) and persists across sessions."},
+    {"q": "How do I export the current request as a cURL command?", "a": "Click the cURL button in the response toolbar to copy the current request as a cURL command to your clipboard."}
+  ],
+  "howto_steps": [
+    {"title": "Enter Request Details", "desc": "Select HTTP method from the dropdown. Enter the full API URL. Add optional auth, query params, headers, and body."},
+    {"title": "Use Auth Presets", "desc": "Open Authentication section. Choose Basic Auth (username/password), Bearer Token, or API Key. Credentials auto-fill the Authorization header."},
+    {"title": "Send & Inspect", "desc": "Click Send or press Ctrl+Enter. View color-coded status, timing, size, response headers, and formatted body. Toggle Raw/Pretty view."},
+    {"title": "Save & Reuse", "desc": "Click Save to store requests in a collection. Browse them in the Saved tab, reload, or export/import as JSON files."},
+    {"title": "Generate Code", "desc": "Click the Code button to generate cURL, Python (requests), or JavaScript (fetch) snippets. Copy with one click."}
+  ],
+  "howto_calculate": "<p><strong>Making Requests:</strong> The API tester uses the browser's Fetch API. Select a method, enter a URL, add headers/body, and press Send or Ctrl+Enter.</p><p><strong>Authentication:</strong> Use the Auth section for Basic Auth (Base64-encoded), Bearer Token, or API Key headers. Auth headers are automatically synced with the Headers section.</p><p><strong>Saved Collections:</strong> Save requests with custom names. Browse, load, or delete saved requests from the Saved tab. Export all as JSON or import collections from a file.</p><p><strong>Code Generation:</strong> Generate cURL, Python (requests library), or JavaScript (fetch API) code snippets from the current request.</p><p><strong>Response Analysis:</strong> Color-coded status codes (2xx green, 3xx blue, 4xx orange, 5xx red), response time, size, and headers.</p>",
+  "about_title": "About the API Tester",
+  "about_body": "<p>This API Tester is a full-featured browser-based REST API client for developers. All requests are sent directly from your browser using the Fetch API with no server-side proxy or data logging.</p><p><strong>Features:</strong> 7 HTTP methods, auth presets (Basic, Bearer, API Key), query parameters, custom headers, 4 body types, saved collections with export/import, code generation (cURL/Python/JavaScript), request history, color-coded status, response timing, size tracking, response headers viewer, raw/pretty formatting.</p><p><strong>Privacy:</strong> All requests go directly from your browser to the target API. Your data is never sent to our servers. History and saved collections are stored only in localStorage.</p><p><strong>Limitations:</strong> Browser CORS policies may block cross-origin requests. For APIs behind CORS, consider a desktop client like Postman. The tool is intended for testing public APIs and development endpoints.</p>",
+  "related": [
+    {"name": "Base64 Tool", "url": "/tool/base64-tool"},
+    {"name": "UUID Generator", "url": "/tool/uuid-generator"},
+    {"name": "QR Generator", "url": "/tool/qr-generator"},
+    {"name": "JSON Schema Generator", "url": "/tool/schema-generator"},
+    {"name": "Meta Tag Generator", "url": "/tool/meta-tag-generator"},
+    {"name": "Open Graph Generator", "url": "/tool/open-graph-generator"}
+  ]
+} %}
+{{ tool_seo_all(seo) }}
 {% endblock %}
