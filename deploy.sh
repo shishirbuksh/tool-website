@@ -104,7 +104,13 @@ pull_latest() {
 
 restart_service() {
     if command -v systemctl >/dev/null 2>&1 && [ -f "/etc/systemd/system/$APP_NAME.service" ]; then
-        log_info "Restarting systemd service..."
+        log_info "Updating and restarting systemd service..."
+        local fixed=$(fix_service_paths)
+        if [ -n "$fixed" ]; then
+            sudo cp "$fixed" /etc/systemd/system/$APP_NAME.service
+            sudo systemctl daemon-reload
+            rm -f "$fixed"
+        fi
         sudo systemctl restart "$APP_NAME"
         log_info "Service restarted."
     else
