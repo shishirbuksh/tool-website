@@ -128,11 +128,7 @@ async def get_page(request: Request, page_name: str):
         )
 
     pages_dir = os.path.join(settings.templates_dir, "pages")
-    valid_pages = (
-        [f[:-5] for f in os.listdir(pages_dir) if f.endswith(".html")]
-        if os.path.exists(pages_dir)
-        else []
-    )
+    valid_pages = [f[:-5] for f in os.listdir(pages_dir) if f.endswith(".html")] if os.path.exists(pages_dir) else []
 
     if page_name in valid_pages:
         return templates.TemplateResponse(

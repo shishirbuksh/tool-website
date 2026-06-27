@@ -45,12 +45,14 @@ class TestMemoryCache:
 class TestCacheService:
     def test_fallback_to_memory(self):
         from app.core.cache import CacheService
+
         svc = CacheService(default_ttl=60)
         svc.set("test_key", "hello")
         assert svc.get("test_key") == "hello"
 
     def test_delete(self):
         from app.core.cache import CacheService
+
         svc = CacheService()
         svc.set("del_key", "value")
         svc.delete("del_key")
@@ -58,6 +60,7 @@ class TestCacheService:
 
     def test_clear(self):
         from app.core.cache import CacheService
+
         svc = CacheService()
         svc.set("a", 1)
         svc.set("b", 2)

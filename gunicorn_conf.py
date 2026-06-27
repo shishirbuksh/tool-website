@@ -27,5 +27,8 @@ proxy_allow_ips = "*"
 logging.basicConfig(level=logging.INFO)
 logging.info(
     "Starting server: %s | workers=%d | loglevel=%s | timeout=%s",
-    bind, workers, loglevel, timeout,
+    bind,
+    workers,
+    loglevel,
+    timeout,
 )

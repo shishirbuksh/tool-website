@@ -29,29 +29,51 @@ class SitemapService:
 
     def _get_pri(self, slug: str) -> float:
         tool_priority = {
-            "calculator": 0.9, "adsense-calculator": 0.9, "age-calculator": 0.9, "percentage-calculator": 0.9,
-            "scientific-calculator": 0.9, "profit-margin-calculator": 0.9,
-            "gst-calculator": 0.9, "emi-calculator": 0.9, "compound-calculator": 0.9,
-            "mrr-calculator": 0.9, "cac-calculator": 0.9, "burn-rate-calculator": 0.9,
-            "salary-calculator": 0.9, "sip-calculator": 0.9, "fd-calculator": 0.9,
-            "loan-affordability-calculator": 0.9, "mortgage-overpayment-calculator": 0.9,
+            "calculator": 0.9,
+            "adsense-calculator": 0.9,
+            "age-calculator": 0.9,
+            "percentage-calculator": 0.9,
+            "scientific-calculator": 0.9,
+            "profit-margin-calculator": 0.9,
+            "gst-calculator": 0.9,
+            "emi-calculator": 0.9,
+            "compound-calculator": 0.9,
+            "mrr-calculator": 0.9,
+            "cac-calculator": 0.9,
+            "burn-rate-calculator": 0.9,
+            "salary-calculator": 0.9,
+            "sip-calculator": 0.9,
+            "fd-calculator": 0.9,
+            "loan-affordability-calculator": 0.9,
+            "mortgage-overpayment-calculator": 0.9,
             "credit-utilization-calculator": 0.9,
             "debt-calculator": 0.9,
-            "date-calculator": 0.9, "eway-bill-calculator": 0.9,
-            "youtube-calculator": 0.8, "instagram-calculator": 0.8,
+            "date-calculator": 0.9,
+            "eway-bill-calculator": 0.9,
+            "youtube-calculator": 0.8,
+            "instagram-calculator": 0.8,
         }
         if slug in tool_priority:
             return tool_priority[slug]
         if slug.startswith("crypto-"):
             return 0.8
-        if slug in ("image-compressor", "image-converter",
-                     "image-background-remover", "watermark-remover", "meme-generator",
-                     "qr-generator", "uuid-generator", "base64-tool",
-                       "schema-generator",
-                       "sitemap-generator", "robots-txt-generator", "api-tester",
-                        "keyword-data-analyzer",
-                         "meta-tag-generator",
-                         "open-graph-generator"):
+        if slug in (
+            "image-compressor",
+            "image-converter",
+            "image-background-remover",
+            "watermark-remover",
+            "meme-generator",
+            "qr-generator",
+            "uuid-generator",
+            "base64-tool",
+            "schema-generator",
+            "sitemap-generator",
+            "robots-txt-generator",
+            "api-tester",
+            "keyword-data-analyzer",
+            "meta-tag-generator",
+            "open-graph-generator",
+        ):
             return 0.8
         return 0.7
 
@@ -69,12 +91,14 @@ class SitemapService:
                 if f.endswith(".html"):
                     tool_name = f[:-5].replace("_", "-")
                     pri = self._get_pri(tool_name)
-                    pages.append({
-                        "url": f"/tool/{tool_name}",
-                        "file": f"templates/tools/{f}",
-                        "freq": "daily",
-                        "pri": f"{pri:.1f}",
-                    })
+                    pages.append(
+                        {
+                            "url": f"/tool/{tool_name}",
+                            "file": f"templates/tools/{f}",
+                            "freq": "daily",
+                            "pri": f"{pri:.1f}",
+                        }
+                    )
 
         pages_dir = os.path.join(self.settings.templates_dir, "pages")
         if os.path.exists(pages_dir):
@@ -83,30 +107,32 @@ class SitemapService:
                     page_name = f[:-5]
                     if page_name in ("privacy", "terms", "disclaimer", "sitemap"):
                         continue
-                    pages.append({
-                        "url": f"/{page_name}",
-                        "file": f"templates/pages/{f}",
-                        "freq": "weekly",
-                        "pri": "0.4",
-                    })
+                    pages.append(
+                        {
+                            "url": f"/{page_name}",
+                            "file": f"templates/pages/{f}",
+                            "freq": "weekly",
+                            "pri": "0.4",
+                        }
+                    )
 
         url_tags = []
         for p in pages:
             lastmod = self._get_lastmod(p["file"])
             url_tags.append(
-                f'    <url>\n'
-                f'        <loc>{BASE_URL}{p["url"]}</loc>\n'
-                f'        <lastmod>{lastmod}</lastmod>\n'
-                f'        <changefreq>{p["freq"]}</changefreq>\n'
-                f'        <priority>{p["pri"]}</priority>\n'
-                f'    </url>'
+                f"    <url>\n"
+                f"        <loc>{BASE_URL}{p['url']}</loc>\n"
+                f"        <lastmod>{lastmod}</lastmod>\n"
+                f"        <changefreq>{p['freq']}</changefreq>\n"
+                f"        <priority>{p['pri']}</priority>\n"
+                f"    </url>"
             )
 
         xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
         xml_content += '<?xml-stylesheet type="text/xsl" href="/static/sitemap.xsl"?>\n'
         xml_content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         xml_content += "\n".join(url_tags)
-        xml_content += '\n</urlset>'
+        xml_content += "\n</urlset>"
         self._sitemap_cache = (time.time(), xml_content)
         return xml_content
 
@@ -168,10 +194,12 @@ class SitemapService:
         cached = self._from_cache(self._llms_cache)
         if cached:
             return cached
-        txt = ("# StoryBrain AI\n\n"
-               "> StoryBrain AI provides a suite of free advanced online tools including SEO generators, "
-               "crypto tools, image processing utilities, calculators, and more.\n\n"
-               "## Available Tools\n\n")
+        txt = (
+            "# StoryBrain AI\n\n"
+            "> StoryBrain AI provides a suite of free advanced online tools including SEO generators, "
+            "crypto tools, image processing utilities, calculators, and more.\n\n"
+            "## Available Tools\n\n"
+        )
 
         tools_dir = os.path.join(self.settings.templates_dir, "tools")
         if os.path.exists(tools_dir):
@@ -189,9 +217,11 @@ class SitemapService:
                 name = p.replace("-", " ").title()
                 txt += f"- [{name}](https://www.storybrainai.com/{p})\n"
 
-        txt += ("\n## Technical Details\n\n"
-                "All tools are accessible via the frontend interface. "
-                "The `/api/` routes are intended for internal frontend consumption "
-                "and are restricted from standard bot access.\n")
+        txt += (
+            "\n## Technical Details\n\n"
+            "All tools are accessible via the frontend interface. "
+            "The `/api/` routes are intended for internal frontend consumption "
+            "and are restricted from standard bot access.\n"
+        )
         self._llms_cache = (time.time(), txt)
         return txt

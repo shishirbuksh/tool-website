@@ -27,6 +27,7 @@ class CryptoService:
         if self._pd is None:
             try:
                 import pandas as pd
+
                 self._pd = pd
             except Exception as e:
                 raise ServiceError("pandas library is not available") from e
@@ -36,6 +37,7 @@ class CryptoService:
         if self._yf is None:
             try:
                 import yfinance as yf
+
                 self._yf = yf
             except Exception as e:
                 raise ServiceError("yfinance library is not available") from e
@@ -45,6 +47,7 @@ class CryptoService:
         if self._prophet is None:
             try:
                 from prophet import Prophet
+
                 self._prophet = Prophet
             except Exception:
                 logger.warning("Prophet not available — predictions will be degraded")
@@ -55,6 +58,7 @@ class CryptoService:
         if self._rust_predictor is None:
             try:
                 import rust_predictor
+
                 if hasattr(rust_predictor, "train_and_predict"):
                     self._rust_predictor = rust_predictor
                 else:
@@ -86,7 +90,11 @@ class CryptoService:
         return result
 
     async def _run_analysis(
-        self, symbol: str, period: str, lookback: int, rust_epochs: int,
+        self,
+        symbol: str,
+        period: str,
+        lookback: int,
+        rust_epochs: int,
         include_ta: bool = False,
     ) -> dict:
         loop = asyncio.get_running_loop()
@@ -116,10 +124,12 @@ class CryptoService:
             prophet_mod = self._get_prophet()
             if prophet_mod is None:
                 return None
-            prophet_df = pd.DataFrame({
-                "ds": pd.to_datetime(df.index.tz_localize(None)),
-                "y": close_prices,
-            })
+            prophet_df = pd.DataFrame(
+                {
+                    "ds": pd.to_datetime(df.index.tz_localize(None)),
+                    "y": close_prices,
+                }
+            )
             m = prophet_mod(daily_seasonality=True, yearly_seasonality=True)
             m.fit(prophet_df)
             future = m.make_future_dataframe(periods=future_days)
@@ -131,7 +141,10 @@ class CryptoService:
             if predictor is None:
                 return None
             return predictor.train_and_predict(
-                close_prices.tolist(), lookback, rust_epochs, future_days,
+                close_prices.tolist(),
+                lookback,
+                rust_epochs,
+                future_days,
             )
 
         prophet_preds = await loop.run_in_executor(None, _run_prophet)
@@ -148,14 +161,14 @@ class CryptoService:
             degraded.append("rust_predictor")
 
         last_date = df.index[-1]
-        future_dates = [(last_date + timedelta(days=i)).strftime("%Y-%m-%d")
-                        for i in range(1, future_days + 1)]
+        future_dates = [(last_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, future_days + 1)]
 
         degraded_flag = degraded if degraded else None
 
         if include_ta:
-            result = self._build_trend_result(symbol, close_prices, timestamps,
-                                              future_dates, prophet_preds, rust_preds, df)
+            result = self._build_trend_result(
+                symbol, close_prices, timestamps, future_dates, prophet_preds, rust_preds, df
+            )
             if degraded_flag:
                 result["degraded"] = degraded_flag
             return result
@@ -198,22 +211,30 @@ class CryptoService:
         return df_ta
 
     def _build_trend_result(
-        self, symbol: str, close_prices, timestamps,
-        future_dates, prophet_preds, rust_preds, df,
+        self,
+        symbol: str,
+        close_prices,
+        timestamps,
+        future_dates,
+        prophet_preds,
+        rust_preds,
+        df,
     ) -> dict:
         df_ta = self._compute_ta(close_prices, df.index)
 
         history = []
         for i in range(len(timestamps)):
-            history.append({
-                "date": timestamps[i],
-                "price": float(close_prices[i]),
-                "sma20": float(df_ta["SMA20"].iloc[i]),
-                "sma50": float(df_ta["SMA50"].iloc[i]),
-                "rsi": float(df_ta["RSI"].iloc[i]),
-                "macd": float(df_ta["MACD"].iloc[i]),
-                "macd_hist": float(df_ta["MACD_Hist"].iloc[i]),
-            })
+            history.append(
+                {
+                    "date": timestamps[i],
+                    "price": float(close_prices[i]),
+                    "sma20": float(df_ta["SMA20"].iloc[i]),
+                    "sma50": float(df_ta["SMA50"].iloc[i]),
+                    "rsi": float(df_ta["RSI"].iloc[i]),
+                    "macd": float(df_ta["MACD"].iloc[i]),
+                    "macd_hist": float(df_ta["MACD_Hist"].iloc[i]),
+                }
+            )
 
         future_data = []
         for d, p, r in zip(future_dates, prophet_preds, rust_preds, strict=False):

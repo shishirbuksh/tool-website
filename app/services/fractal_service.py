@@ -26,8 +26,7 @@ class FractalService:
         self.settings = settings
         self._session = requests.Session()
 
-    async def generate_nft(self, prompt: str, style: str = "3d", provider: str = "local",
-                           api_key: str = None) -> dict:
+    async def generate_nft(self, prompt: str, style: str = "3d", provider: str = "local", api_key: str = None) -> dict:
         if rust_predictor is None:
             raise ServiceError("rust_predictor module is not available")
 
@@ -146,9 +145,7 @@ class FractalService:
                 "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
                 "headers": {"x-goog-api-key": api_key},
                 "json": {
-                    "contents": [
-                        {"role": "user", "parts": [{"text": system_prompt + "\n\n" + user_content}]}
-                    ],
+                    "contents": [{"role": "user", "parts": [{"text": system_prompt + "\n\n" + user_content}]}],
                 },
                 "parse": lambda resp: resp.json()["candidates"][0]["content"]["parts"][0]["text"],
             },
@@ -167,8 +164,9 @@ class FractalService:
 
         return await loop.run_in_executor(None, _request)
 
-    async def _generate_pattern(self, width: int, height: int, zoom: float,
-                                c_re: float, c_im: float, max_iter: int) -> list:
+    async def _generate_pattern(
+        self, width: int, height: int, zoom: float, c_re: float, c_im: float, max_iter: int
+    ) -> list:
         loop = asyncio.get_running_loop()
 
         def _gen():

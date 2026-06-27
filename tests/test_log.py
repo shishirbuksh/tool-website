@@ -25,8 +25,13 @@ class TestJSONFormatter:
     def test_format_with_request_id(self):
         formatter = JSONFormatter()
         record = logging.LogRecord(
-            name="test", level=logging.WARNING, pathname=__file__, lineno=5,
-            msg="warn msg", args=(), exc_info=None,
+            name="test",
+            level=logging.WARNING,
+            pathname=__file__,
+            lineno=5,
+            msg="warn msg",
+            args=(),
+            exc_info=None,
         )
         record.request_id = "req-123"
         output = json.loads(formatter.format(record))
@@ -39,10 +44,16 @@ class TestJSONFormatter:
             raise ValueError("test error")
         except ValueError:
             import sys
+
             exc_info = sys.exc_info()
             record = logging.LogRecord(
-                name="test", level=logging.ERROR, pathname=__file__, lineno=20,
-                msg="error occurred", args=(), exc_info=exc_info,
+                name="test",
+                level=logging.ERROR,
+                pathname=__file__,
+                lineno=20,
+                msg="error occurred",
+                args=(),
+                exc_info=exc_info,
             )
         output = json.loads(formatter.format(record))
         assert "exception" in output

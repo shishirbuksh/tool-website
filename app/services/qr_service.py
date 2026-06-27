@@ -9,8 +9,9 @@ class QRService:
     def __init__(self, settings: Settings):
         self.settings = settings
 
-    def generate(self, data: str, fg_color: str = "black", bg_color: str = "white",
-                 error_correction: str = "L") -> bytes:
+    def generate(
+        self, data: str, fg_color: str = "black", bg_color: str = "white", error_correction: str = "L"
+    ) -> bytes:
         ec_map = {
             "L": qrcode.constants.ERROR_CORRECT_L,
             "M": qrcode.constants.ERROR_CORRECT_M,

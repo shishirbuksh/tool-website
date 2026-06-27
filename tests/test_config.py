@@ -24,4 +24,5 @@ class TestSettings:
 
     def test_settings_singleton(self):
         from app.core.config import settings
+
         assert settings.PROJECT_NAME == "Multi-Tool Website"

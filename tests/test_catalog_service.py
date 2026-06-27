@@ -12,8 +12,14 @@ class TestCatalogService:
         svc = CatalogService(settings)
         categories, _ = svc.get_categorized_tools()
         assert len(categories) >= 5
-        expected = ["AI & Crypto", "Image Processing", "Calculators",
-                     "Developer & SEO", "Business & Operations", "Productivity & Utilities"]
+        expected = [
+            "AI & Crypto",
+            "Image Processing",
+            "Calculators",
+            "Developer & SEO",
+            "Business & Operations",
+            "Productivity & Utilities",
+        ]
         for cat in expected:
             assert cat in categories, f"Missing category: {cat}"
 
@@ -61,8 +67,7 @@ class TestCatalogService:
     def test_get_valid_tools_missing_some(self, settings):
         svc = CatalogService(settings)
         tools = svc.get_valid_tools()
-        important = ["qr-generator", "invoice-generator",
-                      "calculator"]
+        important = ["qr-generator", "invoice-generator", "calculator"]
         for t in important:
             assert t in tools, f"Missing important tool: {t}"
 

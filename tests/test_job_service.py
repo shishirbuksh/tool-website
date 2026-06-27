@@ -17,6 +17,7 @@ class TestJobService:
         assert resp.status in (JobStatus.PENDING, JobStatus.RUNNING)
 
         import asyncio
+
         await asyncio.sleep(0.01)
 
         poll = svc.get_status(resp.job_id)
@@ -33,6 +34,7 @@ class TestJobService:
 
         resp = svc.submit("fail", failing)
         import asyncio
+
         await asyncio.sleep(0.01)
 
         poll = svc.get_status(resp.job_id)
@@ -50,12 +52,15 @@ class TestJobService:
         svc = JobService()
         jobs = []
         for i in range(5):
+
             async def make_job(val=i):
                 return val * 2
+
             resp = svc.submit(f"job_{i}", make_job)
             jobs.append(resp)
 
         import asyncio
+
         await asyncio.sleep(0.02)
 
         for i, resp in enumerate(jobs):

@@ -87,8 +87,7 @@ def get_counts(limit: int = 50) -> dict:
     try:
         conn = _get_conn()
         cursor = conn.execute(
-            "SELECT name, COUNT(*) as cnt FROM events "
-            "GROUP BY name ORDER BY cnt DESC LIMIT ?",
+            "SELECT name, COUNT(*) as cnt FROM events GROUP BY name ORDER BY cnt DESC LIMIT ?",
             (limit,),
         )
         return dict(cursor.fetchall())

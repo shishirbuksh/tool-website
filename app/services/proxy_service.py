@@ -34,15 +34,14 @@ class ProxyService:
             self._dns_cache[hostname] = (None, now)
             return None
 
-    async def execute(self, url: str, method: str = "GET", headers: dict = None,
-                      body: str = None) -> dict:
+    async def execute(self, url: str, method: str = "GET", headers: dict = None, body: str = None) -> dict:
         parsed_url = urlparse(url)
         hostname = parsed_url.hostname
         if not hostname:
             raise ValidationException("Invalid URL")
 
         headers = {
-            k.replace('\r', '').replace('\n', ''): v.replace('\r', '').replace('\n', '')
+            k.replace("\r", "").replace("\n", ""): v.replace("\r", "").replace("\n", "")
             for k, v in (headers or {}).items()
         }
 

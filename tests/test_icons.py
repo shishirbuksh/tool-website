@@ -11,8 +11,8 @@ class TestLucideIcon:
 
     def test_missing_icon_returns_placeholder(self):
         result = lucide_icon("nonexistent-icon-name")
-        assert 'icon-missing' in result
-        assert 'not found' in result
+        assert "icon-missing" in result
+        assert "not found" in result
 
     def test_icon_caches_result(self):
         if not os.path.isdir(JSON_PATH):
@@ -20,7 +20,7 @@ class TestLucideIcon:
         result1 = lucide_icon("home")
         result2 = lucide_icon("home")
         assert result1 == result2
-        assert 'icon-missing' not in result1
+        assert "icon-missing" not in result1
 
     def test_icon_with_class_and_size(self):
         if not os.path.isdir(JSON_PATH):

@@ -63,18 +63,25 @@ class JobService:
         if now - self._last_cleanup > self._cleanup_interval:
             cutoff = now - 3600
             self._jobs = {
-                jid: j for jid, j in self._jobs.items()
+                jid: j
+                for jid, j in self._jobs.items()
                 if j.status in (JobStatus.PENDING, JobStatus.RUNNING) or j.created_at > cutoff
             }
             if len(self._jobs) > self._max_jobs:
-                pending = {jid: j for jid, j in self._jobs.items() if j.status in (JobStatus.PENDING, JobStatus.RUNNING)}
+                pending = {
+                    jid: j for jid, j in self._jobs.items() if j.status in (JobStatus.PENDING, JobStatus.RUNNING)
+                }
                 completed = sorted(
-                    [(jid, j) for jid, j in self._jobs.items() if j.status not in (JobStatus.PENDING, JobStatus.RUNNING)],
+                    [
+                        (jid, j)
+                        for jid, j in self._jobs.items()
+                        if j.status not in (JobStatus.PENDING, JobStatus.RUNNING)
+                    ],
                     key=lambda x: x[1].created_at,
                     reverse=True,
                 )
                 keep = pending
-                keep.update(dict(completed[:self._max_jobs // 2]))
+                keep.update(dict(completed[: self._max_jobs // 2]))
                 self._jobs = keep
             self._last_cleanup = now
 

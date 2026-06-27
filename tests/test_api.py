@@ -9,16 +9,16 @@ client = TestClient(app)
 
 
 def _make_png(r=255, g=0, b=0):
-    sig = b'\x89PNG\r\n\x1a\n'
-    ihdr_data = struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0)
-    ihdr_crc = zlib.crc32(b'IHDR' + ihdr_data)
-    ihdr = struct.pack('>I', 13) + b'IHDR' + ihdr_data + struct.pack('>I', ihdr_crc)
-    raw = b'\x00' + bytes([r, g, b])
+    sig = b"\x89PNG\r\n\x1a\n"
+    ihdr_data = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+    ihdr_crc = zlib.crc32(b"IHDR" + ihdr_data)
+    ihdr = struct.pack(">I", 13) + b"IHDR" + ihdr_data + struct.pack(">I", ihdr_crc)
+    raw = b"\x00" + bytes([r, g, b])
     compressed = zlib.compress(raw)
-    idat_crc = zlib.crc32(b'IDAT' + compressed)
-    idat = struct.pack('>I', len(compressed)) + b'IDAT' + compressed + struct.pack('>I', idat_crc)
-    iend_crc = zlib.crc32(b'IEND')
-    iend = struct.pack('>I', 0) + b'IEND' + struct.pack('>I', iend_crc)
+    idat_crc = zlib.crc32(b"IDAT" + compressed)
+    idat = struct.pack(">I", len(compressed)) + b"IDAT" + compressed + struct.pack(">I", idat_crc)
+    iend_crc = zlib.crc32(b"IEND")
+    iend = struct.pack(">I", 0) + b"IEND" + struct.pack(">I", iend_crc)
     return sig + ihdr + idat + iend
 
 

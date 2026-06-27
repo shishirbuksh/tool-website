@@ -21,6 +21,7 @@ class ImageService:
         if self._rembg is None:
             try:
                 import rembg
+
                 self._rembg = rembg
             except Exception as e:
                 raise ServiceError("Background removal library (rembg) is not available") from e
@@ -30,6 +31,7 @@ class ImageService:
         if self._cv2 is None:
             try:
                 import cv2
+
                 self._cv2 = cv2
             except Exception as e:
                 raise ServiceError("OpenCV (cv2) is not available") from e
@@ -45,6 +47,7 @@ class ImageService:
 
         try:
             from rembg import new_session
+
             session = new_session("u2netp")
             output_img = rembg.remove(input_img, session=session, alpha_matting=smooth_edges)
         except Exception as session_err:

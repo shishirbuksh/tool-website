@@ -16,6 +16,7 @@ def _get_redis():
     if _redis is None and not _redis_available:
         try:
             import redis as redis_module
+
             redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
             _redis = redis_module.from_url(redis_url, socket_timeout=2.0, decode_responses=True)
             _redis.ping()
