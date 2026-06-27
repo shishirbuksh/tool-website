@@ -39,7 +39,6 @@ class ImageService:
 
     def remove_background(self, image_data: bytes, bg_color: str = "", smooth_edges: bool = False) -> bytes:
         rembg = self._get_rembg()
-        os.environ["U2NET_HOME"] = "/tmp/.u2net"
         input_img = Image.open(io.BytesIO(image_data)).convert("RGBA")
         max_dim = 800 if smooth_edges else 2048
         if input_img.width > max_dim or input_img.height > max_dim:

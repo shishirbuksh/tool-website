@@ -55,6 +55,19 @@ install_python() {
         log_info "Installing heavy optional dependency: rembg[cpu]"
         pip install -q "rembg[cpu]"
     fi
+
+    # Install opencv for watermark remover
+    if ! python3 -c "import cv2" 2>/dev/null; then
+        log_info "Installing OpenCV..."
+        pip install -q opencv-python-headless
+    fi
+
+    # Pre-download rembg models so gunicorn workers don't timeout
+    if python3 -c "import rembg" 2>/dev/null; then
+        log_info "Pre-downloading rembg models..."
+        export U2NET_HOME="$APP_DIR/.u2net"
+        python3 -c "from rembg import new_session; new_session('u2netp'); new_session('u2net')" >/dev/null 2>&1 || true
+    fi
 }
 
 build_rust() {
