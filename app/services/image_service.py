@@ -21,9 +21,9 @@ class ImageService:
         if self._rembg is None:
             try:
                 import rembg
-
                 self._rembg = rembg
             except Exception as e:
+                logger.error("Failed to import rembg", exc_info=True)
                 raise ServiceError("Background removal library (rembg) is not available") from e
         return self._rembg
 
@@ -45,26 +45,30 @@ class ImageService:
             input_img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
         try:
-            from rembg import new_session
-
-            session = new_session("u2netp")
-            output_img = rembg.remove(input_img, session=session, alpha_matting=smooth_edges)
-        except Exception as session_err:
-            logger.warning("Fallback to default model due to session error: %s", session_err)
-            output_img = rembg.remove(input_img, alpha_matting=smooth_edges)
-
-        if bg_color and bg_color.strip() != "transparent":
             try:
-                rgb_color = ImageColor.getrgb(bg_color)
-                bg_img = Image.new("RGBA", output_img.size, rgb_color + (255,))
-                bg_img.paste(output_img, (0, 0), output_img)
-                output_img = bg_img
-            except Exception as e:
-                logger.error("Color error: %s", e)
+                from rembg import new_session
 
-        buf = io.BytesIO()
-        output_img.save(buf, format="PNG")
-        return buf.getvalue()
+                session = new_session("u2netp")
+                output_img = rembg.remove(input_img, session=session, alpha_matting=smooth_edges)
+            except Exception as session_err:
+                logger.warning("Fallback to default model due to session error: %s", session_err)
+                output_img = rembg.remove(input_img, alpha_matting=smooth_edges)
+
+            if bg_color and bg_color.strip() != "transparent":
+                try:
+                    rgb_color = ImageColor.getrgb(bg_color)
+                    bg_img = Image.new("RGBA", output_img.size, rgb_color + (255,))
+                    bg_img.paste(output_img, (0, 0), output_img)
+                    output_img = bg_img
+                except Exception as e:
+                    logger.error("Color error: %s", e)
+
+            buf = io.BytesIO()
+            output_img.save(buf, format="PNG")
+            return buf.getvalue()
+        except Exception as e:
+            logger.error("Failed to remove background: %s", e, exc_info=True)
+            raise ServiceError(f"Background removal failed: {str(e)}") from e
 
     def remove_watermark(self, image_data: bytes, mask_data: bytes, algorithm: str = "telea") -> bytes:
         cv2 = self._get_cv2()

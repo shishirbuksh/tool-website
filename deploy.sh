@@ -31,7 +31,11 @@ ensure_system_deps() {
     done
     if [ -n "$missing" ]; then
         log_info "Installing missing system deps: $missing"
-        command -v python3 >/dev/null 2>&1 || sudo apt-get install -y -qq python3 python3-pip python3-venv
+        sudo apt-get update -qq
+        sudo apt-get install -y -qq python3 python3-pip python3-venv libgomp1 libglib2.0-0
+    else
+        # Just to be safe, ensure these libraries exist for OpenCV/onnxruntime
+        sudo apt-get install -y -qq libgomp1 libglib2.0-0 >/dev/null 2>&1 || true
     fi
 }
 
