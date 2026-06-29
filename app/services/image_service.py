@@ -1,12 +1,16 @@
+"""Image processing service: background removal, watermark removal with configurable MAX_IMAGE_PIXELS guard."""
+
 import io
 import logging
-import os
 
 import numpy as np
 from PIL import Image, ImageColor
 
 from app.core.config import Settings
 from app.core.exceptions import ServiceError, ValidationException
+
+# Decompression bomb protection
+Image.MAX_IMAGE_PIXELS = 178_000_000  # ~13K x 13K
 
 logger = logging.getLogger(__name__)
 

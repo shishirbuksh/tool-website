@@ -1,3 +1,5 @@
+"""Tests for JobService: submit, poll, error, not-found, and multi-job scenarios."""
+
 import pytest
 
 from app.models.job import JobStatus

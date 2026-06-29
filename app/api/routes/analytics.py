@@ -1,3 +1,5 @@
+"""Analytics tracking API: record page views and retrieve top pages."""
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 

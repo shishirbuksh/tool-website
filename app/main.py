@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -25,7 +26,7 @@ from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.log import setup_logging
 from app.core.metrics import MetricsMiddleware
-from app.core.middleware import RequestIDMiddleware, SecurityHeadersMiddleware
+from app.core.middleware import OriginCheckMiddleware, RequestIDMiddleware, SecurityHeadersMiddleware
 
 setup_logging()
 
@@ -42,6 +43,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts_list)
+app.add_middleware(OriginCheckMiddleware)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(MetricsMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
@@ -56,12 +59,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.core.log import get_logger
+
+_startup_logger = get_logger("app.main")
 try:
     os.makedirs(os.path.join(settings.static_dir, "css"), exist_ok=True)
     os.makedirs(os.path.join(settings.static_dir, "js"), exist_ok=True)
     os.makedirs(os.path.join(settings.templates_dir, "tools"), exist_ok=True)
-except OSError:
-    pass
+except OSError as exc:
+    _startup_logger.warning("Failed to create directories", exc_info=exc)
 
 
 class CachedStaticFiles(StaticFiles):

@@ -32,13 +32,13 @@ class MetricsMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         active_requests.inc()
         start = time.monotonic()
-        status = 500
+        response = None
         try:
             response = await call_next(request)
-            status = response.status_code
             return response
         finally:
             elapsed = time.monotonic() - start
+            status = response.status_code if response is not None else 500
             active_requests.dec()
             request_count.labels(method=request.method, path=request.url.path, status=status).inc()
             request_latency.labels(method=request.method, path=request.url.path).observe(elapsed)

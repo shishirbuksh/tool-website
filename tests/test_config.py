@@ -1,3 +1,5 @@
+"""Tests for Settings: directory resolution, defaults, and singleton behavior."""
+
 import os
 
 from app.core.config import Settings

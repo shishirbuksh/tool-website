@@ -1,7 +1,12 @@
+"""JSON logging with contextvars-based request ID propagation."""
+
+import contextvars
 import json
 import logging
 import sys
 from datetime import UTC, datetime
+
+_request_id_var: contextvars.ContextVar[str] = contextvars.ContextVar("request_id", default="")
 
 
 class JSONFormatter(logging.Formatter):
@@ -14,31 +19,15 @@ class JSONFormatter(logging.Formatter):
         }
         if isinstance(record.exc_info, (list, tuple)) and record.exc_info[0]:
             msg["exception"] = self.formatException(record.exc_info)
-        if hasattr(record, "request_id"):
-            msg["request_id"] = record.request_id
+        rid = _request_id_var.get()
+        if rid:
+            msg["request_id"] = rid
         return json.dumps(msg, default=str)
-
-
-class RequestIDFilter(logging.Filter):
-    def __init__(self):
-        super().__init__()
-        self._request_id = ""
-
-    def set_request_id(self, request_id: str):
-        self._request_id = request_id
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        record.request_id = self._request_id
-        return True
-
-
-_request_id_filter = RequestIDFilter()
 
 
 def setup_logging() -> None:
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JSONFormatter())
-    handler.addFilter(_request_id_filter)
 
     root = logging.getLogger()
     root.setLevel(logging.INFO)
@@ -50,5 +39,9 @@ def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
 
 
-def get_request_id_filter() -> RequestIDFilter:
-    return _request_id_filter
+def set_request_id(request_id: str) -> contextvars.Token:
+    return _request_id_var.set(request_id)
+
+
+def reset_request_id(token: contextvars.Token) -> None:
+    _request_id_var.reset(token)

@@ -1,3 +1,5 @@
+"""Integration tests for all HTTP endpoints: pages, SEO, catalog, analytics, health, crypto, and security headers."""
+
 import struct
 import zlib
 

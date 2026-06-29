@@ -1,3 +1,5 @@
+"""Pydantic model for proxy request validation."""
+
 from pydantic import BaseModel, Field
 
 

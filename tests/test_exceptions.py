@@ -1,3 +1,5 @@
+"""Tests for custom exception classes and their inheritance chain."""
+
 from starlette import status
 
 from app.core.exceptions import AppException, NotFoundException, ServiceError, ValidationException

@@ -1,3 +1,5 @@
+"""Tests for ImageService: dependency gating, data validation, and error handling."""
+
 import pytest
 
 from app.core.exceptions import ServiceError, ValidationException

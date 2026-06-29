@@ -1,3 +1,5 @@
+"""Health check and Prometheus metrics endpoints."""
+
 import os
 
 from fastapi import APIRouter

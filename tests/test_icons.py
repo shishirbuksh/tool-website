@@ -1,3 +1,5 @@
+"""Tests for icon loading and rendering."""
+
 import os
 
 import pytest

@@ -1,3 +1,5 @@
+"""Crypto prediction and trend analysis service (async, dependency-gated)."""
+
 import asyncio
 import logging
 from datetime import timedelta

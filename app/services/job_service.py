@@ -1,3 +1,5 @@
+"""Async job queue service: submit background tasks and poll results by ID."""
+
 import asyncio
 import time
 import uuid

@@ -1,3 +1,5 @@
+"""Application configuration via Pydantic Settings (env file + defaults)."""
+
 import functools
 import os
 
@@ -20,8 +22,23 @@ class Settings(BaseSettings):
     TIMEOUT: int = 120
     KEEP_ALIVE: int = 5
     REDIS_URL: str = ""
-    ALLOWED_HOSTS: str = "localhost,127.0.0.1"
+    ALLOWED_HOSTS: str = "localhost,127.0.0.1,.storybrainai.com,testserver"
     CORS_ORIGINS: str = ""
+    SITE_URL: str = "https://www.storybrainai.com"
+    IMAGE_MAX_SIZE: int = 10 * 1024 * 1024
+    PDF_MAX_SIZE: int = 5 * 1024 * 1024
+    ANALYTICS_RETENTION_DAYS: int = 90
+    ANALYTICS_CLEANUP_INTERVAL: int = 300
+    CACHE_DEFAULT_TTL: int = 300
+
+    HUB_CATEGORIES: dict[str, tuple[str, str]] = {
+        "ai-tools": ("AI & Crypto", "AI & Crypto Tools — Free Online Predictors & Calculators"),
+        "image-tools": ("Image Processing", "Free Online Image Tools — Background Remover, Compressor & Converter"),
+        "calculators": ("Calculators", "Free Online Calculators — Math, Finance & Life Calculators"),
+        "developer-tools": ("Developer & SEO", "Free Developer & SEO Tools — Schema, Sitemap & Code Generators"),
+        "business-tools": ("Business & Operations", "Free Business Tools — Invoice, Orders & Finance Calculators"),
+        "pdf-tools": ("Productivity & Utilities", "Free PDF & Productivity Tools — Converter, Password & Trackers"),
+    }
 
     @functools.cached_property
     def base_dir(self) -> str:

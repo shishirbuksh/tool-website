@@ -1,3 +1,5 @@
+"""HTTP proxy service with DNS-level private-IP blocking, request/response size caps, and header sanitization."""
+
 import asyncio
 import ipaddress
 import socket
@@ -16,6 +18,7 @@ class ProxyService:
         self._session = requests.Session()
         self._dns_cache: dict[str, tuple[str | None, float]] = {}
         self._dns_ttl = 300
+        self._dns_maxsize = 100
 
     def _resolve_cached(self, hostname: str) -> str | None:
         now = time.time()
@@ -29,16 +32,28 @@ class ProxyService:
                 self._dns_cache[hostname] = (None, now)
                 return None
             self._dns_cache[hostname] = (ip, now)
+            self._evict_dns_cache()
             return ip
         except socket.gaierror:
             self._dns_cache[hostname] = (None, now)
             return None
 
+    def _evict_dns_cache(self):
+        if len(self._dns_cache) <= self._dns_maxsize:
+            return
+        sorted_items = sorted(self._dns_cache.items(), key=lambda x: x[1][1])
+        self._dns_cache = dict(sorted_items[self._dns_maxsize // 2:])
+
     async def execute(self, url: str, method: str = "GET", headers: dict = None, body: str = None) -> dict:
         parsed_url = urlparse(url)
+        scheme = parsed_url.scheme
         hostname = parsed_url.hostname
         if not hostname:
-            raise ValidationException("Invalid URL")
+            raise ValidationException("Invalid URL: missing hostname")
+        if scheme not in ("http", "https"):
+            raise ValidationException("Only http and https URLs are allowed")
+        if body and len(body) > 512_000:
+            raise ValidationException("Request body exceeds 512KB limit")
 
         headers = {
             k.replace("\r", "").replace("\n", ""): v.replace("\r", "").replace("\n", "")
@@ -74,6 +89,11 @@ class ProxyService:
         try:
             response = await loop.run_in_executor(None, lambda: self._session.request(**kwargs))
             end_time = time.time()
+
+            body_content = response.text
+            if len(body_content) > 5_000_000:
+                body_content = body_content[:5_000_000] + "\n[truncated: response exceeds 5MB limit]"
+
             resp_headers = dict(response.headers)
 
             return {
@@ -82,9 +102,13 @@ class ProxyService:
                 "time_ms": int((end_time - start_time) * 1000),
                 "size_bytes": len(response.content) if response.content else 0,
                 "headers": resp_headers,
-                "body": response.text,
+                "body": body_content,
             }
-        except requests.exceptions.RequestException as e:
-            raise ServiceError(f"Request failed: {str(e)}") from e
-        except Exception as e:
-            raise ServiceError(f"An unexpected error occurred: {str(e)}") from e
+        except requests.exceptions.Timeout:
+            raise ServiceError("Request timed out after 15 seconds")
+        except requests.exceptions.ConnectionError:
+            raise ServiceError("Failed to connect to the remote server")
+        except requests.exceptions.RequestException:
+            raise ServiceError("Request failed")
+        except Exception:
+            raise ServiceError("An unexpected error occurred")

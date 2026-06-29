@@ -1,3 +1,5 @@
+"""Crypto prediction and trend analysis API (async job-based)."""
+
 from fastapi import APIRouter
 
 from app.core.config import settings

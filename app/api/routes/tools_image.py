@@ -1,17 +1,20 @@
+"""Image processing API endpoints: background removal, watermark removal."""
+
 from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile
 
 from app.core.config import settings
 from app.core.log import get_logger
 from app.services.image_service import ImageService
 
+ALLOWED_IMAGE_MIMES = {"image/jpeg", "image/png", "image/webp", "image/bmp", "image/gif"}
+
 router = APIRouter(prefix="/api", tags=["Image"])
 image_service = ImageService(settings)
 logger = get_logger(__name__)
 
-MAX_IMAGE_SIZE = 10 * 1024 * 1024
-
-
-def _check_size(upload: UploadFile) -> int:
+def _check_upload(upload: UploadFile) -> int:
+    if upload.content_type not in ALLOWED_IMAGE_MIMES:
+        raise HTTPException(status_code=400, detail=f"Unsupported image type: {upload.content_type}")
     upload.file.seek(0, 2)
     size = upload.file.tell()
     upload.file.seek(0)
@@ -24,7 +27,7 @@ async def remove_background(
     bg_color: str = Form(""),
     smooth_edges: bool = Form(False),
 ):
-    if _check_size(image) > MAX_IMAGE_SIZE:
+    if _check_upload(image) > settings.IMAGE_MAX_SIZE:
         raise HTTPException(status_code=413, detail="File size exceeds 10MB limit.")
     image_data = await image.read()
     result = image_service.remove_background(image_data, bg_color, smooth_edges)
@@ -37,7 +40,7 @@ async def remove_watermark(
     mask: UploadFile = File(...),  # noqa: B008
     algorithm: str = Form("telea"),
 ):
-    if _check_size(image) > MAX_IMAGE_SIZE or _check_size(mask) > MAX_IMAGE_SIZE:
+    if _check_upload(image) > settings.IMAGE_MAX_SIZE or _check_upload(mask) > settings.IMAGE_MAX_SIZE:
         raise HTTPException(status_code=413, detail="File size exceeds 10MB limit.")
 
     image_data = await image.read()

@@ -1,3 +1,5 @@
+"""Page-view analytics service: SQLite-backed, thread-safe, with configurable retention."""
+
 import logging
 import os
 import queue
@@ -13,8 +15,8 @@ logger = logging.getLogger(__name__)
 DATA_DIR = os.path.join(settings.base_dir, "var", "data")
 DB_PATH = os.path.join(DATA_DIR, "analytics.db")
 
-_RETENTION_DAYS = 90
-_BATCH_INTERVAL = 60
+_RETENTION_DAYS = settings.ANALYTICS_RETENTION_DAYS
+_CLEANUP_INTERVAL = settings.ANALYTICS_CLEANUP_INTERVAL
 _last_cleanup = 0.0
 _POOL_SIZE = 5
 
@@ -71,15 +73,15 @@ def track(name: str, category: str = "page_view"):
             (name, category, datetime.now(UTC).isoformat()),
         )
         conn.commit()
-
-        if now - _last_cleanup > _BATCH_INTERVAL:
-            _cleanup_old_events()
-            _last_cleanup = now
     except Exception:
         logger.exception("Failed to track analytics event")
     finally:
         if conn:
             _put_conn(conn)
+
+    if now - _last_cleanup > _CLEANUP_INTERVAL:
+        _last_cleanup = now
+        _cleanup_old_events()
 
 
 def get_counts(limit: int = 50) -> dict:

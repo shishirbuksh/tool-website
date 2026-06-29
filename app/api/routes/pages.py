@@ -1,5 +1,6 @@
+"""HTML page endpoints: home, tools directory, individual tools, hub pages, sitemap, offline, service worker."""
+
 import os
-import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Request
@@ -19,18 +20,8 @@ templates = Jinja2Templates(directory=settings.templates_dir)
 templates.env.globals["lucide_icon"] = lucide_icon
 templates.env.globals["today"] = lambda: datetime.now(UTC).strftime("%Y-%m-%d")
 
-APP_VERSION = uuid.uuid4().hex[:8]
+APP_VERSION = os.getenv("APP_VERSION", "dev")
 templates.env.globals["app_version"] = APP_VERSION
-
-HUB_CATEGORIES = {
-    "ai-tools": ("AI & Crypto", "AI & Crypto Tools — Free Online Predictors & Calculators"),
-    "image-tools": ("Image Processing", "Free Online Image Tools — Background Remover, Compressor & Converter"),
-    "calculators": ("Calculators", "Free Online Calculators — Math, Finance & Life Calculators"),
-    "developer-tools": ("Developer & SEO", "Free Developer & SEO Tools — Schema, Sitemap & Code Generators"),
-    "business-tools": ("Business & Operations", "Free Business Tools — Invoice, Orders & Finance Calculators"),
-    "pdf-tools": ("Productivity & Utilities", "Free PDF & Productivity Tools — Converter, Password & Trackers"),
-}
-
 
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -49,6 +40,8 @@ async def tools_page(request: Request):
 
 @router.get("/tool/{tool_name}", response_class=HTMLResponse)
 async def get_tool(request: Request, tool_name: str):
+    if ".." in tool_name or "/" in tool_name:
+        raise HTTPException(status_code=404, detail="Not found")
     if tool_name in ("tools", "sitemap", "offline"):
         raise HTTPException(status_code=404, detail="Not found")
     valid_tools = catalog_service.get_valid_tools()
@@ -107,11 +100,13 @@ async def service_worker():
 
 @router.get("/{page_name}", response_class=HTMLResponse)
 async def get_page(request: Request, page_name: str):
+    if ".." in page_name or "/" in page_name:
+        raise HTTPException(status_code=404, detail="Not found")
     if page_name == "sw.js":
         raise HTTPException(status_code=404, detail="Not found")
 
-    if page_name in HUB_CATEGORIES:
-        category_name, seo_title = HUB_CATEGORIES[page_name]
+    if page_name in settings.HUB_CATEGORIES:
+        category_name, seo_title = settings.HUB_CATEGORIES[page_name]
         categories, static_pages = catalog_service.get_categorized_tools()
         hub_tools = categories.get(category_name, [])
         return templates.TemplateResponse(

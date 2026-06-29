@@ -1,3 +1,5 @@
+"""PDF conversion API endpoints: image-to-PDF, text-to-PDF."""
+
 import io
 import os
 
@@ -8,16 +10,30 @@ from app.core.config import settings
 from app.core.log import get_logger
 from app.services.pdf_service import PDFService
 
+ALLOWED_IMAGE_MIMES = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
+ALLOWED_TEXT_MIMES = {"text/plain"}
+
 router = APIRouter(prefix="/api", tags=["PDF"])
 pdf_service = PDFService(settings)
 logger = get_logger(__name__)
+
+
+def _pdf_response(pdf_bytes: bytes, filename: str) -> StreamingResponse:
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}.pdf"'},
+    )
 
 
 @router.post("/convert-to-pdf")
 async def convert_to_pdf(file: UploadFile = File(...)):  # noqa: B008
     filename = file.filename.lower()
     base_name = os.path.splitext(file.filename)[0]
-    max_size = 5 * 1024 * 1024
+    max_size = settings.PDF_MAX_SIZE
+
+    if file.content_type not in ALLOWED_IMAGE_MIMES and file.content_type not in ALLOWED_TEXT_MIMES:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
 
     file.file.seek(0, os.SEEK_END)
     size = file.file.tell()
@@ -26,25 +42,15 @@ async def convert_to_pdf(file: UploadFile = File(...)):  # noqa: B008
     if size > max_size:
         raise HTTPException(status_code=413, detail="File size exceeds 5MB limit.")
 
-    if filename.endswith((".png", ".jpg", ".jpeg", ".webp", ".bmp")):
+    if file.content_type in ALLOWED_IMAGE_MIMES:
         image_data = await file.read()
         pdf_bytes = pdf_service.convert_image_to_pdf(image_data, filename)
-        pdf_buf = io.BytesIO(pdf_bytes)
-        return StreamingResponse(
-            pdf_buf,
-            media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{base_name}.pdf"'},
-        )
+        return _pdf_response(pdf_bytes, base_name)
 
-    elif filename.endswith(".txt"):
+    if file.content_type in ALLOWED_TEXT_MIMES:
         text_data = await file.read()
         pdf_bytes = pdf_service.convert_text_to_pdf(text_data)
-        pdf_buf = io.BytesIO(pdf_bytes)
-        return StreamingResponse(
-            pdf_buf,
-            media_type="application/pdf",
-            headers={"Content-Disposition": f'attachment; filename="{base_name}.pdf"'},
-        )
+        return _pdf_response(pdf_bytes, base_name)
 
     raise HTTPException(
         status_code=400,

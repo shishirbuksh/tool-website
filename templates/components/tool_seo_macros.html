@@ -1,0 +1,115 @@
+{% macro tool_seo_faq(faqs) %}
+<div class="mt-10 pt-8 border-t border-base-300/15 reveal">
+  <h2 class="text-2xl md:text-3xl font-bold mb-6">Frequently Asked Questions</h2>
+  <div class="space-y-3">
+    {% for item in faqs %}
+    <details class="glass-card glass-border-gradient rounded-xl card-focus-ring" {% if loop.first %}open{% endif %}>
+      <summary class="text-base font-bold px-5 py-4 cursor-pointer">{{ item.q }}</summary>
+      <div class="text-sm text-base-content/55 px-5 pb-4">{{ item.a }}</div>
+    </details>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro tool_seo_howto(steps) %}
+<div class="mt-10 pt-8 border-t border-base-300/15 reveal">
+  <h2 class="text-2xl md:text-3xl font-bold mb-6">How to Use</h2>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {% for step in steps %}
+    <div class="glass-card glass-border-gradient rounded-xl p-5 card-focus-ring">
+      <div class="text-primary font-black text-4xl mb-3 opacity-40">0{{ loop.index }}</div>
+      <h3 class="text-lg font-bold mb-2">{{ step.title }}</h3>
+      <p class="text-sm text-base-content/45">{{ step.desc }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
+
+{% macro tool_seo_howtocalculate(body) %}
+{% if body %}
+<div class="mt-10 pt-8 border-t border-base-300/15 reveal">
+  <h2 class="text-2xl md:text-3xl font-bold mb-6">How to Calculate</h2>
+  <div class="text-base-content/55 text-base leading-relaxed space-y-4">{{ body | safe }}</div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro tool_seo_about(title, body) %}
+<div class="mt-10 pt-8 border-t border-base-300/15 reveal" itemscope itemtype="https://schema.org/Article">
+  <h2 class="text-2xl md:text-3xl font-bold mb-4" itemprop="headline">{{ title }}</h2>
+  <div class="text-base-content/55 text-base leading-relaxed space-y-4" itemprop="articleBody">{{ body | safe }}</div>
+</div>
+{% endmacro %}
+
+{% macro tool_seo_related(tools) %}
+{% if tools %}
+<div class="mt-10 pt-8 border-t border-base-300/15 reveal">
+  <h2 class="text-2xl md:text-3xl font-bold mb-6">Related Tools</h2>
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+    {% for t in tools %}
+    <a href="{{ t.url }}" class="glass-card glass-border-gradient p-3 group h-full card-focus-ring">
+      <div class="flex items-center gap-2.5">
+        <span class="text-sm font-semibold group-hover:text-primary transition-colors">{{ t.name }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro tool_seo_schema(seo) %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "{{ seo.name }}",
+      "applicationCategory": "{{ seo.app_category }}",
+      "operatingSystem": "Web browser",
+      {% if seo.date_modified %}"dateModified": "{{ seo.date_modified }}",{% endif %}
+      "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+      "description": "{{ seo.description }}"
+    }
+    {% if seo.faqs %},{
+      "@type": "FAQPage",
+      "mainEntity": [
+        {% for item in seo.faqs %}{
+          "@type": "Question",
+          "name": {{ item.q | tojson }},
+          "acceptedAnswer": {"@type": "Answer", "text": {{ item.a | tojson }}}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ]
+    }{% endif %}
+    {% if seo.howto_steps %},{
+      "@type": "HowTo",
+      "name": "How to Use {{ seo.name }}",
+      "step": [
+        {% for step in seo.howto_steps %}{
+          "@type": "HowToStep",
+          "position": {{ loop.index }},
+          "name": {{ step.title | tojson }},
+          "text": {{ step.desc | tojson }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ]
+    }{% endif %}
+  ]
+}
+</script>
+{% endmacro %}
+
+{% macro tool_seo_all(seo) %}
+{% if seo %}
+  {% if seo.faqs %}{{ tool_seo_faq(seo.faqs) }}{% endif %}
+  {% if seo.howto_steps %}{{ tool_seo_howto(seo.howto_steps) }}{% endif %}
+  {% if seo.howto_calculate %}{{ tool_seo_howtocalculate(seo.howto_calculate) }}{% endif %}
+  {% if seo.about_title %}{{ tool_seo_about(seo.about_title, seo.about_body) }}{% endif %}
+  {% if seo.related %}{{ tool_seo_related(seo.related) }}{% endif %}
+  {{ tool_seo_schema(seo) }}
+{% endif %}
+{% endmacro %}

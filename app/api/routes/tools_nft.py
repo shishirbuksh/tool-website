@@ -1,3 +1,5 @@
+"""NFT generation API: text-to-image via local/remote AI providers."""
+
 from fastapi import APIRouter
 
 from app.core.config import settings

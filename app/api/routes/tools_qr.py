@@ -1,3 +1,5 @@
+"""QR code generation API: custom colors, error correction, data encoding."""
+
 from fastapi import APIRouter, Form, Response
 
 from app.core.config import settings

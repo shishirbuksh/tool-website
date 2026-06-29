@@ -1,3 +1,5 @@
+"""In-memory and Redis-backed caching with automatic fallback."""
+
 import json
 import os
 import time
@@ -17,7 +19,8 @@ def _get_redis():
         try:
             import redis as redis_module
 
-            redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+            from app.core.config import settings
+            redis_url = settings.REDIS_URL or "redis://localhost:6379/0"
             _redis = redis_module.from_url(redis_url, socket_timeout=2.0, decode_responses=True)
             _redis.ping()
             _redis_available = True
@@ -81,7 +84,13 @@ class CacheService:
 
     def set(self, key: str, value: Any, ttl: int | None = None):
         ttl = ttl or self._default_ttl
-        payload = json.dumps(value) if not isinstance(value, (str, bytes)) else value
+        if not isinstance(value, (str, bytes)):
+            try:
+                payload = json.dumps(value, default=str)
+            except (TypeError, ValueError):
+                payload = json.dumps(str(value))
+        else:
+            payload = value
         if self._redis:
             try:
                 self._redis.setex(key, ttl, payload)

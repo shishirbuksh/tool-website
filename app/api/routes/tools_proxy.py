@@ -1,3 +1,5 @@
+"""HTTP proxy API: fetch external resources with security blocks (private IP, size caps)."""
+
 from fastapi import APIRouter
 
 from app.core.config import settings

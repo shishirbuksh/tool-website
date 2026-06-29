@@ -1,3 +1,5 @@
+"""Tests for QRService: generation, colors, error correction levels, and empty data."""
+
 from app.services.qr_service import QRService
 
 

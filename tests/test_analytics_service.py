@@ -1,3 +1,5 @@
+"""Tests for AnalyticsService: tracking, counting, sorting, and caching behavior."""
+
 import os
 import tempfile
 

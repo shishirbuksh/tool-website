@@ -1,3 +1,5 @@
+"""Pydantic models for async job status and result tracking."""
+
 from enum import StrEnum
 from typing import Any
 

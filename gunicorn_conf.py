@@ -21,8 +21,8 @@ errorlog = "-"
 timeout = int(os.getenv("TIMEOUT", "120"))
 keepalive = int(os.getenv("KEEP_ALIVE", "5"))
 
-forwarded_allow_ips = "*"
-proxy_allow_ips = "*"
+forwarded_allow_ips = "127.0.0.1"
+proxy_allow_ips = "127.0.0.1"
 
 logging.basicConfig(level=logging.INFO)
 logging.info(

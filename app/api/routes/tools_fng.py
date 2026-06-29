@@ -1,17 +1,16 @@
+"""Fear & Greed Index proxy endpoint: fetches from alternative.me API."""
+
 import asyncio
 import time
 
 import requests
 from fastapi import APIRouter
 
-from app.core.config import Settings
+from app.core.config import settings
 from app.core.log import get_logger
 
 router = APIRouter(prefix="/api", tags=["FearGreed"])
 logger = get_logger(__name__)
-
-settings = Settings()
-_session = requests.Session()
 _cache: tuple[float, dict] | None = None
 _CACHE_TTL = 3600
 
@@ -26,7 +25,7 @@ async def fear_greed_index(limit: int = 31):
     loop = asyncio.get_running_loop()
 
     def _fetch():
-        resp = _session.get(
+        resp = requests.get(
             f"https://api.alternative.me/fng/?limit={limit}",
             timeout=15,
         )

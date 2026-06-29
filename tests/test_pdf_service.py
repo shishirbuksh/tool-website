@@ -1,3 +1,5 @@
+"""Tests for PDFService: image-to-PDF, text-to-PDF, and edge cases (empty, unicode)."""
+
 import io
 
 from PIL import Image

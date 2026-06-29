@@ -1,3 +1,5 @@
+"""Tests for ProxyService: URL validation, private-IP blocking, empty and schemeless URL handling."""
+
 import pytest
 
 from app.core.exceptions import ValidationException

@@ -1,3 +1,5 @@
+"""QR code generation service: customizable colors, error correction, output as bytes."""
+
 import io
 
 import qrcode

@@ -12,6 +12,7 @@ const PRECACHE_URLS = [
   '/offline',
   '/static/js/app.js',
   '/static/js/tools.utils.js',
+  '/static/js/tools.js',
 ];
 
 // Install: cache static assets
@@ -107,7 +108,7 @@ async function fetchAndCache(request) {
     const response = await fetch(request);
     if (response.status === 200) {
       const copy = response.clone();
-      caches.open(STATIC_CACHE).then((cache) => cache.put(request, copy));
+      caches.open(STATIC_CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
     }
     return response;
   } catch (err) {

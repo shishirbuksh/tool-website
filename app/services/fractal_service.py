@@ -1,8 +1,11 @@
+"""Fractal (Mandelbrot/Julia set) generation service with async rendering."""
+
 import asyncio
 import base64
 import hashlib
 import io
 import json
+import re
 import time
 
 import requests
@@ -73,7 +76,8 @@ class FractalService:
 
             try:
                 llm_text = await self._call_llm(provider, api_key, system_prompt, user_content)
-                llm_text = llm_text.replace("```json", "").replace("```", "").strip()
+                match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", llm_text, re.DOTALL)
+                llm_text = match.group(1) if match else llm_text.strip()
                 params = FractalParams(**json.loads(llm_text))
                 c_re, c_im = params.c_re, params.c_im
                 zoom, max_iter = params.zoom, params.max_iter

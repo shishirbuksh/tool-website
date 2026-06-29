@@ -13,16 +13,19 @@ document.querySelectorAll('.tilt-card[data-tilt]').forEach(function(c){c.addEven
 
 /* ── Button ripple ── */
 document.querySelectorAll('.btn-ripple').forEach(function(b){b.addEventListener('mousedown',function(e){var r=this.getBoundingClientRect();this.style.setProperty('--ripple-x',((e.clientX-r.left)/r.width*100)+'%');this.style.setProperty('--ripple-y',((e.clientY-r.top)/r.height*100)+'%')})})
-var dia=document.getElementById('searchDialog'),si=document.getElementById('searchInput')
+var dia=document.getElementById('searchDialog'),si=document.getElementById('searchInput'),sr=document.getElementById('searchResults'),toolCache=null;
 function oS(){
   if(!dia)return;
   dia.showModal();
   if(si)si.focus();
-  // Fetch tool catalog if not already cached
   if(!toolCache){
     fetch('/api/tools/catalog').then(function(r){return r.json()}).then(function(d){toolCache=d;filterTools()}).catch(function(){if(sr)sr.innerHTML='<p class="text-base-content/30 text-center py-4">Could not load tools. Try again later.</p>'})
   }
 }
+function filterTools(){var q=si.value.trim().toLowerCase();if(!toolCache||!q){sr.innerHTML='<p class="text-base-content/30 text-center py-4">'+(q?'No results found':'Start typing to find tools')+'</p>';return}
+var m=toolCache.filter(function(t){return t.name.toLowerCase().indexOf(q)>-1||(t.desc&&t.desc.toLowerCase().indexOf(q)>-1)})
+if(m.length===0){sr.innerHTML='<p class="text-base-content/30 text-center py-4">No results found</p>';return}
+sr.innerHTML=m.slice(0,20).map(function(t){return'<a href="'+t.url+'" class="flex items-center justify-between p-3 rounded-xl hover:glass transition-all duration-200" onclick="document.getElementById(\'searchDialog\').close()"><div><div class="font-semibold text-sm">'+t.name+'</div><div class="text-xs text-base-content/40">'+t.category+'</div></div><svg class="w-4 h-4 text-base-content/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>'}).join('')}
 function cS(){if(dia)dia.close()}
 document.querySelectorAll('[id^=searchToggle]').forEach(function(b){b.addEventListener('click',oS)})
 var hsi=document.getElementById('heroSearchInput');if(hsi){hsi.addEventListener('click',function(e){e.preventDefault();if(!dia.open)oS()})}
@@ -55,14 +58,7 @@ document.querySelectorAll('.reveal').forEach(function(el){ro.observe(el)})}
 /* ── Lightweight analytics ── */
 var an=document.getElementById('analytics-track');if(an&&'sendBeacon'in navigator){var b=new Blob([JSON.stringify({name:an.dataset.tool||'page',category:'page_view'})],{type:'application/json'});navigator.sendBeacon('/api/track',b)}
 
-/* ── Search dialog ── */
-var sd=document.getElementById('searchDialog'),si=document.getElementById('searchInput'),sr=document.getElementById('searchResults'),toolCache=null;
-if(sd&&si&&sr){sd.addEventListener('open',function(){if(!toolCache){fetch('/api/tools/catalog').then(function(r){return r.json()}).then(function(d){toolCache=d;filterTools()}).catch(function(){sr.innerHTML='<p class="text-base-content/30 text-center py-4">Could not load tools. Try again later.</p>'})}})
-si.addEventListener('input',function(){filterTools()})}
-function filterTools(){var q=si.value.trim().toLowerCase();if(!toolCache||!q){sr.innerHTML='<p class="text-base-content/30 text-center py-4">'+(q?'No results found':'Start typing to find tools')+'</p>';return}
-var m=toolCache.filter(function(t){return t.name.toLowerCase().indexOf(q)>-1||(t.desc&&t.desc.toLowerCase().indexOf(q)>-1)})
-if(m.length===0){sr.innerHTML='<p class="text-base-content/30 text-center py-4">No results found</p>';return}
-sr.innerHTML=m.slice(0,20).map(function(t){return'<a href="'+t.url+'" class="flex items-center justify-between p-3 rounded-xl hover:glass transition-all duration-200" onclick="document.getElementById(\'searchDialog\').close()"><div><div class="font-semibold text-sm">'+t.name+'</div><div class="text-xs text-base-content/40">'+t.category+'</div></div><svg class="w-4 h-4 text-base-content/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>'}).join('')}
+
 
 /* ── Hover-Intent Prefetching ── */
 var prefetched = new Set();

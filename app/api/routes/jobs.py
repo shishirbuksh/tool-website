@@ -1,3 +1,5 @@
+"""Async job status API: poll job results by ID."""
+
 from fastapi import APIRouter, HTTPException
 
 from app.services.job_service import get_job_service

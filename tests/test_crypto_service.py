@@ -1,3 +1,5 @@
+"""Tests for CryptoService: graceful missing-dependency handling."""
+
 import pytest
 
 from app.core.exceptions import ServiceError

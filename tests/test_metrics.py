@@ -1,3 +1,5 @@
+"""Tests for MetricsMiddleware: request counting and latency recording."""
+
 import pytest
 from starlette.responses import Response
 

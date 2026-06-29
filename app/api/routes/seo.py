@@ -1,3 +1,5 @@
+"""SEO endpoints: sitemap.xml, robots.txt, llms.txt."""
+
 from fastapi import APIRouter, Response
 
 from app.core.config import settings
