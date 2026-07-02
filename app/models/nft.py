@@ -21,21 +21,24 @@ class FractalParams(BaseModel):
     @classmethod
     def validate_complex(cls, v: float) -> float:
         if not -2.0 <= v <= 2.0:
-            raise ValueError(f"Must be between -2.0 and 2.0, got {v}")
+            msg = f"Must be between -2.0 and 2.0, got {v}"
+            raise ValueError(msg)
         return v
 
     @field_validator("zoom")
     @classmethod
     def validate_zoom(cls, v: float) -> float:
         if not 0.5 <= v <= 5.0:
-            raise ValueError(f"Must be between 0.5 and 5.0, got {v}")
+            msg = f"Must be between 0.5 and 5.0, got {v}"
+            raise ValueError(msg)
         return v
 
     @field_validator("max_iter")
     @classmethod
     def validate_max_iter(cls, v: int) -> int:
         if not 20 <= v <= 200:
-            raise ValueError(f"Must be between 20 and 200, got {v}")
+            msg = f"Must be between 20 and 200, got {v}"
+            raise ValueError(msg)
         return v
 
     @field_validator("palette_choice")
@@ -43,5 +46,6 @@ class FractalParams(BaseModel):
     def validate_palette(cls, v: str) -> str:
         allowed = {"cool", "warm", "retro", "vibrant", "monochrome"}
         if v not in allowed:
-            raise ValueError(f"Must be one of {allowed}, got '{v}'")
+            msg = f"Must be one of {allowed}, got '{v}'"
+            raise ValueError(msg)
         return v

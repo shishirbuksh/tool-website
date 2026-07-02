@@ -2,11 +2,14 @@
 
 import os
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from app.core.config import settings
+from app.core.internal_guard import require_internal
+
+__all__ = ["router"]
 
 router = APIRouter(tags=["health"])
 
@@ -28,5 +31,6 @@ async def readiness():
 
 
 @router.get("/metrics", include_in_schema=False)
-async def metrics():
+async def metrics(request: Request):
+    require_internal(request)
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)

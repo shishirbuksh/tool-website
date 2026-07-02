@@ -105,11 +105,15 @@ class CryptoService:
             yf = self._get_yf()
             df = yf.download(symbol, period=period, interval="1d", progress=False)
             if df.empty:
-                raise ServiceError(f"Symbol '{symbol}' not found or no data available")
+                msg = f"Symbol '{symbol}' not found or no data available"
+                raise ServiceError(msg)
             return df
 
         df = await loop.run_in_executor(None, _download)
         df = df.dropna()
+        if df.empty:
+            msg = f"No valid data after cleaning for symbol '{symbol}'"
+            raise ServiceError(msg)
         pd = self._get_pd()
 
         close_prices = df["Close"][symbol].values if isinstance(df.columns, pd.MultiIndex) else df["Close"].values
@@ -117,7 +121,8 @@ class CryptoService:
         timestamps = df.index.strftime("%Y-%m-%d").tolist()
         min_points = 50 if include_ta else 30
         if len(close_prices) < min_points:
-            raise ServiceError(f"Not enough data for symbol '{symbol}'")
+            msg = f"Not enough data for symbol '{symbol}'"
+            raise ServiceError(msg)
 
         future_days = 7
         degraded = []
@@ -128,7 +133,7 @@ class CryptoService:
                 return None
             prophet_df = pd.DataFrame(
                 {
-                    "ds": pd.to_datetime(df.index.tz_localize(None)),
+                    "ds": pd.to_datetime(df.index.tz_localize(None) if df.index.tz is not None else df.index),
                     "y": close_prices,
                 }
             )
@@ -175,9 +180,9 @@ class CryptoService:
                 result["degraded"] = degraded_flag
             return result
 
-        history = [{"date": d, "price": float(p)} for d, p in zip(timestamps, close_prices, strict=False)]
+        history = [{"date": d, "price": float(p)} for d, p in zip(timestamps, close_prices, strict=True)]
         future_data = []
-        for date, p_val, r_val in zip(future_dates, prophet_preds, rust_preds, strict=False):
+        for date, p_val, r_val in zip(future_dates, prophet_preds, rust_preds, strict=True):
             entry = {"date": date}
             if p_val is not None:
                 entry["prophet_price"] = float(p_val)
@@ -239,7 +244,7 @@ class CryptoService:
             )
 
         future_data = []
-        for d, p, r in zip(future_dates, prophet_preds, rust_preds, strict=False):
+        for d, p, r in zip(future_dates, prophet_preds, rust_preds, strict=True):
             future_data.append({"date": d, "prophet_price": float(p), "rust_price": float(r)})
 
         curr_price = float(close_prices[-1])

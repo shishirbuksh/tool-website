@@ -47,7 +47,6 @@ class TestCatalogService:
         tools = svc.get_valid_tools()
         assert isinstance(tools, list)
         assert len(tools) >= 10
-        assert "qr-generator" in tools
         assert "crypto-price-prediction" in tools
 
     def test_valid_tools_no_duplicates(self, settings):
@@ -69,7 +68,7 @@ class TestCatalogService:
     def test_get_valid_tools_missing_some(self, settings):
         svc = CatalogService(settings)
         tools = svc.get_valid_tools()
-        important = ["qr-generator", "invoice-generator", "calculator"]
+        important = ["invoice-generator", "calculator", "qr-generator"]
         for t in important:
             assert t in tools, f"Missing important tool: {t}"
 

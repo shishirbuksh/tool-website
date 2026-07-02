@@ -37,9 +37,9 @@
 {% endmacro %}
 
 {% macro tool_seo_about(title, body) %}
-<div class="mt-10 pt-8 border-t border-base-300/15 reveal" itemscope itemtype="https://schema.org/Article">
-  <h2 class="text-2xl md:text-3xl font-bold mb-4" itemprop="headline">{{ title }}</h2>
-  <div class="text-base-content/55 text-base leading-relaxed space-y-4" itemprop="articleBody">{{ body | safe }}</div>
+<div class="mt-10 pt-8 border-t border-base-300/15 reveal">
+  <h2 class="text-2xl md:text-3xl font-bold mb-4">{{ title }}</h2>
+  <div class="text-base-content/55 text-base leading-relaxed space-y-4">{{ body | safe }}</div>
 </div>
 {% endmacro %}
 
@@ -49,7 +49,7 @@
   <h2 class="text-2xl md:text-3xl font-bold mb-6">Related Tools</h2>
   <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
     {% for t in tools %}
-    <a href="{{ t.url }}" class="glass-card glass-border-gradient p-3 group h-full card-focus-ring">
+    <a href="{{ t.url }}" title="{% if t.desc %}{{ t.desc }}{% else %}Go to {{ t.name }}{% endif %}" class="glass-card glass-border-gradient p-3 group h-full card-focus-ring">
       <div class="flex items-center gap-2.5">
         <span class="text-sm font-semibold group-hover:text-primary transition-colors">{{ t.name }}</span>
       </div>
@@ -61,18 +61,20 @@
 {% endmacro %}
 
 {% macro tool_seo_schema(seo) %}
-<script type="application/ld+json">
+<script type="application/ld+json" nonce="{{ nonce }}">
 {
   "@context": "https://schema.org",
   "@graph": [
     {
       "@type": "SoftwareApplication",
-      "name": "{{ seo.name }}",
-      "applicationCategory": "{{ seo.app_category }}",
+      "name": {{ seo.name | default('StoryBrain AI Tool', true) | tojson }},
+      "applicationCategory": "{{ seo.app_category | default('UtilitiesApplication', true) }}",
       "operatingSystem": "Web browser",
-      {% if seo.date_modified %}"dateModified": "{{ seo.date_modified }}",{% endif %}
+      "browserRequirements": "Requires JavaScript",
+      {% set dmod = seo.date_modified | default('', true) %}
+      {% if dmod %}"dateModified": "{{ dmod }}",{% endif %}
       "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
-      "description": "{{ seo.description }}"
+      "description": {{ seo.description | default('Free online tool', true) | tojson }}
     }
     {% if seo.faqs %},{
       "@type": "FAQPage",

@@ -55,8 +55,11 @@ class ProxyService:
         if body and len(body) > 512_000:
             raise ValidationException("Request body exceeds 512KB limit")
 
+        def _strip(v: str) -> str:
+            return v.replace("\r", "").replace("\n", "").replace("\x00", "")
+
         headers = {
-            k.replace("\r", "").replace("\n", ""): v.replace("\r", "").replace("\n", "")
+            _strip(k): _strip(v)
             for k, v in (headers or {}).items()
         }
 
@@ -105,10 +108,10 @@ class ProxyService:
                 "body": body_content,
             }
         except requests.exceptions.Timeout:
-            raise ServiceError("Request timed out after 15 seconds")
+            raise ServiceError("Request timed out after 15 seconds") from None
         except requests.exceptions.ConnectionError:
-            raise ServiceError("Failed to connect to the remote server")
+            raise ServiceError("Failed to connect to the remote server") from None
         except requests.exceptions.RequestException:
-            raise ServiceError("Request failed")
+            raise ServiceError("Request failed") from None
         except Exception:
-            raise ServiceError("An unexpected error occurred")
+            raise ServiceError("An unexpected error occurred") from None

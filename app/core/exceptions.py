@@ -1,12 +1,22 @@
 """Application exception hierarchy and FastAPI exception handler registration."""
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from starlette import status
 
-from app.core.log import get_logger
+from app.api.routes.pages import templates as page_templates
+from app.core.log import get_logger, get_request_id
+
+templates = page_templates
 
 logger = get_logger(__name__)
+
+
+def _with_request_id(content: dict) -> dict:
+    rid = get_request_id()
+    if rid:
+        content["request_id"] = rid
+    return content
 
 
 class AppException(HTTPException):
@@ -29,19 +39,45 @@ class ServiceError(AppException):
         super().__init__(detail=detail, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+def _should_render_html(request) -> bool:
+    accept = request.headers.get("accept", "")
+    return "text/html" in accept
+
+
+def _error_html_response(request, status_code: int, detail: str) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request=request,
+        name="pages/404.html",
+        context={"status_code": status_code, "detail": detail},
+        status_code=status_code,
+    )
+
+
 def _app_exception_handler(request, exc: AppException):
-    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    if _should_render_html(request):
+        return _error_html_response(request, exc.status_code, exc.detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=_with_request_id({"detail": exc.detail}),
+    )
 
 
 def _http_exception_handler(request, exc: HTTPException):
-    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    if _should_render_html(request):
+        return _error_html_response(request, exc.status_code, exc.detail)
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=_with_request_id({"detail": exc.detail}),
+    )
 
 
 def _generic_exception_handler(request, exc: Exception):
     logger.exception("Unhandled exception")
+    if _should_render_html(request):
+        return _error_html_response(request, status.HTTP_500_INTERNAL_SERVER_ERROR, "Internal server error")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Internal server error"},
+        content=_with_request_id({"detail": "Internal server error"}),
     )
 
 

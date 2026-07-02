@@ -1,16 +1,18 @@
 """Page-view analytics service: SQLite-backed, thread-safe, with configurable retention."""
 
-import logging
+import asyncio
 import os
 import queue
 import sqlite3
 import threading
 import time
 from datetime import UTC, datetime, timedelta
+from functools import partial
 
 from app.core.config import settings
+from app.core.log import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 DATA_DIR = os.path.join(settings.base_dir, "var", "data")
 DB_PATH = os.path.join(DATA_DIR, "analytics.db")
@@ -20,7 +22,7 @@ _CLEANUP_INTERVAL = settings.ANALYTICS_CLEANUP_INTERVAL
 _last_cleanup = 0.0
 _POOL_SIZE = 5
 
-_conn_pool: queue.Queue = None
+_conn_pool: queue.Queue | None = None
 _pool_lock = threading.Lock()
 
 
@@ -55,7 +57,10 @@ def _get_conn() -> sqlite3.Connection:
     with _pool_lock:
         if _conn_pool is None:
             _init_pool()
-    return _conn_pool.get()
+    try:
+        return _conn_pool.get(timeout=10)
+    except queue.Empty:
+        raise RuntimeError("Analytics connection pool exhausted — all 5 connections in use") from None
 
 
 def _put_conn(conn: sqlite3.Connection):
@@ -113,3 +118,13 @@ def _cleanup_old_events():
     finally:
         if conn:
             _put_conn(conn)
+
+
+async def async_track(name: str, category: str = "page_view"):
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, partial(track, name, category))
+
+
+async def async_get_counts(limit: int = 50) -> dict:
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, partial(get_counts, limit))

@@ -6,8 +6,7 @@ import pytest
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.core.log import set_request_id, reset_request_id
-from app.core.log import _request_id_var
+from app.core.log import _request_id_var, reset_request_id, set_request_id
 
 
 class TestRequestIDMiddleware:

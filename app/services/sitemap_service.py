@@ -14,12 +14,24 @@ class SitemapService:
         self._sitemap_cache: tuple[float, str] | None = None
         self._robots_cache: tuple[float, str] | None = None
         self._llms_cache: tuple[float, str] | None = None
+        self._dir_cache: tuple[float, list[str]] | None = None
         self._cache_ttl = 3600
+        self._dir_cache_ttl = 300
 
     def _from_cache(self, cache) -> str | None:
         if cache and (time.time() - cache[0]) < self._cache_ttl:
             return cache[1]
         return None
+
+    def _get_cached_dir_listing(self, directory: str) -> list[str]:
+        now = time.time()
+        if self._dir_cache and now - self._dir_cache[0] < self._dir_cache_ttl:
+            return self._dir_cache[1]
+        if os.path.exists(directory):
+            files = sorted(os.listdir(directory))
+            self._dir_cache = (now, files)
+            return files
+        return []
 
     def _get_lastmod(self, filepath: str) -> str:
         try:
@@ -28,7 +40,7 @@ class SitemapService:
             return datetime.now(UTC).strftime("%Y-%m-%d")
 
     def _get_changefreq(self, slug: str) -> str:
-        return "daily"
+        return "weekly"
 
     def build_sitemap_xml(self) -> str:
         cached = self._from_cache(self._sitemap_cache)
@@ -44,7 +56,7 @@ class SitemapService:
 
         tools_dir = os.path.join(self.settings.templates_dir, "tools")
         if os.path.exists(tools_dir):
-            for f in sorted(os.listdir(tools_dir)):
+            for f in self._get_cached_dir_listing(tools_dir):
                 if f.endswith(".html"):
                     slug = f[:-5].replace("_", "-")
                     priority = ToolDataLoader.get_priority(slug)
@@ -56,16 +68,17 @@ class SitemapService:
                     })
 
         pages_dir = os.path.join(self.settings.templates_dir, "pages")
-        skip_pages = {"privacy", "terms", "disclaimer", "sitemap"}
+        legal_pages = {"privacy", "terms", "disclaimer"}
+        skip_pages = {"sitemap", "404", "offline"}
         if os.path.exists(pages_dir):
-            for f in sorted(os.listdir(pages_dir)):
+            for f in self._get_cached_dir_listing(pages_dir):
                 if f.endswith(".html"):
                     slug = f[:-5]
                     if slug not in skip_pages:
                         pages.append({
                             "loc": f"/{slug}",
-                            "priority": "0.4",
-                            "changefreq": "weekly",
+                            "priority": "0.5" if slug in legal_pages else "0.4",
+                            "changefreq": "yearly" if slug in legal_pages else "monthly",
                             "filepath": os.path.join(pages_dir, f),
                         })
 
@@ -75,7 +88,11 @@ class SitemapService:
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
         ]
         for page in pages:
-            lastmod = page.get("filepath") and self._get_lastmod(page["filepath"]) or datetime.now(UTC).strftime("%Y-%m-%d")
+            filepath = page.get("filepath")
+            if filepath:
+                lastmod = self._get_lastmod(filepath) or datetime.now(UTC).strftime("%Y-%m-%d")
+            else:
+                lastmod = datetime.now(UTC).strftime("%Y-%m-%d")
             lines.append("  <url>")
             lines.append(f"    <loc>{self.settings.SITE_URL}{page['loc']}</loc>")
             lines.append(f"    <lastmod>{lastmod}</lastmod>")
@@ -97,6 +114,7 @@ class SitemapService:
             f"User-agent: *\n"
             f"Allow: /\n"
             f"Disallow: /api/\n"
+            f"Crawl-Delay: 10\n"
             f"\n"
             f"Sitemap: {self.settings.SITE_URL}/sitemap.xml\n"
         )
@@ -117,7 +135,7 @@ class SitemapService:
             "## Tools",
         ]
         if os.path.exists(tools_dir):
-            for f in sorted(os.listdir(tools_dir)):
+            for f in self._get_cached_dir_listing(tools_dir):
                 if f.endswith(".html"):
                     slug = f[:-5].replace("_", "-")
                     info = ToolDataLoader.get(slug)

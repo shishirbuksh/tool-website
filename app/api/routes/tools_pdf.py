@@ -7,11 +7,13 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
 from app.core.config import settings
+from app.core.constants import ALLOWED_IMAGE_MIMES
 from app.core.log import get_logger
 from app.services.pdf_service import PDFService
 
-ALLOWED_IMAGE_MIMES = {"image/jpeg", "image/png", "image/webp", "image/bmp"}
 ALLOWED_TEXT_MIMES = {"text/plain"}
+
+__all__ = ["router"]
 
 router = APIRouter(prefix="/api", tags=["PDF"])
 pdf_service = PDFService(settings)

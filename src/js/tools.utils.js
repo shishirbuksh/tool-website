@@ -50,11 +50,19 @@
   /* ── Loader show/hide ── */
   window.sbr.showLoader = function (id) {
     var el = document.getElementById(id);
-    if (el) el.classList.remove('hidden');
+    if (el) {
+      el.classList.remove('hidden');
+      el.setAttribute('aria-hidden', 'false');
+      document.body.setAttribute('aria-busy', 'true');
+    }
   };
   window.sbr.hideLoader = function (id) {
     var el = document.getElementById(id);
-    if (el) el.classList.add('hidden');
+    if (el) {
+      el.classList.add('hidden');
+      el.setAttribute('aria-hidden', 'true');
+      document.body.removeAttribute('aria-busy');
+    }
   };
 
   /* ── Sanitize HTML (basic XSS prevention) ── */

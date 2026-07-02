@@ -10,7 +10,8 @@ set -euo pipefail
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 APP_NAME="storybrain-ai"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
-BACKUP_DIR="/tmp/${APP_NAME}_backup_${TIMESTAMP}"
+# Use /var/backups (persistent across reboots) instead of /tmp
+BACKUP_DIR="/var/backups/${APP_NAME}_backup_${TIMESTAMP}"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 log_info()  { echo -e "${GREEN}[INFO]${NC}  $1"; }
@@ -191,6 +192,10 @@ cleanup_backup() {
     fi
 }
 
+purge_old_backups() {
+    # Keep only the last 7 days of backups to avoid filling disk
+    find /var/backups -maxdepth 1 -name "${APP_NAME}_backup_*" -mtime +7 -exec rm -rf {} + 2>/dev/null || true
+}
 # ─── Main ──────────────────────────────────────────────────
 
 cd "$APP_DIR"
@@ -217,12 +222,16 @@ ensure_system_deps
 setup_venv
 source "$APP_DIR/venv/bin/activate"
 setup_env_file
+backup_current   # <-- backup BEFORE pulling so we can rollback to known-good
 pull_latest
-backup_current
 install_python
 build_rust
+# Export the deployed commit SHA so the app can report its version
+export APP_VERSION
+APP_VERSION="$(git -C "$APP_DIR" rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
 restart_service
 health_check
 
 rm -rf "$BACKUP_DIR" 2>/dev/null || true
+purge_old_backups
 log_info "=== Deployment successful! ==="

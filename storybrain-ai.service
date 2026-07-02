@@ -5,19 +5,33 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=root
-Group=root
+# SECURITY: Never run as root.
+# The 'storybrainai' user is created automatically by CloudPanel.
+# If needed: sudo chown -R storybrainai:storybrainai {{APP_DIR}}
+User=storybrainai
+Group=storybrainai
 WorkingDirectory={{APP_DIR}}
+
+# Load .env file for all secrets and config
+EnvironmentFile={{APP_DIR}}/.env
 
 Environment=PYTHONUNBUFFERED=1
 Environment=PYTHONDONTWRITEBYTECODE=1
-Environment=HOME=/root
+Environment=HOME={{APP_DIR}}
 Environment=U2NET_HOME={{APP_DIR}}/.u2net
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths={{APP_DIR}}/var {{APP_DIR}}/.u2net
 
 ExecStart={{APP_DIR}}/venv/bin/gunicorn app.main:app -c {{APP_DIR}}/gunicorn_conf.py
 
 Restart=always
 RestartSec=5
+StartLimitIntervalSec=60
+StartLimitBurst=3
 
 StandardOutput=journal
 StandardError=journal

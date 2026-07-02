@@ -12,6 +12,7 @@ from app.core.tool_data import ToolDataLoader
 class ToolSEO(BaseModel):
     slug: str
     name: str
+    meta_title: str = ""
     icon: str = "wand-2"
     description: str = ""
     keywords: list[str] = Field(default_factory=list)
@@ -66,9 +67,20 @@ class SeoService:
         return self._build_default(slug)
 
     def _from_raw(self, slug: str, raw: dict[str, Any]) -> ToolSEO:
+        related_slugs = raw.get("related_slugs", [])
+        all_tools = ToolDataLoader.get_all()
+        related = [
+            {
+                "name": all_tools[s]["name"] if s in all_tools else s.replace("-", " ").title(),
+                "url": f"/tool/{s}",
+                "desc": all_tools[s].get("description", "") if s in all_tools else ""
+            }
+            for s in related_slugs
+        ]
         return ToolSEO(
             slug=slug,
             name=raw.get("name", slug.replace("-", " ").title()),
+            meta_title=raw.get("meta_title", ""),
             icon=raw.get("icon", "wand-2"),
             description=raw.get("description", ""),
             keywords=raw.get("keywords", []),
@@ -79,17 +91,16 @@ class SeoService:
             about_title=raw.get("about_title", ""),
             about_body=raw.get("about_body", ""),
             date_modified=raw.get("date_modified", ""),
-            related_slugs=raw.get("related_slugs", []),
+            related_slugs=related_slugs,
+            related=related,
         )
 
     def _build_default(self, slug: str) -> ToolSEO:
         name = slug.replace("-", " ").title()
         cat = "Productivity & Utilities"
-        all_data = ToolDataLoader.get_all()
-        for s, info in all_data.items():
-            if s == slug:
-                cat = info.get("category", "Productivity & Utilities")
-                break
+        info = ToolDataLoader.get(slug)
+        if info:
+            cat = info.get("category", "Productivity & Utilities")
         return ToolSEO(
             slug=slug,
             name=name,

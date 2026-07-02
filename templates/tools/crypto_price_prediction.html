@@ -101,12 +101,12 @@
   </div>
 </div>
 
-<script>
+<script nonce="{{ nonce }}">
 let predictionChart=null;let globalHistoryData=[];let globalPredictionData=[];let currentAssetPrice=0;
 async function runPrediction(){const s=document.getElementById('cryptoSelector').value;const ld=document.getElementById('aiLoader');const btn=document.getElementById('predictBtn');const sl=document.getElementById('weightSlider');ld.classList.remove('hidden');btn.disabled=true;sl.disabled=true;try{const r=await fetch('/api/predict-crypto?symbol='+s);const d=await r.json();if(!r.ok)throw new Error(d.detail||'Prediction failed');globalHistoryData=d.history;globalPredictionData=d.predictions;currentAssetPrice=globalHistoryData[globalHistoryData.length-1].price;document.getElementById('currentPrice').innerText=formatMoney(currentAssetPrice);sl.value=50;sl.disabled=false;handleSliderChange(true);document.getElementById('chartEmpty').classList.add('hidden')}catch(e){alert('Error: '+e.message)}finally{ld.classList.add('hidden');btn.disabled=false}}
 function formatMoney(v){return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(v)}
 function handleSliderChange(n){if(!globalPredictionData?.length)return;const v=parseInt(document.getElementById('weightSlider').value);const rw=v/100,pw=1-rw;document.getElementById('sliderValueText').innerText=Math.round(pw*100)+'/'+Math.round(rw*100);const b=globalPredictionData.map(i=>({date:i.date,price:(i.prophet_price*pw)+(i.rust_price*rw)}));const fp=b[b.length-1].price;const dp=((fp-currentAssetPrice)/currentAssetPrice)*100;document.getElementById('targetPrice').innerText=formatMoney(fp);const ti=document.getElementById('trendIcon'),tt=document.getElementById('trendText');if(fp>currentAssetPrice){ti.className='shrink-0 w-10 h-10 rounded-xl glass-cinematic flex items-center justify-center border border-success/40';ti.innerHTML='{{ lucide_icon("rocket","w-4 h-4",16)|safe }}';tt.innerHTML='Uptrend <span class="text-success">+'+dp.toFixed(2)+'%</span>'}else{ti.className='shrink-0 w-10 h-10 rounded-xl glass-cinematic flex items-center justify-center border border-error/40';ti.innerHTML='{{ lucide_icon("trending-down","w-4 h-4",16)|safe }}';tt.innerHTML='Risk <span class="text-error">'+dp.toFixed(2)+'%</span>'}
-const hs=globalHistoryData.slice(-60).map(i=>({x:i.date,y:parseFloat(i.price.toFixed(2))}));const ps=[{x:hs[hs.length-1].x,y:hs[hs.length-1].y},...b.map(i=>({x:i.date,y:parseFloat(i.price.toFixed(2))}))];if(n||!predictionChart)renderChart(hs,ps);else predictionChart.updateSeries([{name:'Historical',data:h},{name:'Projection',data:p}])}
+const hs=globalHistoryData.slice(-60).map(i=>({x:i.date,y:parseFloat(i.price.toFixed(2))}));const ps=[{x:hs[hs.length-1].x,y:hs[hs.length-1].y},...b.map(i=>({x:i.date,y:parseFloat(i.price.toFixed(2))}))];if(n||!predictionChart)renderChart(hs,ps);else predictionChart.updateSeries([{name:'Historical',data:hs},{name:'Projection',data:ps}])}
 function renderChart(h,p){const isNight=document.documentElement.getAttribute('data-theme')==='night';const tc=isNight?'rgba(255,255,255,0.4)':'rgba(0,0,0,0.5)';const gc=isNight?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.08)';const opts={series:[{name:'Historical',data:h},{name:'Projection',data:p}],chart:{type:'area',height:350,background:'transparent',toolbar:{show:false},animations:{speed:400}},colors:['#0ea5e9','#10b981'],fill:{type:'gradient',gradient:{shadeIntensity:1,opacityFrom:0.3,opacityTo:0.05,stops:[0,100]}},dataLabels:{enabled:false},stroke:{curve:'smooth',width:[3,4],dashArray:[0,8]},xaxis:{type:'datetime',labels:{style:{colors:tc,fontWeight:600}},axisBorder:{show:false},axisTicks:{show:false}},yaxis:{labels:{style:{colors:tc,fontWeight:600},formatter:v=>'$'+v.toLocaleString()}},grid:{borderColor:gc,strokeDashArray:5},legend:{position:'top',horizontalAlign:'right',labels:{colors:tc}}};predictionChart=new ApexCharts(document.querySelector('#chartContainer'),opts);predictionChart.render()}
 document.getElementById('predictBtn').addEventListener('click',runPrediction);
 document.getElementById('weightSlider').addEventListener('input',()=>handleSliderChange());
@@ -115,5 +115,5 @@ document.getElementById('cryptoSelector').addEventListener('change',runPredictio
 
 
 
-{{ tool_seo_all(seo_data) }}
+
 {% endblock %}

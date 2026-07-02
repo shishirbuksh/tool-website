@@ -3,14 +3,16 @@
 from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile
 
 from app.core.config import settings
+from app.core.constants import ALLOWED_IMAGE_MIMES
 from app.core.log import get_logger
 from app.services.image_service import ImageService
 
-ALLOWED_IMAGE_MIMES = {"image/jpeg", "image/png", "image/webp", "image/bmp", "image/gif"}
+__all__ = ["router"]
 
 router = APIRouter(prefix="/api", tags=["Image"])
 image_service = ImageService(settings)
 logger = get_logger(__name__)
+_VALID_ALGORITHMS = {"telea", "ns"}
 
 def _check_upload(upload: UploadFile) -> int:
     if upload.content_type not in ALLOWED_IMAGE_MIMES:
@@ -40,6 +42,8 @@ async def remove_watermark(
     mask: UploadFile = File(...),  # noqa: B008
     algorithm: str = Form("telea"),
 ):
+    if algorithm not in _VALID_ALGORITHMS:
+        raise HTTPException(status_code=400, detail=f"Invalid algorithm '{algorithm}'. Use 'telea' or 'ns'.")
     if _check_upload(image) > settings.IMAGE_MAX_SIZE or _check_upload(mask) > settings.IMAGE_MAX_SIZE:
         raise HTTPException(status_code=413, detail="File size exceeds 10MB limit.")
 

@@ -14,6 +14,7 @@ analytics_service.DB_PATH = TEST_DB_PATH
 
 @pytest.fixture(autouse=True)
 def cleanup_db():
+    analytics_service._conn_pool = None
     if os.path.exists(TEST_DB_PATH):
         try:
             os.remove(TEST_DB_PATH)

@@ -28,7 +28,7 @@ if(m.length===0){sr.innerHTML='<p class="text-base-content/30 text-center py-4">
 sr.innerHTML=m.slice(0,20).map(function(t){return'<a href="'+t.url+'" class="flex items-center justify-between p-3 rounded-xl hover:glass transition-all duration-200" onclick="document.getElementById(\'searchDialog\').close()"><div><div class="font-semibold text-sm">'+t.name+'</div><div class="text-xs text-base-content/40">'+t.category+'</div></div><svg class="w-4 h-4 text-base-content/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>'}).join('')}
 function cS(){if(dia)dia.close()}
 document.querySelectorAll('[id^=searchToggle]').forEach(function(b){b.addEventListener('click',oS)})
-var hsi=document.getElementById('heroSearchInput');if(hsi){hsi.addEventListener('click',function(e){e.preventDefault();if(!dia.open)oS()})}
+var hsi=document.getElementById('heroSearchInput');if(hsi){hsi.addEventListener('focus',function(){if(!dia.open)oS()})}
 var sc=document.getElementById('searchClose');if(sc)sc.addEventListener('click',cS)
 if(dia){dia.addEventListener('click',function(e){if(e.target===dia)cS()});dia.addEventListener('keydown',function(e){if(e.key==='Escape')cS()})}
 var eb=document.getElementById('exploreToolsBtn');if(eb){eb.addEventListener('click',function(){var d=document.getElementById('mobileDrawer');if(d)d.checked=true})}

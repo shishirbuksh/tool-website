@@ -1,6 +1,7 @@
 """HTML page endpoints: home, tools directory, individual tools, hub pages, sitemap, offline, service worker."""
 
 import os
+import time
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Request
@@ -12,16 +13,45 @@ from app.core.icons import lucide_icon
 from app.services.catalog_service import CatalogService
 from app.services.seo_service import SeoService
 
+__all__ = ["router"]
+
+
+class NonceJinja2Templates(Jinja2Templates):
+    def TemplateResponse(self, request, name, context=None, status_code=200, headers=None, media_type=None):  # noqa: N802
+        if context is None:
+            context = {}
+        context.setdefault("nonce", getattr(request.state, "nonce", ""))
+        return super().TemplateResponse(request, name, context, status_code, headers, media_type)
+
+
 router = APIRouter()
 catalog_service = CatalogService(settings)
 seo_service = SeoService(settings)
 
-templates = Jinja2Templates(directory=settings.templates_dir)
+templates = NonceJinja2Templates(directory=settings.templates_dir)
 templates.env.globals["lucide_icon"] = lucide_icon
 templates.env.globals["today"] = lambda: datetime.now(UTC).strftime("%Y-%m-%d")
 
 APP_VERSION = os.getenv("APP_VERSION", "dev")
 templates.env.globals["app_version"] = APP_VERSION
+
+_pages_dir_cache: list[str] | None = None
+_pages_dir_cache_ts: float = 0
+_PAGES_DIR_TTL = 300
+
+
+def _get_cached_page_names() -> list[str]:
+    global _pages_dir_cache, _pages_dir_cache_ts
+    now = time.time()
+    if _pages_dir_cache is not None and now - _pages_dir_cache_ts < _PAGES_DIR_TTL:
+        return _pages_dir_cache
+    pages_dir = os.path.join(settings.templates_dir, "pages")
+    if os.path.exists(pages_dir):
+        _pages_dir_cache = [f[:-5] for f in os.listdir(pages_dir) if f.endswith(".html")]
+    else:
+        _pages_dir_cache = []
+    _pages_dir_cache_ts = now
+    return _pages_dir_cache
 
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -40,7 +70,7 @@ async def tools_page(request: Request):
 
 @router.get("/tool/{tool_name}", response_class=HTMLResponse)
 async def get_tool(request: Request, tool_name: str):
-    if ".." in tool_name or "/" in tool_name:
+    if ".." in tool_name or "/" in tool_name or "\\" in tool_name:
         raise HTTPException(status_code=404, detail="Not found")
     if tool_name in ("tools", "sitemap", "offline"):
         raise HTTPException(status_code=404, detail="Not found")
@@ -94,7 +124,10 @@ async def offline_page(request: Request):
 
 @router.get("/sw.js", include_in_schema=False)
 async def service_worker():
-    headers = {"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"}
+    headers = {
+        "Service-Worker-Allowed": "/",
+        "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+    }
     return FileResponse(os.path.join(settings.static_dir, "sw.js"), headers=headers)
 
 
@@ -122,10 +155,7 @@ async def get_page(request: Request, page_name: str):
             },
         )
 
-    pages_dir = os.path.join(settings.templates_dir, "pages")
-    valid_pages = [f[:-5] for f in os.listdir(pages_dir) if f.endswith(".html")] if os.path.exists(pages_dir) else []
-
-    if page_name in valid_pages:
+    if page_name in _get_cached_page_names():
         return templates.TemplateResponse(
             request=request,
             name=f"pages/{page_name}.html",

@@ -7,10 +7,10 @@ import numpy as np
 from PIL import Image, ImageColor
 
 from app.core.config import Settings
+from app.core.constants import MAX_IMAGE_PIXELS
 from app.core.exceptions import ServiceError, ValidationException
 
-# Decompression bomb protection
-Image.MAX_IMAGE_PIXELS = 178_000_000  # ~13K x 13K
+Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS  # ~13K x 13K
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +28,11 @@ class ImageService:
                 if "U2NET_HOME" not in os.environ:
                     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
                     os.environ["U2NET_HOME"] = os.path.join(base_dir, ".u2net")
-                    
+
                 import rembg
                 self._rembg = rembg
             except Exception as e:
-                logger.error("Failed to import rembg", exc_info=True)
+                logger.exception("Failed to import rembg")
                 raise ServiceError("Background removal library (rembg) is not available") from e
         return self._rembg
 
@@ -76,10 +76,13 @@ class ImageService:
             output_img.save(buf, format="PNG")
             return buf.getvalue()
         except Exception as e:
-            logger.error("Failed to remove background: %s", e, exc_info=True)
-            raise ServiceError(f"Background removal failed: {str(e)}") from e
+            logger.exception("Failed to remove background")
+            msg = f"Background removal failed: {e}"
+            raise ServiceError(msg) from e
 
     def remove_watermark(self, image_data: bytes, mask_data: bytes, algorithm: str = "telea") -> bytes:
+        if not image_data or not mask_data:
+            raise ValidationException("Image and mask data must not be empty")
         cv2 = self._get_cv2()
         np_img = np.frombuffer(image_data, np.uint8)
         img_cv2 = cv2.imdecode(np_img, cv2.IMREAD_COLOR)

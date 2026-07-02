@@ -34,7 +34,7 @@ class TestPages:
         resp = client.get("/tools")
         assert resp.status_code == 200
 
-    def test_valid_tool_page(self):
+    def test_qr_generator_returns_200(self):
         resp = client.get("/tool/qr-generator")
         assert resp.status_code == 200
 
@@ -101,10 +101,15 @@ class TestAnalyticsAPI:
         assert resp.json()["ok"] is True
 
     def test_analytics_top(self):
-        resp = client.get("/api/analytics/top")
+        # Must come from localhost (internal guard)
+        resp = client.get("/api/analytics/top", headers={"X-Real-IP": "127.0.0.1"})
         assert resp.status_code == 200
         data = resp.json()
         assert isinstance(data, dict)
+
+    def test_analytics_top_forbidden_from_external(self):
+        resp = client.get("/api/analytics/top", headers={"X-Real-IP": "8.8.8.8"})
+        assert resp.status_code == 403
 
 
 class TestHealthEndpoints:
@@ -119,9 +124,14 @@ class TestHealthEndpoints:
         assert resp.json()["status"] == "ok"
 
     def test_metrics(self):
-        resp = client.get("/metrics")
+        # Must come from localhost (internal guard)
+        resp = client.get("/metrics", headers={"X-Real-IP": "127.0.0.1"})
         assert resp.status_code == 200
         assert "http_requests_total" in resp.text
+
+    def test_metrics_forbidden_from_external(self):
+        resp = client.get("/metrics", headers={"X-Real-IP": "8.8.8.8"})
+        assert resp.status_code == 403
 
 
 class TestCryptoAsync:

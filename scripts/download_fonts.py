@@ -1,6 +1,7 @@
 """Download Inter & Outfit woff2 from Google Fonts and generate local @font-face CSS."""
 import os
 import re
+
 import requests
 
 BASE = "https://fonts.googleapis.com/css2"

@@ -7,6 +7,8 @@ from app.core.log import get_logger
 from app.models import NFTRequest
 from app.services.fractal_service import FractalService
 
+__all__ = ["router"]
+
 router = APIRouter(prefix="/api", tags=["NFT"])
 fractal_service = FractalService(settings)
 logger = get_logger(__name__)

@@ -61,7 +61,8 @@ class FractalService:
                 palette_choice = "monochrome" if int(h[8], 16) % 2 == 0 else "vibrant"
         else:
             if not api_key:
-                raise ValidationException(f"API Key required for provider: {provider}")
+                msg = f"API Key required for provider: {provider}"
+                raise ValidationException(msg)
 
             system_prompt = (
                 "You are an orchestration AI for a procedural Rust NFT generator. "
@@ -86,9 +87,11 @@ class FractalService:
                 if style == "pixel":
                     width, height = 128, 128
             except json.JSONDecodeError as e:
-                raise ServiceError(f"LLM returned invalid JSON: {str(e)}") from e
+                msg = f"LLM returned invalid JSON: {e}"
+                raise ServiceError(msg) from e
             except Exception as e:
-                raise ServiceError(f"LLM Orchestration error: {str(e)}") from e
+                msg = f"LLM Orchestration error: {e}"
+                raise ServiceError(msg) from e
 
         raw_data = await self._generate_pattern(width, height, zoom, c_re, c_im, max_iter)
 
@@ -156,14 +159,16 @@ class FractalService:
         }
 
         if provider not in endpoints:
-            raise ValidationException(f"Unknown provider: {provider}")
+            msg = f"Unknown provider: {provider}"
+            raise ValidationException(msg)
 
         cfg = endpoints[provider]
 
         def _request():
             resp = self._session.post(cfg["url"], headers=cfg["headers"], json=cfg["json"], timeout=30)
             if resp.status_code != 200:
-                raise ServiceError(f"{provider} error: {resp.text}")
+                msg = f"{provider} error: {resp.text}"
+                raise ServiceError(msg)
             return cfg["parse"](resp)
 
         return await loop.run_in_executor(None, _request)

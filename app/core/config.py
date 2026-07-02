@@ -1,6 +1,5 @@
 """Application configuration via Pydantic Settings (env file + defaults)."""
 
-import functools
 import os
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -40,15 +39,15 @@ class Settings(BaseSettings):
         "pdf-tools": ("Productivity & Utilities", "Free PDF & Productivity Tools — Converter, Password & Trackers"),
     }
 
-    @functools.cached_property
+    @property
     def base_dir(self) -> str:
         return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    @functools.cached_property
+    @property
     def templates_dir(self) -> str:
         return os.path.join(self.base_dir, "templates")
 
-    @functools.cached_property
+    @property
     def static_dir(self) -> str:
         return os.path.join(self.base_dir, "static")
 

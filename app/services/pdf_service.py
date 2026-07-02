@@ -7,9 +7,9 @@ from fpdf import FPDF
 from PIL import Image
 
 from app.core.config import Settings
+from app.core.constants import MAX_IMAGE_PIXELS
 
-# Decompression bomb protection
-Image.MAX_IMAGE_PIXELS = 178_000_000
+Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 
 
 def _find_unicode_font() -> str | None:
