@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     TIMEOUT: int = 120
     KEEP_ALIVE: int = 5
     REDIS_URL: str = ""
-    ALLOWED_HOSTS: str = "localhost,127.0.0.1,.storybrainai.com,testserver"
+    ALLOWED_HOSTS: str = "localhost,127.0.0.1,*.storybrainai.com,storybrainai.com,testserver"
     CORS_ORIGINS: str = ""
     SITE_URL: str = "https://www.storybrainai.com"
     IMAGE_MAX_SIZE: int = 10 * 1024 * 1024
