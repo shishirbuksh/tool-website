@@ -181,6 +181,17 @@ setup_systemd() {
     rm -f "$fixed"
 }
 
+setup_permissions() {
+    log_info "Ensuring required directories exist..."
+    mkdir -p "$APP_DIR/var" "$APP_DIR/.u2net"
+    
+    if id "storybrainai" >/dev/null 2>&1; then
+        log_info "Fixing permissions (chown storybrainai:storybrainai)..."
+        chown -R storybrainai:storybrainai "$APP_DIR"
+    fi
+}
+
+
 
 
 cleanup_backup() {
@@ -208,6 +219,7 @@ if [ "${1:-}" = "--setup" ]; then
     setup_env_file
     install_python
     build_rust
+    setup_permissions
     setup_systemd
     health_check
     log_info "=== Setup complete! ==="
@@ -229,6 +241,7 @@ build_rust
 # Export the deployed commit SHA so the app can report its version
 export APP_VERSION
 APP_VERSION="$(git -C "$APP_DIR" rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+setup_permissions
 restart_service
 health_check
 
