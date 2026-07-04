@@ -13,6 +13,8 @@ web_concurrency = int(float(os.getenv("WORKERS", str(default_web_concurrency))))
 workers = max(int(web_concurrency), 2)
 
 worker_class = "uvicorn.workers.UvicornWorker"
+max_requests = 10000
+max_requests_jitter = 1000
 loglevel = os.getenv("LOG_LEVEL", "info").lower()
 
 accesslog = "-"

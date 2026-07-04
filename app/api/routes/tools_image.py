@@ -1,18 +1,21 @@
 """Image processing API endpoints: background removal, watermark removal."""
 
+import asyncio
+
 from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile
 
 from app.core.config import settings
 from app.core.constants import ALLOWED_IMAGE_MIMES
-from app.core.log import get_logger
 from app.services.image_service import ImageService
 
 __all__ = ["router"]
 
 router = APIRouter(prefix="/api", tags=["Image"])
 image_service = ImageService(settings)
-logger = get_logger(__name__)
 _VALID_ALGORITHMS = {"telea", "ns"}
+
+def _get_loop():
+    return asyncio.get_event_loop()
 
 def _check_upload(upload: UploadFile) -> int:
     if upload.content_type not in ALLOWED_IMAGE_MIMES:
@@ -32,7 +35,8 @@ async def remove_background(
     if _check_upload(image) > settings.IMAGE_MAX_SIZE:
         raise HTTPException(status_code=413, detail="File size exceeds 10MB limit.")
     image_data = await image.read()
-    result = image_service.remove_background(image_data, bg_color, smooth_edges)
+    loop = _get_loop()
+    result = await loop.run_in_executor(None, image_service.remove_background, image_data, bg_color, smooth_edges)
     return Response(content=result, media_type="image/png")
 
 
@@ -49,5 +53,6 @@ async def remove_watermark(
 
     image_data = await image.read()
     mask_data = await mask.read()
-    result = image_service.remove_watermark(image_data, mask_data, algorithm)
+    loop = _get_loop()
+    result = await loop.run_in_executor(None, image_service.remove_watermark, image_data, mask_data, algorithm)
     return Response(content=result, media_type="image/png")

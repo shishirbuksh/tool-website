@@ -12,25 +12,40 @@ logger = get_logger(__name__)
 _redis = None
 _redis_available = False
 _redis_lock = threading.Lock()
+_redis_last_attempt = 0.0
+_REDIS_RETRY_INTERVAL = 30.0
 
 
 def _get_redis():
-    global _redis, _redis_available
-    if _redis is None and not _redis_available:
-        with _redis_lock:
-            if _redis is None and not _redis_available:
-                try:
-                    import redis as redis_module
+    global _redis, _redis_available, _redis_last_attempt
+    now = time.time()
+    if _redis is not None and _redis_available:
+        try:
+            _redis.ping()
+            return _redis
+        except Exception:
+            _redis = None
+            _redis_available = False
+            logger.warning("Redis connection lost, will retry")
+    if now - _redis_last_attempt < _REDIS_RETRY_INTERVAL:
+        return None
+    with _redis_lock:
+        if now - _redis_last_attempt < _REDIS_RETRY_INTERVAL:
+            return None
+        _redis_last_attempt = now
+        try:
+            import redis as redis_module
 
-                    from app.core.config import settings
-                    redis_url = settings.REDIS_URL or "redis://localhost:6379/0"
-                    _redis = redis_module.from_url(redis_url, socket_timeout=2.0, decode_responses=True)
-                    _redis.ping()
-                    _redis_available = True
-                    logger.info("Redis connected at %s", redis_url)
-                except Exception as e:
-                    _redis_available = False
-                    logger.warning("Redis unavailable, falling back to in-memory cache: %s", e)
+            from app.core.config import settings
+            redis_url = settings.REDIS_URL or "redis://localhost:6379/0"
+            _redis = redis_module.from_url(redis_url, socket_timeout=2.0, decode_responses=True)
+            _redis.ping()
+            _redis_available = True
+            logger.info("Redis connected at %s", redis_url)
+        except Exception as e:
+            _redis = None
+            _redis_available = False
+            logger.warning("Redis unavailable, falling back to in-memory cache: %s", e)
     return _redis if _redis_available else None
 
 

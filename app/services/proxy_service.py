@@ -15,7 +15,6 @@ from app.core.exceptions import ServiceError, ValidationException
 class ProxyService:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self._session = requests.Session()
         self._dns_cache: dict[str, tuple[str | None, float]] = {}
         self._dns_ttl = 300
         self._dns_maxsize = 100
@@ -90,7 +89,7 @@ class ProxyService:
             kwargs["data"] = body.encode("utf-8")
 
         try:
-            response = await loop.run_in_executor(None, lambda: self._session.request(**kwargs))
+            response = await loop.run_in_executor(None, lambda: requests.request(**kwargs))
             end_time = time.time()
 
             body_content = response.text

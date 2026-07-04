@@ -1,0 +1,592 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+{% block title %}CSS Box Shadow Generator — Free Online Box Shadow Maker | StoryBrain AI{% endblock %}
+{% block meta_description %}Create and preview CSS box shadows with offset X/Y, blur, spread, color, opacity, and inset controls. Copy CSS or Tailwind-compatible code. Free, no sign-up, all in-browser.{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/css-box-shadow-generator{% endblock %}
+{% block og_title %}CSS Box Shadow Generator — Create Beautiful Box Shadows Online{% endblock %}
+{% block og_description %}Create and preview CSS box shadows with offset X/Y, blur, spread, color, opacity, and inset controls. Copy CSS or Tailwind-compatible code. Free, no sign-up.{% endblock %}
+{% block og_image %}<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="CSS Box Shadow Generator — create and preview box shadows online free">{% endblock %}
+{% block twitter_image %}<meta name="twitter:image" content="https://www.storybrainai.com/static/og-image.jpg">{% endblock %}
+{% block head %}
+<style>
+.bsg-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.bsg-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.bsg-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:inherit;transition:border-color .18s;box-sizing:border-box;width:100%}
+.bsg-input:focus{border-color:var(--color-primary);outline:none}
+.bsg-slider-row{display:flex;align-items:center;gap:10px}
+.bsg-slider-row input[type=range]{flex:1;accent-color:var(--color-primary);height:4px}
+.bsg-slider-row .bsg-val{min-width:36px;text-align:right;font-size:11px;font-weight:700;font-family:monospace;opacity:.6}
+.bsg-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;font-size:10px;font-weight:800;cursor:pointer;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;text-transform:uppercase;letter-spacing:.04em;touch-action:manipulation}
+.bsg-pill:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.bsg-pill.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.bsg-pill-wrap{display:flex;flex-wrap:wrap;gap:4px}
+.bsg-preview-box{width:180px;height:180px;margin:0 auto;background:var(--bsg-box-bg,#ffffff);transition:box-shadow .08s,background .2s,border-radius .2s}
+.bsg-bg-btn{width:28px;height:28px;border-radius:8px;border:2px solid var(--color-base-300);cursor:pointer;transition:border-color .15s;padding:0;flex-shrink:0}
+.bsg-bg-btn.on{border-color:var(--color-primary)}
+.bsg-bg-btn.light{background:#ffffff}
+.bsg-bg-btn.dark{background:#1a1a2e}
+.bsg-bg-btn.checker{background:repeating-conic-gradient(#ccc 0% 25%,#fff 0% 50%) 0 0 / 12px 12px}
+.bsg-css-display{background:var(--color-base-100);border-radius:.75rem;padding:.6rem .9rem;font-family:monospace;font-size:11px;font-weight:600;word-break:break-all;border:1px solid var(--color-base-300);min-height:2.5em;display:flex;align-items:center}
+.bsg-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px;pointer-events:none}
+.bsg-toast.show{opacity:1;transform:translateY(0)}
+.bsg-layer-item{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:.65rem;cursor:pointer;border:2px solid transparent;transition:all .12s;background:var(--color-base-100)}
+.bsg-layer-item:hover{border-color:var(--color-base-300)}
+.bsg-layer-item.active{border-color:var(--color-primary)}
+.bsg-layer-item .l-swatch{width:18px;height:18px;border-radius:4px;flex-shrink:0;border:1px solid rgba(128,128,128,0.2)}
+.bsg-layer-item .l-label{font-size:9px;font-weight:700;font-family:monospace;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bsg-layer-item .l-vis{width:16px;height:16px;border-radius:4px;border:1px solid var(--color-base-300);background:var(--color-base-200);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;padding:0;color:var(--color-base-content)}
+.bsg-layer-item .l-vis.off{opacity:.3}
+.bsg-layer-item .l-del{width:16px;height:16px;border-radius:4px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--color-base-content);opacity:.3;padding:0;line-height:1}
+.bsg-layer-item .l-del:hover{opacity:1;color:#dc2626}
+.bsg-textarea{width:100%;background:var(--color-base-100);border-radius:.75rem;padding:.6rem .9rem;font-family:monospace;font-size:11px;font-weight:600;border:2px solid var(--color-base-300);color:var(--color-base-content);resize:vertical;min-height:3.5em;box-sizing:border-box;transition:border-color .18s}
+.bsg-textarea:focus{border-color:var(--color-primary);outline:none}
+.bsg-lib-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:.65rem;cursor:pointer;border:1px solid var(--color-base-300);transition:all .12s;background:var(--color-base-100)}
+.bsg-lib-item:hover{border-color:var(--color-primary)}
+.bsg-lib-item .lib-preview{width:32px;height:32px;border-radius:6px;flex-shrink:0;background:#ffffff;display:flex;align-items:center;justify-content:center}
+.bsg-lib-item .lib-preview div{width:20px;height:20px;border-radius:4px;background:#ffffff}
+.bsg-lib-item .lib-name{font-size:10px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bsg-lib-item .lib-del{font-size:14px;font-weight:700;opacity:.3;cursor:pointer;border:none;background:none;color:var(--color-base-content);padding:0;line-height:1}
+.bsg-lib-item .lib-del:hover{opacity:1;color:#dc2626}
+.bsg-anim{transition:box-shadow .4s ease!important}
+@media(max-width:767px){
+.bsg-preview-box{width:140px;height:140px}
+.bsg-card{padding:1rem}
+}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("box","Developer","CSS BOX","SHADOW","Create and preview CSS box shadows with offset X/Y, blur, spread, color, opacity, and inset controls.") }}
+<div class="container-site px-4 pb-24">
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+    <div class="lg:col-span-2 space-y-6">
+      <div class="bsg-card">
+        <div class="flex items-center justify-between mb-3">
+          <label class="bsg-label" style="margin:0">Shadow Layers</label>
+          <button class="btn btn-ghost btn-xs gap-1" id="bsgAddLayer" type="button">+ Add</button>
+        </div>
+        <div id="bsgLayerList" class="space-y-1.5"></div>
+      </div>
+      <div class="bsg-card" id="bsgLayerControls">
+        <div class="flex items-center justify-between">
+          <label class="bsg-label" style="margin:0">Layer <span id="bsgActiveIdx">1</span></label>
+          <div class="flex items-center gap-2">
+            <label class="bsg-label" style="margin:0">Inset</label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" id="bsgInset" class="toggle toggle-primary toggle-xs">
+            </label>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 mb-3">
+          <input type="color" id="bsgColor" value="#000000" style="width:32px;height:32px;border-radius:8px;border:2px solid var(--color-base-300);padding:2px;cursor:pointer;background:none;flex-shrink:0">
+          <input class="bsg-input" id="bsgColorHex" type="text" value="#000000" maxlength="7" style="flex:1;font-size:11px">
+        </div>
+        <div class="space-y-2">
+          <div>
+            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Offset X</span><span class="font-mono opacity-50" id="bsgValX">0</span></div>
+            <div class="bsg-slider-row">
+              <input type="range" id="bsgX" min="-50" max="50" value="4">
+              <input class="bsg-input" id="bsgXNum" type="number" min="-100" max="100" value="4" style="width:52px;padding:4px 5px;font-size:10px">
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Offset Y</span><span class="font-mono opacity-50" id="bsgValY">0</span></div>
+            <div class="bsg-slider-row">
+              <input type="range" id="bsgY" min="-50" max="50" value="4">
+              <input class="bsg-input" id="bsgYNum" type="number" min="-100" max="100" value="4" style="width:52px;padding:4px 5px;font-size:10px">
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Blur</span><span class="font-mono opacity-50" id="bsgValBlur">0</span></div>
+            <div class="bsg-slider-row">
+              <input type="range" id="bsgBlur" min="0" max="100" value="12">
+              <input class="bsg-input" id="bsgBlurNum" type="number" min="0" max="200" value="12" style="width:52px;padding:4px 5px;font-size:10px">
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Spread</span><span class="font-mono opacity-50" id="bsgValSpread">0</span></div>
+            <div class="bsg-slider-row">
+              <input type="range" id="bsgSpread" min="-30" max="30" value="0">
+              <input class="bsg-input" id="bsgSpreadNum" type="number" min="-50" max="50" value="0" style="width:52px;padding:4px 5px;font-size:10px">
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Opacity</span><span class="font-mono opacity-50" id="bsgValOpacity">100</span></div>
+            <input type="range" id="bsgOpacity" min="0" max="100" value="100">
+          </div>
+        </div>
+      </div>
+      <div class="bsg-card">
+        <label class="bsg-label">Background</label>
+        <div class="flex gap-2">
+          <button class="bsg-bg-btn light on" data-bg="light" type="button" title="Light background"></button>
+          <button class="bsg-bg-btn dark" data-bg="dark" type="button" title="Dark background"></button>
+          <button class="bsg-bg-btn checker" data-bg="checker" type="button" title="Checkerboard"></button>
+        </div>
+      </div>
+      <div class="bsg-card">
+        <label class="bsg-label">Shape</label>
+        <div class="bsg-pill-wrap" id="bsgShapes">
+          <button class="bsg-pill on" data-shape="rounded" type="button">Rounded</button>
+          <button class="bsg-pill" data-shape="square" type="button">Square</button>
+          <button class="bsg-pill" data-shape="circle" type="button">Circle</button>
+          <button class="bsg-pill" data-shape="pill" type="button">Pill</button>
+        </div>
+      </div>
+      <div class="bsg-card">
+        <label class="bsg-label">Presets</label>
+        <div class="bsg-pill-wrap" id="bsgPresets">
+          <button class="bsg-pill" data-preset="soft" type="button">Soft</button>
+          <button class="bsg-pill" data-preset="medium" type="button">Medium</button>
+          <button class="bsg-pill" data-preset="hard" type="button">Hard</button>
+          <button class="bsg-pill" data-preset="bottom" type="button">Bottom</button>
+          <button class="bsg-pill" data-preset="glow" type="button">Glow</button>
+          <button class="bsg-pill" data-preset="inner" type="button">Inner</button>
+          <button class="bsg-pill" data-preset="neumorph" type="button">Neumorph</button>
+          <button class="bsg-pill" data-preset="sharp" type="button">Sharp</button>
+        </div>
+      </div>
+      <div class="bsg-card">
+        <div class="flex items-center justify-between mb-2">
+          <label class="bsg-label" style="margin:0">Shadow Library</label>
+          <div class="flex gap-1.5">
+            <button class="btn btn-ghost btn-xs gap-1" id="bsgSaveLib" type="button">Save</button>
+            <button class="btn btn-ghost btn-xs gap-1 text-error" id="bsgClearLib" type="button">Clear</button>
+          </div>
+        </div>
+        <div id="bsgLibList" class="space-y-2 max-h-64 overflow-y-auto">
+          <p class="text-xs text-base-content/40 text-center py-3">No saved shadows yet.</p>
+        </div>
+      </div>
+    </div>
+    <div class="lg:col-span-3 space-y-6">
+      <div class="bsg-card">
+        <label class="bsg-label">Preview</label>
+        <div class="flex justify-center py-6" id="bsgPreviewWrap" style="background:#ffffff;border-radius:1rem;border:1px solid var(--color-base-300);transition:background .2s">
+          <div class="bsg-preview-box" id="bsgPreviewBox"></div>
+        </div>
+      </div>
+      <div class="bsg-card">
+        <div class="flex items-center justify-between mb-2">
+          <label class="bsg-label" style="margin:0">CSS Output</label>
+          <div class="flex gap-1.5">
+            <button class="btn btn-ghost btn-xs gap-1" id="bsgCopyLink" type="button">Link</button>
+            <label class="flex items-center gap-1.5 cursor-pointer" title="Toggle hover state" id="bsgHoverToggle">
+              <span class="text-[10px] font-bold opacity-40">Normal</span>
+              <input type="checkbox" class="toggle toggle-primary toggle-xs" id="bsgHoverMode">
+              <span class="text-[10px] font-bold opacity-40">Hover</span>
+            </label>
+          </div>
+        </div>
+        <textarea class="bsg-textarea" id="bsgCssOutput" rows="3" spellcheck="false" readonly>box-shadow: ...;</textarea>
+        <div class="flex gap-2 mt-3">
+          <button class="btn btn-primary btn-sm flex-1" id="bsgCopyCss" type="button">Copy CSS</button>
+          <button class="btn btn-ghost btn-sm flex-1" id="bsgCopyTw" type="button">Tailwind</button>
+          <button class="btn btn-ghost btn-sm flex-1" id="bsgCopyProps" type="button">CSS Props</button>
+          <button class="btn btn-ghost btn-sm flex-1" id="bsgApplyEdit" type="button">Apply Edit</button>
+        </div>
+      </div>
+      <div class="bsg-card">
+        <label class="bsg-label">Animate Preview</label>
+        <div class="flex items-center gap-3">
+          <button class="btn btn-ghost btn-sm gap-1" id="bsgPlayBtn" type="button">&#9654; Play</button>
+          <span class="text-[10px] font-bold opacity-40">Toggles between Normal and Hover shadow states to simulate a hover transition.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="bsgToast" class="bsg-toast" role="status" aria-live="polite"></div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ nonce }}">
+(function(){
+var toastEl=document.getElementById('bsgToast');
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},2200)}
+var el=function(id){return document.getElementById(id)};
+var E=function(s){return document.querySelectorAll(s)};
+
+var bg='light',shape='rounded',hoverMode=0,playing=0,animTimer=null;
+var nid=0;
+var layers=[{id:++nid,x:4,y:4,blur:12,spread:0,opacity:100,color:'#000000',inset:0,vis:1}];
+var layersHover=[{id:++nid,x:8,y:8,blur:24,spread:0,opacity:30,color:'#000000',inset:0,vis:1}];
+var activeIdx=0;
+
+function toRgba(hex,a){
+var h=hex.replace('#','');
+if(h.length===3){h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2]}
+var n=parseInt(h,16);
+return'rgba('+[(n>>16)&255,(n>>8)&255,n&255,a/100].join(',')+')'}
+
+function layerCss(l){
+var c=toRgba(l.color,l.opacity);
+var s=l.x+'px '+l.y+'px '+l.blur+'px '+(l.spread>=0?l.spread+'px':'0px');
+if(l.spread!==0&&l.spread<0){s=l.x+'px '+l.y+'px '+l.blur+'px '+l.spread+'px'}
+var v=s+' '+c;
+if(l.inset){v='inset '+v}
+return v}
+
+function shadowsCss(arr){
+var parts=[];
+for(var i=0;i<arr.length;i++){if(arr[i].vis){parts.push(layerCss(arr[i]))}}
+return parts.join(', ')}
+
+function getActiveArr(){return hoverMode?layersHover:layers}
+function getActive(){return getActiveArr()[activeIdx]}
+
+function setActive(idx){activeIdx=Math.max(0,Math.min(getActiveArr().length-1,idx))}
+
+function syncControls(){
+var l=getActive();
+if(!l)return;
+el('bsgColor').value=l.color;
+el('bsgColorHex').value=l.color;
+el('bsgX').value=l.x;el('bsgY').value=l.y;
+el('bsgBlur').value=l.blur;el('bsgSpread').value=l.spread;
+el('bsgOpacity').value=l.opacity;
+el('bsgXNum').value=l.x;el('bsgYNum').value=l.y;
+el('bsgBlurNum').value=l.blur;el('bsgSpreadNum').value=l.spread;
+el('bsgValX').textContent=l.x;el('bsgValY').textContent=l.y;
+el('bsgValBlur').textContent=l.blur;el('bsgValSpread').textContent=l.spread;
+el('bsgValOpacity').textContent=l.opacity;
+el('bsgInset').checked=l.inset;
+el('bsgActiveIdx').textContent=hoverMode?'H'+(activeIdx+1):(activeIdx+1)}
+
+function renderLayers(){
+var arr=getActiveArr();
+var list=el('bsgLayerList');
+var html='';
+for(var i=0;i<arr.length;i++){
+var l=arr[i];
+var act=i===activeIdx?'active':'';
+html+='<div class="bsg-layer-item '+act+'" data-idx="'+i+'">';
+html+='<div class="l-swatch" style="background:'+l.color+'"></div>';
+html+='<span class="l-label">'+l.x+'px '+l.y+'px '+l.blur+'px</span>';
+html+='<button class="l-vis'+(l.vis?'':' off')+'" data-vi="'+i+'" title="Toggle visibility">'+ (l.vis?'&#x1F441;':'&#x2715;')+'</button>';
+html+='<button class="l-del" data-rm="'+i+'" title="Remove layer">&times;</button>';
+html+='</div>'}
+list.innerHTML=html}
+
+function updateCssTextarea(){
+var arr=getActiveArr();
+var css=shadowsCss(arr);
+var display=css?'box-shadow: '+css+';':'box-shadow: none;';
+el('bsgCssOutput').value=display}
+
+function updatePreview(){
+var arr=getActiveArr();
+var css=shadowsCss(arr);
+el('bsgPreviewBox').style.boxShadow=css||'none'}
+
+function update(){
+updatePreview();
+updateCssTextarea();
+syncControls();
+renderLayers()}
+
+function setActiveLayer(idx){
+setActive(idx);
+syncControls();renderLayers()}
+
+function onSlide(id,field){
+el(id).addEventListener('input',function(){
+var v=parseInt(this.value)||0;
+var l=getActive();
+if(!l)return;
+l[field]=v;
+el(id+'Num').value=v;
+el('bsgVal'+field.charAt(0).toUpperCase()+field.slice(1)).textContent=v;
+updateCssTextarea();updatePreview()})}
+function onNum(id,field,min,max){
+el(id).addEventListener('change',function(){
+var v=Math.max(min,Math.min(max,parseInt(this.value)||0));
+var l=getActive();
+if(!l)return;
+l[field]=v;
+var sId=id.replace('Num','');
+el(sId).value=v;
+el('bsgVal'+field.charAt(0).toUpperCase()+field.slice(1)).textContent=v;
+updateCssTextarea();updatePreview()})}
+
+onSlide('bsgX','x');onSlide('bsgY','y');onSlide('bsgBlur','blur');onSlide('bsgSpread','spread');onSlide('bsgOpacity','opacity');
+onNum('bsgXNum','x',-100,100);onNum('bsgYNum','y',-100,100);onNum('bsgBlurNum','blur',0,200);onNum('bsgSpreadNum','spread',-50,50);
+
+el('bsgColor').addEventListener('input',function(){
+var l=getActive();if(!l)return;
+l.color=this.value;el('bsgColorHex').value=this.value;updateCssTextarea();updatePreview()});
+el('bsgColorHex').addEventListener('change',function(){
+var v=this.value.trim();
+if(!/^#[0-9a-fA-F]{6}$/.test(v))return;
+var l=getActive();if(!l)return;
+l.color=v;el('bsgColor').value=v;updateCssTextarea();updatePreview()});
+
+el('bsgInset').addEventListener('change',function(){
+var l=getActive();if(!l)return;
+l.inset=this.checked?1:0;updateCssTextarea();updatePreview();renderLayers()});
+
+el('bsgLayerList').addEventListener('click',function(e){
+var item=e.target.closest('.bsg-layer-item');
+var rmBtn=e.target.closest('[data-rm]');
+var viBtn=e.target.closest('[data-vi]');
+var arr=getActiveArr();
+if(rmBtn){var idx=parseInt(rmBtn.dataset.rm);arr.splice(idx,1);if(activeIdx>=arr.length){activeIdx=arr.length-1}if(arr.length===0){arr.push({id:++nid,x:0,y:0,blur:0,spread:0,opacity:100,color:'#000000',inset:0,vis:1});activeIdx=0}update();return}
+if(viBtn){var idx=parseInt(viBtn.dataset.vi);arr[idx].vis=arr[idx].vis?0:1;update();return}
+if(item){var idx=parseInt(item.dataset.idx);setActiveLayer(idx)}});
+
+el('bsgAddLayer').addEventListener('click',function(){
+var arr=getActiveArr();
+if(arr.length>=6){toast('Max 6 layers');return}
+var ref=arr[activeIdx]||arr[0]||{x:0,y:0,blur:0,spread:0,opacity:100,color:'#000000',inset:0,vis:1};
+var layer={id:++nid,x:ref.x,y:ref.y,blur:ref.blur,spread:ref.spread,opacity:ref.opacity,color:ref.color,inset:ref.inset,vis:1};
+arr.push(layer);
+activeIdx=arr.length-1;
+update();
+toast('Layer added')});
+
+el('bsgHoverMode').addEventListener('change',function(){
+hoverMode=this.checked?1:0;
+if(hoverMode&&layersHover.length===0){layersHover=JSON.parse(JSON.stringify(layers))}
+if(!hoverMode&&layersHover.length===0){layersHover=JSON.parse(JSON.stringify(layers))}
+if(activeIdx>=getActiveArr().length){activeIdx=0}
+syncControls();renderLayers();updateCssTextarea();updatePreview()});
+
+el('bsgPresets').addEventListener('click',function(e){
+var btn=e.target.closest('.bsg-pill');
+if(!btn)return;
+var p=btn.dataset.preset;
+var presets={
+soft:[{x:0,y:2,blur:8,spread:0,color:'#000000',opacity:15,inset:0}],
+medium:[{x:0,y:4,blur:16,spread:0,color:'#000000',opacity:20,inset:0}],
+hard:[{x:0,y:8,blur:32,spread:0,color:'#000000',opacity:30,inset:0}],
+bottom:[{x:0,y:12,blur:24,spread:-6,color:'#000000',opacity:20,inset:0}],
+glow:[{x:0,y:0,blur:20,spread:0,color:'#6366f1',opacity:40,inset:0}],
+inner:[{x:0,y:2,blur:8,spread:0,color:'#000000',opacity:15,inset:1}],
+neumorph:[{x:8,y:8,blur:16,spread:0,color:'#000000',opacity:10,inset:0},{x:-8,y:-8,blur:16,spread:0,color:'#ffffff',opacity:100,inset:0}],
+sharp:[{x:4,y:4,blur:0,spread:0,color:'#000000',opacity:100,inset:0}]};
+var arr=presets[p];
+if(!arr)return;
+var dest=hoverMode?layersHover:layers;
+dest.length=0;
+for(var i=0;i<arr.length;i++){
+var l=arr[i];
+dest.push({id:++nid,x:l.x,y:l.y,blur:l.blur,spread:l.spread,opacity:l.opacity,color:l.color,inset:l.inset,vis:1})}
+activeIdx=0;
+syncControls();renderLayers();updateCssTextarea();updatePreview();
+toast('Preset loaded')});
+
+E('.bsg-bg-btn').forEach(function(btn){
+btn.addEventListener('click',function(){
+E('.bsg-bg-btn').forEach(function(b){b.classList.remove('on')});
+this.classList.add('on');
+bg=this.dataset.bg;
+var wrap=el('bsgPreviewWrap'),box=el('bsgPreviewBox');
+box.classList.remove('bsg-anim');
+if(bg==='light'){wrap.style.background='#ffffff';box.style.background='#ffffff'}
+else if(bg==='dark'){wrap.style.background='#1a1a2e';box.style.background='#2a2a4e'}
+else{wrap.style.background='repeating-conic-gradient(#ccc 0% 25%,#fff 0% 50%) 0 0 / 16px 16px';box.style.background='#ffffff'}})});
+
+el('bsgShapes').addEventListener('click',function(e){
+var btn=e.target.closest('.bsg-pill');
+if(!btn)return;
+E('#bsgShapes .bsg-pill').forEach(function(b){b.classList.remove('on')});
+btn.classList.add('on');
+shape=btn.dataset.shape;
+var r;
+if(shape==='square'){r='0'}
+else if(shape==='circle'){r='50%'}
+else if(shape==='pill'){r='999px'}
+else{r='16px'}
+el('bsgPreviewBox').style.borderRadius=r});
+
+function copy(text){navigator.clipboard.writeText(text).then(function(){toast('Copied!')})}
+
+el('bsgCopyCss').addEventListener('click',function(){
+var arr=getActiveArr();
+copy('box-shadow: '+shadowsCss(arr)+';')});
+
+el('bsgCopyTw').addEventListener('click',function(){
+var arr=getActiveArr();
+copy('/* Tailwind custom shadow */\nbox-shadow: '+shadowsCss(arr)+';')});
+
+el('bsgCopyProps').addEventListener('click',function(){
+var arr=getActiveArr();
+var lines=['/* CSS Custom Properties */'];
+for(var i=0;i<arr.length;i++){
+if(arr[i].vis){lines.push('--shadow-'+(i+1)+': '+layerCss(arr[i])+';')}}
+copy(lines.join('\n'))});
+
+/* ---- CSS Textarea Edit ---- */
+el('bsgCssOutput').addEventListener('click',function(){this.readOnly=false;this.focus()});
+el('bsgCssOutput').addEventListener('blur',function(){this.readOnly=true});
+el('bsgApplyEdit').addEventListener('click',function(){
+var val=el('bsgCssOutput').value.trim();
+var m=val.match(/box-shadow:\s*(.*?)\s*;?$/i);
+if(!m){toast('Could not parse box-shadow value');return}
+var css=m[1].trim();
+if(!css){toast('Empty shadow value');return}
+var parts=[];
+var depth=0,cur='';
+for(var i=0;i<css.length;i++){
+var ch=css[i];
+if(ch==='('){depth++}
+else if(ch===')'){depth--}
+if(ch===','&&depth===0){parts.push(cur.trim());cur='';continue}
+cur+=ch}
+if(cur.trim()){parts.push(cur.trim())}
+if(parts.length===0){toast('Could not parse shadow layers');return}
+var dest=getActiveArr();
+dest.length=0;
+var ok=0;
+for(var p=0;p<parts.length&&p<6;p++){
+var part=parts[p];
+var inset=0;
+var tp=part.trim();
+if(/^inset\s/i.test(tp)){inset=1;tp=tp.replace(/^inset\s/i,'')}
+var rgba=tp.match(/(rgba?|hsla?)\(.*?\)/i);
+if(!rgba){continue}
+var colStr=rgba[0];
+var nums=tp.replace(colStr,'').trim().split(/\s+/).filter(function(s){return s!==''});
+if(nums.length<3)continue;
+var px=parseFloat(nums[0])||0;
+var py=parseFloat(nums[1])||0;
+var bl=parseFloat(nums[2])||0;
+var sp=nums.length>3?parseFloat(nums[3])||0:0;
+dest.push({id:++nid,x:px,y:py,blur:bl,spread:sp,opacity:100,color:'#000000',inset:inset,vis:1});
+var c=colStr;
+var hex=c;
+if(/^rgba?\(/i.test(c)){
+var m2=c.match(/([\d.]+)/g);
+if(m2&&m2.length>=3){
+var rr=parseInt(m2[0]),gg=parseInt(m2[1]),bb=parseInt(m2[2]);
+hex='#'+[rr,gg,bb].map(function(x){return Math.round(x).toString(16).padStart(2,'0')}).join('');
+var aa=m2.length>3?parseFloat(m2[3]):1;
+dest[dest.length-1].opacity=Math.round(aa*100);
+dest[dest.length-1].color=hex}}
+ok++}
+if(ok){activeIdx=0;syncControls();renderLayers();update();toast('Parsed '+ok+' layer(s)')}
+else{toast('Could not parse any shadow layers')}});
+
+/* ---- Shadow Library (localStorage) ---- */
+var libKey='bsg_library';
+function loadLib(){try{var r=localStorage.getItem(libKey);return r?JSON.parse(r):[]}catch(e){return[]}}
+function saveLib(d){try{localStorage.setItem(libKey,JSON.stringify(d))}catch(e){}}
+
+function renderLib(){
+var items=loadLib();
+var el_=el('bsgLibList');
+if(!items.length){el_.innerHTML='<p class="text-xs text-base-content/40 text-center py-3">No saved shadows yet.</p>';return}
+var html='';
+for(var i=items.length-1;i>=0;i--){
+var it=items[i];
+if(!it||!it.layers)continue;
+var css=shadowsCss(it.layers);
+html+='<div class="bsg-lib-item" data-lib="'+i+'">';
+html+='<div class="lib-preview"><div style="box-shadow:'+(css||'none')+';border-radius:'+(it.shape==='circle'?'50%':it.shape==='pill'?'999px':it.shape==='square'?'0':'6px')+'"></div></div>';
+html+='<span class="lib-name">'+(it.name||'Shadow '+(i+1))+'</span>';
+html+='<button class="lib-del" data-ld="'+i+'" title="Delete">&times;</button>';
+html+='</div>'}
+el_.innerHTML=html}
+
+function saveCurrent(){
+var name=prompt('Name this shadow:');
+if(!name||!name.trim())return;
+var items=loadLib();
+var normal=layers.map(function(l){return JSON.parse(JSON.stringify(l))});
+var hover=layersHover.map(function(l){return JSON.parse(JSON.stringify(l))});
+items.push({name:name.trim(),layers:normal,hoverLayers:hover,shape:shape,bg:bg,ts:Date.now()});
+if(items.length>30){items=items.slice(-30)}
+saveLib(items);
+renderLib();
+toast('Shadow saved')}
+
+function loadLibItem(idx){
+var items=loadLib();
+var it=items[idx];
+if(!it)return;
+layers=it.layers?it.layers.map(function(l){return JSON.parse(JSON.stringify(l))}):[{id:++nid,x:0,y:0,blur:0,spread:0,opacity:100,color:'#000000',inset:0,vis:1}];
+layersHover=it.hoverLayers?it.hoverLayers.map(function(l){return JSON.parse(JSON.stringify(l))}):JSON.parse(JSON.stringify(layers));
+if(it.shape){var btn=el('bsgShapes').querySelector('[data-shape="'+it.shape+'"]');if(btn){btn.click()}}
+if(it.bg){var bgBtn=document.querySelector('.bsg-bg-btn[data-bg="'+it.bg+'"]');if(bgBtn){bgBtn.click()}}
+activeIdx=0;
+if(el('bsgHoverMode').checked){el('bsgHoverMode').checked=false;hoverMode=0}
+syncControls();renderLayers();updateCssTextarea();updatePreview();
+toast('Shadow restored')}
+
+function deleteLibItem(idx){
+var items=loadLib();
+items.splice(idx,1);
+saveLib(items);
+renderLib()}
+
+el('bsgLibList').addEventListener('click',function(e){
+var item=e.target.closest('.bsg-lib-item');
+var del=e.target.closest('[data-ld]');
+if(del){deleteLibItem(parseInt(del.dataset.ld));return}
+if(item){loadLibItem(parseInt(item.dataset.lib))}});
+
+el('bsgSaveLib').addEventListener('click',saveCurrent);
+el('bsgClearLib').addEventListener('click',function(){
+if(confirm('Delete all saved shadows?')){saveLib([]);renderLib();toast('Library cleared')}});
+
+/* ---- URL Sharing ---- */
+function encodeState(){
+var state={l:layers.map(function(l){return{x:l.x,y:l.y,b:l.blur,s:l.spread,o:l.opacity,c:l.color,i:l.inset,v:l.vis}}),h:layersHover.map(function(l){return{x:l.x,y:l.y,b:l.blur,s:l.spread,o:l.opacity,c:l.color,i:l.inset,v:l.vis}}),sh:shape,bg:bg,hm:hoverMode};
+try{return btoa(JSON.stringify(state))}catch(e){return''}}
+
+function decodeState(str){
+try{var s=JSON.parse(atob(str));if(!s||!s.l)return null;return s}catch(e){return null}}
+
+function restoreFromHash(){
+var hash=window.location.hash.slice(1);
+if(!hash)return;
+var s=decodeState(hash);
+if(!s)return;
+if(s.l){layers=s.l.map(function(l){l.id=++nid;return l})}
+if(s.h){layersHover=s.h.map(function(l){l.id=++nid;return l})}
+if(s.sh){var btn=el('bsgShapes').querySelector('[data-shape="'+s.sh+'"]');if(btn){btn.click()}}
+if(s.bg){var bgBtn=el('bsgPreviewWrap').querySelector('[data-bg="'+s.bg+'"]');if(bgBtn){bgBtn.click()}}
+if(s.hm){el('bsgHoverMode').checked=1;hoverMode=1}
+activeIdx=0;
+syncControls();renderLayers();updateCssTextarea();updatePreview()}
+
+function updateHash(){try{window.location.hash=encodeState()}catch(e){}}
+
+el('bsgCopyLink').addEventListener('click',function(){
+var url=window.location.href.split('#')[0]+'#'+encodeState();
+navigator.clipboard.writeText(url).then(function(){toast('Link copied!')})});
+
+/* ---- Animate Preview ---- */
+function stopAnim(){
+playing=0;
+if(animTimer){clearInterval(animTimer);animTimer=null}
+el('bsgPlayBtn').innerHTML='&#9654; Play';
+el('bsgPreviewBox').classList.remove('bsg-anim');
+el('bsgHoverMode').disabled=false}
+
+el('bsgPlayBtn').addEventListener('click',function(){
+if(playing){stopAnim();return}
+var box=el('bsgPreviewBox');
+var normal=shadowsCss(layers);
+var hover=shadowsCss(layersHover);
+if(!hover){toast('No hover layers to animate');return}
+playing=1;
+el('bsgPlayBtn').innerHTML='&#9646; Stop';
+el('bsgHoverMode').disabled=true;
+box.classList.add('bsg-anim');
+var toggle=0;
+box.style.boxShadow=normal;
+animTimer=setInterval(function(){
+toggle=toggle?0:1;
+box.style.boxShadow=toggle?hover:normal},800)});
+
+/* ---- Init ---- */
+function init(){
+restoreFromHash();
+renderLib();
+update()}
+init()
+})()
+</script>
+{% endblock %}

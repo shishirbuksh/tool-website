@@ -16,17 +16,31 @@ from app.core.config import settings
 from app.core.log import reset_request_id, set_request_id
 
 _HSTS = "max-age=31536000; includeSubDomains; preload"
-_CSP = (
+_CSP_BASE = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com https://www.googletagmanager.com https://pagead2.googlesyndication.com https://partner.googleadservices.com https://adservice.google.com https://googleads.g.doubleclick.net https://www.google-analytics.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google; "
     "style-src 'self' 'unsafe-inline'; "
     "font-src 'self' data:; "
-    "img-src 'self' data: blob: https://pagead2.googlesyndication.com https://www.google.com https://googleads.g.doubleclick.net https://www.google-analytics.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google; "
-    "connect-src 'self' https://cloudflareinsights.com https://www.google-analytics.com https://analytics.google.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google; "
-    "frame-src 'self' https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google; "
+    "img-src 'self' data: blob: https://pagead2.googlesyndication.com "
+    "https://www.google.com https://googleads.g.doubleclick.net "
+    "https://www.google-analytics.com https://ep1.adtrafficquality.google "
+    "https://ep2.adtrafficquality.google; "
+    "connect-src 'self' https://cloudflareinsights.com https://www.google-analytics.com "
+    "https://analytics.google.com https://pagead2.googlesyndication.com "
+    "https://googleads.g.doubleclick.net https://ep1.adtrafficquality.google "
+    "https://ep2.adtrafficquality.google; "
+    "frame-src 'self' https://googleads.g.doubleclick.net "
+    "https://tpc.googlesyndication.com https://www.google.com "
+    "https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google; "
     "frame-ancestors 'none'; "
     "base-uri 'self'; "
-    "form-action 'self'"
+    "form-action 'self'; "
+)
+_CSP_SCRIPT_ALLOWED = (
+    "'self' https://static.cloudflareinsights.com "
+    "https://www.googletagmanager.com https://pagead2.googlesyndication.com "
+    "https://partner.googleadservices.com https://adservice.google.com "
+    "https://googleads.g.doubleclick.net https://www.google-analytics.com "
+    "https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google"
 )
 
 
@@ -75,7 +89,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         nonce = secrets.token_urlsafe(16)
         request.state.nonce = nonce
-        csp = _CSP.replace("'unsafe-inline'", f"'nonce-{nonce}' 'unsafe-inline'", 1)
+        csp = f"{_CSP_BASE} script-src 'nonce-{nonce}' {_CSP_SCRIPT_ALLOWED};"
         response = await call_next(request)
         response.headers["Strict-Transport-Security"] = _HSTS
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -83,7 +97,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
         response.headers["Content-Security-Policy"] = csp
-        response.headers["Vary"] = "Accept-Encoding"
+        response.headers["Vary"] = "Accept-Encoding, Origin"
         return response
 
 
@@ -104,18 +118,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self._windows: dict[str, list[float]] = defaultdict(list)
-        self._redis = None
-        self._redis_checked = False
+        self._last_window_cleanup = 0.0
 
     def _get_redis(self):
-        if not self._redis_checked:
-            self._redis_checked = True
-            try:
-                from app.core.cache import _get_redis as _redis_conn  # noqa: PLC0415
-                self._redis = _redis_conn()
-            except Exception:
-                self._redis = None
-        return self._redis
+        try:
+            from app.core.cache import _get_redis as _redis_conn  # noqa: PLC0415
+            return _redis_conn()
+        except Exception:
+            return None
 
     @staticmethod
     def _resolve_ip(request: Request) -> str:
@@ -143,7 +153,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             count = results[2]
             return count > self.requests_per_minute
         except Exception:
-            return False  # fail open on Redis errors
+            return True  # fail closed on Redis errors — block request to be safe
 
     def _is_rate_limited_memory(self, client_ip: str, now: float) -> bool:
         """Sliding-window check against in-process dict."""
@@ -155,6 +165,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return True
         window.append(now)
         return False
+
+    def _cleanup_windows(self):
+        """Periodic cleanup of stale IP entries from the in-memory rate limiter."""
+        cutoff = time.time() - 120
+        stale = [ip for ip, w in self._windows.items() if not w or w[-1] < cutoff]
+        for ip in stale:
+            del self._windows[ip]
 
     async def dispatch(self, request: Request, call_next) -> Response:
         if request.method == "GET":
@@ -170,6 +187,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 None, self._is_rate_limited_redis, redis, key, now
             )
         else:
+            if now - self._last_window_cleanup > 300:
+                self._cleanup_windows()
+                self._last_window_cleanup = now
             blocked = self._is_rate_limited_memory(client_ip, now)
 
         if blocked:
@@ -182,28 +202,76 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-class MaxBodySizeMiddleware(BaseHTTPMiddleware):
+class MaxBodySizeMiddleware:
+    """ASGI middleware that enforces a maximum request body size.
+
+    Wraps the ASGI receive channel for chunked/streaming requests
+    (no Content-Length header) to enforce the size limit.
+    """
+
     def __init__(self, app, max_size: int = 10 * 1024 * 1024):
-        super().__init__(app)
+        self.app = app
         self.max_size = max_size
 
-    async def dispatch(self, request: Request, call_next) -> Response:
-        content_length = request.headers.get("content-length")
-        if content_length:
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        headers = dict(scope.get("headers", []) or [])
+        cl_header = headers.get(b"content-length")
+        if cl_header is not None:
             try:
-                if int(content_length) > self.max_size:
-                    return Response(
-                        content=f'{{"detail":"Request body exceeds {self.max_size // (1024*1024)}MB limit"}}',
-                        status_code=413,
-                        media_type="application/json",
-                    )
+                cl = int(cl_header)
+                if cl > self.max_size:
+                    body = f'{{"detail":"Request body exceeds {self.max_size // (1024 * 1024)}MB limit"}}'
+                    await send({
+                        "type": "http.response.start",
+                        "status": 413,
+                        "headers": [(b"content-type", b"application/json")],
+                    })
+                    await send({"type": "http.response.body", "body": body.encode()})
+                    return
             except (ValueError, TypeError):
-                return Response(
-                    content='{"detail":"Invalid Content-Length header"}',
-                    status_code=400,
-                    media_type="application/json",
-                )
-        return await call_next(request)
+                await send({
+                    "type": "http.response.start",
+                    "status": 400,
+                    "headers": [(b"content-type", b"application/json")],
+                })
+                await send({"type": "http.response.body", "body": b'{"detail":"Invalid Content-Length header"}'})
+                return
+
+        if scope.get("method") in ("POST", "PUT", "PATCH") and cl_header is None:
+            body_total = 0
+            _overflow = False
+
+            async def size_limited_receive():
+                nonlocal body_total, _overflow
+                if _overflow:
+                    return {"type": "http.disconnect"}
+                msg = await receive()
+                if msg["type"] == "http.request":
+                    body_total += len(msg.get("body", b""))
+                    while msg.get("more_body", False):
+                        if body_total > self.max_size:
+                            _overflow = True
+                            await send({
+                                "type": "http.response.start",
+                                "status": 413,
+                                "headers": [(b"content-type", b"application/json")],
+                            })
+                            await send({
+                                "type": "http.response.body",
+                                "body": b'{"detail":"Request body exceeds size limit"}',
+                            })
+                            return {"type": "http.disconnect"}
+                        msg = await receive()
+                        body_total += len(msg.get("body", b""))
+                return msg
+
+            await self.app(scope, size_limited_receive, send)
+        else:
+            await self.app(scope, receive, send)
 
 
 class CaseSensitiveRedirectMiddleware(BaseHTTPMiddleware):

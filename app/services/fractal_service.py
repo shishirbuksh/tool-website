@@ -27,12 +27,8 @@ logger = get_logger(__name__)
 class FractalService:
     def __init__(self, settings: Settings):
         self.settings = settings
-        self._session = requests.Session()
 
     async def generate_nft(self, prompt: str, style: str = "3d", provider: str = "local", api_key: str = None) -> dict:
-        if rust_predictor is None:
-            raise ServiceError("rust_predictor module is not available")
-
         width, height = 512, 512
         zoom = 1.0
         c_re, c_im = 0.0, 0.0
@@ -40,6 +36,8 @@ class FractalService:
         palette_choice = "vibrant"
 
         if provider == "local":
+            if rust_predictor is None:
+                raise ServiceError("Rust fractal engine is not available — cannot use local provider")
             h = hashlib.sha256(f"{prompt}_{style}_{time.time() // 10}".encode()).hexdigest()
             zoom = max(0.5, (int(h[0:2], 16) / 255.0) * 3.0)
             c_re = (int(h[2:4], 16) / 255.0) * 2.0 - 1.0
@@ -165,9 +163,9 @@ class FractalService:
         cfg = endpoints[provider]
 
         def _request():
-            resp = self._session.post(cfg["url"], headers=cfg["headers"], json=cfg["json"], timeout=30)
+            resp = requests.post(cfg["url"], headers=cfg["headers"], json=cfg["json"], timeout=30)
             if resp.status_code != 200:
-                msg = f"{provider} error: {resp.text}"
+                msg = f"{provider} API returned status {resp.status_code}"
                 raise ServiceError(msg)
             return cfg["parse"](resp)
 
@@ -176,6 +174,8 @@ class FractalService:
     async def _generate_pattern(
         self, width: int, height: int, zoom: float, c_re: float, c_im: float, max_iter: int
     ) -> list:
+        if rust_predictor is None:
+            raise ServiceError("Rust fractal engine is not available")
         loop = asyncio.get_running_loop()
 
         def _gen():

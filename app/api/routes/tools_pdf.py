@@ -1,5 +1,6 @@
 """PDF conversion API endpoints: image-to-PDF, text-to-PDF."""
 
+import asyncio
 import io
 import os
 
@@ -8,7 +9,6 @@ from fastapi.responses import StreamingResponse
 
 from app.core.config import settings
 from app.core.constants import ALLOWED_IMAGE_MIMES
-from app.core.log import get_logger
 from app.services.pdf_service import PDFService
 
 ALLOWED_TEXT_MIMES = {"text/plain"}
@@ -17,7 +17,6 @@ __all__ = ["router"]
 
 router = APIRouter(prefix="/api", tags=["PDF"])
 pdf_service = PDFService(settings)
-logger = get_logger(__name__)
 
 
 def _pdf_response(pdf_bytes: bytes, filename: str) -> StreamingResponse:
@@ -46,12 +45,14 @@ async def convert_to_pdf(file: UploadFile = File(...)):  # noqa: B008
 
     if file.content_type in ALLOWED_IMAGE_MIMES:
         image_data = await file.read()
-        pdf_bytes = pdf_service.convert_image_to_pdf(image_data, filename)
+        loop = asyncio.get_running_loop()
+        pdf_bytes = await loop.run_in_executor(None, pdf_service.convert_image_to_pdf, image_data, filename)
         return _pdf_response(pdf_bytes, base_name)
 
     if file.content_type in ALLOWED_TEXT_MIMES:
         text_data = await file.read()
-        pdf_bytes = pdf_service.convert_text_to_pdf(text_data)
+        loop = asyncio.get_running_loop()
+        pdf_bytes = await loop.run_in_executor(None, pdf_service.convert_text_to_pdf, text_data)
         return _pdf_response(pdf_bytes, base_name)
 
     raise HTTPException(

@@ -1,0 +1,608 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+{% block title %}CSS Filter Generator — Free Online CSS Filter & Backdrop-Filter Preview Tool | StoryBrain AI{% endblock %}
+{% block meta_description %}Apply and preview CSS filters — blur, brightness, contrast, grayscale, hue-rotate, invert, opacity, saturate, sepia, drop-shadow — plus backdrop-filter. Real-time preview, before/after comparison, presets. Free, no sign-up.{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/css-filter-generator{% endblock %}
+{% block og_title %}CSS Filter Generator — Preview CSS Filters & Backdrop-Filter Effects Online{% endblock %}
+{% block og_description %}Apply and preview CSS filters — blur, brightness, contrast, grayscale, hue-rotate, invert, opacity, saturate, sepia, drop-shadow — plus backdrop-filter. Real-time preview, before/after comparison, presets. Free, no sign-up.{% endblock %}
+{% block og_image %}<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="CSS Filter Generator — preview CSS filters and backdrop-filter effects online">{% endblock %}
+{% block twitter_image %}<meta name="twitter:image" content="https://www.storybrainai.com/static/og-image.jpg">{% endblock %}
+{% block head %}
+<style>
+.cfg-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.cfg-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.cfg-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;font-size:10px;font-weight:800;cursor:pointer;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;text-transform:uppercase;letter-spacing:.04em;touch-action:manipulation;user-select:none}
+.cfg-pill:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.cfg-pill.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.cfg-pill-wrap{display:flex;flex-wrap:wrap;gap:4px}
+.cfg-slider-row{display:flex;align-items:center;gap:8px}
+.cfg-slider-row input[type=range]{flex:1;accent-color:var(--color-primary);height:4px}
+.cfg-filt{background:var(--color-base-100);border-radius:.75rem;padding:10px 12px;border:1px solid var(--color-base-300);margin-bottom:6px;transition:opacity .15s}
+.cfg-filt.disabled{opacity:.35}
+.cfg-filt .f-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.cfg-filt .f-header label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.cfg-filt .f-header label input[type=checkbox]{accent-color:var(--color-primary)}
+.cfg-filt .f-header span{font-size:10px;font-weight:700;font-family:monospace;opacity:.5}
+.cfg-bg-btn{width:28px;height:28px;border-radius:8px;border:2px solid var(--color-base-300);cursor:pointer;transition:border-color .15s;padding:0;flex-shrink:0;font-size:14px;display:flex;align-items:center;justify-content:center;background:var(--color-base-100);line-height:1}
+.cfg-bg-btn.on{border-color:var(--color-primary)}
+.cfg-bg-btn.light{background:#ffffff;border-color:#ccc}
+.cfg-bg-btn.dark{background:#1a1a2e;border-color:#444}
+.cfg-bg-btn.gradient{background:linear-gradient(135deg,#f093fb,#f5576c)}
+.cfg-bg-btn.checker{background:repeating-conic-gradient(#ccc 0% 25%,#fff 0% 50%) 0 0 / 12px 12px}
+.cfg-preview-wrap{position:relative;border-radius:1rem;overflow:hidden;border:1px solid var(--color-base-300);background:#ffffff;transition:background .2s;min-height:340px;display:flex;align-items:center;justify-content:center}
+.cfg-preview-box{width:92%;max-width:420px;padding:28px 24px;border-radius:1rem;background:rgba(255,255,255,0.85);overflow:hidden;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+.cfg-preview-box.orig{filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;z-index:3;pointer-events:none}
+.cfg-preview-box.filt{z-index:4}
+.cfg-preview-box .p-content{display:flex;flex-direction:column;gap:12px}
+.cfg-preview-box .p-row{display:flex;align-items:center;gap:14px}
+.cfg-preview-box .p-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a855f7);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700}
+.cfg-preview-box .p-info{flex:1}
+.cfg-preview-box .p-info .p-title{font-weight:800;font-size:15px;color:var(--color-base-content);margin-bottom:2px}
+.cfg-preview-box .p-info .p-sub{font-size:11px;opacity:.5;color:var(--color-base-content)}
+.cfg-preview-box .p-badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:9px;font-weight:800;background:linear-gradient(135deg,#6366f1,#a855f7);color:#fff;text-transform:uppercase;letter-spacing:.04em;align-self:flex-start}
+.cfg-preview-box .p-body{font-size:11px;line-height:1.6;opacity:.65;color:var(--color-base-content)}
+.cfg-preview-box .p-tags{display:flex;gap:6px;flex-wrap:wrap}
+.cfg-preview-box .p-tags span{padding:3px 8px;border-radius:6px;font-size:9px;font-weight:700;background:var(--color-base-200);color:var(--color-base-content);opacity:.7}
+.cfg-handle{position:absolute;top:0;bottom:0;width:4px;background:#fff;box-shadow:0 0 8px rgba(0,0,0,.3);cursor:ew-resize;z-index:5;pointer-events:all;margin-left:-2px}
+.cfg-handle::before{content:'⇔';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:10px;font-weight:700;color:#333;background:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.cfg-label-l{position:absolute;top:8px;left:8px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;background:rgba(0,0,0,.5);color:#fff;padding:3px 8px;border-radius:4px;z-index:6;pointer-events:none}
+.cfg-label-r{position:absolute;top:8px;right:8px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;background:rgba(0,0,0,.5);color:#fff;padding:3px 8px;border-radius:4px;z-index:6;pointer-events:none}
+.cfg-css-display{background:var(--color-base-100);border-radius:.75rem;padding:.6rem .9rem;font-family:monospace;font-size:11px;font-weight:600;word-break:break-all;border:1px solid var(--color-base-300);min-height:2.8em;display:flex;align-items:center}
+.cfg-ds-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.cfg-ds-row label{font-size:9px;font-weight:700;opacity:.5;min-width:16px;text-transform:uppercase;letter-spacing:.04em}
+.cfg-ds-row input[type=range]{flex:1;accent-color:var(--color-primary);height:4px}
+.cfg-ds-row .ds-val{min-width:28px;text-align:right;font-size:10px;font-weight:700;font-family:monospace;opacity:.5}
+.cfg-lib-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:.65rem;cursor:pointer;border:1px solid var(--color-base-300);transition:all .12s;background:var(--color-base-100)}
+.cfg-lib-item:hover{border-color:var(--color-primary)}
+.cfg-lib-item .lib-preview{width:32px;height:32px;border-radius:6px;flex-shrink:0;background:var(--color-base-200);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:16px}
+.cfg-lib-item .lib-name{font-size:10px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cfg-lib-item .lib-del{font-size:14px;font-weight:700;opacity:.3;cursor:pointer;border:none;background:none;color:var(--color-base-content);padding:0;line-height:1}
+.cfg-lib-item .lib-del:hover{opacity:1;color:#dc2626}
+.cfg-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px;pointer-events:none}
+.cfg-toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:767px){
+.cfg-preview-wrap{min-height:280px}
+.cfg-preview-box{padding:18px 16px}
+.cfg-preview-box .p-avatar{width:36px;height:36px;font-size:15px}
+.cfg-preview-box .p-info .p-title{font-size:13px}
+}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("sliders","Developer","CSS FILTER","& EFFECT","Apply and preview CSS filters — blur, brightness, contrast, grayscale, hue-rotate, invert, opacity, saturate, sepia, drop-shadow — and backdrop-filter in real-time.") }}
+<div class="container-site px-4 pb-24">
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+    <div class="lg:col-span-2 space-y-6">
+      <div class="cfg-card">
+        <label class="cfg-label">Filter Controls</label>
+        <div id="cfgFilters"></div>
+      </div>
+      <div class="cfg-card">
+        <label class="cfg-label">Drop Shadow</label>
+        <div class="flex items-center gap-2 mb-2">
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" class="toggle toggle-primary toggle-xs" id="cfgDsEnable">
+            <span class="text-[10px] font-bold opacity-40">Enable</span>
+          </label>
+        </div>
+        <div id="cfgDsControls" class="space-y-1" style="opacity:.5;pointer-events:none">
+          <div class="cfg-ds-row">
+            <label>X</label>
+            <input type="range" id="cfgDsX" min="-20" max="20" value="4" step="1" class="cfg-ds-slider">
+            <span class="ds-val" id="cfgDsValX">4</span>
+            <label style="min-width:12px">Y</label>
+            <input type="range" id="cfgDsY" min="-20" max="20" value="4" step="1" class="cfg-ds-slider">
+            <span class="ds-val" id="cfgDsValY">4</span>
+          </div>
+          <div class="cfg-ds-row">
+            <label>BL</label>
+            <input type="range" id="cfgDsBlur" min="0" max="40" value="8" step="1" class="cfg-ds-slider">
+            <span class="ds-val" id="cfgDsValBlur">8</span>
+            <label style="min-width:24px">COL</label>
+            <input type="color" id="cfgDsColor" value="#000000" style="width:28px;height:24px;border-radius:4px;border:1px solid var(--color-base-300);padding:1px;cursor:pointer;background:none;flex-shrink:0">
+          </div>
+        </div>
+      </div>
+      <div class="cfg-card">
+        <label class="cfg-label">Presets</label>
+        <div class="cfg-pill-wrap" id="cfgPresets">
+          <button class="cfg-pill" data-preset="glass" type="button">Blurred Glass</button>
+          <button class="cfg-pill" data-preset="duotone" type="button">Duotone Shock</button>
+          <button class="cfg-pill" data-preset="vintage" type="button">Vintage Warm</button>
+          <button class="cfg-pill" data-preset="hdr" type="button">Cool HDR</button>
+          <button class="cfg-pill" data-preset="noir" type="button">Noir</button>
+          <button class="cfg-pill" data-preset="glow" type="button">Soft Glow</button>
+          <button class="cfg-pill" data-preset="invert" type="button">Invert Art</button>
+          <button class="cfg-pill" data-preset="vivid" type="button">Vivid</button>
+        </div>
+      </div>
+      <div class="cfg-card">
+        <label class="cfg-label">Mode</label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <span class="text-[10px] font-bold opacity-40">Filter</span>
+          <input type="checkbox" class="toggle toggle-primary toggle-xs" id="cfgBackdropMode">
+          <span class="text-[10px] font-bold opacity-40">Backdrop</span>
+        </label>
+      </div>
+      <div class="cfg-card">
+        <label class="cfg-label">Background</label>
+        <div class="flex gap-2">
+          <button class="cfg-bg-btn light on" data-bg="light" type="button" title="Light background"></button>
+          <button class="cfg-bg-btn dark" data-bg="dark" type="button" title="Dark background"></button>
+          <button class="cfg-bg-btn gradient" data-bg="gradient" type="button" title="Gradient background"></button>
+          <button class="cfg-bg-btn checker" data-bg="checker" type="button" title="Checkerboard"></button>
+          <input type="file" id="cfgUploadInput" accept="image/*" hidden>
+          <label for="cfgUploadInput" class="cfg-bg-btn" style="cursor:pointer;font-size:16px;line-height:28px;text-align:center" title="Upload your own image">&#128247;</label>
+        </div>
+      </div>
+      <div class="cfg-card">
+        <div class="flex items-center justify-between mb-2">
+          <label class="cfg-label" style="margin:0">Filter Library</label>
+          <div class="flex gap-1.5">
+            <button class="btn btn-ghost btn-xs gap-1" id="cfgSaveLib" type="button">Save</button>
+            <button class="btn btn-ghost btn-xs gap-1 text-error" id="cfgClearLib" type="button">Clear</button>
+          </div>
+        </div>
+        <div id="cfgLibList" class="space-y-2 max-h-64 overflow-y-auto">
+          <p class="text-xs text-base-content/40 text-center py-3">No saved filters yet.</p>
+        </div>
+      </div>
+    </div>
+    <div class="lg:col-span-3 space-y-6">
+      <div class="cfg-card">
+        <div class="flex items-center justify-between mb-2">
+          <label class="cfg-label" style="margin:0">Preview <span id="cfgModeLabel" class="font-mono opacity-30">filter</span></label>
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" class="toggle toggle-primary toggle-xs" id="cfgSplitToggle" checked>
+              <span class="text-[10px] font-bold opacity-40">Split</span>
+            </label>
+            <button class="btn btn-ghost btn-xs gap-1" id="cfgResetFilters" type="button">Reset</button>
+          </div>
+        </div>
+        <div class="cfg-preview-wrap" id="cfgPreviewWrap">
+          <div class="cfg-preview-box orig" id="cfgPreviewBoxOrig">
+            <div class="p-content">
+              <div class="p-row">
+                <div class="p-avatar">S</div>
+                <div class="p-info">
+                  <div class="p-title">Sample Card</div>
+                  <div class="p-sub">Filters applied in real-time</div>
+                </div>
+              </div>
+              <span class="p-badge">CSS filter</span>
+              <p class="p-body">This card demonstrates how CSS filters affect UI elements. Adjust the controls on the left to see blur, brightness, contrast, and other effects update instantly.</p>
+              <div class="p-tags">
+                <span>blur</span><span>brightness</span><span>contrast</span><span>grayscale</span><span>sepia</span>
+              </div>
+            </div>
+          </div>
+          <div class="cfg-preview-box filt" id="cfgPreviewBox">
+            <div class="p-content">
+              <div class="p-row">
+                <div class="p-avatar">S</div>
+                <div class="p-info">
+                  <div class="p-title">Sample Card</div>
+                  <div class="p-sub">Filters applied in real-time</div>
+                </div>
+              </div>
+              <span class="p-badge">CSS filter</span>
+              <p class="p-body">This card demonstrates how CSS filters affect UI elements. Adjust the controls on the left to see blur, brightness, contrast, and other effects update instantly.</p>
+              <div class="p-tags">
+                <span>blur</span><span>brightness</span><span>contrast</span><span>grayscale</span><span>sepia</span>
+              </div>
+            </div>
+          </div>
+          <div class="cfg-handle" id="cfgHandle"></div>
+          <span class="cfg-label-l">Original</span>
+          <span class="cfg-label-r">Filtered</span>
+        </div>
+      </div>
+      <div class="cfg-card">
+        <div class="flex items-center justify-between mb-2">
+          <label class="cfg-label" style="margin:0">CSS Output</label>
+          <button class="btn btn-ghost btn-xs gap-1" id="cfgCopyLink" type="button">Link</button>
+        </div>
+        <div class="cfg-css-display" id="cfgCssOutput">filter: none;</div>
+        <div class="flex gap-2 mt-3">
+          <button class="btn btn-primary btn-sm flex-1" id="cfgCopyCss" type="button">Copy CSS</button>
+          <button class="btn btn-ghost btn-sm flex-1" id="cfgResetAll" type="button">Reset All</button>
+        </div>
+      </div>
+      <div class="cfg-card">
+        <label class="cfg-label">Animate Preview</label>
+        <div class="flex items-center gap-3">
+          <button class="btn btn-ghost btn-sm gap-1" id="cfgPlayBtn" type="button">&#9654; Play</button>
+          <span class="text-[10px] font-bold opacity-40">Toggles the filter on and off to preview the transition effect.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="cfgToast" class="cfg-toast" role="status" aria-live="polite"></div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ nonce }}">
+(function(){
+var toastEl=document.getElementById('cfgToast');
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},2200)}
+var el=function(id){return document.getElementById(id)};
+var E=function(s){return document.querySelectorAll(s)};
+
+var backdrop=0,bg='light',splitOn=1,playing=0,animTimer=null;
+var savedBg='#ffffff';
+var filters=[
+{id:'blur',label:'Blur',unit:'px',min:0,max:20,step:.5,val:0,enabled:0},
+{id:'brightness',label:'Brightness',unit:'',min:0,max:5,step:.05,val:1,enabled:0,format:function(v){return Math.round(v*100)/100}},
+{id:'contrast',label:'Contrast',unit:'',min:0,max:5,step:.05,val:1,enabled:0,format:function(v){return Math.round(v*100)/100}},
+{id:'grayscale',label:'Grayscale',unit:'%',min:0,max:100,step:1,val:0,enabled:0},
+{id:'hue-rotate',label:'Hue Rotate',unit:'deg',min:0,max:360,step:1,val:0,enabled:0},
+{id:'invert',label:'Invert',unit:'%',min:0,max:100,step:1,val:0,enabled:0},
+{id:'opacity',label:'Opacity',unit:'%',min:0,max:100,step:1,val:100,enabled:1},
+{id:'saturate',label:'Saturate',unit:'',min:0,max:5,step:.05,val:1,enabled:0,format:function(v){return Math.round(v*100)/100}},
+{id:'sepia',label:'Sepia',unit:'%',min:0,max:100,step:1,val:0,enabled:0}
+];
+var ds={enabled:0,x:4,y:4,blur:8,color:'#000000'};
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;')}
+function updateFilterDisplay(f){
+var span=document.getElementById('cfgVal_'+f.id);
+if(span){var display=f.format?f.format(f.val):f.val;span.textContent=display+f.unit}}
+
+function renderFilters(){
+var html='';
+for(var i=0;i<filters.length;i++){
+var f=filters[i];
+html+='<div class="cfg-filt'+(f.enabled?'':' disabled')+'" data-fi="'+i+'">';
+html+='<div class="f-header">';
+html+='<label><input type="checkbox" class="cfg-toggle" data-fid="'+f.id+'"'+(f.enabled?' checked':'')+'> '+f.label+'</label>';
+var display=f.format?f.format(f.val):f.val;
+html+='<span id="cfgVal_'+f.id+'">'+display+f.unit+'</span>';
+html+='</div>';
+html+='<div class="cfg-slider-row">';
+html+='<input type="range" id="cfgR_'+f.id+'" min="'+f.min+'" max="'+f.max+'" step="'+f.step+'" value="'+f.val+'"'+(f.enabled?'':' disabled')+'>';
+html+='</div></div>'}
+el('cfgFilters').innerHTML=html}
+
+function attachFilterEvents(){
+if(window._cfgAttached)return;window._cfgAttached=1;
+el('cfgFilters').addEventListener('change',function(e){
+var cb=e.target.closest('.cfg-toggle');
+if(!cb)return;
+var fid=cb.dataset.fid;
+for(var i=0;i<filters.length;i++){if(filters[i].id===fid){filters[i].enabled=cb.checked?1:0;break}}
+renderFilters();update()});
+el('cfgFilters').addEventListener('input',function(e){
+var r=e.target.closest('input[type=range]');
+if(!r)return;
+var fid=r.id.replace('cfgR_','');
+for(var i=0;i<filters.length;i++){if(filters[i].id===fid){filters[i].val=parseFloat(r.value)||0;updateFilterDisplay(filters[i]);break}}
+update()})}
+
+function buildFilterCss(){
+var parts=[];
+for(var i=0;i<filters.length;i++){
+var f=filters[i];
+if(!f.enabled)continue;
+var v=f.val;
+if(f.id==='blur'){parts.push('blur('+v+'px)')}
+else if(f.id==='brightness'){parts.push('brightness('+v+')')}
+else if(f.id==='contrast'){parts.push('contrast('+v+')')}
+else if(f.id==='grayscale'){parts.push('grayscale('+v+'%)')}
+else if(f.id==='hue-rotate'){parts.push('hue-rotate('+v+'deg)')}
+else if(f.id==='invert'){parts.push('invert('+v+'%)')}
+else if(f.id==='opacity'){parts.push('opacity('+v+'%)')}
+else if(f.id==='saturate'){parts.push('saturate('+v+')')}
+else if(f.id==='sepia'){parts.push('sepia('+v+'%)')}}
+if(ds.enabled){parts.push('drop-shadow('+ds.x+'px '+ds.y+'px '+ds.blur+'px '+ds.color+')')}
+return parts.join(' ')||'none'}
+
+function updatePreview(){
+if(playing){stopAnim()}
+var css=buildFilterCss();
+var box=el('cfgPreviewBox');
+var orig=el('cfgPreviewBoxOrig');
+var prop=backdrop?'backdropFilter':'filter';
+var cssVal=css==='none'?'none':css;
+box.style[prop]=cssVal;
+if(backdrop){
+box.style.background='rgba(255,255,255,0.25)';
+box.style.backdropFilter=cssVal;
+box.style.webkitBackdropFilter=cssVal
+}else{
+box.style.background='rgba(255,255,255,0.85)';
+box.style.backdropFilter='none';
+box.style.webkitBackdropFilter='none'}
+orig.style[prop]='none';
+orig.style.backdropFilter='none';
+orig.style.webkitBackdropFilter='none';
+orig.style.background=backdrop?'rgba(255,255,255,0.25)':'rgba(255,255,255,0.85)';
+var filtBox=el('cfgPreviewBox');
+var origBox=el('cfgPreviewBoxOrig');
+if(splitOn){
+el('cfgHandle').style.display='';
+el('cfgLabelL').style.display='';
+el('cfgLabelR').style.display='';
+filtBox.style.clipPath='inset(0 0 0 '+cfgSplitPct+'%)';
+origBox.style.clipPath='inset(0 '+(100-cfgSplitPct)+'% 0 0)';
+el('cfgHandle').style.left=cfgSplitPct+'%'
+}else{
+el('cfgHandle').style.display='none';
+el('cfgLabelL').style.display='none';
+el('cfgLabelR').style.display='none';
+filtBox.style.clipPath='none';
+origBox.style.clipPath='none'}
+updateCssOutput(css)}
+
+var cfgSplitPct=50;
+function syncSplitClips(){
+el('cfgPreviewBox').style.clipPath='inset(0 0 0 '+cfgSplitPct+'%)';
+el('cfgPreviewBoxOrig').style.clipPath='inset(0 '+(100-cfgSplitPct)+'% 0 0)'}
+
+function updateCssOutput(css){
+var prop=backdrop?'backdrop-filter':'filter';
+el('cfgCssOutput').textContent=prop+': '+(css==='none'?'none':css)+';';
+el('cfgModeLabel').textContent=backdrop?'backdrop-filter':'filter'}
+
+function update(){updatePreview()}
+
+function applyPreset(name){
+var presets={
+glass:{blur:8,brightness:1.2,contrast:0,grayscale:0,'hue-rotate':0,invert:0,opacity:100,saturate:0,sepia:0},
+duotone:{blur:0,brightness:1.5,contrast:1.5,grayscale:100,'hue-rotate':180,invert:0,opacity:100,saturate:0,sepia:100},
+vintage:{blur:0,brightness:1.1,contrast:0,grayscale:0,'hue-rotate':-10,invert:0,opacity:100,saturate:1.3,sepia:60},
+hdr:{blur:0,brightness:1.1,contrast:1.4,grayscale:0,'hue-rotate':0,invert:0,opacity:100,saturate:1.5,sepia:0},
+noir:{blur:0,brightness:0.8,contrast:1.8,grayscale:100,'hue-rotate':0,invert:0,opacity:100,saturate:0,sepia:0},
+glow:{blur:2,brightness:1.3,contrast:0.9,grayscale:0,'hue-rotate':0,invert:0,opacity:100,saturate:0,sepia:0},
+invert:{blur:0,brightness:0,contrast:0,grayscale:0,'hue-rotate':180,invert:100,opacity:100,saturate:0,sepia:0},
+vivid:{blur:0,brightness:1.1,contrast:1.2,grayscale:0,'hue-rotate':0,invert:0,opacity:100,saturate:3,sepia:0}};
+var p=presets[name];
+if(!p)return;
+ds.enabled=0;ds.x=4;ds.y=4;ds.blur=8;ds.color='#000000';
+el('cfgDsEnable').checked=0;syncDsControls();
+for(var i=0;i<filters.length;i++){
+var fid=filters[i].id;
+if(p[fid]!==undefined){filters[i].val=p[fid];var defs={brightness:1,contrast:1,saturate:1,opacity:100};filters[i].enabled=Math.abs(p[fid]-(defs[fid]||0))>0.01||fid==='opacity'?1:0}}
+renderFilters();update();toast('Preset applied')}
+
+function resetAll(){
+for(var i=0;i<filters.length;i++){
+var f=filters[i];
+f.val=(f.id==='brightness'||f.id==='contrast'||f.id==='saturate')?1:f.id==='opacity'?100:0;
+f.enabled=f.id==='opacity'?1:0}
+ds.enabled=0;ds.x=4;ds.y=4;ds.blur=8;ds.color='#000000';
+backdrop=0;el('cfgBackdropMode').checked=0;
+el('cfgDsEnable').checked=0;syncDsControls();
+setBg('light');
+renderFilters();update();toast('Reset')}
+
+function setBg(name){
+E('.cfg-bg-btn').forEach(function(b){b.classList.remove('on')});
+if(name==='upload'){var ul=document.querySelector('label[for="cfgUploadInput"]');if(ul){ul.classList.add('on')}}
+else{var btn=document.querySelector('.cfg-bg-btn.'+name);if(btn){btn.classList.add('on')}}
+bg=name;
+var wrap=el('cfgPreviewWrap');
+if(name==='light'){wrap.style.background='#ffffff';savedBg='#ffffff'}
+else if(name==='dark'){wrap.style.background='#1a1a2e';savedBg='#1a1a2e'}
+else if(name==='gradient'){wrap.style.background='linear-gradient(135deg,#667eea,#764ba2,#f093fb)';savedBg='linear-gradient(135deg,#667eea,#764ba2,#f093fb)'}
+else if(name==='checker'){wrap.style.background='repeating-conic-gradient(#ccc 0% 25%,#fff 0% 50%) 0 0 / 16px 16px';savedBg='repeating-conic-gradient(#ccc 0% 25%,#fff 0% 50%) 0 0 / 16px 16px'}
+else if(name==='upload'){savedBg=wrap.style.background}
+if(backdrop&&name!=='gradient'&&name!=='checker'&&name!=='upload'){wrap.style.background='linear-gradient(135deg,#667eea,#764ba2,#f093fb)'}}
+
+el('cfgPresets').addEventListener('click',function(e){
+var btn=e.target.closest('.cfg-pill');
+if(!btn)return;
+E('#cfgPresets .cfg-pill').forEach(function(b){b.classList.remove('on')});
+btn.classList.add('on');
+applyPreset(btn.dataset.preset)});
+
+el('cfgBackdropMode').addEventListener('change',function(){
+backdrop=this.checked?1:0;
+var wrap=el('cfgPreviewWrap');
+if(backdrop){
+wrap.style.background='linear-gradient(135deg,#667eea,#764ba2,#f093fb)'
+}else{
+wrap.style.background=savedBg}
+update()});
+
+/* Background buttons */
+E('.cfg-bg-btn[data-bg]').forEach(function(btn){
+btn.addEventListener('click',function(){
+setBg(this.dataset.bg)})});
+
+el('cfgUploadInput').addEventListener('change',function(){
+if(this.files&&this.files[0]){
+var reader=new FileReader();
+reader.onload=function(e){
+E('.cfg-bg-btn').forEach(function(b){b.classList.remove('on')});
+var uploadBtn=document.querySelector('label[for="cfgUploadInput"]');
+if(uploadBtn){uploadBtn.classList.add('on')}
+var url='url('+e.target.result+') center/cover no-repeat';
+el('cfgPreviewWrap').style.background=url;
+savedBg=url;
+bg='upload'};
+reader.readAsDataURL(this.files[0])}});
+
+/* Drop-shadow */
+function syncDsControls(){
+el('cfgDsX').value=ds.x;el('cfgDsValX').textContent=ds.x;
+el('cfgDsY').value=ds.y;el('cfgDsValY').textContent=ds.y;
+el('cfgDsBlur').value=ds.blur;el('cfgDsValBlur').textContent=ds.blur;
+el('cfgDsColor').value=ds.color;
+var ctrl=el('cfgDsControls');
+if(ds.enabled){ctrl.style.opacity='1';ctrl.style.pointerEvents='auto'}
+else{ctrl.style.opacity='.5';ctrl.style.pointerEvents='none'}}
+
+el('cfgDsEnable').addEventListener('change',function(){
+ds.enabled=this.checked?1:0;
+syncDsControls();
+update()});
+
+['cfgDsX','cfgDsY','cfgDsBlur'].forEach(function(id){
+el(id).addEventListener('input',function(){
+var key=id.replace('cfgDs','').toLowerCase();
+var v=parseFloat(this.value)||0;
+ds[key]=v;
+el('cfgDsVal'+key.charAt(0).toUpperCase()+key.slice(1)).textContent=v;
+update()})});
+
+el('cfgDsColor').addEventListener('input',function(){
+ds.color=this.value;update()});
+
+el('cfgSplitToggle').addEventListener('change',function(){
+splitOn=this.checked?1:0;
+update()});
+
+el('cfgResetFilters').addEventListener('click',resetAll);
+el('cfgResetAll').addEventListener('click',resetAll);
+
+function copy(text){
+navigator.clipboard.writeText(text).then(function(){toast('Copied!')})}
+
+el('cfgCopyCss').addEventListener('click',function(){
+copy(el('cfgCssOutput').textContent)});
+
+/* Split handle drag */
+(function(){
+var handle=el('cfgHandle');
+var wrap=el('cfgPreviewWrap');
+var down=0;
+handle.addEventListener('mousedown',function(e){down=1;e.preventDefault()});
+document.addEventListener('mousemove',function(e){
+if(!down)return;
+var r=wrap.getBoundingClientRect();
+cfgSplitPct=Math.max(5,Math.min(95,(e.clientX-r.left)/r.width*100));
+syncSplitClips();
+handle.style.left=cfgSplitPct+'%'});
+document.addEventListener('mouseup',function(){down=0});
+handle.addEventListener('touchstart',function(e){down=1;e.preventDefault()},{passive:false});
+document.addEventListener('touchmove',function(e){
+if(!down)return;
+var t=e.touches[0];
+var r=wrap.getBoundingClientRect();
+cfgSplitPct=Math.max(5,Math.min(95,(t.clientX-r.left)/r.width*100));
+syncSplitClips();
+handle.style.left=cfgSplitPct+'%'});
+document.addEventListener('touchend',function(){down=0})})();
+
+/* ---- Filter Library (localStorage) ---- */
+var libKey='cfg_library';
+function loadLib(){try{var r=localStorage.getItem(libKey);return r?JSON.parse(r):[]}catch(e){return[]}}
+function saveLib(d){try{localStorage.setItem(libKey,JSON.stringify(d))}catch(e){}}
+
+function getFilterState(){
+var fcopy=[];
+for(var i=0;i<filters.length;i++){fcopy.push({id:filters[i].id,val:filters[i].val,enabled:filters[i].enabled})}
+return{filts:fcopy,ds:{enabled:ds.enabled,x:ds.x,y:ds.y,blur:ds.blur,color:ds.color},backdrop:backdrop,bg:bg}}
+
+function applyFilterState(s){
+if(!s)return;
+if(s.filts){
+for(var i=0;i<filters.length;i++){
+var found=0;
+for(var j=0;j<s.filts.length;j++){if(s.filts[j].id===filters[i].id){filters[i].val=s.filts[j].val;filters[i].enabled=s.filts[j].enabled;found=1;break}}
+if(!found){filters[i].val=(filters[i].id==='brightness'||filters[i].id==='contrast'||filters[i].id==='saturate')?1:filters[i].id==='opacity'?100:0;filters[i].enabled=filters[i].id==='opacity'?1:0}}}
+if(s.ds){ds.enabled=s.ds.enabled||0;ds.x=s.ds.x||4;ds.y=s.ds.y||4;ds.blur=s.ds.blur||8;ds.color=s.ds.color||'#000000'}
+if(s.backdrop!==undefined){backdrop=s.backdrop?1:0;el('cfgBackdropMode').checked=backdrop?1:0}
+if(s.bg&&s.bg!=='upload'){setBg(s.bg)}
+else if(s.bg==='upload'){setBg('gradient')}
+if(backdrop){el('cfgPreviewWrap').style.background='linear-gradient(135deg,#667eea,#764ba2,#f093fb)'}
+el('cfgDsEnable').checked=ds.enabled?1:0;
+syncDsControls();
+renderFilters();update()}
+
+function renderLib(){
+var items=loadLib();
+var el_=el('cfgLibList');
+if(!items.length){el_.innerHTML='<p class="text-xs text-base-content/40 text-center py-3">No saved filters yet.</p>';return}
+var html='';
+for(var i=items.length-1;i>=0;i--){
+var it=items[i];
+if(!it||!it.state)continue;
+html+='<div class="cfg-lib-item" data-lib="'+i+'">';
+html+='<div class="lib-preview">&#9879;</div>';
+html+='<span class="lib-name">'+esc(it.name||'Filter '+(i+1))+'</span>';
+html+='<button class="lib-del" data-ld="'+i+'" title="Delete">&times;</button>';
+html+='</div>'}
+el_.innerHTML=html}
+
+function saveCurrent(){
+var name=prompt('Name this filter:');
+if(!name||!name.trim())return;
+var items=loadLib();
+items.push({name:name.trim(),state:getFilterState(),ts:Date.now()});
+if(items.length>30){items=items.slice(-30)}
+saveLib(items);renderLib();toast('Filter saved')}
+
+function loadLibItem(idx){
+var items=loadLib();
+var it=items[idx];
+if(!it||!it.state)return;
+applyFilterState(it.state);toast('Filter restored')}
+
+function deleteLibItem(idx){
+var items=loadLib();items.splice(idx,1);saveLib(items);renderLib()}
+
+el('cfgLibList').addEventListener('click',function(e){
+var item=e.target.closest('.cfg-lib-item');
+var del=e.target.closest('[data-ld]');
+if(del){deleteLibItem(parseInt(del.dataset.ld));return}
+if(item){loadLibItem(parseInt(item.dataset.lib))}});
+
+el('cfgSaveLib').addEventListener('click',saveCurrent);
+el('cfgClearLib').addEventListener('click',function(){
+if(confirm('Delete all saved filters?')){saveLib([]);renderLib();toast('Library cleared')}});
+
+/* ---- URL Sharing ---- */
+function encodeState(){
+var state=getFilterState();
+try{return btoa(JSON.stringify(state))}catch(e){return''}}
+
+function decodeState(str){
+try{var s=JSON.parse(atob(str));if(!s||!s.filts)return null;return s}catch(e){return null}}
+
+function restoreFromHash(){
+var hash=window.location.hash.slice(1);
+if(!hash)return;
+var s=decodeState(hash);
+if(!s)return;
+applyFilterState(s)}
+
+el('cfgCopyLink').addEventListener('click',function(){
+var url=window.location.href.split('#')[0]+'#'+encodeState();
+navigator.clipboard.writeText(url).then(function(){toast('Link copied!')})});
+
+/* ---- Animate Preview ---- */
+function stopAnim(){
+playing=0;
+if(animTimer){clearInterval(animTimer);animTimer=null}
+el('cfgPlayBtn').innerHTML='&#9654; Play';
+el('cfgPreviewBox').style.transition='none'}
+
+el('cfgPlayBtn').addEventListener('click',function(){
+if(playing){stopAnim();return}
+var box=el('cfgPreviewBox');
+playing=1;
+el('cfgPlayBtn').innerHTML='&#9646; Stop';
+var toggle=0;
+box.style.transition='filter .5s ease,backdrop-filter .5s ease,-webkit-backdrop-filter .5s ease';
+animTimer=setInterval(function(){
+toggle=toggle?0:1;
+var css=toggle?buildFilterCss():'none';
+var prop=backdrop?'backdropFilter':'filter';
+box.style[prop]=css==='none'?'none':css;
+if(backdrop){box.style.backdropFilter=css==='none'?'none':css;box.style.webkitBackdropFilter=css==='none'?'none':css}},900)});
+
+/* ---- Init ---- */
+(function init(){
+restoreFromHash();
+renderFilters();
+attachFilterEvents();
+syncDsControls();
+renderLib();
+update()})()
+})()
+</script>
+{% endblock %}

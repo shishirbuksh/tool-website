@@ -1,0 +1,869 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+{% block title %}Color Palette Generator — Free Online Color Scheme & Palette Creator | StoryBrain AI{% endblock %}
+{% block meta_description %}Generate beautiful color palettes from images, color harmonies, and custom colors. Extract palette from photo, check WCAG contrast, export as CSS/JSON/SVG. Free, no sign-up, all in-browser.{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/color-palette-generator{% endblock %}
+{% block og_title %}Color Palette Generator — Create Beautiful Color Schemes Online{% endblock %}
+{% block og_description %}Generate color palettes from images, pick harmonies (mono, complementary, triadic), lock swatches, check WCAG contrast. Export as CSS variables, JSON, or SVG. Free, no sign-up.{% endblock %}
+{% block og_image %}<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Color Palette Generator — create beautiful color schemes, extract from images, and check WCAG contrast online free">{% endblock %}
+{% block twitter_image %}<meta name="twitter:image" content="https://www.storybrainai.com/static/og-image.jpg">{% endblock %}
+{% block head %}
+<style>
+.cpg-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.cpg-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.cpg-select{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;cursor:pointer}
+.cpg-select:focus{border-color:var(--color-primary);outline:none}
+.cpg-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:inherit;transition:border-color .18s;box-sizing:border-box;width:100%}
+.cpg-input:focus{border-color:var(--color-primary);outline:none}
+.cpg-color-input{-webkit-appearance:none;appearance:none;width:100%;height:44px;border-radius:.75rem;border:2px solid var(--color-base-300);cursor:pointer;padding:3px;background:var(--color-base-100);transition:border-color .18s}
+.cpg-color-input::-webkit-color-swatch-wrapper{padding:0}
+.cpg-color-input::-webkit-color-swatch{border:none;border-radius:.5rem}
+.cpg-color-input::-moz-color-swatch{border:none;border-radius:.5rem}
+.cpg-color-input:focus{border-color:var(--color-primary);outline:none}
+.cpg-swatch{height:100px;border-radius:1rem;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;border:2px solid transparent}
+.cpg-swatch:hover{transform:scale(1.03);z-index:2}
+.cpg-swatch.locked{border-color:var(--color-primary);box-shadow:0 0 0 2px var(--color-primary)}
+.cpg-swatch .lock-icon{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:999px;background:rgba(0,0,0,.35);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;opacity:0;transition:opacity .15s;backdrop-filter:blur(4px)}
+.cpg-swatch:hover .lock-icon,.cpg-swatch.locked .lock-icon{opacity:1}
+.cpg-swatch .hex-label{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:800;font-family:monospace;background:rgba(0,0,0,.45);color:#fff;padding:2px 8px;border-radius:6px;backdrop-filter:blur(4px);letter-spacing:.03em}
+.cpg-swatch.active{border-color:var(--color-primary);z-index:3;transform:scale(1.05)}
+.cpg-palette-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.cpg-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;font-size:10px;font-weight:800;cursor:pointer;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;text-transform:uppercase;letter-spacing:.04em;touch-action:manipulation}
+.cpg-pill:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.cpg-pill.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.cpg-pill-wrap{display:flex;flex-wrap:wrap;gap:4px}
+.cpg-hex-display{background:var(--color-base-100);border-radius:1rem;padding:.6rem .9rem;display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid var(--color-base-300)}
+.cpg-hex-display .val{font-weight:700;font-size:13px;font-family:monospace}
+.cpg-hex-display .cpy{font-size:10px;font-weight:800;cursor:pointer;opacity:.4;border:none;background:none;color:var(--color-base-content);text-transform:uppercase;letter-spacing:.05em;transition:opacity .12s;touch-action:manipulation;padding:0}
+.cpg-hex-display .cpy:hover{opacity:1}
+.cpg-contrast-card{background:var(--color-base-100);border-radius:1rem;padding:1rem;border:1px solid var(--color-base-300)}
+.cpg-contrast-card .big-ratio{font-size:32px;font-weight:900;font-family:monospace;line-height:1}
+.cpg-contrast-card .level{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.cpg-contrast-card .level.pass{background:#16a34a20;color:#16a34a}
+.cpg-contrast-card .level.fail{background:#dc262620;color:#dc2626}
+.cpg-thumb{width:28px;height:28px;border-radius:8px;border:2px solid var(--color-base-300);flex-shrink:0}
+.cpg-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px;pointer-events:none}
+.cpg-toast.show{opacity:1;transform:translateY(0)}
+.cpg-swatches{display:flex;flex-direction:column;gap:4px}
+.cpg-swatches .sw{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-300)}
+.cpg-swatches .sw .swatch{width:20px;height:20px;border-radius:6px;flex-shrink:0;border:1px solid var(--color-base-300)}
+.cpg-swatches .sw .code{font-size:10px;font-weight:700;font-family:monospace}
+.cpg-info{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center}
+.cpg-info .iv{font-size:16px;font-weight:900;font-family:monospace}
+.cpg-info .il{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.4}
+.cpg-matrix-table{border-collapse:separate;border-spacing:3px;font-size:10px;font-family:monospace;font-weight:700;width:100%}
+.cpg-matrix-table th{padding:2px;text-align:center;vertical-align:middle}
+.cpg-matrix-table td{padding:4px 6px;border-radius:6px;text-align:center;vertical-align:middle;min-width:32px}
+.cpg-matrix-table td.matrix-pass{background:#16a34a20;color:#16a34a}
+.cpg-matrix-table td.matrix-fail{background:#dc262620;color:#dc2626}
+.cpg-matrix-table td.matrix-self{background:transparent;color:var(--color-base-content);opacity:.2}
+@media(max-width:767px){
+.cpg-palette-grid{grid-template-columns:repeat(5,1fr);gap:6px}
+.cpg-swatch{height:70px;border-radius:.65rem}
+.cpg-swatch .hex-label{font-size:8px;bottom:4px;padding:1px 5px}
+.cpg-contrast-card .big-ratio{font-size:24px}
+}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("palette","Developer","COLOR","PALETTE","Generate beautiful color palettes from images, harmonies, and custom colors with WCAG contrast checking.") }}
+<div class="container-site px-4 pb-24">
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+    <div class="lg:col-span-2 space-y-6">
+      <div class="cpg-card">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="cpg-label" style="margin:0">Base Color</span>
+          <button class="cpg-pill" id="cpgRandBtn" type="button">Random</button>
+        </div>
+        <input type="color" class="cpg-color-input" id="cpgBaseColor" value="#0066ff">
+        <div class="grid grid-cols-3 gap-3 mt-3">
+          <div>
+            <label class="cpg-label" for="cpgHexInput">Hex</label>
+            <input class="cpg-input" id="cpgHexInput" value="#0066ff" maxlength="7">
+          </div>
+          <div>
+            <label class="cpg-label" for="cpgHue">Hue</label>
+            <input class="cpg-input" id="cpgHue" type="number" min="0" max="360" value="220">
+          </div>
+          <div>
+            <label class="cpg-label" for="cpgSat">Sat</label>
+            <input class="cpg-input" id="cpgSat" type="number" min="0" max="100" value="100">
+          </div>
+        </div>
+        <div class="mt-4">
+          <label class="cpg-label">Extract from Image</label>
+          <input type="file" class="file-input file-input-bordered w-full" id="cpgImageInput" accept="image/*">
+          <div id="cpgImagePreview" class="hidden mt-2 flex items-center gap-3">
+            <img id="cpgImagePreviewImg" class="w-14 h-14 rounded-xl object-cover border border-base-300" alt="Uploaded preview">
+            <span id="cpgImageFileName" class="text-xs text-base-content/60"></span>
+            <button class="btn btn-ghost btn-xs" id="cpgImageClear" type="button">Remove</button>
+          </div>
+        </div>
+      </div>
+      <div class="cpg-card">
+        <label class="cpg-label">Harmony Rule</label>
+        <div class="cpg-pill-wrap" id="cpgHarmonies" role="radiogroup" aria-label="Harmony type">
+          <button class="cpg-pill on" data-harmony="mono" type="button">Mono</button>
+          <button class="cpg-pill" data-harmony="analogous" type="button">Analogous</button>
+          <button class="cpg-pill" data-harmony="complementary" type="button">Complementary</button>
+          <button class="cpg-pill" data-harmony="split" type="button">Split</button>
+          <button class="cpg-pill" data-harmony="triadic" type="button">Triadic</button>
+          <button class="cpg-pill" data-harmony="tetradic" type="button">Tetradic</button>
+        </div>
+      </div>
+      <div class="cpg-card" id="cpgContrastSection">
+        <label class="cpg-label">Accessibility Check</label>
+        <p class="text-xs text-base-content/50 mb-3">Click two swatches to compare contrast</p>
+        <div class="cpg-contrast-card">
+          <div class="flex items-center gap-3 mb-3">
+            <div id="cpgContrastA" class="cpg-thumb" style="background:#0066ff"></div>
+            <span style="font-size:10px;font-weight:800;font-family:monospace" id="cpgContrastALabel">#0066ff</span>
+            <span style="opacity:.3">vs</span>
+            <div id="cpgContrastB" class="cpg-thumb" style="background:#ffffff"></div>
+            <span style="font-size:10px;font-weight:800;font-family:monospace" id="cpgContrastBLabel">#ffffff</span>
+          </div>
+          <div class="flex items-end gap-4">
+            <div>
+              <div class="big-ratio" id="cpgContrastRatio">4.54</div>
+              <div class="il" style="font-size:8px">Ratio</div>
+            </div>
+            <div class="flex flex-col gap-1">
+              <span class="level pass" id="cpgContrastAANormal">AA Normal</span>
+              <span class="level pass" id="cpgContrastAALarge">AA Large</span>
+              <span class="level fail" id="cpgContrastAAANormal">AAA Normal</span>
+              <span class="level fail" id="cpgContrastAAALarge">AAA Large</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cpg-card">
+        <label class="cpg-label">Color Wheel</label>
+        <div class="flex justify-center">
+          <canvas id="cpgColorWheel" width="180" height="180" style="width:180px;height:180px;border-radius:50%"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="lg:col-span-3 space-y-6">
+      <div class="cpg-card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("palette","w-4 h-4",16) | safe }} Palette</h2>
+          <div class="flex gap-1.5">
+            <button class="btn btn-ghost btn-xs gap-1" id="cpgExportCss" type="button">CSS</button>
+            <button class="btn btn-ghost btn-xs gap-1" id="cpgExportJson" type="button">JSON</button>
+            <button class="btn btn-ghost btn-xs gap-1" id="cpgExportTailwind" type="button">Tailwind</button>
+            <button class="btn btn-ghost btn-xs gap-1" id="cpgExportSvg" type="button">SVG</button>
+            <button class="btn btn-ghost btn-xs gap-1" id="cpgCopyLink" type="button">Link</button>
+          </div>
+        </div>
+        <div class="cpg-palette-grid" id="cpgPalette" role="list" aria-label="Generated color palette"></div>
+      </div>
+      <div class="cpg-card" id="cpgSwatchDetail">
+        <label class="cpg-label">Fine-Tune Selected Color</label>
+        <div class="flex items-center gap-3 mb-3">
+          <div id="cpgDetailSwatch" class="cpg-thumb" style="width:40px;height:40px;border-radius:12px;background:#0066ff"></div>
+          <div>
+            <div class="text-sm font-bold font-mono" id="cpgDetailHex">#0066ff</div>
+            <div class="text-xs font-mono opacity-50" id="cpgDetailRgb">rgb(0,102,255)</div>
+          </div>
+        </div>
+        <div class="space-y-2">
+          <div>
+            <div class="flex justify-between text-[10px] font-bold"><span class="opacity-40">Hue</span><span class="font-mono" id="cpgSliderHVal">220</span></div>
+            <input type="range" min="0" max="360" value="220" class="range range-primary range-xs" id="cpgSliderH">
+          </div>
+          <div>
+            <div class="flex justify-between text-[10px] font-bold"><span class="opacity-40">Saturation</span><span class="font-mono" id="cpgSliderSVal">100</span></div>
+            <input type="range" min="0" max="100" value="100" class="range range-primary range-xs" id="cpgSliderS">
+          </div>
+          <div>
+            <div class="flex justify-between text-[10px] font-bold"><span class="opacity-40">Lightness</span><span class="font-mono" id="cpgSliderLVal">50</span></div>
+            <input type="range" min="0" max="100" value="50" class="range range-primary range-xs" id="cpgSliderL">
+          </div>
+        </div>
+        <div class="mt-3 flex gap-2">
+          <button class="btn btn-primary btn-sm flex-1" id="cpgDetailCopyHex" type="button">Copy Hex</button>
+          <button class="btn btn-ghost btn-sm flex-1" id="cpgDetailCopyRgb" type="button">Copy RGB</button>
+          <button class="btn btn-ghost btn-sm flex-1" id="cpgDetailSetBase" type="button">Set as Base</button>
+        </div>
+      </div>
+      <div class="cpg-card" id="cpgHistorySection">
+        <div class="flex items-center justify-between mb-3">
+          <label class="cpg-label" style="margin:0">Saved Palettes</label>
+          <div class="flex gap-1.5">
+            <button class="btn btn-ghost btn-xs gap-1" id="cpgSavePalette" type="button">Save</button>
+            <button class="btn btn-ghost btn-xs gap-1 text-error" id="cpgClearHistory" type="button">Clear</button>
+          </div>
+        </div>
+        <div id="cpgHistoryList" class="space-y-1.5 max-h-52 overflow-y-auto">
+          <p class="text-xs text-base-content/40 text-center py-3">No saved palettes yet.</p>
+        </div>
+      </div>
+      <div class="cpg-card">
+        <label class="cpg-label">Live Preview</label>
+        <div id="cpgPreview" class="rounded-xl overflow-hidden border border-base-content/10" style="font-family:system-ui,sans-serif">
+          <div id="cpgPreviewHeader" style="padding:20px 24px;display:flex;align-items:center;justify-content:space-between">
+            <div style="font-weight:800;font-size:18px;letter-spacing:-.5px">StoryBrain</div>
+            <div style="display:flex;gap:12px;font-size:13px;font-weight:600">
+              <span>Home</span>
+              <span>Features</span>
+              <span>Pricing</span>
+            </div>
+            <button id="cpgPreviewBtn" style="border:none;padding:8px 20px;border-radius:8px;font-weight:700;font-size:13px;cursor:default">Get Started</button>
+          </div>
+          <div id="cpgPreviewBody" style="padding:32px 24px">
+            <h3 id="cpgPreviewTitle" style="font-size:22px;font-weight:800;letter-spacing:-.5px;margin:0 0 8px">Build Smarter with AI</h3>
+            <p id="cpgPreviewText" style="font-size:14px;line-height:1.6;margin:0 0 20px;opacity:.8">Generate stunning color palettes, extract dominant colors from images, and check WCAG contrast ratios — all in one place.</p>
+            <div style="display:flex;gap:8px">
+              <span id="cpgPreviewBadge1" style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700">Design</span>
+              <span id="cpgPreviewBadge2" style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700">Accessibility</span>
+              <span id="cpgPreviewBadge3" style="padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700">AI</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cpg-card">
+        <div class="flex items-center justify-between mb-3">
+          <label class="cpg-label" style="margin:0">Contrast Matrix</label>
+          <button class="btn btn-ghost btn-xs" id="cpgToggleMatrix" type="button">Show</button>
+        </div>
+        <div id="cpgMatrixWrap" class="hidden overflow-x-auto">
+          <table class="cpg-matrix-table" id="cpgMatrixTable"></table>
+        </div>
+      </div>
+      <div class="cpg-card">
+        <label class="cpg-label">Color Blind Simulator</label>
+        <select class="cpg-select mb-3" id="cpgCvdType">
+          <option value="">Normal Vision</option>
+          <option value="protanopia">Protanopia (red-blind)</option>
+          <option value="deuteranopia">Deuteranopia (green-blind)</option>
+          <option value="tritanopia">Tritanopia (blue-blind)</option>
+          <option value="achromatopsia">Achromatopsia (monochrome)</option>
+        </select>
+        <div class="flex gap-2" id="cpgCvdPalette"></div>
+      </div>
+      <div class="cpg-card">
+        <label class="cpg-label">Gradient Generator</label>
+        <div class="flex gap-2 mb-3">
+          <select class="cpg-select flex-1" id="cpgGradType">
+            <option value="linear">Linear</option>
+            <option value="radial">Radial</option>
+          </select>
+          <select class="cpg-select flex-1" id="cpgGradDir">
+            <option value="to right">→ Right</option>
+            <option value="to left">← Left</option>
+            <option value="to bottom">↓ Bottom</option>
+            <option value="to top">↑ Top</option>
+            <option value="to bottom right">↘ Bottom Right</option>
+            <option value="to top left">↖ Top Left</option>
+          </select>
+        </div>
+        <div class="flex justify-center">
+          <canvas id="cpgGradCanvas" width="260" height="60" style="width:100%;height:60px;border-radius:10px;border:1px solid var(--color-base-300)"></canvas>
+        </div>
+        <button class="btn btn-primary btn-sm w-full mt-2" id="cpgCopyGradCss" type="button">Copy CSS</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="cpgToast" class="cpg-toast" role="status" aria-live="polite"></div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ nonce }}">
+(function(){
+var toastEl=document.getElementById('cpgToast');
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},2200)}
+
+function hslToRgb(h,s,l){
+h/=360;s/=100;l/=100;
+var a=s*Math.min(l,1-l);
+var f=function(n){var k=(n+h*12)%12;return l-a*Math.max(-1,Math.min(k-3,9-k,1))};
+return[Math.round(255*f(0)),Math.round(255*f(8)),Math.round(255*f(4))]}
+function rgbToHsl(r,g,b){
+r/=255;g/=255;b/=255;
+var M=Math.max(r,g,b),m=Math.min(r,g,b),d=M-m,h,s,l=(M+m)/2;
+if(d===0){h=0;s=0}else{s=l>0.5?d/(2-M-m):d/(M+m);
+if(M===r){h=((g-b)/d+(g<b?6:0))}else if(M===g){h=(b-r)/d+2}else{h=(r-g)/d+4}
+h/=6}
+return[Math.round(360*h),Math.round(100*s),Math.round(100*l)]}
+function hslToHex(h,s,l){var c=hslToRgb(h,s,l);return rgbToHex(c[0],c[1],c[2])}
+function rgbToHex(r,g,b){return'#'+[r,g,b].map(function(x){return Math.round(x).toString(16).padStart(2,'0')}).join('')}
+function hexToRgb(h){h=h.replace(/^#/,'');if(h.length===3){h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2]}
+var n=parseInt(h,16);return[(n>>16)&255,(n>>8)&255,n&255]}
+function parseHex(h){return hexToRgb(h)}
+function relativeLuminance(r,g,b){
+var a=[r,g,b].map(function(c){c/=255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4)});
+return 0.2126*a[0]+0.7152*a[1]+0.0722*a[2]}
+function contrastRatio(h1,h2){
+var c1=hexToRgb(h1),c2=hexToRgb(h2);
+var l1=relativeLuminance(c1[0],c1[1],c1[2]);
+var l2=relativeLuminance(c2[0],c2[1],c2[2]);
+var b=Math.max(l1,l2),d=Math.min(l1,l2);
+return Math.round((b+0.05)/(d+0.05)*100)/100}
+function wcagLevel(ratio,isLarge){
+if(ratio>=7)return'AAA';
+if(isLarge&&ratio>=3)return'AA';
+if(!isLarge&&ratio>=4.5)return'AA';
+return'Fail'}
+
+function clamp(v,m,M){return Math.max(m,Math.min(M,v))}
+
+function generateHarmonies(h,s,l,type){
+var result=[{h:h,s:s,l:l}];
+switch(type){
+case'mono':
+for(var i=1;i<5;i++){
+var ns=clamp(s+(i%2===0?15:-15),0,100);
+var nl=clamp(l+(i<3?20:-20)+i*3,0,100);
+result.push({h:h,s:ns,l:nl})}
+break;
+case'analogous':
+var offs=[-30,-15,15,30];
+for(var i=0;i<offs.length;i++){result.push({h:(h+offs[i]+360)%360,s:clamp(s+(i%2===0?5:-5),10,100),l:clamp(l+(i<2?10:-10),10,90)})}
+break;
+case'complementary':
+var comp=(h+180)%360;
+result.push({h:comp,s:clamp(s-10,20,100),l:clamp(l+15,10,90)});
+result.push({h:comp,s:clamp(s+5,10,100),l:clamp(l-15,10,90)});
+result.push({h:(h+15)%360,s:clamp(s-5,10,100),l:clamp(l+10,10,90)});
+result.push({h:(comp-15+360)%360,s:clamp(s-5,10,100),l:clamp(l-10,10,90)});
+break;
+case'split':
+var sp1=(h+150)%360,sp2=(h+210)%360;
+result.push({h:sp1,s:clamp(s-5,10,100),l:clamp(l+10,10,90)});
+result.push({h:sp1,s:clamp(s-5,10,100),l:clamp(l-10,10,90)});
+result.push({h:sp2,s:clamp(s-5,10,100),l:clamp(l+10,10,90)});
+result.push({h:sp2,s:clamp(s-5,10,100),l:clamp(l-10,10,90)});
+break;
+case'triadic':
+var t1=(h+120)%360,t2=(h+240)%360;
+result.push({h:t1,s,l:clamp(l-10,10,90)});
+result.push({h:t1,s:clamp(s-5,10,100),l:clamp(l+15,10,90)});
+result.push({h:t2,s,l:clamp(l+10,10,90)});
+result.push({h:t2,s:clamp(s-5,10,100),l:clamp(l-15,10,90)});
+break;
+case'tetradic':
+var t1=(h+90)%360,t2=(h+180)%360,t3=(h+270)%360;
+result.push({h:t1,s:clamp(s-5,10,100),l:clamp(l+5,10,90)});
+result.push({h:t2,s,l:clamp(l-10,10,90)});
+result.push({h:t2,s:clamp(s-5,10,100),l:clamp(l+15,10,90)});
+result.push({h:t3,s:clamp(s-5,10,100),l:clamp(l+5,10,90)});
+break}
+return result.map(function(c){return{hex:hslToHex(c.h,c.s,c.l),h:c.h,s:c.s,l:c.l}})}
+
+var baseColor='#0066ff',harmonyType='mono',palette=[],locked=[false,false,false,false,false],selectedIdx=0;
+
+function syncInputs(){
+var rgb=hexToRgb(baseColor);
+var hsl=rgbToHsl(rgb[0],rgb[1],rgb[2]);
+document.getElementById('cpgBaseColor').value=baseColor;
+document.getElementById('cpgHexInput').value=baseColor;
+document.getElementById('cpgHue').value=hsl[0];
+document.getElementById('cpgSat').value=hsl[1]}
+
+function onBaseChange(){
+var v=document.getElementById('cpgBaseColor').value;
+baseColor=v;
+syncInputs();
+regenerate()}
+
+function onHexChange(){
+var v=document.getElementById('cpgHexInput').value.trim();
+if(!/^#[0-9a-fA-F]{6}$/.test(v)&&!/^#[0-9a-fA-F]{3}$/.test(v))return;
+baseColor=v;
+document.getElementById('cpgBaseColor').value=v;
+regenerate()}
+
+function onHslInput(){
+var h=parseInt(document.getElementById('cpgHue').value)||0;
+var s=parseInt(document.getElementById('cpgSat').value)||0;
+h=clamp(h,0,360);s=clamp(s,0,100);
+var rgb=hexToRgb(baseColor);
+var hsl=rgbToHsl(rgb[0],rgb[1],rgb[2]);
+baseColor=hslToHex(h,s,hsl[2]);
+syncInputs();
+regenerate()}
+
+function onSwatchTune(){
+  var h=parseInt(document.getElementById('cpgSliderH').value)||0;
+  var s=parseInt(document.getElementById('cpgSliderS').value)||0;
+  var l=parseInt(document.getElementById('cpgSliderL').value)||0;
+  if(!palette[selectedIdx]){return}
+  var c=palette[selectedIdx];
+  locked[selectedIdx]=true;
+  c.hex=hslToHex(h,s,l);c.h=h;c.s=s;c.l=l;
+  renderPalette();updateContrast();updateDetail();renderPreview();renderCvd();renderGradient();updateHash()}
+
+var historyKey='cpg_history';
+function loadHistory(){
+  try{var raw=localStorage.getItem(historyKey);return raw?JSON.parse(raw):[]}catch(e){return[]}}
+function saveHistory(data){
+  try{localStorage.setItem(historyKey,JSON.stringify(data))}catch(e){}}
+
+function renderHistory(){
+  var el=document.getElementById('cpgHistoryList');
+  var h=loadHistory();
+  if(!h.length){el.innerHTML='<p class="text-xs text-base-content/40 text-center py-3">No saved palettes yet.</p>';return}
+  var html='';
+  for(var i=h.length-1;i>=0;i--){
+    var p=h[i];
+    html+='<div class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-base-200/40 cursor-pointer history-item" data-idx="'+i+'">';
+    html+='<div class="flex gap-0.5 flex-1">';
+    for(var j=0;j<p.length;j++){
+      html+='<div style="width:18px;height:18px;border-radius:3px;background:'+p[j]+'"></div>'}
+    html+='</div>';
+    html+='<button class="btn btn-ghost btn-xs text-error restore-del" data-idx="'+i+'" title="Delete">&times;</button>';
+    html+='</div>'}
+  el.innerHTML=html}
+
+function addHistory(){
+  var hexes=palette.slice(0,5).map(function(c){return c?c.hex:'#cccccc'});
+  var h=loadHistory();
+  h.push(hexes);
+  if(h.length>20){h=h.slice(-20)}
+  saveHistory(h);
+  renderHistory();
+  toast('Palette saved')}
+
+function restoreHistory(idx){
+  var h=loadHistory();
+  if(!h[idx])return;
+  var hexes=h[idx];
+  for(var i=0;i<5;i++){
+    if(hexes[i]){
+      var r=hexToRgb(hexes[i]),hs=rgbToHsl(r[0],r[1],r[2]);
+      palette[i]={hex:hexes[i],h:hs[0],s:hs[1],l:hs[2]}}
+    locked[i]=false}
+  baseColor=palette[0].hex;
+  selectedIdx=0;
+  syncInputs();
+  renderPalette();updateContrast();updateDetail();
+  toast('Palette restored')}
+
+function deleteHistory(idx){
+  var h=loadHistory();
+  h.splice(idx,1);
+  saveHistory(h);
+  renderHistory()}
+
+function drawColorWheel(){
+  var c=document.getElementById('cpgColorWheel');
+  if(!c)return;
+  var ctx=c.getContext('2d');
+  var cx=90,cy=90,r=80;
+  for(var a=0;a<360;a+=1){
+    var rad=a*Math.PI/180;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,rad,rad+Math.PI/180);
+    ctx.closePath();
+    ctx.fillStyle='hsl('+a+',100%,50%)';
+    ctx.fill()}
+  ctx.beginPath();
+  ctx.arc(cx,cy,16,0,2*Math.PI);
+  ctx.fillStyle='#ffffff';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx,cy,14,0,2*Math.PI);
+  ctx.fillStyle='hsl('+((palette[selectedIdx]||{h:0}).h)+',100%,50%)';
+  ctx.fill()}
+function drawPaletteDots(){
+  var c=document.getElementById('cpgColorWheel');
+  if(!c)return;
+  var ctx=c.getContext('2d');
+  var cx=90,cy=90,r=68;
+  for(var i=0;i<5;i++){
+    var p=palette[i];if(!p)continue;
+    var rad=(p.h-90)*Math.PI/180;
+    var x=cx+r*Math.cos(rad),y=cy+r*Math.sin(rad);
+    ctx.beginPath();
+    ctx.arc(x,y,6,0,2*Math.PI);
+    ctx.strokeStyle=i===selectedIdx?'#fff':'rgba(255,255,255,0.6)';
+    ctx.lineWidth=2;
+    ctx.fillStyle=p.hex;
+    ctx.fill();
+    ctx.stroke()}}
+
+function refreshColorWheel(){drawColorWheel();drawPaletteDots()}
+
+function regenerate(){
+var rgb=hexToRgb(baseColor);
+var hsl=rgbToHsl(rgb[0],rgb[1],rgb[2]);
+var raw=generateHarmonies(hsl[0],hsl[1],hsl[2],harmonyType);
+for(var i=0;i<5;i++){
+if(i<raw.length&&!locked[i]){palette[i]=raw[i]}
+else if(!locked[i]&&i>=raw.length){palette[i]={hex:'#cccccc',h:0,s:0,l:80}}}
+renderPalette();
+updateContrast();
+updateDetail();
+refreshColorWheel();
+renderPreview();
+renderCvd();
+renderGradient();
+updateHash()}
+
+function renderPalette(){
+var el=document.getElementById('cpgPalette');
+var html='';
+for(var i=0;i<5;i++){
+var c=palette[i]||{hex:'#cccccc'};
+var lock=locked[i]?'locked':'';
+var active=i===selectedIdx?'active':'';
+html+='<button class="cpg-swatch '+lock+' '+active+'" data-idx="'+i+'" style="background:'+c.hex+'" role="listitem" aria-label="Color '+c.hex+(locked[i]?' locked':'')+'">';
+html+='<span class="lock-icon" data-lock="'+i+'">'+ (locked[i]?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>') +'</span>';
+html+='<span class="hex-label">'+c.hex+'</span>';
+html+='</button>'}
+el.innerHTML=html}
+
+function updateContrast(){
+var a=palette[selectedIdx]||{hex:'#0066ff'};
+var bIdx=selectedIdx===0?1:0;
+var b=palette[bIdx]||{hex:'#ffffff'};
+document.getElementById('cpgContrastA').style.background=a.hex;
+document.getElementById('cpgContrastALabel').textContent=a.hex;
+document.getElementById('cpgContrastB').style.background=b.hex;
+document.getElementById('cpgContrastBLabel').textContent=b.hex;
+var ratio=contrastRatio(a.hex,b.hex);
+document.getElementById('cpgContrastRatio').textContent=ratio.toFixed(2);
+var levels={
+'AA_Normal':wcagLevel(ratio,false)==='AA'||wcagLevel(ratio,false)==='AAA',
+'AA_Large':wcagLevel(ratio,true)==='AA'||wcagLevel(ratio,true)==='AAA',
+'AAA_Normal':wcagLevel(ratio,false)==='AAA',
+'AAA_Large':wcagLevel(ratio,true)==='AAA'};
+function setLevel(id,pass){document.getElementById(id).className='level '+(pass?'pass':'fail')}
+setLevel('cpgContrastAANormal',levels.AA_Normal);
+setLevel('cpgContrastAALarge',levels.AA_Large);
+setLevel('cpgContrastAAANormal',levels.AAA_Normal);
+setLevel('cpgContrastAAALarge',levels.AAA_Large)}
+
+function updateDetail(){
+  var c=palette[selectedIdx]||{hex:'#cccccc',h:0,s:0,l:80};
+  document.getElementById('cpgDetailSwatch').style.background=c.hex;
+  document.getElementById('cpgDetailHex').textContent=c.hex;
+  var rgb=hexToRgb(c.hex);
+  document.getElementById('cpgDetailRgb').textContent='rgb('+rgb[0]+','+rgb[1]+','+rgb[2]+')';
+  document.getElementById('cpgSliderH').value=c.h;
+  document.getElementById('cpgSliderS').value=c.s;
+  document.getElementById('cpgSliderL').value=c.l;
+  document.getElementById('cpgSliderHVal').textContent=c.h;
+  document.getElementById('cpgSliderSVal').textContent=c.s;
+  document.getElementById('cpgSliderLVal').textContent=c.l}
+
+function copyText(t){navigator.clipboard.writeText(t).then(function(){toast('Copied!')})}
+
+document.getElementById('cpgBaseColor').addEventListener('input',onBaseChange);
+document.getElementById('cpgHexInput').addEventListener('change',onHexChange);
+document.getElementById('cpgHue').addEventListener('input',onHslInput);
+document.getElementById('cpgSat').addEventListener('input',onHslInput);
+
+document.getElementById('cpgPalette').addEventListener('click',function(e){
+var btn=e.target.closest('.cpg-swatch');
+var lockBtn=e.target.closest('[data-lock]');
+if(lockBtn){var idx=parseInt(lockBtn.dataset.lock);locked[idx]=!locked[idx];regenerate();return}
+if(btn){selectedIdx=parseInt(btn.dataset.idx);renderPalette();updateContrast();updateDetail();refreshColorWheel()}});
+
+document.getElementById('cpgHarmonies').addEventListener('click',function(e){
+var btn=e.target.closest('.cpg-pill');
+if(!btn)return;
+document.querySelectorAll('#cpgHarmonies .cpg-pill').forEach(function(b){b.classList.remove('on')});
+btn.classList.add('on');
+harmonyType=btn.dataset.harmony;
+regenerate()});
+
+document.getElementById('cpgRandBtn').addEventListener('click',function(){
+var h=Math.floor(Math.random()*360);
+var s=50+Math.floor(Math.random()*50);
+var l=40+Math.floor(Math.random()*30);
+baseColor=hslToHex(h,s,l);
+syncInputs();
+regenerate()});
+
+document.getElementById('cpgDetailCopyHex').addEventListener('click',function(){
+var c=palette[selectedIdx];if(c){copyText(c.hex)}});
+document.getElementById('cpgDetailCopyRgb').addEventListener('click',function(){
+var c=palette[selectedIdx];if(c){var rgb=hexToRgb(c.hex);copyText('rgb('+rgb[0]+','+rgb[1]+','+rgb[2]+')')}});
+document.getElementById('cpgDetailSetBase').addEventListener('click',function(){
+var c=palette[selectedIdx];if(c){baseColor=c.hex;syncInputs();locked=[false,false,false,false,false];regenerate()}});
+
+document.getElementById('cpgSliderH').addEventListener('input',function(){
+document.getElementById('cpgSliderHVal').textContent=this.value;onSwatchTune();refreshColorWheel()});
+document.getElementById('cpgSliderS').addEventListener('input',function(){
+document.getElementById('cpgSliderSVal').textContent=this.value;onSwatchTune();refreshColorWheel()});
+document.getElementById('cpgSliderL').addEventListener('input',function(){
+document.getElementById('cpgSliderLVal').textContent=this.value;onSwatchTune();refreshColorWheel()});
+
+document.getElementById('cpgSavePalette').addEventListener('click',addHistory);
+document.getElementById('cpgClearHistory').addEventListener('click',function(){
+if(confirm('Delete all saved palettes?')){saveHistory([]);renderHistory();toast('History cleared')}});
+
+document.getElementById('cpgHistoryList').addEventListener('click',function(e){
+var restoreBtn=e.target.closest('.history-item');
+var delBtn=e.target.closest('.restore-del');
+if(delBtn){var idx=parseInt(delBtn.dataset.idx);deleteHistory(idx);return}
+if(restoreBtn){var idx=parseInt(restoreBtn.dataset.idx);restoreHistory(idx);refreshColorWheel()}});
+
+document.getElementById('cpgImageInput').addEventListener('change',function(e){
+var file=e.target.files[0];if(!file)return;
+var reader=new FileReader();
+reader.onload=function(ev){
+var img=new Image();
+img.onload=function(){
+var preview=document.getElementById('cpgImagePreviewImg');
+preview.src=ev.target.result;
+document.getElementById('cpgImageFileName').textContent=file.name;
+document.getElementById('cpgImagePreview').classList.remove('hidden');
+extractColors(img)};
+img.src=ev.target.result};
+reader.readAsDataURL(file)});
+
+document.getElementById('cpgImageClear').addEventListener('click',function(){
+document.getElementById('cpgImageInput').value='';
+document.getElementById('cpgImagePreview').classList.add('hidden')});
+
+function extractColors(img){
+var c=document.createElement('canvas');
+var w=100,h=100*img.naturalHeight/img.naturalWidth;
+c.width=w;c.height=h;
+var ctx=c.getContext('2d');
+ctx.drawImage(img,0,0,w,h);
+var id=ctx.getImageData(0,0,w,h);
+var px=id.data;
+var buckets={};
+for(var i=0;i<px.length;i+=16){
+var r=Math.floor(px[i]/32)*32,g=Math.floor(px[i+1]/32)*32,b=Math.floor(px[i+2]/32)*32;
+var key=r+','+g+','+b;
+if(!buckets[key]){buckets[key]={r:r,g:g,b:b,count:0}}
+buckets[key].count++}
+var sorted=Object.values(buckets).sort(function(a,b){return b.count-a.count});
+var top=Math.min(5,sorted.length);
+if(top===0){return}
+locked=[false,false,false,false,false];
+for(var i=0;i<top;i++){
+var hex=rgbToHex(sorted[i].r+16,sorted[i].g+16,sorted[i].b+16);
+var r2=hexToRgb(hex),hs2=rgbToHsl(r2[0],r2[1],r2[2]);
+palette[i]={hex:hex,h:hs2[0],s:hs2[1],l:hs2[2]}};
+baseColor=palette[0].hex;
+syncInputs();
+renderPalette();
+updateContrast();
+updateDetail();
+toast('Colors extracted from image')}
+
+document.getElementById('cpgExportCss').addEventListener('click',function(){
+var lines=[':root {'];
+for(var i=0;i<5;i++){
+var c=palette[i];if(!c)continue;
+lines.push('  --color-palette-'+(i+1)+': '+c.hex+';')}
+lines.push('}');
+copyText(lines.join('\n'))});
+
+document.getElementById('cpgExportJson').addEventListener('click',function(){
+var arr=[];
+for(var i=0;i<5;i++){
+var c=palette[i];if(!c)continue;
+arr.push({name:'Color '+(i+1),hex:c.hex})}
+copyText(JSON.stringify(arr,null,2))});
+
+document.getElementById('cpgExportSvg').addEventListener('click',function(){
+var c=document.createElement('canvas');
+c.width=300;c.height=60;
+var ctx=c.getContext('2d');
+var bw=300/5;
+for(var i=0;i<5;i++){
+var col=palette[i];if(!col)continue;
+ctx.fillStyle=col.hex;
+ctx.fillRect(i*bw,0,bw,60)}
+var a=document.createElement('a');
+a.download='palette.png';
+a.href=c.toDataURL('image/png');
+a.click()});
+
+document.getElementById('cpgExportTailwind').addEventListener('click',function(){
+var lines=['module.exports = {','  theme: {','    extend: {','      colors: {'];
+for(var i=0;i<5;i++){
+var c=palette[i];if(!c)continue;
+var name='palette-'+(i+1);
+lines.push("        '"+name+"': '"+c.hex+"',")}
+lines.push('      },','    },','  },','}');
+copyText(lines.join('\n'))});
+
+function np(cnt){return{cnt:cnt,hex:null}}
+
+function renderPreview(){
+var cols=palette.slice(0,5).map(function(c){return c?c.hex:'#cccccc'});
+var lum=cols.map(function(h){var r=hexToRgb(h);return relativeLuminance(r[0],r[1],r[2])});
+function pick(light,dark){return lum[0]>0.5?light:dark}
+var bg=lum[0]>0.5?'#1a1a2e':'#ffffff';
+var text=lum[0]>0.5?'#f0f0f0':'#1a1a2e';
+var headerBg=lum[0]>0.5?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.04)';
+var badgeBg=[cols[1],cols[2],cols[3]];
+var badgeText=badgeBg.map(function(h){
+var r=hexToRgb(h);var ll=relativeLuminance(r[0],r[1],r[2]);return ll>0.5?'#1a1a2e':'#f0f0f0'});
+var preview=document.getElementById('cpgPreview');
+if(!preview)return;
+preview.style.background=bg;preview.style.color=text;
+var hdr=document.getElementById('cpgPreviewHeader');
+hdr.style.background=headerBg;hdr.style.color=text;
+document.getElementById('cpgPreviewBtn').style.background=cols[1];
+document.getElementById('cpgPreviewBtn').style.color=badgeText[0];
+document.getElementById('cpgPreviewBody').style.color=text;
+document.getElementById('cpgPreviewTitle').style.color=text;
+document.getElementById('cpgPreviewText').style.color=text;
+for(var i=0;i<3;i++){
+var b=document.getElementById('cpgPreviewBadge'+(i+1));
+b.style.background=badgeBg[i]||cols[0];
+b.style.color=badgeText[i]||text}}
+
+function renderMatrix(){
+var cols=palette.slice(0,5).map(function(c){return c?c.hex:'#cccccc'});
+var el=document.getElementById('cpgMatrixTable');
+if(!el)return;
+var html='<thead><tr><th></th>';
+for(var i=0;i<5;i++){html+='<th><div style="width:20px;height:20px;border-radius:4px;background:'+cols[i]+';border:1px solid rgba(128,128,128,0.2)"></div></th>'}
+html+='</tr></thead><tbody>';
+for(var r=0;r<5;r++){
+html+='<tr><th><div style="width:20px;height:20px;border-radius:4px;background:'+cols[r]+';border:1px solid rgba(128,128,128,0.2)"></div></th>';
+for(var c=0;c<5;c++){
+if(r===c){html+='<td class="matrix-self">—</td>';continue}
+var ratio=contrastRatio(cols[r],cols[c]);
+var pass=ratio>=4.5?'pass':'fail';
+html+='<td class="matrix-'+pass+'" title="'+cols[r]+' vs '+cols[c]+'">'+ratio.toFixed(1)+'</td>'}
+html+='</tr>'}
+el.innerHTML=html}
+
+document.getElementById('cpgToggleMatrix').addEventListener('click',function(){
+var wrap=document.getElementById('cpgMatrixWrap');
+var btn=document.getElementById('cpgToggleMatrix');
+var show=wrap.classList.toggle('hidden');
+btn.textContent=show?'Show':'Hide';
+if(!show){renderMatrix()}});
+
+document.getElementById('cpgPalette').addEventListener('dblclick',function(e){
+var label=e.target.closest('.hex-label');
+if(label){var idx=parseInt(label.parentElement.dataset.idx);var c=palette[idx];if(c){copyText(c.hex)}}});
+
+/* ---- Color Blind Simulator ---- */
+function srgbToLinear(c){c/=255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4)}
+function linearToSrgb(c){c=Math.min(1,Math.max(0,c));return Math.round(255*(c<=0.0031308?12.92*c:1.055*Math.pow(c,1/2.4)-0.055))}
+var LMS_FWD=[[0.412221,0.536332,0.051332],[0.211903,0.680699,0.107398],[0.088302,0.281718,0.629978]];
+var LMS_INV=[[4.076742,-3.307528,0.230742],[-1.268439,2.609757,-0.341319],[-0.004556,-0.109595,1.650468]];
+function simulateCVD(hex,type){
+if(!type)return hex;
+var rgb=hexToRgb(hex);
+var lr=srgbToLinear(rgb[0]),lg=srgbToLinear(rgb[1]),lb=srgbToLinear(rgb[2]);
+var l=LMS_FWD[0][0]*lr+LMS_FWD[0][1]*lg+LMS_FWD[0][2]*lb;
+var m=LMS_FWD[1][0]*lr+LMS_FWD[1][1]*lg+LMS_FWD[1][2]*lb;
+var s_=LMS_FWD[2][0]*lr+LMS_FWD[2][1]*lg+LMS_FWD[2][2]*lb;
+if(type==='protanopia'){l=0}
+else if(type==='deuteranopia'){m=0}
+else if(type==='tritanopia'){s_=0}
+else if(type==='achromatopsia'){var avg=(l+m+s_)/3;l=avg;m=avg;s_=avg}
+var rl=LMS_INV[0][0]*l+LMS_INV[0][1]*m+LMS_INV[0][2]*s_;
+var gl=LMS_INV[1][0]*l+LMS_INV[1][1]*m+LMS_INV[1][2]*s_;
+var bl=LMS_INV[2][0]*l+LMS_INV[2][1]*m+LMS_INV[2][2]*s_;
+return rgbToHex(linearToSrgb(rl),linearToSrgb(gl),linearToSrgb(bl))}
+
+function renderCvd(){
+var type=document.getElementById('cpgCvdType').value;
+var el=document.getElementById('cpgCvdPalette');
+if(!el)return;
+var html='';
+for(var i=0;i<5;i++){
+var c=palette[i];if(!c)continue;
+var sim=simulateCVD(c.hex,type);
+html+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">';
+html+='<div title="'+c.hex+'" style="width:100%;height:36px;border-radius:8px;background:'+sim+';border:1px solid var(--color-base-300)"></div>';
+html+='<span style="font-size:8px;font-weight:700;font-family:monospace;opacity:.5">'+sim+'</span></div>'}
+el.innerHTML=html}
+
+document.getElementById('cpgCvdType').addEventListener('change',renderCvd);
+
+/* ---- Gradient Generator ---- */
+function renderGradient(){
+var type=document.getElementById('cpgGradType').value;
+var dir=document.getElementById('cpgGradDir').value;
+var c=document.getElementById('cpgGradCanvas');
+if(!c)return;
+var ctx=c.getContext('2d');
+var cols=palette.slice(0,5).map(function(x){return x?x.hex:'#cccccc'});
+var grad;
+if(type==='radial'){grad=ctx.createRadialGradient(130,30,0,130,30,130)}
+else{
+var map={right:[0,0,260,0],left:[260,0,0,0],bottom:[0,0,0,60],top:[0,60,0,0],'bottom right':[0,0,260,60],'top left':[260,60,0,0]};
+var d=map[dir]||[0,0,260,0];
+grad=ctx.createLinearGradient(d[0],d[1],d[2],d[3])}
+var stops;
+if(cols.length===5){stops=[{p:0,c:cols[0]},{p:25,c:cols[1]},{p:50,c:cols[2]},{p:75,c:cols[3]},{p:100,c:cols[4]}]}
+else{stops=cols.map(function(c,i){return{p:i/(cols.length-1)*100,c:c}})}
+stops.forEach(function(s){grad.addColorStop(s.p/100,s.c)});
+ctx.fillStyle=grad;
+ctx.fillRect(0,0,260,60)}
+
+document.getElementById('cpgGradType').addEventListener('change',renderGradient);
+document.getElementById('cpgGradDir').addEventListener('change',renderGradient);
+
+document.getElementById('cpgCopyGradCss').addEventListener('click',function(){
+var type=document.getElementById('cpgGradType').value;
+var dir=document.getElementById('cpgGradDir').value;
+var cols=palette.slice(0,5).map(function(x){return x?x.hex:'#cccccc'});
+var stops;
+if(cols.length===5){stops=cols.map(function(c,i){return c+' '+(i*25)+'%'})}
+else{stops=cols.map(function(c,i){return c+' '+Math.round(i/(cols.length-1)*100)+'%'})}
+var css;
+if(type==='radial'){css='background: radial-gradient(circle, '+stops.join(', ')+');'}
+else{css='background: linear-gradient('+dir+', '+stops.join(', ')+');'}
+copyText(css)});
+
+/* ---- URL Sharing ---- */
+function encodePalette(){
+var hexes=palette.slice(0,5).map(function(c){return c?c.hex.slice(1):'cccccc'});
+return hexes.join(',')}
+function decodePalette(str){
+if(!str)return null;
+var parts=str.split(',').filter(function(s){return /^[0-9a-fA-F]{6}$/.test(s)});
+if(parts.length<2)return null;
+return parts.map(function(h){return'#'+h.toLowerCase()})}
+
+document.getElementById('cpgCopyLink').addEventListener('click',function(){
+var url=window.location.href.split('#')[0]+'#'+encodePalette();
+navigator.clipboard.writeText(url).then(function(){toast('Link copied!')})});
+
+function restoreFromHash(){
+var hash=window.location.hash.slice(1);
+if(!hash)return;
+var hexes=decodePalette(hash);
+if(!hexes)return;
+for(var i=0;i<Math.min(5,hexes.length);i++){
+var r=hexToRgb(hexes[i]),hs=rgbToHsl(r[0],r[1],r[2]);
+palette[i]={hex:hexes[i],h:hs[0],s:hs[1],l:hs[2]};locked[i]=false}
+baseColor=palette[0].hex;
+selectedIdx=0;
+syncInputs();
+renderPalette();updateContrast();updateDetail();refreshColorWheel();renderPreview();renderCvd();renderGradient();updateHash()}
+
+function updateHash(){window.location.hash=encodePalette()}
+
+function init(){
+var hash=window.location.hash.slice(1);
+if(hash&&decodePalette(hash)){
+restoreFromHash();
+renderHistory();
+refreshColorWheel();
+renderCvd();
+renderGradient();
+return}
+baseColor='#0066ff';
+harmonyType='mono';
+locked=[false,false,false,false,false];
+selectedIdx=0;
+regenerate();
+renderHistory();
+refreshColorWheel();
+renderCvd();
+renderGradient()}
+init()
+})()
+</script>
+{% endblock %}

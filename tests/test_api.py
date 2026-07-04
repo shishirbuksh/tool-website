@@ -38,6 +38,33 @@ class TestPages:
         resp = client.get("/tool/qr-generator")
         assert resp.status_code == 200
 
+    def test_css_filter_generator_returns_200(self):
+        resp = client.get("/tool/css-filter-generator")
+        assert resp.status_code == 200
+        assert "cfgFilters" in resp.text
+        assert "cfgPresets" in resp.text
+        assert "cfgCssOutput" in resp.text
+        assert "cfgPreviewBox" in resp.text
+        assert "backdrop-filter" in resp.text
+        assert "cfgDsEnable" in resp.text
+        assert "cfgSaveLib" in resp.text
+        assert "cfgCopyLink" in resp.text
+        assert "cfgPlayBtn" in resp.text
+
+    def test_css_animation_generator_returns_200(self):
+        resp = client.get("/tool/css-animation-generator")
+        assert resp.status_code == 200
+        assert "cagTimelineTrack" in resp.text
+        assert "cagPreviewBox" in resp.text
+        assert "cagAnimStyle" in resp.text
+        assert "cagCssOutput" in resp.text
+        assert "cagPlayBtn" in resp.text
+        assert "cagPropsContainer" in resp.text
+        assert "cagPresets" in resp.text
+        assert "cagBgBtns" in resp.text
+        assert "cagCopyCss" in resp.text
+        assert "cagTimingContainer" in resp.text
+
     def test_invalid_tool_returns_404(self):
         resp = client.get("/tool/this-tool-does-not-exist")
         assert resp.status_code == 404

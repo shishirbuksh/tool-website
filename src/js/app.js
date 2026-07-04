@@ -14,18 +14,26 @@ document.querySelectorAll('.tilt-card[data-tilt]').forEach(function(c){c.addEven
 /* ── Button ripple ── */
 document.querySelectorAll('.btn-ripple').forEach(function(b){b.addEventListener('mousedown',function(e){var r=this.getBoundingClientRect();this.style.setProperty('--ripple-x',((e.clientX-r.left)/r.width*100)+'%');this.style.setProperty('--ripple-y',((e.clientY-r.top)/r.height*100)+'%')})})
 var dia=document.getElementById('searchDialog'),si=document.getElementById('searchInput'),sr=document.getElementById('searchResults'),toolCache=null;
+function _msg(m){sr.innerHTML='';var p=document.createElement('p');p.className='text-base-content/30 text-center py-4';p.textContent=m;sr.appendChild(p)}
+function _results(items){sr.innerHTML='';if(!items||!items.length){_msg('No results found');return}
+var df=document.createDocumentFragment();items.slice(0,20).forEach(function(t){var a=document.createElement('a');a.setAttribute('href',typeof t.url==='string'&&t.url.charAt(0)==='/'?t.url:'#');a.className='flex items-center justify-between p-3 rounded-xl hover:glass transition-all duration-200'
+var d1=document.createElement('div');var d2=document.createElement('div');d2.className='font-semibold text-sm';d2.textContent=t.name||'';d1.appendChild(d2)
+var d3=document.createElement('div');d3.className='text-xs text-base-content/40';d3.textContent=t.category||'';d1.appendChild(d3);a.appendChild(d1)
+var sv=document.createElementNS('http://www.w3.org/2000/svg','svg');sv.setAttribute('class','w-4 h-4 text-base-content/20');sv.setAttribute('viewBox','0 0 24 24');sv.setAttribute('fill','none');sv.setAttribute('stroke','currentColor');sv.setAttribute('stroke-width','2')
+var p1=document.createElementNS('http://www.w3.org/2000/svg','path');p1.setAttribute('d','M5 12h14');sv.appendChild(p1)
+var p2=document.createElementNS('http://www.w3.org/2000/svg','path');p2.setAttribute('d','m12 5 7 7-7 7');sv.appendChild(p2);a.appendChild(sv)
+a.addEventListener('click',function(){if(dia)dia.close()});df.appendChild(a)});sr.appendChild(df)}
 function oS(){
   if(!dia)return;
   dia.showModal();
   if(si)si.focus();
   if(!toolCache){
-    fetch('/api/tools/catalog').then(function(r){return r.json()}).then(function(d){toolCache=d;filterTools()}).catch(function(){if(sr)sr.innerHTML='<p class="text-base-content/30 text-center py-4">Could not load tools. Try again later.</p>'})
+    fetch('/api/tools/catalog').then(function(r){return r.json()}).then(function(d){toolCache=d;filterTools()}).catch(function(){if(sr)_msg('Could not load tools. Try again later.')})
   }
 }
-function filterTools(){var q=si.value.trim().toLowerCase();if(!toolCache||!q){sr.innerHTML='<p class="text-base-content/30 text-center py-4">'+(q?'No results found':'Start typing to find tools')+'</p>';return}
+function filterTools(){var q=si.value.trim().toLowerCase();if(!toolCache||!q){_msg(q?'No results found':'Start typing to find tools');return}
 var m=toolCache.filter(function(t){return t.name.toLowerCase().indexOf(q)>-1||(t.desc&&t.desc.toLowerCase().indexOf(q)>-1)})
-if(m.length===0){sr.innerHTML='<p class="text-base-content/30 text-center py-4">No results found</p>';return}
-sr.innerHTML=m.slice(0,20).map(function(t){return'<a href="'+t.url+'" class="flex items-center justify-between p-3 rounded-xl hover:glass transition-all duration-200" onclick="document.getElementById(\'searchDialog\').close()"><div><div class="font-semibold text-sm">'+t.name+'</div><div class="text-xs text-base-content/40">'+t.category+'</div></div><svg class="w-4 h-4 text-base-content/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>'}).join('')}
+_results(m)}
 function cS(){if(dia)dia.close()}
 document.querySelectorAll('[id^=searchToggle]').forEach(function(b){b.addEventListener('click',oS)})
 var hsi=document.getElementById('heroSearchInput');if(hsi){hsi.addEventListener('focus',function(){if(!dia.open)oS()})}

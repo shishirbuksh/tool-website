@@ -20,6 +20,8 @@ DB_PATH = os.path.join(DATA_DIR, "analytics.db")
 _RETENTION_DAYS = settings.ANALYTICS_RETENTION_DAYS
 _CLEANUP_INTERVAL = settings.ANALYTICS_CLEANUP_INTERVAL
 _last_cleanup = 0.0
+_cleanup_lock = threading.Lock()
+_write_lock = threading.RLock()
 _POOL_SIZE = 5
 
 _conn_pool: queue.Queue | None = None
@@ -47,6 +49,8 @@ def _init_pool():
             ")"
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_events_name ON events(name)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_events_category_ts ON events(category, ts)")
         conn.commit()
         pool.put(conn)
     _conn_pool = pool
@@ -70,32 +74,36 @@ def _put_conn(conn: sqlite3.Connection):
 def track(name: str, category: str = "page_view"):
     global _last_cleanup
     now = time.time()
-    conn = None
-    try:
-        conn = _get_conn()
-        conn.execute(
-            "INSERT INTO events (name, category, ts) VALUES (?, ?, ?)",
-            (name, category, datetime.now(UTC).isoformat()),
-        )
-        conn.commit()
-    except Exception:
-        logger.exception("Failed to track analytics event")
-    finally:
-        if conn:
-            _put_conn(conn)
+    with _write_lock:
+        conn = None
+        try:
+            conn = _get_conn()
+            conn.execute(
+                "INSERT INTO events (name, category, ts) VALUES (?, ?, ?)",
+                (name, category, datetime.now(UTC).isoformat()),
+            )
+            conn.commit()
+        except Exception:
+            logger.exception("Failed to track analytics event")
+        finally:
+            if conn:
+                _put_conn(conn)
 
     if now - _last_cleanup > _CLEANUP_INTERVAL:
-        _last_cleanup = now
-        _cleanup_old_events()
+        with _cleanup_lock:
+            if now - _last_cleanup > _CLEANUP_INTERVAL:
+                _last_cleanup = now
+                _cleanup_old_events()
 
 
 def get_counts(limit: int = 50) -> dict:
     conn = None
     try:
         conn = _get_conn()
+        cutoff = (datetime.now(UTC) - timedelta(days=_RETENTION_DAYS)).isoformat()
         cursor = conn.execute(
-            "SELECT name, COUNT(*) as cnt FROM events GROUP BY name ORDER BY cnt DESC LIMIT ?",
-            (limit,),
+            "SELECT name, COUNT(*) as cnt FROM events WHERE ts >= ? GROUP BY name ORDER BY cnt DESC LIMIT ?",
+            (cutoff, limit),
         )
         return dict(cursor.fetchall())
     except Exception:
@@ -107,17 +115,19 @@ def get_counts(limit: int = 50) -> dict:
 
 
 def _cleanup_old_events():
-    conn = None
-    try:
-        cutoff = (datetime.now(UTC) - timedelta(days=_RETENTION_DAYS)).isoformat()
-        conn = _get_conn()
-        conn.execute("DELETE FROM events WHERE ts < ?", (cutoff,))
-        conn.commit()
-    except Exception:
-        logger.exception("Failed to cleanup old analytics events")
-    finally:
-        if conn:
-            _put_conn(conn)
+    with _write_lock:
+        conn = None
+        try:
+            cutoff = (datetime.now(UTC) - timedelta(days=_RETENTION_DAYS)).isoformat()
+            conn = _get_conn()
+            conn.execute("DELETE FROM events WHERE ts < ?", (cutoff,))
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            conn.commit()
+        except Exception:
+            logger.exception("Failed to cleanup old analytics events")
+        finally:
+            if conn:
+                _put_conn(conn)
 
 
 async def async_track(name: str, category: str = "page_view"):

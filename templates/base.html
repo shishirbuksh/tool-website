@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>{% if seo_data %}{{ seo_data.meta_title or (seo_data.name ~ ' — Free Online Tool') }}{% else %}{% block title %}StoryBrain AI | 70+ Free Browser Tools{% endblock %}{% endif %}</title>
+  <title>{% if seo_data %}{{ seo_data.meta_title }}{% else %}{% block title %}StoryBrain AI | 70+ Free Browser Tools{% endblock %}{% endif %}</title>
 
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" sizes="any">
   <link rel="icon" type="image/x-icon" href="/static/favicon.ico" sizes="48x48">
@@ -17,32 +17,33 @@
   <meta name="theme-color" content="#0a0f1d" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
   <link rel="alternate" href="https://www.storybrainai.com{{ request.url.path }}" hreflang="en">
-  <meta name="robots" content="index, follow">
+  <meta name="robots" content="{% block robots_meta %}index, follow{% endblock %}">
   <meta name="yandex-verification" content="15bc2d67c895f0fa" />
   <meta name="author" content="StoryBrain AI">
   <meta name="format-detection" content="telephone=no">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  {% block thumbnail_tag %}<meta name="thumbnail" content="https://www.storybrainai.com/static/og-image.jpg">{% endblock %}
   <link rel="canonical" href="{% if seo_data and seo_data.slug %}https://www.storybrainai.com/tool/{{ seo_data.slug }}{% else %}{% block canonical_url %}https://www.storybrainai.com{{ request.url.path }}{% endblock %}{% endif %}">
 
-  {% block og_tags %}
-  <meta property="og:locale" content="en_US">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://www.storybrainai.com{{ request.url.path }}">
+  {% block og_locale %}<meta property="og:locale" content="en_US">{% endblock %}
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  {% block og_url %}<meta property="og:url" content="https://www.storybrainai.com{{ request.url.path }}">{% endblock %}
   <meta property="og:site_name" content="StoryBrain AI">
-  <meta property="og:title" content="{% if seo_data %}{{ seo_data.meta_title or (seo_data.name ~ ' — Free Online Tool') }}{% else %}{% block og_title %}StoryBrain AI | 70+ Free Browser Tools{% endblock %}{% endif %}">
+  <meta property="og:title" content="{% if seo_data %}{{ seo_data.meta_title }}{% else %}{% block og_title %}StoryBrain AI | 70+ Free Browser Tools{% endblock %}{% endif %}">
   <meta property="og:description" content="{% if seo_data %}{{ seo_data.description }}{% else %}{% block og_description %}Free online AI tools for crypto, image editing, calculators, and more. No signup. Runs in your browser.{% endblock %}{% endif %}">
-  {% block og_image %}<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
-  <meta property="og:image:width" content="1200">
+  {% block og_image %}<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">{% endblock %}
+  {% block og_image_meta %}<meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="StoryBrain AI — Free Online Tools">{% endblock %}
+  <meta property="og:image:alt" content="StoryBrain AI — Free Online Tools">
+  <meta property="og:image:secure_url" content="https://www.storybrainai.com/static/og-image.jpg">{% endblock %}
   {% block article_dates %}{% if seo_data and seo_data.date_modified %}<meta property="article:published_time" content="{{ seo_data.date_modified }}"><meta property="article:modified_time" content="{{ seo_data.date_modified }}">{% endif %}{% endblock %}
-  <meta name="twitter:card" content="summary_large_image">
+  {% block twitter_tags %}<meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@StoryBrainAI">
   <meta name="twitter:creator" content="@StoryBrainAI">
-  <meta name="twitter:title" content="{% if seo_data %}{{ seo_data.meta_title or (seo_data.name ~ ' — Free Online Tool') }}{% else %}{% block twitter_title %}{{ self.og_title() }}{% endblock %}{% endif %}">
+  <meta name="twitter:title" content="{% if seo_data %}{{ seo_data.meta_title }}{% else %}{% block twitter_title %}{{ self.og_title() }}{% endblock %}{% endif %}">
   <meta name="twitter:description" content="{% if seo_data %}{{ seo_data.description }}{% else %}{% block twitter_description %}{{ self.og_description() }}{% endblock %}{% endif %}">
   {% block twitter_image %}<meta name="twitter:image" content="https://www.storybrainai.com/static/og-image.jpg">{% endblock %}
-  {% endblock %}
+  <meta name="twitter:image:alt" content="{% block twitter_image_alt %}StoryBrain AI — Free Online Tools{% endblock %}">{% endblock %}
 
   <script nonce="{{ nonce }}">(function(){var s=localStorage.getItem('sb-theme');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;var t=s||(d?'night':'light');var r=document.documentElement;r.setAttribute('data-theme',t);})();</script>
 
@@ -81,7 +82,10 @@
     {% if '/tool/' in request.url.path %},{
       "@type":"ListItem","position":2,"name":"Tools","item":"https://www.storybrainai.com/tools"
     },{
-      "@type":"ListItem","position":3,"name":{{ tool_name|default("") | tojson }},"item":"https://www.storybrainai.com{{ request.url.path }}"
+      "@type":"ListItem","position":3,"name":{{ tool_name|default(seo_data.name if seo_data else request.url.path.strip('/tool/').replace('-', ' ').title()) | tojson }},"item":"https://www.storybrainai.com{{ request.url.path }}"
+    }
+    {% elif '/tools' == request.url.path %},{
+      "@type":"ListItem","position":2,"name":"All Tools","item":"https://www.storybrainai.com/tools"
     }
     {% elif request.url.path != '/' %},{
       "@type":"ListItem","position":2,"name":{{ title|default(request.url.path.strip('/').replace('-', ' ').title()) | tojson }},"item":"https://www.storybrainai.com{{ request.url.path }}"

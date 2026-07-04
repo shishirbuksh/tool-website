@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     TIMEOUT: int = 120
     KEEP_ALIVE: int = 5
     REDIS_URL: str = ""
-    ALLOWED_HOSTS: str = "localhost,127.0.0.1,*.storybrainai.com,storybrainai.com,testserver"
+    ALLOWED_HOSTS: str = ""
     CORS_ORIGINS: str = ""
     SITE_URL: str = "https://www.storybrainai.com"
     IMAGE_MAX_SIZE: int = 10 * 1024 * 1024
@@ -63,7 +63,16 @@ class Settings(BaseSettings):
 
     @property
     def allowed_hosts_list(self) -> list[str]:
-        return [h.strip() for h in self.ALLOWED_HOSTS.split(",") if h.strip()]
+        if not self.ALLOWED_HOSTS.strip():
+            return []
+        result = [h.strip() for h in self.ALLOWED_HOSTS.split(",") if h.strip()]
+        if any(h == "*" for h in result):
+            raise ValueError(
+                "ALLOWED_HOSTS set to '*' — this is insecure. "
+                "Specify actual domains/IPs in .env. "
+                "Example: ALLOWED_HOSTS=storybrainai.com,www.storybrainai.com"
+            )
+        return result
 
 
 settings = Settings()

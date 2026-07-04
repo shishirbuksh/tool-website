@@ -50,8 +50,12 @@ class SitemapService:
             return cached
 
         pages = []
-        pages.append({"loc": "/", "priority": "1.0", "changefreq": "weekly", "filepath": os.path.join(self.settings.templates_dir, "index.html")})
-        pages.append({"loc": "/tools", "priority": "0.9", "changefreq": "weekly", "filepath": os.path.join(self.settings.templates_dir, "tools.html")})
+        index_path = os.path.join(self.settings.templates_dir, "index.html")
+        pages.append({"loc": "/", "priority": "1.0", "changefreq": "weekly", "filepath": index_path})
+        tools_path = os.path.join(self.settings.templates_dir, "tools.html")
+        pages.append({"loc": "/tools", "priority": "0.9", "changefreq": "weekly", "filepath": tools_path})
+        sitemap_path = os.path.join(self.settings.templates_dir, "pages", "sitemap.html")
+        pages.append({"loc": "/sitemap", "priority": "0.5", "changefreq": "monthly", "filepath": sitemap_path})
 
         hub_pages = list(self.settings.HUB_CATEGORIES.keys())
         hub_filepath = os.path.join(self.settings.templates_dir, "hub.html")
@@ -100,12 +104,13 @@ class SitemapService:
 
             yaml_date = page.get("yaml_date")
             filepath = page.get("filepath")
+            lastmod = None
             if yaml_date:
-                lines.append(f"    <lastmod>{yaml_date}</lastmod>")
+                lastmod = yaml_date
             elif filepath:
                 lastmod = self._get_lastmod(filepath)
-                if lastmod:
-                    lines.append(f"    <lastmod>{lastmod}</lastmod>")
+            if lastmod:
+                lines.append(f"    <lastmod>{lastmod}</lastmod>")
 
             lines.append(f"    <changefreq>{page['changefreq']}</changefreq>")
             lines.append(f"    <priority>{page['priority']}</priority>")
@@ -121,11 +126,13 @@ class SitemapService:
         if cached:
             return cached
 
+        site_url = self.settings.SITE_URL.rstrip('/')
         content = (
             f"User-agent: *\n"
             f"Disallow: /api/\n"
+            f"Disallow: /offline\n"
             f"\n"
-            f"Sitemap: {self.settings.SITE_URL.rstrip('/')}/sitemap.xml\n"
+            f"Sitemap: {site_url}/sitemap.xml\n"
         )
         self._robots_cache = (time.time(), content)
         return content

@@ -1,3 +1,4 @@
+import asyncio
 import os
 import time
 from contextlib import asynccontextmanager
@@ -53,7 +54,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts_list)
+hosts = settings.allowed_hosts_list
+if hosts:
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=hosts)
 app.add_middleware(CaseSensitiveRedirectMiddleware)
 app.add_middleware(MaxBodySizeMiddleware, max_size=10 * 1024 * 1024)
 app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
@@ -88,18 +91,39 @@ except OSError as exc:
 
 
 class CachedStaticFiles(StaticFiles):
+    _lm_cache: dict[str, str] = {}
+
+    async def _get_mtime(self, full_path: str) -> float:
+        loop = asyncio.get_running_loop()
+        try:
+            stat_result = await loop.run_in_executor(None, os.stat, full_path)
+            return stat_result.st_mtime
+        except OSError:
+            return time.time()
+
     async def get_response(self, path: str, scope):
         response = await super().get_response(path, scope)
         if response.status_code == 200:
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-            response.headers["Last-Modified"] = datetime.fromtimestamp(
-                os.path.getmtime(os.path.join(settings.static_dir, path)) if os.path.exists(os.path.join(settings.static_dir, path)) else time.time(),
-                tz=UTC
-            ).strftime("%a, %d %b %Y %H:%M:%S GMT")
+            if path not in self._lm_cache:
+                mtime = await self._get_mtime(os.path.join(settings.static_dir, path))
+                self._lm_cache[path] = datetime.fromtimestamp(mtime, tz=UTC).strftime(
+                    "%a, %d %b %Y %H:%M:%S GMT"
+                )
+            response.headers["Last-Modified"] = self._lm_cache[path]
         return response
 
 
 app.mount("/static", CachedStaticFiles(directory=settings.static_dir), name="static")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return FileResponse(
+        os.path.join(settings.static_dir, "favicon.ico"),
+        media_type="image/x-icon",
+    )
+
 
 app.include_router(health.router)
 app.include_router(seo.router)
@@ -112,11 +136,3 @@ app.include_router(tools_proxy.router)
 app.include_router(tools_nft.router)
 app.include_router(analytics.router)
 app.include_router(jobs_router.router)
-
-
-@app.get("/favicon.ico", include_in_schema=False)
-async def favicon():
-    return FileResponse(
-        os.path.join(settings.static_dir, "favicon.ico"),
-        media_type="image/x-icon",
-    )

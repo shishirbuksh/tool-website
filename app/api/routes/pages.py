@@ -4,9 +4,11 @@ import os
 import time
 from datetime import UTC, datetime
 
+import nh3
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 
 from app.core.config import settings
 from app.core.icons import lucide_icon
@@ -31,6 +33,7 @@ seo_service = SeoService(settings)
 templates = NonceJinja2Templates(directory=settings.templates_dir)
 templates.env.globals["lucide_icon"] = lucide_icon
 templates.env.globals["today"] = lambda: datetime.now(UTC).strftime("%Y-%m-%d")
+templates.env.filters["sanitize"] = lambda html: Markup(nh3.clean(html or ""))
 
 APP_VERSION = os.getenv("APP_VERSION", "dev")
 templates.env.globals["app_version"] = APP_VERSION
@@ -135,7 +138,7 @@ async def service_worker():
 async def get_page(request: Request, page_name: str):
     if ".." in page_name or "/" in page_name:
         raise HTTPException(status_code=404, detail="Not found")
-    if page_name == "sw.js":
+    if page_name in ("sw.js", "favicon.ico"):
         raise HTTPException(status_code=404, detail="Not found")
 
     if page_name in settings.HUB_CATEGORIES:
@@ -149,6 +152,7 @@ async def get_page(request: Request, page_name: str):
                 "hub_name": page_name,
                 "category_name": category_name,
                 "seo_title": seo_title,
+                "title": seo_title or category_name,
                 "tools": hub_tools,
                 "categories": categories,
                 "static_pages": static_pages,

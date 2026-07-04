@@ -77,10 +77,24 @@ class SeoService:
             }
             for s in related_slugs
         ]
+        name = raw.get("name", slug.replace("-", " ").title())
+        raw_meta_title = raw.get("meta_title", "")
+        if not raw_meta_title:
+            cat = raw.get("category", "")
+            if cat in ("Calculators", "AI & Crypto", "Business & Operations"):
+                meta_title = f"Free {name} Online | StoryBrain AI"
+            elif cat in ("Developer & SEO",):
+                meta_title = f"{name} — Free SEO Tool Online | StoryBrain AI"
+            elif cat in ("Image Processing", "Productivity & Utilities"):
+                meta_title = f"Free {name} Online Tool | StoryBrain AI"
+            else:
+                meta_title = f"{name} — Free Online Tool | StoryBrain AI"
+        else:
+            meta_title = raw_meta_title
         return ToolSEO(
             slug=slug,
-            name=raw.get("name", slug.replace("-", " ").title()),
-            meta_title=raw.get("meta_title", ""),
+            name=name,
+            meta_title=meta_title,
             icon=raw.get("icon", "wand-2"),
             description=raw.get("description", ""),
             keywords=raw.get("keywords", []),
@@ -104,6 +118,7 @@ class SeoService:
         return ToolSEO(
             slug=slug,
             name=name,
+            meta_title=f"Free {name} Online Tool | StoryBrain AI",
             icon=_CATEGORY_ICONS.get(cat, "wand-2"),
             description=f"Free online {name.lower()} utility",
             app_category=_CATEGORY_APP.get(cat, "UtilitiesApplication"),

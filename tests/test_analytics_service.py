@@ -1,6 +1,7 @@
 """Tests for AnalyticsService: tracking, counting, sorting, and caching behavior."""
 
 import os
+import queue
 import tempfile
 
 import pytest
@@ -12,15 +13,28 @@ TEST_DB_PATH = os.path.join(tempfile.gettempdir(), "test_analytics.db")
 analytics_service.DB_PATH = TEST_DB_PATH
 
 
+def _drain_pool():
+    pool = analytics_service._conn_pool
+    if pool is not None:
+        try:
+            while True:
+                c = pool.get_nowait()
+                c.close()
+        except queue.Empty:
+            pass
+    analytics_service._conn_pool = None
+
+
 @pytest.fixture(autouse=True)
 def cleanup_db():
-    analytics_service._conn_pool = None
+    _drain_pool()
     if os.path.exists(TEST_DB_PATH):
         try:
             os.remove(TEST_DB_PATH)
         except OSError:
             pass
     yield
+    _drain_pool()
     if os.path.exists(TEST_DB_PATH):
         try:
             os.remove(TEST_DB_PATH)
