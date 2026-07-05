@@ -1,0 +1,683 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
+
+{% block title %}Social Media Post Preview — Check OG Tags & Link Cards{% endblock %}
+{% block meta_description %}Preview how your link renders on Twitter, Facebook, LinkedIn, WhatsApp & Slack. Debug missing OG tags, check character limits, and fix social cards before sharing. Free, no sign-up.{% endblock %}
+{% block meta_keywords %}social media preview, link preview checker, og tag checker, twitter card preview, facebook link preview, linkedin url debugger, whatsapp link preview, social card debugger{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/social-media-post-preview{% endblock %}
+{% block og_title %}Social Media Post Preview — Check OG Tags & Link Cards{% endblock %}
+{% block og_description %}Preview your link on Twitter, Facebook, LinkedIn, WhatsApp & Slack. Debug missing OG tags and fix social cards before you share. Free, no sign-up, 100% private.{% endblock %}
+{% block og_url %}<meta property="og:url" content="https://www.storybrainai.com/tool/social-media-post-preview">{% endblock %}
+{% block twitter_title %}Social Media Post Preview — Check OG Tags & Link Cards | StoryBrain AI{% endblock %}
+{% block twitter_description %}Preview your link on Twitter, Facebook, LinkedIn, WhatsApp & Slack. Debug missing OG tags before sharing. Free, no sign-up.{% endblock %}
+{% block content %}
+{{ tool_hero_section("share-2", "Social Media Tool", "SOCIAL MEDIA", "POST PREVIEW", "See how your link looks when shared on Twitter, Facebook, LinkedIn, WhatsApp, and Slack — debug missing tags before you post.") }}
+
+<div class="flex flex-wrap gap-2 mb-6 reveal" style="animation-delay:0.15s">
+  <a href="https://developers.facebook.com/tools/debug/" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline gap-1.5">{{ lucide_icon("external-link","w-3 h-3", 12) | safe }} Facebook Debugger</a>
+  <a href="https://cards-dev.twitter.com/validator" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline gap-1.5">{{ lucide_icon("external-link","w-3 h-3", 12) | safe }} Twitter Validator</a>
+  <a href="https://www.linkedin.com/post-inspector/" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline gap-1.5">{{ lucide_icon("external-link","w-3 h-3", 12) | safe }} LinkedIn Inspector</a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-6 reveal" style="animation-delay:0.2s">
+  <!-- Left Column: Input + Score + Live Edit + History -->
+  <div class="lg:col-span-2 space-y-6">
+    <!-- URL Input -->
+    <div class="card card-border border-base-300/40 bg-base-100 shadow-sm rounded-2xl">
+      <div class="card-body p-6 md:p-8">
+        <h2 class="card-title text-lg font-black tracking-tight gap-3 mb-2">
+          {{ lucide_icon("link","w-5 h-5", 20) | safe }} URL to Preview
+        </h2>
+        <div class="flex flex-col gap-3">
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend text-xs font-bold uppercase tracking-widest opacity-60">Page URL</legend>
+            <input type="url" id="smpUrl" class="input w-full" placeholder="https://example.com/your-page" value="https://www.storybrainai.com">
+          </fieldset>
+          <button type="button" id="smpAnalyze" class="btn btn-primary w-full gap-2">
+            {{ lucide_icon("search","w-4 h-4", 16) | safe }} Analyze
+          </button>
+          <div id="smpLoading" class="hidden flex items-center justify-center gap-2 py-4 text-sm opacity-60">
+            <span class="loading loading-spinner loading-sm"></span> Fetching page...
+          </div>
+          <div id="smpError" class="hidden text-sm text-error bg-error/5 rounded-xl px-4 py-3 border border-error/20"></div>
+        </div>
+
+        <div id="smpSummary" class="hidden mt-4 space-y-4">
+          <!-- OG Score Ring -->
+          <div class="flex items-center gap-4 py-3 border-t border-base-300/20 pt-4">
+            <div class="radial-progress text-primary shrink-0" style="--value:0;--size:3.5rem;--thickness:6px" id="smpScoreRing" aria-valuenow="0">0</div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-bold">OG Readiness Score</div>
+              <div class="text-xs opacity-50" id="smpScoreLabel">Analyzing...</div>
+            </div>
+          </div>
+
+          <!-- Badges -->
+          <div class="flex flex-wrap gap-1.5" id="smpTagCounts"></div>
+          <div class="flex flex-wrap gap-1.5" id="smpWarnings"></div>
+
+          <!-- Live Edit Section -->
+          <div class="border border-base-300/20 rounded-xl p-3 space-y-3">
+            <h4 class="text-xs font-bold uppercase tracking-widest opacity-40 flex items-center gap-1.5">
+              {{ lucide_icon("pencil","w-3 h-3", 12) | safe }} Live Edit
+              <span class="text-[9px] font-normal opacity-30"> — changes update previews instantly</span>
+            </h4>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label for="smpEditTitle" class="text-[10px] font-bold uppercase tracking-wider opacity-50">Title</label>
+                <span class="text-[10px] font-mono opacity-30" id="smpTitleCount">0 chars</span>
+              </div>
+              <input type="text" id="smpEditTitle" class="input input-sm w-full" placeholder="og:title">
+              <div class="flex gap-1 mt-1">
+                <span class="badge badge-xs" id="smpTitleTw">TW: <span class="font-mono">0/70</span></span>
+                <span class="badge badge-xs" id="smpTitleFb">FB: <span class="font-mono">0/100</span></span>
+                <span class="badge badge-xs" id="smpTitleLi">LI: <span class="font-mono">0/100</span></span>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label for="smpEditDesc" class="text-[10px] font-bold uppercase tracking-wider opacity-50">Description</label>
+                <span class="text-[10px] font-mono opacity-30" id="smpDescCount">0 chars</span>
+              </div>
+              <textarea id="smpEditDesc" class="textarea textarea-sm w-full h-16" placeholder="og:description"></textarea>
+              <div class="flex gap-1 mt-1">
+                <span class="badge badge-xs" id="smpDescTw">TW: <span class="font-mono">0/200</span></span>
+                <span class="badge badge-xs" id="smpDescFb">FB: <span class="font-mono">0/200</span></span>
+              </div>
+            </div>
+            <div>
+              <label for="smpEditImage" class="text-[10px] font-bold uppercase tracking-wider opacity-50 block mb-1">Image URL</label>
+              <input type="url" id="smpEditImage" class="input input-sm w-full" placeholder="og:image URL">
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex flex-wrap gap-2">
+            <button type="button" id="smpCopyTags" class="btn btn-ghost btn-xs gap-1.5 font-mono">
+              {{ lucide_icon("copy","w-3.5 h-3.5", 14) | safe }} Copy OG Tags
+            </button>
+            <button type="button" id="smpDlReport" class="btn btn-ghost btn-xs gap-1.5 font-mono">
+              {{ lucide_icon("download","w-3.5 h-3.5", 14) | safe }} Report
+            </button>
+          </div>
+
+          <!-- History -->
+          <details class="collapse collapse-arrow border border-base-300/30 rounded-xl">
+            <summary class="collapse-title text-xs font-bold flex items-center gap-2">
+              {{ lucide_icon("clock","w-3.5 h-3.5", 14) | safe }} History
+              <span class="badge badge-xs font-mono" id="smpHistCount">0</span>
+            </summary>
+            <div class="collapse-content" id="smpHistBody">
+              <div class="text-xs opacity-40 py-2 text-center">No history yet.</div>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Previews + Debug -->
+  <div class="lg:col-span-3 space-y-6">
+    <!-- Empty State -->
+    <div id="smpEmpty" class="card card-border border-base-300/40 bg-base-100 shadow-sm rounded-2xl">
+      <div class="card-body p-6 md:p-8 text-center">
+        <div class="text-4xl opacity-20 mb-3">{{ lucide_icon("share-2","w-12 h-12", 48) | safe }}</div>
+        <p class="text-sm opacity-40 font-medium">Enter a URL above and click <strong>Analyze</strong> to preview social cards.</p>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="smpResults" class="hidden space-y-6">
+      <!-- Google SERP Preview -->
+      <div class="card card-border border-base-300/40 bg-base-100 shadow-sm rounded-2xl">
+        <div class="card-body p-4 md:p-6">
+          <h3 class="card-title text-xs font-black tracking-tight gap-2 mb-3 uppercase opacity-40">
+            {{ lucide_icon("search","w-3.5 h-3.5", 14) | safe }} Google Search Preview
+          </h3>
+          <div class="border border-base-300/30 rounded-xl overflow-hidden bg-base-200/30 p-4 max-w-xl">
+            <div class="text-[10px] opacity-40 font-mono truncate" id="smpGUrl">example.com › page-url</div>
+            <div class="text-lg font-black leading-tight text-[#1a0dab] dark:text-[#8ab4f8] line-clamp-1 mt-0.5" id="smpGTitle">Your Page Title</div>
+            <div class="text-xs leading-relaxed opacity-60 line-clamp-2 mt-0.5" id="smpGDesc">Description here.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Social Card Previews -->
+      <div class="card card-border border-base-300/40 bg-base-100 shadow-sm rounded-2xl">
+        <div class="card-body p-4 md:p-6">
+          <div class="flex flex-wrap gap-1.5 mb-4 border-b border-base-300/20 pb-3" id="smpTabs" role="tablist">
+            <button role="tab" aria-selected="true" class="btn btn-xs gap-1.5" data-preview="twitter">{{ lucide_icon("twitter","w-3.5 h-3.5", 14) | safe }} Twitter</button>
+            <button role="tab" aria-selected="false" class="btn btn-xs gap-1.5" data-preview="facebook">{{ lucide_icon("facebook","w-3.5 h-3.5", 14) | safe }} Facebook</button>
+            <button role="tab" aria-selected="false" class="btn btn-xs gap-1.5" data-preview="linkedin">{{ lucide_icon("linkedin","w-3.5 h-3.5", 14) | safe }} LinkedIn</button>
+            <button role="tab" aria-selected="false" class="btn btn-xs gap-1.5" data-preview="whatsapp">{{ lucide_icon("message-circle","w-3.5 h-3.5", 14) | safe }} WhatsApp</button>
+            <button role="tab" aria-selected="false" class="btn btn-xs gap-1.5" data-preview="slack">{{ lucide_icon("slack","w-3.5 h-3.5", 14) | safe }} Slack</button>
+          </div>
+
+          <div class="preview-pane block" data-preview="twitter">
+            <div class="border border-base-300/30 rounded-xl overflow-hidden bg-base-200/30 max-w-md">
+              <div class="h-40 bg-base-300 flex items-center justify-center text-xs opacity-40 font-mono overflow-hidden" id="smpTwImage">
+                <span class="opacity-40 font-mono">1200 x 630</span>
+              </div>
+              <div class="p-3">
+                <div class="flex items-center gap-2 text-xs opacity-50 font-bold mb-1">
+                  <span class="w-5 h-5 rounded-full bg-base-300 inline-block"></span>
+                  <span id="smpTwHandle">@username</span>
+                  <span class="opacity-30 font-normal font-mono ml-auto" id="smpTwTime">2m</span>
+                </div>
+                <div class="text-sm font-bold leading-tight line-clamp-1" id="smpTwTitle">Your Page Title</div>
+                <div class="text-xs opacity-60 leading-tight mt-0.5 line-clamp-2" id="smpTwDesc">Description here.</div>
+                <div class="text-[10px] opacity-40 leading-tight mt-1.5 flex items-center gap-1" id="smpTwDomain">
+                  {{ lucide_icon("arrow-up-right","w-3 h-3", 12) | safe }} <span>example.com</span>
+                </div>
+              </div>
+            </div>
+            <div class="text-[9px] font-mono px-1 pt-1.5 opacity-30">TW: title max 70, desc max 200</div>
+          </div>
+
+          <div class="preview-pane hidden" data-preview="facebook">
+            <div class="border border-base-300/30 rounded-xl overflow-hidden bg-base-200/30 max-w-sm">
+              <div class="h-44 bg-base-300 flex items-center justify-center text-xs opacity-40 font-mono overflow-hidden" id="smpFbImage">
+                <span class="opacity-40 font-mono">1200 x 630</span>
+              </div>
+              <div class="px-3 py-2.5">
+                <div class="text-[10px] uppercase tracking-wider opacity-40 font-bold truncate" id="smpFbSite">example.com</div>
+                <div class="text-sm font-bold leading-tight mt-0.5 line-clamp-1" id="smpFbTitle">Your Page Title</div>
+                <div class="text-xs opacity-60 leading-tight mt-0.5 line-clamp-2" id="smpFbDesc">Description here.</div>
+              </div>
+            </div>
+            <div class="text-[9px] font-mono px-1 pt-1.5 opacity-30">FB: title ideal 60-100, desc 150-200</div>
+          </div>
+
+          <div class="preview-pane hidden" data-preview="linkedin">
+            <div class="border border-base-300/30 rounded-xl overflow-hidden bg-base-200/30 max-w-sm">
+              <div class="h-40 bg-base-300 flex items-center justify-center text-xs opacity-40 font-mono overflow-hidden" id="smpLiImage">
+                <span class="opacity-40 font-mono">1200 x 630</span>
+              </div>
+              <div class="p-3">
+                <div class="text-xs opacity-60 leading-tight line-clamp-2" id="smpLiDesc">Description here.</div>
+                <div class="text-[10px] uppercase tracking-wider opacity-40 font-bold truncate mt-1" id="smpLiSite">example.com</div>
+                <div class="text-xs font-bold leading-tight line-clamp-1" id="smpLiTitle">Your Page Title</div>
+              </div>
+            </div>
+            <div class="text-[9px] font-mono px-1 pt-1.5 opacity-30">LI: title max 100, desc max 200</div>
+          </div>
+
+          <div class="preview-pane hidden" data-preview="whatsapp">
+            <div class="border border-base-300/30 rounded-xl overflow-hidden bg-base-200/30 max-w-sm">
+              <div class="h-36 bg-base-300 flex items-center justify-center text-xs opacity-40 font-mono overflow-hidden" id="smpWaImage">
+                <span class="opacity-40 font-mono">1200 x 630</span>
+              </div>
+              <div class="px-3 py-2">
+                <div class="text-xs opacity-40 leading-tight truncate" id="smpWaUrl">example.com</div>
+                <div class="text-sm font-bold leading-tight mt-0.5 line-clamp-2" id="smpWaTitle">Your Page Title</div>
+                <div class="text-xs opacity-60 leading-tight mt-0.5 line-clamp-3" id="smpWaDesc">Description here.</div>
+              </div>
+            </div>
+            <div class="text-[9px] font-mono px-1 pt-1.5 opacity-30">WA: title & desc no hard limit, image 1200x630</div>
+          </div>
+
+          <div class="preview-pane hidden" data-preview="slack">
+            <div class="border border-base-300/30 rounded-xl overflow-hidden bg-base-200/30 max-w-lg">
+              <div class="flex">
+                <div class="w-1 bg-[#36a4d4] flex-shrink-0"></div>
+                <div class="h-28 w-28 bg-base-300 flex items-center justify-center text-[10px] opacity-40 font-mono flex-shrink-0 overflow-hidden" id="smpSlackImage">
+                  <span class="opacity-40 font-mono">img</span>
+                </div>
+                <div class="p-3 flex-1 min-w-0">
+                  <div class="text-xs font-bold leading-tight line-clamp-1" id="smpSlackTitle">Your Page Title</div>
+                  <div class="text-xs opacity-60 leading-tight mt-0.5 line-clamp-2" id="smpSlackDesc">Description here.</div>
+                  <div class="text-[10px] opacity-40 leading-tight mt-1" id="smpSlackUrl">example.com</div>
+                </div>
+              </div>
+            </div>
+            <div class="text-[9px] font-mono px-1 pt-1.5 opacity-30">Slack: shows rich unfurl with blue accent bar</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Debug Panel -->
+      <div class="card card-border border-base-300/40 bg-base-100 shadow-sm rounded-2xl" id="smpDebugPanel">
+        <div class="card-body p-4 md:p-6">
+          <h3 class="card-title text-sm font-black tracking-tight gap-2 mb-3">
+            {{ lucide_icon("bug","w-4 h-4", 16) | safe }} Debug Panel
+            <span class="badge badge-ghost badge-xs font-mono" id="smpStatusCode">-</span>
+            <span class="badge badge-ghost badge-xs font-mono" id="smpLoadTime">-</span>
+          </h3>
+          <div class="overflow-x-auto">
+            <table class="table table-xs w-full text-xs">
+              <thead>
+                <tr class="opacity-40">
+                  <th class="w-1/3">Property</th>
+                  <th>Content</th>
+                  <th class="w-16 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="smpDebugBody"></tbody>
+            </table>
+          </div>
+          <details class="collapse collapse-arrow border border-base-300/30 rounded-xl mt-3">
+            <summary class="collapse-title text-xs font-bold">Raw HTML Meta Tags</summary>
+            <div class="collapse-content">
+              <pre id="smpRawTags" class="text-xs font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap bg-base-200/30 rounded-xl p-3 max-h-48 overflow-y-auto"></pre>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{ tool_seo_all(seo) }}
+
+<script nonce="{{ nonce }}">
+(function(){
+  var urlInput=document.getElementById('smpUrl');
+  var btn=document.getElementById('smpAnalyze');
+  var loading=document.getElementById('smpLoading');
+  var error=document.getElementById('smpError');
+  var summary=document.getElementById('smpSummary');
+  var empty=document.getElementById('smpEmpty');
+  var results=document.getElementById('smpResults');
+  var tagCounts=document.getElementById('smpTagCounts');
+  var warnings=document.getElementById('smpWarnings');
+  var statusCode=document.getElementById('smpStatusCode');
+  var loadTime=document.getElementById('smpLoadTime');
+  var debugBody=document.getElementById('smpDebugBody');
+  var rawTags=document.getElementById('smpRawTags');
+  var copyBtn=document.getElementById('smpCopyTags');
+  var dlBtn=document.getElementById('smpDlReport');
+  var scoreRing=document.getElementById('smpScoreRing');
+  var scoreLabel=document.getElementById('smpScoreLabel');
+
+  // Live edit fields
+  var eTitle=document.getElementById('smpEditTitle');
+  var eDesc=document.getElementById('smpEditDesc');
+  var eImage=document.getElementById('smpEditImage');
+  var titleCount=document.getElementById('smpTitleCount');
+  var descCount=document.getElementById('smpDescCount');
+  var titleTw=document.getElementById('smpTitleTw');
+  var titleFb=document.getElementById('smpTitleFb');
+  var titleLi=document.getElementById('smpTitleLi');
+  var descTw=document.getElementById('smpDescTw');
+  var descFb=document.getElementById('smpDescFb');
+
+  // Google preview
+  var gUrl=document.getElementById('smpGUrl');
+  var gTitle=document.getElementById('smpGTitle');
+  var gDesc=document.getElementById('smpGDesc');
+
+  // Social card elements
+  var twI=document.getElementById('smpTwImage'), twH=document.getElementById('smpTwHandle');
+  var twT=document.getElementById('smpTwTitle'), twD=document.getElementById('smpTwDesc');
+  var twDomain=document.getElementById('smpTwDomain');
+  var fbI=document.getElementById('smpFbImage'), fbS=document.getElementById('smpFbSite');
+  var fbT=document.getElementById('smpFbTitle'), fbD=document.getElementById('smpFbDesc');
+  var liI=document.getElementById('smpLiImage'), liS=document.getElementById('smpLiSite');
+  var liT=document.getElementById('smpLiTitle'), liD=document.getElementById('smpLiDesc');
+  var waI=document.getElementById('smpWaImage'), waU=document.getElementById('smpWaUrl');
+  var waT=document.getElementById('smpWaTitle'), waD=document.getElementById('smpWaDesc');
+  var slI=document.getElementById('smpSlackImage'), slU=document.getElementById('smpSlackUrl');
+  var slT=document.getElementById('smpSlackTitle'), slD=document.getElementById('smpSlackDesc');
+  var tabs=document.querySelectorAll('[data-preview]'), panes=document.querySelectorAll('.preview-pane');
+
+  // History
+  var histBody=document.getElementById('smpHistBody');
+  var histCount=document.getElementById('smpHistCount');
+  var histKey='sb_smp_hist';
+  var hist=JSON.parse(localStorage.getItem(histKey)||'[]');
+  var maxHist=10;
+
+  // Current data
+  var _tags={};
+  var _host='';
+
+  function esc(v){var e=document.createElement('div');e.innerText=v||'';return e.innerHTML;}
+  function getHost(u){try{return new URL(u).hostname;}catch(e){return u.replace(/^https?:\/\//,'').split('/')[0]||'example.com';}}
+
+  function tryImg(url,el){
+    if(!url){el.innerHTML='<span class="opacity-40 font-mono">1200 x 630</span>';return;}
+    el.innerHTML='<img src="'+esc(url)+'" alt="Preview" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML=\'<span class=opacity-40 font-mono>Load failed</span>\'">';
+  }
+
+  function parseMetaTags(html){
+    var tags={};
+    var reMeta=/<meta\s[^>]*>/gi;
+    var m;
+    while((m=reMeta.exec(html))!==null){
+      var tag=m[0];
+      var name=(tag.match(/\s(?:name|property)=["']([^"']+)["']/i)||[])[1];
+      var content=(tag.match(/\scontent=["']([^"']*)["']/i)||[])[1];
+      if(name&&content!==undefined){
+        var key=name.toLowerCase();
+        tags[key]=content;
+      }
+    }
+    var titleRe=/<title[^>]*>([^<]*)<\/title>/i;
+    var titleM=titleRe.exec(html);
+    if(titleM&&titleM[1]&&!tags['title'])tags['title']=titleM[1].trim();
+    var descRe=/<meta\s+name=["']description["']\s+content=["']([^"']*)["']/i;
+    var descM=descRe.exec(html);
+    if(descM&&descM[1]&&!tags['description'])tags['description']=descM[1];
+    return tags;
+  }
+
+  function getImgDim(tags){
+    var w=tags['og:image:width'], h=tags['og:image:height'];
+    if(w||h)return{w:w||'?',h:h||'?'};
+    return null;
+  }
+
+  function computeScore(tags){
+    var s=0;
+    if(tags['og:title'])s+=20;
+    if(tags['og:description'])s+=20;
+    if(tags['og:image'])s+=20;
+    if(tags['og:url'])s+=15;
+    if(tags['twitter:card'])s+=10;
+    if(tags['og:site_name'])s+=5;
+    if(tags['og:locale'])s+=5;
+    if(tags['twitter:site'])s+=5;
+    var dim=getImgDim(tags);
+    if(dim&&dim.w==='1200'&&dim.h==='630')s+=0;
+    else if(tags['og:image'])s-=5;
+    return Math.max(0,Math.min(100,s));
+  }
+
+  function updateCharCounts(){
+    var tl=eTitle.value.length;
+    var dl=eDesc.value.length;
+    titleCount.textContent=tl+' chars';
+    descCount.textContent=dl+' chars';
+    var twBadge=titleTw.querySelector('span'), fbBadge=titleFb.querySelector('span');
+    var liBadge=titleLi.querySelector('span'), dTwBadge=descTw.querySelector('span'), dFbBadge=descFb.querySelector('span');
+    twBadge.textContent=tl+'/70'; twBadge.style.color=tl>70?'var(--color-error)':'';
+    fbBadge.textContent=tl+'/100'; fbBadge.style.color=tl>100?'var(--color-error)':'';
+    liBadge.textContent=tl+'/100'; liBadge.style.color=tl>100?'var(--color-error)':'';
+    dTwBadge.textContent=dl+'/200'; dTwBadge.style.color=dl>200?'var(--color-error)':'';
+    dFbBadge.textContent=dl+'/200'; dFbBadge.style.color=dl>200?'var(--color-error)':'';
+  }
+
+  function updatePreviews(){
+    var title=eTitle.value||'Untitled';
+    var desc=eDesc.value||'';
+    var image=eImage.value||'';
+    var host=_host||getHost(urlInput.value);
+    var site=_tags['og:site_name']||host;
+    var twHandle=_tags['twitter:site']||'@username';
+
+    // Score
+    _tags['og:title']=title;
+    _tags['og:description']=desc;
+    _tags['og:image']=image||_tags['og:image']||'';
+    var score=computeScore(_tags);
+    scoreRing.style.setProperty('--value',score);
+    scoreRing.setAttribute('aria-valuenow',score);
+    scoreRing.textContent=score;
+    scoreLabel.textContent=score>=80?'Great':score>=60?'Good':score>=40?'Needs work':'Poor';
+
+    updateCharCounts();
+
+    // Google preview
+    var path=(_tags['og:url']||urlInput.value).replace(/^https?:\/\//,'').replace(/\/$/,'');
+    gUrl.textContent=path;
+    gTitle.textContent=title;
+    gDesc.textContent=desc||'No description available.';
+
+    // Twitter
+    tryImg(image||_tags['og:image']||'','', twI);
+    if(image||_tags['og:image'])twI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML=\'<span class=opacity-40 font-mono>Load failed</span>\'">';
+    twT.textContent=title;
+    twD.textContent=desc||'No description available.';
+    twH.textContent=twHandle;
+
+    // Facebook
+    tryImg(image||_tags['og:image']||'','', fbI);
+    if(image||_tags['og:image'])fbI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML=\'<span class=opacity-40 font-mono>Load failed</span>\'">';
+    fbT.textContent=title;
+    fbD.textContent=desc||'No description available.';
+    fbS.textContent=site;
+
+    // LinkedIn
+    tryImg(image||_tags['og:image']||'','', liI);
+    if(image||_tags['og:image'])liI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML=\'<span class=opacity-40 font-mono>Load failed</span>\'">';
+    liT.textContent=title;
+    liD.textContent=desc||'No description available.';
+    liS.textContent=site;
+
+    // WhatsApp
+    tryImg(image||_tags['og:image']||'','', waI);
+    if(image||_tags['og:image'])waI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML=\'<span class=opacity-40 font-mono>Load failed</span>\'">';
+    waT.textContent=title;
+    waD.textContent=desc||'No description available.';
+    waU.textContent=host;
+
+    // Slack
+    if(image||_tags['og:image'])slI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="" class="w-full h-full object-cover" onerror="this.innerHTML=\'&nbsp;\'">';else slI.innerHTML='<span class="opacity-40 font-mono">img</span>';
+    slT.textContent=title;
+    slD.textContent=desc||'No description available.';
+    slU.textContent=host;
+  }
+
+  function buildDebugRows(tags){
+    var required=['og:title','og:description','og:image','og:url','twitter:card'];
+    var recommended=['og:site_name','og:locale','twitter:site','twitter:title','twitter:description','twitter:image','og:type'];
+    var allKeys={};
+    required.forEach(function(k){allKeys[k]=true;});
+    recommended.forEach(function(k){allKeys[k]=true;});
+    Object.keys(tags).forEach(function(k){allKeys[k]=true;});
+    var rows='';
+    var order=required.concat(recommended).concat(Object.keys(tags).filter(function(k){return required.indexOf(k)===-1&&recommended.indexOf(k)===-1;}));
+    var seen={};
+    order.forEach(function(key){
+      if(seen[key])return;
+      seen[key]=true;
+      var val=tags[key];
+      var isRequired=required.indexOf(key)>-1;
+      var isRecommended=recommended.indexOf(key)>-1;
+      var status,cls;
+      if(isRequired){
+        if(val){status='✅';cls='text-success';}
+        else{status='❌';cls='text-error font-bold';}
+      }else if(isRecommended){
+        if(val){status='✅';cls='text-success';}
+        else{status='⚠️';cls='text-warning';}
+      }else{
+        if(val){status='✅';cls='text-success';}
+        else return;
+      }
+      rows+='<tr class="'+cls+'"><td class="font-mono">'+esc(key)+'</td><td class="truncate max-w-[200px] lg:max-w-[300px] overflow-hidden text-ellipsis" title="'+esc(val||'')+'">'+esc(val||'—')+'</td><td class="text-center">'+status+'</td></tr>';
+    });
+    return rows;
+  }
+
+  function renderHist(){
+    histCount.textContent=hist.length;
+    if(!hist.length){histBody.innerHTML='<div class="text-xs opacity-40 py-2 text-center">No history yet.</div>';return;}
+    var h='';
+    [].forEach.call(hist,function(hh,i){
+      h+='<div class="flex items-center gap-2 py-1.5 border-b border-base-300/10 cursor-pointer hover:bg-base-200/30 rounded px-1" data-hidx="'+i+'">';
+      h+='<span class="text-[9px] font-mono opacity-30 w-14 flex-shrink-0">'+hh.t+'</span>';
+      h+='<span class="text-xs font-mono truncate flex-1">'+esc(hh.url.replace(/^https?:\/\//,'').slice(0,30))+'</span>';
+      h+='<span class="badge badge-xs font-mono">'+hh.sc+'</span>';
+      h+='</div>';
+    });
+    histBody.innerHTML=h;
+    [].forEach.call(histBody.querySelectorAll('[data-hidx]'),function(el){el.onclick=function(){
+      var idx=parseInt(this.getAttribute('data-hidx'));
+      var hh=hist[idx];
+      urlInput.value=hh.url;
+      fetchUrl();
+    };});
+  }
+
+  function saveHist(score){
+    var url=urlInput.value.trim();
+    if(!url)return;
+    if(hist.length&&hist[0].url===url)return;
+    hist.unshift({url:url,sc:score,t:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
+    if(hist.length>maxHist)hist.pop();
+    localStorage.setItem(histKey,JSON.stringify(hist));
+    renderHist();
+  }
+
+  function fetchUrl(){
+    var url=urlInput.value.trim();
+    if(!url){error.textContent='Please enter a URL.';error.classList.remove('hidden');return;}
+    if(!/^https?:\/\//i.test(url)){error.textContent='URL must start with http:// or https://';error.classList.remove('hidden');return;}
+    error.classList.add('hidden');
+    loading.classList.remove('hidden');
+    empty.classList.add('hidden');
+    results.classList.add('hidden');
+    summary.classList.add('hidden');
+    fetch('/api/proxy-request',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url:url})
+    }).then(function(r){
+      if(!r.ok)throw new Error('Server returned '+r.status);
+      return r.text();
+    }).then(function(response){
+      loading.classList.add('hidden');
+      var data;
+      try{data=JSON.parse(response);}catch(e){
+        error.textContent='Invalid response from server.';error.classList.remove('hidden');return;
+      }
+      if(data.status!=='success'||data.status_code>=400){
+        error.textContent=(data.status_code||'')+' '+((data.body||'').slice(0,200)||'Failed to fetch URL. The URL may be invalid, restricted, or unreachable.');
+        error.classList.remove('hidden');return;
+      }
+      var html=data.body;
+      _tags=parseMetaTags(html);
+      _host=getHost(url);
+      var title=_tags['og:title']||_tags['twitter:title']||_tags['title']||'Untitled';
+      var desc=_tags['og:description']||_tags['twitter:description']||_tags['description']||'';
+      var image=_tags['og:image']||_tags['twitter:image']||'';
+      var site=_tags['og:site_name']||_host;
+      var twHandle=_tags['twitter:site']||'@username';
+      var dim=getImgDim(_tags);
+
+      empty.classList.add('hidden');
+      results.classList.remove('hidden');
+      summary.classList.remove('hidden');
+
+      // Fill live edit fields
+      eTitle.value=title;
+      eDesc.value=desc;
+      eImage.value=image;
+
+      // Badges
+      var tagKeys=Object.keys(_tags).length;
+      var hasRequired=['og:title','og:description','og:image','og:url'].every(function(k){return !!_tags[k];});
+      var hasCard=!!_tags['twitter:card'];
+      tagCounts.innerHTML=
+        '<span class="badge badge-xs badge-ghost">'+tagKeys+' meta tags</span>'+
+        '<span class="badge badge-xs '+(hasRequired?'badge-success':'badge-error')+'">'+(hasRequired?'OG complete':'OG missing')+'</span>'+
+        '<span class="badge badge-xs '+(hasCard?'badge-success':'badge-warning')+'">'+(hasCard?'Card found':'no twitter:card')+'</span>';
+
+      // Warnings
+      warnings.innerHTML='';
+      var warns=[];
+      if(!_tags['og:title'])warns.push('Missing og:title');
+      if(!_tags['og:description'])warns.push('Missing og:description');
+      if(!_tags['og:image'])warns.push('Missing og:image');
+      if(!_tags['og:url'])warns.push('Missing og:url');
+      if(!_tags['twitter:card'])warns.push('Missing twitter:card');
+      if(_tags['og:title']&&_tags['og:title'].length>100)warns.push('Title exceeds 100 chars');
+      if(_tags['og:description']&&_tags['og:description'].length>200)warns.push('Description exceeds 200 chars');
+      if(dim&&dim.w&&dim.w!=='1200')warns.push('OG image width not 1200px ('+dim.w+'px)');
+      warns.forEach(function(w){
+        var c=document.createElement('span');
+        c.className='badge badge-xs badge-warning gap-1';
+        c.textContent=w;
+        warnings.appendChild(c);
+      });
+      if(!warns.length){
+        var c=document.createElement('span');
+        c.className='badge badge-xs badge-success gap-1';
+        c.textContent='All checks passed';
+        warnings.appendChild(c);
+      }
+
+      statusCode.textContent='HTTP '+data.status_code;
+      loadTime.textContent=data.time_ms+'ms';
+
+      // Debug table
+      debugBody.innerHTML=buildDebugRows(_tags);
+
+      // Raw tags
+      var rawLines=[];
+      Object.keys(_tags).sort().forEach(function(k){rawLines.push('<meta '+((k.indexOf('og:')===0||k.indexOf('twitter:')===0||k.indexOf('fb:')===0)?'property':'name')+'="'+esc(k)+'" content="'+esc(_tags[k])+'">');});
+      rawTags.innerHTML=rawLines.join('\n')||'No meta tags found.';
+
+      // Score & previews
+      var score=computeScore(_tags);
+      saveHist(score);
+      updatePreviews();
+    }).catch(function(e){
+      loading.classList.add('hidden');
+      error.textContent='Request failed: '+e.message+'. Check the URL and try again.';
+      error.classList.remove('hidden');
+    });
+  }
+
+  // Live edit: update previews on input
+  eTitle.oninput=updatePreviews;
+  eDesc.oninput=updatePreviews;
+  eImage.oninput=updatePreviews;
+
+  // Tab switching
+  [].forEach.call(tabs,function(b){b.onclick=function(){
+    var v=b.getAttribute('data-preview');
+    [].forEach.call(tabs,function(x){x.setAttribute('aria-selected',x===b?'true':'false');});
+    [].forEach.call(panes,function(p){p.classList.toggle('hidden',p.getAttribute('data-preview')!==v);});
+  };});
+
+  // Copy tags
+  copyBtn.onclick=function(){
+    var lines=rawTags.textContent;
+    if(!lines)return;
+    navigator.clipboard.writeText(lines);
+    copyBtn.innerHTML='{{ lucide_icon("check","w-3.5 h-3.5", 14) | safe }} Copied!';
+    setTimeout(function(){copyBtn.innerHTML='{{ lucide_icon("copy","w-3.5 h-3.5", 14) | safe }} Copy OG Tags';},1500);
+  };
+
+  // Download report
+  dlBtn.onclick=function(){
+    var url=urlInput.value;
+    var title=eTitle.value;
+    var desc=eDesc.value;
+    var img=eImage.value;
+    var lines=[
+      'Social Media Post Preview Report',
+      '==============================',
+      'URL: '+url,
+      'HTTP: '+statusCode.textContent,
+      'Load: '+loadTime.textContent,
+      '',
+      'Meta Tags ('+Object.keys(_tags).length+' found):',
+      '  Title (og:title): '+(title||'(missing)'),
+      '  Description (og:description): '+(desc||'(missing)'),
+      '  Image (og:image): '+(img||'(missing)'),
+      '',
+      'Score: '+scoreRing.textContent+'/100',
+      'Warnings: '+warnings.children.length,
+      '',
+      '=== Raw Tags ===',
+      rawTags.textContent
+    ];
+    var blob=new Blob([lines.join('\n')],{type:'text/plain'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='social-preview-report-'+Date.now()+'.txt';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  btn.onclick=fetchUrl;
+  urlInput.onkeydown=function(e){if(e.key==='Enter')fetchUrl();};
+
+  renderHist();
+  fetchUrl();
+})();
+</script>
+{% endblock %}

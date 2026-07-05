@@ -79,7 +79,7 @@ class SitemapService:
                     })
 
         pages_dir = os.path.join(self.settings.templates_dir, "pages")
-        skip_pages = {"sitemap", "404", "offline", "privacy", "terms", "disclaimer"}
+        skip_pages = {"sitemap", "404", "offline"}
         if os.path.exists(pages_dir):
             for f in self._get_cached_dir_listing(pages_dir):
                 if f.endswith(".html"):
@@ -131,6 +131,8 @@ class SitemapService:
             f"User-agent: *\n"
             f"Disallow: /api/\n"
             f"Disallow: /offline\n"
+            f"Disallow: /cdn-cgi/\n"
+            f"Crawl-delay: 2\n"
             f"\n"
             f"Sitemap: {site_url}/sitemap.xml\n"
         )
