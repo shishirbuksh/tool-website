@@ -1,9 +1,8 @@
 # StoryBrain AI — Caddy reverse proxy with automatic HTTPS
-# Replace with your actual domain before deploying
+# Override env vars for custom deployment:
+#   CADDY_DOMAIN, CADDY_PROXY_UPSTREAM, CADDY_STATIC_ROOT
 
-storybrainai.com, www.storybrainai.com {
-    # Automatic HTTPS via Let's Encrypt (Caddy handles this)
-
+{$CADDY_DOMAIN:storybrainai.com, www.storybrainai.com} {
     encode zstd br gzip
 
     # Security headers
@@ -22,8 +21,7 @@ storybrainai.com, www.storybrainai.com {
     }
 
     # Proxy to FastAPI backend
-    reverse_proxy app:8090 {
-        # Pass real IP to backend
+    reverse_proxy {$CADDY_PROXY_UPSTREAM:app:8090} {
         header_up X-Real-IP {remote_host}
         header_up X-Forwarded-For {remote_host}
         header_up X-Forwarded-Proto {scheme}
@@ -31,7 +29,7 @@ storybrainai.com, www.storybrainai.com {
 
     # Cache static assets
     handle_path /static/* {
-        root * /app/static
+        root * {$CADDY_STATIC_ROOT:/app/static}
         file_server {
             precompressed br gzip
         }
@@ -40,13 +38,8 @@ storybrainai.com, www.storybrainai.com {
 
     # Handle Service Worker (must NOT be cached)
     handle_path /sw.js {
-        reverse_proxy app:8090 {
+        reverse_proxy {$CADDY_PROXY_UPSTREAM:app:8090} {
             header_up Host {host}
         }
     }
-}
-
-# Local dev shortcut
-localhost:8080 {
-    reverse_proxy app:8090
 }

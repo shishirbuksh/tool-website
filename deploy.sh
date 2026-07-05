@@ -8,7 +8,7 @@
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
-APP_NAME="storybrain-ai"
+APP_NAME="${APP_NAME:-storybrain-ai}"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 # Use /var/backups (persistent across reboots) instead of /tmp
 BACKUP_DIR="/var/backups/${APP_NAME}_backup_${TIMESTAMP}"
@@ -238,6 +238,12 @@ backup_current   # <-- backup BEFORE pulling so we can rollback to known-good
 pull_latest
 install_python
 build_rust
+# Build frontend assets (CSS + JS)
+if command -v npm >/dev/null 2>&1; then
+    log_info "Building frontend assets..."
+    npm ci --quiet 2>/dev/null || true
+    npm run build 2>/dev/null && log_info "Frontend built" || log_warn "npm build failed"
+fi
 # Export the deployed commit SHA so the app can report its version
 export APP_VERSION
 APP_VERSION="$(git -C "$APP_DIR" rev-parse --short HEAD 2>/dev/null || echo 'unknown')"

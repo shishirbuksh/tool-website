@@ -67,7 +67,7 @@ class MemoryCache:
 
     def set(self, key: str, value: Any, ttl: int | None = None):
         with self._lock:
-            self._data[key] = (value, time.time(), ttl or self._default_ttl)
+            self._data[key] = (value, time.time(), ttl if ttl is not None else self._default_ttl)
             if len(self._data) > 1000:
                 self._evict()
 
@@ -129,7 +129,7 @@ class CacheService:
         return _memory_cache.get(key)
 
     def set(self, key: str, value: Any, ttl: int | None = None):
-        ttl = ttl or self._default_ttl
+        ttl = ttl if ttl is not None else self._default_ttl
         payload = _wrap_for_storage(value)
         if self._redis:
             try:

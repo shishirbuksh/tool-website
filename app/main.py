@@ -55,8 +55,7 @@ app = FastAPI(
 )
 
 hosts = settings.allowed_hosts_list
-if hosts:
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=hosts)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=hosts or ["127.0.0.1", "localhost"])
 app.add_middleware(CaseSensitiveRedirectMiddleware)
 app.add_middleware(MaxBodySizeMiddleware, max_size=10 * 1024 * 1024)
 app.add_middleware(RateLimitMiddleware, requests_per_minute=60)

@@ -42,7 +42,7 @@ def lucide_icon(name: str, class_name: str = "", size: int = 24) -> str:
     base_color = "" if has_color_class else "color:var(--color-base-content);"
 
     try:
-        start = svg.index("<svg ")
+        start = svg.index("<svg")
         end = svg.index(">", start) + 1
     except ValueError:
         return f'<span class="icon-missing" title="Malformed icon {name}"></span>'
@@ -50,11 +50,13 @@ def lucide_icon(name: str, class_name: str = "", size: int = 24) -> str:
 
     kept = []
     for attr in _ATTRS_TO_KEEP:
-        pattern = rf'{re.escape(attr)}="[^"]*"'
-        found = re.search(pattern, tag)
+        found = re.search(rf'{re.escape(attr)}="[^"]*"', tag)
         if found:
             kept.append(found.group(0))
 
     new_tag = f'<svg class="{class_name}" width="{size}" height="{size}" {" ".join(kept)} style="display:inline-block;{base_color}" aria-hidden="true" focusable="false">'
-    svg = new_tag + svg[end:]
+    inner = svg[end:]
+    if "</svg>" not in inner:
+        return f'<span class="icon-missing" title="Malformed icon {name} (no closing tag)"></span>'
+    svg = new_tag + inner
     return svg

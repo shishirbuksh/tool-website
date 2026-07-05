@@ -1,0 +1,592 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
+
+{% block title %}Page Grader — Free SEO Page Score & Content Audit{% endblock %}
+{% block meta_description %}Grade any webpage against 20+ SEO checks. Score meta tags, content quality, readability, headings, technical SEO, and links. Free, private, no sign-up.{% endblock %}
+{% block meta_keywords %}seo page grader, content optimization score, on page seo checker, page seo score, seo audit tool, content grader, seo content checker{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/page-grader{% endblock %}
+{% block og_title %}Page Grader — Free SEO Page Score & Content Audit{% endblock %}
+{% block og_description %}Grade any webpage against 20+ SEO checks. Score meta tags, content quality, readability, headings, technical SEO, and links. Free and private.{% endblock %}
+{% block og_url %}<meta property="og:url" content="https://www.storybrainai.com/tool/page-grader">{% endblock %}
+{% block twitter_title %}Page Grader — Free SEO Page Score & Content Audit | StoryBrain AI{% endblock %}
+{% block twitter_description %}Grade any webpage against 20+ SEO checks. Score meta tags, content quality, readability, headings, technical SEO, and links. Free, no sign-up.{% endblock %}
+{% block content %}
+{{ tool_hero_section("clipboard-check", "SEO Tool", "PAGE", "GRADER", "Grade any webpage against 20+ SEO checks. Score meta tags, content, readability, structure, technical SEO, and links — with an actionable fix checklist.") }}
+
+<div class="max-w-3xl mx-auto">
+
+  <div class="glass rounded-2xl p-5 mb-6">
+    <div class="flex gap-3">
+      <div class="flex-1 min-w-0">
+        <input type="url" id="pgUrl" class="input w-full text-sm" placeholder="https://example.com/page" autocomplete="url">
+      </div>
+      <button type="button" class="btn btn-primary gap-1.5 shrink-0" id="pgBtn">Grade</button>
+    </div>
+    <div class="mt-3">
+      <input type="text" id="pgKeyword" class="input w-full text-sm" placeholder="Target keyword (optional)" autocomplete="off">
+    </div>
+    <div id="pgStatus" class="text-xs font-bold text-base-content/40 hidden mt-2" role="status"></div>
+  </div>
+
+  <div id="pgHistory" class="hidden mb-4">
+    <div class="flex flex-wrap gap-2" id="pgHistoryList"></div>
+  </div>
+
+  <div id="pgEmpty" class="glass rounded-2xl p-10 text-center">
+    <div class="w-14 h-14 rounded-full bg-primary/5 flex items-center justify-center mx-auto mb-3">{{ lucide_icon("clipboard-check","w-7 h-7",28)|safe }}</div>
+    <p class="text-sm font-bold text-base-content/40">Enter a URL and click <span class="text-primary">Grade</span></p>
+  </div>
+
+  <div id="pgLoading" class="hidden glass rounded-2xl p-10 text-center">
+    <div class="animate-spin rounded-full h-7 w-7 border-2 border-primary border-t-transparent mx-auto mb-3"></div>
+    <p class="text-sm font-bold text-primary">Analyzing page...</p>
+    <p class="text-xs text-base-content/40 mt-1" id="pgLoadingStep">Fetching URL</p>
+  </div>
+
+  <div id="pgError" class="hidden glass rounded-2xl p-5 text-center" style="border-color:var(--color-error)">
+    <p class="text-sm font-bold text-error" id="pgErrorText"></p>
+  </div>
+
+  <div id="pgResults" class="hidden space-y-4">
+
+    <div class="glass rounded-2xl p-6">
+      <div class="flex items-center gap-5">
+        <div class="shrink-0 relative" id="pgScoreRing" style="width:100px;height:100px">
+          <svg class="w-full h-full -rotate-90" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="44" fill="none" stroke="var(--color-base-300)" stroke-width="6"/>
+            <circle cx="50" cy="50" r="44" fill="none" stroke="var(--color-primary)" stroke-width="6" stroke-linecap="round" id="pgScoreArc" stroke-dasharray="276.5" stroke-dashoffset="276.5"/>
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span class="text-2xl font-black" id="pgScoreText">0</span>
+            <span class="text-[9px] font-black uppercase tracking-widest opacity-40" id="pgScoreGrade">F</span>
+          </div>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <h2 class="text-base font-bold" id="pgScoreTitle">Page Grade</h2>
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider" id="pgScoreBadge">Needs Work</span>
+          </div>
+          <p class="text-xs text-base-content/50 break-all" id="pgScoreUrl"></p>
+          <p class="text-xs text-base-content/30 mt-1" id="pgScoreKeyword"></p>
+          <div class="flex flex-wrap gap-1.5 mt-2" id="pgCategories"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex gap-2">
+      <button type="button" class="btn btn-ghost btn-sm gap-1.5" id="pgPrintBtn">{{ lucide_icon("printer","w-4 h-4",16)|safe }} Print</button>
+      <button type="button" class="btn btn-ghost btn-sm gap-1.5" id="pgExportJson">{{ lucide_icon("download","w-4 h-4",16)|safe }} JSON</button>
+    </div>
+
+    <div id="pgChecklist" class="space-y-0.5"></div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <details class="glass rounded-xl overflow-hidden">
+        <summary class="flex items-center gap-2 px-4 py-3 cursor-pointer text-xs font-bold uppercase tracking-wider text-base-content/50 hover:bg-base-content/5"><span id="pgSerpIcon">{{ lucide_icon("search","w-3.5 h-3.5",14)|safe }}</span> SERP Preview</summary>
+        <div class="px-4 pb-4">
+          <div id="pgSerpResult" class="bg-white rounded-xl p-3 border text-xs mt-2" style="font-family:arial,sans-serif"></div>
+        </div>
+      </details>
+      <details class="glass rounded-xl overflow-hidden">
+        <summary class="flex items-center gap-2 px-4 py-3 cursor-pointer text-xs font-bold uppercase tracking-wider text-base-content/50 hover:bg-base-content/5"><span>{{ lucide_icon("file-text","w-3.5 h-3.5",14)|safe }}</span> Content Analysis</summary>
+        <div class="px-4 pb-4">
+          <div id="pgContentAnalysis" class="text-xs space-y-1.5 mt-2"></div>
+        </div>
+      </details>
+      <details class="glass rounded-xl overflow-hidden">
+        <summary class="flex items-center gap-2 px-4 py-3 cursor-pointer text-xs font-bold uppercase tracking-wider text-base-content/50 hover:bg-base-content/5"><span>{{ lucide_icon("type","w-3.5 h-3.5",14)|safe }}</span> Heading Structure</summary>
+        <div class="px-4 pb-4">
+          <div id="pgHeadingTree" class="text-xs mt-2"></div>
+        </div>
+      </details>
+      <details class="glass rounded-xl overflow-hidden">
+        <summary class="flex items-center gap-2 px-4 py-3 cursor-pointer text-xs font-bold uppercase tracking-wider text-base-content/50 hover:bg-base-content/5"><span>{{ lucide_icon("image","w-3.5 h-3.5",14)|safe }}</span> Image Audit</summary>
+        <div class="px-4 pb-4">
+          <div id="pgImageAudit" class="text-xs mt-2"></div>
+        </div>
+      </details>
+    </div>
+
+    <div id="pgExportSummary" class="text-xs text-base-content/40 hidden"></div>
+  </div>
+
+  {{ tool_seo_all(seo) }}
+
+<script nonce="{{ nonce }}">
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var urlInput=$('pgUrl'),keywordInput=$('pgKeyword'),btn=$('pgBtn'),status=$('pgStatus');
+  var empty=$('pgEmpty'),loading=$('pgLoading'),error=$('pgError'),errorText=$('pgErrorText'),results=$('pgResults');
+  var scoreText=$('pgScoreText'),scoreGrade=$('pgScoreGrade'),scoreArc=$('pgScoreArc'),scoreTitle=$('pgScoreTitle'),scoreBadge=$('pgScoreBadge');
+  var scoreUrl=$('pgScoreUrl'),scoreKeyword=$('pgScoreKeyword'),catWrap=$('pgCategories'),checklist=$('pgChecklist');
+  var loadingStep=$('pgLoadingStep'),printBtn=$('pgPrintBtn'),history=$('pgHistory'),historyList=$('pgHistoryList');
+  var serpResult=$('pgSerpResult'),contentAnalysis=$('pgContentAnalysis'),headingTree=$('pgHeadingTree'),imageAudit=$('pgImageAudit');
+  var exportJsonBtn=$('pgExportJson'),exportSummary=$('pgExportSummary');
+  var CIRC=276.460;
+
+  function esc(s){return String(s).replace(/[&<>"]/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]})}
+
+  function show(s){s.classList.remove('hidden')}
+  function hide(s){s.classList.add('hidden')}
+
+  function getGrade(score){
+    if(score>=90)return {letter:'A',label:'Excellent',color:'var(--color-success)'};
+    if(score>=80)return {letter:'B',label:'Good',color:'var(--color-success)'};
+    if(score>=65)return {letter:'C',label:'Fair',color:'var(--color-warning)'};
+    if(score>=50)return {letter:'D',label:'Needs Work',color:'var(--color-warning)'};
+    return {letter:'F',label:'Poor',color:'var(--color-error)'};
+  }
+
+  function countWords(t){var m=t.match(/[\w\u00C0-\u024F]+/g);return m?m.length:0}
+  function countSentences(t){var m=t.match(/[.!?]+/g);return m?m.length:1}
+  function countSyllables(w){
+    w=w.toLowerCase().replace(/[^a-z0-9]/g,'');
+    if(w.length<=3)return 1;
+    w=w.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/,'');
+    w=w.replace(/^y/,'');
+    var m=w.match(/[aeiouy]{1,2}/g);return m?m.length:1;
+  }
+
+  function fkgl(text){
+    var words=text.match(/[\w\u00C0-\u024F]+/g);if(!words||words.length<30)return null;
+    var wc=words.length,sc=countSentences(text),sy=0;
+    for(var i=0;i<words.length;i++)sy+=countSyllables(words[i]);
+    if(sc===0)return null;
+    return 0.39*(wc/sc)+11.8*(sy/wc)-15.59;
+  }
+
+  function detectPassive(sentence){
+    return /\b(am|is|are|was|were|be|been|being)\s+\w+(ed|en|t)\b/i.test(sentence);
+  }
+
+  function extractCleanText(doc){
+    var clone=doc.cloneNode(true);
+    var rm=clone.querySelectorAll('script,style,nav,footer,header,aside,.nav,.footer,.header,.sidebar,.menu,.breadcrumb,.cookie,.advertisement,.adsbygoogle');
+    for(var i=0;i<rm.length;i++)rm[i].remove();
+    var body=clone.querySelector('body');
+    if(!body)return '';
+    return body.textContent.replace(/\s+/g,' ').trim();
+  }
+
+  function extractHeadings(doc){
+    var hTags=[];
+    for(var i=1;i<=6;i++){
+      var els=doc.querySelectorAll('h'+i);
+      for(var j=0;j<els.length;j++)hTags.push({level:i,text:els[j].textContent.replace(/\s+/g,' ').trim()});
+    }
+    return hTags;
+  }
+
+  function extractMeta(doc){
+    var tags={};
+    var metas=doc.querySelectorAll('meta');
+    for(var i=0;i<metas.length;i++){
+      var name=metas[i].getAttribute('name')||metas[i].getAttribute('property')||'';
+      var content=metas[i].getAttribute('content')||'';
+      if(name)tags[name.toLowerCase()]=content;
+    }
+    tags['title']=(doc.querySelector('title')||{}).textContent||'';
+    return tags;
+  }
+
+  function analyzePage(){
+    var url=urlInput.value.trim();
+    if(!url){errorText.textContent='Please enter a URL.';show(error);return;}
+    if(!/^https?:\/\//i.test(url)){errorText.textContent='URL must start with http:// or https://';show(error);return;}
+    var keyword=keywordInput.value.trim().toLowerCase();
+
+    hide(error);hide(results);hide(empty);
+    show(loading);status.textContent='';hide(status);
+    loadingStep.textContent='Fetching URL';
+    btn.disabled=true;
+
+    fetch('/api/proxy-request',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url:url})
+    }).then(function(r){
+      if(!r.ok)throw new Error('Server returned '+r.status);
+      return r.text();
+    }).then(function(response){
+      loadingStep.textContent='Parsing HTML';
+      var data;
+      try{data=JSON.parse(response);}catch(e){throw new Error('Invalid server response');}
+      if(data.status!=='success'||data.status_code>=400){
+        throw new Error((data.status_code||'')+' '+(data.body||'Failed to fetch').slice(0,200));
+      }
+      loadingStep.textContent='Running checks';
+      setTimeout(function(){
+        var result=grade(data.body,url,keyword);
+        window.__pgResult=result;
+        render(result,url,keyword);
+        saveHistory(url,keyword,result.total);
+        btn.disabled=false;
+      },100);
+    }).catch(function(e){
+      btn.disabled=false;hide(loading);
+      errorText.textContent=e.message||'An error occurred';show(error);
+    });
+  }
+
+  function grade(html,url,keyword){
+    var parser=new DOMParser();
+    var doc=parser.parseFromString(html,'text/html');
+    var meta=extractMeta(doc);
+    var headings=extractHeadings(doc);
+    var cleanText=extractCleanText(doc);
+    var wordCount=countWords(cleanText);
+    var hasSchema=!!doc.querySelector('script[type="application/ld+json"]');
+    var hasViewport=!!doc.querySelector('meta[name="viewport"]');
+    var imgs=doc.querySelectorAll('img');
+    var links=doc.querySelectorAll('a');
+    var title=meta['title']||'';
+    var desc=meta['description']||'';
+
+    function ck(status,label,msg,priority){return {status:status,label:label,message:msg,priority:priority||'low'}}
+
+    var checks={
+      meta:{score:0,items:[],checks:[]},
+      content:{score:0,items:[],checks:[]},
+      readability:{score:0,items:[],checks:[]},
+      structure:{score:0,items:[],checks:[]},
+      technical:{score:0,items:[],checks:[]},
+      links:{score:0,items:[],checks:[]}
+    };
+
+    var mc=[];
+    if(title){var tl=title.length;mc.push(ck(tl>=50&&tl<=60?'pass':tl>0?'warn':'fail','Title length',tl+' chars ('+(tl>=50&&tl<=60?'ideal':'aim for 50-60')+')','high'));}
+    else mc.push(ck('fail','Title tag','Missing &lt;title&gt; tag','high'));
+    mc.push(ck(desc?'pass':'fail','Meta description',desc?'Found ('+desc.length+' chars)':'Missing','high'));
+    if(desc){var dl=desc.length;mc.push(ck(dl>=120&&dl<=160?'pass':dl>0?'warn':'fail','Description length',dl+' chars ('+(dl>=120&&dl<=160?'ideal':'aim for 120-160')+')','medium'));}
+    mc.push(ck(meta['og:title']?'pass':'warn','og:title',meta['og:title']?'Present':'Missing','medium'));
+    mc.push(ck(meta['og:description']?'pass':'warn','og:description',meta['og:description']?'Present':'Missing','medium'));
+    mc.push(ck(meta['og:image']?'pass':'warn','og:image',meta['og:image']?'Present':'Missing','medium'));
+    mc.push(ck(meta['twitter:card']?'pass':'warn','twitter:card',meta['twitter:card']?'Present ('+meta['twitter:card']+')':'Missing','medium'));
+    mc.push(ck(meta['og:url']?'pass':'warn','og:url',meta['og:url']?'Present':'Missing','low'));
+    checks.meta.checks=mc;
+    var mPass=0;for(var i=0;i<mc.length;i++)if(mc[i].status==='pass')mPass++;
+    checks.meta.score=Math.round((mPass/mc.length)*100);
+
+    var cc=[];
+    cc.push(ck(wordCount>=300?'pass':wordCount>=100?'warn':'fail','Word count',wordCount+' words ('+(wordCount>=300?'good':wordCount>=100?'add more content':'too short, aim for 300+')+')','high'));
+    if(keyword){
+      cc.push(ck(title.toLowerCase().includes(keyword)?'pass':'warn','Keyword in title',title.toLowerCase().includes(keyword)?'Found':'Not found','high'));
+      var first100=cleanText.toLowerCase().split(/\s+/).slice(0,100).join(' ');
+      cc.push(ck(first100.includes(keyword)?'pass':'warn','Keyword in first 100 words',first100.includes(keyword)?'Found':'Not found','medium'));
+      cc.push(ck(desc.toLowerCase().includes(keyword)?'pass':'warn','Keyword in meta description',desc.toLowerCase().includes(keyword)?'Found':'Not found','medium'));
+      var kwInH1=false;
+      for(var i=0;i<headings.length;i++)if(headings[i].level===1&&headings[i].text.toLowerCase().includes(keyword))kwInH1=true;
+      cc.push(ck(kwInH1?'pass':'warn','Keyword in H1',kwInH1?'Found':'Not found','high'));
+      var words=cleanText.toLowerCase().match(/[\w\u00C0-\u024F]+/g)||[];
+      var kwWords=keyword.split(/\s+/);
+      var kc=0;
+      for(var i=0;i<words.length-kwWords.length+1;i++){
+        var match=true;
+        for(var j=0;j<kwWords.length;j++)if(words[i+j]!==kwWords[j]){match=false;break;}
+        if(match)kc++;
+      }
+      var den=words.length>0?(kc/words.length)*100:0;
+      cc.push(ck(den>=1&&den<=3?'pass':den>0?'warn':'fail','Keyword density',den.toFixed(2)+'% ('+(den>=1&&den<=3?'ideal':den>0?'aim for 1-3%':'not found')+')','medium'));
+    }
+    checks.content.checks=cc;
+    var cPass=0;for(var i=0;i<cc.length;i++)if(cc[i].status==='pass')cPass++;
+    checks.content.score=Math.round((cPass/cc.length)*100);
+
+    var rc=[];
+    var fk=fkgl(cleanText);
+    if(fk!==null){
+      rc.push(ck(fk<=10?'pass':fk<=14?'warn':'fail','FKGL score',fk.toFixed(1)+' ('+(fk<=10?'good':fk<=14?'fair':'hard to read')+')','medium'));
+    }else{
+      rc.push(ck('warn','FKGL score','Not enough text to calculate (need 30+ words)','medium'));
+    }
+    var sentences=cleanText.match(/[^.!?]+[.!?]+/g)||[cleanText];
+    var avgSentLen=sentences.length>0?countWords(cleanText)/sentences.length:0;
+    rc.push(ck(avgSentLen<=20?'pass':avgSentLen<=25?'warn':'fail','Avg sentence length',avgSentLen.toFixed(1)+' words ('+(avgSentLen<=20?'good':avgSentLen<=25?'fair':'too long')+')','low'));
+    var passiveCount=0;
+    for(var i=0;i<sentences.length;i++)if(detectPassive(sentences[i]))passiveCount++;
+    var pctPassive=sentences.length>0?(passiveCount/sentences.length)*100:0;
+    rc.push(ck(pctPassive<15?'pass':pctPassive<25?'warn':'fail','Passive voice',passiveCount+' of '+sentences.length+' sentences ('+pctPassive.toFixed(0)+'%)','low'));
+    var words=cleanText.match(/[\w\u00C0-\u024F]+/g)||[];
+    var complexCount=0;
+    for(var i=0;i<words.length;i++){var w=words[i].toLowerCase();if(w.length>6&&w.match(/[aeiouy]{2,}/))complexCount++;}
+    var pctComplex=words.length>0?(complexCount/words.length)*100:0;
+    rc.push(ck(pctComplex<15?'pass':pctComplex<25?'warn':'fail','Complex words',complexCount+' of '+words.length+' ('+pctComplex.toFixed(0)+'%)','low'));
+    checks.readability.checks=rc;
+    var rPass=0;for(var i=0;i<rc.length;i++)if(rc[i].status==='pass')rPass++;
+    checks.readability.score=Math.round((rPass/rc.length)*100);
+
+    var sc=[];
+    var h1Count=0;
+    for(var i=0;i<headings.length;i++)if(headings[i].level===1)h1Count++;
+    sc.push(ck(h1Count===1?'pass':h1Count===0?'fail':'warn','H1 count',h1Count+' (should be exactly 1)','high'));
+    var skip=false;
+    for(var i=1;i<headings.length;i++)if(headings[i].level-headings[i-1].level>1)skip=true;
+    sc.push(ck(!skip?'pass':'warn','Heading order',skip?'Skipped levels detected':'No skipped levels','medium'));
+    var noAlt=0;
+    for(var i=0;i<imgs.length;i++){var a=imgs[i].getAttribute('alt');if(a===null||a==='')noAlt++;}
+    sc.push(ck(noAlt===0?'pass':noAlt<=imgs.length/2?'warn':'fail','Image alt text',imgs.length+' images, '+noAlt+' missing alt text','medium'));
+    var avgParas=cleanText.split(/\n\s*\n/);
+    var avgParaLen=avgParas.length>0?countWords(cleanText)/avgParas.length:0;
+    sc.push(ck(avgParaLen<=150?'pass':'warn','Paragraph length','Avg '+Math.round(avgParaLen)+' words per paragraph','low'));
+    checks.structure.checks=sc;
+    var sPass=0;for(var i=0;i<sc.length;i++)if(sc[i].status==='pass')sPass++;
+    checks.structure.score=Math.round((sPass/sc.length)*100);
+
+    var hasCanonical=!!doc.querySelector('link[rel="canonical"]');
+    var hasLang=!!(doc.documentElement.lang||doc.documentElement.getAttribute('lang'));
+    var hasFavicon=!!doc.querySelector('link[rel="icon"],link[rel="shortcut icon"],link[rel="apple-touch-icon"]');
+    var hasDoctype=html.trim().slice(0,100).toLowerCase().includes('<!doctype html>');
+    var tc=[];
+    tc.push(ck(hasSchema?'pass':'warn','Schema.org',hasSchema?'Structured data present':'No JSON-LD detected','medium'));
+    tc.push(ck(hasViewport?'pass':'fail','Viewport meta',hasViewport?'Present':'Missing','high'));
+    tc.push(ck(hasCanonical?'pass':'warn','Canonical URL',hasCanonical?'Present':'Missing','medium'));
+    tc.push(ck(hasLang?'pass':'warn','HTML lang attr',hasLang?'lang="'+(doc.documentElement.lang||doc.documentElement.getAttribute('lang'))+'"':'Missing','medium'));
+    tc.push(ck(hasFavicon?'pass':'warn','Favicon',hasFavicon?'Present':'Missing','medium'));
+    tc.push(ck(hasDoctype?'pass':'fail','Doctype',hasDoctype?'HTML5 doctype':'Missing or incorrect','high'));
+    tc.push(ck(html.length<512000?'pass':html.length<1048576?'warn':'fail','Page size',(html.length/1024).toFixed(0)+' KB','low'));
+    var robots=meta['robots']||'';
+    tc.push(ck(!robots.includes('noindex')?'pass':'warn','Indexing',robots.includes('noindex')?'Page is noindex':'Page is indexable','high'));
+    var scripts=doc.querySelectorAll('script[src]').length;
+    var styles=doc.querySelectorAll('link[rel="stylesheet"]').length;
+    tc.push(ck(scripts+styles<=30?'pass':scripts+styles<=50?'warn':'fail','Resources',scripts+' JS + '+styles+' CSS = '+(scripts+styles)+' total','low'));
+    checks.technical.checks=tc;
+    var tPass=0;for(var i=0;i<tc.length;i++)if(tc[i].status==='pass')tPass++;
+    checks.technical.score=Math.round((tPass/tc.length)*100);
+
+    var lc=[];
+    var host='';
+    try{host=new URL(url).hostname;}catch(e){}
+    var internal=0,external=0;
+    for(var i=0;i<links.length;i++){
+      var h=links[i].getAttribute('href')||'';
+      if(!h||h==='#'||h.startsWith('javascript:'))continue;
+      if(h.startsWith('http')){try{if(new URL(h).hostname===host)internal++;else external++}catch(e){}}else{internal++}
+    }
+    lc.push(ck(internal>0?'pass':'warn','Internal links',internal+' internal link(s)','medium'));
+    lc.push(ck(external>0?'pass':'warn','External links',external+' external link(s)','low'));
+    var totalL=internal+external;
+    lc.push(ck(totalL>0&&totalL<=150?'pass':totalL>150?'warn':'fail','Link count',totalL+' total links','low'));
+    lc.push(ck(external===0||internal>external?'pass':'warn','Link balance',external>0&&internal>0?'Balanced':external>0?'No internal links':internal>0?'No external links':'No links found','low'));
+    checks.links.checks=lc;
+    var lPass=0;for(var i=0;i<lc.length;i++)if(lc[i].status==='pass')lPass++;
+    checks.links.score=Math.round((lPass/lc.length)*100);
+
+    var weights={meta:0.20,content:0.25,readability:0.15,structure:0.20,technical:0.10,links:0.10};
+    var total=0;
+    for(var k in weights)total+=checks[k].score*weights[k];
+    checks.total=Math.round(total);
+
+    var imgList=[];
+    for(var i=0;i<imgs.length;i++){var alt=imgs[i].getAttribute('alt')||'';imgList.push({src:imgs[i].getAttribute('src')||'',alt:alt,hasAlt:alt!=='',width:imgs[i].getAttribute('width')||'',height:imgs[i].getAttribute('height')||''})}
+    checks.extraMeta=meta;
+    checks.headings=headings;
+    checks.imgList=imgList;
+    checks.wordCount=wordCount;
+    checks.fkgl=fk;
+    checks.cleanText=cleanText;
+    checks.scripts=scripts;
+    checks.styles=styles;
+    return checks;
+  }
+
+  function render(result,url,keyword){
+    hide(loading);show(results);loadingStep.textContent='';
+    scoreText.textContent=result.total;
+    var grade=getGrade(result.total);
+    scoreGrade.textContent=grade.letter;
+    scoreBadge.textContent=grade.label;
+    scoreBadge.style.background=grade.color+'20';
+    scoreBadge.style.color=grade.color;
+    scoreArc.style.stroke=grade.color;
+    scoreArc.style.strokeDashoffset=CIRC-(CIRC*result.total/100);
+    scoreTitle.textContent='Page Grade: '+grade.letter+' ('+result.total+')';
+    scoreUrl.textContent=url;
+    scoreKeyword.textContent=keyword?'Target keyword: "'+keyword+'"':'';
+
+    var cats={meta:'Meta Tags',content:'Content',readability:'Readability',structure:'Structure',technical:'Technical SEO',links:'Links'};
+    catWrap.innerHTML='';
+    var order=['meta','content','readability','structure','technical','links'];
+    for(var o=0;o<order.length;o++){
+      var k=order[o];
+      var c=result[k];
+      var g=getGrade(c.score);
+      var el=document.createElement('span');
+      el.className='text-[10px] font-bold px-2 py-0.5 rounded-full';
+      el.style.background=g.color+'15';
+      el.style.color=g.color;
+      el.textContent=c.score+' '+cats[k];
+      catWrap.appendChild(el);
+    }
+
+    var allChecks=[];
+    for(var o=0;o<order.length;o++)for(var i=0;i<result[order[o]].checks.length;i++)allChecks.push(result[order[o]].checks[i]);
+
+    var pCol={high:'var(--color-error)',medium:'var(--color-warning)',low:''};
+    var pLbl={high:'H',medium:'M',low:''};
+    var statusIcon={pass:'<svg class="w-3.5 h-3.5 text-success shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>',warn:'<svg class="w-3.5 h-3.5 text-warning shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>',fail:'<svg class="w-3.5 h-3.5 text-error shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18"/><path d="m6 6 12 12"/></svg>'};
+
+    checklist.innerHTML='';
+    for(var o=0;o<order.length;o++){
+      var k=order[o];
+      var c=result[k];
+      var g=getGrade(c.score);
+      var group=document.createElement('div');
+      group.className='glass rounded-xl overflow-hidden';
+
+      var header=document.createElement('div');
+      header.className='flex items-center gap-2 px-4 py-2.5 text-xs font-bold border-b border-base-content/5';
+      header.style.background=g.color+'08';
+      header.innerHTML='<span>'+cats[k]+'</span><span class="ml-auto font-mono" style="color:'+g.color+'">'+c.score+'/100</span>';
+      group.appendChild(header);
+
+      var body=document.createElement('div');
+      body.className='divide-y divide-base-content/5';
+      for(var i=0;i<c.checks.length;i++){
+        var ch=c.checks[i];
+        var row=document.createElement('div');
+        row.className='flex items-start gap-2 px-4 py-2';
+        row.innerHTML=statusIcon[ch.status||'fail']||'';
+        if(ch.priority&&ch.priority!=='low'&&ch.status!=='pass'){
+          var badge=document.createElement('span');
+          badge.className='text-[9px] font-black px-1 rounded shrink-0 mt-0.5';
+          badge.style.color=pCol[ch.priority];
+          badge.style.background=pCol[ch.priority]+'20';
+          badge.textContent=pLbl[ch.priority];
+          row.appendChild(badge);
+        }
+        var txt=document.createElement('span');
+        txt.className='text-xs text-base-content/70';
+        txt.innerHTML='<span class="font-medium text-base-content">'+esc(ch.label)+'</span> '+esc(ch.message);
+        row.appendChild(txt);
+        body.appendChild(row);
+      }
+      group.appendChild(body);
+      checklist.appendChild(group);
+    }
+
+    serpResult.innerHTML=(function(){
+      var t=result.extraMeta['title']||'Untitled Page';
+      var d=result.extraMeta['description']||'No meta description found';
+      var du=result.extraMeta['og:url']||'example.com/page';
+      try{var u=new URL(result.extraMeta['og:url']||'http://example.com/page');du=u.hostname+u.pathname;}catch(e){}
+      return '<div style="max-width:600px"><div class="text-[#006621] text-[14px] leading-5">'+esc(du)+'</div><div class="text-[#1a0dab] text-[16px] leading-5 font-normal">'+esc(t)+'</div><div class="text-[#545454] text-[13px] leading-4 mt-0.5">'+esc(d).slice(0,160)+'</div></div>';
+    })();
+
+    contentAnalysis.innerHTML=(function(r,kw){
+      var html='';
+      var passCount=0,totalCount=0;
+      for(var o=0;o<order.length;o++){var c=r[order[o]].checks;for(var i=0;i<c.length;i++){totalCount++;if(c[i].status==='pass')passCount++;}}
+      html+='<div class="flex justify-between py-1"><span>Checks passed</span><span class="font-bold">'+passCount+'/'+totalCount+'</span></div>';
+      html+='<div class="flex justify-between py-1"><span>Word count</span><span class="font-bold">'+r.wordCount+'</span></div>';
+      html+='<div class="flex justify-between py-1"><span>Reading time</span><span class="font-bold">'+Math.max(1,Math.round(r.wordCount/200))+' min</span></div>';
+      if(r.fkgl!==null)html+='<div class="flex justify-between py-1"><span>FKGL score</span><span class="font-bold">'+r.fkgl.toFixed(1)+'</span></div>';
+      if(kw&&r.cleanText){
+        var w=r.cleanText.toLowerCase().match(/[\w\u00C0-\u024F]+/g)||[];
+        var freq={};
+        var stop='the a an is are was were be been being have has had do does did will would shall should may might must can could in on at for to of by with from into through during before after above below between out off over under again further then once here there when where why how all each every both few more most other some such no nor not only own same so than too very just because as until while about'.split(' ');
+        for(var i=0;i<w.length;i++){var wd=w[i];if(wd.length<3||stop.indexOf(wd)>-1)continue;freq[wd]=(freq[wd]||0)+1;}
+        var sorted=Object.keys(freq).sort(function(a,b){return freq[b]-freq[a]}).slice(0,6);
+        if(sorted.length){
+          html+='<div class="pt-2 mt-1 border-t border-base-content/10"><span class="font-bold block mb-1.5">Top Keywords</span><div class="flex flex-wrap gap-1">';
+          for(var i=0;i<sorted.length;i++)html+='<span class="px-1.5 py-0.5 rounded bg-base-content/5 text-[10px]">'+esc(sorted[i])+' <span class="opacity-40">×'+freq[sorted[i]]+'</span></span>';
+          html+='</div></div>';
+        }
+      }
+      return html;
+    })(result,keyword);
+
+    headingTree.innerHTML=(function(h){
+      if(!h.length)return '<p class="text-base-content/30">No headings found</p>';
+      var html='';
+      for(var i=0;i<h.length;i++){
+        var pad=(h[i].level-1)*16;
+        var cls=h[i].level===1?'font-bold':h[i].level===2?'font-semibold':'opacity-60';
+        html+='<div style="padding-left:'+pad+'px;border-left:2px solid var(--color-base-200);margin:2px 0" class="py-0.5 text-[11px] '+cls+'">h'+h[i].level+' '+esc(h[i].text||'(empty)')+'</div>';
+      }
+      return html;
+    })(result.headings);
+
+    imageAudit.innerHTML=(function(imgs){
+      if(!imgs.length)return '<p class="text-base-content/30">No images found</p>';
+      var pass=0,fail=0;
+      for(var i=0;i<imgs.length;i++)if(imgs[i].hasAlt)pass++;else fail++;
+      var html='<div class="flex items-center gap-3 mb-2 text-[11px]"><span class="text-success font-bold">'+pass+' ok</span><span class="text-error font-bold">'+fail+' missing</span><span class="opacity-40">'+imgs.length+' total</span></div>';
+      html+='<div class="max-h-36 overflow-y-auto space-y-0.5">';
+      for(var i=0;i<imgs.length;i++){
+        var s=imgs[i].src||'';
+        var sn=s.split('/').pop()||s.slice(0,35);
+        html+='<div class="flex items-start gap-1.5 py-0.5 text-[10px]"><span class="shrink-0 mt-0.5">'+(imgs[i].hasAlt?'<span class="text-success">✓</span>':'<span class="text-error">✗</span>')+'</span><div class="min-w-0 flex-1 truncate">'+esc(sn)+'</div></div>';
+      }
+      html+='</div>';
+      return html;
+    })(result.imgList);
+
+    exportSummary.classList.remove('hidden');
+    exportSummary.innerHTML=(function(r){
+      var passed=0,failed=0,warned=0;
+      for(var i=0;i<allChecks.length;i++){if(allChecks[i].status==='pass')passed++;else if(allChecks[i].status==='warn')warned++;else failed++;}
+      var g=getGrade(r.total);
+      return '<div class="grid grid-cols-2 gap-2 text-xs"><div>Grade: <span class="font-bold" style="color:'+g.color+'">'+g.letter+' ('+r.total+')</span></div><div>Passed: <span class="font-bold text-success">'+passed+'</span></div><div>Warnings: <span class="font-bold text-warning">'+warned+'</span></div><div>Failed: <span class="font-bold text-error">'+failed+'</span></div></div>';
+    })(result);
+  }
+
+  function saveHistory(url,keyword,score){
+    var h=JSON.parse(localStorage.getItem('pg_history')||'[]');
+    h.unshift({url:url,keyword:keyword||'',score:score,date:new Date().toISOString().slice(0,10)});
+    if(h.length>10)h=h.slice(0,10);
+    localStorage.setItem('pg_history',JSON.stringify(h));
+    renderHistory();
+  }
+
+  function renderHistory(){
+    var h=JSON.parse(localStorage.getItem('pg_history')||'[]');
+    if(!h.length){hide(history);return;}
+    show(history);
+    historyList.innerHTML='';
+    for(var i=0;i<h.length;i++){
+      var g=getGrade(h[i].score);
+      var a=document.createElement('button');
+      a.className='text-[10px] px-2 py-1 rounded-full font-bold uppercase tracking-wider transition-colors';
+      a.style.background=g.color+'15';
+      a.style.color=g.color;
+      a.textContent=h[i].score+' '+(h[i].url.length>28?h[i].url.slice(0,28)+'…':h[i].url);
+      a.onclick=function(j){return function(){urlInput.value=h[j].url;keywordInput.value=h[j].keyword;analyzePage()}}(i);
+      historyList.appendChild(a);
+    }
+  }
+
+  function exportJSON(r){
+    var data={url:urlInput.value.trim(),keyword:keywordInput.value.trim(),date:new Date().toISOString(),score:r.total,grade:getGrade(r.total).letter};
+    var order=['meta','content','readability','structure','technical','links'];
+    var cats={meta:'Meta Tags',content:'Content',readability:'Readability',structure:'Structure',technical:'Technical SEO',links:'Links'};
+    data.categories={};
+    for(var o=0;o<order.length;o++){var k=order[o];data.categories[k]={label:cats[k],score:r[k].score,checks:r[k].checks};}
+    var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='page-grade-'+Date.now()+'.json';a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  btn.onclick=analyzePage;
+  urlInput.onkeydown=function(e){if(e.key==='Enter')analyzePage()};
+  keywordInput.onkeydown=function(e){if(e.key==='Enter')analyzePage()};
+  printBtn.onclick=function(){window.print()};
+  exportJsonBtn.onclick=function(){var r=window.__pgResult;if(r)exportJSON(r)};
+  renderHistory();
+})();
+</script>
+
+<style>
+@media print {
+  .navbar,.bottom-nav,.floating-nav,.hero-section,.footer,.cookie-banner,#cookieConsent,#searchDialog,#pgHistory{display:none!important}
+  #pgResults{display:block!important}
+  #pgLoading{display:none!important}
+  #pgEmpty{display:none!important}
+  body{background:#fff!important;color:#000!important;padding:0!important;margin:0!important}
+  .glass{background:#fff!important;border:1px solid #ddd!important;box-shadow:none!important}
+  .container-site{max-width:100%!important}
+  #pgBtn,.btn{display:none!important}
+  input{display:none!important}
+  .glass.rounded-2xl{padding:1rem!important}
+}
+</style>
+{% endblock %}

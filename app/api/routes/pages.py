@@ -12,8 +12,14 @@ from markupsafe import Markup
 
 from app.core.config import settings
 from app.core.icons import lucide_icon
+from app.core.log import get_logger
+from app.core.responses import cached_json, no_cache_json
 from app.services.catalog_service import CatalogService
 from app.services.seo_service import SeoService
+
+logger = get_logger(__name__)
+
+CONTACT_RECIPIENT = os.getenv("CONTACT_EMAIL", "")
 
 __all__ = ["router"]
 
@@ -38,6 +44,9 @@ templates.env.filters["sanitize"] = lambda html: Markup(nh3.clean(html or ""))
 APP_VERSION = os.getenv("APP_VERSION", "dev")
 templates.env.globals["app_version"] = APP_VERSION
 
+# Cache-control: 1 day for HTML pages, 5 min for stale-while-revalidate
+_PAGE_CACHE_HEADERS = {"Cache-Control": "public, max-age=86400, stale-while-revalidate=604800"}
+
 _pages_dir_cache: list[str] | None = None
 _pages_dir_cache_ts: float = 0
 _PAGES_DIR_TTL = 300
@@ -58,17 +67,21 @@ def _get_cached_page_names() -> list[str]:
 
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+    resp = templates.TemplateResponse(request=request, name="index.html")
+    resp.headers.update(_PAGE_CACHE_HEADERS)
+    return resp
 
 
 @router.get("/tools", response_class=HTMLResponse)
 async def tools_page(request: Request):
     categories, static_pages = catalog_service.get_categorized_tools()
-    return templates.TemplateResponse(
+    resp = templates.TemplateResponse(
         request=request,
         name="tools.html",
         context={"categories": categories, "static_pages": static_pages},
     )
+    resp.headers.update(_PAGE_CACHE_HEADERS)
+    return resp
 
 
 @router.get("/tool/{tool_name}", response_class=HTMLResponse)
@@ -85,7 +98,7 @@ async def get_tool(request: Request, tool_name: str):
     categories, _ = catalog_service.get_categorized_tools()
     seo_data = seo_service.get_seo(tool_name)
     template_name = f"tools/{tool_name.replace('-', '_')}.html"
-    return templates.TemplateResponse(
+    resp = templates.TemplateResponse(
         request=request,
         name=template_name,
         context={
@@ -94,12 +107,14 @@ async def get_tool(request: Request, tool_name: str):
             "seo_data": seo_data,
         },
     )
+    resp.headers.update(_PAGE_CACHE_HEADERS)
+    return resp
 
 
 @router.get("/sitemap", response_class=HTMLResponse)
 async def html_sitemap(request: Request):
     categories, static_pages = catalog_service.get_categorized_tools()
-    return templates.TemplateResponse(
+    resp = templates.TemplateResponse(
         request=request,
         name="pages/sitemap.html",
         context={
@@ -108,6 +123,8 @@ async def html_sitemap(request: Request):
             "static_pages": static_pages,
         },
     )
+    resp.headers.update(_PAGE_CACHE_HEADERS)
+    return resp
 
 
 @router.get("/api/tools/catalog")
@@ -117,12 +134,14 @@ async def tools_catalog():
     for cat_name, cat_tools in categories.items():
         for t in cat_tools:
             tools.append({"name": t["name"], "url": t["url"], "desc": t["desc"], "category": cat_name})
-    return tools
+    return cached_json(tools, max_age=300, stale_while_revalidate=3600)
 
 
 @router.get("/offline", response_class=HTMLResponse)
 async def offline_page(request: Request):
-    return templates.TemplateResponse(request=request, name="offline.html")
+    resp = templates.TemplateResponse(request=request, name="offline.html")
+    resp.headers.update(_PAGE_CACHE_HEADERS)
+    return resp
 
 
 @router.get("/sw.js", include_in_schema=False)
@@ -132,6 +151,40 @@ async def service_worker():
         "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
     }
     return FileResponse(os.path.join(settings.static_dir, "sw.js"), headers=headers)
+
+
+@router.post("/api/contact")
+async def contact_submission(request: Request):
+    from pydantic import BaseModel
+    class ContactForm(BaseModel):
+        name: str
+        email: str
+        message: str
+
+    body = await request.json()
+    form = ContactForm(**body)
+    if not form.name.strip() or not form.email.strip() or not form.message.strip():
+        raise HTTPException(status_code=400, detail="All fields are required")
+
+    logger.info("Contact form submission from %s (%s): %.80s", form.name, form.email, form.message)
+
+    if CONTACT_RECIPIENT:
+        try:
+            import smtplib
+            from email.message import EmailMessage
+            msg = EmailMessage()
+            msg.set_content(f"Name: {form.name}\nEmail: {form.email}\n\nMessage:\n{form.message}")
+            msg["Subject"] = f"Contact form: {form.name}"
+            msg["From"] = form.email
+            msg["To"] = CONTACT_RECIPIENT
+            smtp_host = os.getenv("SMTP_HOST", "localhost")
+            smtp_port = int(os.getenv("SMTP_PORT", "25"))
+            with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as s:
+                s.send_message(msg)
+        except Exception as e:
+            logger.warning("Failed to email contact form: %s", e)
+
+    return {"status": "ok"}
 
 
 @router.get("/{page_name}", response_class=HTMLResponse)
@@ -145,7 +198,7 @@ async def get_page(request: Request, page_name: str):
         category_name, seo_title = settings.HUB_CATEGORIES[page_name]
         categories, static_pages = catalog_service.get_categorized_tools()
         hub_tools = categories.get(category_name, [])
-        return templates.TemplateResponse(
+        resp = templates.TemplateResponse(
             request=request,
             name="hub.html",
             context={
@@ -158,11 +211,15 @@ async def get_page(request: Request, page_name: str):
                 "static_pages": static_pages,
             },
         )
+        resp.headers.update(_PAGE_CACHE_HEADERS)
+        return resp
 
     if page_name in _get_cached_page_names():
-        return templates.TemplateResponse(
+        resp = templates.TemplateResponse(
             request=request,
             name=f"pages/{page_name}.html",
             context={"title": page_name.replace("-", " ").title()},
         )
+        resp.headers.update(_PAGE_CACHE_HEADERS)
+        return resp
     raise HTTPException(status_code=404, detail="Page not found")

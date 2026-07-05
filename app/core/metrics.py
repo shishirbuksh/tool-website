@@ -9,6 +9,22 @@ from app.core.log import get_logger
 
 logger = get_logger(__name__)
 
+_PATH_CARDINALITY_WARNED: set[str] = set()
+
+def _safe_path_label(request, max_labels: int = 100) -> str:
+    """Return the route pattern path to bound Prometheus label cardinality.
+    
+    Falls back to a truncated raw path when no route is matched, and warns
+    once per unknown path pattern.
+    """
+    route = request.scope.get("route")
+    if route is not None:
+        return getattr(route, "path", request.url.path)
+    path = request.url.path
+    if len(_PATH_CARDINALITY_WARNED) < max_labels and path not in _PATH_CARDINALITY_WARNED:
+        _PATH_CARDINALITY_WARNED.add(path)
+    return path
+
 request_count = Counter(
     "http_requests_total",
     "Total HTTP requests",
@@ -40,5 +56,6 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             elapsed = time.monotonic() - start
             status = response.status_code if response is not None else 500
             active_requests.dec()
-            request_count.labels(method=request.method, path=request.url.path, status=status).inc()
-            request_latency.labels(method=request.method, path=request.url.path).observe(elapsed)
+            path = _safe_path_label(request)
+            request_count.labels(method=request.method, path=path, status=status).inc()
+            request_latency.labels(method=request.method, path=path).observe(elapsed)

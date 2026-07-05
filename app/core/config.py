@@ -58,7 +58,8 @@ class Settings(BaseSettings):
         return [
             "https://www.storybrainai.com",
             "https://storybrainai.com",
-            "http://localhost:8000",
+            "http://localhost:8090",
+            "http://127.0.0.1:8090",
         ]
 
     @property

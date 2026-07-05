@@ -34,6 +34,7 @@ _CSP_BASE = (
     "frame-ancestors 'none'; "
     "base-uri 'self'; "
     "form-action 'self'; "
+    "worker-src 'self'; "
 )
 _CSP_SCRIPT_ALLOWED = (
     "'self' https://static.cloudflareinsights.com "
@@ -153,7 +154,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             count = results[2]
             return count > self.requests_per_minute
         except Exception:
-            return True  # fail closed on Redis errors — block request to be safe
+            return False  # fail open on Redis errors — allow request rather than block all traffic
 
     def _is_rate_limited_memory(self, client_ip: str, now: float) -> bool:
         """Sliding-window check against in-process dict."""

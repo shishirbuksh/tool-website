@@ -173,8 +173,9 @@ class CryptoService:
         degraded_flag = degraded if degraded else None
 
         if include_ta:
-            result = self._build_trend_result(
-                symbol, close_prices, timestamps, future_dates, prophet_preds, rust_preds, df
+            result = await loop.run_in_executor(
+                None, self._build_trend_result,
+                symbol, close_prices, timestamps, future_dates, prophet_preds, rust_preds, df,
             )
             if degraded_flag:
                 result["degraded"] = degraded_flag

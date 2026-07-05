@@ -6,6 +6,7 @@ const STATIC_CACHE = 'storybrain-static-v30';
 const PRECACHE_URLS = [
   '/',
   '/static/css/app.css',
+  '/static/css/fonts.css',
   '/static/favicon.svg',
   '/static/og-image.jpg',
   '/static/manifest.json',

@@ -1,12 +1,17 @@
 .PHONY: install build start run clean deploy setup-vps
 
+ifneq ("$(wildcard .env)","")
+    include .env
+    export
+endif
+
 install:
 	@echo "=== Installing Python dependencies ==="
 	pip install -r requirements.txt
 	@echo "=== Installing Node.js dependencies ==="
 	npm ci
-	@echo "=== Building Rust extension ==="
-	cd rust_predictor && pip install -e .
+	@echo "=== Building Rust extension (optional) ==="
+	cd rust_predictor && pip install -e . 2>/dev/null || echo "[WARN] Rust build skipped — rust_predictor not available"
 	@echo "=== Install complete ==="
 
 build:
@@ -16,7 +21,7 @@ build:
 
 start:
 	@echo "=== Starting production server ==="
-	gunicorn app.main:app -c gunicorn_conf.py
+	HOST=$${HOST:-0.0.0.0} PORT=$${PORT:-8090} gunicorn app.main:app -c gunicorn_conf.py
 
 run: install build start
 

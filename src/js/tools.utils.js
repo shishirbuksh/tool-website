@@ -6,18 +6,44 @@
   /* ── Clipboard ── */
   window.sbr.copyToClipboard = function (text, btnEl, successMsg) {
     if (!text) return;
-    navigator.clipboard.writeText(text).then(function () {
-      if (!btnEl) return;
-      var orig = btnEl.innerHTML;
-      btnEl.innerHTML = (successMsg || 'Copied!');
-      btnEl.disabled = true;
-      setTimeout(function () {
-        btnEl.innerHTML = orig;
-        btnEl.disabled = false;
-      }, 2000);
-    })['catch'](function (err) {
-      console.warn('[sbr] Clipboard write failed:', err);
-    });
+    var fallback = function () {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed'; ta.style.left = '-9999px'; ta.style.top = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        if (btnEl) {
+          var orig = btnEl.innerHTML;
+          btnEl.innerHTML = (successMsg || 'Copied!');
+          btnEl.disabled = true;
+          setTimeout(function () {
+            btnEl.innerHTML = orig;
+            btnEl.disabled = false;
+          }, 2000);
+        }
+      } catch (e) {
+        console.warn('[sbr] Clipboard fallback also failed:', e);
+      }
+      document.body.removeChild(ta);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        if (!btnEl) return;
+        var orig = btnEl.innerHTML;
+        btnEl.innerHTML = (successMsg || 'Copied!');
+        btnEl.disabled = true;
+        setTimeout(function () {
+          btnEl.innerHTML = orig;
+          btnEl.disabled = false;
+        }, 2000);
+      })['catch'](function () {
+        fallback();
+      });
+    } else {
+      fallback();
+    }
   };
 
   /* ── File size formatting ── */
@@ -112,17 +138,7 @@
       var targetEl = document.getElementById(targetId);
       if (targetEl) {
         var text = targetEl.textContent;
-        navigator.clipboard.writeText(text).then(function () {
-          var orig = btn.innerHTML;
-          btn.innerHTML = 'Copied!';
-          btn.disabled = true;
-          setTimeout(function () {
-            btn.innerHTML = orig;
-            btn.disabled = false;
-          }, 2000);
-        })['catch'](function (err) {
-          console.warn('[sbr] Clipboard write failed:', err);
-        });
+        window.sbr.copyToClipboard(text, btn);
       }
     }
   });
