@@ -65,7 +65,12 @@ class Settings(BaseSettings):
     @property
     def allowed_hosts_list(self) -> list[str]:
         if not self.ALLOWED_HOSTS.strip():
-            return []
+            return [
+                "127.0.0.1",
+                "localhost",
+                "storybrainai.com",
+                "www.storybrainai.com",
+            ]
         result = [h.strip() for h in self.ALLOWED_HOSTS.split(",") if h.strip()]
         if any(h == "*" for h in result):
             raise ValueError(
