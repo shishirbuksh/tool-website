@@ -1,0 +1,576 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
+{% block title %}Color Palette Extractor — Extract Dominant Colors from Images Free Online{% endblock %}
+{% block meta_description %}Extract dominant colors from any image instantly. Upload, drag-and-drop, or paste an image to get hex, RGB, HSL, and Tailwind color values. Free, no sign-up, all in-browser.{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/color-palette-extractor{% endblock %}
+{% block og_title %}Color Palette Extractor — Extract Colors from Images Online{% endblock %}
+{% block og_description %}Upload any image and extract its dominant color palette using K-means clustering. Get hex, RGB, HSL values. Export as CSS, Tailwind config, or JSON. Free, no sign-up.{% endblock %}
+{% block og_image %}<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Color Palette Extractor — extract dominant colors from images, get hex/RGB/HSL values, export as CSS/Tailwind/JSON">{% endblock %}
+{% block twitter_image %}<meta name="twitter:image" content="https://www.storybrainai.com/static/og-image.jpg">{% endblock %}
+{% block head %}
+<style>
+.cpe-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.cpe-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.cpe-select{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;cursor:pointer}
+.cpe-select:focus{border-color:var(--color-primary);outline:none}
+.cpe-upload-zone{aspect-ratio:16/9;background:var(--color-base-100);border:2px dashed var(--color-base-300);border-radius:1rem;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:pointer;transition:border-color .2s,background .2s;min-height:160px}
+.cpe-upload-zone:hover,.cpe-upload-zone.dragover{border-color:var(--color-primary);background:color-mix(in oklab,var(--color-primary) 5%,var(--color-base-100))}
+.cpe-upload-zone.dragover{transform:scale(1.01)}
+.cpe-upload-zone img{max-width:100%;max-height:100%;object-fit:contain;position:absolute;inset:0;padding:8px}
+.cpe-upload-zone .placeholder{text-align:center;pointer-events:none}
+.cpe-upload-zone .placeholder .icon-wrap{margin:0 auto 10px;width:48px;height:48px;border-radius:999px;background:var(--color-primary);display:flex;align-items:center;justify-content:center}
+.cpe-upload-zone .placeholder .icon-wrap svg{color:#fff}
+.cpe-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:999px;font-size:10px;font-weight:800;cursor:pointer;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;text-transform:uppercase;letter-spacing:.04em;touch-action:manipulation}
+.cpe-pill:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.cpe-pill.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.cpe-swatch-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.cpe-swatch{aspect-ratio:1;border-radius:1rem;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;border:2px solid transparent;display:flex;align-items:flex-end;justify-content:center;min-height:80px}
+.cpe-swatch:hover{transform:scale(1.03);z-index:2}
+.cpe-swatch.locked{border-color:var(--color-primary);box-shadow:0 0 0 2px var(--color-primary)}
+.cpe-swatch .lock-icon{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:999px;background:rgba(0,0,0,.35);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;opacity:0;transition:opacity .15s;backdrop-filter:blur(4px)}
+.cpe-swatch:hover .lock-icon,.cpe-swatch.locked .lock-icon{opacity:1}
+.cpe-swatch .hex-label{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:800;font-family:monospace;background:rgba(0,0,0,.45);color:#fff;padding:2px 8px;border-radius:6px;backdrop-filter:blur(4px);letter-spacing:.03em;white-space:nowrap}
+.cpe-swatch.active{border-color:var(--color-primary);z-index:3;transform:scale(1.05)}
+.cpe-swatch .cpe-pct{position:absolute;top:6px;left:6px;font-size:8px;font-weight:800;font-family:monospace;background:rgba(0,0,0,.35);color:#fff;padding:1px 5px;border-radius:4px;backdrop-filter:blur(4px)}
+.cpe-color-detail{background:var(--color-base-100);border-radius:1rem;padding:1rem;border:1px solid var(--color-base-300)}
+.cpe-color-detail .top-row{display:flex;align-items:center;gap:14px}
+.cpe-color-detail .preview{width:52px;height:52px;border-radius:12px;flex-shrink:0;border:2px solid var(--color-base-300)}
+.cpe-color-detail .info{flex:1;min-width:0}
+.cpe-color-detail .info .hex{font-weight:900;font-size:16px;font-family:monospace}
+.cpe-color-detail .info .name{font-size:11px;opacity:.55;margin-top:1px}
+.cpe-color-detail .info .alt{font-size:10px;font-family:monospace;opacity:.45;margin-top:2px}
+.cpe-color-detail .info .alt span{cursor:pointer}
+.cpe-color-detail .info .alt span:hover{opacity:1;text-decoration:underline}
+.cpe-color-detail .actions{display:flex;gap:4px;flex-wrap:wrap}
+.cpe-color-detail .actions button{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:6px 10px;border-radius:8px;border:none;cursor:pointer;background:var(--color-base-200);color:var(--color-base-content);transition:all .12s;font-family:inherit;touch-action:manipulation}
+.cpe-color-detail .actions button:hover{background:var(--color-primary);color:#fff}
+.cpe-slider-row{display:flex;flex-direction:column;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-base-300)}
+.cpe-slider-row .sl{display:flex;align-items:center;gap:10px}
+.cpe-slider-row .sl label{font-size:9px;font-weight:800;text-transform:uppercase;width:16px;flex-shrink:0;opacity:.45}
+.cpe-slider-row .sl input[type=range]{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:var(--color-base-300);border-radius:2px;outline:none}
+.cpe-slider-row .sl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:999px;background:var(--color-primary);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.cpe-slider-row .sl .sv{font-size:10px;font-weight:700;font-family:monospace;width:32px;text-align:right;opacity:.6}
+.cpe-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px;pointer-events:none}
+.cpe-toast.show{opacity:1;transform:translateY(0)}
+.cpe-empty-state{text-align:center;padding:48px 20px}
+.cpe-empty-state svg{opacity:.15;margin:0 auto 16px}
+.cpe-empty-state p{font-size:13px;font-weight:600;opacity:.4}
+.cpe-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cpe-stat{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-300)}
+.cpe-stat .num{font-size:18px;font-weight:900;font-family:monospace}
+.cpe-stat .lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.4}
+.cpe-contrast-card{background:var(--color-base-100);border-radius:1rem;padding:1rem;border:1px solid var(--color-base-300)}
+.cpe-contrast-card .big-ratio{font-size:32px;font-weight:900;font-family:monospace;line-height:1}
+.cpe-contrast-card .level{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.cpe-contrast-card .level.pass{background:#16a34a20;color:#16a34a}
+.cpe-contrast-card .level.fail{background:#dc262620;color:#dc2626}
+.cpe-thumb{width:28px;height:28px;border-radius:8px;border:2px solid var(--color-base-300);flex-shrink:0}
+.cpe-harmony-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.cpe-harmony-grid .hsw{height:32px;border-radius:6px;border:1px solid var(--color-base-300)}
+.cpe-cvd-palette{display:flex;gap:4px}
+.cpe-cvd-palette .cvd-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.cpe-cvd-palette .cvd-item .bar{width:100%;height:36px;border-radius:8px;border:1px solid var(--color-base-300)}
+.cpe-cvd-palette .cvd-item .clabel{font-size:8px;font-weight:700;font-family:monospace;opacity:.5}
+.cpe-matrix-table{border-collapse:separate;border-spacing:3px;font-size:10px;font-family:monospace;font-weight:700;width:100%}
+.cpe-matrix-table th{padding:2px;text-align:center;vertical-align:middle}
+.cpe-matrix-table td{padding:4px 6px;border-radius:6px;text-align:center;vertical-align:middle;min-width:32px}
+.cpe-matrix-table td.matrix-pass{background:#16a34a20;color:#16a34a}
+.cpe-matrix-table td.matrix-fail{background:#dc262620;color:#dc2626}
+.cpe-matrix-table td.matrix-self{background:transparent;color:var(--color-base-content);opacity:.2}
+@media(max-width:767px){
+.cpe-swatch-grid{grid-template-columns:repeat(5,1fr);gap:6px}
+.cpe-swatch{min-height:60px;border-radius:.65rem}
+.cpe-swatch .hex-label{font-size:8px;bottom:4px;padding:1px 5px}
+.cpe-color-detail .top-row{flex-wrap:wrap}
+.cpe-upload-zone{min-height:120px}
+.cpe-harmony-grid{grid-template-columns:repeat(5,1fr)}
+.cpe-contrast-card .big-ratio{font-size:24px}
+}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("palette","Free Tool","COLOR","PALETTE","Extract dominant colors from any image — hex, RGB, HSL, and Tailwind values — 100% in your browser.") }}
+<div class="container-site px-4 pb-24">
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+    <div class="lg:col-span-2 space-y-6">
+      <div class="cpe-card">
+        <label class="cpe-label">Upload Image</label>
+        <div id="cpeUploadZone" class="cpe-upload-zone" tabindex="0" role="button" aria-label="Upload or drop an image to extract colors">
+          <input type="file" id="cpeFileInput" class="absolute top-0 left-0 w-full h-full opacity-0" style="cursor:pointer;z-index:10;font-size:0" accept="image/*" aria-label="Choose image file">
+          <div class="placeholder" aria-hidden="true">
+            <div class="icon-wrap">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <p class="font-bold text-sm">Drop image here or click</p>
+            <p class="text-xs text-base-content/40 mt-1">PNG &bull; JPG &bull; WebP &bull; GIF &bull; paste supported</p>
+          </div>
+          <img id="cpePreviewImg" class="hidden" alt="Uploaded image preview">
+        </div>
+        <div id="cpeImageMeta" class="hidden flex items-center gap-3 mt-3">
+          <span id="cpeFileName" class="text-xs font-mono text-base-content/60 flex-1 truncate"></span>
+          <button class="btn btn-ghost btn-xs" id="cpeClearBtn" type="button">Remove</button>
+        </div>
+      </div>
+      <div class="cpe-card">
+        <label class="cpe-label">Color Count</label>
+        <div class="flex flex-wrap gap-2" id="cpeCountGroup" role="radiogroup" aria-label="Number of colors to extract">
+          <button class="cpe-pill on" data-count="5" type="button">5</button>
+          <button class="cpe-pill" data-count="10" type="button">10</button>
+          <button class="cpe-pill" data-count="15" type="button">15</button>
+        </div>
+        <label class="cpe-label" style="margin-top:14px">Sort By</label>
+        <div class="flex flex-wrap gap-2" id="cpeSortGroup">
+          <button class="cpe-pill on" data-sort="original" type="button">Original</button>
+          <button class="cpe-pill" data-sort="hue" type="button">Hue</button>
+          <button class="cpe-pill" data-sort="saturation" type="button">Sat</button>
+          <button class="cpe-pill" data-sort="lightness" type="button">Light</button>
+          <button class="cpe-pill" data-sort="frequency" type="button">Freq</button>
+        </div>
+        <button class="btn btn-primary btn-sm w-full mt-3" id="cpeExtractBtn" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-8.49-3.51 2.83-2.83m11.32-11.32 2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m11.32 11.32 2.83 2.83"/></svg>
+          Extract Palette
+        </button>
+      </div>
+      <div class="cpe-card" id="cpeFineTuneSection">
+        <label class="cpe-label">Fine-Tune Color</label>
+        <div id="cpeFineTuneEmpty" class="text-center py-4"><p class="text-xs text-base-content/40">Select a swatch to adjust</p></div>
+        <div id="cpeFineTune" class="hidden">
+          <div class="cpe-slider-row">
+            <div class="sl"><label>H</label><input type="range" min="0" max="360" value="0" id="cpeSliderH"><span class="sv" id="cpeSliderHVal">0</span></div>
+            <div class="sl"><label>S</label><input type="range" min="0" max="100" value="100" id="cpeSliderS"><span class="sv" id="cpeSliderSVal">100</span></div>
+            <div class="sl"><label>L</label><input type="range" min="0" max="100" value="50" id="cpeSliderL"><span class="sv" id="cpeSliderLVal">50</span></div>
+          </div>
+          <div class="flex gap-2 mt-3">
+            <button class="btn btn-primary btn-xs flex-1" id="cpeApplyTune" type="button">Apply</button>
+            <button class="btn btn-ghost btn-xs" id="cpeResetTune" type="button">Reset</button>
+          </div>
+        </div>
+      </div>
+      <div class="cpe-card" id="cpeExportSection">
+        <label class="cpe-label">Export</label>
+        <div class="flex flex-wrap gap-2">
+          <button class="cpe-pill" id="cpeExportHex" type="button">Hex List</button>
+          <button class="cpe-pill" id="cpeExportCss" type="button">CSS</button>
+          <button class="cpe-pill" id="cpeExportTailwind" type="button">Tailwind</button>
+          <button class="cpe-pill" id="cpeExportJson" type="button">JSON</button>
+          <button class="cpe-pill" id="cpeExportSvg" type="button">PNG</button>
+          <button class="cpe-pill" id="cpeCopyLink" type="button">Share Link</button>
+        </div>
+      </div>
+      <div class="cpe-card">
+        <label class="cpe-label">Image Stats</label>
+        <div class="cpe-stat-grid" id="cpeStats">
+          <div class="cpe-stat"><div><div class="num" id="cpeStatColors">0</div><div class="lbl">Colors</div></div></div>
+          <div class="cpe-stat"><div><div class="num" id="cpeStatPixels">0</div><div class="lbl">Pixels</div></div></div>
+          <div class="cpe-stat"><div><div class="num" id="cpeStatSize">0</div><div class="lbl">KB</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="lg:col-span-3 space-y-6">
+      <div class="cpe-card">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-8.49-3.51 2.83-2.83m11.32-11.32 2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m11.32 11.32 2.83 2.83"/></svg>
+            Palette
+          </h2>
+          <button class="btn btn-ghost btn-xs" id="cpeSaveBtn" type="button">Save</button>
+        </div>
+        <div id="cpePaletteContainer">
+          <div class="cpe-empty-state" id="cpeEmptyState">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-8.49-3.51 2.83-2.83m11.32-11.32 2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m11.32 11.32 2.83 2.83"/></svg>
+            <p>Upload an image to extract its color palette</p>
+          </div>
+          <div id="cpePalette" class="cpe-swatch-grid hidden"></div>
+        </div>
+      </div>
+      <div class="cpe-card" id="cpeDetailSection">
+        <label class="cpe-label">Selected Color</label>
+        <div id="cpeEmptyDetail" class="text-center py-6"><p class="text-xs text-base-content/40">Click a swatch to see details</p></div>
+        <div id="cpeColorDetail" class="cpe-color-detail hidden"></div>
+      </div>
+      <div class="cpe-card" id="cpeContrastSection">
+        <div class="flex items-center justify-between mb-3">
+          <label class="cpe-label" style="margin:0">WCAG Contrast Checker</label>
+          <button class="btn btn-ghost btn-xs" id="cpeToggleMatrix" type="button">Matrix</button>
+        </div>
+        <p class="text-xs text-base-content/50 mb-3">Click two swatches to compare contrast</p>
+        <div class="cpe-contrast-card">
+          <div class="flex items-center gap-3 mb-3">
+            <div id="cpeContrastA" class="cpe-thumb" style="background:#cccccc"></div>
+            <span style="font-size:10px;font-weight:800;font-family:monospace" id="cpeContrastALabel">—</span>
+            <span style="opacity:.3">vs</span>
+            <div id="cpeContrastB" class="cpe-thumb" style="background:#cccccc"></div>
+            <span style="font-size:10px;font-weight:800;font-family:monospace" id="cpeContrastBLabel">—</span>
+          </div>
+          <div class="flex items-end gap-4">
+            <div><div class="big-ratio" id="cpeContrastRatio">—</div><div class="cpe-label" style="margin:0;font-size:8px">Ratio</div></div>
+            <div class="flex flex-col gap-1">
+              <span class="level" id="cpeCLevelAAN">AA Normal</span>
+              <span class="level" id="cpeCLevelAAL">AA Large</span>
+              <span class="level" id="cpeCLevelAAAN">AAA Normal</span>
+              <span class="level" id="cpeCLevelAAAL">AAA Large</span>
+            </div>
+          </div>
+        </div>
+        <div id="cpeMatrixWrap" class="hidden mt-3 overflow-x-auto"><table class="cpe-matrix-table" id="cpeMatrixTable"></table></div>
+      </div>
+      <div class="cpe-card" id="cpeHarmonySection">
+        <label class="cpe-label">Color Harmonies from Selected</label>
+        <div id="cpeHarmonyEmpty" class="text-center py-4"><p class="text-xs text-base-content/40">Select a color to generate harmonies</p></div>
+        <div id="cpeHarmonyContent" class="hidden space-y-4">
+          <div><label class="cpe-label" style="margin:0;font-size:8px">Monochromatic</label><div class="cpe-harmony-grid" id="cpeHarmMono"></div></div>
+          <div><label class="cpe-label" style="margin:0;font-size:8px">Complementary</label><div class="cpe-harmony-grid" id="cpeHarmComp"></div></div>
+          <div><label class="cpe-label" style="margin:0;font-size:8px">Triadic</label><div class="cpe-harmony-grid" id="cpeHarmTri"></div></div>
+          <div><label class="cpe-label" style="margin:0;font-size:8px">Analogous</label><div class="cpe-harmony-grid" id="cpeHarmAnalog"></div></div>
+        </div>
+      </div>
+      <div class="cpe-card">
+        <label class="cpe-label">Color Wheel</label>
+        <div class="flex justify-center"><canvas id="cpeColorWheel" width="200" height="200" style="width:200px;height:200px;border-radius:50%"></canvas></div>
+      </div>
+      <div class="cpe-card" id="cpeCvdSection">
+        <label class="cpe-label">Color Blind Simulator</label>
+        <select class="cpe-select mb-3" id="cpeCvdType">
+          <option value="">Normal Vision</option>
+          <option value="protanopia">Protanopia (red-blind)</option>
+          <option value="deuteranopia">Deuteranopia (green-blind)</option>
+          <option value="tritanopia">Tritanopia (blue-blind)</option>
+          <option value="achromatopsia">Achromatopsia (monochrome)</option>
+        </select>
+        <div class="cpe-cvd-palette" id="cpeCvdPalette"></div>
+      </div>
+      <div class="cpe-card" id="cpeGradSection">
+        <label class="cpe-label">Gradient Preview</label>
+        <div class="flex gap-2 mb-3">
+          <select class="cpe-select flex-1" id="cpeGradType"><option value="linear">Linear</option><option value="radial">Radial</option></select>
+          <select class="cpe-select flex-1" id="cpeGradDir"><option value="to right">&rarr; Right</option><option value="to left">&larr; Left</option><option value="to bottom">&darr; Bottom</option><option value="to top">&uarr; Top</option><option value="to bottom right">&#8600; Btm-Right</option><option value="to top left">&#8598; Top-Left</option></select>
+        </div>
+        <canvas id="cpeGradCanvas" width="300" height="60" style="width:100%;height:60px;border-radius:10px;border:1px solid var(--color-base-300)"></canvas>
+      </div>
+      <div class="cpe-card" id="cpeHistorySection">
+        <div class="flex items-center justify-between mb-3">
+          <label class="cpe-label" style="margin:0">Saved Palettes</label>
+          <button class="btn btn-ghost btn-xs text-error" id="cpeClearHistory" type="button">Clear</button>
+        </div>
+        <div id="cpeHistoryList" class="space-y-1.5 max-h-52 overflow-y-auto"><p class="text-xs text-base-content/40 text-center py-3">No saved palettes yet.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="cpeToast" class="cpe-toast" role="status" aria-live="polite"></div>
+{{ tool_seo_all(seo_data) }}
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ nonce }}">
+(function(){
+'use strict';
+/* ---- Dom refs ---- */
+var dz=document.getElementById('cpeUploadZone'),fi=document.getElementById('cpeFileInput'),pi=document.getElementById('cpePreviewImg'),fn_=document.getElementById('cpeFileName'),im=document.getElementById('cpeImageMeta'),cb=document.getElementById('cpeClearBtn'),eb=document.getElementById('cpeExtractBtn'),ps=document.getElementById('cpePalette'),es=document.getElementById('cpeEmptyState'),cd=document.getElementById('cpeColorDetail'),ed=document.getElementById('cpeEmptyDetail'),te=document.getElementById('cpeToast'),sc=document.getElementById('cpeStatColors'),sp=document.getElementById('cpeStatPixels'),ss=document.getElementById('cpeStatSize'),cw=document.getElementById('cpeColorWheel');
+
+/* ---- State ---- */
+var currentFile=null,currentImg=null,colors=[],locked=[],selectedIdx=-1,colorCount=5,sortMode='original';
+var contrastIdx=[0,0];
+
+/* ---- Toast ---- */
+function toast(m){te.textContent=m;te.classList.add('show');setTimeout(function(){te.classList.remove('show')},2200)}
+
+/* ---- Color utilities ---- */
+function rgbToHex(r,g,b){return'#'+[r,g,b].map(function(x){return Math.round(x).toString(16).padStart(2,'0')}).join('')}
+function hexToRgb(h){h=h.replace(/^#/,'');if(h.length===3){h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2]}var n=parseInt(h,16);return[(n>>16)&255,(n>>8)&255,n&255]}
+function rgbToHsl(r,g,b){r/=255;g/=255;b/=255;var M=Math.max(r,g,b),m=Math.min(r,g,b),d=M-m,h,s,l=(M+m)/2;if(d===0){h=0;s=0}else{s=l>0.5?d/(2-M-m):d/(M+m);if(M===r){h=((g-b)/d+(g<b?6:0))}else if(M===g){h=(b-r)/d+2}else{h=(r-g)/d+4}h/=6}return[Math.round(360*h),Math.round(100*s),Math.round(100*l)]}
+function hslToRgb(h,s,l){h/=360;s/=100;l/=100;var a=s*Math.min(l,1-l);var f=function(n){var k=(n+h*12)%12;return l-a*Math.max(-1,Math.min(k-3,9-k,1))};return[Math.round(255*f(0)),Math.round(255*f(8)),Math.round(255*f(4))]}
+function hslToHex(h,s,l){var c=hslToRgb(h,s,l);return rgbToHex(c[0],c[1],c[2])}
+function colorDist(r1,g1,b1,r2,g2,b2){var dr=r1-r2,dg=g1-g2,db=b1-b2;return dr*dr+dg*dg+db*db}
+function relativeLuminance(r,g,b){var a=[r,g,b].map(function(c){c/=255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4)});return 0.2126*a[0]+0.7152*a[1]+0.0722*a[2]}
+function contrastRatio(h1,h2){var c1=hexToRgb(h1),c2=hexToRgb(h2);var l1=relativeLuminance(c1[0],c1[1],c1[2]),l2=relativeLuminance(c2[0],c2[1],c2[2]);var b=Math.max(l1,l2),d=Math.min(l1,l2);return Math.round((b+0.05)/(d+0.05)*100)/100}
+function wcagLevel(ratio,isLarge){if(ratio>=7)return'AAA';if(isLarge&&ratio>=3)return'AA';if(!isLarge&&ratio>=4.5)return'AA';return'Fail'}
+
+/* ---- Color naming ---- */
+var colorNames={red:[{h:0,s:80,l:50},{h:10,s:80,l:50}],orange:[{h:20,s:80,l:50},{h:40,s:80,l:55}],yellow:[{h:50,s:80,l:55},{h:60,s:80,l:55}],lime:[{h:65,s:70,l:50},{h:80,s:70,l:50}],green:[{h:85,s:60,l:40},{h:150,s:60,l:40}],teal:[{h:155,s:60,l:40},{h:175,s:60,l:40}],cyan:[{h:180,s:60,l:45},{h:195,s:60,l:45}],azure:[{h:200,s:60,l:50},{h:210,s:60,l:50}],blue:[{h:215,s:70,l:45},{h:240,s:70,l:45}],indigo:[{h:245,s:60,l:45},{h:260,s:60,l:45}],violet:[{h:265,s:60,l:50},{h:280,s:60,l:50}],purple:[{h:285,s:60,l:50},{h:300,s:60,l:50}],magenta:[{h:305,s:70,l:50},{h:320,s:70,l:50}],pink:[{h:325,s:70,l:55},{h:345,s:70,l:55}],brown:[{h:15,s:40,l:30},{h:35,s:40,l:30}],grey:[{h:0,s:0,l:45},{h:0,s:0,l:55}],white:[{h:0,s:0,l:95},{h:0,s:0,l:100}],black:[{h:0,s:0,l:0},{h:0,s:0,l:8}]};
+function getColorName(h,s,l){
+  var best='unknown',bestD=Infinity;
+  for(var name in colorNames){
+    for(var i=0;i<colorNames[name].length;i++){
+      var c=colorNames[name][i];
+      var d=Math.abs(h-c.h)/360*2+Math.abs(s-c.s)/100+Math.abs(l-c.l)/100;
+      if(d<bestD){bestD=d;best=name}}}
+  if(l<10)return'black';if(l>92&&s<15)return'white';if(s<12&&l>10&&l<92)return'grey';
+  return best}
+
+/* ---- K-means++ clustering ---- */
+function extractPalette(pixels,k){
+  var n=pixels.length;if(n===0)return[];if(n<=k){return pixels.map(function(p,i){var hsl=rgbToHsl(p[0],p[1],p[2]);return{r:p[0],g:p[1],b:p[2],count:1,hex:rgbToHex(p[0],p[1],p[2]),h:hsl[0],s:hsl[1],l:hsl[2]}})}
+  var centroids=[];centroids.push(pixels[Math.floor(Math.random()*n)]);
+  for(var i=1;i<k;i++){var dists=[];for(var j=0;j<n;j++){var minD=Infinity;for(var c=0;c<centroids.length;c++){var d=colorDist(pixels[j][0],pixels[j][1],pixels[j][2],centroids[c][0],centroids[c][1],centroids[c][2]);if(d<minD)minD=d}dists.push(minD)}var total=0;for(var j=0;j<n;j++)total+=dists[j];var r2=Math.random()*total,cur=0,sel=0;for(var j=0;j<n;j++){cur+=dists[j];if(cur>=r2){sel=j;break}}centroids.push(pixels[sel])}
+  for(var iter=0;iter<30;iter++){var assigns=[];for(var j=0;j<n;j++)assigns.push(0);for(var j=0;j<n;j++){var bestD=Infinity,bestC=0;for(var c=0;c<k;c++){var d=colorDist(pixels[j][0],pixels[j][1],pixels[j][2],centroids[c][0],centroids[c][1],centroids[c][2]);if(d<bestD){bestD=d;bestC=c}}assigns[j]=bestC}var newCentroids=[],sums=[],counts=[];for(var c=0;c<k;c++){sums.push([0,0,0]);counts.push(0)}for(var j=0;j<n;j++){var a=assigns[j];sums[a][0]+=pixels[j][0];sums[a][1]+=pixels[j][1];sums[a][2]+=pixels[j][2];counts[a]++}var moved=false;for(var c=0;c<k;c++){if(counts[c]===0){newCentroids.push([Math.random()*255,Math.random()*255,Math.random()*255]);continue}var nc=[Math.round(sums[c][0]/counts[c]),Math.round(sums[c][1]/counts[c]),Math.round(sums[c][2]/counts[c])];if(nc[0]!==centroids[c][0]||nc[1]!==centroids[c][1]||nc[2]!==centroids[c][2])moved=true;newCentroids.push(nc)}centroids=newCentroids;if(!moved)break}
+  var finalAssigns=[];for(var j=0;j<n;j++)finalAssigns.push(0);for(var j=0;j<n;j++){var bestD=Infinity,bestC=0;for(var c=0;c<k;c++){var d=colorDist(pixels[j][0],pixels[j][1],pixels[j][2],centroids[c][0],centroids[c][1],centroids[c][2]);if(d<bestD){bestD=d;bestC=c}}finalAssigns[j]=bestC}var finalCounts=[];for(var c=0;c<k;c++)finalCounts.push(0);for(var j=0;j<n;j++)finalCounts[finalAssigns[j]]++;
+  var result=[];for(var c=0;c<k;c++){var r3=Math.round(centroids[c][0]),g3=Math.round(centroids[c][1]),b3=Math.round(centroids[c][2]);var hsl=rgbToHsl(r3,g3,b3);result.push({r:r3,g:g3,b:b3,hex:rgbToHex(r3,g3,b3),h:hsl[0],s:hsl[1],l:hsl[2],count:finalCounts[c]})}
+  result.sort(function(a,b){return b.count-a.count});return result}
+
+/* ---- Sorting (locked colors stay in place) ---- */
+function sortColorsList(arr,mode){
+  if(mode==='original')return arr.slice();
+  var lockedItems=[],unlocked=[];
+  for(var i=0;i<arr.length;i++){if(arr[i].locked){lockedItems.push({idx:i,color:arr[i]})}else{unlocked.push(arr[i])}}
+  if(mode==='hue')unlocked.sort(function(a,b){return a.h-b.h});
+  else if(mode==='saturation')unlocked.sort(function(a,b){return b.s-a.s});
+  else if(mode==='lightness')unlocked.sort(function(a,b){return b.l-a.l});
+  else if(mode==='frequency')unlocked.sort(function(a,b){return b.count-a.count});
+  for(var i=0;i<lockedItems.length;i++){unlocked.splice(lockedItems[i].idx,0,lockedItems[i].color)}
+  return unlocked}
+
+/* ---- Image processing ---- */
+function processImage(img){
+  var MAX=150;var w=img.naturalWidth,h=img.naturalHeight;
+  if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX}else{w=Math.round(w*MAX/h);h=MAX}}
+  var c=document.createElement('canvas');c.width=w;c.height=h;
+  var ctx=c.getContext('2d');ctx.drawImage(img,0,0,w,h);
+  var id=ctx.getImageData(0,0,w,h);var px=id.data;var pixels=[];
+  for(var i=0;i<px.length;i+=8){var r=px[i],g=px[i+1],b=px[i+2],a=px[i+3];if(a<128)continue;pixels.push([r,g,b])}
+  return{pixels:pixels,w:w,h:h,totalPx:px.length/4}}
+
+function extractAndRender(){
+  if(!currentImg)return;
+  var proc=processImage(currentImg);if(proc.pixels.length<3){toast('Image has too few colored pixels');return}
+  var k=parseInt(colorCount);var raw=extractPalette(proc.pixels,k);if(raw.length===0){toast('Could not extract colors');return}
+  colors=raw.map(function(c,i){var ls=locked[i]||false;return{r:c.r,g:c.g,b:c.b,hex:c.hex,h:c.h,s:c.s,l:c.l,count:c.count,pct:Math.round(c.count/proc.pixels.length*100),locked:ls}});
+  locked=colors.map(function(c){return c.locked});selectedIdx=0;contrastIdx=[0,Math.min(1,colors.length-1)];
+  applySortAndRender();
+  updateStats(colors.length,proc.totalPx,currentFile&&currentFile.size?Math.round(currentFile.size/1024):0);
+  toast('Extracted '+colors.length+' colors')}
+
+/* ---- Rendering ---- */
+function renderPalette(){
+  es.classList.add('hidden');ps.classList.remove('hidden');
+  var html='';
+  for(var i=0;i<colors.length;i++){
+    var c=colors[i];var lk=c.locked?'locked':'';var act=i===selectedIdx?'active':'';
+    html+='<button class="cpe-swatch '+lk+' '+act+'" data-idx="'+i+'" style="background:'+c.hex+'" role="listitem" aria-label="Color '+c.hex+(c.locked?' locked':'')+'">';
+    html+='<span class="cpe-pct">'+(c.pct>0?c.pct+'%':'')+'</span>';
+    html+='<span class="lock-icon" data-lock="'+i+'">'+(c.locked?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>':'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>')+'</span>';
+    html+='<span class="hex-label">'+c.hex+'</span></button>'}
+  ps.innerHTML=html;renderDetail();renderContrast();renderHarmonies();drawColorWheel();renderCvd();renderGradient()}
+
+function applySortAndRender(){
+  var selHex=selectedIdx>=0&&selectedIdx<colors.length?colors[selectedIdx].hex:null;
+  var c0Hex=contrastIdx[0]>=0&&contrastIdx[0]<colors.length?colors[contrastIdx[0]].hex:null;
+  var c1Hex=contrastIdx[1]>=0&&contrastIdx[1]<colors.length?colors[contrastIdx[1]].hex:null;
+  colors=sortColorsList(colors,sortMode);
+  locked=colors.map(function(c){return c.locked});
+  if(selHex!==null){for(var i=0;i<colors.length;i++){if(colors[i].hex===selHex){selectedIdx=i;break}}}
+  if(c0Hex!==null){for(var i=0;i<colors.length;i++){if(colors[i].hex===c0Hex){contrastIdx[0]=i;break}}}
+  if(c1Hex!==null){for(var i=0;i<colors.length;i++){if(colors[i].hex===c1Hex){contrastIdx[1]=i;break}}}
+  renderPalette()}
+
+function renderDetail(){
+  if(selectedIdx<0||selectedIdx>=colors.length){ed.classList.remove('hidden');cd.classList.add('hidden');document.getElementById('cpeFineTuneEmpty').classList.remove('hidden');document.getElementById('cpeFineTune').classList.add('hidden');return}
+  var c=colors[selectedIdx];ed.classList.add('hidden');cd.classList.remove('hidden');
+  var name=getColorName(c.h,c.s,c.l);
+  cd.innerHTML='<div class="top-row"><div class="preview" style="background:'+c.hex+'"></div><div class="info"><div class="hex">'+c.hex+'</div><div class="name">'+name+'</div><div class="alt">RGB: <span class="cpe-copy-alt" data-copy="rgb('+c.r+','+c.g+','+c.b+')">'+c.r+','+c.g+','+c.b+'</span> &middot; HSL: <span class="cpe-copy-alt" data-copy="hsl('+c.h+','+c.s+'%,'+c.l+'%)">'+c.h+'&deg;,'+c.s+'%,'+c.l+'%</span></div></div><div class="actions"><button class="cpe-copy-btn" data-copy="'+c.hex+'">Copy Hex</button><button class="cpe-copy-btn" data-copy="rgb('+c.r+','+c.g+','+c.b+')">RGB</button><button class="cpe-copy-btn" data-copy="hsl('+c.h+','+c.s+'%,'+c.l+'%)">HSL</button></div></div>';
+  document.getElementById('cpeFineTuneEmpty').classList.add('hidden');document.getElementById('cpeFineTune').classList.remove('hidden');
+  document.getElementById('cpeSliderH').value=c.h;document.getElementById('cpeSliderHVal').textContent=c.h;
+  document.getElementById('cpeSliderS').value=c.s;document.getElementById('cpeSliderSVal').textContent=c.s;
+  document.getElementById('cpeSliderL').value=c.l;document.getElementById('cpeSliderLVal').textContent=c.l}
+
+function updateStats(n,px,sz){sc.textContent=n;sp.textContent=px.toLocaleString();ss.textContent=sz}
+
+/* ---- Hue harmony helpers ---- */
+function clamp(v,m,M){return Math.max(m,Math.min(M,v))}
+function generateHarmonies(h,s,l){
+  return{
+    mono:[{h:h,s:clamp(s-10,0,100),l:clamp(l+20,0,100)},{h:h,s:clamp(s+5,0,100),l:clamp(l-15,0,100)},{h:h,s:clamp(s-15,0,100),l:clamp(l+30,0,100)},{h:h,s:clamp(s+10,0,100),l:clamp(l-25,0,100)}],
+    comp:[{h:(h+180)%360,s,l},{h:(h+180)%360,s:clamp(s-10,0,100),l:clamp(l+15,0,100)},{h:(h+180)%360,s:clamp(s+5,0,100),l:clamp(l-15,0,100)},{h:(h+160)%360,s:clamp(s-5,0,100),l:clamp(l+10,0,100)}],
+    tri:[{h:(h+120)%360,s,l},{h:(h+240)%360,s,l},{h:(h+120)%360,s:clamp(s-5,0,100),l:clamp(l+15,0,100)},{h:(h+240)%360,s:clamp(s-5,0,100),l:clamp(l-10,0,100)}],
+    analog:[{h:(h-30+360)%360,s:clamp(s+5,0,100),l:clamp(l-5,0,100)},{h:(h-15+360)%360,s:clamp(s-5,0,100),l:clamp(l+8,0,100)},{h:(h+15)%360,s:clamp(s+5,0,100),l:clamp(l-8,0,100)},{h:(h+30)%360,s:clamp(s-5,0,100),l:clamp(l+5,0,100)}]}}
+
+function renderHarmonies(){
+  if(selectedIdx<0||selectedIdx>=colors.length){document.getElementById('cpeHarmonyEmpty').classList.remove('hidden');document.getElementById('cpeHarmonyContent').classList.add('hidden');return}
+  document.getElementById('cpeHarmonyEmpty').classList.add('hidden');document.getElementById('cpeHarmonyContent').classList.remove('hidden');
+  var c=colors[selectedIdx];var h=generateHarmonies(c.h,c.s,c.l);
+  function fill(el,arr){var html='';for(var i=0;i<arr.length;i++){var hex=hslToHex(arr[i].h,arr[i].s,arr[i].l);html+='<div class="hsw" style="background:'+hex+'" title="'+hex+'"></div>'}el.innerHTML=html}
+  fill(document.getElementById('cpeHarmMono'),h.mono);fill(document.getElementById('cpeHarmComp'),h.comp);fill(document.getElementById('cpeHarmTri'),h.tri);fill(document.getElementById('cpeHarmAnalog'),h.analog)}
+
+/* ---- Color wheel ---- */
+function drawColorWheel(){
+  if(!cw)return;var ctx=cw.getContext('2d');var cx=100,cy=100,r=85;
+  for(var a=0;a<360;a+=1){var rad=a*Math.PI/180;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,rad,rad+Math.PI/180);ctx.closePath();ctx.fillStyle='hsl('+a+',100%,50%)';ctx.fill()}
+  ctx.beginPath();ctx.arc(cx,cy,18,0,2*Math.PI);ctx.fillStyle='#ffffff';ctx.fill();
+  var sel=colors[selectedIdx];if(sel){ctx.beginPath();ctx.arc(cx,cy,16,0,2*Math.PI);ctx.fillStyle=sel.hex;ctx.fill()}
+  for(var i=0;i<colors.length;i++){var p=colors[i];if(!p)continue;var rad2=(p.h-90)*Math.PI/180;var x=cx+r*0.72*Math.cos(rad2),y=cy+r*0.72*Math.sin(rad2);ctx.beginPath();ctx.arc(x,y,6,0,2*Math.PI);ctx.strokeStyle=i===selectedIdx?'#fff':'rgba(255,255,255,0.6)';ctx.lineWidth=2;ctx.fillStyle=p.hex;ctx.fill();ctx.stroke()}}
+
+/* ---- WCAG contrast ---- */
+function renderContrast(){
+  var a=colors[contrastIdx[0]],b=colors[contrastIdx[1]];
+  if(!a||!b){document.getElementById('cpeContrastRatio').textContent='—';return}
+  var elA=document.getElementById('cpeContrastA'),elB=document.getElementById('cpeContrastB');
+  elA.style.background=a.hex;document.getElementById('cpeContrastALabel').textContent=a.hex;
+  elB.style.background=b.hex;document.getElementById('cpeContrastBLabel').textContent=b.hex;
+  var ratio=contrastRatio(a.hex,b.hex);document.getElementById('cpeContrastRatio').textContent=ratio.toFixed(2);
+  function setLvl(id,pass){document.getElementById(id).className='level '+(pass?'pass':'fail')}
+  setLvl('cpeCLevelAAN',wcagLevel(ratio,false)!=='Fail');setLvl('cpeCLevelAAL',wcagLevel(ratio,true)!=='Fail');
+  setLvl('cpeCLevelAAAN',wcagLevel(ratio,false)==='AAA');setLvl('cpeCLevelAAAL',wcagLevel(ratio,true)==='AAA')}
+
+/* ---- Contrast matrix ---- */
+function renderMatrix(){
+  var cols=colors.map(function(c){return c.hex});var el=document.getElementById('cpeMatrixTable');if(!el||!cols.length)return;
+  var html='<thead><tr><th></th>';for(var i=0;i<cols.length;i++){html+='<th><div style="width:20px;height:20px;border-radius:4px;background:'+cols[i]+';border:1px solid rgba(128,128,128,0.2)"></div></th>'}html+='</tr></thead><tbody>';
+  for(var r=0;r<cols.length;r++){html+='<tr><th><div style="width:20px;height:20px;border-radius:4px;background:'+cols[r]+';border:1px solid rgba(128,128,128,0.2)"></div></th>';for(var c2=0;c2<cols.length;c2++){if(r===c2){html+='<td class="matrix-self">&mdash;</td>';continue}var rat=contrastRatio(cols[r],cols[c2]);var pass=rat>=4.5?'pass':'fail';html+='<td class="matrix-'+pass+'" title="'+cols[r]+' vs '+cols[c2]+'">'+rat.toFixed(1)+'</td>'}html+='</tr>'}el.innerHTML=html}
+
+/* ---- CVD simulation ---- */
+function srgbToLinear(c){c/=255;return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4)}
+function linearToSrgb(c){c=Math.min(1,Math.max(0,c));return Math.round(255*(c<=0.0031308?12.92*c:1.055*Math.pow(c,1/2.4)-0.055))}
+var LMS_FWD=[[0.412221,0.536332,0.051332],[0.211903,0.680699,0.107398],[0.088302,0.281718,0.629978]];
+var LMS_INV=[[4.076742,-3.307528,0.230742],[-1.268439,2.609757,-0.341319],[-0.004556,-0.109595,1.650468]];
+function simulateCVD(hex,type){
+  if(!type)return hex;var rgb=hexToRgb(hex);var lr=srgbToLinear(rgb[0]),lg=srgbToLinear(rgb[1]),lb=srgbToLinear(rgb[2]);
+  var l=LMS_FWD[0][0]*lr+LMS_FWD[0][1]*lg+LMS_FWD[0][2]*lb,m=LMS_FWD[1][0]*lr+LMS_FWD[1][1]*lg+LMS_FWD[1][2]*lb,s_=LMS_FWD[2][0]*lr+LMS_FWD[2][1]*lg+LMS_FWD[2][2]*lb;
+  if(type==='protanopia'){l=0}else if(type==='deuteranopia'){m=0}else if(type==='tritanopia'){s_=0}else if(type==='achromatopsia'){var avg=(l+m+s_)/3;l=avg;m=avg;s_=avg}
+  var rl=LMS_INV[0][0]*l+LMS_INV[0][1]*m+LMS_INV[0][2]*s_,gl=LMS_INV[1][0]*l+LMS_INV[1][1]*m+LMS_INV[1][2]*s_,bl=LMS_INV[2][0]*l+LMS_INV[2][1]*m+LMS_INV[2][2]*s_;
+  return rgbToHex(linearToSrgb(rl),linearToSrgb(gl),linearToSrgb(bl))}
+
+function renderCvd(){
+  var type=document.getElementById('cpeCvdType').value;var el=document.getElementById('cpeCvdPalette');
+  if(!el||!colors.length){el.innerHTML='';return}var html='';
+  for(var i=0;i<colors.length;i++){var c=colors[i];if(!c)continue;var sim=simulateCVD(c.hex,type);html+='<div class="cvd-item"><div class="bar" style="background:'+sim+'"></div><span class="clabel">'+sim+'</span></div>'}el.innerHTML=html}
+
+/* ---- Gradient ---- */
+function renderGradient(){
+  if(!colors.length)return;
+  var type=document.getElementById('cpeGradType').value,dir=document.getElementById('cpeGradDir').value;
+  var c=document.getElementById('cpeGradCanvas');if(!c)return;var ctx=c.getContext('2d');
+  var cols=colors.map(function(x){return x.hex});var grad;
+  if(type==='radial'){grad=ctx.createRadialGradient(150,30,0,150,30,150)}else{var map={right:[0,0,300,0],left:[300,0,0,0],bottom:[0,0,0,60],top:[0,60,0,0],'bottom right':[0,0,300,60],'top left':[300,60,0,0]};var d=map[dir]||[0,0,300,0];grad=ctx.createLinearGradient(d[0],d[1],d[2],d[3])}
+  cols.forEach(function(h,i){grad.addColorStop(i/(cols.length-1||1),h)});
+  ctx.fillStyle=grad;ctx.fillRect(0,0,300,60)}
+
+/* ---- File handling ---- */
+function handleFile(file){
+  if(!file||!file.type.match(/^image\//)){toast('Please select an image file');return}
+  currentFile=file;var reader=new FileReader();
+  reader.onload=function(e){var img=new Image();img.onload=function(){currentImg=img;pi.src=e.target.result;pi.classList.remove('hidden');fn_.textContent=file.name;im.classList.remove('hidden');dz.querySelector('.placeholder').classList.add('hidden');extractAndRender()};img.src=e.target.result}
+  reader.readAsDataURL(file)}
+
+fi.addEventListener('change',function(e){if(e.target.files&&e.target.files[0])handleFile(e.target.files[0])});
+dz.addEventListener('click',function(){fi.click()});
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('dragover')});
+dz.addEventListener('dragleave',function(){dz.classList.remove('dragover')});
+dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files&&e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
+document.addEventListener('paste',function(e){var items=e.clipboardData&&e.clipboardData.items;if(!items)return;for(var i=0;i<items.length;i++){if(items[i].type.indexOf('image')!==-1){var blob=items[i].getAsFile();if(blob){handleFile(blob);return}}}});
+
+/* ---- Clear ---- */
+cb.addEventListener('click',function(){
+  currentFile=null;currentImg=null;colors=[];locked=[];selectedIdx=-1;contrastIdx=[0,1];
+  fi.value='';pi.classList.add('hidden');im.classList.add('hidden');dz.querySelector('.placeholder').classList.remove('hidden');
+  ps.classList.add('hidden');es.classList.remove('hidden');ed.classList.remove('hidden');cd.classList.add('hidden');
+  document.getElementById('cpeFineTuneEmpty').classList.remove('hidden');document.getElementById('cpeFineTune').classList.add('hidden');
+  document.getElementById('cpeHarmonyEmpty').classList.remove('hidden');document.getElementById('cpeHarmonyContent').classList.add('hidden');
+  updateStats(0,0,0);drawColorWheel();renderCvd();renderGradient()});
+
+/* ---- Color count ---- */
+document.getElementById('cpeCountGroup').addEventListener('click',function(e){
+  var btn=e.target.closest('.cpe-pill');if(!btn)return;
+  document.querySelectorAll('#cpeCountGroup .cpe-pill').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');
+  colorCount=parseInt(btn.dataset.count);if(currentImg)extractAndRender()});
+
+/* ---- Sort ---- */
+document.getElementById('cpeSortGroup').addEventListener('click',function(e){
+  var btn=e.target.closest('.cpe-pill');if(!btn)return;
+  document.querySelectorAll('#cpeSortGroup .cpe-pill').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');
+  sortMode=btn.dataset.sort;if(colors.length)applySortAndRender()});
+
+/* ---- Extract button ---- */
+eb.addEventListener('click',function(){if(currentImg)extractAndRender()});
+
+/* ---- Palette clicks ---- */
+ps.addEventListener('click',function(e){
+  var btn=e.target.closest('.cpe-swatch'),lockBtn=e.target.closest('[data-lock]');
+  if(lockBtn){var idx=parseInt(lockBtn.dataset.lock);locked[idx]=!locked[idx];colors[idx].locked=locked[idx];renderPalette();return}
+  if(btn){selectedIdx=parseInt(btn.dataset.idx);contrastIdx[1]=contrastIdx[0];contrastIdx[0]=selectedIdx;renderPalette()}});
+
+/* ---- Detail copy clicks ---- */
+cd.addEventListener('click',function(e){
+  var copyBtn=e.target.closest('.cpe-copy-btn'),altBtn=e.target.closest('.cpe-copy-alt');
+  var val=null;if(copyBtn)val=copyBtn.dataset.copy;else if(altBtn)val=altBtn.dataset.copy;
+  if(val){navigator.clipboard.writeText(val).then(function(){toast('Copied')})}});
+
+/* ---- Fine-tune sliders ---- */
+document.getElementById('cpeSliderH').addEventListener('input',function(){document.getElementById('cpeSliderHVal').textContent=this.value});
+document.getElementById('cpeSliderS').addEventListener('input',function(){document.getElementById('cpeSliderSVal').textContent=this.value});
+document.getElementById('cpeSliderL').addEventListener('input',function(){document.getElementById('cpeSliderLVal').textContent=this.value});
+document.getElementById('cpeApplyTune').addEventListener('click',function(){
+  if(selectedIdx<0||selectedIdx>=colors.length)return;
+  var h=parseInt(document.getElementById('cpeSliderH').value)||0,s2=parseInt(document.getElementById('cpeSliderS').value)||0,l=parseInt(document.getElementById('cpeSliderL').value)||0;
+  var hex=hslToHex(h,s2,l);var rgb=hexToRgb(hex);var hsl=rgbToHsl(rgb[0],rgb[1],rgb[2]);
+  colors[selectedIdx]={r:rgb[0],g:rgb[1],b:rgb[2],hex:hex,h:hsl[0],s:hsl[1],l:hsl[2],count:colors[selectedIdx].count,pct:colors[selectedIdx].pct,locked:colors[selectedIdx].locked};
+  locked[selectedIdx]=true;colors[selectedIdx].locked=true;
+  renderPalette();toast('Color updated')});
+document.getElementById('cpeResetTune').addEventListener('click',function(){if(selectedIdx>=0&&selectedIdx<colors.length){var c=colors[selectedIdx];document.getElementById('cpeSliderH').value=c.h;document.getElementById('cpeSliderHVal').textContent=c.h;document.getElementById('cpeSliderS').value=c.s;document.getElementById('cpeSliderSVal').textContent=c.s;document.getElementById('cpeSliderL').value=c.l;document.getElementById('cpeSliderLVal').textContent=c.l}});
+
+/* ---- Contrast matrix toggle ---- */
+document.getElementById('cpeToggleMatrix').addEventListener('click',function(){
+  var wrap=document.getElementById('cpeMatrixWrap'),btn=document.getElementById('cpeToggleMatrix');
+  var show=wrap.classList.toggle('hidden');btn.textContent=show?'Matrix':'Hide';if(!show)renderMatrix()});
+
+/* ---- CVD select ---- */
+document.getElementById('cpeCvdType').addEventListener('change',renderCvd);
+
+/* ---- Gradient select ---- */
+document.getElementById('cpeGradType').addEventListener('change',renderGradient);
+document.getElementById('cpeGradDir').addEventListener('change',renderGradient);
+
+/* ---- Export ---- */
+function copyText(t){navigator.clipboard.writeText(t).then(function(){toast('Copied!')})}
+document.getElementById('cpeExportHex').addEventListener('click',function(){copyText(colors.map(function(c){return c.hex}).join('\n'))});
+document.getElementById('cpeExportCss').addEventListener('click',function(){var l=[':root {'];for(var i=0;i<colors.length;i++){l.push('  --palette-'+(i+1)+': '+colors[i].hex+';')}l.push('}');copyText(l.join('\n'))});
+document.getElementById('cpeExportTailwind').addEventListener('click',function(){var l=['@theme {'];for(var i=0;i<colors.length;i++){l.push("  --color-palette-"+(i+1)+": "+colors[i].hex+";")}l.push('}');copyText(l.join('\n'))});
+document.getElementById('cpeExportJson').addEventListener('click',function(){copyText(JSON.stringify(colors.map(function(c,i){return{name:'Color '+(i+1),hex:c.hex,rgb:'rgb('+c.r+','+c.g+','+c.b+')',hsl:'hsl('+c.h+','+c.s+'%,'+c.l+'%)',coverage:c.pct+'%'}}),null,2))});
+document.getElementById('cpeExportSvg').addEventListener('click',function(){
+  if(!colors.length){toast('No palette to export');return}
+  var c=document.createElement('canvas');c.width=Math.min(colors.length*60,600);c.height=60;var ctx=c.getContext('2d');var bw=c.width/colors.length;
+  for(var i=0;i<colors.length;i++){ctx.fillStyle=colors[i].hex;ctx.fillRect(i*bw,0,bw,60)}
+  var a=document.createElement('a');a.download='palette.png';a.href=c.toDataURL('image/png');a.click()});
+document.getElementById('cpeCopyLink').addEventListener('click',function(){
+  if(!colors.length){toast('No palette to share');return}
+  var hash=colors.map(function(c){return c.hex.slice(1)}).join(',');
+  var url=window.location.href.split('#')[0]+'#'+hash;
+  copyText(url);toast('Share link copied')});
+
+/* ---- Color restore helper ---- */
+function applyHexes(hexes){
+  colors=hexes.map(function(hex){var rgb=hexToRgb(hex),hsl=rgbToHsl(rgb[0],rgb[1],rgb[2]);return{r:rgb[0],g:rgb[1],b:rgb[2],hex:hex,h:hsl[0],s:hsl[1],l:hsl[2],count:0,pct:0,locked:false}});
+  locked=colors.map(function(){return false});selectedIdx=0;contrastIdx=[0,Math.min(1,colors.length-1)];
+  es.classList.add('hidden');ps.classList.remove('hidden');
+  renderPalette();updateStats(colors.length,0,0)}
+
+/* ---- URL hash restore ---- */
+function restoreFromHash(){
+  var hash=window.location.hash.slice(1);if(!hash)return;
+  var hexes=hash.split(',').filter(function(s){return/^[0-9a-fA-F]{6}$/.test(s)});if(hexes.length<2)return;
+  applyHexes(hexes.map(function(h){return '#'+h.toLowerCase()}));toast('Palette restored from link')}
+
+/* ---- History ---- */
+var historyKey='cpe_history';
+function loadHistory(){try{var raw=localStorage.getItem(historyKey);return raw?JSON.parse(raw):[]}catch(e){return[]}}
+function saveHistory(data){try{localStorage.setItem(historyKey,JSON.stringify(data))}catch(e){}}
+function renderHistory(){
+  var el=document.getElementById('cpeHistoryList');var h=loadHistory();
+  if(!h.length){el.innerHTML='<p class="text-xs text-base-content/40 text-center py-3">No saved palettes yet.</p>';return}
+  var html='';
+  for(var i=h.length-1;i>=0;i--){var p=h[i];html+='<div class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-base-200/40 cursor-pointer history-item" data-idx="'+i+'"><div class="flex gap-0.5 flex-1 flex-wrap">';for(var j=0;j<p.length;j++){html+='<div style="width:16px;height:16px;border-radius:3px;background:'+p[j]+'"></div>'}html+='</div><button class="btn btn-ghost btn-xs text-error history-del" data-idx="'+i+'" title="Delete">&times;</button></div>'}
+  el.innerHTML=html}
+function addHistory(){if(!colors.length){toast('No palette to save');return}var hexes=colors.map(function(c){return c.hex});var h=loadHistory();h.push(hexes);if(h.length>20)h=h.slice(-20);saveHistory(h);renderHistory();toast('Palette saved')}
+function restoreHistory(idx){var h=loadHistory();if(!h[idx])return;applyHexes(h[idx]);toast('Palette restored')}
+function deleteHistory(idx){var h=loadHistory();h.splice(idx,1);saveHistory(h);renderHistory()}
+document.getElementById('cpeSaveBtn').addEventListener('click',addHistory);
+document.getElementById('cpeClearHistory').addEventListener('click',function(){if(confirm('Delete all saved palettes?')){saveHistory([]);renderHistory();toast('History cleared')}});
+document.getElementById('cpeHistoryList').addEventListener('click',function(e){var restoreBtn=e.target.closest('.history-item'),delBtn=e.target.closest('.history-del');if(delBtn){var idx=parseInt(delBtn.dataset.idx);deleteHistory(idx);return}if(restoreBtn){var idx=parseInt(restoreBtn.dataset.idx);restoreHistory(idx)}});
+
+/* ---- Init ---- */
+renderHistory();
+if(window.location.hash.length>1)restoreFromHash();
+})();
+</script>
+{% endblock %}

@@ -131,8 +131,6 @@ class SitemapService:
             f"User-agent: *\n"
             f"Disallow: /api/\n"
             f"Disallow: /offline\n"
-            f"Disallow: /cdn-cgi/\n"
-            f"Crawl-delay: 2\n"
             f"\n"
             f"Sitemap: {site_url}/sitemap.xml\n"
         )

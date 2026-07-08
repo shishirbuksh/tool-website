@@ -1,0 +1,531 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
+{% block title %}Image Resizer & Cropper — Resize Images Online Free — Crop to Exact Dimensions{% endblock %}
+{% block meta_description %}Resize and crop images to exact pixel dimensions online free. Custom sizes, social media presets, aspect ratio lock, quality control. 100% private — no uploads.{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/image-resizer-cropper{% endblock %}
+{% block og_title %}Image Resizer & Cropper — Free Online Image Resizer{% endblock %}
+{% block og_description %}Resize and crop images to any size — Twitter header, Instagram post, YouTube thumbnail, or custom. Adjust quality, lock aspect ratio, download as JPEG/PNG/WebP. All in-browser.{% endblock %}
+{% block og_image %}<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Image Resizer & Cropper — resize and crop images to exact dimensions, social media presets, aspect ratio lock">{% endblock %}
+{% block twitter_image %}<meta name="twitter:image" content="https://www.storybrainai.com/static/og-image.jpg">{% endblock %}
+{% block head %}
+<style>
+.irc-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.irc-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.irc-select{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;cursor:pointer}
+.irc-select:focus{border-color:var(--color-primary);outline:none}
+.irc-upload-zone{aspect-ratio:16/9;background:var(--color-base-100);border:2px dashed var(--color-base-300);border-radius:1rem;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:pointer;transition:border-color .2s,background .2s;min-height:140px}
+.irc-upload-zone:hover,.irc-upload-zone.dragover{border-color:var(--color-primary);background:color-mix(in oklab,var(--color-primary) 5%,var(--color-base-100))}
+.irc-upload-zone.dragover{transform:scale(1.01)}
+.irc-upload-zone img{max-width:100%;max-height:100%;object-fit:contain;position:absolute;inset:0;padding:8px}
+.irc-upload-zone .placeholder{text-align:center;pointer-events:none}
+.irc-upload-zone .placeholder .icon-wrap{margin:0 auto 10px;width:48px;height:48px;border-radius:999px;background:var(--color-primary);display:flex;align-items:center;justify-content:center}
+.irc-upload-zone .placeholder .icon-wrap svg{color:#fff}
+.irc-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;font-size:9px;font-weight:800;cursor:pointer;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;text-transform:uppercase;letter-spacing:.04em;touch-action:manipulation;white-space:nowrap}
+.irc-pill:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.irc-pill.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}.irc-pill.on .irc-pill-sub{color:rgba(255,255,255,.6)}
+.irc-pill-sub{font-weight:500;opacity:.5;margin-left:2px}
+.irc-dim-input{width:100%;border-radius:.75rem;padding:.5rem .65rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:inherit;transition:border-color .18s;text-align:center;-moz-appearance:textfield}
+.irc-dim-input:focus{border-color:var(--color-primary);outline:none}
+.irc-dim-input::-webkit-inner-spin-button,.irc-dim-input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.irc-lock-btn{width:38px;height:38px;border-radius:.75rem;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0;padding:0}
+.irc-lock-btn:hover{border-color:var(--color-primary)}.irc-lock-btn.locked{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.irc-preview-box{aspect-ratio:1/1;background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:1rem;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;min-height:160px}
+.irc-preview-box img,.irc-preview-box canvas{max-width:100%;max-height:100%;object-fit:contain}
+.irc-crop-overlay{position:absolute;inset:0;z-index:5;display:none}
+.irc-crop-overlay.active{display:block}
+.irc-crop-mask{position:absolute;inset:0;background:rgba(0,0,0,.45);pointer-events:none}
+.irc-crop-rect{position:absolute;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3);cursor:move;z-index:6}
+.irc-crop-rect .handle{position:absolute;width:14px;height:14px;background:#fff;border:2px solid var(--color-primary);border-radius:999px;z-index:7;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.irc-crop-rect .handle.nw{top:-7px;left:-7px;cursor:nwse-resize}
+.irc-crop-rect .handle.ne{top:-7px;right:-7px;cursor:nesw-resize}
+.irc-crop-rect .handle.sw{bottom:-7px;left:-7px;cursor:nesw-resize}
+.irc-crop-rect .handle.se{bottom:-7px;right:-7px;cursor:nwse-resize}
+.irc-grid-overlay{position:absolute;inset:0;pointer-events:none;z-index:4;display:none}
+.irc-grid-overlay.active{display:block}
+.irc-grid-overlay .gline{position:absolute;background:rgba(255,255,255,.25)}
+.irc-grid-overlay .gline.v{width:1px;height:100%}
+.irc-grid-overlay .gline.h{width:100%;height:1px}
+.irc-stat-row{display:flex;justify-content:space-between;align-items:center;padding-top:8px;gap:8px}
+.irc-stat-row .stat{text-align:center;flex:1}
+.irc-stat-row .stat .num{font-size:15px;font-weight:900;font-family:monospace}
+.irc-stat-row .stat .lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.4;margin-top:1px}
+.irc-stat-row .stat .saved{font-size:9px;font-weight:800;color:var(--color-success);margin-top:2px}
+.irc-compare-box{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:1rem;overflow:hidden;position:relative;min-height:200px;cursor:col-resize;user-select:none}
+.irc-compare-box canvas{display:block;width:100%}
+.irc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px;pointer-events:none}
+.irc-toast.show{opacity:1;transform:translateY(0)}
+.irc-empty-state{text-align:center;padding:40px 16px}
+.irc-empty-state svg{opacity:.15;margin:0 auto 12px}
+.irc-empty-state p{font-size:13px;font-weight:600;opacity:.4}
+.irc-pill-grid{display:flex;flex-wrap:wrap;gap:4px;max-height:120px;overflow-y:auto}
+.irc-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.irc-info-item{background:var(--color-base-100);border-radius:.65rem;padding:8px 10px;border:1px solid var(--color-base-300)}
+.irc-info-item .iv{font-size:13px;font-weight:800;font-family:monospace}
+.irc-info-item .il{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.4;margin-top:1px}
+@media(max-width:767px){
+.irc-preview-box{min-height:120px}.irc-upload-zone{min-height:120px}
+.irc-pill{font-size:8px;padding:3px 8px}.irc-dim-input{font-size:.75rem}
+}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("crop","Free Tool","IMAGE","RESIZER","Resize and crop images to exact dimensions — choose a preset or enter custom size, lock aspect ratio, control quality. 100% in your browser.") }}
+<div class="container-site px-4 pb-24">
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+    <div class="lg:col-span-2 space-y-6">
+      <div class="irc-card">
+        <label class="irc-label">Upload Image</label>
+        <div id="ircUploadZone" class="irc-upload-zone" tabindex="0" role="button" aria-label="Upload or drop an image to resize">
+          <input type="file" id="ircFileInput" class="absolute top-0 left-0 w-full h-full opacity-0" style="cursor:pointer;z-index:10;font-size:0" accept="image/*" aria-label="Choose image file">
+          <div class="placeholder" aria-hidden="true">
+            <div class="icon-wrap">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <p class="font-bold text-sm">Drop image here or click</p>
+            <p class="text-xs text-base-content/40 mt-1">PNG &bull; JPG &bull; WebP &bull; GIF &bull; paste supported</p>
+          </div>
+          <img id="ircPreviewImg" class="hidden" alt="Uploaded image preview">
+        </div>
+        <div id="ircImageMeta" class="hidden flex items-center gap-3 mt-3">
+          <span id="ircFileName" class="text-xs font-mono text-base-content/60 flex-1 truncate"></span>
+          <button class="btn btn-ghost btn-xs" id="ircClearBtn" type="button">Remove</button>
+        </div>
+      </div>
+      <div class="irc-card">
+        <label class="irc-label">Preset Sizes</label>
+        <div class="irc-pill-grid" id="ircPresetGroup">
+          <button class="irc-pill on" data-w="1500" data-h="500" type="button">Twitter Hdr <span class="irc-pill-sub">1500×500</span></button>
+          <button class="irc-pill" data-w="1080" data-h="1080" type="button">Insta Post <span class="irc-pill-sub">1080×1080</span></button>
+          <button class="irc-pill" data-w="1080" data-h="1920" type="button">Insta Story <span class="irc-pill-sub">1080×1920</span></button>
+          <button class="irc-pill" data-w="1280" data-h="720" type="button">YouTube <span class="irc-pill-sub">1280×720</span></button>
+          <button class="irc-pill" data-w="1584" data-h="396" type="button">LinkedIn Bnr <span class="irc-pill-sub">1584×396</span></button>
+          <button class="irc-pill" data-w="820" data-h="312" type="button">FB Cover <span class="irc-pill-sub">820×312</span></button>
+          <button class="irc-pill" data-w="1920" data-h="1080" type="button">HD 16:9 <span class="irc-pill-sub">1920×1080</span></button>
+          <button class="irc-pill" data-w="1024" data-h="768" type="button">Standard <span class="irc-pill-sub">1024×768</span></button>
+          <button class="irc-pill" data-w="400" data-h="400" type="button">Profile <span class="irc-pill-sub">400×400</span></button>
+          <button class="irc-pill" data-w="1080" data-h="1350" type="button">Portrait <span class="irc-pill-sub">1080×1350</span></button>
+          <button class="irc-pill" data-w="1200" data-h="630" type="button">OG Image <span class="irc-pill-sub">1200×630</span></button>
+          <button class="irc-pill" data-w="200" data-h="200" type="button">Thumbnail <span class="irc-pill-sub">200×200</span></button>
+        </div>
+      </div>
+      <div class="irc-card">
+        <label class="irc-label">Custom Dimensions</label>
+        <div class="flex items-center gap-2">
+          <div style="flex:1"><span style="font-size:8px;font-weight:700;text-transform:uppercase;opacity:.4;display:block;margin-bottom:2px">Width</span>
+            <input type="number" class="irc-dim-input" id="ircWidth" min="1" max="10000" value="1500" aria-label="Width in pixels">
+          </div>
+          <span style="opacity:.3;margin-top:14px;font-weight:900">&times;</span>
+          <div style="flex:1"><span style="font-size:8px;font-weight:700;text-transform:uppercase;opacity:.4;display:block;margin-bottom:2px">Height</span>
+            <input type="number" class="irc-dim-input" id="ircHeight" min="1" max="10000" value="500" aria-label="Height in pixels">
+          </div>
+          <button class="irc-lock-btn locked" id="ircLockBtn" type="button" aria-label="Toggle aspect ratio lock" title="Lock aspect ratio">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 mt-3">
+          <button class="irc-pill" id="ircCropToggle" type="button">Enable Crop</button>
+          <button class="irc-pill" id="ircGridToggle" type="button">Grid</button>
+          <button class="irc-pill" id="ircRotateCW" type="button" title="Rotate 90° clockwise">↻ 90°</button>
+          <button class="irc-pill" id="ircRotateCCW" type="button" title="Rotate 90° counter-clockwise">↺ 90°</button>
+          <button class="irc-pill" id="ircFlipH" type="button" title="Flip horizontal">⇔ H</button>
+          <button class="irc-pill" id="ircFlipV" type="button" title="Flip vertical">⇕ V</button>
+        </div>
+      </div>
+      <div class="irc-card">
+        <label class="irc-label">Output Options</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <span style="font-size:8px;font-weight:700;text-transform:uppercase;opacity:.4;display:block;margin-bottom:4px">Format</span>
+            <select class="irc-select" id="ircFormat">
+              <option value="jpeg">JPEG</option>
+              <option value="png">PNG</option>
+              <option value="webp">WebP</option>
+            </select>
+          </div>
+          <div>
+            <span style="font-size:8px;font-weight:700;text-transform:uppercase;opacity:.4;display:block;margin-bottom:4px">Quality</span>
+            <input type="range" id="ircQuality" class="range range-primary range-xs w-full" min="10" max="100" value="90" aria-label="Quality">
+            <div style="display:flex;justify-content:space-between;font-size:9px;font-weight:700;opacity:.3;margin-top:2px"><span>10%</span><span id="ircQualityVal">90%</span><span>100%</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="irc-card">
+        <label class="irc-label">Image Info</label>
+        <div class="irc-info-grid">
+          <div class="irc-info-item"><div class="iv" id="ircInfoAspect">—</div><div class="il">Aspect Ratio</div></div>
+          <div class="irc-info-item"><div class="iv" id="ircInfoOrig">—</div><div class="il">Original</div></div>
+          <div class="irc-info-item"><div class="iv" id="ircInfoOutput">—</div><div class="il">Output</div></div>
+          <div class="irc-info-item"><div class="iv" id="ircInfoDpi">—</div><div class="il">Print @300 DPI</div></div>
+          <div class="irc-info-item"><div class="iv" id="ircInfoRatio">—</div><div class="il">Size Ratio</div></div>
+          <div class="irc-info-item"><div class="iv" id="ircInfoChange">—</div><div class="il">Change</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="lg:col-span-3 space-y-6">
+      <div class="irc-card">
+        <label class="irc-label">Preview</label>
+        <div id="ircEmptyState" class="irc-empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p>Upload an image to get started</p>
+        </div>
+        <div id="ircPreviewContent" class="hidden">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="ircSideBySide">
+            <div>
+              <div class="irc-preview-box" id="ircOrigBox">
+                <img id="ircOrigImg" alt="Original" style="max-width:100%;max-height:100%;object-fit:contain">
+                <div class="irc-crop-overlay" id="ircCropOverlay">
+                  <div class="irc-crop-mask" id="ircCropMask"></div>
+                  <div class="irc-crop-rect" id="ircCropRect">
+                    <div class="handle nw" data-handle="nw"></div>
+                    <div class="handle ne" data-handle="ne"></div>
+                    <div class="handle sw" data-handle="sw"></div>
+                    <div class="handle se" data-handle="se"></div>
+                  </div>
+                  <div class="irc-grid-overlay" id="ircGridOverlay">
+                    <div class="gline v" style="left:33.33%"></div>
+                    <div class="gline v" style="left:66.66%"></div>
+                    <div class="gline h" style="top:33.33%"></div>
+                    <div class="gline h" style="top:66.66%"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="irc-stat-row">
+                <div class="stat"><div class="num" id="ircOrigDims">—</div><div class="lbl">Dimensions</div></div>
+                <div class="stat"><div class="num" id="ircOrigSize">—</div><div class="lbl">Size</div></div>
+              </div>
+            </div>
+            <div>
+              <div class="irc-preview-box"><canvas id="ircResultCanvas" style="max-width:100%;max-height:100%;object-fit:contain"></canvas></div>
+              <div class="irc-stat-row">
+                <div class="stat"><div class="num" id="ircNewDims">—</div><div class="lbl">Dimensions</div></div>
+                <div class="stat"><div class="num" id="ircNewSize">—</div><div class="lbl">Size</div></div>
+                <div class="stat"><div class="num saved" id="ircSavedPct">—</div><div class="lbl">Saved</div></div>
+              </div>
+            </div>
+          </div>
+          <div id="ircCompareWrap" class="hidden">
+            <div class="irc-compare-box" id="ircCompareBox">
+              <canvas id="ircCompareCanvas"></canvas>
+            </div>
+            <div class="irc-stat-row" style="padding-top:4px">
+              <div class="stat"><span style="font-size:10px;font-weight:700;opacity:.5">← Original</span></div>
+              <div class="stat"><span style="font-size:10px;font-weight:700;opacity:.5">Resized →</span></div>
+            </div>
+          </div>
+          <div class="flex gap-2 mt-3">
+            <button class="btn btn-primary flex-1" id="ircDownloadBtn" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span id="ircDownloadLabel">Download Resized Image</span>
+            </button>
+            <button class="btn btn-ghost btn-sm" id="ircCompareToggle" type="button">Compare</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="ircToast" class="irc-toast" role="status" aria-live="polite"></div>
+{{ tool_seo_all(seo_data) }}
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ nonce }}">
+(function(){
+'use strict';
+var dz=document.getElementById('ircUploadZone'),fi=document.getElementById('ircFileInput'),pi=document.getElementById('ircPreviewImg');
+var fn_=document.getElementById('ircFileName'),im=document.getElementById('ircImageMeta'),cb=document.getElementById('ircClearBtn');
+var pg=document.getElementById('ircPresetGroup'),wIn=document.getElementById('ircWidth'),hIn=document.getElementById('ircHeight');
+var lk=document.getElementById('ircLockBtn'),crTog=document.getElementById('ircCropToggle');
+var fmt=document.getElementById('ircFormat'),qSl=document.getElementById('ircQuality'),qV=document.getElementById('ircQualityVal');
+var es=document.getElementById('ircEmptyState'),pc=document.getElementById('ircPreviewContent');
+var oi=document.getElementById('ircOrigImg'),oc=document.getElementById('ircResultCanvas');
+var od=document.getElementById('ircOrigDims'),os_=document.getElementById('ircOrigSize');
+var nd=document.getElementById('ircNewDims'),ns=document.getElementById('ircNewSize'),sv=document.getElementById('ircSavedPct');
+var db=document.getElementById('ircDownloadBtn'),dl=document.getElementById('ircDownloadLabel');
+var co=document.getElementById('ircCropOverlay'),cm=document.getElementById('ircCropMask'),cr=document.getElementById('ircCropRect');
+var gd=document.getElementById('ircGridOverlay'),grTog=document.getElementById('ircGridToggle');
+var rotCW=document.getElementById('ircRotateCW'),rotCCW=document.getElementById('ircRotateCCW'),flipH=document.getElementById('ircFlipH'),flipV=document.getElementById('ircFlipV');
+var cmpTog=document.getElementById('ircCompareToggle'),cmpWrap=document.getElementById('ircCompareWrap'),cmpBox=document.getElementById('ircCompareBox'),cmpCv=document.getElementById('ircCompareCanvas');
+var sbs=document.getElementById('ircSideBySide');
+var infoA=document.getElementById('ircInfoAspect'),infoOrig=document.getElementById('ircInfoOrig'),infoOut=document.getElementById('ircInfoOutput'),infoDpi=document.getElementById('ircInfoDpi'),infoRatio=document.getElementById('ircInfoRatio'),infoChg=document.getElementById('ircInfoChange');
+var te=document.getElementById('ircToast');
+
+/* ---- State ---- */
+var currentFile=null,currentImg=null,origW=0,origH=0,aspectLocked=true,cropMode=false,showGrid=false,compareMode=false;
+var rotate=0,flipHState=false,flipVState=false;
+var crop={x:0,y:0,w:0,h:0};
+var previewUrl=null,compareSliderPos=50,compareDragging=false,compareSeq=0;
+var cropDrag={active:false,startX:0,startY:0,startCrop:{x:0,y:0,w:0,h:0},handle:''};
+
+function toast(m){te.textContent=m;te.classList.add('show');setTimeout(function(){te.classList.remove('show')},2200)}
+
+function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){var t=b;b=a%b;a=t}return a}
+function aspectLabel(w,h){var g=gcd(w,h);return(w/g)+':'+(h/g)}
+function fmtSize(b){return b>=1048576?(b/1048576).toFixed(1)+' MB':b>=1024?Math.round(b/1024)+' KB':b+' B'}
+
+/* ---- Quality + format ---- */
+qSl.addEventListener('input',function(){qV.textContent=this.value+'%';if(currentImg)renderPreview()});
+fmt.addEventListener('change',function(){if(currentImg)renderPreview()});
+
+/* ---- Presets ---- */
+pg.addEventListener('click',function(e){
+  var btn=e.target.closest('.irc-pill');if(!btn)return;
+  pg.querySelectorAll('.irc-pill').forEach(function(b){b.classList.remove('on')});btn.classList.add('on');
+  wIn.value=parseInt(btn.dataset.w);hIn.value=parseInt(btn.dataset.h);
+  if(currentImg){syncCropRect();renderPreview()}});
+
+/* ---- Custom dims ---- */
+wIn.addEventListener('input',function(){if(aspectLocked&&currentImg&&this.value){var r=origW/origH;hIn.value=Math.round(parseInt(this.value)/r)}if(currentImg){syncCropRect();renderPreview()}});
+hIn.addEventListener('input',function(){if(aspectLocked&&currentImg&&this.value){var r=origH/origW;wIn.value=Math.round(parseInt(this.value)/r)}if(currentImg){syncCropRect();renderPreview()}});
+
+/* ---- Aspect lock ---- */
+lk.addEventListener('click',function(){
+  aspectLocked=!aspectLocked;lk.classList.toggle('locked');
+  lk.innerHTML=aspectLocked?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>':'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>'});
+
+/* ---- Crop toggle ---- */
+crTog.addEventListener('click',function(){
+  cropMode=!cropMode;crTog.classList.toggle('on');
+  crTog.textContent=cropMode?'Disable Crop':'Enable Crop';
+  co.classList.toggle('active',cropMode);
+  if(!cropMode&&currentImg)renderPreview();
+  if(cropMode&&currentImg)syncCropRect()});
+
+/* ---- Grid toggle ---- */
+grTog.addEventListener('click',function(){showGrid=!showGrid;grTog.classList.toggle('on');gd.classList.toggle('active',showGrid)});
+
+/* ---- Rotate / Flip ---- */
+rotCW.addEventListener('click',function(){rotate=(rotate+1)%4;if(currentImg)renderPreview()});
+rotCCW.addEventListener('click',function(){rotate=(rotate+3)%4;if(currentImg)renderPreview()});
+flipH.addEventListener('click',function(){flipHState=!flipHState;flipH.classList.toggle('on');if(currentImg)renderPreview()});
+flipV.addEventListener('click',function(){flipVState=!flipVState;flipV.classList.toggle('on');if(currentImg)renderPreview()});
+
+function getOutputDims(){
+  var tw=parseInt(wIn.value)||origW,th=parseInt(hIn.value)||origH;
+  if(rotate%2===1){return{w:th,h:tw,baseW:tw,baseH:th}}
+  return{w:tw,h:th,baseW:tw,baseH:th}}
+
+/* ---- Crop rect handlers ---- */
+function syncCropRect(){
+  if(!currentImg||!cropMode)return;
+  var tw=parseInt(wIn.value)||origW,th=parseInt(hIn.value)||origH;
+  var tr=tw/th;
+  var box=document.getElementById('ircOrigBox');
+  var bw=box.clientWidth,bh=box.clientHeight;
+  var scale=Math.min(bw/origW,bh/origH);
+  var dispW=origW*scale,dispH=origH*scale;
+  var offX=(bw-dispW)/2,offY=(bh-dispH)/2;
+  var cropW=dispW,cropH=dispW/tr;
+  if(cropH>dispH){cropH=dispH;cropW=dispH*tr}
+  crop={x:offX+(dispW-cropW)/2,y:offY+(dispH-cropH)/2,w:cropW,h:cropH,scale:scale,offX:offX,offY:offY};
+  applyCropRect();updateCropMask()}
+
+function applyCropRect(){cr.style.left=crop.x+'px';cr.style.top=crop.y+'px';cr.style.width=crop.w+'px';cr.style.height=crop.h+'px'}
+
+function updateCropMask(){
+  var t=crop.y,c=crop.x,b=crop.y+crop.h,r=crop.x+crop.w;
+  cm.style.clipPath='polygon(0 0,100% 0,100% 100%,0 100%,0 '+t+'px,'+c+'px '+t+'px,'+c+'px '+b+'px,'+r+'px '+b+'px,'+r+'px '+t+'px,0 '+t+'px)'}
+
+function cropToImgCoords(){
+  if(!crop.scale)return null;
+  return{x:Math.round((crop.x-crop.offX)/crop.scale),y:Math.round((crop.y-crop.offY)/crop.scale),w:Math.round(crop.w/crop.scale),h:Math.round(crop.h/crop.scale)}}
+
+cr.addEventListener('mousedown',function(e){
+  if(!cropMode)return;
+  var hdl=e.target.closest('.handle');
+  if(hdl){cropDrag.active=true;cropDrag.handle=hdl.dataset.handle;cropDrag.startX=e.clientX;cropDrag.startY=e.clientY;cropDrag.startCrop={x:crop.x,y:crop.y,w:crop.w,h:crop.h};e.preventDefault();e.stopPropagation();return}
+  if(e.target===cr||e.target.closest('.irc-crop-rect')){cropDrag.active=true;cropDrag.handle='';cropDrag.startX=e.clientX;cropDrag.startY=e.clientY;cropDrag.startCrop={x:crop.x,y:crop.y,w:crop.w,h:crop.h};e.preventDefault()}});
+
+document.addEventListener('mousemove',function(e){
+  if(!cropDrag.active||!cropMode)return;
+  var dx=e.clientX-cropDrag.startX,dy=e.clientY-cropDrag.startY;
+  if(cropDrag.handle){
+    var minS=20;
+    if(cropDrag.handle==='se'||cropDrag.handle==='nw'){
+      var ndW=Math.max(minS,cropDrag.startCrop.w+dx);var ndH=ndW*(cropDrag.startCrop.h/cropDrag.startCrop.w);
+      if(cropDrag.handle==='se'){crop.w=ndW;crop.h=ndH}else{crop.x=cropDrag.startCrop.x+cropDrag.startCrop.w-ndW;crop.y=cropDrag.startCrop.y+cropDrag.startCrop.h-ndH;crop.w=ndW;crop.h=ndH}}
+    else if(cropDrag.handle==='ne'||cropDrag.handle==='sw'){
+      var ndW=Math.max(minS,cropDrag.startCrop.w+dx);var ndH=ndW*(cropDrag.startCrop.h/cropDrag.startCrop.w);
+      if(cropDrag.handle==='ne'){crop.x=cropDrag.startCrop.x+cropDrag.startCrop.w-ndW;crop.w=ndW;crop.h=ndH;crop.y=cropDrag.startCrop.y}else{crop.y=cropDrag.startCrop.y+cropDrag.startCrop.h-ndH;crop.w=ndW;crop.h=ndH;crop.x=cropDrag.startCrop.x}}}else{
+    crop.x=cropDrag.startCrop.x+dx;crop.y=cropDrag.startCrop.y+dy}
+  clampCrop();applyCropRect();updateCropMask()});
+
+document.addEventListener('mouseup',function(){if(cropDrag.active){cropDrag.active=false;if(cropMode&&currentImg)renderPreview()}});
+cr.addEventListener('touchstart',function(e){
+  if(!cropMode)return;var t=e.touches[0],hdl=e.target.closest('.handle');
+  if(hdl){cropDrag.active=true;cropDrag.handle=hdl.dataset.handle;cropDrag.startX=t.clientX;cropDrag.startY=t.clientY;cropDrag.startCrop={x:crop.x,y:crop.y,w:crop.w,h:crop.h};e.preventDefault();e.stopPropagation();return}
+  if(e.target===cr||e.target.closest('.irc-crop-rect')){cropDrag.active=true;cropDrag.handle='';cropDrag.startX=t.clientX;cropDrag.startY=t.clientY;cropDrag.startCrop={x:crop.x,y:crop.y,w:crop.w,h:crop.h};e.preventDefault()}});
+document.addEventListener('touchmove',function(e){
+  if(!cropDrag.active||!cropMode)return;e.preventDefault();var t=e.touches[0],dx=t.clientX-cropDrag.startX,dy=t.clientY-cropDrag.startY;
+  if(cropDrag.handle){
+    var minS=20;
+    if(cropDrag.handle==='se'||cropDrag.handle==='nw'){var ndW=Math.max(minS,cropDrag.startCrop.w+dx);var ndH=ndW*(cropDrag.startCrop.h/cropDrag.startCrop.w);
+      if(cropDrag.handle==='se'){crop.w=ndW;crop.h=ndH}else{crop.x=cropDrag.startCrop.x+cropDrag.startCrop.w-ndW;crop.y=cropDrag.startCrop.y+cropDrag.startCrop.h-ndH;crop.w=ndW;crop.h=ndH}}
+    else if(cropDrag.handle==='ne'||cropDrag.handle==='sw'){var ndW=Math.max(minS,cropDrag.startCrop.w+dx);var ndH=ndW*(cropDrag.startCrop.h/cropDrag.startCrop.w);
+      if(cropDrag.handle==='ne'){crop.x=cropDrag.startCrop.x+cropDrag.startCrop.w-ndW;crop.w=ndW;crop.h=ndH;crop.y=cropDrag.startCrop.y}else{crop.y=cropDrag.startCrop.y+cropDrag.startCrop.h-ndH;crop.w=ndW;crop.h=ndH;crop.x=cropDrag.startCrop.x}}}else{
+    crop.x=cropDrag.startCrop.x+dx;crop.y=cropDrag.startCrop.y+dy}
+  clampCrop();applyCropRect();updateCropMask()},{passive:false});
+document.addEventListener('touchend',function(){if(cropDrag.active){cropDrag.active=false;if(cropMode&&currentImg)renderPreview()}});
+
+function clampCrop(){
+  var box=document.getElementById('ircOrigBox');
+  var bw=box.clientWidth,bh=box.clientHeight;
+  var scale=Math.min(bw/origW,bh/origH);
+  var dispW=origW*scale,dispH=origH*scale;
+  var offX=(bw-dispW)/2,offY=(bh-dispH)/2;
+  crop.offX=offX;crop.offY=offY;crop.scale=scale;
+  if(crop.x<offX)crop.x=offX;if(crop.y<offY)crop.y=offY;
+  if(crop.x+crop.w>offX+dispW)crop.x=offX+dispW-crop.w;
+  if(crop.y+crop.h>offY+dispH)crop.y=offY+dispH-crop.h}
+
+function updateCropFromDims(){syncCropRect()}
+
+/* ---- File handling ---- */
+function handleFile(file){
+  if(!file||!file.type.match(/^image\//)){toast('Please select an image file');return}
+  currentFile=file;var reader=new FileReader();
+  reader.onload=function(e){var img=new Image();img.onload=function(){
+    currentImg=img;origW=img.naturalWidth;origH=img.naturalHeight;
+    pi.src=e.target.result;pi.classList.remove('hidden');fn_.textContent=file.name;im.classList.remove('hidden');
+    dz.querySelector('.placeholder').classList.add('hidden');
+    es.classList.add('hidden');pc.classList.remove('hidden');
+    oi.onload=function(){
+      od.textContent=origW+'\u00d7'+origH;os_.textContent=fmtSize(file.size);
+      if(aspectLocked){wIn.value=Math.min(origW,1500);hIn.value=Math.round(parseInt(wIn.value)/origW*origH)}
+      if(cropMode){setTimeout(function(){syncCropRect()},50)}
+      renderPreview()};
+    oi.src=e.target.result;if(oi.complete)oi.onload()
+  };img.src=e.target.result};reader.readAsDataURL(file)}
+
+fi.addEventListener('change',function(e){if(e.target.files&&e.target.files[0])handleFile(e.target.files[0])});
+dz.addEventListener('click',function(){fi.click()});
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('dragover')});
+dz.addEventListener('dragleave',function(){dz.classList.remove('dragover')});
+dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files&&e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
+document.addEventListener('paste',function(e){var items=e.clipboardData&&e.clipboardData.items;if(!items)return;for(var i=0;i<items.length;i++){if(items[i].type.indexOf('image')!==-1){var blob=items[i].getAsFile();if(blob){handleFile(blob);return}}}});
+
+/* ---- Clear ---- */
+cb.addEventListener('click',function(){
+  if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl=null}
+  currentFile=null;currentImg=null;origW=0;origH=0;rotate=0;flipHState=false;flipVState=false;compareMode=false;
+  fi.value='';pi.classList.add('hidden');im.classList.add('hidden');
+  dz.querySelector('.placeholder').classList.remove('hidden');
+  es.classList.remove('hidden');pc.classList.add('hidden');cmpWrap.classList.add('hidden');sbs.classList.remove('hidden');
+  cmpTog.textContent='Compare';cmpTog.classList.remove('on');
+  oi.src='';od.textContent='—';os_.textContent='—';nd.textContent='—';ns.textContent='—';sv.textContent='—';
+  co.classList.remove('active');cropMode=false;crTog.classList.remove('on');crTog.textContent='Enable Crop';
+  gd.classList.remove('active');showGrid=false;grTog.classList.remove('on');
+  flipH.classList.remove('on');flipV.classList.remove('on');
+  db.disabled=true;dl.textContent='Download Resized Image';
+  infoA.textContent='—';infoOrig.textContent='—';infoOut.textContent='—';infoDpi.textContent='—';infoRatio.textContent='—';infoChg.textContent='—';
+  var ctx=oc.getContext('2d');ctx.clearRect(0,0,oc.width,oc.height);oc.width=0;oc.height=0});
+
+/* ---- Compare toggle ---- */
+cmpTog.addEventListener('click',function(){
+  compareMode=!compareMode;cmpTog.classList.toggle('on');
+  cmpTog.textContent=compareMode?'Side-by-side':'Compare';
+  sbs.classList.toggle('hidden',compareMode);cmpWrap.classList.toggle('hidden',!compareMode);
+  if(compareMode&&currentImg)renderCompare()});
+
+/* ---- Compare slider ---- */
+cmpBox.addEventListener('mousedown',function(e){compareDragging=true;updateComparePos(e)});
+cmpBox.addEventListener('touchstart',function(e){compareDragging=true;updateComparePos(e.touches[0])},{passive:true});
+document.addEventListener('mousemove',function(e){if(compareDragging){updateComparePos(e)}});
+document.addEventListener('touchmove',function(e){if(compareDragging){e.preventDefault();updateComparePos(e.touches[0])}},{passive:false});
+document.addEventListener('mouseup',function(){compareDragging=false});
+document.addEventListener('touchend',function(){compareDragging=false});
+
+function updateComparePos(e){
+  var rect=cmpCv.getBoundingClientRect();
+  var pct=(e.clientX-rect.left)/rect.width*100;
+  compareSliderPos=Math.max(5,Math.min(95,pct));
+  renderCompare()}
+
+function renderCompare(){
+  if(!currentImg||!compareMode)return;
+  var seq=++compareSeq;
+  var tw=parseInt(wIn.value)||origW,th=parseInt(hIn.value)||origH;
+  var out=getOutputDims();
+  var cw=cmpBox.clientWidth,ch=Math.min(400,cw*0.75);
+  cmpCv.width=cw;cmpCv.height=ch;
+  var ctx=cmpCv.getContext('2d');
+  var arO=origW/origH,arR=out.w/out.h;
+  var dw=ch*arO,dh=ch;
+  if(dw>cw){dw=cw;dh=cw/arO}
+  var ox=(cw-dw)/2,oy=(ch-dh)/2;
+  ctx.drawImage(currentImg,ox,oy,dw,dh);
+  var rw=ch*arR,rh=ch;
+  if(rw>cw){rw=cw;rh=cw/arR}
+  var rx=(cw-rw)/2,ry=(ch-rh)/2;
+  var pos=compareSliderPos/100*cw;
+  ctx.save();
+  ctx.beginPath();ctx.rect(0,0,pos,ch);ctx.clip();
+  var rImg=new Image();
+  rImg.onload=function(){if(seq!==compareSeq)return;ctx.drawImage(rImg,rx,ry,rw,rh);drawCompareHandle(ctx,cw,ch,pos)};
+  rImg.onerror=function(){if(seq!==compareSeq)return;drawCompareHandle(ctx,cw,ch,pos)};
+  rImg.src=previewUrl}
+
+function drawCompareHandle(ctx,cw,ch,pos){
+  ctx.restore();
+  ctx.beginPath();ctx.moveTo(pos,0);ctx.lineTo(pos,ch);ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pos,0);ctx.lineTo(pos,ch);ctx.strokeStyle='rgba(0,0,0,.3)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);
+  var hr=14;
+  ctx.beginPath();ctx.arc(pos,ch/2,hr,0,2*Math.PI);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='var(--color-primary)';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.beginPath();ctx.moveTo(pos-5,ch/2-5);ctx.lineTo(pos+5,ch/2);ctx.lineTo(pos-5,ch/2+5);ctx.closePath();ctx.fillStyle='var(--color-primary)';ctx.fill()}
+
+/* ---- Render preview ---- */
+var renderTimeout=null,renderSeq=0;
+function renderPreview(){
+  if(!currentImg)return;
+  if(renderTimeout)clearTimeout(renderTimeout);
+  var seq=++renderSeq;
+  renderTimeout=setTimeout(function(){
+    var out=getOutputDims();
+    var tw=out.w,th=out.h,bw=out.baseW,bh=out.baseH;
+    if(tw<1||th<1)return;
+    var q=parseInt(qSl.value)/100;
+    var mt={'jpeg':'image/jpeg','png':'image/png','webp':'image/webp'}[fmt.value]||'image/jpeg';
+    var el=oc.getContext('2d');
+    oc.width=tw;oc.height=th;
+    el.save();el.translate(tw/2,th/2);
+    el.rotate(rotate*Math.PI/2);
+    el.scale(flipHState?-1:1,flipVState?-1:1);
+    el.translate(-bw/2,-bh/2);
+    if(cropMode&&crop.scale){var c=cropToImgCoords();if(c&&c.w>0&&c.h>0&&c.x>=0&&c.y>=0&&c.x+c.w<=origW&&c.y+c.h<=origH){el.drawImage(currentImg,c.x,c.y,c.w,c.h,0,0,bw,bh)}else{el.drawImage(currentImg,0,0,bw,bh)}}else{el.drawImage(currentImg,0,0,bw,bh)}
+    el.restore();
+    nd.textContent=tw+'\u00d7'+th;
+    oc.toBlob(function(b){
+      if(!b||seq!==renderSeq)return;
+      if(previewUrl){URL.revokeObjectURL(previewUrl)}
+      previewUrl=URL.createObjectURL(b);
+      ns.textContent=fmtSize(b.size);
+      var pct=currentFile?Math.round((1-b.size/currentFile.size)*100):0;
+      sv.textContent=(pct>0?'\u2212'+pct+'%':pct===0?'0%':'+'+Math.abs(pct)+'%');
+      sv.style.color=pct>=0?'var(--color-success)':'var(--color-error)';
+      var ext=fmt.value==='jpeg'?'jpg':fmt.value;
+      dl.textContent='Download ('+tw+'\u00d7'+th+' \u00b7 '+ext.toUpperCase()+')';
+      db.disabled=false;
+      db.onclick=function(){
+        var a=document.createElement('a');
+        a.download='resized_'+tw+'x'+th+'.'+ext;a.href=previewUrl;a.click();toast('Downloading '+tw+'\u00d7'+th+' '+ext.toUpperCase())};
+      updateInfo(tw,th,b.size);
+      if(compareMode)renderCompare()
+    },mt,q)
+  },150)}
+
+function updateInfo(tw,th,newSize){
+  infoA.textContent=aspectLabel(tw,th);
+  infoOrig.textContent=origW+'\u00d7'+origH+(currentFile?' ('+fmtSize(currentFile.size)+')':'');
+  infoOut.textContent=tw+'\u00d7'+th+' ('+fmtSize(newSize)+')';
+  infoDpi.textContent=Math.round(tw/300)+'" \u00d7 '+Math.round(th/300)+'"';
+  var ratio=(origW*origH)/(tw*th);
+  infoRatio.textContent=(1/ratio).toFixed(2)+'\u00d7';
+  var pct=currentFile?Math.round((1-newSize/currentFile.size)*100):0;
+  infoChg.textContent=(pct>=0?'\u2212'+pct:'+'+Math.abs(pct))+'%';infoChg.style.color=pct>=0?'var(--color-success)':'var(--color-error)'}
+
+window.addEventListener('resize',function(){if(cropMode&&currentImg){syncCropRect()}if(compareMode&&currentImg){renderCompare()}});
+})();
+</script>
+{% endblock %}
