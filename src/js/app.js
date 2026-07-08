@@ -68,21 +68,7 @@ var an=document.getElementById('analytics-track');if(an&&'sendBeacon'in navigato
 
 
 
-/* ── Hover-Intent Prefetching ── */
-var prefetched = new Set();
-document.addEventListener('mouseover', function(e) {
-  var t = e.target.closest('a');
-  if (t && t.href && t.href.startsWith(window.location.origin) && !t.hash && !prefetched.has(t.href)) {
-    var timer = setTimeout(function() {
-      prefetched.add(t.href);
-      var link = document.createElement('link');
-      link.rel = 'prefetch';
-      link.href = t.href;
-      document.head.appendChild(link);
-    }, 60);
-    t.addEventListener('mouseout', function() { clearTimeout(timer); }, { once: true });
-  }
-});
+/* ── Legacy Hover-Intent Prefetching Removed (Using Speculation Rules instead) ── */
 
 /* ── Hero mouse-follow glow ── */
 var hs=document.getElementById('heroSection');if(hs){var _r=null,_rid=!1;hs.addEventListener('mousemove',function(e){if(_rid)cancelAnimationFrame(_r);_rid=!0;_r=requestAnimationFrame(function(){var b=hs.getBoundingClientRect(),mx=(e.clientX-b.left)/b.width*100,my=(e.clientY-b.top)/b.height*100;hs.style.setProperty('--mx',mx+'%');hs.style.setProperty('--my',my+'%');_rid=!1})},{passive:!0})}
