@@ -228,7 +228,7 @@
   </div>
 </div>
 <div id="ircToast" class="irc-toast" role="status" aria-live="polite"></div>
-{{ tool_seo_all(seo_data) }}
+
 {% endblock %}
 {% block scripts %}
 <script nonce="{{ nonce }}">
@@ -330,7 +330,11 @@ function updateCropMask(){
 
 function cropToImgCoords(){
   if(!crop.scale)return null;
-  return{x:Math.round((crop.x-crop.offX)/crop.scale),y:Math.round((crop.y-crop.offY)/crop.scale),w:Math.round(crop.w/crop.scale),h:Math.round(crop.h/crop.scale)}}
+  var cx=Math.round((crop.x-crop.offX)/crop.scale),cy=Math.round((crop.y-crop.offY)/crop.scale);
+  var cw=Math.round(crop.w/crop.scale),ch=Math.round(crop.h/crop.scale);
+  if(cx<0)cx=0;if(cy<0)cy=0;
+  if(cx+cw>origW)cw=origW-cx;if(cy+ch>origH)ch=origH-cy;
+  return{x:cx,y:cy,w:cw,h:ch}}
 
 cr.addEventListener('mousedown',function(e){
   if(!cropMode)return;
@@ -343,13 +347,29 @@ document.addEventListener('mousemove',function(e){
   var dx=e.clientX-cropDrag.startX,dy=e.clientY-cropDrag.startY;
   if(cropDrag.handle){
     var minS=20;
-    if(cropDrag.handle==='se'||cropDrag.handle==='nw'){
-      var ndW=Math.max(minS,cropDrag.startCrop.w+dx);var ndH=ndW*(cropDrag.startCrop.h/cropDrag.startCrop.w);
-      if(cropDrag.handle==='se'){crop.w=ndW;crop.h=ndH}else{crop.x=cropDrag.startCrop.x+cropDrag.startCrop.w-ndW;crop.y=cropDrag.startCrop.y+cropDrag.startCrop.h-ndH;crop.w=ndW;crop.h=ndH}}
-    else if(cropDrag.handle==='ne'||cropDrag.handle==='sw'){
-      var ndW=Math.max(minS,cropDrag.startCrop.w+dx);var ndH=ndW*(cropDrag.startCrop.h/cropDrag.startCrop.w);
-      if(cropDrag.handle==='ne'){crop.x=cropDrag.startCrop.x+cropDrag.startCrop.w-ndW;crop.w=ndW;crop.h=ndH;crop.y=cropDrag.startCrop.y}else{crop.y=cropDrag.startCrop.y+cropDrag.startCrop.h-ndH;crop.w=ndW;crop.h=ndH;crop.x=cropDrag.startCrop.x}}}else{
-    crop.x=cropDrag.startCrop.x+dx;crop.y=cropDrag.startCrop.y+dy}
+    var wDiff = (cropDrag.handle==='nw'||cropDrag.handle==='sw') ? -dx : dx;
+    var ndW=Math.max(minS,cropDrag.startCrop.w+wDiff);
+    var ndH=ndW*(cropDrag.startCrop.h/cropDrag.startCrop.w);
+    if(cropDrag.handle==='se'){
+      crop.x=cropDrag.startCrop.x;
+      crop.y=cropDrag.startCrop.y;
+      crop.w=ndW;crop.h=ndH;
+    }else if(cropDrag.handle==='nw'){
+      crop.x=cropDrag.startCrop.x+cropDrag.startCrop.w-ndW;
+      crop.y=cropDrag.startCrop.y+cropDrag.startCrop.h-ndH;
+      crop.w=ndW;crop.h=ndH;
+    }else if(cropDrag.handle==='ne'){
+      crop.x=cropDrag.startCrop.x;
+      crop.y=cropDrag.startCrop.y+cropDrag.startCrop.h-ndH;
+      crop.w=ndW;crop.h=ndH;
+    }else if(cropDrag.handle==='sw'){
+      crop.x=cropDrag.startCrop.x+cropDrag.startCrop.w-ndW;
+      crop.y=cropDrag.startCrop.y;
+      crop.w=ndW;crop.h=ndH;
+    }
+  }else{
+    crop.x=cropDrag.startCrop.x+dx;crop.y=cropDrag.startCrop.y+dy;
+  }
   clampCrop();applyCropRect();updateCropMask()});
 
 document.addEventListener('mouseup',function(){if(cropDrag.active){cropDrag.active=false;if(cropMode&&currentImg)renderPreview()}});
@@ -361,11 +381,29 @@ document.addEventListener('touchmove',function(e){
   if(!cropDrag.active||!cropMode)return;e.preventDefault();var t=e.touches[0],dx=t.clientX-cropDrag.startX,dy=t.clientY-cropDrag.startY;
   if(cropDrag.handle){
     var minS=20;
-    if(cropDrag.handle==='se'||cropDrag.handle==='nw'){var ndW=Math.max(minS,cropDrag.startCrop.w+dx);var ndH=ndW*(cropDrag.startCrop.h/cropDrag.startCrop.w);
-      if(cropDrag.handle==='se'){crop.w=ndW;crop.h=ndH}else{crop.x=cropDrag.startCrop.x+cropDrag.startCrop.w-ndW;crop.y=cropDrag.startCrop.y+cropDrag.startCrop.h-ndH;crop.w=ndW;crop.h=ndH}}
-    else if(cropDrag.handle==='ne'||cropDrag.handle==='sw'){var ndW=Math.max(minS,cropDrag.startCrop.w+dx);var ndH=ndW*(cropDrag.startCrop.h/cropDrag.startCrop.w);
-      if(cropDrag.handle==='ne'){crop.x=cropDrag.startCrop.x+cropDrag.startCrop.w-ndW;crop.w=ndW;crop.h=ndH;crop.y=cropDrag.startCrop.y}else{crop.y=cropDrag.startCrop.y+cropDrag.startCrop.h-ndH;crop.w=ndW;crop.h=ndH;crop.x=cropDrag.startCrop.x}}}else{
-    crop.x=cropDrag.startCrop.x+dx;crop.y=cropDrag.startCrop.y+dy}
+    var wDiff = (cropDrag.handle==='nw'||cropDrag.handle==='sw') ? -dx : dx;
+    var ndW=Math.max(minS,cropDrag.startCrop.w+wDiff);
+    var ndH=ndW*(cropDrag.startCrop.h/cropDrag.startCrop.w);
+    if(cropDrag.handle==='se'){
+      crop.x=cropDrag.startCrop.x;
+      crop.y=cropDrag.startCrop.y;
+      crop.w=ndW;crop.h=ndH;
+    }else if(cropDrag.handle==='nw'){
+      crop.x=cropDrag.startCrop.x+cropDrag.startCrop.w-ndW;
+      crop.y=cropDrag.startCrop.y+cropDrag.startCrop.h-ndH;
+      crop.w=ndW;crop.h=ndH;
+    }else if(cropDrag.handle==='ne'){
+      crop.x=cropDrag.startCrop.x;
+      crop.y=cropDrag.startCrop.y+cropDrag.startCrop.h-ndH;
+      crop.w=ndW;crop.h=ndH;
+    }else if(cropDrag.handle==='sw'){
+      crop.x=cropDrag.startCrop.x+cropDrag.startCrop.w-ndW;
+      crop.y=cropDrag.startCrop.y;
+      crop.w=ndW;crop.h=ndH;
+    }
+  }else{
+    crop.x=cropDrag.startCrop.x+dx;crop.y=cropDrag.startCrop.y+dy;
+  }
   clampCrop();applyCropRect();updateCropMask()},{passive:false});
 document.addEventListener('touchend',function(){if(cropDrag.active){cropDrag.active=false;if(cropMode&&currentImg)renderPreview()}});
 
@@ -376,6 +414,9 @@ function clampCrop(){
   var dispW=origW*scale,dispH=origH*scale;
   var offX=(bw-dispW)/2,offY=(bh-dispH)/2;
   crop.offX=offX;crop.offY=offY;crop.scale=scale;
+  var tr=crop.w/crop.h;
+  if(crop.w>dispW){crop.w=dispW;crop.h=dispW/tr}
+  if(crop.h>dispH){crop.h=dispH;crop.w=dispH*tr}
   if(crop.x<offX)crop.x=offX;if(crop.y<offY)crop.y=offY;
   if(crop.x+crop.w>offX+dispW)crop.x=offX+dispW-crop.w;
   if(crop.y+crop.h>offY+dispH)crop.y=offY+dispH-crop.h}

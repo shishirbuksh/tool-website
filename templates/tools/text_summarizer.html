@@ -1,0 +1,695 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
+
+{% block title %}AI Text Summarizer — Free Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Free AI text summarizer: condense articles, papers, and notes. Extract key points with adjustable length — short, medium, or detailed. No sign-up.{% endblock %}
+{% block meta_keywords %}text summarizer, summarize text, ai summarizer, article summarizer, free summarizer online, text condenser, summary generator, storybrain ai{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/text-summarizer{% endblock %}
+{% block og_title %}AI Text Summarizer — Free Online Text Summarizer{% endblock %}
+{% block og_description %}Condense articles, papers, and notes in seconds. Extract key points with adjustable length — short, medium, or detailed. Free, private, no sign-up.{% endblock %}
+{% block head %}
+<style>
+  .ts-highlight{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-radius:0.25rem;padding:0.125rem 0;}
+  .ts-orig-panel{max-height:55vh;overflow-y:auto;font-size:0.875rem;line-height:1.7;}
+  .ts-orig-panel::-webkit-scrollbar{width:6px;}
+  .ts-orig-panel::-webkit-scrollbar-thumb{background:var(--color-base-300);border-radius:3px;}
+  .ts-stat-card{text-align:center;padding:0.5rem;background:color-mix(in oklab,var(--color-base-200) 30%,transparent);border-radius:0.75rem;}
+  .ts-stat-card .ts-stat-val{font-size:1.125rem;font-weight:900;font-family:var(--font-mono,ui-monospace,monospace);}
+  .ts-stat-card .ts-stat-label{font-size:0.625rem;text-transform:uppercase;letter-spacing:0.05em;opacity:0.4;}
+  @media(max-width:1023px){.ts-orig-panel{max-height:40vh;}}
+  .ts-kw-bar{height:1.25rem;border-radius:0.25rem;display:inline-block;vertical-align:middle;margin-right:0.5rem;transition:width 0.3s;}
+  .ts-tts-btn{transition:all 0.15s;}
+  .ts-tts-btn.speaking{background:var(--color-primary);color:var(--color-primary-content);border-color:var(--color-primary);}
+  .ts-top-score{display:inline-block;min-width:2rem;text-align:right;font-variant-numeric:tabular-nums;}
+  .ts-rank-item{display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0.5rem;border-radius:0.5rem;transition:background 0.15s;cursor:pointer;}
+  .ts-rank-item:hover{background:color-mix(in oklab,var(--color-base-200) 30%,transparent);}
+  .ts-rank-item.included{background:color-mix(in oklab,var(--color-primary) 6%,transparent);}
+  .ts-rank-score{width:3rem;text-align:right;font-size:0.625rem;font-family:var(--font-mono,ui-monospace,monospace);opacity:0.5;flex-shrink:0;}
+  .ts-rank-bar-wrap{width:2.5rem;height:0.375rem;background:color-mix(in oklab,var(--color-base-300) 30%,transparent);border-radius:0.125rem;flex-shrink:0;overflow:hidden;}
+  .ts-rank-bar{height:100%;border-radius:0.125rem;background:var(--color-primary);transition:width 0.3s;}
+  .ts-rank-text{font-size:0.75rem;line-height:1.4;flex:1;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .ts-rank-pos{font-size:0.5rem;font-family:var(--font-mono,ui-monospace,monospace);opacity:0.3;width:1.5rem;text-align:right;flex-shrink:0;}
+  .ts-hist-item{display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0.5rem;border-radius:0.5rem;transition:background 0.15s;}
+  .ts-hist-item:hover{background:color-mix(in oklab,var(--color-base-200) 30%,transparent);}
+  .ts-hist-meta{font-size:0.625rem;font-family:var(--font-mono,ui-monospace,monospace);opacity:0.4;flex-shrink:0;}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("file-text", "AI & Text", "AI TEXT", "SUMMARIZER", "Condense articles, papers, and notes into clear summaries. Choose short, medium, or detailed — all in your browser, no sign-up needed.") }}
+
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:col-span-2">
+    <div class="card card-border border-base-300/40 bg-base-100 shadow-sm rounded-2xl">
+      <div class="card-body p-6 md:p-8">
+        <h2 class="card-title text-lg font-black tracking-tight gap-3 mb-2">
+          {{ lucide_icon("file-text","w-5 h-5", 20) | safe }} Input
+        </h2>
+        <div class="flex flex-col gap-4">
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend text-xs font-bold uppercase tracking-widest opacity-60 flex justify-between w-full">
+              <span>Text to Summarize</span>
+              <span class="font-mono font-normal text-[10px]" id="tsCharCount">0 / 5000</span>
+            </legend>
+            <textarea id="tsInput" class="textarea w-full h-52 font-mono text-[13px] leading-relaxed" placeholder="Paste an article, research paper, blog post, or notes here..." spellcheck="true" maxlength="5000"></textarea>
+          </fieldset>
+          <div class="grid grid-cols-4 gap-2 p-2 bg-base-200/20 rounded-xl" id="tsStats">
+            <div class="ts-stat-card"><div class="ts-stat-val" id="tsWords">0</div><div class="ts-stat-label">Words</div></div>
+            <div class="ts-stat-card"><div class="ts-stat-val" id="tsSents">0</div><div class="ts-stat-label">Sentences</div></div>
+            <div class="ts-stat-card"><div class="ts-stat-val" id="tsChars">0</div><div class="ts-stat-label">Chars</div></div>
+            <div class="ts-stat-card"><div class="ts-stat-val" id="tsReadTime">0s</div><div class="ts-stat-label">Reading</div></div>
+          </div>
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend text-xs font-bold uppercase tracking-widest opacity-60">Summary Mode</legend>
+            <div class="join w-full" role="radiogroup" aria-label="Summary mode">
+              <input type="radio" name="tsMode" id="tsModeShort" class="btn btn-sm join-item" value="short" checked aria-label="Short" data-label="Short">
+              <input type="radio" name="tsMode" id="tsModeMedium" class="btn btn-sm join-item" value="medium" aria-label="Medium" data-label="Medium">
+              <input type="radio" name="tsMode" id="tsModeDetailed" class="btn btn-sm join-item" value="detailed" aria-label="Detailed" data-label="Detailed">
+            </div>
+          </fieldset>
+          <fieldset class="fieldset" id="tsSliderGroup">
+            <legend class="fieldset-legend text-xs font-bold uppercase tracking-widest opacity-60 flex justify-between w-full">
+              <span>Compression</span>
+              <span class="font-mono font-normal text-[10px]" id="tsCompressLabel">25%</span>
+            </legend>
+            <input type="range" id="tsSlider" class="range range-sm" min="10" max="50" value="25" step="5">
+            <div class="flex justify-between text-[9px] font-mono opacity-30 px-1"><span>Short</span><span>Long</span></div>
+          </fieldset>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="btn btn-primary btn-sm gap-1.5 flex-1" id="tsGo">{{ lucide_icon("sparkles","w-4 h-4", 16) | safe }} Summarize</button>
+            <button type="button" class="btn btn-ghost btn-sm gap-1.5" id="tsReset">{{ lucide_icon("rotate-ccw","w-4 h-4", 16) | safe }} Reset</button>
+            <button type="button" class="btn btn-ghost btn-sm gap-1.5" id="tsSample">{{ lucide_icon("file-plus","w-4 h-4", 16) | safe }} Sample</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lg:col-span-3">
+    <div class="card card-border border-base-300/40 bg-base-100 shadow-sm rounded-2xl">
+      <div class="card-body p-6 md:p-8">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="card-title text-lg font-black tracking-tight gap-3">
+            {{ lucide_icon("list-checks","w-5 h-5", 20) | safe }} Summary
+          </h3>
+          <span class="text-[10px] font-mono opacity-30" id="tsStatus">Waiting for input</span>
+        </div>
+        <div class="grid grid-cols-5 gap-2 p-2 bg-base-200/20 rounded-xl mb-4" id="tsOutStats" style="display:none">
+          <div class="ts-stat-card"><div class="ts-stat-val" id="tsOutWords">0</div><div class="ts-stat-label">Summary Words</div></div>
+          <div class="ts-stat-card"><div class="ts-stat-val" id="tsOutSents">0</div><div class="ts-stat-label">Summary Sents</div></div>
+          <div class="ts-stat-card"><div class="ts-stat-val" id="tsCompress">0%</div><div class="ts-stat-label">Compression</div></div>
+          <div class="ts-stat-card"><div class="ts-stat-val" id="tsTimeSaved">0s</div><div class="ts-stat-label">Time Saved</div></div>
+          <div class="ts-stat-card"><div class="ts-stat-val" id="tsQuality">—</div><div class="ts-stat-label">Quality</div></div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="tsOutput" style="display:none">
+          <div class="border border-base-300/20 rounded-xl p-4">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-50 mb-2">Original</div>
+            <div class="ts-orig-panel" id="tsOrigDisplay"></div>
+          </div>
+          <div class="border border-base-300/20 rounded-xl p-4 bg-base-200/10">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-50 mb-2">Summary</div>
+            <div class="ts-orig-panel font-semibold" id="tsSumDisplay"></div>
+          </div>
+        </div>
+        <div id="tsEmpty" class="flex flex-col items-center justify-center py-12 text-center opacity-40">
+          {{ lucide_icon("file-text","w-12 h-12", 48) | safe }}
+          <p class="mt-4 text-sm">Paste text above and click <strong>Summarize</strong></p>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-4" id="tsActions" style="display:none">
+          <button type="button" class="btn btn-primary btn-sm gap-1.5" id="tsCopy">{{ lucide_icon("copy","w-4 h-4", 16) | safe }} Copy</button>
+          <button type="button" class="btn btn-ghost btn-sm gap-1.5" id="tsExportTxt">{{ lucide_icon("download","w-4 h-4", 16) | safe }} .txt</button>
+          <button type="button" class="btn btn-ghost btn-sm gap-1.5" id="tsExportPdf">{{ lucide_icon("file-text","w-4 h-4", 16) | safe }} PDF</button>
+          <button type="button" class="btn btn-ghost btn-sm gap-1.5 ts-tts-btn" id="tsTtsBtn">{{ lucide_icon("volume-2","w-4 h-4", 16) | safe }} Listen</button>
+        </div>
+
+        <details class="collapse collapse-arrow border border-base-300/20 rounded-xl mt-3" id="tsRankPanel" style="display:none">
+          <summary class="collapse-title text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-2 p-3">
+            {{ lucide_icon("arrow-up-wide-narrow","w-3.5 h-3.5", 14) | safe }} Sentence Ranking
+            <span class="badge badge-xs badge-ghost font-mono" id="tsBadgeRank">0 sentences</span>
+          </summary>
+          <div class="collapse-content p-3 pt-0 max-h-64 overflow-y-auto" id="tsRankList"></div>
+        </details>
+
+        <details class="collapse collapse-arrow border border-base-300/20 rounded-xl mt-3" id="tsAnalysis" style="display:none">
+          <summary class="collapse-title text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-2 p-3">
+            {{ lucide_icon("bar-chart-3","w-3.5 h-3.5", 14) | safe }} Analysis
+            <span class="badge badge-xs badge-ghost font-mono" id="tsBadgeKw">0 keywords</span>
+            <span class="badge badge-xs badge-ghost font-mono" id="tsBadgeRead">—</span>
+          </summary>
+          <div class="collapse-content p-3 pt-0">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div>
+                <div class="text-[10px] font-bold uppercase tracking-wider opacity-50 mb-2">Top Keywords</div>
+                <div id="tsKeywords" class="text-[12px] leading-relaxed"></div>
+              </div>
+              <div>
+                <div class="text-[10px] font-bold uppercase tracking-wider opacity-50 mb-2">Readability</div>
+                <div id="tsReadability" class="grid grid-cols-2 gap-2"></div>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="collapse collapse-arrow border border-base-300/20 rounded-xl mt-3" id="tsHistPanel">
+          <summary class="collapse-title text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-2 p-3">
+            {{ lucide_icon("history","w-3.5 h-3.5", 14) | safe }} History
+            <span class="badge badge-xs badge-ghost font-mono" id="tsBadgeHist">0 saved</span>
+          </summary>
+          <div class="collapse-content p-3 pt-0" id="tsHistList">
+            <em class="opacity-30 text-[11px]">No saved summaries yet. Summarize some text to see history here.</em>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block seo_schema %}
+{% set seo = {
+  "name": "AI Text Summarizer",
+  "description": "Condense articles, papers, and notes into short summaries. Extract key points with adjustable length — short, medium, or detailed. Free, private, no sign-up.",
+  "app_category": "UtilitiesApplication",
+  "app_sub_category": "Writing Tool",
+  "date_modified": "2026-07-09",
+  "faqs": [
+    {"q": "How does the AI Text Summarizer work?", "a": "It uses TextRank, a graph-based ranking algorithm. Each sentence is scored based on its similarity to all other sentences, and the most central sentences are selected. Everything runs in your browser."},
+    {"q": "Is my text sent to any server?", "a": "No. All processing happens entirely in your browser. Your text is never uploaded, stored, or transmitted. You can work completely offline after the page loads."},
+    {"q": "Can I manually choose which sentences to include?", "a": "Yes. After summarizing, open the Sentence Ranking panel. Every sentence is listed with its TextRank score. Check or uncheck sentences to customize the summary in real time."},
+    {"q": "What summarization modes are available?", "a": "Three modes: Short (2-3 key sentences), Medium (paragraph-length summary, ~25% of original), and Detailed (bullet-point summary, ~40% of original)."},
+    {"q": "Can I control the summary length?", "a": "Yes. In Medium mode, use the compression slider to adjust the summary from 10% to 50% of the original text length. You can also fine-tune by toggling individual sentences in the Sentence Ranking panel."},
+    {"q": "What is TextRank?", "a": "TextRank is a graph-based ranking algorithm inspired by Google's PageRank. It builds a graph where sentences are nodes and similarity scores are edges, then iteratively computes which sentences are most central to the text."}
+  ],
+  "howto_steps": [
+    {"title": "Paste or Type Your Text", "desc": "Write or paste up to 5,000 characters into the input field."},
+    {"title": "Choose Mode & Length", "desc": "Select Short, Medium (with slider), or Detailed. Click Summarize."},
+    {"title": "Fine-Tune with Sentence Ranking", "desc": "Open Sentence Ranking to see all sentences scored by TextRank. Toggle checkboxes to include or exclude sentences."},
+    {"title": "Explore Analysis", "desc": "Open Analysis to see extracted keywords, readability scores, and summary quality metrics."},
+    {"title": "Listen, Export or Restore", "desc": "Listen with TTS, copy, export as .txt or PDF, or restore past summaries from History."}
+  ],
+  "howto_calculate": "",
+  "about_title": "About the AI Text Summarizer",
+  "about_body": "<p>The AI Text Summarizer is a free online tool that condenses articles, research papers, blog posts, and notes into clear, concise summaries — all in your browser. Students use it to extract key points from study materials, professionals summarize reports and emails, and content writers distill source material before rewriting.</p><p>The tool uses TextRank, a graph-based extractive summarization algorithm inspired by Google's PageRank. It builds a similarity graph of all sentences, then iteratively computes which sentences are most central to the text. The interactive Sentence Ranking panel gives you full control — every sentence shows its TextRank score, and you can toggle individual sentences on or off to customize the summary in real time.</p><p>Beyond summarization, the tool extracts top keywords with frequency bars, calculates readability scores (Flesch-Kincaid Grade Level, Reading Ease, and Fog Index), and computes a summary quality score based on content coverage and diversity. You can listen to the summary with built-in text-to-speech, copy to clipboard, export as .txt or PDF, and restore past summaries from browser history.</p><p>Built with privacy in mind, all processing happens directly in your browser. No sign-up required, no data stored, no tracking. For complementary content tools, try our <a href='/tool/paraphrasing-tool'>AI Paraphrasing Tool</a> and <a href='/tool/seo-writing-assistant'>SEO Writing Assistant</a>.</p>",
+  "related": seo_data.related
+} %}
+{{ tool_seo_all(seo) }}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ nonce }}">
+(function(){
+  var _e=function(id){return document.getElementById(id);};
+  var input=_e('tsInput'), go=_e('tsGo'), reset=_e('tsReset'), sample=_e('tsSample');
+  var charCount=_e('tsCharCount'), wc=_e('tsWords'), sc=_e('tsSents'), cc=_e('tsChars'), rt=_e('tsReadTime');
+  var modeShort=_e('tsModeShort'), modeMedium=_e('tsModeMedium'), modeDetailed=_e('tsModeDetailed');
+  var slider=_e('tsSlider'), sliderGrp=_e('tsSliderGroup'), compressLabel=_e('tsCompressLabel');
+  var owc=_e('tsOutWords'), osc=_e('tsOutSents'), ocp=_e('tsCompress'), ots=_e('tsTimeSaved'), oq=_e('tsQuality');
+  var outStats=_e('tsOutStats'), output=_e('tsOutput'), empty=_e('tsEmpty'), actions=_e('tsActions');
+  var origD=_e('tsOrigDisplay'), sumD=_e('tsSumDisplay'), status=_e('tsStatus');
+  var copyBtn=_e('tsCopy'), expTxt=_e('tsExportTxt'), expPdf=_e('tsExportPdf'), ttsBtn=_e('tsTtsBtn');
+  var kwDiv=_e('tsKeywords'), readDiv=_e('tsReadability');
+  var badgeKw=_e('tsBadgeKw'), badgeRead=_e('tsBadgeRead'), badgeRank=_e('tsBadgeRank'), badgeHist=_e('tsBadgeHist');
+  var analysis=_e('tsAnalysis'), rankPanel=_e('tsRankPanel'), rankList=_e('tsRankList');
+  var histList=_e('tsHistList');
+
+  var stopWords=new Set('a about above after again all am an and any are as at be because been before being below between both but by could did do does done due during each few for from further had has have having here hereafter hereby herein hereinafter hereof hereto hereunto hereupon herewith how i if in into is it its itself just me more most my myself no nor not now of on once only or other our ours ourselves out over own per rather really same say see shall she should show side since so some such than that the their them themselves then there thereby therefore therein thereof thereto thereunto thereupon these they this through thus to too toward under until up upon very was we were what when where wherein whereof wherever whether which while who whom whomever whose why with within without would you your yours yourself yourselves'.split(' '));
+  var historyKey='ts_summary_history';
+
+  function countWords(s){if(typeof s!=='string'||!s.trim())return 0;return s.trim().split(/\s+/).length;}
+
+  function getSentences(s){
+    if(typeof s!=='string'||!s.trim())return[];
+    var clean=s.replace(/\b(Dr|Mr|Mrs|Ms|Prof|Sr|Jr|St|vs|etc|Inc|Ltd|Dept|Ave|Blvd|Capt|Col|Gen|Gov|Lt|Maj|Sgt|Rev|Hon|Rep|Sen|Esq)\./gi,'');
+    var parts=clean.split(/[.!?]+/);
+    var out=[];
+    for(var i=0;i<parts.length;i++){
+      var p=parts[i].trim();
+      if(p&&p.split(/\s+/).length>=2)out.push(p);
+    }
+    return out.length?out:[s.trim()];
+  }
+
+  function getWords(s){
+    if(typeof s!=='string'||!s.trim())return[];
+    return s.trim().toLowerCase().split(/[^a-z0-9']+/).filter(function(w){return w.length>0;});
+  }
+
+  function getContentWords(s){
+    return getWords(s).filter(function(w){return!stopWords.has(w)&&w.length>1;});
+  }
+
+  function readingTime(s){
+    var w=countWords(s);
+    return Math.max(1,Math.round(w/200))+'m '+Math.round((w%200)/200*60)+'s';
+  }
+
+  function readingTimeSec(s){
+    var w=countWords(s);
+    return Math.ceil(w/200*60);
+  }
+
+  function esc(v){var e=document.createElement('div');e.innerText=v||'';return e.innerHTML;}
+
+  function countSyllables(w){
+    if(typeof w!=='string'||!w)return 0;
+    w=w.toLowerCase().replace(/[^a-z]/g,'');
+    if(!w.length)return 0;
+    if(w.length<=3)return 1;
+    w=w.replace(/(?:es|ed|e)$/,'');
+    var vowels=w.match(/[aeiouy]+/gi);
+    return Math.max(1,vowels?vowels.length:1);
+  }
+
+  // ---- Module state ----
+  var lastSents=[], lastRanked=[], lastSelected={}, lastMode='', lastPct=0, lastText='';
+
+  // ---- TextRank ----
+  function textRank(sentences, damp, maxIter, tol){
+    if(!sentences||sentences.length<2)return sentences.map(function(s,i){return{score:1,idx:i};});
+    damp=damp||0.85;maxIter=maxIter||50;tol=tol||0.0001;
+    var n=sentences.length;
+    var vecs=[];
+    var vocab={};
+    for(var i=0;i<n;i++){
+      var words=getContentWords(sentences[i]);
+      var freq={};
+      for(var j=0;j<words.length;j++){var w=words[j];freq[w]=(freq[w]||0)+1;vocab[w]=(vocab[w]||0)+1;}
+      vecs.push(freq);
+    }
+    var idf={};
+    for(var w in vocab)idf[w]=Math.log((n+1)/(vocab[w]+1))+1;
+    var tfidf=[];
+    for(var i=0;i<n;i++){
+      var v={}, maxF=0;
+      for(var w in vecs[i])if(vecs[i][w]>maxF)maxF=vecs[i][w];
+      for(var w in vecs[i])v[w]=(vecs[i][w]/maxF)*idf[w];
+      tfidf.push(v);
+    }
+    var sim=[];
+    for(var i=0;i<n;i++){
+      sim[i]=[];
+      for(var j=0;j<n;j++){
+        if(i===j){sim[i][j]=0;continue;}
+        var dot=0,normA=0,normB=0;
+        for(var w in tfidf[i]){dot+=tfidf[i][w]*(tfidf[j][w]||0);normA+=tfidf[i][w]*tfidf[i][w];}
+        for(var w in tfidf[j])normB+=tfidf[j][w]*tfidf[j][w];
+        var denom=Math.sqrt(normA)*Math.sqrt(normB);
+        sim[i][j]=denom>0.001?dot/denom:0;
+      }
+    }
+    var scores=[];
+    for(var i=0;i<n;i++)scores[i]=1/n;
+    for(var iter=0;iter<maxIter;iter++){
+      var next=[], diff=0;
+      for(var i=0;i<n;i++){
+        var sum=0;
+        for(var j=0;j<n;j++){
+          if(i===j)continue;
+          var wSum=0;
+          for(var k=0;k<n;k++)if(k!==j)wSum+=sim[k][j];
+          if(wSum>0.001)sum+=scores[j]*sim[i][j]/wSum;
+        }
+        next[i]=(1-damp)/n+damp*sum;
+        diff+=Math.abs(next[i]-scores[i]);
+      }
+      scores=next;
+      if(diff<tol)break;
+    }
+    return scores.map(function(s,i){return{score:s,idx:i};}).sort(function(a,b){return b.score-a.score;});
+  }
+
+  // ---- Keywords ----
+  function extractKeywords(text, topN){
+    topN=topN||15;
+    var sents=getSentences(text);
+    var freq={}, bigramFreq={}, wordCount=0;
+    for(var i=0;i<sents.length;i++){
+      var words=getWords(sents[i]);
+      for(var j=0;j<words.length;j++){
+        var w=words[j];
+        if(!stopWords.has(w)&&w.length>1){
+          freq[w]=(freq[w]||0)+1;
+          wordCount++;
+          if(j<words.length-1){
+            var w2=words[j+1];
+            if(!stopWords.has(w2)&&w2.length>1){var bg=w+' '+w2;bigramFreq[bg]=(bigramFreq[bg]||0)+1;}
+          }
+        }
+      }
+    }
+    var candidates=[];
+    for(var w in freq)candidates.push({word:w,freq:freq[w],score:freq[w]/wordCount*100,type:'unigram'});
+    for(var bg in bigramFreq){
+      if(bigramFreq[bg]<2)continue;
+      candidates.push({word:bg,freq:bigramFreq[bg],score:bigramFreq[bg]/wordCount*100*1.2,type:'bigram'});
+    }
+    candidates.sort(function(a,b){return b.score-a.score;});
+    return candidates.slice(0,topN);
+  }
+
+  // ---- Readability ----
+  function calcReadability(text){
+    var sents=getSentences(text), words=getWords(text);
+    if(!words.length||!sents.length)return{fkgl:0,fre:0,fog:0};
+    var totalSyllables=0;
+    for(var i=0;i<words.length;i++)totalSyllables+=countSyllables(words[i]);
+    var avgWPS=words.length/sents.length, avgSPW=totalSyllables/words.length;
+    var fkgl=0.39*avgWPS+11.8*avgSPW-15.59;
+    var fre=206.835-1.015*avgWPS-84.6*avgSPW;
+    var complex=0;
+    for(var i=0;i<words.length;i++)if(countSyllables(words[i])>=3)complex++;
+    var fog=0.4*(avgWPS+(complex/words.length*100));
+    return{fkgl:Math.max(1,Math.round(fkgl*10)/10),fre:Math.max(0,Math.min(100,Math.round(fre))),fog:Math.max(1,Math.round(fog*10)/10),complexWords:complex,totalWords:words.length,totalSents:sents.length,avgWPS:Math.round(avgWPS*10)/10,avgSPW:Math.round(avgSPW*10)/10};
+  }
+
+  function readabilityLabel(fre){
+    if(fre>=90)return'Very Easy';if(fre>=80)return'Easy';if(fre>=70)return'Fairly Easy';if(fre>=60)return'Standard';if(fre>=50)return'Fairly Difficult';if(fre>=30)return'Difficult';return'Very Confusing';
+  }
+
+  // ---- Quality Score ----
+  function calcQuality(text, selectedSents){
+    if(!selectedSents||!selectedSents.length)return{q:0,cov:0,div:0};
+    var allKW=getContentWords(text);
+    var kwFreq={};
+    for(var i=0;i<allKW.length;i++)kwFreq[allKW[i]]=(kwFreq[allKW[i]]||0)+1;
+    var topKW=Object.keys(kwFreq).sort(function(a,b){return kwFreq[b]-kwFreq[a];}).slice(0,20);
+    if(!topKW.length)return{q:0,cov:0,div:0};
+    var selWords={};
+    for(var i=0;i<selectedSents.length;i++){
+      var wds=getContentWords(selectedSents[i]);
+      for(var j=0;j<wds.length;j++)selWords[wds[j]]=true;
+    }
+    var covered=0;
+    for(var i=0;i<topKW.length;i++)if(selWords[topKW[i]])covered++;
+    var cov=Math.round(covered/topKW.length*100);
+    var div=70;
+    if(selectedSents.length>=2){
+      var pairs=0, similar=0;
+      for(var i=0;i<selectedSents.length;i++){
+        var wi=getContentWords(selectedSents[i]), ws=new Set();
+        for(var k=0;k<wi.length;k++)ws.add(wi[k]);
+        for(var j=i+1;j<selectedSents.length;j++){
+          var wj=getContentWords(selectedSents[j]);
+          var overlap=0;
+          for(var k=0;k<wj.length;k++)if(ws.has(wj[k]))overlap++;
+          var minLen=Math.min(wi.length,wj.length);
+          if(minLen>0&&overlap/minLen>0.6)similar++;
+          pairs++;
+        }
+      }
+      div=Math.round((1-(pairs?similar/pairs:0))*100);
+    }
+    var q=Math.round(cov*0.6+div*0.4);
+    return{q:q,cov:cov,div:div};
+  }
+
+  // ---- Summarize ----
+  function summarize(text, mode, compressPct, forceSelected){
+    if(!text||!text.trim())return{summary:'',sentences:[],allSents:[],stats:{origWords:0,sumWords:0,origSents:0,sumSents:0,compress:0},keywords:[],readability:null,ranked:[],quality:null};
+    var sents=getSentences(text);
+    if(!sents.length)return{summary:esc(text),sentences:[text],allSents:[text],stats:{origWords:countWords(text),sumWords:countWords(text),origSents:1,sumSents:1,compress:100},keywords:[],readability:null,ranked:[],quality:null};
+    lastText=text;lastSents=sents;
+    var origWords=countWords(text), origSents=sents.length;
+    var ranked=textRank(sents);
+    lastRanked=ranked;
+    var selected={};
+    if(forceSelected){selected=forceSelected;}
+    else{
+      var numSents;
+      if(mode==='short')numSents=Math.max(2,Math.min(4,Math.ceil(sents.length*0.1)));
+      else if(mode==='detailed')numSents=Math.max(3,Math.ceil(sents.length*0.4));
+      else numSents=Math.max(2,Math.ceil(sents.length*compressPct/100));
+      numSents=Math.min(numSents,sents.length);
+      for(var i=0;i<numSents;i++)selected[ranked[i].idx]=true;
+    }
+    lastSelected=selected;lastMode=mode;lastPct=compressPct;
+    var rankSet={};
+    for(var i=0;i<ranked.length;i++)rankSet[ranked[i].idx]=ranked[i].score;
+    var sumSents=[], sumText='';
+    if(mode==='detailed'){
+      for(var i=0;i<sents.length;i++){
+        if(selected[i]){sumSents.push(sents[i]);var pct=Math.round(rankSet[i]*10000)/100;sumText+='<span class="ts-highlight">\u2022 '+esc(sents[i])+' <span class="text-[9px] font-mono opacity-30 ts-top-score">('+pct+'%)</span></span><br><br>';}
+      }
+    }else{
+      for(var i=0;i<sents.length;i++){
+        if(selected[i]){sumSents.push(sents[i]);var pct=Math.round(rankSet[i]*10000)/100;sumText+='<span class="ts-highlight">'+esc(sents[i])+' <span class="text-[9px] font-mono opacity-30 ts-top-score">('+pct+'%)</span></span> ';}
+      }
+      sumText=sumText.trim();
+    }
+    var sumWords=sumSents.reduce(function(a,s){return a+countWords(s);},0);
+    var compressPctVal=origWords>0?Math.round(sumWords/origWords*100):0;
+    var origHtml='';
+    for(var i=0;i<sents.length;i++){
+      var cls=selected[i]?'ts-highlight':'';
+      var pct=rankSet[i]?Math.round(rankSet[i]*10000)/100:0;
+      if(cls)origHtml+='<span class="'+cls+'">'+esc(sents[i])+' <span class="text-[9px] font-mono opacity-20 ts-top-score">('+pct+'%)</span></span> ';
+      else origHtml+=esc(sents[i])+' ';
+    }
+    var keywords=mode==='short'?[]:extractKeywords(text);
+    var readability=calcReadability(text);
+    var quality=calcQuality(text,sumSents);
+    return{
+      summary:sumText,origHtml:origHtml.trim(),sentences:sumSents,allSents:sents,
+      stats:{origWords:origWords,sumWords:sumWords,origSents:origSents,sumSents:sumSents.length,compress:compressPctVal},
+      origTime:readingTimeSec(text),sumTime:readingTimeSec(sumSents.join(' ')),
+      keywords:keywords,readability:readability,ranked:ranked,quality:quality
+    };
+  }
+
+  function updateDisplay(result){
+    if(!result){outStats.style.display='none';output.style.display='none';empty.style.display='flex';actions.style.display='none';rankPanel.style.display='none';return;}
+    outStats.style.display='grid';output.style.display='grid';empty.style.display='none';actions.style.display='flex';
+    owc.textContent=result.stats.sumWords;osc.textContent=result.stats.sumSents;
+    ocp.textContent=result.stats.compress+'%';
+    var saved=Math.max(0,result.origTime-result.sumTime);
+    ots.textContent=saved+'s';
+    if(result.quality)oq.textContent=result.quality.q+'%';
+    status.textContent=result.stats.sumSents+' sentences | '+result.stats.compress+'% of original';
+    origD.innerHTML=result.origHtml||esc(lastText);
+    sumD.innerHTML=result.summary||'<em class="opacity-40">No sentences selected.</em>';
+    renderKeywords(result.keywords);renderReadability(result.readability);
+    renderRankList(result.allSents,result.ranked,lastSelected);
+    analysis.style.display=(lastMode!=='short')?'':'none';
+  }
+
+  // ---- Render Functions ----
+  function renderKeywords(kws){
+    if(!kws||!kws.length){kwDiv.innerHTML='<em class="opacity-40 text-[11px]">Not available in Short mode</em>';badgeKw.textContent='0 keywords';return;}
+    var maxFreq=kws[0].freq, html='';
+    for(var i=0;i<Math.min(kws.length,15);i++){
+      var kw=kws[i], pct=Math.round(kw.freq/maxFreq*100);
+      var clr=i<5?'var(--color-primary)':'var(--color-secondary)';
+      html+='<div class="flex items-center gap-2 mb-1.5"><span class="font-mono w-1.5 text-right text-[10px] opacity-40">'+(i+1)+'.</span><div class="ts-kw-bar" style="width:'+pct+'%;background:'+clr+';opacity:'+(0.4+i*0.04)+'"></div><span class="font-semibold">'+esc(kw.word)+'</span><span class="font-mono text-[10px] opacity-40">'+kw.freq+'x</span></div>';
+    }
+    kwDiv.innerHTML=html;badgeKw.textContent=kws.length+' keywords';
+  }
+
+  function renderReadability(r){
+    if(!r){readDiv.innerHTML='<em class="opacity-40 text-[11px]">Not available in Short mode</em>';badgeRead.textContent='—';return;}
+    var items=[
+      {label:'FK Grade',val:r.fkgl,sfx:'',desc:'target 7-8'},{label:'Reading Ease',val:r.fre,sfx:'',desc:readabilityLabel(r.fre)},
+      {label:'Fog Index',val:r.fog,sfx:'',desc:'target 7-12'},{label:'Avg Sent Len',val:r.avgWPS,sfx:'w',desc:''},
+      {label:'Avg Syll/Wd',val:r.avgSPW,sfx:'',desc:''},{label:'Complex Words',val:r.complexWords,sfx:'',desc:'of '+r.totalWords+' words'}
+    ];
+    var html='';
+    for(var i=0;i<items.length;i++)html+='<div class="border border-base-300/10 rounded-lg p-2"><div class="text-[9px] uppercase tracking-wider opacity-50">'+items[i].label+'</div><div class="text-base font-black">'+items[i].val+'<span class="text-[10px] font-mono font-normal opacity-40">'+items[i].sfx+'</span></div><div class="text-[8px] opacity-30">'+items[i].desc+'</div></div>';
+    readDiv.innerHTML=html;badgeRead.textContent='G'+r.fkgl+' | '+r.fre;
+  }
+
+  function renderRankList(sents, ranked, selected){
+    if(!sents||!sents.length||!ranked||!ranked.length){rankPanel.style.display='none';return;}
+    rankPanel.style.display='';
+    var rankIdx={};
+    for(var i=0;i<ranked.length;i++)rankIdx[ranked[i].idx]=i;
+    var sorted=[];
+    for(var i=0;i<sents.length;i++)sorted.push({idx:i,rankPos:rankIdx[i]!==undefined?rankIdx[i]:999});
+    sorted.sort(function(a,b){return a.rankPos-b.rankPos;});
+    var html='';
+    for(var i=0;i<sorted.length;i++){
+      var si=sorted[i].idx, rp=sorted[i].rankPos;
+      var score=ranked[rp]?ranked[rp].score:0;
+      var pct=Math.round(score*10000)/100;
+      var checked=selected[si]?'checked':'';
+      var cls=selected[si]?'ts-rank-item included':'ts-rank-item';
+      var maxScore=Math.max(1,ranked[0]?ranked[0].score:1);
+      var barPct=Math.round(score/maxScore*100);
+      html+='<label class="'+cls+'"><input type="checkbox" class="checkbox checkbox-xs ts-rank-cb" data-idx="'+si+'" '+checked+'><div class="ts-rank-score">'+pct+'%</div><div class="ts-rank-bar-wrap"><div class="ts-rank-bar" style="width:'+barPct+'%"></div></div><span class="ts-rank-text">'+esc(sents[si].substring(0,120))+'</span><span class="ts-rank-pos">#'+(si+1)+'</span></label>';
+    }
+    rankList.innerHTML=html;
+    badgeRank.textContent=sents.length+' sentences';
+    var cbs=rankList.querySelectorAll('.ts-rank-cb');
+    for(var i=0;i<cbs.length;i++){
+      cbs[i].addEventListener('change',function(e){
+        var idx=parseInt(e.target.getAttribute('data-idx'));
+        if(e.target.checked)lastSelected[idx]=true;
+        else delete lastSelected[idx];
+        var result=summarize(lastText,lastMode,lastPct,lastSelected);
+        updateDisplay(result);
+        saveToHistory();
+      });
+    }
+  }
+
+  // ---- History ----
+  function saveToHistory(){
+    try{
+      var raw=localStorage.getItem(historyKey);
+      var hist=raw?JSON.parse(raw):[];
+      var selArr=[];
+      for(var idx in lastSelected)if(lastSelected[idx])selArr.push(parseInt(idx));
+      var sents=[];
+      for(var i=0;i<lastSents.length;i++)if(lastSelected[i])sents.push(lastSents[i]);
+      var preview=lastText.substring(0,80);
+      var entry={text:lastText,selected:selArr,mode:lastMode,pct:lastPct,preview:preview,words:countWords(sents.join(' ')),sentsCount:sents.length,ts:Date.now()};
+      var dup=false;
+      for(var i=0;i<hist.length;i++)if(hist[i].preview===preview&&hist[i].mode===lastMode){dup=true;hist[i]=entry;break;}
+      if(!dup){hist.unshift(entry);if(hist.length>10)hist=hist.slice(0,10);}
+      localStorage.setItem(historyKey,JSON.stringify(hist));
+      renderHistory(hist);
+    }catch(e){}
+  }
+
+  function renderHistory(hist){
+    if(!hist||!hist.length){histList.innerHTML='<em class="opacity-30 text-[11px]">No saved summaries yet. Summarize some text to see history here.</em>';badgeHist.textContent='0 saved';return;}
+    var html='';
+    for(var i=0;i<hist.length;i++){
+      var h=hist[i], d=new Date(h.ts);
+      var timeStr=d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      html+='<div class="ts-hist-item"><button type="button" class="btn btn-ghost btn-xs ts-hist-restore" data-idx="'+i+'">{{ lucide_icon("rotate-ccw","w-3 h-3", 12) | safe }}</button><div class="flex-1 min-w-0"><div class="text-[11px] truncate">'+esc(h.preview)+'</div><div class="text-[9px] font-mono opacity-40">'+h.mode+' | '+h.words+'w | '+h.sentsCount+'s</div></div><span class="ts-hist-meta">'+timeStr+'</span></div>';
+    }
+    histList.innerHTML=html;
+    badgeHist.textContent=hist.length+' saved';
+    var btns=histList.querySelectorAll('.ts-hist-restore');
+    for(var i=0;i<btns.length;i++){
+      btns[i].addEventListener('click',function(e){
+        var idx=parseInt(e.target.getAttribute('data-idx'));
+        try{var raw=localStorage.getItem(historyKey);var hist=raw?JSON.parse(raw):[];if(hist[idx])restoreFromHistory(hist[idx]);}catch(ex){}
+      });
+    }
+  }
+
+  function restoreFromHistory(entry){
+    if(!entry)return;
+    input.value=entry.text;
+    var m=entry.mode||'medium';
+    modeShort.checked=m==='short';modeMedium.checked=m==='medium';modeDetailed.checked=m==='detailed';
+    var epct=entry.pct||25;slider.value=String(epct);compressLabel.textContent=epct+'%';
+    updateSliderVis();updateStats();
+    var sel={};
+    if(entry.selected)for(var i=0;i<entry.selected.length;i++)sel[entry.selected[i]]=true;
+    var result=summarize(entry.text,m,entry.pct||25,sel);
+    updateDisplay(result);
+  }
+
+  // ---- UI handlers ----
+  function updateStats(){
+    var t=input.value, w=countWords(t), s=getSentences(t).length, c=t.length;
+    wc.textContent=w;sc.textContent=s;cc.textContent=c;
+    rt.textContent=w>0?readingTime(t):'0s';charCount.textContent=c+' / 5000';
+  }
+
+  function getMode(){
+    if(modeShort.checked)return'short';if(modeDetailed.checked)return'detailed';return'medium';
+  }
+
+  function updateSliderVis(){
+    var mode=getMode();
+    sliderGrp.style.display=mode==='medium'?'':'none';
+    if(mode==='short')compressLabel.textContent='Short';
+    else if(mode==='detailed')compressLabel.textContent='Detailed';
+  }
+
+  function run(){
+    var t=input.value.trim();
+    if(!t){status.textContent='No text to summarize';return;}
+    var mode=getMode(), pct=parseInt(slider.value)||25;
+    var result=summarize(t,mode,pct,null);
+    updateDisplay(result);
+    saveToHistory();
+  }
+
+  function resetAll(){
+    input.value='';modeShort.checked=true;slider.value='25';compressLabel.textContent='25%';
+    updateSliderVis();updateStats();updateDisplay(null);
+    analysis.style.display='none';rankPanel.style.display='none';
+    if(ttsSynth)ttsSynth.cancel();
+    ttsBtn.classList.remove('speaking');ttsBtn.innerHTML='{{ lucide_icon("volume-2","w-4 h-4", 16) | safe }} Listen';
+    status.textContent='Waiting for input';lastSents=[];lastRanked=[];lastSelected={};lastText='';
+  }
+
+  function loadSample(){
+    input.value='Artificial intelligence has transformed the way we work, learn, and communicate. From voice assistants to recommendation systems, AI is reshaping industries across the globe. In healthcare, machine learning algorithms can detect diseases earlier than traditional methods. In education, personalized learning platforms adapt to each student\'s pace and style. The transportation sector is being revolutionized by self-driving cars and optimized logistics. However, these advances also raise important questions about privacy, job displacement, and ethical decision-making. As AI continues to evolve, it will be crucial to establish thoughtful regulations that balance innovation with human wellbeing. Organizations must invest in reskilling programs to prepare workers for an AI-driven economy. The future of AI is not just about technology; it is about how we choose to integrate it into society responsibly. Community engagement and public discourse will shape the ethical frameworks that guide AI development for generations to come.';
+    modeMedium.checked=true;slider.value='25';compressLabel.textContent='25%';
+    updateSliderVis();updateStats();run();
+  }
+
+  function copyResult(){
+    var t=input.value.trim();if(!t)return;
+    var mode=getMode(), pct=parseInt(slider.value)||25;
+    var result=summarize(t,mode,pct,lastSelected);
+    var text=result.sentences.join(' ');
+    if(mode==='detailed')text=result.sentences.map(function(s){return'\u2022 '+s;}).join('\n');
+    navigator.clipboard.writeText(text).then(function(){
+      copyBtn.innerHTML='{{ lucide_icon("check","w-4 h-4", 16) | safe }} Copied!';
+      setTimeout(function(){copyBtn.innerHTML='{{ lucide_icon("copy","w-4 h-4", 16) | safe }} Copy';},1500);
+    });
+  }
+
+  function exportTxt(){
+    var t=input.value.trim();if(!t)return;
+    var mode=getMode(), pct=parseInt(slider.value)||25;
+    var result=summarize(t,mode,pct,lastSelected);
+    var text=result.sentences.join(' ');
+    if(mode==='detailed')text=result.sentences.map(function(s){return'\u2022 '+s;}).join('\n');
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download='summary.txt';a.click();URL.revokeObjectURL(a.href);
+  }
+
+  function exportPdf(){
+    var t=input.value.trim();if(!t)return;
+    var mode=getMode(), pct=parseInt(slider.value)||25;
+    var result=summarize(t,mode,pct,lastSelected);
+    var body='';
+    if(mode==='detailed'){for(var i=0;i<result.sentences.length;i++)body+='<li>'+esc(result.sentences[i])+'</li>';body='<ul>'+body+'</ul>';}
+    else body='<p>'+result.sentences.map(function(s){return esc(s);}).join('</p><p>')+'</p>';
+    var html='<!DOCTYPE html><html><head><style>body{font-family:Georgia,serif;max-width:650px;margin:40px auto;padding:0 20px;line-height:1.7;color:#222;}h1{font-size:1.25rem;border-bottom:2px solid #eee;padding-bottom:8px;}p{margin:0 0 1em 0;}ul{list-style:disc;margin:0 0 1em 0;padding-left:1.5em;}@media print{body{margin:20px;}}</style></head><body><h1>Summary</h1>'+body+'<p style="color:#999;font-size:0.75rem;border-top:1px solid #eee;padding-top:8px;">Generated by StoryBrain AI Text Summarizer &mdash; '+result.stats.sumWords+' words, '+result.stats.sumSents+' sentences, '+result.stats.compress+'% of original</p></body></html>';
+    var w=window.open('','_blank');
+    if(w){w.document.write(html);w.document.close();setTimeout(function(){w.print();},300);}else{expPdf.innerHTML='{{ lucide_icon("ban","w-4 h-4", 16) | safe }} Allow popups';setTimeout(function(){expPdf.innerHTML='{{ lucide_icon("file-text","w-4 h-4", 16) | safe }} PDF';},3000);}
+  }
+
+  // ---- TTS ----
+  var ttsSynth=window.speechSynthesis, ttsUtterance=null;
+  function ttsToggle(){
+    var t=input.value.trim();if(!t)return;
+    if(ttsSynth.speaking&&!ttsSynth.paused){ttsSynth.pause();ttsBtn.classList.add('speaking');ttsBtn.innerHTML='{{ lucide_icon("pause","w-4 h-4", 16) | safe }} Paused';return;}
+    if(ttsSynth.paused){ttsSynth.resume();ttsBtn.innerHTML='{{ lucide_icon("volume-2","w-4 h-4", 16) | safe }} Speaking';return;}
+    var text='';
+    for(var idx in lastSelected)if(lastSelected[idx]&&lastSents[idx])text+=lastSents[idx]+' ';
+    text=text.trim();
+    if(!text){text=input.value.trim().split(/[.!?]+/).slice(0,3).join('. ').trim();if(!text)return;}
+    ttsSynth.cancel();
+    ttsUtterance=new SpeechSynthesisUtterance(text);
+    ttsUtterance.rate=0.9;
+    ttsUtterance.onend=function(){ttsBtn.classList.remove('speaking');ttsBtn.innerHTML='{{ lucide_icon("volume-2","w-4 h-4", 16) | safe }} Listen';};
+    ttsUtterance.onerror=function(){ttsBtn.classList.remove('speaking');ttsBtn.innerHTML='{{ lucide_icon("volume-2","w-4 h-4", 16) | safe }} Listen';};
+    ttsSynth.speak(ttsUtterance);
+    ttsBtn.classList.add('speaking');ttsBtn.innerHTML='{{ lucide_icon("volume-2","w-4 h-4", 16) | safe }} Speaking';
+  }
+
+  // ---- Init ----
+  input.addEventListener('input',updateStats);
+  modeShort.addEventListener('change',updateSliderVis);
+  modeMedium.addEventListener('change',updateSliderVis);
+  modeDetailed.addEventListener('change',updateSliderVis);
+  slider.addEventListener('input',function(){compressLabel.textContent=this.value+'%';});
+  go.addEventListener('click',run);
+  reset.addEventListener('click',resetAll);
+  sample.addEventListener('click',loadSample);
+  copyBtn.addEventListener('click',copyResult);
+  expTxt.addEventListener('click',exportTxt);
+  expPdf.addEventListener('click',exportPdf);
+  ttsBtn.addEventListener('click',ttsToggle);
+  updateStats();updateSliderVis();
+  try{var raw=localStorage.getItem(historyKey);if(raw)renderHistory(JSON.parse(raw));}catch(e){}
+})();
+</script>
+{% endblock %}

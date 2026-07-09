@@ -261,7 +261,7 @@
   </div>
 </div>
 <div id="cpeToast" class="cpe-toast" role="status" aria-live="polite"></div>
-{{ tool_seo_all(seo_data) }}
+
 {% endblock %}
 {% block scripts %}
 <script nonce="{{ nonce }}">
@@ -336,7 +336,11 @@ function extractAndRender(){
   if(!currentImg)return;
   var proc=processImage(currentImg);if(proc.pixels.length<3){toast('Image has too few colored pixels');return}
   var k=parseInt(colorCount);var raw=extractPalette(proc.pixels,k);if(raw.length===0){toast('Could not extract colors');return}
-  colors=raw.map(function(c,i){var ls=locked[i]||false;return{r:c.r,g:c.g,b:c.b,hex:c.hex,h:c.h,s:c.s,l:c.l,count:c.count,pct:Math.round(c.count/proc.pixels.length*100),locked:ls}});
+  var oldColors=colors,oldLocked=locked;
+  colors=raw.map(function(c,i){
+    if(oldLocked[i]&&oldColors[i])return oldColors[i];
+    return{r:c.r,g:c.g,b:c.b,hex:c.hex,h:c.h,s:c.s,l:c.l,count:c.count,pct:Math.round(c.count/proc.pixels.length*100),locked:false}
+  });
   locked=colors.map(function(c){return c.locked});selectedIdx=0;contrastIdx=[0,Math.min(1,colors.length-1)];
   applySortAndRender();
   updateStats(colors.length,proc.totalPx,currentFile&&currentFile.size?Math.round(currentFile.size/1024):0);

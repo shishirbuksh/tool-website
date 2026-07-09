@@ -1,0 +1,1193 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
+{% block title %}AI Paraphrasing Tool — Free Text Rewriter & Paraphrase | StoryBrain AI{% endblock %}
+{% block meta_description %}Free AI paraphrasing tool: rewrite text in 4 modes — Standard, Fluent, Formal, Creative. Synonym replacement, sentence restructuring, side-by-side diff view. Private, no sign-up.{% endblock %}
+{% block meta_keywords %}paraphrase, paraphrasing tool, text rewriter, rewrite sentences, synonym generator, paraphrasing online, free paraphrasing, sentence rephraser{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/paraphrasing-tool{% endblock %}
+{% block og_title %}AI Paraphrasing Tool — Free Text Rewriter & Paraphrase Generator{% endblock %}
+{% block og_description %}Rewrite text with 4 modes — Standard, Fluent, Formal, Creative. Side-by-side diff view with highlighted changes. Free, no sign-up.{% endblock %}
+{% block head %}
+<style>
+.pt-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300);position:relative}
+.pt-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:6px;display:block}
+.pt-textarea{width:100%;border-radius:.75rem;padding:.7rem 1rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);min-height:220px;resize:vertical;font-family:inherit;transition:border-color .18s;box-sizing:border-box;line-height:1.6}
+.pt-textarea:focus{border-color:var(--color-primary);outline:none}
+.pt-mode{display:inline-flex;align-items:center;gap:4px;padding:8px 14px;border-radius:999px;font-size:10px;font-weight:800;cursor:pointer;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .15s;touch-action:manipulation;user-select:none;text-transform:uppercase;letter-spacing:.04em}
+.pt-mode:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.pt-mode.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.pt-mode-wrap{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
+.pt-btn{background:var(--color-primary);color:#fff;border:none;border-radius:.75rem;padding:.65rem 1.2rem;font-weight:800;font-size:.8rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:7px;touch-action:manipulation}
+.pt-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.pt-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.pt-btn-ghost{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.6rem 1rem;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;touch-action:manipulation}
+.pt-btn-ghost:hover{border-color:var(--color-base-content)}
+.pt-btn-ghost:disabled{opacity:.3;cursor:not-allowed}
+.pt-btn-sml{padding:.35rem .65rem;font-size:.65rem;gap:4px}
+.pt-output{background:var(--color-base-100);border-radius:1rem;padding:1rem 1.2rem;border:1px solid var(--color-base-300);min-height:150px;font-size:.85rem;line-height:1.7;font-weight:500;word-break:break-word;white-space:pre-wrap}
+.pt-output .changed{background:color-mix(in oklab,var(--color-success) 25%,transparent);border-bottom:2px solid var(--color-success);padding:1px 2px;border-radius:3px;font-weight:700;cursor:pointer;transition:all .15s}
+.pt-output .changed:hover{background:color-mix(in oklab,var(--color-success) 45%,transparent)}
+.pt-output .grammar-flag{background:color-mix(in oklab,var(--color-warning) 20%,transparent);border-bottom:2px dashed var(--color-warning);padding:1px 2px;border-radius:3px;cursor:help}
+.pt-output .speaking{background:color-mix(in oklab,var(--color-info) 25%,transparent);border-bottom:2px solid var(--color-info)}
+.pt-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.pt-stats div{background:var(--color-base-100);border-radius:.75rem;padding:.5rem;text-align:center;border:1px solid var(--color-base-300)}
+.pt-stats .num{font-size:1rem;font-weight:900;line-height:1.2}
+.pt-stats .lbl{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.45}
+.pt-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:10px;pointer-events:none}
+.pt-toast.show{opacity:1;transform:translateY(0)}
+.pt-sample-text{font-size:9px;font-weight:700;opacity:.4;cursor:pointer;padding:0;background:none;border:none;color:var(--color-base-content)}
+.pt-sample-text:hover{opacity:1;text-decoration:underline}
+.pt-syn-picker{position:fixed;z-index:1000;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:8px;box-shadow:0 12px 40px rgba(0,0,0,.2);min-width:140px;max-width:240px;display:none;max-height:260px;overflow-y:auto}
+.pt-syn-picker.open{display:block}
+.pt-syn-item{display:block;width:100%;text-align:left;padding:5px 10px;border:none;background:none;color:var(--color-base-content);font-size:12px;font-weight:600;border-radius:6px;cursor:pointer;transition:all .1s}
+.pt-syn-item:hover{background:var(--color-primary);color:#fff}
+.pt-syn-item.active{background:color-mix(in oklab,var(--color-primary) 20%,transparent);color:var(--color-primary)}
+.pt-syn-head{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;opacity:.4;padding:4px 10px 6px}
+.pt-bar{display:flex;gap:4px;flex-wrap:wrap}
+.pt-bar .pt-btn-ghost{padding:.35rem .65rem;font-size:.65rem;flex:1;min-width:0}
+.pt-readability{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.pt-readability>div{background:var(--color-base-100);border-radius:.6rem;padding:.4rem .6rem;border:1px solid var(--color-base-300)}
+.pt-readability .rlb{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.4}
+.pt-readability .rlv{font-size:.9rem;font-weight:900}
+.pt-readability .rlv.low{color:var(--color-error)}
+.pt-readability .rlv.med{color:var(--color-warning)}
+.pt-readability .rlv.high{color:var(--color-success)}
+.pt-sent-rewrite{display:inline-flex;align-items:center;gap:4px;font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:999px;padding:1px 8px;cursor:pointer;color:var(--color-base-content);opacity:.5;transition:all .15s;vertical-align:middle;margin-left:4px;touch-action:manipulation}
+.pt-sent-rewrite:hover{opacity:1;border-color:var(--color-primary);color:var(--color-primary)}
+.pt-hidden{display:none!important}
+.pt-vocab{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px;font-size:11px}
+.pt-vocab>div{background:var(--color-base-100);border-radius:.5rem;padding:.3rem .5rem;border:1px solid var(--color-base-300);text-align:center}
+.pt-vocab .vl{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.4}
+.pt-vocab .vv{font-weight:900;font-size:.8rem}
+.pt-grammar{margin-top:8px;font-size:11px}
+.pt-grammar>div{background:var(--color-base-100);border-radius:.5rem;padding:.4rem .6rem;border:1px solid var(--color-base-300);margin-bottom:3px}
+.pt-grammar .gl{font-weight:800;font-size:9px;text-transform:uppercase;letter-spacing:.06em;opacity:.5}
+.pt-grammar .gt{font-weight:600}
+.pt-rule-row{display:flex;gap:4px;margin-bottom:3px;align-items:center}
+.pt-rule-row input{border:1px solid var(--color-base-300);border-radius:6px;padding:3px 6px;font-size:11px;font-weight:600;background:var(--color-base-100);color:var(--color-base-content);flex:1;min-width:0}
+.pt-rule-row input:focus{border-color:var(--color-primary);outline:none}
+.pt-rule-row button{background:none;border:none;color:var(--color-error);cursor:pointer;font-weight:800;font-size:13px;padding:2px 4px}
+.pt-tts-btn{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:4px 10px;border-radius:999px;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;transition:all .15s}
+.pt-tts-btn:hover{border-color:var(--color-primary);color:var(--color-primary)}
+.pt-tts-btn.speaking{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.pt-tts-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;margin-bottom:4px}
+.pt-tts-row select{font-size:10px;border:1px solid var(--color-base-300);border-radius:6px;padding:2px 6px;background:var(--color-base-100);color:var(--color-base-content)}
+.pt-session-list{max-height:200px;overflow-y:auto}
+.pt-session-item{display:block;width:100%;text-align:left;font-size:11px;padding:6px 8px;border:none;background:none;color:var(--color-base-content);border-radius:6px;cursor:pointer;border:1px solid transparent;transition:all .1s}
+.pt-session-item:hover{background:color-mix(in oklab,var(--color-primary) 10%,transparent);border-color:color-mix(in oklab,var(--color-primary) 20%,transparent)}
+.pt-session-item .sm{opacity:.4;font-size:9px}
+.pt-score-wrap{display:flex;align-items:center;gap:12px;margin-top:10px;padding:8px;background:var(--color-base-100);border-radius:.75rem;border:1px solid var(--color-base-300)}
+.pt-score-ring{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;position:relative;flex-shrink:0;background:conic-gradient(var(--color-primary) 0%,var(--color-base-300) 0)}
+.pt-score-ring-inner{width:40px;height:40px;border-radius:50%;background:var(--color-base-200);display:flex;align-items:center;justify-content:center;z-index:1;border:1px solid var(--color-base-300)}
+.pt-score-labels{font-size:10px;font-weight:600;opacity:.6;line-height:1.3}
+.pt-freq{margin-top:8px;padding:6px 8px;background:var(--color-base-100);border-radius:.6rem;border:1px solid var(--color-base-300)}
+.pt-freq-row{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:600;margin-bottom:2px}
+.pt-freq-word{min-width:36px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis}
+.pt-freq-bar{height:12px;border-radius:3px;background:var(--color-primary);min-width:3px;transition:width .3s}
+.pt-freq-count{min-width:16px;opacity:.5;font-size:9px}
+.pt-sentiment{display:flex;gap:6px;margin-top:8px}
+.pt-sentiment>div{flex:1;background:var(--color-base-100);border-radius:.6rem;padding:.35rem .5rem;text-align:center;border:1px solid var(--color-base-300)}
+.pt-sentiment .sl{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.4}
+.pt-sentiment .sv{font-weight:900;font-size:.85rem}
+.pt-sentiment .pos{color:var(--color-success)}
+.pt-sentiment .neg{color:var(--color-error)}
+.pt-sentiment .neu{color:var(--color-warning)}
+.pt-sv{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:8px}
+.pt-sv>div{background:var(--color-base-100);border-radius:.5rem;padding:.3rem .4rem;text-align:center;border:1px solid var(--color-base-300)}
+.pt-sv .sl{font-size:6px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;opacity:.4}
+.pt-sv .sv{font-weight:900;font-size:.75rem}
+.pt-preset-list{max-height:150px;overflow-y:auto;margin-top:4px}
+.pt-preset-item{display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer;border:none;background:var(--color-base-100);color:var(--color-base-content);width:100%;text-align:left;margin-bottom:2px;border:1px solid transparent}
+.pt-preset-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent);background:color-mix(in oklab,var(--color-primary) 6%,transparent)}
+.pt-preset-item .del{margin-left:auto;color:var(--color-error);font-weight:800;background:none;border:none;cursor:pointer;font-size:13px;padding:0 4px;border-radius:4px}
+.pt-preset-item .del:hover{background:color-mix(in oklab,var(--color-error) 15%,transparent)}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("refresh-cw", "Writing Tool", "AI PARAPHRASING", "TOOL", "Rewrite text with 4 modes — Standard, Fluent, Formal, Creative. Side-by-side diff, highlighted changes, synonym picker, TTS, vocabulary stats, grammar checks, custom rules, session history, and more. Free, private, no sign-up.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
+    <div class="pt-card">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("file-text","w-4 h-4",16)|safe }} Input</h2>
+      <textarea id="ptInput" class="pt-textarea" placeholder="Paste or type your text here..." maxlength="12000" spellcheck="true"></textarea>
+      <div class="flex items-center justify-between mt-2">
+        <span class="text-[10px] font-bold opacity-40"><span id="ptWordCount">0</span> words &middot; <span id="ptCharCount">0</span> chars</span>
+        <div class="flex gap-2">
+          <button type="button" class="pt-sample-text" id="ptUploadBtn">Upload .txt</button>
+          <button type="button" class="pt-sample-text" id="ptSample">Load sample</button>
+        </div>
+      </div>
+      <input type="file" id="ptFileInput" accept=".txt" class="pt-hidden">
+    </div>
+    <div class="pt-card">
+      <span class="pt-label">Rewrite Mode</span>
+      <div class="pt-mode-wrap" id="ptModes" role="radiogroup" aria-label="Rewrite mode">
+        <button type="button" class="pt-mode on" data-mode="standard" role="radio" aria-checked="true">Standard</button>
+        <button type="button" class="pt-mode" data-mode="fluent" role="radio" aria-checked="false">Fluent</button>
+        <button type="button" class="pt-mode" data-mode="formal" role="radio" aria-checked="false">Formal</button>
+        <button type="button" class="pt-mode" data-mode="creative" role="radio" aria-checked="false">Creative</button>
+        <button type="button" class="pt-mode" data-mode="aggressive" role="radio" aria-checked="false">Aggressive</button>
+      </div>
+      <p class="text-[10px] font-bold opacity-40" id="ptModeDesc">Balanced rewording with synonym replacement</p>
+      <button type="button" class="pt-btn w-full mt-2" id="ptRewriteBtn">{{ lucide_icon("shuffle","w-4 h-4",16)|safe }} Rewrite</button>
+    </div>
+    <details class="pt-card" id="ptRulesPanel">
+      <summary class="text-sm font-black uppercase tracking-widest cursor-pointer select-none flex items-center gap-2">{{ lucide_icon("sliders","w-4 h-4",16)|safe }} Custom Rules</summary>
+      <div class="mt-2 space-y-1">
+        <p class="text-[9px] font-bold opacity-40">Words to always replace (word → replacement)</p>
+        <div id="ptRulesList"></div>
+        <div class="pt-rule-row"><input type="text" id="ptRuleWord" placeholder="word"><input type="text" id="ptRuleRepl" placeholder="replace with"><button type="button" id="ptRuleAdd">+</button></div>
+        <p class="pt-label mt-3" style="margin-bottom:2px">Never replace these words</p>
+        <div id="ptNeverList" class="flex flex-wrap gap-1 mb-1"></div>
+        <div class="pt-rule-row"><input type="text" id="ptNeverWord" placeholder="add word to skip"><button type="button" id="ptNeverAdd">+</button></div>
+      </div>
+    </details>
+    <details class="pt-card" id="ptPresetsPanel">
+      <summary class="text-sm font-black uppercase tracking-widest cursor-pointer select-none flex items-center gap-2">{{ lucide_icon("bookmark","w-4 h-4",16)|safe }} Presets</summary>
+      <div class="mt-2 space-y-1">
+        <p class="text-[9px] font-bold opacity-40">Save current mode + rules as a preset</p>
+        <div class="pt-rule-row"><input type="text" id="ptPresetName" placeholder="preset name"><button type="button" id="ptPresetSave">Save</button></div>
+        <div id="ptPresetList" class="pt-preset-list"><p class="text-[10px] font-bold opacity-40 py-1">No presets yet.</p></div>
+      </div>
+    </details>
+    <div class="pt-bar">
+      <button type="button" class="pt-btn-ghost" id="ptUndo">{{ lucide_icon("rotate-ccw","w-3 h-3",14)|safe }} Undo</button>
+      <button type="button" class="pt-btn-ghost" id="ptRedo">{{ lucide_icon("rotate-cw","w-3 h-3",14)|safe }} Redo</button>
+      <button type="button" class="pt-btn-ghost" id="ptReset">{{ lucide_icon("trash-2","w-3 h-3",14)|safe }} Reset</button>
+      <button type="button" class="pt-btn-ghost" id="ptCopyAll">{{ lucide_icon("copy","w-3 h-3",14)|safe }} Copy</button>
+      <button type="button" class="pt-btn-ghost" id="ptDownloadTxt">{{ lucide_icon("file-down","w-3 h-3",14)|safe }} .txt</button>
+      <button type="button" class="pt-btn-ghost" id="ptDownloadDocx">{{ lucide_icon("file-text","w-3 h-3",14)|safe }} .doc</button>
+      <button type="button" class="pt-btn-ghost" id="ptDownloadPdf">{{ lucide_icon("printer","w-3 h-3",14)|safe }} PDF</button>
+    </div>
+    <details class="pt-card">
+      <summary class="text-sm font-black uppercase tracking-widest cursor-pointer select-none flex items-center gap-2">{{ lucide_icon("clock","w-4 h-4",16)|safe }} Session History</summary>
+      <div class="pt-session-list" id="ptSessionList"><p class="text-[10px] font-bold opacity-40 py-1">No history yet.</p></div>
+    </details>
+  </div>
+  <div class="flex-1 min-w-0 space-y-6">
+    <div class="pt-card">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-black flex items-center gap-2">{{ lucide_icon("eye","w-4 h-4",16)|safe }} Result</h2>
+        <span class="text-[9px] font-bold opacity-40" id="ptChangedPct"></span>
+      </div>
+      <div class="pt-stats">
+        <div><div class="num" id="ptOrigWords">0</div><div class="lbl">Original Words</div></div>
+        <div><div class="num" id="ptNewWords">0</div><div class="lbl">Rewritten Words</div></div>
+        <div><div class="num" id="ptChanged">0</div><div class="lbl">Words Changed</div></div>
+        <div><div class="num" id="ptReadTime">0</div><div class="lbl">Reading Time</div></div>
+      </div>
+      <div id="ptReadability" class="pt-readability pt-hidden">
+        <div><div class="rlb">Original Score</div><div class="rlv" id="ptOrigRead">0</div></div>
+        <div><div class="rlb">Rewritten Score</div><div class="rlv" id="ptNewRead">0</div></div>
+      </div>
+      <div id="ptVocab" class="pt-vocab pt-hidden"></div>
+      <div class="pt-output" id="ptOutput" role="region" aria-live="polite" aria-label="Rewritten text">
+        <p class="text-base-content/30 text-center py-8 text-sm font-bold">Click Rewrite to see the paraphrased text here.</p>
+      </div>
+      <div id="ptGrammarFlags" class="pt-grammar pt-hidden"></div>
+      <div id="ptWritingScore" class="pt-hidden">
+        <div class="pt-score-wrap" id="ptScoreWrap">
+          <div class="pt-score-ring" id="ptScoreRing"><div class="pt-score-ring-inner"><span id="ptScoreVal">0</span></div></div>
+          <div class="pt-score-labels" id="ptScoreLabel">Writing quality score</div>
+        </div>
+        <div id="ptFreq" class="pt-freq pt-hidden"></div>
+        <div id="ptSentiment" class="pt-sentiment pt-hidden"></div>
+        <div id="ptSentVar" class="pt-sv pt-hidden"></div>
+      </div>
+      <div class="pt-tts-row" id="ptTtsRow">
+        <button type="button" class="pt-tts-btn" id="ptTtsOrig">{{ lucide_icon("volume-2","w-3 h-3",12)|safe }} Read Original</button>
+        <button type="button" class="pt-tts-btn" id="ptTtsNew">{{ lucide_icon("volume-2","w-3 h-3",12)|safe }} Read Rewritten</button>
+        <button type="button" class="pt-tts-btn" id="ptTtsStop">Stop</button>
+        <select id="ptTtsVoice" aria-label="Voice"></select>
+      </div>
+    </div>
+    <div class="pt-card">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="text-sm font-black flex items-center gap-2">{{ lucide_icon("split-square-horizontal","w-4 h-4",16)|safe }} Side-by-Side</h2>
+        <div class="flex gap-1.5">
+          <button type="button" class="btn btn-ghost btn-xs" id="ptViewSplit">Split</button>
+          <button type="button" class="btn btn-ghost btn-xs btn-primary" id="ptViewInline">Inline</button>
+        </div>
+      </div>
+      <div id="ptCompare" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <span class="pt-label" style="margin-bottom:4px">Original <span class="text-[8px] opacity-30">(click sentence to rewrite)</span></span>
+          <div class="pt-output" id="ptOrigPreview" style="min-height:100px;font-size:.8rem"><span class="text-base-content/40">No text yet.</span></div>
+        </div>
+        <div>
+          <span class="pt-label" style="margin-bottom:4px">Rewritten</span>
+          <div class="pt-output" id="ptNewPreview" style="min-height:100px;font-size:.8rem"><span class="text-base-content/40">No text yet.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<noscript><div class="max-w-xl mx-auto my-12 p-8 bg-base-200 rounded-2xl text-center"><p class="text-lg font-bold mb-2">JavaScript Required</p><p class="text-sm opacity-60">This paraphrasing tool runs entirely in your browser. Please enable JavaScript to use it.</p></div></noscript>
+<div id="ptSynPicker" class="pt-syn-picker" role="dialog" aria-label="Synonym picker"></div>
+<div id="ptToast" class="pt-toast" role="status" aria-live="polite"></div>
+{% endblock %}
+{% block seo_schema %}
+{% set seo = {
+  "name": "AI Paraphrasing Tool",
+  "description": "Rewrite text with 4 modes — Standard, Fluent, Formal, Creative. AI-powered synonym replacement with side-by-side diff view, text-to-speech, vocabulary stats, grammar checks, custom rules, session history. Free, private, no sign-up.",
+  "app_category": "UtilitiesApplication",
+  "app_sub_category": "Writing Tool",
+  "date_modified": "2026-07-09",
+  "faqs": [
+    {"q": "How does the AI Paraphrasing Tool work?", "a": "It splits your text into sentences, analyzes each word, and replaces words with context-appropriate synonyms. Sentence structure is also adjusted for natural flow. Everything runs in your browser."},
+    {"q": "Is my text sent to any server?", "a": "No. All processing happens entirely in your browser using a built-in thesaurus. Your text is never uploaded, stored, or transmitted."},
+    {"q": "What rewrite modes are available?", "a": "Five modes: Standard (balanced), Fluent (natural flow), Formal (academic vocabulary), Creative (alternative phrasings), and Aggressive (sentence reordering and restructuring)."},
+    {"q": "Does it have text-to-speech?", "a": "Yes. The tool includes a built-in text-to-speech reader. Listen to the original or rewritten text read aloud, with voice and rate controls."},
+    {"q": "Can I see vocabulary stats?", "a": "Yes. After rewriting, the vocabulary dashboard shows type-token ratio, unique word count, average word length, and average sentence length."},
+    {"q": "Does it check grammar?", "a": "Yes. The tool flags passive voice constructions, wordy phrases, and missing transition words, helping you improve your writing style."},
+    {"q": "Can I set custom replacement rules?", "a": "Yes. Add words that should always be replaced with a specific synonym, or add words that should never be changed."}
+  ],
+  "howto_steps": [
+    {"title": "Paste or Type Your Text", "desc": "Write or paste up to 2,000 words into the input field."},
+    {"title": "Choose a Rewrite Mode", "desc": "Select from Standard, Fluent, Formal, Creative, or Aggressive modes."},
+    {"title": "Review and Refine", "desc": "Click Rewrite, then click any highlighted word to pick a better synonym. Use Undo/Redo."},
+    {"title": "Listen and Analyze", "desc": "Use text-to-speech to hear the result. Check vocabulary stats and grammar flags."},
+    {"title": "Export", "desc": "Copy, download as .txt or .doc, or restore previous sessions from history."}
+  ],
+  "howto_calculate": "",
+  "about_title": "About the AI Paraphrasing Tool",
+  "about_body": "<p>The AI Paraphrasing Tool is a free online text rewriter that helps you rephrase sentences, replace words with better synonyms, and vary your writing style — all in your browser. Students use it to rephrase essays, bloggers rewrite content for freshness, and SEO writers generate multiple versions of the same message.</p><p>Choose from five modes: Standard for everyday rewrites, Fluent for natural flow optimization, Formal for academic or professional vocabulary, Creative for alternative phrasings, and Aggressive for sentence reordering and restructuring.</p><p>Click any highlighted word to pick from alternative synonyms. Rewrite individual sentences with one click. Listen to the result with text-to-speech. Check vocabulary diversity stats and grammar/style flags. Set custom replacement rules. Undo/redo your changes, and restore previous sessions from history. Export as .txt or .doc. For complementary editing tools, try our <a href='/tool/grammar-checker'>Grammar Checker</a> and <a href='/tool/text-summarizer'>Text Summarizer</a>.</p>",
+  "related": seo_data.related
+} %}
+{{ tool_seo_all(seo) }}
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ nonce }}">
+(function(){
+  'use strict';
+  var input = document.getElementById('ptInput'), output = document.getElementById('ptOutput'), toast = document.getElementById('ptToast');
+  var wordC = document.getElementById('ptWordCount'), charC = document.getElementById('ptCharCount');
+  var origW = document.getElementById('ptOrigWords'), newW = document.getElementById('ptNewWords'), changedW = document.getElementById('ptChanged');
+  var readTime = document.getElementById('ptReadTime'), changedPct = document.getElementById('ptChangedPct');
+  var origPrev = document.getElementById('ptOrigPreview'), newPrev = document.getElementById('ptNewPreview');
+  var rewriteBtn = document.getElementById('ptRewriteBtn'), resetBtn = document.getElementById('ptReset'), copyBtn = document.getElementById('ptCopyAll');
+  var sampleBtn = document.getElementById('ptSample'), uploadBtn = document.getElementById('ptUploadBtn'), fileInput = document.getElementById('ptFileInput');
+  var modeDesc = document.getElementById('ptModeDesc');
+  var undoBtn = document.getElementById('ptUndo'), redoBtn = document.getElementById('ptRedo');
+  var dlTxt = document.getElementById('ptDownloadTxt'), dlDocx = document.getElementById('ptDownloadDocx');
+  var synPicker = document.getElementById('ptSynPicker');
+  var readabilityEl = document.getElementById('ptReadability'), origReadEl = document.getElementById('ptOrigRead'), newReadEl = document.getElementById('ptNewRead');
+  var vocabEl = document.getElementById('ptVocab'), grammarEl = document.getElementById('ptGrammarFlags');
+  var ttsOrigBtn = document.getElementById('ptTtsOrig'), ttsNewBtn = document.getElementById('ptTtsNew'), ttsStopBtn = document.getElementById('ptTtsStop');
+  var ttsVoice = document.getElementById('ptTtsVoice');
+  var ruleWord = document.getElementById('ptRuleWord'), ruleRepl = document.getElementById('ptRuleRepl'), ruleAdd = document.getElementById('ptRuleAdd');
+  var neverWord = document.getElementById('ptNeverWord'), neverAdd = document.getElementById('ptNeverAdd');
+  var rulesList = document.getElementById('ptRulesList'), neverList = document.getElementById('ptNeverList');
+  var sessionList = document.getElementById('ptSessionList');
+  var presetName = document.getElementById('ptPresetName'), presetSave = document.getElementById('ptPresetSave'), presetList = document.getElementById('ptPresetList');
+  var scoreVal = document.getElementById('ptScoreVal'), scoreRing = document.getElementById('ptScoreRing'), scoreLabel = document.getElementById('ptScoreLabel');
+  var writingScoreEl = document.getElementById('ptWritingScore'), freqEl = document.getElementById('ptFreq');
+  var sentimentEl = document.getElementById('ptSentiment'), sentVarEl = document.getElementById('ptSentVar');
+  var dlPdf = document.getElementById('ptDownloadPdf');
+
+  var activeMode = 'standard';
+  var thesaurus = {};
+  var thesaurusLoaded = false;
+  var lastOriginal = '';
+  var lastResult = null;
+  var customRules = {}; /* word -> replacement */
+  var neverWords = {}; /* word -> true */
+  var currentSynEl = null;
+
+  var modeLabels = {
+    standard: 'Balanced rewording with synonym replacement',
+    fluent: 'Natural flow optimization with smoother phrasing',
+    formal: 'Academic vocabulary with formal sentence structure',
+    creative: 'Alternative phrasings with varied vocabulary',
+    aggressive: 'Sentence reordering and aggressive restructuring'
+  };
+
+  var sampleText = 'Artificial intelligence is transforming how we work and live. Machine learning algorithms can analyze large amounts of data and find patterns that humans might miss. Many businesses are using AI to improve their customer service, automate repetitive tasks, and make better decisions based on data analysis. However, there are also concerns about job displacement and privacy that need to be addressed as the technology continues to develop. The rapid advancement of this technology means that we must carefully consider both its benefits and its risks. Due to the fact that AI systems are becoming more powerful, governments around the world are beginning to establish regulations. It is important for all of us to stay informed about these developments.';
+
+  /* ── TTS ── */
+  var ttsSynth = window.speechSynthesis;
+  var ttsUtterance = null;
+  var ttsSpeaking = false;
+
+  function loadVoices(){
+    var voices=ttsSynth.getVoices();
+    ttsVoice.innerHTML='';
+    voices.forEach(function(v,i){
+      if(v.lang.startsWith('en')){
+        var opt=document.createElement('option');
+        opt.value=i;opt.textContent=v.name+' ('+v.lang+')';
+        ttsVoice.appendChild(opt);
+      }
+    });
+  }
+  if(ttsSynth){
+    loadVoices();
+    if(ttsSynth.onvoiceschanged!==undefined)ttsSynth.onvoiceschanged=loadVoices;
+  }
+
+  function speakText(text,btn){
+    if(!ttsSynth||!text)return;
+    ttsSynth.cancel();
+    ttsUtterance=new SpeechSynthesisUtterance(text);
+    var idx=parseInt(ttsVoice.value,10);
+    var voices=ttsSynth.getVoices();
+    if(!isNaN(idx)&&voices[idx])ttsUtterance.voice=voices[idx];
+    ttsUtterance.rate=1;
+    ttsUtterance.onstart=function(){ttsSpeaking=true;[ttsOrigBtn,ttsNewBtn].forEach(function(b){if(b)b.classList.remove('speaking')});if(btn)btn.classList.add('speaking');};
+    ttsUtterance.onend=function(){ttsSpeaking=false;if(btn)btn.classList.remove('speaking');};
+    ttsSynth.speak(ttsUtterance);
+  }
+
+  ttsOrigBtn.addEventListener('click',function(){
+    if(lastOriginal)speakText(lastOriginal,this);else toastMsg('No text to read.');
+  });
+  ttsNewBtn.addEventListener('click',function(){
+    var t=output.textContent;
+    if(t&&t.indexOf('Click Rewrite')===-1&&t.indexOf('No text')===-1)speakText(t,this);else toastMsg('No rewritten text to read.');
+  });
+  ttsStopBtn.addEventListener('click',function(){if(ttsSynth)ttsSynth.cancel();[ttsOrigBtn,ttsNewBtn].forEach(function(b){if(b)b.classList.remove('speaking')});ttsSpeaking=false;});
+
+  /* ── Undo/redo history ── */
+  var history = [];
+  var historyIdx = -1;
+  var MAX_HISTORY = 50;
+
+  function cloneResult(r){
+    if(!r)return r;
+    var c=[];
+    for(var ci=0;ci<r.length;ci++){
+      var tokens=[];
+      for(var tj=0;tj<r[ci].tokens.length;tj++){
+        var t=r[ci].tokens[tj];
+        tokens.push({text:t.text,isWord:t.isWord,changed:t.changed,target:t.target,original:t.original});
+      }
+      c.push({sentence:r[ci].sentence,tokens:tokens});
+    }
+    return c;
+  }
+
+  function pushHistory(orig, result){
+    if(historyIdx < history.length - 1) history = history.slice(0, historyIdx + 1);
+    history.push({original: orig, result: cloneResult(result)});
+    if(history.length > MAX_HISTORY) history.shift();
+    historyIdx = history.length - 1;
+    updateUndoRedo();
+  }
+
+  function undo(){
+    if(historyIdx <= 0) return;
+    historyIdx--;
+    var state = history[historyIdx];
+    lastOriginal = state.original;
+    lastResult = state.result;
+    input.value = state.original;
+    updateCounts();renderDiff(state.original, state.result);
+    toastMsg('Undo');
+  }
+
+  function redo(){
+    if(historyIdx >= history.length - 1) return;
+    historyIdx++;
+    var state = history[historyIdx];
+    lastOriginal = state.original;
+    lastResult = state.result;
+    input.value = state.original;
+    updateCounts();renderDiff(state.original, state.result);
+    toastMsg('Redo');
+  }
+
+  function updateUndoRedo(){
+    undoBtn.disabled = historyIdx <= 0;
+    redoBtn.disabled = historyIdx >= history.length - 1 || history.length === 0;
+  }
+
+  function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+  /* ── Toast ── */
+  function toastMsg(m){
+    toast.textContent = m; toast.classList.add('show');
+    setTimeout(function(){toast.classList.remove('show')}, 2200);
+  }
+
+  /* ── Word/char count ── */
+  function updateCounts(){
+    var t = input.value.trim();
+    wordC.textContent = t ? t.split(/\s+/).length : 0;
+    charC.textContent = t.length;
+  }
+  input.addEventListener('input', updateCounts);
+
+  /* ── Mode switcher ── */
+  document.querySelectorAll('#ptModes .pt-mode').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('#ptModes .pt-mode').forEach(function(b){b.classList.remove('on');b.setAttribute('aria-checked','false')});
+      this.classList.add('on');this.setAttribute('aria-checked','true');
+      activeMode = this.dataset.mode;
+      modeDesc.textContent = modeLabels[activeMode] || '';
+    });
+  });
+
+  /* ── Custom rules ── */
+  function renderRules(){
+    rulesList.innerHTML='';
+    Object.keys(customRules).forEach(function(w){
+      var d=document.createElement('div');d.className='pt-rule-row';
+      d.innerHTML='<span style="flex:1;font-size:11px;font-weight:600">'+escHtml(w)+' → '+escHtml(customRules[w])+'</span><button type="button" data-rule="'+escHtml(w)+'" class="pt-del-rule">×</button>';
+      rulesList.appendChild(d);
+    });
+    var d3=document.querySelectorAll('.pt-del-rule');
+    d3.forEach(function(b){b.addEventListener('click',function(){delete customRules[this.dataset.rule];renderRules();saveRules();});});
+  }
+
+  function renderNever(){
+    neverList.innerHTML='';
+    Object.keys(neverWords).forEach(function(w){
+      var s=document.createElement('span');s.className='pt-rule-row';s.style.display='inline-flex';s.style.marginRight='4px';
+      s.innerHTML='<span style="font-size:10px;font-weight:600;margin-right:2px">'+escHtml(w)+'</span><button type="button" style="font-size:12px;padding:0 2px;color:var(--color-error);background:none;border:none;cursor:pointer" data-never="'+escHtml(w)+'" class="pt-del-never">×</button>';
+      neverList.appendChild(s);
+    });
+    var d4=document.querySelectorAll('.pt-del-never');
+    d4.forEach(function(b){b.addEventListener('click',function(){delete neverWords[this.dataset.never];renderNever();saveRules();});});
+  }
+
+  ruleAdd.addEventListener('click',function(){
+    var w=ruleWord.value.trim().toLowerCase(),r=ruleRepl.value.trim();
+    if(!w||!r)return;
+    customRules[w]=r;
+    ruleWord.value='';ruleRepl.value='';
+    renderRules();saveRules();
+  });
+  neverAdd.addEventListener('click',function(){
+    var w=neverWord.value.trim().toLowerCase();
+    if(!w)return;
+    neverWords[w]=true;
+    neverWord.value='';
+    renderNever();saveRules();
+  });
+
+  function saveRules(){
+    try{localStorage.setItem('pt-rules',JSON.stringify({rules:customRules,never:neverWords}));}catch(e){}
+  }
+  function loadRules(){
+    try{
+      var d=JSON.parse(localStorage.getItem('pt-rules'));
+      if(d){customRules=d.rules||{};neverWords=d.never||{};renderRules();renderNever();}
+    }catch(e){}
+  }
+  loadRules();
+
+  /* ── Preset manager ── */
+  function loadPresets(){
+    try{return JSON.parse(localStorage.getItem('pt-presets')||'[]');}catch(e){return[];}
+  }
+  function savePresets(p){
+    try{localStorage.setItem('pt-presets',JSON.stringify(p));}catch(e){}
+  }
+  function renderPresets(){
+    var p=loadPresets();
+    presetList.innerHTML='';
+    if(!p.length){presetList.innerHTML='<p class="text-[10px] font-bold opacity-40 py-1">No presets yet.</p>';return;}
+    p.forEach(function(pr,i){
+      var d=document.createElement('div');d.className='pt-preset-item';
+      d.innerHTML='<span>'+escHtml(pr.name)+' <span class="opacity-40">('+escHtml(pr.mode)+')</span></span><button type="button" class="del" data-idx="'+i+'">×</button>';
+      d.addEventListener('click',function(e){
+        if(e.target.classList.contains('del'))return;
+        activeMode=pr.mode;
+        document.querySelectorAll('#ptModes .pt-mode').forEach(function(b){b.classList.remove('on');b.setAttribute('aria-checked','false')});
+        var modeBtn=document.querySelector('#ptModes .pt-mode[data-mode="'+pr.mode+'"]');
+        if(modeBtn){modeBtn.classList.add('on');modeBtn.setAttribute('aria-checked','true');}
+        modeDesc.textContent=modeLabels[pr.mode]||'';
+        customRules={};if(pr.rules){Object.keys(pr.rules).forEach(function(k){customRules[k]=pr.rules[k]});}
+        neverWords={};if(pr.never){Object.keys(pr.never).forEach(function(k){neverWords[k]=true});}
+        renderRules();renderNever();toastMsg('Preset "'+pr.name+'" loaded');
+      });
+      var delBtn=d.querySelector('.del');
+      if(delBtn){delBtn.addEventListener('click',function(e){e.stopPropagation();var idx=parseInt(this.dataset.idx,10);var p2=loadPresets();p2.splice(idx,1);savePresets(p2);renderPresets();});}
+      presetList.appendChild(d);
+    });
+  }
+  presetSave.addEventListener('click',function(){
+    var name=presetName.value.trim();
+    if(!name){toastMsg('Enter a preset name');return;}
+    var p=loadPresets();
+    p.push({name:name,mode:activeMode,rules:JSON.parse(JSON.stringify(customRules)),never:JSON.parse(JSON.stringify(neverWords))});
+    savePresets(p);renderPresets();presetName.value='';toastMsg('Preset saved');
+  });
+  renderPresets();
+
+  /* ── Session history ── */
+  function loadSessions(){
+    try{return JSON.parse(localStorage.getItem('pt-sessions')||'[]');}catch(e){return[];}
+  }
+  function saveSessions(s){
+    try{localStorage.setItem('pt-sessions',JSON.stringify(s.slice(-10)));}catch(e){}
+  }
+  function addSession(orig,rewritten,mode){
+    var s=loadSessions();
+    s.push({original:orig,rewritten:rewritten,mode:mode,date:new Date().toISOString()});
+    saveSessions(s);
+    renderSessions();
+  }
+  function renderSessions(){
+    var s=loadSessions();
+    sessionList.innerHTML='';
+    if(!s.length){sessionList.innerHTML='<p class="text-[10px] font-bold opacity-40 py-1">No history yet.</p>';return;}
+    s.slice().reverse().forEach(function(se,i){
+      var d=document.createElement('button');d.className='pt-session-item';d.type='button';
+      var preview=se.original.slice(0,80)+(se.original.length>80?'...':'');
+      d.innerHTML='<div>'+escHtml(preview)+'</div><div class="sm">'+escHtml(se.mode)+' &middot; '+new Date(se.date).toLocaleString()+'</div>';
+      d.addEventListener('click',function(){
+        input.value=se.original;
+        updateCounts();
+        if(se.rewritten&&Array.isArray(se.rewritten)){
+          lastOriginal=se.original;
+          lastResult=se.rewritten;
+          renderDiff(se.original,se.rewritten);
+          pushHistory(se.original,se.rewritten);
+        }
+        toastMsg('Session restored');
+      });
+      sessionList.appendChild(d);
+    });
+  }
+  renderSessions();
+
+  /* ── Aggressive mode helpers ── */
+  function rewriteAggressive(text){
+    var sents=splitSentences(text);
+    if(sents.length>=3){
+      var mid=Math.floor(sents.length/2);
+      var first=sents.slice(0,mid),second=sents.slice(mid);
+      if(first.length>1&&second.length>1){
+        var tmp=first;first=second;second=tmp;
+        sents=first.concat(second);
+      }
+    }
+    var result=[];
+    for(var i=0;i<sents.length;i++){
+      var tokens=rewriteSentence(sents[i]);
+      result.push({sentence:sents[i],tokens:tokens});
+    }
+    if(result.length>=4){
+      var combined=[];
+      for(var ci=0;ci<result.length;ci+=2){
+        if(ci+1<result.length){
+          var a=result[ci],b=result[ci+1];
+          var mergedSent=a.sentence+' '+b.sentence;
+          var mergedTokens=rewriteSentence(mergedSent);
+          combined.push({sentence:mergedSent,tokens:mergedTokens});
+        }else{
+          combined.push(result[ci]);
+        }
+      }
+      result=combined;
+    }
+    return result;
+  }
+
+  /* ── Sentence/Tokenizer ── */
+  function splitSentences(text){
+    if(!text)return[];
+    var clean = text.replace(/\b(Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|vs|etc|Inc|Ltd|Dept|Ave|Blvd)\./gi,'$1\u0000');
+    var parts = clean.split(/([.!?]+)/);
+    var out=[];
+    for(var i=0;i<parts.length;i+=2){
+      var p=parts[i].trim();
+      var punct=parts[i+1]||'';
+      if(p&&p.split(/\s+/).length>=1)out.push(p.replace(/\u0000/g,'.')+punct);
+    }
+    return out.length?out:[''];
+  }
+
+  function tokenizeWords(text){
+    if(!text)return[];
+    var tokens=[];
+    var parts=text.split(/\b/);
+    for(var i=0;i<parts.length;i++){
+      var w=parts[i];
+      if(!w)continue;
+      tokens.push({text:w,isWord:/^[a-zA-Z]+$/.test(w)});
+    }
+    var merged=[];
+    for(var ti=0;ti<tokens.length;ti++){
+      if(ti+2<tokens.length&&tokens[ti+1].text==="'"&&!tokens[ti+1].isWord&&tokens[ti+2].isWord&&tokens[ti+2].text.length<=3){
+        merged.push({text:tokens[ti].text+"'"+tokens[ti+2].text,isWord:false});
+        ti+=2;
+      }else{
+        merged.push(tokens[ti]);
+      }
+    }
+    return merged;
+  }
+
+  /* ── Common words ── */
+
+  /* ── Synonym lookup ── */
+  function getSynonym(word){
+    var w=word.toLowerCase();
+    if(neverWords[w])return null;
+    if(customRules[w])return customRules[w];
+    if(!thesaurusLoaded)return null;
+    var entry=thesaurus[w];
+    if(!entry)return null;
+    var mode=activeMode;
+    var pool=[];
+    if(mode==='formal'&&entry.formal)pool=entry.formal;
+    else if(mode==='creative'&&entry.creative)pool=entry.creative;
+    else if(mode==='aggressive')pool=(entry.aggressive||entry.creative||entry.formal||entry.standard);
+    else if(mode==='fluent'&&entry.fluent)pool=entry.fluent;
+    else if(entry.standard)pool=entry.standard;
+    if(!pool||!pool.length)pool=entry.standard||entry.formal||entry.fluent||entry.creative||null;
+    if(!pool||!pool.length)return null;
+    if(pool.length===1)return pool[0];
+    if(!entry._used)entry._used=0;
+    var idx=entry._used%pool.length;
+    entry._used=idx+1;
+    return pool[idx];
+  }
+
+  function getAllSynonyms(word){
+    var w=word.toLowerCase();
+    if(!thesaurusLoaded||!thesaurus[w])return null;
+    var entry=thesaurus[w];
+    var seen={},all=[];
+    var lists=[entry.standard||[],entry.formal||[],entry.fluent||[],entry.creative||[],entry.aggressive||[]];
+    for(var i=0;i<lists.length;i++){
+      for(var j=0;j<lists[i].length;j++){
+        var s=lists[i][j].toLowerCase();
+        if(!seen[s]){seen[s]=true;all.push(lists[i][j]);}
+      }
+    }
+    return all.length?all:null;
+  }
+
+  /* ── Rewrite a single sentence ── */
+  function rewriteSentence(sentence){
+    var tokens=tokenizeWords(sentence);
+    var out=[];
+    for(var i=0;i<tokens.length;i++){
+      var t=tokens[i];
+      if(!t.isWord||(t.text.length<=3&&!customRules[t.text.toLowerCase()])){
+        out.push({text:t.text,changed:false,isWord:false});continue;
+      }
+      var syn=getSynonym(t.text);
+      if(syn){
+        out.push({text:t.text[0]===t.text[0].toUpperCase()&&t.text[0]!==t.text[0].toLowerCase()&&t.text.length>1?syn.charAt(0).toUpperCase()+syn.slice(1):syn,changed:true,target:t.text,original:t.text,isWord:true});
+      }else{
+        out.push({text:t.text,changed:false,isWord:true});
+      }
+    }
+    return out;
+  }
+
+  function rewrite(text){
+    if(!text||!text.trim())return null;
+    if(activeMode==='aggressive')return rewriteAggressive(text);
+    var sents=splitSentences(text);
+    var result=[];
+    for(var i=0;i<sents.length;i++){
+      var tokens=rewriteSentence(sents[i]);
+      result.push({sentence:sents[i],tokens:tokens});
+    }
+    return result;
+  }
+
+  /* ── Grammar checks ── */
+  var wordyPhrases={
+    'due to the fact that':'because',
+    'in order to':'to',
+    'regardless of':'despite',
+    'in the event that':'if',
+    'in the process of':'during',
+    'a majority of':'most',
+    'a number of':'many',
+    'are in need of':'need',
+    'as a means of':'to',
+    'at the present time':'now',
+    'at this point in time':'now',
+    'by means of':'by',
+    'for the purpose of':'for',
+    'for the reason that':'because',
+    'in spite of the fact that':'although',
+    'in the case of':'if',
+    'in the near future':'soon',
+    'on a daily basis':'daily',
+    'on the grounds that':'because',
+    'prior to':'before',
+    'subsequent to':'after',
+    'the way in which':'how',
+    'until such time as':'until',
+    'with reference to':'about',
+    'with regard to':'about',
+    'with the exception of':'except',
+    'is able to':'can',
+    'is in a position to':'can',
+    'has the ability to':'can'
+  };
+
+  var passiveBe=['is','are','was','were','been','being','be','am','been'];
+
+  function checkGrammar(text){
+    var flags=[];
+    var lower=text.toLowerCase();
+    Object.keys(wordyPhrases).forEach(function(p){
+      var searchFrom=0;
+      while(searchFrom<lower.length){
+        var idx=lower.indexOf(p,searchFrom);
+        if(idx===-1)break;
+        var snippet=text.slice(Math.max(0,idx),idx+p.length+20);
+        flags.push({type:'wordy',word:p,suggestion:wordyPhrases[p],snippet:snippet});
+        searchFrom=idx+1;
+      }
+    });
+    var words=text.split(/\s+/);
+    for(var i=0;i<words.length-1;i++){
+      var w=words[i].toLowerCase().replace(/[^a-z]/g,'');
+      if(passiveBe.indexOf(w)>-1){
+        var next=words[i+1].toLowerCase().replace(/[^a-z]/g,'');
+        if(next.endsWith('ed')||next.endsWith('en')||next.endsWith('t')){
+          flags.push({type:'passive',word:w+' '+words[i+1].replace(/[^a-zA-Z]/g,''),suggestion:'Consider active voice',snippet:words.slice(Math.max(0,i-1),i+3).join(' ')});
+        }
+      }
+    }
+    var transitions=['however','therefore','furthermore','moreover','nevertheless','consequently','additionally','meanwhile','otherwise','nonetheless','thus','accordingly','besides'];
+    var foundTransitions=0;
+    for(var ti=0;ti<transitions.length;ti++){
+      if(lower.indexOf(transitions[ti])>-1)foundTransitions++;
+    }
+    if(foundTransitions===0&&words.length>30){
+      flags.push({type:'info',word:'transitions',suggestion:'Consider adding transition words for flow (e.g., however, therefore, furthermore)',snippet:''});
+    }
+    return flags;
+  }
+
+  /* ── Vocabulary stats ── */
+  function vocabStats(text){
+    var words=text.toLowerCase().match(/[a-z]+/g)||[];
+    var unique={};
+    for(var i=0;i<words.length;i++)unique[words[i]]=(unique[words[i]]||0)+1;
+    var total=words.length;
+    var uniq=Object.keys(unique).length;
+    var ttr=total?Math.round(uniq/total*100)/100:0;
+    var totalLen=0;
+    var uniqueKeys=Object.keys(unique);
+    for(var uki=0;uki<uniqueKeys.length;uki++)totalLen+=uniqueKeys[uki].length*unique[uniqueKeys[uki]];
+    var avgWord=total?Math.round(totalLen/total*10)/10:0;
+    var sents=splitSentences(text);
+    var avgSent=sents.length?Math.round(total/sents.length*10)/10:0;
+    return{total:total,unique:uniq,ttr:ttr,avgWord:avgWord,avgSent:avgSent};
+  }
+
+  /* ── Side-by-side view toggle ── */
+  document.getElementById('ptViewSplit').addEventListener('click',function(){
+    document.getElementById('ptCompare').classList.remove('grid-cols-1','md:grid-cols-2');
+    document.getElementById('ptCompare').classList.add('grid-cols-1','sm:grid-cols-2');
+    document.getElementById('ptViewSplit').classList.add('btn-primary');
+    document.getElementById('ptViewInline').classList.remove('btn-primary');
+  });
+  document.getElementById('ptViewInline').addEventListener('click',function(){
+    document.getElementById('ptCompare').classList.remove('grid-cols-2','sm:grid-cols-2');
+    document.getElementById('ptCompare').classList.add('grid-cols-1','md:grid-cols-2');
+    document.getElementById('ptViewInline').classList.add('btn-primary');
+    document.getElementById('ptViewSplit').classList.remove('btn-primary');
+  });
+
+  /* ── Writing quality analysis ── */
+  function calcWritingScore(text){
+    if(!text||text.trim().split(/\s+/).length<5)return null;
+    var words=text.trim().split(/\s+/);
+    var total=words.length;
+    var flesch=fleschScore(text);
+    var vs=vocabStats(text);
+    var gf=checkGrammar(text);
+    var passiveCount=0;
+    gf.forEach(function(g){if(g.type==='passive')passiveCount++;});
+    var sents=splitSentences(text);
+    var short=0,med=0,long=0;
+    sents.forEach(function(s){var c=s.split(/\s+/).length;if(c<=8)short++;else if(c<=15)med++;else long++;});
+    var variety=sents.length>=3?1-Math.abs(short-long)/sents.length:0;
+    var fleschScore=Math.min(1,Math.max(0,flesch/100));
+    var ttrScore=Math.min(vs.ttr*2,1);
+    var passiveScore=Math.max(0,1-passiveCount*0.1);
+    var varietyScore=Math.max(0,variety);
+    var score=Math.round((fleschScore*0.35+ttrScore*0.25+passiveScore*0.2+varietyScore*0.2)*100);
+    return{score:score,flesch:fleschScore,ttr:vs.ttr,passive:passiveCount,variety:variety,short:short,med:med,long:long,totalSents:sents.length,totalWords:total};
+  }
+
+  function renderWritingScore(text){
+    var ws=calcWritingScore(text);
+    if(!ws){writingScoreEl.classList.add('pt-hidden');return;}
+    writingScoreEl.classList.remove('pt-hidden');
+    scoreVal.textContent=ws.score;
+    var color=ws.score>=75?'var(--color-success)':ws.score>=45?'var(--color-warning)':'var(--color-error)';
+    scoreRing.style.background='conic-gradient('+color+' '+ws.score+'%,var(--color-base-300) 0)';
+    var label=ws.score>=80?'Excellent':ws.score>=60?'Good':ws.score>=40?'Fair':'Needs work';
+    scoreLabel.textContent=label+' writing quality \u00b7 '+ws.totalWords+' words, '+ws.totalSents+' sentences';
+
+    /* Word frequency */
+    var freqWords=text.toLowerCase().match(/[a-z]+/g)||[];
+    var freq={};
+    var common=['the','a','an','and','or','but','in','on','at','to','for','of','with','by','from','is','are','was','were','be','been','it','its','this','that','these','those','i','you','he','she','we','they','me','him','her','us','them','my','your','his','their','our','not','no','will','can','do','did','has','have','had','all','some','any','each','every','both','more','most','other','such','only','very','just','also','than','then','now','up','out','about','into','over','after'];
+    freqWords.forEach(function(w){if(w.length>2&&common.indexOf(w)===-1)freq[w]=(freq[w]||0)+1;});
+    var sorted=Object.keys(freq).sort(function(a,b){return freq[b]-freq[a]}).slice(0,8);
+    var maxCount=sorted.length?freq[sorted[0]]:1;
+    if(sorted.length){
+      freqEl.classList.remove('pt-hidden');
+      freqEl.innerHTML='<div class="pt-label" style="margin-bottom:4px">Most Used Words</div>';
+      sorted.forEach(function(w){
+        var pct=Math.round(freq[w]/maxCount*100);
+        var row=document.createElement('div');row.className='pt-freq-row';
+        row.innerHTML='<span class="pt-freq-word">'+w+'</span><span class="pt-freq-bar" style="width:'+Math.max(8,pct)+'%"></span><span class="pt-freq-count">'+freq[w]+'</span>';
+        freqEl.appendChild(row);
+      });
+    }else freqEl.classList.add('pt-hidden');
+
+    /* Sentiment */
+    var posWords=['good','great','excellent','happy','love','wonderful','beautiful','amazing','fantastic','positive','benefit','helpful','important','better','best','success','achievement','progress','opportunity','advantage','bright','joy','pleasure','delight','perfect','superb','outstanding','remarkable','impressive','brilliant','lovely','nice','glad','welcome','thank','thanks'];
+    var negWords=['bad','terrible','awful','horrible','hate','ugly','negative','harmful','damage','danger','risk','threat','problem','issue','difficult','hard','pain','suffer','crisis','failure','loss','poor','worst','wrong','sorry','sad','angry','fear','worry','anxious','stress','pressure','painful','hurt','kill','death','deadly','toxic','poison','disaster','catastrophe','tragic','terrible','dreadful'];
+    var posCount=0,negCount=0;
+    freqWords.forEach(function(w){
+      if(posWords.indexOf(w)>-1)posCount++;
+      if(negWords.indexOf(w)>-1)negCount++;
+    });
+    var totalSent=freqWords.length||1;
+    var posPct=Math.round(posCount/totalSent*100);
+    var negPct=Math.round(negCount/totalSent*100);
+    var neuPct=100-posPct-negPct;
+    if(posCount||negCount){
+      sentimentEl.classList.remove('pt-hidden');
+      sentimentEl.innerHTML='<div><div class="sl">Positive</div><div class="sv pos">'+posPct+'%</div></div><div><div class="sl">Negative</div><div class="sv neg">'+negPct+'%</div></div><div><div class="sl">Neutral</div><div class="sv neu">'+neuPct+'%</div></div>';
+    }else sentimentEl.classList.add('pt-hidden');
+
+    /* Sentence variety */
+    if(ws.totalSents>=3){
+      sentVarEl.classList.remove('pt-hidden');
+      sentVarEl.innerHTML='<div><div class="sl">Short (\u22648)</div><div class="sv">'+ws.short+'</div></div><div><div class="sl">Medium (9\u201315)</div><div class="sv">'+ws.med+'</div></div><div><div class="sl">Long (>15)</div><div class="sv">'+ws.long+'</div></div>';
+    }else sentVarEl.classList.add('pt-hidden');
+  }
+
+  /* ── Render ── */
+  function renderDiff(original,result){
+    lastOriginal = original;
+    lastResult = result;
+    if(!result){
+      output.innerHTML='<p class="text-base-content/30 text-center py-8 text-sm font-bold">Click Rewrite to see the paraphrased text here.</p>';
+      origPrev.innerHTML='<span class="text-base-content/40">No text yet.</span>';
+      newPrev.innerHTML='<span class="text-base-content/40">No text yet.</span>';
+      origW.textContent='0';newW.textContent='0';changedW.textContent='0';readTime.textContent='0s';changedPct.textContent='';
+      readabilityEl.classList.add('pt-hidden');vocabEl.classList.add('pt-hidden');grammarEl.classList.add('pt-hidden');writingScoreEl.classList.add('pt-hidden');
+      return;
+    }
+    var origWords=original.trim().split(/\s+/).length;
+    var totalWords=0,changed=0;
+    var html='',htmlNew='';
+    for(var i=0;i<result.length;i++){
+      var r=result[i];
+      for(var j=0;j<r.tokens.length;j++){
+        var t=r.tokens[j];
+        if(!t.isWord){html+=escHtml(t.text);htmlNew+=escHtml(t.text);continue;}
+        totalWords++;
+        if(t.changed){
+          var data='data-word="'+t.original.replace(/"/g,'&quot;')+'" data-repl="'+t.text.replace(/"/g,'&quot;')+'"';
+          html+='<span class="changed" '+data+'>'+escHtml(t.text)+'</span>';
+          htmlNew+='<span class="changed" '+data+'>'+escHtml(t.text)+'</span>';
+          changed++;
+        }else{
+          html+=escHtml(t.text);
+          htmlNew+=escHtml(t.text);
+        }
+      }
+    }
+
+    var origSents=splitSentences(original);
+    var origHtml='';
+    for(var si=0;si<origSents.length;si++){
+      if(si>0)origHtml+=' ';
+      if(si<result.length){
+        origHtml+='<span class="pt-sent" data-sidx="'+si+'">'+escHtml(origSents[si])+'<button type="button" class="pt-sent-rewrite" data-sidx="'+si+'">{{ lucide_icon("refresh-cw","w-2.5 h-2.5",10)|safe }} R</button></span>';
+      }else{
+        origHtml+='<span class="pt-sent">'+escHtml(origSents[si])+'</span>';
+      }
+    }
+
+    var newWCount=totalWords;
+    output.innerHTML=html||'<span class="text-base-content/40">No rewritten text generated.</span>';
+    origPrev.innerHTML=origHtml||'<span class="text-base-content/40">No text yet.</span>';
+    newPrev.innerHTML=htmlNew||'<span class="text-base-content/40">No rewritten text generated.</span>';
+    origW.textContent=origWords;
+    newW.textContent=newWCount;
+    changedW.textContent=changed;
+    var pct=origWords?Math.round(changed/origWords*100):0;
+    changedPct.textContent=pct+'% of words changed';
+    var rt=Math.max(1,Math.ceil(newWCount/200));
+    readTime.textContent=rt+' min';
+
+    /* Readability */
+    if(origWords>=2){
+      var origS=fleschScore(original);
+      var newS=fleschScore(output.textContent);
+      var oL=readLabel(origS),nL=readLabel(newS);
+      origReadEl.textContent=Math.round(origS)+' — '+oL.label;
+      origReadEl.className='rlv '+oL.cls;
+      newReadEl.textContent=Math.round(newS)+' — '+nL.label;
+      newReadEl.className='rlv '+nL.cls;
+      readabilityEl.classList.remove('pt-hidden');
+    }else readabilityEl.classList.add('pt-hidden');
+
+    /* Vocabulary stats */
+    if(origWords>=2){
+      var vs=vocabStats(output.textContent);
+      vocabEl.innerHTML='<div><div class="vl">Unique Words</div><div class="vv">'+vs.unique+'</div></div><div><div class="vl">Type-Token Ratio</div><div class="vv">'+vs.ttr+'</div></div><div><div class="vl">Avg Word Len</div><div class="vv">'+vs.avgWord+'</div></div><div><div class="vl">Avg Sent Len</div><div class="vv">'+vs.avgSent+'</div></div>';
+      vocabEl.classList.remove('pt-hidden');
+    }else vocabEl.classList.add('pt-hidden');
+
+    /* Grammar flags */
+    if(origWords>=2){
+      var gf=checkGrammar(output.textContent);
+      if(gf.length){
+        grammarEl.innerHTML='';
+        gf.forEach(function(g){
+          var d=document.createElement('div');
+          var icon=g.type==='passive'?'🔇 ':g.type==='wordy'?'📝 ':'💡 ';
+          var label=g.type==='passive'?'Passive Voice':g.type==='wordy'?'Wordy Phrase':'Style Tip';
+          d.innerHTML='<div class="gl">'+icon+label+'</div><div class="gt">'+escHtml(g.suggestion)+(g.snippet?' <span class="gl">"'+escHtml(g.snippet)+'"</span>':'')+'</div>';
+          grammarEl.appendChild(d);
+        });
+        grammarEl.classList.remove('pt-hidden');
+      }else grammarEl.classList.add('pt-hidden');
+    }else grammarEl.classList.add('pt-hidden');
+
+    /* Writing quality */
+    renderWritingScore(output.textContent);
+
+    /* Bind synonym picker */
+    output.querySelectorAll('.changed').forEach(function(el){
+      el.addEventListener('click',function(e){e.stopPropagation();showSynPicker(this,e);});
+    });
+    /* Bind sentence rewrite */
+    origPrev.querySelectorAll('.pt-sent-rewrite').forEach(function(btn){
+      btn.addEventListener('click',function(e){e.stopPropagation();var idx=parseInt(this.dataset.sidx,10);rewriteSingleSentence(idx);});
+    });
+  }
+
+  function rewriteSingleSentence(sidx){
+    if(!lastResult||!lastResult[sidx])return;
+    var origSent=lastResult[sidx].sentence;
+    var newTokens=rewriteSentence(origSent);
+    lastResult[sidx].tokens=newTokens;
+    renderDiff(lastOriginal,lastResult);
+    pushHistory(lastOriginal,lastResult);
+    toastMsg('Sentence rewritten');
+  }
+
+  /* ── Flesch score ── */
+  function countSyllables(word){
+    var w=word.toLowerCase().replace(/[^a-z]/g,'');
+    if(!w)return 1;
+    if(w.length<=3)return 1;
+    w=w.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/,'');
+    w=w.replace(/^y/,'');
+    var m=w.match(/[aeiouy]{1,2}/g);
+    return m?m.length:1;
+  }
+
+  function fleschScore(text){
+    var words=text.trim().split(/\s+/);
+    var totalWords=words.length;
+    if(totalWords<2)return 100;
+    var sents=splitSentences(text);
+    var totalSents=sents.length||1;
+    var totalSyllables=0;
+    for(var i=0;i<words.length;i++)totalSyllables+=countSyllables(words[i]);
+    return 206.835-1.015*(totalWords/totalSents)-84.6*(totalSyllables/totalWords);
+  }
+
+  function readLabel(score){
+    if(score>=90)return{label:'Very Easy',cls:'high'};
+    if(score>=70)return{label:'Easy',cls:'high'};
+    if(score>=50)return{label:'Fairly Easy',cls:'med'};
+    if(score>=30)return{label:'Standard',cls:'med'};
+    if(score>=10)return{label:'Difficult',cls:'low'};
+    return{label:'Very Difficult',cls:'low'};
+  }
+
+  /* ── Synonym picker ── */
+  function showSynPicker(el,e){
+    currentSynEl=el;
+    var word=el.getAttribute('data-word')||'';
+    var current=el.getAttribute('data-repl')||el.textContent;
+    var all=getAllSynonyms(word);
+    if(customRules[word]){toastMsg('This word uses a custom rule');return;}
+    if(!all||all.length<2)return;
+    synPicker.innerHTML='';
+    var head=document.createElement('div');head.className='pt-syn-head';head.textContent='Synonyms for "'+word+'"';
+    synPicker.appendChild(head);
+    all.forEach(function(syn){
+      var btn=document.createElement('button');btn.className='pt-syn-item'+(syn.toLowerCase()===current.toLowerCase()?' active':'');
+      btn.textContent=syn;
+      btn.addEventListener('click',function(){
+        synPicker.classList.remove('open');
+        replaceSynonym(el,word,current,syn);
+      });
+      synPicker.appendChild(btn);
+    });
+    var closeHandler=function(ev){
+      if(!synPicker.contains(ev.target)){synPicker.classList.remove('open');document.removeEventListener('click',closeHandler);}
+    };
+    setTimeout(function(){document.addEventListener('click',closeHandler);},10);
+    var rect=el.getBoundingClientRect();
+    synPicker.style.left=Math.min(rect.left,window.innerWidth-260)+'px';
+    synPicker.style.top=(rect.bottom+4)+'px';
+    synPicker.classList.add('open');
+  }
+
+  function replaceSynonym(el,original,oldRepl,newWord){
+    el.textContent=newWord;
+    el.setAttribute('data-repl',newWord);
+    newPrev.querySelectorAll('.changed').forEach(function(nel){
+      if(nel.getAttribute('data-word')===original&&nel.getAttribute('data-repl')===oldRepl){
+        nel.textContent=newWord;nel.setAttribute('data-repl',newWord);
+      }
+    });
+    var found=false;
+    if(lastResult){
+      for(var ri=0;ri<lastResult.length;ri++){
+        for(var ti=0;ti<lastResult[ri].tokens.length;ti++){
+          var tk=lastResult[ri].tokens[ti];
+          if(tk.changed&&tk.original===original&&tk.text===oldRepl){
+            tk.text=newWord;
+            found=true;
+          }
+        }
+      }
+    }
+    if(found){
+      pushHistory(lastOriginal,lastResult);
+      renderDiff(lastOriginal,lastResult);
+    }
+    toastMsg('Synonym updated');
+  }
+
+  /* ── Main handler ── */
+  function handleRewrite(){
+    var text=input.value.trim();
+    if(!text){toastMsg('Please enter some text to rewrite.');return;}
+    if(text.split(/\s+/).length>2000){toastMsg('Text is too long (max 2,000 words).');return;}
+    if(!thesaurusLoaded&&!Object.keys(customRules).length){toastMsg('Thesaurus not loaded yet.');return;}
+    var result=rewrite(text);
+    renderDiff(text,result);
+    pushHistory(text,result);
+    addSession(text,result,activeMode);
+    toastMsg('Text rewritten!');
+  }
+
+  function reset(){
+    input.value='';updateCounts();renderDiff('',null);
+    history=[];historyIdx=-1;updateUndoRedo();
+    if(ttsSynth)ttsSynth.cancel();
+    [ttsOrigBtn,ttsNewBtn].forEach(function(b){if(b)b.classList.remove('speaking')});
+    toastMsg('Reset');
+  }
+
+  /* ── File upload ── */
+  uploadBtn.addEventListener('click',function(){fileInput.click();});
+  fileInput.addEventListener('change',function(){
+    var file=this.files[0];if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(e){input.value=e.target.result;updateCounts();toastMsg('File loaded ('+file.name+')');};
+    reader.readAsText(file);this.value='';
+  });
+
+  /* ── Export ── */
+  function download(filename,content,mime){
+    var blob=new Blob([content],{type:mime});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download=filename;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  dlTxt.addEventListener('click',function(){
+    var text=output.textContent;
+    if(!text||text.indexOf('Click Rewrite')>-1||text.indexOf('No text')>-1||text.indexOf('No rewritten')>-1){toastMsg('Nothing to export.');return;}
+    download('paraphrased.txt',text,'text/plain');
+    toastMsg('Downloaded as .txt');
+  });
+
+  dlDocx.addEventListener('click',function(){
+    var text=output.textContent;
+    if(!text||text.indexOf('Click Rewrite')>-1||text.indexOf('No text')>-1||text.indexOf('No rewritten')>-1){toastMsg('Nothing to export.');return;}
+    var paras=text.split(/\n+/).filter(function(p){return p.trim()});var docBody='<h1>Paraphrased Text</h1><p>Generated by StoryBrain AI &mdash; '+new Date().toLocaleDateString()+'</p><hr>';for(var pi=0;pi<paras.length;pi++){docBody+='<p>'+escHtml(paras[pi])+'</p>';}var html='<html><head><meta charset="utf-8"><style>body{font-family:Calibri,sans-serif;font-size:12pt;line-height:1.6;margin:2em}p{margin:0 0 1em 0}</style></head><body>'+docBody+'</body></html>';
+    download('paraphrased.doc',html,'application/msword');
+    toastMsg('Downloaded as .doc');
+  });
+
+  dlPdf.addEventListener('click',function(){
+    var text=output.textContent;
+    if(!text||text.indexOf('Click Rewrite')>-1||text.indexOf('No text')>-1||text.indexOf('No rewritten')>-1){toastMsg('Nothing to export.');return;}
+    var w=window.open('','_blank');
+    if(!w){toastMsg('Popup blocked. Please allow popups for PDF export.');return;}
+    w.document.write('<html><head><title>Paraphrased Text</title><style>body{font-family:Georgia,serif;font-size:12pt;line-height:1.8;max-width:700px;margin:2em auto;padding:0 1em}h1{font-size:18pt}h2{font-size:14pt;color:#555}hr{margin:1em 0}p{margin:0 0 1em 0}@media print{body{margin:0}}</style></head><body>');
+    w.document.write('<h1>Paraphrased Text</h1><h2>Generated by StoryBrain AI &mdash; '+new Date().toLocaleDateString()+'</h2><hr>');
+    var paras=text.split(/\n+/).filter(function(p){return p.trim()});
+    for(var pi=0;pi<paras.length;pi++)w.document.write('<p>'+escHtml(paras[pi])+'</p>');
+    w.document.write('</body></html>');
+    w.document.close();w.focus();w.print();
+  });
+
+  copyBtn.addEventListener('click',function(){
+    var text=output.textContent;
+    if(!text||text.indexOf('Click Rewrite')>-1||text.indexOf('No text')>-1||text.indexOf('No rewritten')>-1){toastMsg('Nothing to copy.');return;}
+    navigator.clipboard.writeText(text).then(function(){toastMsg('Copied!')}).catch(function(){toastMsg('Copy failed')});
+  });
+
+  /* ── Events ── */
+  sampleBtn.addEventListener('click',function(){input.value=sampleText;updateCounts();toastMsg('Sample text loaded');});
+  rewriteBtn.addEventListener('click',handleRewrite);
+  resetBtn.addEventListener('click',reset);
+  undoBtn.addEventListener('click',undo);
+  redoBtn.addEventListener('click',redo);
+
+  input.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();handleRewrite();}});
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo();}
+    if((e.ctrlKey||e.metaKey)&&e.key==='z'&&e.shiftKey){e.preventDefault();redo();}
+    if((e.ctrlKey||e.metaKey)&&e.key==='y'){e.preventDefault();redo();}
+  });
+
+  /* ── Auto-save draft ── */
+  function autosaveSave(){
+    try{localStorage.setItem('pt-draft',input.value);}catch(e){}
+  }
+  function autosaveLoad(){
+    try{
+      var d=localStorage.getItem('pt-draft');
+      if(d&&d!==input.value&&d.trim()){
+        if(confirm('Restore your previous draft?')){input.value=d;updateCounts();}
+      }
+    }catch(e){}
+  }
+  var autosaveTimer=null;
+  input.addEventListener('input',function(){clearTimeout(autosaveTimer);autosaveTimer=setTimeout(autosaveSave,800);});
+
+  window.addEventListener('beforeunload',function(){autosaveSave();});
+
+  /* ── Init ── */
+  renderDiff('',null);
+  updateUndoRedo();
+  autosaveLoad();
+
+  var fallbackThesaurus={improve:{standard:['enhance','upgrade','refine','better','optimize']},use:{standard:['utilize','employ','apply','leverage','harness']},get:{standard:['obtain','acquire','receive','secure','attain']},make:{standard:['create','produce','generate','construct','develop']},change:{standard:['modify','adjust','alter','transform','convert']},help:{standard:['assist','support','aid','facilitate','benefit']},need:{standard:['require','necessitate','demand','call for']},show:{standard:['demonstrate','indicate','reveal','display','illustrate']},think:{standard:['believe','consider','deem','reckon','suppose']},know:{standard:['understand','recognize','comprehend','grasp','realize']},give:{standard:['provide','offer','supply','grant','contribute']},take:{standard:['require','necessitate','involve','entail']},find:{standard:['discover','locate','identify','uncover','detect']},keep:{standard:['maintain','retain','preserve','sustain','uphold']},start:{standard:['begin','initiate','commence','launch','embark']},stop:{standard:['cease','halt','terminate','discontinue','conclude']},try:{standard:['attempt','endeavor','strive','seek','undertake']},look:{standard:['examine','inspect','observe','survey','scrutinize']},tell:{standard:['inform','notify','advise','apprise','brief']},ask:{standard:['inquire','request','question','query','solicit']},answer:{standard:['respond','reply','react','counter','retort']},explain:{standard:['clarify','elaborate','elucidate','expound','illustrate']},work:{standard:['function','operate','perform','labor','toil']},build:{standard:['construct','assemble','erect','fabricate','establish']},grow:{standard:['expand','develop','increase','evolve','flourish']},reduce:{standard:['decrease','lessen','diminish','curtail','minimize']},increase:{standard:['boost','amplify','augment','escalate','expand']},support:{standard:['back','uphold','advocate','endorse','champion']},include:{standard:['contain','comprise','encompass','incorporate','cover']},focus:{standard:['concentrate','center','specialize','target','zoom']},manage:{standard:['handle','administer','oversee','supervise','direct']},plan:{standard:['devise','formulate','orchestrate','coordinate','scheme']},check:{standard:['verify','confirm','validate','inspect','audit']},ensure:{standard:['guarantee','assure','secure','certify','insure']},avoid:{standard:['evade','bypass','shun','circumvent','dodge']},allow:{standard:['permit','authorize','enable','sanction','approve']},prevent:{standard:['hinder','inhibit','obstruct','impede','thwart']},cause:{standard:['trigger','provoke','generate','spark','instigate']},follow:{standard:['pursue','track','monitor','trace','shadow']},lead:{standard:['guide','direct','steer','conduct','navigate']},result:{standard:['outcome','consequence','effect','ramification']},problem:{standard:['issue','challenge','difficulty','obstacle','dilemma']},solution:{standard:['answer','fix','remedy','resolution']},example:{standard:['instance','illustration','case','sample','prototype']},part:{standard:['portion','segment','component','element','fraction']},way:{standard:['method','approach','technique','means','strategy']},kind:{standard:['type','sort','variety','category','class']},important:{standard:['significant','crucial','vital','essential','critical']},good:{standard:['fine','great','excellent','positive','satisfactory']},bad:{standard:['poor','negative','unfortunate','inferior','substandard']},big:{standard:['large','massive','significant','substantial','vast']},small:{standard:['little','minor','tiny','compact','modest']},new:{standard:['fresh','novel','modern','contemporary','recent']},old:{standard:['ancient','vintage','former','outdated','elderly']},fast:{standard:['quick','rapid','swift','speedy','brisk']},slow:{standard:['gradual','leisurely','sluggish','moderate','deliberate']},easy:{standard:['simple','effortless','straightforward','smooth','facile']},hard:{standard:['difficult','challenging','demanding','arduous','tough']},clear:{standard:['obvious','evident','apparent','transparent','distinct']},true:{standard:['accurate','correct','precise','exact','valid']},full:{standard:['complete','entire','total','comprehensive','thorough']},open:{standard:['accessible','available','unrestricted','exposed']},happy:{standard:['pleased','delighted','content','satisfied','elated']},sad:{standard:['unhappy','sorrowful','gloomy','melancholy','dismal']},strong:{standard:['powerful','robust','potent','sturdy','solid']},weak:{standard:['fragile','feeble','frail','vulnerable','delicate']},simple:{standard:['basic','plain','elementary','fundamental']},complex:{standard:['complicated','intricate','elaborate','sophisticated']},possible:{standard:['feasible','viable','achievable','attainable']},special:{standard:['unique','distinctive','exceptional','remarkable','notable']},popular:{standard:['common','trendy','fashionable','prevalent','widespread']},rich:{standard:['wealthy','affluent','prosperous','opulent','lavish']},poor:{standard:['impoverished','needy','deprived','destitute']},often:{standard:['frequently','commonly','regularly','repeatedly']},always:{standard:['constantly','continually','perpetually','incessantly']},never:{standard:['rarely','seldom','hardly','scarcely']},very:{standard:['extremely','highly','remarkably','exceptionally']},really:{standard:['truly','genuinely','actually','sincerely']},now:{standard:['currently','presently','immediately','at once']}};
+
+  function loadFallbackThesaurus(){thesaurus=fallbackThesaurus;thesaurusLoaded=true;console.warn('Using fallback thesaurus');}
+
+  var xhr=new XMLHttpRequest();
+  xhr.open('GET','/static/data/thesaurus.json',true);
+  xhr.onload=function(){
+    if(xhr.status===200){try{thesaurus=JSON.parse(xhr.responseText);thesaurusLoaded=true;}catch(e){loadFallbackThesaurus();}}
+    else{loadFallbackThesaurus();}
+  };
+  xhr.onerror=loadFallbackThesaurus;
+  xhr.send();
+})();
+</script>
+{% endblock %}
