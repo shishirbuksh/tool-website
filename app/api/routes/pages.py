@@ -84,6 +84,13 @@ async def tools_page(request: Request):
     return resp
 
 
+@router.api_route("/offline", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def offline_page(request: Request):
+    resp = templates.TemplateResponse(request=request, name="pages/offline.html")
+    resp.headers.update(_PAGE_CACHE_HEADERS)
+    return resp
+
+
 @router.api_route("/tool/{tool_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def get_tool(request: Request, tool_name: str):
     if ".." in tool_name or "/" in tool_name or "\\" in tool_name:
