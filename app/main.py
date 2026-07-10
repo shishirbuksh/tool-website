@@ -124,6 +124,15 @@ async def favicon():
     )
 
 
+@app.get("/sw.js", include_in_schema=False)
+async def service_worker():
+    return FileResponse(
+        os.path.join(settings.static_dir, "sw.js"),
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+    )
+
+
 app.include_router(health.router)
 app.include_router(seo.router)
 app.include_router(pages.router)
