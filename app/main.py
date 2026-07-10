@@ -124,12 +124,15 @@ async def favicon():
     )
 
 
-@app.get("/sw.js", include_in_schema=False)
+@app.get("/service-worker", include_in_schema=False)
 async def service_worker():
     return FileResponse(
         os.path.join(settings.static_dir, "sw.js"),
         media_type="application/javascript",
-        headers={"Cache-Control": "no-cache, no-store, must-revalidate"}
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Service-Worker-Allowed": "/"
+        }
     )
 
 
