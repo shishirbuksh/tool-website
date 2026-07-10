@@ -65,14 +65,14 @@ def _get_cached_page_names() -> list[str]:
     _pages_dir_cache_ts = now
     return _pages_dir_cache
 
-@router.get("/", response_class=HTMLResponse)
+@router.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def home(request: Request):
     resp = templates.TemplateResponse(request=request, name="index.html")
     resp.headers.update(_PAGE_CACHE_HEADERS)
     return resp
 
 
-@router.get("/tools", response_class=HTMLResponse)
+@router.api_route("/tools", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def tools_page(request: Request):
     categories, static_pages = catalog_service.get_categorized_tools()
     resp = templates.TemplateResponse(
@@ -84,7 +84,7 @@ async def tools_page(request: Request):
     return resp
 
 
-@router.get("/tool/{tool_name}", response_class=HTMLResponse)
+@router.api_route("/tool/{tool_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def get_tool(request: Request, tool_name: str):
     if ".." in tool_name or "/" in tool_name or "\\" in tool_name:
         raise HTTPException(status_code=404, detail="Not found")
@@ -111,7 +111,7 @@ async def get_tool(request: Request, tool_name: str):
     return resp
 
 
-@router.get("/sitemap", response_class=HTMLResponse)
+@router.api_route("/sitemap", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def html_sitemap(request: Request):
     categories, static_pages = catalog_service.get_categorized_tools()
     resp = templates.TemplateResponse(
@@ -127,7 +127,7 @@ async def html_sitemap(request: Request):
     return resp
 
 
-@router.get("/api/tools/catalog")
+@router.api_route("/api/tools/catalog", methods=["GET", "HEAD"])
 async def tools_catalog():
     categories, static_pages = catalog_service.get_categorized_tools()
     tools = []
@@ -137,14 +137,14 @@ async def tools_catalog():
     return cached_json(tools, max_age=300, stale_while_revalidate=3600)
 
 
-@router.get("/offline", response_class=HTMLResponse)
+@router.api_route("/offline", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def offline_page(request: Request):
     resp = templates.TemplateResponse(request=request, name="offline.html")
     resp.headers.update(_PAGE_CACHE_HEADERS)
     return resp
 
 
-@router.get("/sw.js", include_in_schema=False)
+@router.api_route("/sw.js", methods=["GET", "HEAD"], include_in_schema=False)
 async def service_worker():
     headers = {
         "Service-Worker-Allowed": "/",
@@ -187,7 +187,7 @@ async def contact_submission(request: Request):
     return {"status": "ok"}
 
 
-@router.get("/{page_name}", response_class=HTMLResponse)
+@router.api_route("/{page_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def get_page(request: Request, page_name: str):
     if ".." in page_name or "/" in page_name:
         raise HTTPException(status_code=404, detail="Not found")

@@ -11,7 +11,7 @@ router = APIRouter()
 sitemap_service = SitemapService(settings)
 
 
-@router.get("/sitemap.xml", include_in_schema=False)
+@router.api_route("/sitemap.xml", methods=["GET", "HEAD"], include_in_schema=False)
 async def sitemap():
     return Response(
         content=sitemap_service.build_sitemap_xml(),
@@ -20,7 +20,7 @@ async def sitemap():
     )
 
 
-@router.get("/robots.txt", include_in_schema=False)
+@router.api_route("/robots.txt", methods=["GET", "HEAD"], include_in_schema=False)
 async def robots_txt():
     return Response(
         content=sitemap_service.build_robots_txt(),
@@ -29,7 +29,7 @@ async def robots_txt():
     )
 
 
-@router.get("/llms.txt", include_in_schema=False)
+@router.api_route("/llms.txt", methods=["GET", "HEAD"], include_in_schema=False)
 async def llms_txt():
     return Response(
         content=sitemap_service.build_llms_txt(),

@@ -3,12 +3,25 @@
 import asyncio
 import ipaddress
 import socket
+import threading
 import time
 from urllib.parse import urlparse
 
 import requests
 
 from app.core.config import Settings
+
+_original_getaddrinfo = socket.getaddrinfo
+_dns_local = threading.local()
+
+def _patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+    forced_ip = getattr(_dns_local, 'forced_ip', None)
+    target_host = getattr(_dns_local, 'target_host', None)
+    if forced_ip and host == target_host:
+        return [(socket.AF_INET, type, proto, '', (forced_ip, port))]
+    return _original_getaddrinfo(host, port, family, type, proto, flags)
+
+socket.getaddrinfo = _patched_getaddrinfo
 from app.core.exceptions import ServiceError, ValidationException
 
 
@@ -18,23 +31,28 @@ class ProxyService:
         self._dns_cache: dict[str, tuple[str | None, float]] = {}
         self._dns_ttl = 300
         self._dns_maxsize = 100
+        self._lock = threading.Lock()
 
     def _resolve_cached(self, hostname: str) -> str | None:
         now = time.time()
-        cached = self._dns_cache.get(hostname)
+        with self._lock:
+            cached = self._dns_cache.get(hostname)
         if cached and now - cached[1] < self._dns_ttl:
             return cached[0]
         try:
             ip = socket.gethostbyname(hostname)
             ip_obj = ipaddress.ip_address(ip)
             if ip_obj.is_private or ip_obj.is_loopback or ip_obj.is_link_local:
-                self._dns_cache[hostname] = (None, now)
+                with self._lock:
+                    self._dns_cache[hostname] = (None, now)
                 return None
-            self._dns_cache[hostname] = (ip, now)
-            self._evict_dns_cache()
+            with self._lock:
+                self._dns_cache[hostname] = (ip, now)
+                self._evict_dns_cache()
             return ip
         except socket.gaierror:
-            self._dns_cache[hostname] = (None, now)
+            with self._lock:
+                self._dns_cache[hostname] = (None, now)
             return None
 
     def _evict_dns_cache(self):
@@ -88,8 +106,17 @@ class ProxyService:
         if body:
             kwargs["data"] = body.encode("utf-8")
 
+        def _make_request():
+            _dns_local.target_host = hostname
+            _dns_local.forced_ip = ip
+            try:
+                return requests.request(**kwargs)
+            finally:
+                _dns_local.target_host = None
+                _dns_local.forced_ip = None
+
         try:
-            response = await loop.run_in_executor(None, lambda: requests.request(**kwargs))
+            response = await loop.run_in_executor(None, _make_request)
             end_time = time.time()
 
             body_content = response.text

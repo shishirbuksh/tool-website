@@ -175,7 +175,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             del self._windows[ip]
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        if request.method == "GET":
+        if request.method in ("GET", "HEAD", "OPTIONS"):
             return await call_next(request)
 
         client_ip = self._resolve_ip(request)
@@ -245,17 +245,18 @@ class MaxBodySizeMiddleware:
         if scope.get("method") in ("POST", "PUT", "PATCH") and cl_header is None:
             body_total = 0
             _overflow = False
+            _response_started = False
 
             async def size_limited_receive():
-                nonlocal body_total, _overflow
+                nonlocal body_total, _overflow, _response_started
                 if _overflow:
                     return {"type": "http.disconnect"}
                 msg = await receive()
                 if msg["type"] == "http.request":
                     body_total += len(msg.get("body", b""))
-                    while msg.get("more_body", False):
-                        if body_total > self.max_size:
-                            _overflow = True
+                    if body_total > self.max_size:
+                        _overflow = True
+                        if not _response_started:
                             await send({
                                 "type": "http.response.start",
                                 "status": 413,
@@ -265,12 +266,19 @@ class MaxBodySizeMiddleware:
                                 "type": "http.response.body",
                                 "body": b'{"detail":"Request body exceeds size limit"}',
                             })
-                            return {"type": "http.disconnect"}
-                        msg = await receive()
-                        body_total += len(msg.get("body", b""))
+                            _response_started = True
+                        return {"type": "http.disconnect"}
                 return msg
 
-            await self.app(scope, size_limited_receive, send)
+            async def size_limited_send(msg):
+                nonlocal _response_started
+                if _overflow:
+                    return
+                if msg["type"] == "http.response.start":
+                    _response_started = True
+                await send(msg)
+
+            await self.app(scope, size_limited_receive, size_limited_send)
         else:
             await self.app(scope, receive, send)
 

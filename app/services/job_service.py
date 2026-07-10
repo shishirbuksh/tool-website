@@ -27,6 +27,7 @@ class JobService:
     def __init__(self):
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
+        self._tasks = set()
         self._max_jobs = 100
         self._cleanup_interval = 300
         self._last_cleanup = time.time()
@@ -49,7 +50,9 @@ class JobService:
                 logger.exception("Job %s (%s) failed", job_id, name)
 
         try:
-            asyncio.create_task(_run())
+            task = asyncio.create_task(_run())
+            self._tasks.add(task)
+            task.add_done_callback(self._tasks.discard)
         except RuntimeError:
             raise RuntimeError("No running event loop available to schedule job") from None
         self._maybe_cleanup()
