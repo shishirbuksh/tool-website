@@ -16,6 +16,14 @@ logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
 
 logger = get_logger(__name__)
 
+_prophet_semaphore: asyncio.Semaphore | None = None
+
+def _get_prophet_semaphore() -> asyncio.Semaphore:
+    global _prophet_semaphore
+    if _prophet_semaphore is None:
+        _prophet_semaphore = asyncio.Semaphore(2)
+    return _prophet_semaphore
+
 
 class CryptoService:
     def __init__(self, settings: Settings):
@@ -154,7 +162,19 @@ class CryptoService:
                 future_days,
             )
 
-        prophet_preds = await loop.run_in_executor(None, _run_prophet)
+        async def _run_prophet_async():
+            sem = _get_prophet_semaphore()
+            try:
+                await asyncio.wait_for(sem.acquire(), timeout=5.0)
+            except asyncio.TimeoutError:
+                logger.warning(f"Prophet prediction timeout for {symbol}: Too many concurrent models")
+                return None
+            try:
+                return await loop.run_in_executor(None, _run_prophet)
+            finally:
+                sem.release()
+
+        prophet_preds = await _run_prophet_async()
         rust_preds = await loop.run_in_executor(None, _run_rust)
 
         if prophet_preds is None and rust_preds is None:

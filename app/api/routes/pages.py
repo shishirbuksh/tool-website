@@ -44,8 +44,8 @@ templates.env.filters["sanitize"] = lambda html: Markup(nh3.clean(html or ""))
 APP_VERSION = os.getenv("APP_VERSION", "dev")
 templates.env.globals["app_version"] = APP_VERSION
 
-# Cache-control: 1 day for HTML pages, 5 min for stale-while-revalidate
-_PAGE_CACHE_HEADERS = {"Cache-Control": "public, max-age=86400, stale-while-revalidate=604800"}
+# Cache-control: Disable Edge HTML caching to ensure cryptographic CSP Nonce rotates per request.
+_PAGE_CACHE_HEADERS = {"Cache-Control": "private, no-cache, no-store, must-revalidate"}
 
 _pages_dir_cache: list[str] | None = None
 _pages_dir_cache_ts: float = 0

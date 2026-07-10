@@ -75,8 +75,10 @@ class FractalService:
 
             try:
                 llm_text = await self._call_llm(provider, api_key, system_prompt, user_content)
-                match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", llm_text, re.DOTALL)
-                llm_text = match.group(1) if match else llm_text.strip()
+                start_idx = llm_text.find("{")
+                end_idx = llm_text.rfind("}")
+                if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                    llm_text = llm_text[start_idx:end_idx+1]
                 params = FractalParams(**json.loads(llm_text))
                 c_re, c_im = params.c_re, params.c_im
                 zoom, max_iter = params.zoom, params.max_iter
