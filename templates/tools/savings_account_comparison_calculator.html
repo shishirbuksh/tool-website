@@ -1,0 +1,829 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+{% block title %}Free Savings Account Comparison Calculator — Multi-Currency Advanced | StoryBrain AI{% endblock %}
+{% block meta_description %}Advanced multi-currency savings account comparison calculator with APY, fees, monthly contributions, tax impact, inflation-adjusted returns, contribution escalation, goal tracking, compound frequency comparison, what-if scenarios, CSV export, and growth charts.{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/savings-account-comparison-calculator{% endblock %}
+{% block og_title %}Advanced Multi-Currency Savings Account Comparison | StoryBrain AI{% endblock %}
+{% block og_description %}Multi-currency savings calculator with contribution escalation, goal progress bars, compound frequency comparison, CSV export, and year-by-year growth charts.{% endblock %}
+{% block head %}
+<style>
+.sc-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.25rem;border:1px solid var(--color-base-300)}
+.sc-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:4px;display:block}
+.sc-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.sc-input:focus{border-color:var(--color-primary);outline:none}
+.sc-select{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;cursor:pointer;transition:border-color .18s;appearance:auto;box-sizing:border-box}
+.sc-select:focus{border-color:var(--color-primary);outline:none}
+.sc-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.55rem .85rem;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;touch-action:manipulation}
+.sc-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.sc-pri:active{transform:translateY(0)}
+.sc-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.4rem .65rem;font-weight:700;font-size:.65rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;touch-action:manipulation}
+.sc-sec:hover{border-color:var(--color-base-content)}
+.sc-account-card{background:var(--color-base-100);border-radius:1rem;padding:1rem;border:1px solid var(--color-base-300);position:relative}
+.sc-account-card.accent-1{border-left:3px solid var(--color-primary)}
+.sc-account-card.accent-2{border-left:3px solid var(--color-success)}
+.sc-account-card.accent-3{border-left:3px solid var(--color-warning)}
+.sc-result-table{width:100%;border-collapse:collapse;font-size:11px;font-weight:600}
+.sc-result-table th{text-align:left;padding:6px 8px;font-size:7px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;opacity:.35;border-bottom:1px solid var(--color-base-300)}
+.sc-result-table td{padding:5px 8px;border-bottom:1px solid var(--color-base-200);font-family:monospace;font-size:10.5px}
+.sc-result-table .rank-1 td{background:color-mix(in oklab,var(--color-primary) 6%,transparent)}
+.sc-result-table .rank-1 td:first-child{font-weight:900;color:var(--color-primary)}
+.sc-rank-badge{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:9px;font-weight:900}
+.sc-rank-badge.r1{background:var(--color-primary);color:#fff}
+.sc-rank-badge.r2{background:var(--color-base-200);color:var(--color-base-content)}
+.sc-rank-badge.r3{background:var(--color-base-200);color:var(--color-base-content)}
+.sc-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sc-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.sc-stat{background:var(--color-base-100);border-radius:.85rem;padding:10px;text-align:center;border:1px solid var(--color-base-300)}
+.sc-stat .sv{font-size:18px;font-weight:900;font-family:monospace;line-height:1.2}
+.sc-stat .sl{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-top:3px}
+.sc-stat.full{grid-column:1/-1}
+.sc-stat.full .sv{font-size:24px}
+.sc-breakeven{font-size:10px;font-weight:600;padding:8px 12px;border-radius:.75rem;background:color-mix(in oklab,var(--color-warning) 8%,transparent);border:1px solid color-mix(in oklab,var(--color-warning) 20%,transparent);color:var(--color-base-content);line-height:1.5}
+.sc-breakeven strong{color:var(--color-warning)}
+.sc-chart-bar{display:flex;align-items:stretch;gap:6px;margin-top:10px;height:120px}
+.sc-chart-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px}
+.sc-chart-col .bar{width:100%;border-radius:6px 6px 0 0;transition:height .4s;min-height:4px}
+.sc-chart-col .bar.c1{background:color-mix(in oklab,var(--color-primary) 55%,transparent)}
+.sc-chart-col .bar.c2{background:color-mix(in oklab,var(--color-success) 55%,transparent)}
+.sc-chart-col .bar.c3{background:color-mix(in oklab,var(--color-warning) 55%,transparent)}
+.sc-chart-col .bl{font-size:7px;font-weight:700;opacity:.5;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.sc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px}
+.sc-toast.show{opacity:1;transform:translateY(0)}
+.sc-add-btn{width:100%;padding:10px;border-radius:.85rem;border:2px dashed var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:700;font-size:11px;cursor:pointer;transition:all .15s;font-family:inherit;text-transform:uppercase;letter-spacing:0.05em;touch-action:manipulation}
+.sc-add-btn:hover{border-color:var(--color-primary);color:var(--color-primary);background:color-mix(in oklab,var(--color-primary) 5%,transparent)}
+.sc-remove-btn{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;border:none;background:color-mix(in oklab,var(--color-base-content) 8%,transparent);color:var(--color-base-content);opacity:.4;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;font-size:12px;font-family:inherit;touch-action:manipulation}
+.sc-remove-btn:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.sc-tab{display:flex;gap:4px;background:var(--color-base-100);border-radius:999px;padding:3px;margin-bottom:14px;border:1px solid var(--color-base-200);flex-wrap:wrap}
+.sc-tab button{padding:5px 14px;border-radius:999px;font-size:9px;font-weight:800;cursor:pointer;border:none;background:transparent;color:var(--color-base-content);transition:all .15s;touch-action:manipulation;text-transform:uppercase;letter-spacing:0.04em;font-family:inherit}
+.sc-tab button.on{background:var(--color-primary);color:#fff}
+.sc-section{display:none}
+.sc-section.active{display:block}
+.sc-hist{max-height:180px;overflow-y:auto}
+.sc-hist-item{padding:5px 8px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-200);display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:9px;font-weight:600;cursor:pointer;transition:all .12s;margin-bottom:2px}
+.sc-hist-item:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.sc-hist-item .preview{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;font-size:8px;opacity:.5;min-width:0}
+.sc-hist-item .meta{font-size:7px;font-weight:700;opacity:.3;white-space:nowrap}
+.sc-hist-item .hdel{width:18px;height:18px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:8px}
+.sc-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
+.sc-empty{text-align:center;padding:16px;font-size:10px;font-weight:600;opacity:.3}
+.sc-whatif{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px}
+.sc-whatif button{padding:4px 6px;border-radius:6px;font-size:7px;font-weight:700;cursor:pointer;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;touch-action:manipulation;font-family:inherit}
+.sc-whatif button:hover{background:color-mix(in oklab,var(--color-primary) 10%,transparent);border-color:var(--color-primary)}
+.sc-whatif button.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.sc-cb{-webkit-appearance:none;-moz-appearance:none;appearance:none;width:16px;height:16px;border-radius:4px;border:2px solid color-mix(in oklab,var(--color-base-content) 28%,transparent);background:color-mix(in oklab,var(--color-base-content) 6%,transparent);cursor:pointer;flex-shrink:0;transition:all .12s;margin:0;vertical-align:middle;color-scheme:light dark}
+.sc-cb:checked{background:var(--color-success);border-color:var(--color-success);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center;background-size:12px}
+.sc-cb:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.sc-toggle{cursor:pointer;touch-action:manipulation;display:inline-flex;align-items:center;gap:5px;padding:.3rem .6rem;border-radius:8px;border:1px solid var(--color-base-300);background:transparent;color:var(--color-base-content);font-weight:600;font-size:10px;transition:all .12s;font-family:inherit}
+.sc-toggle:hover{background:var(--color-base-200)}
+.sc-toggle.on{background:color-mix(in oklab,var(--color-primary) 12%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
+.sc-progress{height:8px;border-radius:999px;background:var(--color-base-200);overflow:hidden;margin-top:4px}
+.sc-progress-fill{height:100%;border-radius:999px;transition:width .5s}
+.sc-insights{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.sc-insight{background:var(--color-base-100);border-radius:.65rem;padding:8px 10px;font-size:9px;font-weight:700;border:1px solid var(--color-base-200);line-height:1.4}
+.sc-insight .badge{font-size:6px;padding:2px 6px;border-radius:99px;text-transform:uppercase;letter-spacing:0.05em}
+.sc-compare-card{font-size:10px;padding:10px;border-radius:.85rem;background:var(--color-base-100);border:1px solid var(--color-base-300);margin-bottom:6px}
+.sc-compare-card .freq-label{font-weight:800;text-transform:uppercase;font-size:8px;letter-spacing:0.05em;opacity:.5;margin-bottom:2px}
+.sc-compare-card .freq-val{font-size:16px;font-weight:900;font-family:monospace}
+@media (min-width:1024px){.sc-lcol{width:41.666667%}.sc-rcol{width:58.333333%}}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("wallet","Calculators","Savings Account","COMPARISON","Multi-currency advanced comparison with escalation, goal progress, compound comparison, CSV export & more.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="sc-lcol">
+    <div class="sc-card">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("globe","w-4 h-4",16) | safe }} Currency</h2>
+      </div>
+      <select id="scCurrency" class="sc-select" style="font-size:13px;font-weight:800">
+        <option value="USD">🇺🇸 USD — US Dollar ($)</option>
+        <option value="EUR">🇪🇺 EUR — Euro (€)</option>
+        <option value="GBP">🇬🇧 GBP — British Pound (£)</option>
+        <option value="JPY">🇯🇵 JPY — Japanese Yen (¥)</option>
+        <option value="CAD">🇨🇦 CAD — Canadian Dollar (C$)</option>
+        <option value="AUD">🇦🇺 AUD — Australian Dollar (A$)</option>
+        <option value="INR">🇮🇳 INR — Indian Rupee (₹)</option>
+        <option value="BRL">🇧🇷 BRL — Brazilian Real (R$)</option>
+        <option value="CHF">🇨🇭 CHF — Swiss Franc (CHF)</option>
+        <option value="SGD">🇸🇬 SGD — Singapore Dollar (S$)</option>
+        <option value="HKD">🇭🇰 HKD — Hong Kong Dollar (HK$)</option>
+        <option value="NZD">🇳🇿 NZD — New Zealand Dollar (NZ$)</option>
+        <option value="KRW">🇰🇷 KRW — South Korean Won (₩)</option>
+        <option value="MXN">🇲🇽 MXN — Mexican Peso (MX$)</option>
+        <option value="ZAR">🇿🇦 ZAR — South African Rand (R)</option>
+      </select>
+    </div>
+    <div class="sc-card">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("dollar-sign","w-4 h-4",16) | safe }} Accounts</h2>
+        <button type="button" id="scAddBtn" class="sc-sec" style="font-size:10px">{{ lucide_icon("plus","w-3 h-3",12) | safe }} Add</button>
+      </div>
+      <div id="scAccountList" class="flex flex-col gap-3"></div>
+    </div>
+    <div class="sc-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest">{{ lucide_icon("zap","w-3 h-3",12) | safe }} What-If</h2>
+        <span class="text-[7px] font-bold opacity-30 uppercase tracking-wider">Quick scenarios</span>
+      </div>
+      <div class="sc-whatif" id="scWhatIf">
+        <button type="button" class="on" data-wi="current">Current</button>
+        <button type="button" data-wi="higher-rate">+1% APY</button>
+        <button type="button" data-wi="lower-fees">No Fees</button>
+        <button type="button" data-wi="double-dep">2x Deposit</button>
+        <button type="button" data-wi="longer">+5 Years</button>
+        <button type="button" data-wi="best-case">Best Case</button>
+        <button type="button" data-wi="recession">Recession</button>
+        <button type="button" data-wi="aggressive">Aggressive</button>
+      </div>
+    </div>
+    <div class="sc-card mt-4">
+      <label class="sc-label" for="scYears">Time Horizon (years)</label>
+      <input type="range" id="scYears" min="1" max="30" value="5" step="0.5" class="w-full range-input" style="accent-color:var(--color-primary)">
+      <div class="flex justify-between text-[10px] font-bold opacity-35 mt-1"><span>1 yr</span><span id="scYearsLabel">5 years</span><span>30 yrs</span></div>
+    </div>
+    <div class="sc-card mt-4">
+      <div class="flex items-center gap-2 mb-2 flex-wrap">
+        <label class="sc-label" style="margin-bottom:0">Tax Rate (%)</label>
+        <input type="number" id="scTaxRate" class="sc-input" value="0" min="0" max="50" step="1" style="width:65px;padding:.3rem .5rem;font-size:.8rem">
+        <label class="sc-label" style="margin-bottom:0;margin-left:6px">Inflation (%)</label>
+        <input type="number" id="scInflation" class="sc-input" value="3" min="0" max="20" step="0.5" style="width:55px;padding:.3rem .5rem;font-size:.8rem">
+        <label class="sc-label" style="margin-bottom:0;margin-left:6px">Contrib Esc. (%/yr)</label>
+        <input type="number" id="scEscalation" class="sc-input" value="0" min="0" max="20" step="0.5" style="width:55px;padding:.3rem .5rem;font-size:.8rem">
+      </div>
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button type="button" id="scCalcBtn" class="sc-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
+      <button type="button" id="scCopyBtn" class="sc-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
+      <button type="button" id="scDlBtn" class="sc-sec" aria-label="Download .txt report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
+      <button type="button" id="scCsvBtn" class="sc-sec" aria-label="Export CSV">{{ lucide_icon("file-spreadsheet","w-3 h-3",12) | safe }}</button>
+    </div>
+    <div class="sc-card mt-4">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
+        <button type="button" id="scHiToggle" class="sc-toggle" aria-expanded="false">Show <span id="scHiCount"></span></button>
+      </div>
+      <div id="scHiWrap" hidden class="mt-2"><div id="scHiList" class="sc-hist"></div><button type="button" id="scHiClear" class="sc-sec mt-2" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }} Clear</button></div>
+    </div>
+  </div>
+  <div class="sc-rcol">
+    <div id="scEmpty" class="sc-card text-center py-10">
+      <div class="text-base-content/20 mb-3">{{ lucide_icon("wallet","w-12 h-12",48) | safe }}</div>
+      <p class="text-sm font-bold text-base-content/35">Add at least 2 accounts and click Calculate</p>
+    </div>
+    <div id="scResults" hidden>
+      <div class="sc-tab" id="scTabs" role="tablist">
+        <button type="button" class="on" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+        <button type="button" data-tab="growth" role="tab" aria-selected="false">Growth</button>
+        <button type="button" data-tab="tax" role="tab" aria-selected="false">Tax &amp; Inflation</button>
+        <button type="button" data-tab="scenarios" role="tab" aria-selected="false">Scenarios</button>
+        <button type="button" data-tab="insights" role="tab" aria-selected="false">Insights</button>
+      </div>
+      <div id="scTabOverview" class="sc-section active">
+        <div class="sc-card mb-4">
+          <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("trophy","w-4 h-4",16) | safe }} Rankings</h2>
+          <div class="overflow-x-auto rounded-xl border border-base-300"><table class="sc-result-table"><thead><tr><th style="width:26px">#</th><th>Account</th><th style="text-align:right">Balance</th><th style="text-align:right">Interest</th><th style="text-align:right">Fees</th><th style="text-align:right">Net APY</th></tr></thead><tbody id="scRankBody"></tbody></table></div>
+        </div>
+        <div class="sc-card mb-4">
+          <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} Balance Comparison</h2>
+          <div class="sc-chart-bar" id="scChart"></div>
+        </div>
+        <div class="sc-card mb-4">
+          <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("flag","w-4 h-4",16) | safe }} Goal Progress</h2>
+          <div id="scGoalProgress"></div>
+        </div>
+        <div class="sc-card mb-4">
+          <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("alert-triangle","w-4 h-4",16) | safe }} Fee Impact</h2>
+          <div id="scBreakEven"></div>
+        </div>
+        <div class="sc-grid-2" id="scBestStats">
+          <div class="sc-stat full"><div class="sv" id="scBestName" style="color:var(--color-primary)">—</div><div class="sl">Best Account</div></div>
+          <div class="sc-stat"><div class="sv" id="scBestBalance">$0</div><div class="sl">Balance</div></div>
+          <div class="sc-stat"><div class="sv" id="scBestInterest">$0</div><div class="sl">Interest</div></div>
+          <div class="sc-stat"><div class="sv" id="scBestFees">$0</div><div class="sl">Fees</div></div>
+          <div class="sc-stat"><div class="sv" id="scBestNetApy">0%</div><div class="sl">Net APY</div></div>
+          <div class="sc-stat"><div class="sv" id="scBestContrib">$0</div><div class="sl">Contributions</div></div>
+          <div class="sc-stat"><div class="sv" id="scBestGoal">—</div><div class="sl">Goal Status</div></div>
+        </div>
+      </div>
+      <div id="scTabGrowth" class="sc-section">
+        <div class="sc-card mb-4">
+          <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("trending-up","w-4 h-4",16) | safe }} Growth Over Time</h2>
+          <div id="scGrowthChart" style="min-height:300px;display:flex;align-items:center;justify-content:center"><span class="text-xs font-bold opacity-30">Enter values to see growth chart</span></div>
+        </div>
+        <div class="sc-card mb-4">
+          <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("table","w-4 h-4",16) | safe }} Year-by-Year</h2>
+          <div id="scYearTableWrap"><div class="overflow-x-auto rounded-xl border border-base-300" style="max-height:320px;overflow-y:auto"><table class="sc-result-table" style="font-size:10px"><thead><tr><th>Year</th><th>Account</th><th style="text-align:right">Start</th><th style="text-align:right">Deposits</th><th style="text-align:right">Interest</th><th style="text-align:right">Fees</th><th style="text-align:right">End</th></tr></thead><tbody id="scYearBody"></tbody></table></div></div>
+        </div>
+        <div class="sc-card mb-4">
+          <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("refresh-cw","w-4 h-4",16) | safe }} Compound Frequency Comparison</h2>
+          <p class="text-xs font-semibold opacity-40 mb-2">See how different compounding frequencies affect growth for the top account</p>
+          <div id="scCompoundCompare"></div>
+        </div>
+      </div>
+      <div id="scTabTax" class="sc-section">
+        <div class="sc-card mb-4">
+          <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("receipt","w-4 h-4",16) | safe }} Tax &amp; Inflation Impact</h2>
+          <div class="sc-grid-2" id="scTaxGrid">
+            <div class="sc-stat"><div class="sv" id="scTaxGrossInt" style="color:var(--color-success)">—</div><div class="sl">Gross Interest</div></div>
+            <div class="sc-stat"><div class="sv" id="scTaxPaid">—</div><div class="sl">Tax Paid</div></div>
+            <div class="sc-stat"><div class="sv" id="scTaxNetInt">—</div><div class="sl">After-Tax Interest</div></div>
+            <div class="sc-stat"><div class="sv" id="scTaxInflAdj">—</div><div class="sl">Inflation-Adj. Balance</div></div>
+            <div class="sc-stat full"><div class="sv" id="scTaxRealReturn">—</div><div class="sl">Real Annual Return (After Tax &amp; Inflation)</div></div>
+          </div>
+          <div id="scTaxDetails" class="mt-3"></div>
+        </div>
+      </div>
+      <div id="scTabScenarios" class="sc-section">
+        <div class="sc-card mb-4">
+          <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("git-compare","w-4 h-4",16) | safe }} Scenario Comparison</h2>
+          <p class="text-xs font-semibold opacity-40 mb-3">Same accounts, different environments</p>
+          <div id="scScenarioResults"></div>
+        </div>
+      </div>
+      <div id="scTabInsights" class="sc-section">
+        <div class="sc-card mb-4">
+          <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("lightbulb","w-4 h-4",16) | safe }} Smart Insights</h2>
+          <p class="text-xs font-semibold opacity-40 mb-3">Key takeaways from your comparison</p>
+          <div id="scInsightsContent"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="scToast" class="sc-toast" role="status" aria-live="polite"></div>
+<script nonce="{{ nonce }}">
+(function(){'use strict';
+
+var accountList=document.getElementById('scAccountList'),
+  addBtn=document.getElementById('scAddBtn'),
+  yearsSlider=document.getElementById('scYears'),
+  yearsLabel=document.getElementById('scYearsLabel'),
+  calcBtn=document.getElementById('scCalcBtn'),
+  copyBtn=document.getElementById('scCopyBtn'),
+  dlBtn=document.getElementById('scDlBtn'),
+  csvBtn=document.getElementById('scCsvBtn'),
+  emptyState=document.getElementById('scEmpty'),
+  resultsDiv=document.getElementById('scResults'),
+  rankBody=document.getElementById('scRankBody'),
+  chartEl=document.getElementById('scChart'),
+  breakEvenEl=document.getElementById('scBreakEven'),
+  bestName=document.getElementById('scBestName'),
+  bestBalance=document.getElementById('scBestBalance'),
+  bestInterest=document.getElementById('scBestInterest'),
+  bestFees=document.getElementById('scBestFees'),
+  bestNetApy=document.getElementById('scBestNetApy'),
+  bestContrib=document.getElementById('scBestContrib'),
+  bestGoal=document.getElementById('scBestGoal'),
+  toastEl=document.getElementById('scToast'),
+  whatifEl=document.getElementById('scWhatIf'),
+  taxRateEl=document.getElementById('scTaxRate'),
+  inflationEl=document.getElementById('scInflation'),
+  escalationEl=document.getElementById('scEscalation'),
+  currencyEl=document.getElementById('scCurrency'),
+  yearBody=document.getElementById('scYearBody'),
+  growthChartEl=document.getElementById('scGrowthChart'),
+  goalProgressEl=document.getElementById('scGoalProgress'),
+  compoundCompareEl=document.getElementById('scCompoundCompare'),
+  taxGrossInt=document.getElementById('scTaxGrossInt'),
+  taxPaid=document.getElementById('scTaxPaid'),
+  taxNetInt=document.getElementById('scTaxNetInt'),
+  taxInflAdj=document.getElementById('scTaxInflAdj'),
+  taxRealReturn=document.getElementById('scTaxRealReturn'),
+  taxDetails=document.getElementById('scTaxDetails'),
+  scenarioResults=document.getElementById('scScenarioResults'),
+  insightsContent=document.getElementById('scInsightsContent'),
+  hiToggle=document.getElementById('scHiToggle'),
+  hiCount=document.getElementById('scHiCount'),
+  hiClear=document.getElementById('scHiClear'),
+  hiWrap=document.getElementById('scHiWrap'),
+  hiList=document.getElementById('scHiList');
+
+var tt,wi='current',history=[],ACCOUNT_COLORS=['c1','c2','c3'],globalYearlyData=null;
+try{var h=JSON.parse(localStorage.getItem('sb_sc2')||'[]');if(Array.isArray(h))history=h}catch(e){}
+
+var CURRENCIES={
+  USD:{sym:'$',loc:'en-US',code:'USD',dec:2},
+  EUR:{sym:'\u20AC',loc:'de-DE',code:'EUR',dec:2},
+  GBP:{sym:'\u00A3',loc:'en-GB',code:'GBP',dec:2},
+  JPY:{sym:'\u00A5',loc:'ja-JP',code:'JPY',dec:0},
+  CAD:{sym:'C$',loc:'en-CA',code:'CAD',dec:2},
+  AUD:{sym:'A$',loc:'en-AU',code:'AUD',dec:2},
+  INR:{sym:'\u20B9',loc:'en-IN',code:'INR',dec:2},
+  BRL:{sym:'R$',loc:'pt-BR',code:'BRL',dec:2},
+  CHF:{sym:'CHF ',loc:'de-CH',code:'CHF',dec:2},
+  SGD:{sym:'S$',loc:'en-SG',code:'SGD',dec:2},
+  HKD:{sym:'HK$',loc:'en-HK',code:'HKD',dec:2},
+  NZD:{sym:'NZ$',loc:'en-NZ',code:'NZD',dec:2},
+  KRW:{sym:'\u20A9',loc:'ko-KR',code:'KRW',dec:0},
+  MXN:{sym:'MX$',loc:'es-MX',code:'MXN',dec:2},
+  ZAR:{sym:'R ',loc:'en-ZA',code:'ZAR',dec:2}
+};
+
+function cur(){return CURRENCIES[currencyEl.value]||CURRENCIES.USD}
+function fmtCurrency(n){
+  if(isNaN(n)||n===0){var c=cur();return c.sym+'0'+(!c.dec?'':'00'+(c.dec>2?'0':''))}
+  var c=cur();
+  try{
+    return n.toLocaleString(c.loc,{style:'currency',currency:c.code,minimumFractionDigits:c.dec,maximumFractionDigits:c.dec})
+  }catch(e){
+    return c.sym+n.toFixed(c.dec).replace(/\B(?=(\d{3})+(?!\d))/g,',')
+  }
+}
+function fmtPct(n){return (n*100).toFixed(2)+'%'}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function _accent(i){return i===0?'accent-1':i===1?'accent-2':'accent-3'}
+function _color(i){return i===0?'var(--color-primary)':i===1?'var(--color-success)':'var(--color-warning)'}
+function _hexColor(i){return i===0?'#0ea5e9':i===1?'#10b981':'#f59e0b'}
+
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+
+function addAccount(){
+  if(accountList.children.length>=3)return;
+  var idx=accountList.children.length;
+  var div=document.createElement('div');
+  div.className='sc-account-card '+_accent(idx);
+  div.innerHTML='<div class="sc-grid-2" style="grid-template-columns:1fr 1fr;gap:7px">'+
+    '<div style="grid-column:1/-1"><label class="sc-label">Account Name</label><input type="text" class="sc-input sc-ac-name" value="'+(idx===0?'High-Yield Savings':idx===1?'Traditional Savings':'Account '+(idx+1))+'" placeholder="Account name" style="font-weight:800;font-size:.9rem"></div>'+
+    '<div><label class="sc-label">APY (%)</label><input type="text" class="sc-input sc-ac-apy" value="'+(idx===0?'4.50':idx===1?'0.50':'3.00')+'" inputmode="decimal"></div>'+
+    '<div><label class="sc-label">Monthly Fee</label><input type="text" class="sc-input sc-ac-fee" value="'+(idx===0?'0':idx===1?'5':'0')+'" inputmode="numeric"></div>'+
+    '<div><label class="sc-label">Min Balance</label><input type="text" class="sc-input sc-ac-min" value="'+(idx===0?'0':idx===1?'500':'0')+'" inputmode="numeric"></div>'+
+    '<div><label class="sc-label">Initial Deposit</label><input type="text" class="sc-input sc-ac-dep" value="10000" inputmode="numeric"></div>'+
+    '<div><label class="sc-label">Monthly Add</label><input type="text" class="sc-input sc-ac-add" value="200" inputmode="numeric"></div>'+
+    '<div><label class="sc-label">Compounding</label><select class="sc-select sc-ac-freq">'+
+    '<option value="365">Daily</option><option value="12" selected>Monthly</option><option value="4">Quarterly</option><option value="1">Yearly</option>'+
+    '</select></div>'+
+    '<div><label class="sc-label">Goal Amount</label><input type="text" class="sc-input sc-ac-goal" value="0" inputmode="numeric"></div>'+
+    '</div>'+
+    (idx>0?'<button type="button" class="sc-remove-btn" aria-label="Remove">\u2715</button>':'');
+  accountList.appendChild(div);
+  if(idx>0)div.querySelector('.sc-remove-btn').addEventListener('click',function(){accountList.removeChild(div);addBtn.textContent=accountList.children.length>=3?'Max 3':'Add';calc();});
+  addBtn.textContent=accountList.children.length>=3?'Max 3':'Add';
+}
+
+function collectAccounts(){
+  var accounts=[];
+  accountList.querySelectorAll('.sc-account-card').forEach(function(card,i){
+    accounts.push({
+      name:card.querySelector('.sc-ac-name').value||'Account '+(i+1),
+      apy:parseFloat(card.querySelector('.sc-ac-apy').value)||0,
+      fee:parseFloat(card.querySelector('.sc-ac-fee').value)||0,
+      minBal:parseFloat(card.querySelector('.sc-ac-min').value)||0,
+      deposit:parseFloat(card.querySelector('.sc-ac-dep').value)||0,
+      monthlyAdd:parseFloat(card.querySelector('.sc-ac-add').value)||0,
+      freq:parseInt(card.querySelector('.sc-ac-freq').value)||12,
+      goal:parseFloat(card.querySelector('.sc-ac-goal').value)||0,
+    });
+  });
+  return accounts;
+}
+
+function applyWI(accounts){
+  var accts=JSON.parse(JSON.stringify(accounts));
+  if(wi==='higher-rate'){accts.forEach(function(a){a.apy+=1})}
+  else if(wi==='lower-fees'){accts.forEach(function(a){a.fee=0})}
+  else if(wi==='double-dep'){accts.forEach(function(a){a.deposit*=2})}
+  else if(wi==='longer'){}
+  else if(wi==='best-case'){accts.forEach(function(a){a.apy+=1.5;a.fee=0;a.deposit*=1.5})}
+  else if(wi==='recession'){accts.forEach(function(a){a.apy=Math.max(0.1,a.apy-1.5);a.monthlyAdd=Math.max(0,a.monthlyAdd*0.5)})}
+  else if(wi==='aggressive'){accts.forEach(function(a){a.monthlyAdd*=1.5;a.deposit*=1.3})}
+  return accts;
+}
+
+function projectBalance(acct,years){
+  var P=acct.deposit,r=acct.apy/100,n=acct.freq,t=years,fee=acct.fee,add=acct.monthlyAdd,minBal=acct.minBal,escPct=parseFloat(escalationEl.value)||0;
+  var totalMonths=Math.round(t*12),balance=P,totalFees=0,totalDeposits=P;
+  var yearlyData=[];
+  yearlyData.push({year:0,start:0,deposit:P,interest:0,fee:0,end:P});
+  var yearStart=P,yearDep=0,yearFee=0;
+  var effectiveAdd=add;
+
+  for(var m=1;m<=totalMonths;m++){
+    if(fee>0&&balance>0){balance-=fee;totalFees+=fee;yearFee+=fee;if(balance<0)balance=0}
+    if(effectiveAdd>0){balance+=effectiveAdd;totalDeposits+=effectiveAdd;yearDep+=effectiveAdd}
+    var periodRate=r/n;
+    var periodsPerMonth=n/12;
+    for(var p=0;p<periodsPerMonth;p++){if(balance>=minBal){balance*=(1+periodRate)}}
+    if(m%12===0||m===totalMonths){
+      var yr=Math.ceil(m/12);
+      yearlyData.push({
+        year:yr,start:yearStart,deposit:yearDep,
+        interest:balance-yearStart-yearDep+yearFee,
+        fee:yearFee,end:balance
+      });
+      yearStart=balance;yearDep=0;yearFee=0;
+      if(escPct>0&&yr<Math.ceil(t)){effectiveAdd=add*Math.pow(1+escPct/100,yr)}
+    }
+  }
+
+  var totalInterest=balance-totalDeposits+totalFees;
+  if(totalInterest<0)totalInterest=0;
+  var totalContribs=totalDeposits;
+  var avgBalance=(P+balance)/2;
+  var effectiveNetApy=avgBalance>0?((balance-totalDeposits+totalFees)/avgBalance)/t:0;
+  if(effectiveNetApy<0)effectiveNetApy=0;
+
+  return{
+    name:acct.name,
+    endBalance:balance,
+    totalInterest:totalInterest,
+    totalFees:totalFees,
+    totalContribs:totalContribs,
+    effectiveNetApy:effectiveNetApy,
+    deposit:P,
+    monthlyAdd:add,
+    goal:acct.goal,
+    yearlyData:yearlyData,
+    freq:n,apy:acct.apy,fee:acct.fee,minBal:acct.minBal
+  };
+}
+
+function calc(){
+  var accounts=collectAccounts(),years=parseFloat(yearsSlider.value)||5;
+  if(accounts.length<2){toast('Add at least 2 accounts to compare');return}
+  var wiAccounts=applyWI(accounts);
+  var results=wiAccounts.map(function(a){return projectBalance(a,years)});
+  globalYearlyData=results.map(function(r){return{name:r.name,data:r.yearlyData,color:_hexColor(results.indexOf(r)),endBalance:r.endBalance}});
+  results.sort(function(a,b){return b.endBalance-a.endBalance});
+
+  emptyState.hidden=true;resultsDiv.hidden=false;
+
+  var rankHtml='';
+  results.forEach(function(r,i){
+    rankHtml+='<tr class="rank-'+(i+1)+'"><td><span class="sc-rank-badge r'+(i+1)+'">'+(i+1)+'</span></td>'+
+      '<td style="font-weight:800;font-family:sans-serif;font-size:10px">'+esc(r.name)+'</td>'+
+      '<td style="text-align:right;font-weight:900">'+fmtCurrency(r.endBalance)+'</td>'+
+      '<td style="text-align:right;color:var(--color-success)">'+fmtCurrency(r.totalInterest)+'</td>'+
+      '<td style="text-align:right;'+(r.totalFees>0?'color:var(--color-error)':'')+'">'+fmtCurrency(r.totalFees)+'</td>'+
+      '<td style="text-align:right">'+fmtPct(r.effectiveNetApy)+'</td></tr>';
+  });
+  rankBody.innerHTML=rankHtml;
+
+  var best=results[0];
+  bestName.textContent=best.name;bestBalance.textContent=fmtCurrency(best.endBalance);
+  bestInterest.textContent=fmtCurrency(best.totalInterest);bestFees.textContent=fmtCurrency(best.totalFees);
+  bestNetApy.textContent=fmtPct(best.effectiveNetApy);
+  bestFees.style.color=best.totalFees>0?'var(--color-error)':'var(--color-base-content)';
+  bestContrib.textContent=fmtCurrency(best.totalContribs);
+  var goalText='\u2014';
+  if(best.goal>0){goalText=best.endBalance>=best.goal?'\u2713 Goal Reached!':fmtCurrency(best.goal-best.endBalance)+' short';bestGoal.style.color=best.endBalance>=best.goal?'var(--color-success)':'var(--color-warning)'}
+  bestGoal.textContent=goalText;
+
+  var maxBal=results.reduce(function(m,r){return Math.max(m,r.endBalance)},0);
+  var chartHtml='';
+  results.forEach(function(r,i){
+    var pct=maxBal>0?(r.endBalance/maxBal*100):0;
+    chartHtml+='<div class="sc-chart-col"><div class="bar '+ACCOUNT_COLORS[i]+'" style="height:'+Math.max(pct,4)+'%"></div><div class="bl" style="color:'+_color(i)+'">'+esc(r.name.substr(0,12))+'</div></div>';
+  });
+  chartEl.innerHTML=chartHtml;
+
+  renderGoalProgress(results);
+  renderBreakEven(results,years);
+  renderYearTable(results);
+  renderGrowthChart();
+  renderCompoundCompare(results);
+  renderTaxTab(results);
+  renderScenarios(accounts,years);
+  renderInsights(results,years);
+  saveHistory(accounts,years);
+}
+
+function renderGoalProgress(results){
+  var h='';
+  results.forEach(function(r,i){
+    var pct=r.goal>0?Math.min(100,(r.endBalance/r.goal)*100):0;
+    var color='var(--color-success)';
+    if(pct<50)color='var(--color-error)';
+    else if(pct<80)color='var(--color-warning)';
+    h+='<div class="sc-account-card '+_accent(i)+' mb-2">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center">'+
+      '<span style="font-weight:800;font-size:10px">'+esc(r.name)+'</span>'+
+      '<span style="font-size:10px;font-weight:700;font-family:monospace">'+fmtCurrency(r.endBalance)+' / '+fmtCurrency(r.goal||0)+'</span></div>';
+    if(r.goal>0){
+      h+='<div class="sc-progress"><div class="sc-progress-fill" style="width:'+pct+'%;background:'+color+'"></div></div>'+
+        '<div style="text-align:right;font-size:8px;font-weight:700;opacity:.4;margin-top:2px">'+pct.toFixed(1)+'% toward goal</div>';
+    }else{
+      h+='<div style="font-size:8px;font-weight:700;opacity:.3;margin-top:4px">No goal set</div>';
+    }
+    h+='</div>';
+  });
+  goalProgressEl.innerHTML=h||'<div class="sc-empty">No accounts</div>';
+}
+
+function renderBreakEven(results,years){
+  var beHtml='';
+  results.forEach(function(r){
+    var annualFees=r.totalFees/(years||1),annualInt=r.totalInterest/(years||1);
+    if(r.totalFees>0&&annualInt>0){
+      var pctL=annualInt>0?Math.round((annualFees/annualInt)*100):0;
+      beHtml+='<div class="sc-breakeven mb-2"><strong>'+esc(r.name)+':</strong> Fees consume <strong>'+pctL+'%</strong> of interest ('+fmtCurrency(annualFees)+'/yr vs '+fmtCurrency(annualInt)+'/yr).'+(annualInt<=annualFees?' <span style="color:var(--color-error)">Net loss.</span>':'')+'</div>';
+    }else if(r.totalFees>0&&annualInt<=0){
+      beHtml+='<div class="sc-breakeven mb-2"><strong>'+esc(r.name)+':</strong> <span style="color:var(--color-error)">'+fmtCurrency(annualFees)+'/yr in fees, no interest.</span></div>';
+    }
+  });
+  if(!beHtml)beHtml='<div class="sc-breakeven">None of your accounts charge monthly fees.</div>';
+  breakEvenEl.innerHTML=beHtml;
+}
+
+function renderYearTable(results){
+  var maxYears=0;
+  results.forEach(function(r){if(r.yearlyData.length>maxYears)maxYears=r.yearlyData.length});
+  var h='';
+  for(var y=1;y<maxYears;y++){
+    results.forEach(function(r){
+      var yd=null;
+      for(var i=0;i<r.yearlyData.length;i++){if(r.yearlyData[i].year===y){yd=r.yearlyData[i];break}}
+      if(yd){
+        var idx=results.indexOf(r);
+        h+='<tr><td style="font-weight:800;opacity:.6">Yr '+y+'</td><td style="font-family:sans-serif;font-weight:600;color:'+_color(idx)+'">'+esc(r.name)+'</td>'+
+          '<td style="text-align:right">'+fmtCurrency(yd.start)+'</td>'+
+          '<td style="text-align:right">'+fmtCurrency(yd.deposit)+'</td>'+
+          '<td style="text-align:right;color:var(--color-success)">'+fmtCurrency(yd.interest)+'</td>'+
+          '<td style="text-align:right;'+(yd.fee>0?'color:var(--color-error)':'')+'">'+fmtCurrency(yd.fee)+'</td>'+
+          '<td style="text-align:right;font-weight:900">'+fmtCurrency(yd.end)+'</td></tr>';
+      }
+    });
+  }
+  if(!h)h='<tr><td colspan="7" style="text-align:center;padding:16px;opacity:.3">No data</td></tr>';
+  yearBody.innerHTML=h;
+}
+
+function renderGrowthChart(){
+  if(!globalYearlyData||!globalYearlyData.length){growthChartEl.innerHTML='<span class="text-xs font-bold opacity-30">No data</span>';return}
+  var allYears=[];
+  globalYearlyData[0].data.forEach(function(yd){allYears.push('Year '+yd.year)});
+  var datasets=[];
+  var colors=['#0ea5e9','#10b981','#f59e0b'];
+  globalYearlyData.forEach(function(series,i){
+    var vals=series.data.map(function(yd){return Math.round(yd.end*100)/100});
+    datasets.push({label:series.name,data:vals,borderColor:colors[i],backgroundColor:colors[i]+'20',fill:true,tension:0.3,pointRadius:3,borderWidth:2});
+  });
+  try{
+    if(window.Chart){
+      if(window._scChart)window._scChart.destroy();
+      var c=document.createElement('canvas');
+      growthChartEl.innerHTML='';growthChartEl.appendChild(c);
+      window._scChart=new Chart(c,{type:'line',data:{labels:allYears,datasets:datasets},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:10,weight:'bold'}}}},
+        scales:{x:{ticks:{font:{size:9,weight:'bold'}},grid:{display:false}},
+          y:{ticks:{font:{size:9},callback:function(v){return fmtCurrency(v)}},grid:{color:'rgba(128,128,128,0.1)'}}}}});
+    }else{growthChartEl.innerHTML='<span class="text-xs font-bold opacity-30">Chart library not loaded</span>'}
+  }catch(e){growthChartEl.innerHTML='<span class="text-xs font-bold opacity-30">Chart error</span>'}
+}
+
+function renderCompoundCompare(results){
+  if(!results||!results.length){compoundCompareEl.innerHTML='';return}
+  var best=results[0];
+  var freqs=[{n:365,l:'Daily'},{n:12,l:'Monthly'},{n:4,l:'Quarterly'},{n:1,l:'Yearly'}];
+  var P=best.deposit,r=best.apy/100,t=parseFloat(yearsSlider.value)||5,add=best.monthlyAdd,mb=best.minBal,escPct=parseFloat(escalationEl.value)||0;
+  var maxV=0,vals=[];
+  freqs.forEach(function(f){
+    var b=P,totalM=Math.round(t*12),yr=0;
+    for(var m=1;m<=totalM;m++){
+      var eAdd=add;if(escPct>0){var cyr=Math.ceil(m/12)-1;if(cyr>0)eAdd=add*Math.pow(1+escPct/100,cyr)}
+      if(eAdd>0){b+=eAdd}
+      var pr=r/f.n,pp=f.n/12;
+      for(var p=0;p<pp;p++){if(b>=mb){b*=(1+pr)}}
+    }
+    if(b>maxV)maxV=b;
+    vals.push({label:f.l,val:b});
+  });
+  var h='';
+  vals.forEach(function(v){
+    var pct=maxV>0?(v.val/maxV*100):0;
+    h+='<div class="sc-compare-card"><div class="freq-label">'+v.label+' Compounding</div><div class="freq-val">'+fmtCurrency(v.val)+'</div></div>';
+  });
+  h+='<div class="text-[8px] font-bold opacity-30 mt-2">Based on '+esc(best.name)+' (\u00B7 '+best.apy+'% APY)</div>';
+  compoundCompareEl.innerHTML=h;
+}
+
+function renderTaxTab(results){
+  var tRate=parseFloat(taxRateEl.value)||0,infl=parseFloat(inflationEl.value)||0;
+  var best=results[0];
+  var grossInt=best.totalInterest;
+  var taxAmt=grossInt*(tRate/100);
+  var netInt=grossInt-taxAmt;
+  var inflRate=infl/100;
+  var realBalance=best.endBalance/Math.pow(1+inflRate,parseFloat(yearsSlider.value)||5);
+  var realReturn=(realBalance/best.totalContribs-1);
+
+  taxGrossInt.textContent=fmtCurrency(grossInt);
+  taxPaid.textContent='-'+fmtCurrency(taxAmt);taxPaid.style.color=taxAmt>0?'var(--color-error)':'var(--color-base-content)';
+  taxNetInt.textContent=fmtCurrency(netInt);
+  taxInflAdj.textContent=fmtCurrency(realBalance);
+  taxRealReturn.textContent=fmtPct(realReturn);
+  taxRealReturn.style.color=realReturn>0?'var(--color-success)':'var(--color-error)';
+
+  var detailHtml='<div class="sc-breakeven">';
+  results.forEach(function(r){
+    var rTax=r.totalInterest*(tRate/100);
+    var rRealBal=r.endBalance/Math.pow(1+inflRate,parseFloat(yearsSlider.value)||5);
+    detailHtml+='<strong>'+esc(r.name)+':</strong> Gross '+fmtCurrency(r.totalInterest)+' | Tax '+fmtCurrency(rTax)+' | Net '+fmtCurrency(r.totalInterest-rTax)+' | Real Bal '+fmtCurrency(rRealBal)+'<br>';
+  });
+  detailHtml+='</div>';
+  taxDetails.innerHTML=detailHtml;
+}
+
+function renderScenarios(accounts,years){
+  var scenarios=['current','higher-rate','lower-fees','double-dep','longer','recession','aggressive','best-case'];
+  var labels=['Current','+1% APY','No Fees','2x Deposit','+5 Years','Recession','Aggressive','Best Case'];
+  var tValues=[years,years,years,years,years,years,years,years];
+  var h='<div style="overflow-x:auto"><table class="sc-result-table"><thead><tr><th>Scenario</th>';
+  accounts.forEach(function(a,i){h+='<th style="text-align:right;color:'+_color(i)+'">'+esc(a.name.substr(0,10))+'</th>'});
+  h+='</tr></thead><tbody>';
+  function _applyWIClone(accts,wiVal){var c=JSON.parse(JSON.stringify(accts));if(wiVal==='higher-rate'){c.forEach(function(a){a.apy+=1})}else if(wiVal==='lower-fees'){c.forEach(function(a){a.fee=0})}else if(wiVal==='double-dep'){c.forEach(function(a){a.deposit*=2})}else if(wiVal==='best-case'){c.forEach(function(a){a.apy+=1.5;a.fee=0;a.deposit*=1.5})}else if(wiVal==='recession'){c.forEach(function(a){a.apy=Math.max(0.1,a.apy-1.5);a.monthlyAdd=Math.max(0,a.monthlyAdd*0.5)})}else if(wiVal==='aggressive'){c.forEach(function(a){a.monthlyAdd*=1.5;a.deposit*=1.3})}return c}
+  scenarios.forEach(function(s,si){
+    var wiAccts=_applyWIClone(accounts,s);
+    var sResults=wiAccts.map(function(a){return projectBalance(a,tValues[si])});
+    h+='<tr><td style="font-weight:800;font-family:sans-serif;font-size:10px">'+labels[si]+'</td>';
+    sResults.forEach(function(r){
+      h+='<td style="text-align:right;font-weight:900">'+fmtCurrency(r.endBalance)+'</td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  scenarioResults.innerHTML=h;
+}
+
+function renderInsights(results,years){
+  var h='<div class="sc-insights">';
+  var best=results[0];
+
+  h+='<div class="sc-insight"><span class="badge" style="background:var(--color-primary);color:#fff">Best</span> '+esc(best.name)+' ('+fmtCurrency(best.endBalance)+') leads by '+
+    fmtCurrency(best.endBalance-results[1].endBalance)+' over '+esc(results[1].name)+'</div>';
+
+  var bestNet=results.slice().sort(function(a,b){return b.effectiveNetApy-a.effectiveNetApy})[0];
+  h+='<div class="sc-insight"><span class="badge" style="background:var(--color-success);color:#fff">Net APY</span> '+esc(bestNet.name)+' has the highest effective APY at '+fmtPct(bestNet.effectiveNetApy)+'</div>';
+
+  if(results.some(function(r){return r.totalFees>0})){
+    var maxFee=results.reduce(function(a,b){return a.totalFees>b.totalFees?a:b});
+    h+='<div class="sc-insight"><span class="badge" style="background:var(--color-error);color:#fff">Fees</span> '+esc(maxFee.name)+' pays the most in fees: '+fmtCurrency(maxFee.totalFees)+'</div>';
+  }
+
+  if(results.some(function(r){return r.goal>0})){
+    var goalReached=results.filter(function(r){return r.goal>0&&r.endBalance>=r.goal});
+    var goalMissed=results.filter(function(r){return r.goal>0&&r.endBalance<r.goal});
+    if(goalReached.length)h+='<div class="sc-insight"><span class="badge" style="background:var(--color-success);color:#fff">Goals</span> '+goalReached.length+' account'+(goalReached.length>1?'s':'')+' reached goal</div>';
+    if(goalMissed.length)h+='<div class="sc-insight"><span class="badge" style="background:var(--color-warning);color:#fff">Goals</span> '+goalMissed.length+' account'+(goalMissed.length>1?'s':'')+' still short of goal</div>';
+  }
+
+  var escPct=parseFloat(escalationEl.value)||0;
+  if(escPct>0){
+    var noEscResults=results.map(function(r){
+      var eSave=parseFloat(escalationEl.value);escalationEl.value='0';
+      var p=projectBalance({name:r.name,apy:r.apy,fee:r.fee,minBal:r.minBal||0,deposit:r.deposit,monthlyAdd:r.monthlyAdd,freq:r.freq,goal:r.goal},years);
+      escalationEl.value=String(eSave);
+      return p;
+    });
+    var diff=noEscResults[0]?results[0].endBalance-noEscResults[0].endBalance:0;
+    if(diff>0)h+='<div class="sc-insight"><span class="badge" style="background:var(--color-primary);color:#fff">Escalation</span> Contribution escalation adds '+fmtCurrency(diff)+' extra over '+years+' years</div>';
+  }
+
+  h+='</div>';
+  insightsContent.innerHTML=h;
+}
+
+function saveHistory(accounts,years){
+  var tax=parseFloat(taxRateEl.value)||0,infl=parseFloat(inflationEl.value)||0,esc=parseFloat(escalationEl.value)||0;
+  var label=accounts.length+' accounts, '+years+'yr';
+  history.unshift({
+    accounts:accounts.map(function(a){return{name:a.name,apy:a.apy,fee:a.fee,dep:a.deposit,add:a.monthlyAdd,minBal:a.minBal,goal:a.goal,freq:a.freq}}),
+    years:years,tax:tax,infl:infl,esc:esc,wi:wi,label:label,ts:Date.now()
+  });
+  if(history.length>30)history.pop();
+  try{localStorage.setItem('sb_sc2',JSON.stringify(history))}catch(e){}
+  renderHistory();
+}
+
+function renderHistory(){
+  hiCount.textContent=history.length?'('+history.length+')':'';hiClear.hidden=!history.length;
+  if(!history.length){hiList.innerHTML='<div class="sc-empty">No calculations yet</div>';return}
+  var h='';
+  history.forEach(function(item,i){
+    var d2=new Date(item.ts),diff=Math.round((Date.now()-d2)/1000);
+    var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+    h+='<div class="sc-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">\u2715</button></div>';
+  });
+  hiList.innerHTML=h;
+}
+
+function copyAll(){
+  var accounts=collectAccounts(),years=parseFloat(yearsSlider.value)||5;
+  var wiAccounts=applyWI(accounts);
+  var results=wiAccounts.map(function(a){return projectBalance(a,years)});
+  results.sort(function(a,b){return b.endBalance-a.endBalance});
+  var curCode=currencyEl.value;
+  var txt='Savings Account Comparison Report\n'+'='.repeat(45)+'\nCurrency: '+curCode+'\nScenario: '+wi.replace(/-/g,' ')+'\nTime: '+years+' year'+(years>1?'s':'')+'\nContribution Escalation: '+(parseFloat(escalationEl.value)||0)+'%/yr\n\nRankings:\n';
+  results.forEach(function(r,i){
+    txt+='\n#'+(i+1)+' '+r.name+'\n  Balance: '+fmtCurrency(r.endBalance)+'\n  Interest: '+fmtCurrency(r.totalInterest)+'\n  Fees Paid: '+fmtCurrency(r.totalFees)+'\n  Contributions: '+fmtCurrency(r.totalContribs)+'\n  Net APY: '+fmtPct(r.effectiveNetApy)+'\n';
+    if(r.goal>0)txt+='  Goal: '+(r.endBalance>=r.goal?'Reached!':fmtCurrency(r.goal-r.endBalance)+' short')+'\n';
+  });
+  var taxR=parseFloat(taxRateEl.value)||0,infl=parseFloat(inflationEl.value)||0;
+  txt+='\nTax Rate: '+taxR+'% | Inflation: '+infl+'%';
+  txt+='\n---\nstorybrainai.com/tool/savings-account-comparison-calculator';
+  navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')});
+}
+
+function dlReport(){
+  var accounts=collectAccounts(),years=parseFloat(yearsSlider.value)||5;
+  var wiAccounts=applyWI(accounts);
+  var results=wiAccounts.map(function(a){return projectBalance(a,years)});
+  results.sort(function(a,b){return b.endBalance-a.endBalance});
+  var curCode=currencyEl.value;
+  var txt='=== Savings Account Comparison Report ===\nDate: '+new Date().toISOString().slice(0,10)+'\nCurrency: '+curCode+'\nScenario: '+wi.replace(/-/g,' ')+'\nTime: '+years+' years\nTax Rate: '+(parseFloat(taxRateEl.value)||0)+'%\nInflation: '+(parseFloat(inflationEl.value)||0)+'%\nContribution Escalation: '+(parseFloat(escalationEl.value)||0)+'%/yr\n\n--- Rankings ---\n';
+  results.forEach(function(r,i){
+    txt+='\n#'+(i+1)+' '+r.name+'\n  End Balance: '+fmtCurrency(r.endBalance)+'\n  Total Interest: '+fmtCurrency(r.totalInterest)+'\n  Total Fees: '+fmtCurrency(r.totalFees)+'\n  Total Contributions: '+fmtCurrency(r.totalContribs)+'\n  Net APY: '+fmtPct(r.effectiveNetApy)+'\n  APY: '+r.apy+'% | Monthly Fee: '+fmtCurrency(r.fee)+' | Compound: '+(r.freq===365?'Daily':r.freq===12?'Monthly':r.freq===4?'Quarterly':'Yearly')+'\n';
+    if(r.goal>0)txt+='  Goal: '+fmtCurrency(r.goal)+' \u2192 '+(r.endBalance>=r.goal?'REACHED':'Short '+fmtCurrency(r.goal-r.endBalance))+'\n';
+    txt+='  Year-by-Year:\n';
+    r.yearlyData.forEach(function(yd){
+      if(yd.year>0)txt+='    Year '+yd.year+': Start '+fmtCurrency(yd.start)+' +Dep '+fmtCurrency(yd.deposit)+' +Int '+fmtCurrency(yd.interest)+' -Fee '+fmtCurrency(yd.fee)+' = '+fmtCurrency(yd.end)+'\n';
+    });
+  });
+  var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='savings-comparison-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded');
+}
+
+function exportCsv(){
+  var accounts=collectAccounts(),years=parseFloat(yearsSlider.value)||5;
+  var wiAccounts=applyWI(accounts);
+  var results=wiAccounts.map(function(a){return projectBalance(a,years)});
+  results.sort(function(a,b){return b.endBalance-a.endBalance});
+  var rows=[['Account','Year','Start Balance','Deposits','Interest','Fees','End Balance']];
+  results.forEach(function(r){
+    var seen={};
+    r.yearlyData.forEach(function(yd){
+      if(yd.year>0&&!seen[yd.year]){
+        rows.push([r.name,yd.year,yd.start.toFixed(2),yd.deposit.toFixed(2),yd.interest.toFixed(2),yd.fee.toFixed(2),yd.end.toFixed(2)]);
+        seen[yd.year]=true;
+      }
+    });
+  });
+  var csv=rows.map(function(row){return row.map(function(v){var s=String(v);return s.indexOf(',')>=0||s.indexOf('"')>=0||s.indexOf('\n')>=0?'"'+s.replace(/"/g,'""')+'"':s}).join(',')}).join('\n');
+  var b=new Blob([csv],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='savings-comparison-'+Date.now()+'.csv';a.click();URL.revokeObjectURL(a.href);toast('CSV Exported');
+}
+
+yearsSlider.addEventListener('input',function(){
+  var v=parseFloat(yearsSlider.value);yearsLabel.textContent=v+' year'+(v>1?'s':'');
+  calc();
+});
+
+whatifEl.addEventListener('click',function(e){
+  var b=e.target.closest('button[data-wi]');if(!b)return;
+  wi=b.getAttribute('data-wi');
+  whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+  if(wi==='longer'){yearsSlider.value=Math.min(30,parseFloat(yearsSlider.value)+5);yearsLabel.textContent=yearsSlider.value+' years'}
+  calc();
+});
+
+addBtn.addEventListener('click',addAccount);
+calcBtn.addEventListener('click',calc);
+copyBtn.addEventListener('click',copyAll);
+dlBtn.addEventListener('click',dlReport);
+csvBtn.addEventListener('click',exportCsv);
+taxRateEl.addEventListener('input',calc);
+inflationEl.addEventListener('input',calc);
+escalationEl.addEventListener('input',calc);
+currencyEl.addEventListener('change',calc);
+
+hiToggle.addEventListener('click',function(){
+  var o=hiToggle.getAttribute('aria-expanded')==='true';
+  hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');
+  if(!o)renderHistory();
+});
+hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_sc2',JSON.stringify(history))}catch(e){}renderHistory();toast('Cleared')});
+hiList.addEventListener('click',function(e){
+  var del=e.target.closest('.hdel');
+  if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_sc2',JSON.stringify(history))}catch(e){}renderHistory();return}
+  var item=e.target.closest('.sc-hist-item');if(!item)return;
+  var idx=parseInt(item.getAttribute('data-idx')),h=history[idx];if(!h)return;
+  for(var i=0;i<h.accounts.length&&i<accountList.children.length;i++){
+    var card=accountList.children[i],a=h.accounts[i];
+    if(a.name)card.querySelector('.sc-ac-name').value=a.name;
+    card.querySelector('.sc-ac-apy').value=a.apy;
+    card.querySelector('.sc-ac-fee').value=a.fee;
+    card.querySelector('.sc-ac-dep').value=a.dep;
+    card.querySelector('.sc-ac-add').value=a.add||0;
+    if(a.minBal!==void 0)card.querySelector('.sc-ac-min').value=a.minBal;
+    if(a.goal!==void 0)card.querySelector('.sc-ac-goal').value=a.goal;
+    if(a.freq)card.querySelector('.sc-ac-freq').value=a.freq;
+  }
+  yearsSlider.value=h.years;yearsLabel.textContent=h.years+' year'+(h.years>1?'s':'');
+  taxRateEl.value=h.tax||0;inflationEl.value=h.infl||3;escalationEl.value=h.esc||0;
+  wi=h.wi||'current';
+  whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
+  history.splice(idx,1);try{localStorage.setItem('sb_sc2',JSON.stringify(history))}catch(e){}renderHistory();calc();toast('Restored');
+});
+
+var tabs=document.getElementById('scTabs'),sections={};
+['overview','growth','tax','scenarios','insights'].forEach(function(t){sections[t]=document.getElementById('scTab'+t.charAt(0).toUpperCase()+t.slice(1))});
+tabs.addEventListener('click',function(e){
+  var b=e.target.closest('button[data-tab]');if(!b)return;
+  var tab=b.getAttribute('data-tab');
+  tabs.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-tab')===tab);el.setAttribute('aria-selected',el.getAttribute('data-tab')===tab)});
+  Object.keys(sections).forEach(function(k){sections[k].classList.toggle('active',k===tab)});
+  if(tab==='growth')setTimeout(renderGrowthChart,100);
+});
+
+addAccount();addAccount();calc();
+})();
+</script>
+
+{% endblock %}
