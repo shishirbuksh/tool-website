@@ -1,0 +1,860 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+{% block title %}Color Contrast Checker — Free WCAG Accessibility Check Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Check WCAG contrast ratios between any two colors — pass/fail AA and AAA for normal and large text. Free online accessibility checker, all in your browser.{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/color-contrast-checker{% endblock %}
+{% block og_title %}Color Contrast Checker — WCAG Accessibility Checker Online{% endblock %}
+{% block og_description %}Check WCAG contrast ratios between any two colors — pass/fail AA and AAA for normal and large text. Free, no sign-up, all in your browser.{% endblock %}
+{% block og_image %}<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Color Contrast Checker — check WCAG accessibility contrast ratios online free">{% endblock %}
+{% block twitter_image %}<meta name="twitter:image" content="https://www.storybrainai.com/static/og-image.jpg">{% endblock %}
+{% block head %}
+<style>
+.ccc-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.ccc-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.ccc-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:inherit;transition:border-color .18s;box-sizing:border-box;width:100%}
+.ccc-input:focus{border-color:var(--color-primary);outline:none}
+.ccc-input.error{border-color:#dc2626;box-shadow:0 0 0 2px #dc262620}
+.ccc-color-input{-webkit-appearance:none;appearance:none;width:100%;height:48px;border-radius:.75rem;border:2px solid var(--color-base-300);cursor:pointer;padding:3px;background:var(--color-base-100);transition:border-color .18s}
+.ccc-color-input::-webkit-color-swatch-wrapper{padding:0}
+.ccc-color-input::-webkit-color-swatch{border:none;border-radius:.5rem}
+.ccc-color-input::-moz-color-swatch{border:none;border-radius:.5rem}
+.ccc-color-input:focus{border-color:var(--color-primary);outline:none}
+.ccc-swap-btn{width:40px;height:40px;border-radius:50%;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0;touch-action:manipulation}
+.ccc-swap-btn:hover{border-color:var(--color-primary);background:var(--color-primary);color:#fff}
+.ccc-swap-btn svg{width:18px;height:18px}
+.ccc-big-ratio{font-size:48px;font-weight:900;font-family:monospace;line-height:1;letter-spacing:-2px}
+.ccc-ratio-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.4}
+.ccc-level{display:inline-flex;align-items:center;gap:5px;padding:3px 12px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.ccc-level.pass{background:#16a34a20;color:#16a34a}
+.ccc-level.fail{background:#dc262620;color:#dc2626}
+.ccc-level.apca{display:inline-flex;align-items:center;gap:5px;padding:3px 12px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.ccc-level.apca.excellent{background:#16a34a20;color:#16a34a}
+.ccc-level.apca.good{background:#2563eb20;color:#2563eb}
+.ccc-level.apca.moderate{background:#ca8a0420;color:#ca8a04}
+.ccc-level.apca.low{background:#ea580c20;color:#ea580c}
+.ccc-level.apca.fail{background:#dc262620;color:#dc2626}
+.ccc-preview-box{border-radius:1rem;padding:24px;border:1px solid var(--color-base-300);transition:all .2s}
+.ccc-preview-normal{font-size:16px;line-height:1.6;margin:0 0 12px}
+.ccc-preview-large{font-size:24px;font-weight:800;line-height:1.4;margin:0}
+.ccc-thumb{width:32px;height:32px;border-radius:10px;border:2px solid var(--color-base-300);flex-shrink:0}
+.ccc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px;pointer-events:none}
+.ccc-toast.show{opacity:1;transform:translateY(0)}
+.ccc-swatch-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:.75rem;background:var(--color-base-100);border:1px solid var(--color-base-300)}
+.ccc-swatch-row .dot{width:24px;height:24px;border-radius:8px;flex-shrink:0;border:1px solid var(--color-base-300)}
+.ccc-swatch-row .code{font-size:11px;font-weight:700;font-family:monospace}
+.ccc-info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ccc-info-grid .iv{font-size:18px;font-weight:900;font-family:monospace;line-height:1.2}
+.ccc-info-grid .il{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.4;line-height:1.2}
+.ccc-guide-box{background:var(--color-base-100);border-radius:.75rem;padding:12px 14px;border-left:3px solid var(--color-primary)}
+.ccc-guide-box .g-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.ccc-guide-box .g-desc{font-size:12px;opacity:.65;line-height:1.5}
+.ccc-select{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;cursor:pointer}
+.ccc-select:focus{border-color:var(--color-primary);outline:none}
+.ccc-cvd-palette{display:flex;gap:4px}
+.ccc-cvd-palette .cvd-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.ccc-cvd-palette .cvd-item .bar{width:100%;height:36px;border-radius:8px;border:1px solid var(--color-base-300)}
+.ccc-cvd-palette .cvd-item .clabel{font-size:8px;font-weight:700;font-family:monospace;opacity:.5}
+.ccc-fix-result{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:.75rem;background:var(--color-base-100);border:1px solid var(--color-base-300)}
+.ccc-fix-result .fix-dot{width:32px;height:32px;border-radius:10px;flex-shrink:0;border:2px solid var(--color-base-300)}
+.ccc-fix-result .fix-code{font-size:12px;font-weight:700;font-family:monospace}
+.ccc-fix-result .fix-ratio{font-size:11px;font-weight:800;font-family:monospace;padding:2px 8px;border-radius:6px}
+.ccc-fix-result .fix-ratio.pass{background:#16a34a20;color:#16a34a}
+.ccc-fix-result .fix-ratio.fail{background:#dc262620;color:#dc2626}
+.ccc-textarea{border-radius:.75rem;padding:.75rem;font-weight:500;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:monospace;transition:border-color .18s;box-sizing:border-box;width:100%;resize:vertical;min-height:80px}
+.ccc-textarea:focus{border-color:var(--color-primary);outline:none}
+.ccc-matrix-wrap{overflow-x:auto}
+.ccc-matrix-table{border-collapse:separate;border-spacing:3px;font-size:10px;font-family:monospace;font-weight:700;width:100%}
+.ccc-matrix-table th{padding:2px;text-align:center;vertical-align:middle}
+.ccc-matrix-table td{padding:4px 6px;border-radius:6px;text-align:center;vertical-align:middle;min-width:32px}
+.ccc-matrix-table td.matrix-pass{background:#16a34a20;color:#16a34a}
+.ccc-matrix-table td.matrix-fail{background:#dc262620;color:#dc2626}
+.ccc-matrix-table td.matrix-self{background:transparent;color:var(--color-base-content);opacity:.2}
+.ccc-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:.75rem;font-weight:700;font-size:12px;border:none;cursor:pointer;transition:all .15s;touch-action:manipulation;font-family:inherit}
+.ccc-btn-primary{background:var(--color-primary);color:#fff}
+.ccc-btn-primary:hover{opacity:.85}
+.ccc-btn-ghost{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300)}
+.ccc-btn-ghost:hover{border-color:var(--color-primary)}
+.ccc-btn-ghost:disabled{opacity:.35;cursor:default}
+.ccc-badge{display:inline-block;padding:1px 8px;border-radius:6px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.ccc-thead{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;opacity:.45}
+.ccc-tab-btn{padding:6px 16px;border-radius:.65rem;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;transition:all .12s;touch-action:manipulation}
+.ccc-tab-btn.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.ccc-tab-btn:hover:not(.on){border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.ccc-range{width:100%;height:4px;-webkit-appearance:none;appearance:none;background:var(--color-base-300);border-radius:4px;outline:none;cursor:pointer}
+.ccc-range::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--color-primary);border:2px solid #fff;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.ccc-range::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--color-primary);border:2px solid #fff;cursor:pointer}
+.ccc-score-ring{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;font-family:monospace;position:relative;flex-shrink:0}
+.ccc-score-ring.score-great{background:conic-gradient(#16a34a var(--pct),#16a34a20 0);color:#16a34a}
+.ccc-score-ring.score-good{background:conic-gradient(#2563eb var(--pct),#2563eb20 0);color:#2563eb}
+.ccc-score-ring.score-ok{background:conic-gradient(#ca8a04 var(--pct),#ca8a0420 0);color:#ca8a04}
+.ccc-score-ring.score-poor{background:conic-gradient(#ea580c var(--pct),#ea580c20 0);color:#ea580c}
+.ccc-score-ring.score-bad{background:conic-gradient(#dc2626 var(--pct),#dc262620 0);color:#dc2626}
+.ccc-history-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-300);cursor:pointer;transition:all .12s}
+.ccc-history-item:hover{border-color:var(--color-primary)}
+.ccc-history-item .h-dot{width:18px;height:18px;border-radius:5px;flex-shrink:0;border:1px solid var(--color-base-300)}
+.ccc-history-item .h-code{font-size:9px;font-weight:700;font-family:monospace}
+.ccc-history-item .h-del{font-size:12px;font-weight:700;cursor:pointer;opacity:.25;transition:opacity .12s;border:none;background:none;color:var(--color-base-content);padding:0 2px;line-height:1}
+.ccc-history-item .h-del:hover{opacity:1;color:#dc2626}
+.ccc-canvas-wrap{position:relative;border-radius:.75rem;overflow:hidden;border:2px dashed var(--color-base-300);background:var(--color-base-100);cursor:crosshair}
+.ccc-canvas-wrap canvas{display:block;width:100%;height:auto;min-height:120px}
+.ccc-canvas-wrap .placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;gap:6px;font-size:12px;opacity:.45;min-height:120px}
+.ccc-slider-row{display:flex;align-items:center;gap:10px}
+.ccc-slider-row .sl{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;opacity:.4;width:18px;flex-shrink:0;text-align:right}
+.ccc-slider-row .sv{font-size:10px;font-weight:700;font-family:monospace;width:30px;text-align:right;flex-shrink:0}
+.ccc-img-picker-wrap{display:flex;gap:8px;flex-wrap:wrap}
+.ccc-img-picker-wrap .ip-btn{flex:1;min-width:80px}
+@media(max-width:767px){
+.ccc-big-ratio{font-size:36px}
+.ccc-info-grid{grid-template-columns:repeat(2,1fr)}
+.ccc-preview-large{font-size:20px}
+}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("contrast","Accessibility","COLOR","CONTRAST","Check any two colors against WCAG AA and AAA standards. Instant results, all in your browser.") }}
+<div class="container-site px-4 pb-24">
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+    <div class="lg:col-span-2 space-y-6">
+      <div class="ccc-card">
+        <label class="ccc-label" for="cccFgPicker">Foreground (text / icon)</label>
+        <div class="flex items-center gap-3 mb-1">
+          <input type="color" class="ccc-color-input" id="cccFgPicker" value="#1f2937" style="flex:1" aria-label="Foreground color picker">
+          <input class="ccc-input" id="cccFgHex" value="#1f2937" maxlength="7" style="width:100px;flex-shrink:0;font-family:monospace;text-align:center" aria-label="Foreground hex value">
+        </div>
+      </div>
+      <div class="flex justify-center -my-3 relative z-10">
+        <button class="ccc-swap-btn" id="cccSwapBtn" type="button" aria-label="Swap foreground and background colors">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 4 4 4-4 4"/><path d="M20 8H4"/><path d="m8 20-4-4 4-4"/><path d="M4 16h16"/></svg>
+        </button>
+      </div>
+      <div class="ccc-card">
+        <label class="ccc-label" for="cccBgPicker">Background</label>
+        <div class="flex items-center gap-3 mb-1">
+          <input type="color" class="ccc-color-input" id="cccBgPicker" value="#ffffff" style="flex:1" aria-label="Background color picker">
+          <input class="ccc-input" id="cccBgHex" value="#ffffff" maxlength="7" style="width:100px;flex-shrink:0;font-family:monospace;text-align:center" aria-label="Background hex value">
+        </div>
+      </div>
+      <div class="ccc-card">
+        <label class="ccc-label">Color Info</label>
+        <div class="flex flex-col gap-2">
+          <div class="ccc-swatch-row">
+            <div class="dot" id="cccFgDot" style="background:#1f2937"></div>
+            <span class="code" id="cccFgCode">#1f2937</span>
+            <span style="font-size:10px;opacity:.4;margin-left:auto">Foreground</span>
+          </div>
+          <div class="ccc-swatch-row">
+            <div class="dot" id="cccBgDot" style="background:#ffffff"></div>
+            <span class="code" id="cccBgCode">#ffffff</span>
+            <span style="font-size:10px;opacity:.4;margin-left:auto">Background</span>
+          </div>
+        </div>
+      </div>
+      <div class="ccc-card">
+        <label class="ccc-label">HSL Fine-Tuning</label>
+        <div class="flex gap-2 mb-3" role="tablist" aria-label="HSL target selector">
+          <button class="ccc-tab-btn on" id="cccHslTabFg" type="button" role="tab" aria-selected="true" aria-controls="cccSliders">Foreground</button>
+          <button class="ccc-tab-btn" id="cccHslTabBg" type="button" role="tab" aria-selected="false" aria-controls="cccSliders">Background</button>
+        </div>
+        <div class="space-y-2" id="cccSliders" role="tabpanel">
+          <div class="ccc-slider-row">
+            <label for="cccSliderH" class="sl">H</label>
+            <input type="range" class="ccc-range" id="cccSliderH" min="0" max="360" value="220" aria-label="Hue">
+            <span class="sv" id="cccSliderHVal" aria-hidden="true">220</span>
+          </div>
+          <div class="ccc-slider-row">
+            <label for="cccSliderS" class="sl">S</label>
+            <input type="range" class="ccc-range" id="cccSliderS" min="0" max="100" value="80" aria-label="Saturation">
+            <span class="sv" id="cccSliderSVal" aria-hidden="true">80</span>
+          </div>
+          <div class="ccc-slider-row">
+            <label for="cccSliderL" class="sl">L</label>
+            <input type="range" class="ccc-range" id="cccSliderL" min="0" max="100" value="50" aria-label="Lightness">
+            <span class="sv" id="cccSliderLVal" aria-hidden="true">50</span>
+          </div>
+        </div>
+      </div>
+      <div class="ccc-card" id="cccFixCard">
+        <label class="ccc-label">Suggested Fix</label>
+        <div id="cccFixContent">
+          <p class="text-xs" style="opacity:.6">Click <strong>"Suggest Fix"</strong> to find a color that passes AA.</p>
+          <button class="ccc-btn ccc-btn-primary mt-3" id="cccFixBtn" type="button">Suggest Fix</button>
+        </div>
+        <div id="cccFixResult" class="hidden mt-3 space-y-2"></div>
+      </div>
+      <div class="ccc-card">
+        <label class="ccc-label">Quick Guide</label>
+        <div class="space-y-2">
+          <div class="ccc-guide-box">
+            <div class="g-title">AA Normal Text</div>
+            <div class="g-desc">Requires a contrast ratio of at least <strong>4.5:1</strong>. This is the minimum standard for body text under WCAG 2.1 Level AA.</div>
+          </div>
+          <div class="ccc-guide-box">
+            <div class="g-title">AA Large Text</div>
+            <div class="g-desc">Requires at least <strong>3:1</strong>. Applies to text ≥18px bold or ≥24px regular.</div>
+          </div>
+          <div class="ccc-guide-box">
+            <div class="g-title">AAA Normal Text</div>
+            <div class="g-desc">Requires at least <strong>7:1</strong>. The enhanced standard for body text.</div>
+          </div>
+          <div class="ccc-guide-box">
+            <div class="g-title">AAA Large Text</div>
+            <div class="g-desc">Requires at least <strong>4.5:1</strong>. The enhanced standard for large text.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="lg:col-span-3 space-y-6">
+      <div class="ccc-card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="ccc-thead">WCAG 2.1 Contrast Ratio</div>
+        </div>
+        <div class="flex items-end gap-6 flex-wrap">
+          <div>
+            <div class="ccc-big-ratio" id="cccRatio">15.35</div>
+            <div class="ccc-ratio-label">:1</div>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="ccc-level pass" id="cccAANormal">AA Normal</span>
+            <span class="ccc-level pass" id="cccAALarge">AA Large</span>
+            <span class="ccc-level pass" id="cccAAANormal">AAA Normal</span>
+            <span class="ccc-level pass" id="cccAAALarge">AAA Large</span>
+          </div>
+        </div>
+      </div>
+      <div class="ccc-card">
+        <label class="ccc-label">APCA Contrast (W3C Candidate)</label>
+        <div class="flex items-end gap-6 flex-wrap">
+          <div>
+            <div class="ccc-big-ratio" id="cccApcaValue" style="font-size:36px">100.0</div>
+            <div class="ccc-ratio-label">Lc</div>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <span class="ccc-level apca" id="cccApcaRating">Excellent</span>
+            <span class="ccc-level apca" id="cccApcaDetail">Body text</span>
+          </div>
+        </div>
+      </div>
+      <div class="ccc-card">
+        <label class="ccc-label">Details &amp; Score</label>
+        <div class="flex gap-4 items-start">
+          <div class="ccc-score-ring" id="cccScoreRing">
+            <span id="cccScoreValue">100</span>
+          </div>
+          <div class="ccc-info-grid flex-1">
+            <div><div class="iv" id="cccDetailRatio">15.35</div><div class="il">WCAG Ratio</div></div>
+            <div><div class="iv" id="cccDetailApca">100</div><div class="il">APCA Lc</div></div>
+            <div><div class="iv" id="cccDetailAA">PASS</div><div class="il">AA Normal</div></div>
+            <div><div class="iv" id="cccDetailAAA">PASS</div><div class="il">AAA Normal</div></div>
+            <div><div class="iv" id="cccDetailLumFg">0.073</div><div class="il">Fg Luminance</div></div>
+            <div><div class="iv" id="cccDetailLumBg">0.907</div><div class="il">Bg Luminance</div></div>
+            <div><div class="iv" id="cccDetailDarker">Fg</div><div class="il">Darker</div></div>
+            <div><div class="iv" id="cccDetailPassAll">PASS</div><div class="il">All Levels</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="ccc-card">
+        <label class="ccc-label" for="cccImageInput">Image Color Picker</label>
+        <p class="text-xs" style="opacity:.6;margin-bottom:8px">Upload an image, then click anywhere on it to pick a color.</p>
+        <input type="file" class="file-input w-full mb-2" id="cccImageInput" accept="image/*" aria-label="Upload an image to pick colors from">
+        <div class="ccc-canvas-wrap" id="cccCanvasWrap">
+          <canvas id="cccImageCanvas" role="img" aria-label="Uploaded image — click to pick a color"></canvas>
+          <div class="placeholder" id="cccCanvasPlaceholder">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            <span>Upload an image to pick colors</span>
+          </div>
+        </div>
+        <div class="ccc-img-picker-wrap mt-2">
+          <button class="ccc-btn ccc-btn-ghost ip-btn" id="cccImgSetFg" type="button" disabled>→ Foreground</button>
+          <button class="ccc-btn ccc-btn-ghost ip-btn" id="cccImgSetBg" type="button" disabled>→ Background</button>
+        </div>
+        <div id="cccPickedColor" class="hidden ccc-swatch-row mt-2">
+          <div class="dot" id="cccPickedDot"></div>
+          <span class="code" id="cccPickedCode">#000000</span>
+          <span style="font-size:10px;opacity:.4;margin-left:auto">Picked</span>
+        </div>
+      </div>
+      <div class="ccc-card">
+        <label class="ccc-label">Color History</label>
+        <div id="cccHistoryList" class="space-y-1.5 max-h-52 overflow-y-auto">
+          <p class="text-xs text-base-content/40 text-center py-3" id="cccHistoryEmpty">No saved color pairs yet.</p>
+        </div>
+        <button class="ccc-btn ccc-btn-ghost mt-2" id="cccSaveHistoryBtn" type="button">Save Current Pair</button>
+      </div>
+      <div class="ccc-card">
+        <label class="ccc-label">Export</label>
+        <div class="flex gap-2 flex-wrap">
+          <button class="ccc-btn ccc-btn-ghost" id="cccExportCss" type="button">Copy CSS</button>
+          <button class="ccc-btn ccc-btn-ghost" id="cccExportTailwind" type="button">Copy Tailwind</button>
+          <button class="ccc-btn ccc-btn-ghost" id="cccExportShare" type="button">Copy Share Link</button>
+        </div>
+      </div>
+      <div class="ccc-card">
+        <label class="ccc-label">Live Preview</label>
+        <div class="ccc-preview-box" id="cccPreviewBox">
+          <p class="ccc-preview-normal" id="cccPreviewNormal">The quick brown fox jumps over the lazy dog. (16px normal text)</p>
+          <p class="ccc-preview-large" id="cccPreviewLarge">The quick brown fox jumps over the lazy dog. (24px bold)</p>
+        </div>
+      </div>
+      <div class="ccc-card">
+        <label class="ccc-label" for="cccCvdType">Color Blindness Simulation</label>
+        <select class="ccc-select mb-3" id="cccCvdType" aria-label="Color blindness type">
+          <option value="">Normal Vision</option>
+          <option value="protanopia">Protanopia (red-blind)</option>
+          <option value="deuteranopia">Deuteranopia (green-blind)</option>
+          <option value="tritanopia">Tritanopia (blue-blind)</option>
+          <option value="achromatopsia">Achromatopsia (monochrome)</option>
+        </select>
+        <div class="ccc-cvd-palette" id="cccCvdPalette"></div>
+      </div>
+      <div class="ccc-card">
+        <label class="ccc-label">What These Ratings Mean</label>
+        <div class="space-y-3 text-sm leading-relaxed" style="opacity:.75">
+          <p><strong>PASS</strong> means your color combination meets WCAG 2.1 guidelines at that level. Text is readable for most users, including those with low vision (approximately 20/40 vision).</p>
+          <p><strong>FAIL</strong> means the contrast is insufficient. Users with low vision or viewing in bright environments may struggle to read the text. Consider darkening the foreground or lightening the background.</p>
+          <p>Remember: WCAG AA is the legal standard for most websites (Section 508, EN 301 549). AAA is a higher goal but not always achievable — and that's okay.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mt-8">
+    <div class="ccc-card">
+      <label class="ccc-label">Batch Palette Contrast Matrix</label>
+      <p class="text-xs" style="opacity:.6;margin-bottom:8px">Enter hex values (one per line or comma-separated) to generate a contrast matrix.</p>
+      <textarea class="ccc-textarea" id="cccBatchInput" placeholder="#ff0000&#10;#00ff00&#10;#0000ff&#10;#ffffff&#10;#000000">#1f2937&#10;#ffffff&#10;#0066ff&#10;#ff6600&#10;#16a34a</textarea>
+      <div class="flex gap-2 mt-2">
+        <button class="ccc-btn ccc-btn-primary" id="cccBatchGenerate" type="button">Generate Matrix</button>
+        <button class="ccc-btn ccc-btn-ghost" id="cccBatchCopy" type="button">Copy as CSV</button>
+      </div>
+      <div id="cccBatchResult" class="hidden mt-3">
+        <div class="ccc-matrix-wrap">
+          <table class="ccc-matrix-table" id="cccMatrixTable"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="cccToast" class="ccc-toast" role="status" aria-live="polite"></div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ nonce }}">
+(function(){
+var toastEl=document.getElementById('cccToast');
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},2200)}
+
+function hexToRgb(h){
+h=h.replace(/^#/,'');
+if(h.length===3){h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2]}
+var n=parseInt(h,16);
+return[(n>>16)&255,(n>>8)&255,n&255]}
+
+function rgbToHex(r,g,b){
+return'#'+[r,g,b].map(function(x){
+if(isNaN(x)||!isFinite(x))return'00';
+return Math.round(Math.max(0,Math.min(255,x))).toString(16).padStart(2,'0')}).join('')}
+
+function srgbToLinear(c){
+c/=255;
+return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4)}
+
+function linearToSrgb(c){
+c=Math.min(1,Math.max(0,c));
+return Math.round(255*(c<=0.0031308?12.92*c:1.055*Math.pow(c,1/2.4)-0.055))}
+
+function getRelativeLuminance(r,g,b){
+var a=[r,g,b].map(function(c){return srgbToLinear(c)});
+return 0.2126*a[0]+0.7152*a[1]+0.0722*a[2]}
+
+function getContrastRatio(h1,h2){
+var c1=hexToRgb(h1),c2=hexToRgb(h2);
+var l1=getRelativeLuminance(c1[0],c1[1],c1[2]);
+var l2=getRelativeLuminance(c2[0],c2[1],c2[2]);
+var b=Math.max(l1,l2),d=Math.min(l1,l2);
+return{ratio:Math.round((b+0.05)/(d+0.05)*100)/100,lighter:b,darker:d,darkerIs:l1<l2?'fg':'bg'}}
+
+function getAPCAcontrast(fgHex,bgHex){
+var fgRgb=hexToRgb(fgHex),bgRgb=hexToRgb(bgHex);
+var fgLin=[srgbToLinear(fgRgb[0]),srgbToLinear(fgRgb[1]),srgbToLinear(fgRgb[2])];
+var bgLin=[srgbToLinear(bgRgb[0]),srgbToLinear(bgRgb[1]),srgbToLinear(bgRgb[2])];
+var Yfg=0.2126729*fgLin[0]+0.7151522*fgLin[1]+0.0721750*fgLin[2];
+var Ybg=0.2126729*bgLin[0]+0.7151522*bgLin[1]+0.0721750*bgLin[2];
+Yfg=Math.max(0,Math.min(1,Yfg));Ybg=Math.max(0,Math.min(1,Ybg));
+function q(Y){return Y<0.022?Y+Math.pow(Y,1.4)/2:Math.pow(Y,0.4)}
+var Qfg=q(Yfg),Qbg=q(Ybg);
+var SAPC=Qbg-Qfg;
+var Lc=Math.sign(SAPC)*(114*Math.pow(Math.abs(SAPC),1.14)-7.5);
+return Math.round(Lc*10)/10}
+
+function getAPCARating(lc){
+var abs=Math.abs(lc);
+if(abs>=90)return{class:'excellent',label:'Excellent',detail:'Preferred for body text'};
+if(abs>=60)return{class:'good',label:'Good',detail:'Acceptable for body text'};
+if(abs>=45)return{class:'moderate',label:'Moderate',detail:'Acceptable for large text'};
+if(abs>=30)return{class:'low',label:'Low',detail:'UI components only'};
+return{class:'fail',label:'Fail',detail:'Insufficient contrast'}}
+
+function getAccessibilityScore(levels,apcaLc){
+var score=0;
+if(levels.aaNormal)score+=25;
+if(levels.aaLarge)score+=15;
+if(levels.aaaNormal)score+=20;
+if(levels.aaaLarge)score+=10;
+var abs=Math.abs(apcaLc);
+if(abs>=90)score+=20;
+else if(abs>=60)score+=15;
+else if(abs>=45)score+=10;
+else if(abs>=30)score+=5;
+return Math.min(100,score)}
+
+function getScoreRating(score){
+if(score>=90)return'great';
+if(score>=70)return'good';
+if(score>=50)return'ok';
+if(score>=30)return'poor';
+return'bad'}
+
+var LMS_FWD=[[0.412221,0.536332,0.051332],[0.211903,0.680699,0.107398],[0.088302,0.281718,0.629978]];
+var LMS_INV=[[4.076742,-3.307528,0.230742],[-1.268439,2.609757,-0.341319],[-0.004556,-0.109595,1.650468]];
+
+function simulateCVD(hex,type){
+if(!type)return hex;
+var rgb=hexToRgb(hex);
+var lr=srgbToLinear(rgb[0]),lg=srgbToLinear(rgb[1]),lb=srgbToLinear(rgb[2]);
+var l=LMS_FWD[0][0]*lr+LMS_FWD[0][1]*lg+LMS_FWD[0][2]*lb;
+var m=LMS_FWD[1][0]*lr+LMS_FWD[1][1]*lg+LMS_FWD[1][2]*lb;
+var s_=LMS_FWD[2][0]*lr+LMS_FWD[2][1]*lg+LMS_FWD[2][2]*lb;
+if(type==='protanopia'){l=m}
+else if(type==='deuteranopia'){m=l}
+else if(type==='tritanopia'){s_=(l+m)/2}
+else if(type==='achromatopsia'){var avg=(l+m+s_)/3;l=avg;m=avg;s_=avg}
+var rl=LMS_INV[0][0]*l+LMS_INV[0][1]*m+LMS_INV[0][2]*s_;
+var gl=LMS_INV[1][0]*l+LMS_INV[1][1]*m+LMS_INV[1][2]*s_;
+var bl=LMS_INV[2][0]*l+LMS_INV[2][1]*m+LMS_INV[2][2]*s_;
+return rgbToHex(linearToSrgb(rl),linearToSrgb(gl),linearToSrgb(bl))}
+
+function getWCAGLevel(ratio){
+return{
+aaNormal:ratio>=4.5,
+aaLarge:ratio>=3,
+aaaNormal:ratio>=7,
+aaaLarge:ratio>=4.5}}
+
+function clamp(v,m,M){return Math.max(m,Math.min(M,v))}
+
+function normalizeHex(v){
+v=v.trim();
+if(!v.startsWith('#')){v='#'+v}
+if(/^#[0-9a-fA-F]{3}$/.test(v)){return'#'+v[1]+v[1]+v[2]+v[2]+v[3]+v[3]}
+if(/^#[0-9a-fA-F]{6}$/.test(v)){return v.toLowerCase()}
+return null}
+
+var fgHex='#1f2937',bgHex='#ffffff';
+var fgPicker=document.getElementById('cccFgPicker');
+var fgInput=document.getElementById('cccFgHex');
+var bgPicker=document.getElementById('cccBgPicker');
+var bgInput=document.getElementById('cccBgHex');
+
+function rgbToHsl(r,g,b){
+r/=255;g/=255;b/=255;
+var M=Math.max(r,g,b),m=Math.min(r,g,b),d=M-m,h,s,l=(M+m)/2;
+if(d===0){h=0;s=0}else{s=l>0.5?d/(2-M-m):d/(M+m);
+if(M===r){h=((g-b)/d+(g<b?6:0))}else if(M===g){h=(b-r)/d+2}else{h=(r-g)/d+4}
+h/=6}
+return[Math.round(360*h),Math.round(100*s),Math.round(100*l)]}
+
+function hslToRgb(h,s,l){
+h/=360;s/=100;l/=100;
+var a=s*Math.min(l,1-l);
+var f=function(n){var k=(n+h*12)%12;return l-a*Math.max(-1,Math.min(k-3,9-k,1))};
+return[Math.round(255*f(0)),Math.round(255*f(8)),Math.round(255*f(4))]}
+
+function hslToHex(h,s,l){var c=hslToRgb(h,s,l);return rgbToHex(c[0],c[1],c[2])}
+
+var hslTarget='fg';
+
+function syncHslSliders(){
+var hex=hslTarget==='fg'?fgHex:bgHex;
+var rgb=hexToRgb(hex);
+var hsl=rgbToHsl(rgb[0],rgb[1],rgb[2]);
+document.getElementById('cccSliderH').value=hsl[0];
+document.getElementById('cccSliderHVal').textContent=hsl[0];
+document.getElementById('cccSliderS').value=hsl[1];
+document.getElementById('cccSliderSVal').textContent=hsl[1];
+document.getElementById('cccSliderL').value=hsl[2];
+document.getElementById('cccSliderLVal').textContent=hsl[2]}
+
+function onHslSlider(){
+var h=parseInt(document.getElementById('cccSliderH').value)||0;
+var s=parseInt(document.getElementById('cccSliderS').value)||0;
+var l=parseInt(document.getElementById('cccSliderL').value)||0;
+document.getElementById('cccSliderHVal').textContent=h;
+document.getElementById('cccSliderSVal').textContent=s;
+document.getElementById('cccSliderLVal').textContent=l;
+var hex=hslToHex(h,s,l);
+if(hslTarget==='fg'){fgHex=hex;fgPicker.value=hex;fgInput.value=hex}
+else{bgHex=hex;bgPicker.value=hex;bgInput.value=hex}
+updateAll()}
+
+document.getElementById('cccSliderH').addEventListener('input',onHslSlider);
+document.getElementById('cccSliderS').addEventListener('input',onHslSlider);
+document.getElementById('cccSliderL').addEventListener('input',onHslSlider);
+
+document.getElementById('cccHslTabFg').addEventListener('click',function(){
+document.getElementById('cccHslTabFg').classList.add('on');
+document.getElementById('cccHslTabFg').setAttribute('aria-selected','true');
+document.getElementById('cccHslTabBg').classList.remove('on');
+document.getElementById('cccHslTabBg').setAttribute('aria-selected','false');
+hslTarget='fg';
+syncHslSliders()});
+
+document.getElementById('cccHslTabBg').addEventListener('click',function(){
+document.getElementById('cccHslTabBg').classList.add('on');
+document.getElementById('cccHslTabBg').setAttribute('aria-selected','true');
+document.getElementById('cccHslTabFg').classList.remove('on');
+document.getElementById('cccHslTabFg').setAttribute('aria-selected','false');
+hslTarget='bg';
+syncHslSliders()});
+
+function suggestFix(fg,bg){
+var result=getContrastRatio(fg,bg);
+var levels=getWCAGLevel(result.ratio);
+if(levels.aaNormal)return null;
+var fgRgb=hexToRgb(fg),bgRgb=hexToRgb(bg);
+var fgHsl=rgbToHsl(fgRgb[0],fgRgb[1],fgRgb[2]);
+var bgHsl=rgbToHsl(bgRgb[0],bgRgb[1],bgRgb[2]);
+var candidates=[];
+function tryFix(isFg,dir){
+var hsl=isFg?[fgHsl[0],fgHsl[1],fgHsl[2]]:[bgHsl[0],bgHsl[1],bgHsl[2]];
+var step=dir>0?1:-1;
+var originalL=hsl[2];
+var best=null;
+for(var l=originalL+step;dir>0?l<=100:l>=0;l+=step){
+hsl[2]=l;
+var hex=hslToHex(hsl[0],hsl[1],hsl[2]);
+var h1=isFg?hex:fg;
+var h2=isFg?bg:hex;
+var r=getContrastRatio(h1,h2);
+var lev=getWCAGLevel(r.ratio);
+if(lev.aaNormal&&(!best||r.ratio<best.ratio)){best={hex:hex,ratio:r.ratio,adjusted:isFg?'fg':'bg',target:isFg?bg:fg}}
+if(dir>0&&l>=97)break;
+if(dir<0&&l<=3)break}
+if(best)candidates.push(best)}
+var darkerIs=result.darkerIs;
+if(darkerIs==='fg'){tryFix(true,-1);tryFix(false,1)}
+else{tryFix(true,1);tryFix(false,-1)}
+candidates.sort(function(a,b){return b.ratio-a.ratio});
+return candidates.length>0?candidates[0]:null}
+
+function renderCvd(){
+var type=document.getElementById('cccCvdType').value;
+var el=document.getElementById('cccCvdPalette');
+var hexes=[fgHex,bgHex];
+var labels=['Foreground','Background'];
+var html='';
+for(var i=0;i<2;i++){
+var sim=simulateCVD(hexes[i],type);
+html+='<div class="cvd-item">';
+html+='<div class="bar" title="'+hexes[i]+'" style="background:'+sim+'"></div>';
+html+='<span class="clabel">'+labels[i]+' '+sim+'</span></div>'}
+el.innerHTML=html}
+
+function renderHistory(){
+var h=loadHistory();
+var el=document.getElementById('cccHistoryList');
+var empty=document.getElementById('cccHistoryEmpty');
+if(!h||!h.length){el.innerHTML='<p class="text-xs text-base-content/40 text-center py-3" id="cccHistoryEmpty">No saved color pairs yet.</p>';return}
+var html='';
+for(var i=h.length-1;i>=0;i--){
+var p=h[i];
+html+='<div class="ccc-history-item" data-idx="'+i+'">';
+html+='<div class="h-dot" style="background:'+p.fg+'"></div>';
+html+='<span class="h-code">'+p.fg+'</span>';
+html+='<span style="opacity:.3;font-size:8px">vs</span>';
+html+='<div class="h-dot" style="background:'+p.bg+'"></div>';
+html+='<span class="h-code">'+p.bg+'</span>';
+html+='<span style="margin-left:auto;font-size:9px;opacity:.35;font-family:monospace">'+(new Date(p.ts).toLocaleDateString())+'</span>';
+html+='<button class="h-del" data-del="'+i+'" title="Delete">&times;</button>';
+html+='</div>'}
+el.innerHTML=html}
+
+var historyKey='ccc_history';
+function loadHistory(){
+try{var raw=localStorage.getItem(historyKey);return raw?JSON.parse(raw):[]}catch(e){return[]}}
+function saveHistory(data){
+try{localStorage.setItem(historyKey,JSON.stringify(data))}catch(e){}}
+
+function addHistory(){
+var h=loadHistory();
+h.push({fg:fgHex,bg:bgHex,ts:Date.now()});
+if(h.length>20){h=h.slice(-20)}
+saveHistory(h);
+renderHistory();
+toast('Color pair saved')}
+
+function removeHistory(idx){
+var h=loadHistory();
+h.splice(idx,1);
+saveHistory(h);
+renderHistory()}
+
+function restoreHistory(idx){
+var h=loadHistory();
+if(!h[idx])return;
+fgHex=h[idx].fg;bgHex=h[idx].bg;
+syncPickers();
+updateAll();
+toast('Restored color pair')}
+
+function updateAll(){
+var result=getContrastRatio(fgHex,bgHex);
+var levels=getWCAGLevel(result.ratio);
+document.getElementById('cccRatio').textContent=result.ratio.toFixed(2);
+document.getElementById('cccDetailRatio').textContent=result.ratio.toFixed(2);
+document.getElementById('cccDetailLumFg').textContent=getRelativeLuminance(hexToRgb(fgHex)[0],hexToRgb(fgHex)[1],hexToRgb(fgHex)[2]).toFixed(3);
+document.getElementById('cccDetailLumBg').textContent=getRelativeLuminance(hexToRgb(bgHex)[0],hexToRgb(bgHex)[1],hexToRgb(bgHex)[2]).toFixed(3);
+document.getElementById('cccDetailDarker').textContent=result.darkerIs==='fg'?'Fg':'Bg';
+
+	function setLevel(id,pass,label){
+	var el=document.getElementById(id);
+	el.className='ccc-level '+(pass?'pass':'fail');
+	el.textContent=label+' '+(pass?'PASS':'FAIL')}
+
+setLevel('cccAANormal',levels.aaNormal,'AA Normal');
+setLevel('cccAALarge',levels.aaLarge,'AA Large');
+setLevel('cccAAANormal',levels.aaaNormal,'AAA Normal');
+setLevel('cccAAALarge',levels.aaaLarge,'AAA Large');
+
+document.getElementById('cccDetailAA').textContent=levels.aaNormal?'PASS':'FAIL';
+document.getElementById('cccDetailAAA').textContent=levels.aaaNormal?'PASS':'FAIL';
+document.getElementById('cccDetailPassAll').textContent=(levels.aaNormal&&levels.aaLarge&&levels.aaaNormal&&levels.aaaLarge)?'PASS':'FAIL';
+
+var apcaLc=getAPCAcontrast(fgHex,bgHex);
+var apcaRating=getAPCARating(apcaLc);
+document.getElementById('cccApcaValue').textContent=Math.abs(apcaLc).toFixed(1);
+document.getElementById('cccDetailApca').textContent=Math.abs(apcaLc).toFixed(0);
+var apcaEl=document.getElementById('cccApcaRating');
+apcaEl.className='ccc-level apca '+apcaRating.class;
+apcaEl.textContent=apcaRating.label;
+document.getElementById('cccApcaDetail').textContent=apcaRating.detail;
+
+var score=getAccessibilityScore(levels,apcaLc);
+var scoreRating=getScoreRating(score);
+var scoreEl=document.getElementById('cccScoreRing');
+scoreEl.className='ccc-score-ring score-'+scoreRating;
+scoreEl.style.setProperty('--pct',score+'%');
+document.getElementById('cccScoreValue').textContent=score;
+
+var fgDot=document.getElementById('cccFgDot');
+var bgDot=document.getElementById('cccBgDot');
+fgDot.style.background=fgHex;
+bgDot.style.background=bgHex;
+document.getElementById('cccFgCode').textContent=fgHex;
+document.getElementById('cccBgCode').textContent=bgHex;
+
+document.getElementById('cccPreviewNormal').style.color=fgHex;
+document.getElementById('cccPreviewNormal').style.background=bgHex;
+document.getElementById('cccPreviewLarge').style.color=fgHex;
+document.getElementById('cccPreviewLarge').style.background=bgHex;
+document.getElementById('cccPreviewBox').style.background=bgHex;
+
+renderCvd();
+syncHslSliders();
+document.getElementById('cccFixResult').classList.add('hidden');
+updateHash()}
+
+function syncPickers(){
+fgPicker.value=fgHex;
+bgPicker.value=bgHex;
+fgInput.value=fgHex;
+bgInput.value=bgHex;
+fgInput.classList.remove('error');
+bgInput.classList.remove('error')}
+
+fgPicker.addEventListener('input',function(){
+fgHex=this.value;
+fgInput.value=fgHex;
+fgInput.classList.remove('error');
+updateAll()});
+
+bgPicker.addEventListener('input',function(){
+bgHex=this.value;
+bgInput.value=bgHex;
+bgInput.classList.remove('error');
+updateAll()});
+
+fgInput.addEventListener('change',function(){
+var v=normalizeHex(this.value);
+if(v){fgHex=v;fgPicker.value=v;this.value=v;this.classList.remove('error');updateAll()}
+else{this.classList.add('error')}});
+
+bgInput.addEventListener('change',function(){
+var v=normalizeHex(this.value);
+if(v){bgHex=v;bgPicker.value=v;this.value=v;this.classList.remove('error');updateAll()}
+else{this.classList.add('error')}});
+
+document.getElementById('cccSwapBtn').addEventListener('click',function(){
+var tmp=fgHex;fgHex=bgHex;bgHex=tmp;
+syncPickers();
+updateAll()});
+
+document.getElementById('cccCvdType').addEventListener('change',renderCvd);
+
+document.getElementById('cccFixBtn').addEventListener('click',function(){
+var fix=suggestFix(fgHex,bgHex);
+var el=document.getElementById('cccFixResult');
+if(!fix){
+el.innerHTML='<p class="text-xs" style="opacity:.6">This pair already passes AA. No fix needed.</p>';
+el.classList.remove('hidden');
+return}
+var otherHex=fix.adjusted==='fg'?bgHex:fgHex;
+var fixLevels=getWCAGLevel(fix.ratio);
+var html='<p class="text-xs" style="opacity:.6;margin-bottom:8px">Try this '+fix.adjusted+' color instead:</p>';
+html+='<div class="ccc-fix-result"><div class="fix-dot" style="background:'+fix.hex+'"></div>';
+html+='<span class="fix-code">'+fix.hex+'</span>';
+html+='<span class="fix-code" style="opacity:.4;font-size:10px">vs '+otherHex+'</span>';
+html+='<span class="fix-ratio pass" style="margin-left:auto">'+(fixLevels.aaLarge?'AA':'')+' '+(fixLevels.aaaNormal?'AAA':'')+' '+fix.ratio.toFixed(2)+':1</span></div>';
+html+='<button class="ccc-btn ccc-btn-ghost mt-2" id="cccApplyFix" type="button">Apply this color</button>';
+el.innerHTML=html;
+el.classList.remove('hidden');
+setTimeout(function(){
+var applyBtn=document.getElementById('cccApplyFix');
+if(applyBtn){
+applyBtn.addEventListener('click',function(){
+if(fix.adjusted==='fg'){fgHex=fix.hex;syncPickers();updateAll()}
+else{bgHex=fix.hex;syncPickers();updateAll()}
+document.getElementById('cccFixResult').classList.add('hidden')})}},0)});
+
+document.getElementById('cccHistoryList').addEventListener('click',function(e){
+var delBtn=e.target.closest('[data-del]');
+var item=e.target.closest('.ccc-history-item');
+if(delBtn){removeHistory(parseInt(delBtn.dataset.del));return}
+if(item&&!e.target.closest('.h-del')){
+var idx=parseInt(item.dataset.idx);
+if(!isNaN(idx))restoreHistory(idx)}});
+
+document.getElementById('cccSaveHistoryBtn').addEventListener('click',addHistory);
+
+document.getElementById('cccExportCss').addEventListener('click',function(){
+var css=':root {\n  --color-fg: '+fgHex+';\n  --color-bg: '+bgHex+';\n  --contrast-ratio: '+getContrastRatio(fgHex,bgHex).ratio.toFixed(2)+':1;\n}';
+navigator.clipboard.writeText(css).then(function(){toast('CSS copied!')})});
+
+document.getElementById('cccExportTailwind').addEventListener('click',function(){
+var tw='@theme {\n  --color-fg: '+fgHex+';\n  --color-bg: '+bgHex+';\n}';
+navigator.clipboard.writeText(tw).then(function(){toast('Tailwind config copied!')})});
+
+document.getElementById('cccExportShare').addEventListener('click',function(){
+var url=window.location.href.split('#')[0]+'#'+encodeState();
+navigator.clipboard.writeText(url).then(function(){toast('Share link copied!')})});
+
+function encodeState(){return'fg='+fgHex.slice(1)+'&bg='+bgHex.slice(1)}
+function decodeState(hash){
+if(!hash)return null;
+var m=hash.match(/fg=([0-9a-fA-F]{6})&bg=([0-9a-fA-F]{6})/);
+if(!m)return null;
+return{fg:'#'+m[1].toLowerCase(),bg:'#'+m[2].toLowerCase()}}
+function updateHash(){window.location.hash=encodeState()}
+
+function restoreFromHash(){
+var state=decodeState(window.location.hash.slice(1));
+if(!state)return false;
+fgHex=state.fg;bgHex=state.bg;
+syncPickers();
+updateAll();
+return true}
+
+document.getElementById('cccBatchGenerate').addEventListener('click',function(){
+var raw=document.getElementById('cccBatchInput').value;
+var hexes=raw.split(/[\n,]+/).map(function(s){return normalizeHex(s.trim())}).filter(function(h){return h});
+if(hexes.length<2){toast('Enter at least 2 valid hex colors');return}
+if(hexes.length>20){toast('Maximum 20 colors for the matrix');return}
+var html='<thead><tr><th></th>';
+for(var i=0;i<hexes.length;i++){
+html+='<th><div style="width:20px;height:20px;border-radius:4px;background:'+hexes[i]+';border:1px solid rgba(128,128,128,0.2)"></div></th>'}
+html+='</tr></thead><tbody>';
+for(var r=0;r<hexes.length;r++){
+html+='<tr><th><div style="width:20px;height:20px;border-radius:4px;background:'+hexes[r]+';border:1px solid rgba(128,128,128,0.2)"></div></th>';
+for(var c=0;c<hexes.length;c++){
+if(r===c){html+='<td class="matrix-self">—</td>';continue}
+var ratio=getContrastRatio(hexes[r],hexes[c]).ratio;
+var pass=ratio>=4.5?'pass':'fail';
+html+='<td class="matrix-'+pass+'" title="'+hexes[r]+' vs '+hexes[c]+'">'+ratio.toFixed(1)+'</td>'}
+html+='</tr>'}
+document.getElementById('cccMatrixTable').innerHTML=html;
+document.getElementById('cccBatchResult').classList.remove('hidden');
+toast('Generated '+hexes.length+'×'+hexes.length+' matrix')});
+
+document.getElementById('cccBatchCopy').addEventListener('click',function(){
+var table=document.getElementById('cccMatrixTable');
+if(!table||!table.rows.length){toast('Generate a matrix first');return}
+var lines=[];
+for(var r=0;r<table.rows.length;r++){
+var cells=[];
+for(var c=0;c<table.rows[r].cells.length;c++){
+cells.push(table.rows[r].cells[c].textContent.trim())}
+lines.push(cells.join(','))}
+navigator.clipboard.writeText(lines.join('\n')).then(function(){toast('CSV copied!')})});
+
+/* Image Color Picker */
+var imgCanvas=document.getElementById('cccImageCanvas');
+var imgCtx=imgCanvas.getContext('2d');
+var pickedHex=null;
+
+document.getElementById('cccImageInput').addEventListener('change',function(e){
+var file=e.target.files[0];if(!file)return;
+var reader=new FileReader();
+reader.onload=function(ev){
+var img=new Image();
+img.onload=function(){
+document.getElementById('cccCanvasPlaceholder').style.display='none';
+var maxW=400;
+var scale=Math.min(1,maxW/img.naturalWidth);
+imgCanvas.width=Math.round(img.naturalWidth*scale);
+imgCanvas.height=Math.round(img.naturalHeight*scale);
+imgCtx.drawImage(img,0,0,imgCanvas.width,imgCanvas.height);
+imgCanvas.style.display='block'};
+img.src=ev.target.result};
+reader.readAsDataURL(file)});
+
+imgCanvas.addEventListener('click',function(e){
+if(imgCanvas.width===0||imgCanvas.height===0)return;
+var rect=imgCanvas.getBoundingClientRect();
+var x=Math.round((e.clientX-rect.left)/rect.width*imgCanvas.width);
+var y=Math.round((e.clientY-rect.top)/rect.height*imgCanvas.height);
+x=clamp(x,0,imgCanvas.width-1);
+y=clamp(y,0,imgCanvas.height-1);
+var px=imgCtx.getImageData(x,y,1,1).data;
+pickedHex=rgbToHex(px[0],px[1],px[2]);
+document.getElementById('cccPickedDot').style.background=pickedHex;
+document.getElementById('cccPickedCode').textContent=pickedHex;
+document.getElementById('cccPickedColor').classList.remove('hidden');
+document.getElementById('cccImgSetFg').disabled=false;
+document.getElementById('cccImgSetBg').disabled=false});
+
+document.getElementById('cccImgSetFg').addEventListener('click',function(){
+if(!pickedHex)return;
+fgHex=pickedHex;syncPickers();updateAll();
+document.getElementById('cccPickedColor').classList.add('hidden');
+document.getElementById('cccImgSetFg').disabled=true;
+document.getElementById('cccImgSetBg').disabled=true;
+toast('Foreground set to '+pickedHex)});
+
+document.getElementById('cccImgSetBg').addEventListener('click',function(){
+if(!pickedHex)return;
+bgHex=pickedHex;syncPickers();updateAll();
+document.getElementById('cccPickedColor').classList.add('hidden');
+document.getElementById('cccImgSetFg').disabled=true;
+document.getElementById('cccImgSetBg').disabled=true;
+toast('Background set to '+pickedHex)});
+
+function init(){
+if(!restoreFromHash()){
+fgHex='#1f2937';bgHex='#ffffff';
+syncPickers();
+updateAll()}
+renderHistory()}
+init()
+})()
+</script>
+{% endblock %}

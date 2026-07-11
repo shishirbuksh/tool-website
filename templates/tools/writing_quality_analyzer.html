@@ -1,0 +1,1049 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
+
+{% block title %}AI Writing Quality Analyzer — Free Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Free AI writing quality analyzer: check readability, passive voice, adverb density, complex words, sentence variety, and tone. Get a quality grade A–F with actionable feedback. No sign-up.{% endblock %}
+{% block meta_keywords %}writing quality analyzer, readability checker, passive voice detector, writing tone analyzer, text quality checker, free writing analysis, grammar style checker, readability scores, fkgl, flesch reading ease{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/writing-quality-analyzer{% endblock %}
+{% block og_title %}AI Writing Quality Analyzer — Free Online Writing Check{% endblock %}
+{% block og_description %}Analyze your writing for readability, passive voice, adverb density, complex words, tone, and more. Get a quality grade and actionable feedback. Free, private, no sign-up.{% endblock %}
+{% block head %}
+<style>
+  .wqa-highlight{position:relative;cursor:pointer;border-radius:0.2rem;padding:0.0625rem 0.125rem;transition:background 0.15s;}
+  .wqa-highlight:hover{filter:brightness(1.2);}
+  .wqa-highlight-passive{background:color-mix(in oklab,#a855f7 20%,transparent);border-bottom:2px solid #a855f7;}
+  .wqa-highlight-passive:hover{background:color-mix(in oklab,#a855f7 35%,transparent);}
+  .wqa-highlight-adverb{background:color-mix(in oklab,#f97316 18%,transparent);border-bottom:2px dashed #f97316;}
+  .wqa-highlight-adverb:hover{background:color-mix(in oklab,#f97316 30%,transparent);}
+  .wqa-highlight-complex{background:color-mix(in oklab,#ef4444 15%,transparent);border-bottom:2px dotted #ef4444;}
+  .wqa-highlight-complex:hover{background:color-mix(in oklab,#ef4444 28%,transparent);}
+  .wqa-highlight-runon{background:color-mix(in oklab,#eab308 18%,transparent);border-bottom:2px wavy #eab308;}
+  .wqa-highlight-runon:hover{background:color-mix(in oklab,#eab308 30%,transparent);}
+  .wqa-highlight-cliche{background:color-mix(in oklab,#06b6d4 18%,transparent);border-bottom:2px double #06b6d4;}
+  .wqa-highlight-cliche:hover{background:color-mix(in oklab,#06b6d4 30%,transparent);}
+  .wqa-highlight-multi{background:color-mix(in oklab,#a855f7 12%,transparent);border-bottom:2px solid color-mix(in oklab,#f97316 40%,transparent);}
+  .wqa-highlight-multi:hover{background:color-mix(in oklab,#a855f7 25%,transparent);}
+  .wqa-orig-panel{max-height:50vh;overflow-y:auto;font-size:0.875rem;line-height:1.8;padding:0.25rem;}
+  .wqa-orig-panel::-webkit-scrollbar{width:6px;}
+  .wqa-orig-panel::-webkit-scrollbar-thumb{background:var(--color-base-300);border-radius:3px;}
+  .wqa-stat-card{text-align:center;padding:0.5rem;background:color-mix(in oklab,var(--color-base-200) 30%,transparent);border-radius:0.75rem;}
+  .wqa-stat-card .wqa-stat-val{font-size:1.125rem;font-weight:900;font-family:var(--font-mono,ui-monospace,monospace);}
+  .wqa-stat-card .wqa-stat-label{font-size:0.625rem;text-transform:uppercase;letter-spacing:0.05em;opacity:0.4;}
+  .wqa-grade-ring{width:5rem;height:5rem;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;}
+  .wqa-grade-ring-inner{width:3.75rem;height:3.75rem;border-radius:50%;background:var(--color-base-200);display:flex;align-items:center;justify-content:center;z-index:1;border:2px solid var(--color-base-300);}
+  .wqa-grade-ring-inner span{font-size:2rem;font-weight:900;}
+  .wqa-grade-a{color:#22c55e;}.wqa-grade-b{color:#84cc16;}.wqa-grade-c{color:#eab308;}.wqa-grade-d{color:#f97316;}.wqa-grade-f{color:#ef4444;}
+  .wqa-bar{height:0.5rem;border-radius:0.25rem;transition:width 0.5s ease;}
+  .wqa-legend{display:flex;flex-wrap:wrap;gap:0.375rem;}
+  .wqa-legend-item{display:inline-flex;align-items:center;gap:0.375rem;font-size:0.625rem;font-weight:600;opacity:0.6;padding:0.25rem 0.5rem;background:color-mix(in oklab,var(--color-base-200) 20%,transparent);border-radius:0.375rem;}
+  .wqa-legend-dot{width:0.625rem;height:0.625rem;border-radius:9999px;flex-shrink:0;}
+  .wqa-tone-badge{display:inline-flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;border-radius:9999px;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;}
+  .wqa-tone-formal{background:color-mix(in oklab,#3b82f6 18%,transparent);color:#3b82f6;border:1px solid color-mix(in oklab,#3b82f6 30%,transparent);}
+  .wqa-tone-casual{background:color-mix(in oklab,#22c55e 18%,transparent);color:#22c55e;border:1px solid color-mix(in oklab,#22c55e 30%,transparent);}
+  .wqa-tone-persuasive{background:color-mix(in oklab,#a855f7 18%,transparent);color:#a855f7;border:1px solid color-mix(in oklab,#a855f7 30%,transparent);}
+  .wqa-tone-positive{background:color-mix(in oklab,#22c55e 18%,transparent);color:#22c55e;border:1px solid color-mix(in oklab,#22c55e 30%,transparent);}
+  .wqa-tone-negative{background:color-mix(in oklab,#ef4444 18%,transparent);color:#ef4444;border:1px solid color-mix(in oklab,#ef4444 30%,transparent);}
+  .wqa-tone-neutral{background:color-mix(in oklab,var(--color-base-300) 30%,transparent);color:var(--color-base-content);border:1px solid var(--color-base-300);}
+  .wqa-read-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;}
+  .wqa-read-item{border:1px solid color-mix(in oklab,var(--color-base-300) 30%,transparent);border-radius:0.625rem;padding:0.5rem;}
+  .wqa-read-item .wqa-rl{font-size:0.5rem;text-transform:uppercase;letter-spacing:0.05em;opacity:0.4;font-weight:700;}
+  .wqa-read-item .wqa-rv{font-size:1.125rem;font-weight:900;font-family:var(--font-mono,ui-monospace,monospace);}
+  .wqa-read-item .wqa-rd{font-size:0.5625rem;opacity:0.35;margin-top:0.125rem;}
+  .wqa-issue-item{display:flex;align-items:flex-start;gap:0.5rem;padding:0.5rem;border-radius:0.5rem;background:color-mix(in oklab,var(--color-base-200) 15%,transparent);margin-bottom:0.375rem;}
+  .wqa-issue-icon{width:1.25rem;height:1.25rem;border-radius:9999px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.625rem;font-weight:900;}
+  .wqa-issue-text{font-size:0.75rem;line-height:1.4;flex:1;}
+  .wqa-issue-text strong{font-size:0.8125rem;}
+  .wqa-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:0.5rem;padding:0.375rem 0.625rem;font-size:0.625rem;font-weight:600;white-space:nowrap;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,0.15);pointer-events:none;opacity:0;transition:opacity 0.15s;}
+  .wqa-highlight:hover .wqa-tooltip{opacity:1;}
+  @media(max-width:1023px){.wqa-orig-panel{max-height:35vh;}.wqa-read-grid{grid-template-columns:repeat(2,1fr);}}
+  .wqa-score-row{display:flex;align-items:center;gap:0.5rem;padding:0.25rem 0;}
+  .wqa-score-label{font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;opacity:0.5;min-width:5rem;flex-shrink:0;}
+  .wqa-score-bar-wrap{flex:1;height:0.5rem;background:color-mix(in oklab,var(--color-base-300) 25%,transparent);border-radius:0.25rem;overflow:hidden;}
+  .wqa-score-bar{height:100%;border-radius:0.25rem;transition:width 0.5s ease;}
+  .wqa-score-val{font-size:0.625rem;font-family:var(--font-mono,ui-monospace,monospace);opacity:0.5;min-width:2.5rem;text-align:right;}
+  .wqa-vocab-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.375rem;}
+  .wqa-vocab-item{border:1px solid color-mix(in oklab,var(--color-base-300) 25%,transparent);border-radius:0.5rem;padding:0.375rem;text-align:center;}
+  .wqa-vocab-item .wqa-vl{font-size:0.4375rem;text-transform:uppercase;letter-spacing:0.04em;opacity:0.4;font-weight:700;}
+  .wqa-vocab-item .wqa-vv{font-size:0.875rem;font-weight:900;font-family:var(--font-mono,ui-monospace,monospace);}
+  .wqa-freq-row{display:flex;align-items:center;gap:0.375rem;font-size:0.625rem;margin-bottom:0.1875rem;}
+  .wqa-freq-bar{height:0.5rem;border-radius:0.125rem;background:var(--color-primary);min-width:0.25rem;transition:width 0.3s;}
+  .wqa-freq-word{min-width:4rem;text-align:right;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .wqa-freq-count{opacity:0.4;font-family:var(--font-mono,ui-monospace,monospace);min-width:1.5rem;text-align:right;}
+  .wqa-trans-item{display:inline-flex;align-items:center;gap:0.25rem;padding:0.1875rem 0.5rem;border-radius:9999px;font-size:0.5625rem;font-weight:600;margin:0.125rem;background:color-mix(in oklab,var(--color-base-200) 25%,transparent);}
+  .wqa-sent-table{width:100%;font-size:0.6875rem;border-collapse:collapse;}
+  .wqa-sent-table td{padding:0.375rem 0.375rem;border-bottom:1px solid color-mix(in oklab,var(--color-base-300) 15%,transparent);vertical-align:top;}
+  .wqa-sent-table tr:hover{background:color-mix(in oklab,var(--color-base-200) 15%,transparent);}
+  .wqa-sent-table .wqa-st-num{color:color-mix(in oklab,var(--color-base-content) 25%,transparent);font-family:var(--font-mono,ui-monospace,monospace);text-align:right;width:1.5rem;}
+  .wqa-sent-table .wqa-st-text{max-width:16rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .wqa-sent-table .wqa-st-words{font-family:var(--font-mono,ui-monospace,monospace);text-align:center;width:2rem;}
+  .wqa-badge-sm{display:inline-flex;align-items:center;padding:0.0625rem 0.3125rem;border-radius:0.25rem;font-size:0.5rem;font-weight:700;line-height:1.2;margin:0 0.0625rem;white-space:nowrap;}
+  .wqa-badge-passive{background:color-mix(in oklab,#a855f7 20%,transparent);color:#a855f7;}
+  .wqa-badge-adverb{background:color-mix(in oklab,#f97316 20%,transparent);color:#f97316;}
+  .wqa-badge-complex{background:color-mix(in oklab,#ef4444 20%,transparent);color:#ef4444;}
+  .wqa-badge-runon{background:color-mix(in oklab,#eab308 25%,transparent);color:#eab308;}
+  .wqa-badge-clean{background:color-mix(in oklab,#22c55e 15%,transparent);color:#22c55e;}
+  .wqa-hist-item{display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0.5rem;border-radius:0.5rem;transition:background 0.15s;}
+  .wqa-hist-item:hover{background:color-mix(in oklab,var(--color-base-200) 30%,transparent);}
+  .wqa-hist-meta{font-size:0.5625rem;font-family:var(--font-mono,ui-monospace,monospace);opacity:0.35;flex-shrink:0;}
+  .wqa-dist-bar{height:1rem;border-radius:0.25rem;transition:width 0.5s ease;margin-bottom:0.125rem;}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("pen-tool", "AI & Text", "WRITING", "QUALITY ANALYZER", "Get a full diagnostic of your writing: readability scores, passive voice detection, adverb density, complex words, tone analysis, and a quality grade A–F. All in your browser.") }}
+
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:col-span-2">
+    <div class="card card-border border-base-300/40 bg-base-100 shadow-sm rounded-2xl">
+      <div class="card-body p-6 md:p-8">
+        <h2 class="card-title text-lg font-black tracking-tight gap-3 mb-2">
+          {{ lucide_icon("file-text","w-5 h-5", 20) | safe }} Input
+        </h2>
+        <div class="flex flex-col gap-4">
+          <fieldset class="fieldset">
+            <legend class="fieldset-legend text-xs font-bold uppercase tracking-widest opacity-60 flex justify-between w-full">
+              <span>Text to Analyze</span>
+              <span class="font-mono font-normal text-[10px]" id="wqaCharCount">0 / 5000</span>
+            </legend>
+            <textarea id="wqaInput" class="textarea w-full h-52 font-mono text-[13px] leading-relaxed" placeholder="Paste an article, essay, email, or any text here..." spellcheck="true" maxlength="5000"></textarea>
+          </fieldset>
+          <div class="grid grid-cols-4 gap-2 p-2 bg-base-200/20 rounded-xl" id="wqaStats">
+            <div class="wqa-stat-card"><div class="wqa-stat-val" id="wqaWords">0</div><div class="wqa-stat-label">Words</div></div>
+            <div class="wqa-stat-card"><div class="wqa-stat-val" id="wqaSents">0</div><div class="wqa-stat-label">Sentences</div></div>
+            <div class="wqa-stat-card"><div class="wqa-stat-val" id="wqaChars">0</div><div class="wqa-stat-label">Chars</div></div>
+            <div class="wqa-stat-card"><div class="wqa-stat-val" id="wqaReadTime">0s</div><div class="wqa-stat-label">Reading</div></div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="btn btn-primary btn-sm gap-1.5 flex-1" id="wqaGo">{{ lucide_icon("sparkles","w-4 h-4", 16) | safe }} Analyze</button>
+            <button type="button" class="btn btn-ghost btn-sm gap-1.5" id="wqaReset">{{ lucide_icon("rotate-ccw","w-4 h-4", 16) | safe }} Reset</button>
+            <button type="button" class="btn btn-ghost btn-sm gap-1.5" id="wqaSample">{{ lucide_icon("file-plus","w-4 h-4", 16) | safe }} Sample</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lg:col-span-3">
+    <div class="card card-border border-base-300/40 bg-base-100 shadow-sm rounded-2xl">
+      <div class="card-body p-6 md:p-8">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="card-title text-lg font-black tracking-tight gap-3">
+            {{ lucide_icon("list-checks","w-5 h-5", 20) | safe }} Analysis
+          </h3>
+          <span class="text-[10px] font-mono opacity-30" id="wqaStatus">Waiting for input</span>
+        </div>
+
+        <div id="wqaEmpty" class="flex flex-col items-center justify-center py-12 text-center opacity-40">
+          {{ lucide_icon("pen-tool","w-12 h-12", 48) | safe }}
+          <p class="mt-4 text-sm">Paste text above and click <strong>Analyze</strong></p>
+        </div>
+
+        <div id="wqaResults" style="display:none">
+          <div class="flex flex-wrap gap-1.5 mb-3 wqa-legend">
+            <span class="wqa-legend-item"><span class="wqa-legend-dot" style="background:#a855f7"></span>Passive</span>
+            <span class="wqa-legend-item"><span class="wqa-legend-dot" style="background:#f97316"></span>Adverb</span>
+            <span class="wqa-legend-item"><span class="wqa-legend-dot" style="background:#ef4444"></span>Complex</span>
+            <span class="wqa-legend-item"><span class="wqa-legend-dot" style="background:#eab308"></span>Run-on</span>
+            <span class="wqa-legend-item"><span class="wqa-legend-dot" style="background:#06b6d4"></span>Cliché</span>
+          </div>
+
+          <div class="border border-base-300/20 rounded-xl p-4 mb-4">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-50 mb-2">Annotated Text <span class="font-normal opacity-30">— hover highlights for details</span></div>
+            <div class="wqa-orig-panel" id="wqaAnnotated"></div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+            <div class="border border-base-300/20 rounded-xl p-4 flex flex-col items-center justify-center">
+              <div class="wqa-grade-ring" id="wqaGradeRing" style="background:conic-gradient(var(--color-base-300) 0%,var(--color-base-300) 100%)">
+                <div class="wqa-grade-ring-inner"><span id="wqaGradeLetter">—</span></div>
+              </div>
+              <div class="text-[10px] font-bold uppercase tracking-wider opacity-50 mt-2">Quality Grade</div>
+              <div class="text-[9px] opacity-35 mt-0.5" id="wqaGradeLabel">Waiting</div>
+            </div>
+            <div class="lg:col-span-2 border border-base-300/20 rounded-xl p-4">
+              <div class="text-[10px] font-bold uppercase tracking-wider opacity-50 mb-2">Score Breakdown</div>
+              <div id="wqaBreakdown"></div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <div class="border border-base-300/20 rounded-xl p-4">
+              <div class="text-[10px] font-bold uppercase tracking-wider opacity-50 mb-2 flex items-center gap-2">
+                {{ lucide_icon("bar-chart-3","w-3.5 h-3.5", 14) | safe }} Readability
+                <span class="badge badge-xs badge-ghost font-mono" id="wqaBadgeRead">—</span>
+              </div>
+              <div class="wqa-read-grid" id="wqaReadability"></div>
+            </div>
+            <div class="border border-base-300/20 rounded-xl p-4">
+              <div class="text-[10px] font-bold uppercase tracking-wider opacity-50 mb-2 flex items-center gap-2">
+                {{ lucide_icon("mic","w-3.5 h-3.5", 14) | safe }} Tone & Voice
+              </div>
+              <div class="flex flex-wrap gap-2 mb-3" id="wqaToneBadges"></div>
+              <div class="text-[10px] font-bold uppercase tracking-wider opacity-50 mb-1">Sentence Length</div>
+              <div id="wqaSentLength" class="text-[11px]"></div>
+            </div>
+          </div>
+
+          <details class="collapse collapse-arrow border border-base-300/20 rounded-xl mb-4">
+            <summary class="collapse-title text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-2 p-3">
+              {{ lucide_icon("book-open","w-3.5 h-3.5", 14) | safe }} Vocabulary & Diversity
+              <span class="badge badge-xs badge-ghost font-mono" id="wqaBadgeVocab">—</span>
+            </summary>
+            <div class="collapse-content p-3 pt-0">
+              <div class="wqa-vocab-grid" id="wqaVocabGrid"></div>
+              <div class="text-[10px] font-bold uppercase tracking-wider opacity-50 mt-4 mb-1.5">Most Frequent Words</div>
+              <div id="wqaFreqList"></div>
+            </div>
+          </details>
+
+          <details class="collapse collapse-arrow border border-base-300/20 rounded-xl mb-4">
+            <summary class="collapse-title text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-2 p-3">
+              {{ lucide_icon("arrow-left-right","w-3.5 h-3.5", 14) | safe }} Transitions
+              <span class="badge badge-xs badge-ghost font-mono" id="wqaBadgeTrans">—</span>
+            </summary>
+            <div class="collapse-content p-3 pt-0">
+              <div class="text-[11px] mb-2" id="wqaTransSummary"></div>
+              <div id="wqaTransList"></div>
+            </div>
+          </details>
+
+          <details class="collapse collapse-arrow border border-base-300/20 rounded-xl mb-4">
+            <summary class="collapse-title text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-2 p-3">
+              {{ lucide_icon("align-left","w-3.5 h-3.5", 14) | safe }} Per-Sentence Breakdown
+              <span class="badge badge-xs badge-ghost font-mono" id="wqaBadgeSents">0</span>
+            </summary>
+            <div class="collapse-content p-3 pt-0 max-h-64 overflow-y-auto">
+              <table class="wqa-sent-table" id="wqaSentTable"><thead><tr class="text-[9px] uppercase tracking-wider opacity-40"><td style="width:1.5rem">#</td><td>Sentence</td><td style="width:2rem">Wds</td><td style="width:5rem">Issues</td></tr></thead><tbody id="wqaSentBody"></tbody></table>
+            </div>
+          </details>
+
+          <div class="border border-base-300/20 rounded-xl p-4 mb-4">
+            <div class="text-[10px] font-bold uppercase tracking-wider opacity-50 mb-2 flex items-center gap-2">
+              {{ lucide_icon("alert-triangle","w-3.5 h-3.5", 14) | safe }} Issues Found
+              <span class="badge badge-xs badge-ghost font-mono" id="wqaBadgeIssues">0</span>
+            </div>
+            <div id="wqaIssues"></div>
+          </div>
+
+          <details class="collapse collapse-arrow border border-base-300/20 rounded-xl" id="wqaHistPanel">
+            <summary class="collapse-title text-xs font-bold uppercase tracking-wider opacity-60 flex items-center gap-2 p-3">
+              {{ lucide_icon("history","w-3.5 h-3.5", 14) | safe }} History
+              <span class="badge badge-xs badge-ghost font-mono" id="wqaBadgeHist">0 saved</span>
+            </summary>
+            <div class="collapse-content p-3 pt-0" id="wqaHistList">
+              <em class="opacity-30 text-[11px]">No saved analyses yet. Run an analysis to see history here.</em>
+            </div>
+          </details>
+        </div>
+
+        <div class="flex flex-wrap gap-2 mt-4" id="wqaActions" style="display:none">
+          <button type="button" class="btn btn-primary btn-sm gap-1.5" id="wqaCopy">{{ lucide_icon("copy","w-4 h-4", 16) | safe }} Copy Report</button>
+          <button type="button" class="btn btn-ghost btn-sm gap-1.5" id="wqaExportPdf">{{ lucide_icon("file-text","w-4 h-4", 16) | safe }} PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block seo_schema %}
+{% set seo = {
+  "name": "AI Writing Quality Analyzer",
+  "description": "Analyze your writing for readability, passive voice, adverb density, complex words, sentence variety, and tone. Get a quality grade A-F with actionable feedback. Free, private, no sign-up.",
+  "app_category": "UtilitiesApplication",
+  "app_sub_category": "Writing Tool",
+  "date_modified": "2026-07-10",
+  "faqs": [
+    {"q": "How does the AI Writing Quality Analyzer work?", "a": "It analyzes your text using six metrics — readability scores (FKGL, FRE, Fog), passive voice detection, adverb density, complex word identification, sentence length distribution, and tone analysis. Everything runs in your browser."},
+    {"q": "Is my text sent to any server?", "a": "No. All processing happens entirely in your browser. Your text is never uploaded, stored, or transmitted. You can work completely offline after the page loads."},
+    {"q": "What is the maximum text length?", "a": "You can analyze up to 5,000 characters per session. There are no daily limits and no sign-up required."},
+    {"q": "What do the highlight colors mean?", "a": "Purple highlights indicate passive voice constructions (to be + past participle). Orange highlights show adverb overuse. Red highlights mark complex words (3+ syllables). Yellow highlights indicate run-on sentences (over 30 words). Teal highlights mark clichés and redundant phrases."},
+    {"q": "What is a good readability score?", "a": "For most general audiences, aim for a Flesch Reading Ease score of 60-70 (Standard) and a FKGL of 7-8. Higher FRE means easier reading. Lower FKGL means the text is understandable by younger readers."},
+    {"q": "What does the Quality Grade mean?", "a": "The grade (A-F) combines readability, sentence variety, passive voice usage, adverb density, and complex word ratio. A grade of A or B indicates clear, well-structured writing. D or F suggests the text may be hard to follow."},
+    {"q": "What advanced metrics are available?", "a": "The tool also computes vocabulary diversity (type-token ratio, lexical density, hapax legomena), transition word coverage, cliché detection, and a per-sentence breakdown showing word count and issue badges for every sentence."},
+    {"q": "How does passive voice detection work?", "a": "The tool detects forms of 'to be' (is, are, was, were, be, been, being) followed by a past participle verb. While passive voice is grammatically correct, overusing it can make writing feel indirect or wordy."},
+    {"q": "Can I export the analysis?", "a": "Yes. Click Copy Report to copy the full analysis to your clipboard, or export as PDF for documentation or sharing."}
+  ],
+  "howto_steps": [
+    {"title": "Paste or Type Your Text", "desc": "Write or paste up to 5,000 characters into the input box. Word and character counts update as you type."},
+    {"title": "Click Analyze", "desc": "Press the Analyze button to run the full writing quality check on your text."},
+    {"title": "Review Highlights", "desc": "The tool highlights passive voice (purple), adverbs (orange), complex words (red), run-on sentences (yellow), and clichés (teal) directly in your text. Hover each highlight for details."},
+    {"title": "Check Your Scores", "desc": "Review readability scores (FKGL, FRE, Fog), the quality grade, and tone estimate. Each metric includes a plain-English interpretation."},
+    {"title": "Explore Advanced Panels", "desc": "Open the Vocabulary, Transitions, and Per-Sentence panels for deeper insight into your writing."},
+    {"title": "Export Your Report", "desc": "Copy the full analysis report or download as PDF for documentation or sharing."}
+  ],
+  "howto_calculate": "",
+  "about_title": "About the AI Writing Quality Analyzer",
+  "about_body": "<p>The AI Writing Quality Analyzer is a free online tool that gives you a comprehensive diagnostic of your writing quality — all in your browser. It analyzes your text across six core dimensions: readability, passive voice usage, adverb density, complex word frequency, sentence length variety, and writing tone.</p><p>In addition to numerical scores (FKGL, FRE, Fog Index), the tool visually highlights issues directly in your text using a color-coded annotation system. Purple highlights indicate passive voice constructions, orange shows adverb overuse, red marks complex words, yellow flags run-on sentences, and teal identifies clichés. Hover any highlight to see why it matters and how to fix it.</p><p>Advanced features include vocabulary diversity metrics (type-token ratio, lexical density, hapax legomena), transition word coverage analysis, cliché detection with a database of common overused phrases, a per-sentence breakdown table with issue badges for every sentence, and localStorage-backed history tracking so you can monitor your writing quality over time.</p><p>Each metric includes a plain-English interpretation so you can understand what the numbers mean for your readers. The Quality Grade (A through F) combines all metrics into a single at-a-glance score. Tone analysis estimates whether your writing reads as formal, casual, persuasive, positive, or negative.</p><p>Built with privacy in mind, all processing happens directly in your browser. No sign-up required, no data stored, no tracking. For complementary writing tools, try our <a href='/tool/paraphrasing-tool'>AI Paraphrasing Tool</a> and <a href='/tool/text-summarizer'>AI Text Summarizer</a>.</p>",
+  "related": seo_data.related
+} %}
+{{ tool_seo_all(seo) }}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ nonce }}">
+(function(){
+  var _e=function(id){return document.getElementById(id);};
+  var input=_e('wqaInput'), go=_e('wqaGo'), reset=_e('wqaReset'), sample=_e('wqaSample');
+  var charCount=_e('wqaCharCount'), wc=_e('wqaWords'), sc=_e('wqaSents'), cc=_e('wqaChars'), rt=_e('wqaReadTime');
+  var status=_e('wqaStatus'), empty=_e('wqaEmpty'), results=_e('wqaResults'), actions=_e('wqaActions');
+  var annotated=_e('wqaAnnotated'), gradeLetter=_e('wqaGradeLetter'), gradeRing=_e('wqaGradeRing'), gradeLabel=_e('wqaGradeLabel');
+  var breakdown=_e('wqaBreakdown'), readDiv=_e('wqaReadability'), badgeRead=_e('wqaBadgeRead');
+  var toneBadges=_e('wqaToneBadges'), sentLength=_e('wqaSentLength');
+  var issues=_e('wqaIssues'), badgeIssues=_e('wqaBadgeIssues');
+  var copyBtn=_e('wqaCopy'), expPdf=_e('wqaExportPdf');
+  var vocabGrid=_e('wqaVocabGrid'), freqList=_e('wqaFreqList'), badgeVocab=_e('wqaBadgeVocab');
+  var transSummary=_e('wqaTransSummary'), transList=_e('wqaTransList'), badgeTrans=_e('wqaBadgeTrans');
+  var sentBody=_e('wqaSentBody'), badgeSents=_e('wqaBadgeSents');
+  var histList=_e('wqaHistList'), badgeHist=_e('wqaBadgeHist');
+
+  var stopWords=new Set('a about above after again all am an and any are as at be because been before being below between both but by could did do does done due during each few for from further had has have having here hereafter hereby herein hereinafter hereof hereto hereunto hereupon herewith how i if in into is it its itself just me more most my myself no nor not now of on once only or other our ours ourselves out over own per rather really same say see shall she should show side since so some such than that the their them themselves then there thereby therefore therein thereof thereto thereunto thereupon these they this through thus to too toward under until up upon very was we were what when where wherein whereof wherever whether which while who whom whomever whose why with within without would you your yours yourself yourselves'.split(' '));
+
+  var commonLyAdverbs=new Set('only,early,likely,lovely,kindly,friendly,orderly,manly,womanly,costly,deadly,weekly,monthly,yearly,daily,hourly,homely,comely,motherly,brotherly,sisterly,fatherly,heavenly,earthly,neighborly'.split(','));
+
+  var toneDict={
+    formal:['therefore','however','nevertheless','furthermore','moreover','consequently','accordingly','thus','hence','whereas','notwithstanding','herein','therein','hereinafter','thereto','thereupon','heretofore','wherein','whereof','pursuant','commence','terminate','endeavor','utilize','ascertain','constitute','elucidate','hereby','aforesaid','foregoing'],
+    casual:['gonna','wanna','gotta','kinda','sorta','yeah','nah','dunno','cuz','bro','dude','awesome','cool','okay','sure','hey','guys','folks','stuff','things','super','totally','pretty','really','very','actually','basically','literally'],
+    persuasive:['must','should','need','essential','critical','vital','important','proven','guaranteed','exclusive','limited','now','today','immediately','don\'t miss','act now','hurry','last chance','join','subscribe','discover','transform','revolutionary','unlock','expert','authority'],
+    positive:['great','excellent','amazing','wonderful','fantastic','beautiful','outstanding','brilliant','superb','exceptional','remarkable','delightful','pleased','happy','love','best','perfect','success','benefit','advantage','improve','growth','opportunity','innovative','inspiring','empower'],
+    negative:['bad','terrible','awful','horrible','poor','worse','worst','hate','ugly','disaster','failure','problem','issue','difficult','impossible','unfortunately','regret','damage','loss','risk','threat','danger','crisis','struggle','suffer','painful']
+  };
+
+  var transitionWords={
+    addition:['and','also','furthermore','moreover','in addition','additionally','besides','not only','as well as','too','plus','another','next','further'],
+    contrast:['but','however','although','though','yet','nevertheless','nonetheless','on the other hand','in contrast','conversely','while','whereas','instead','alternatively','rather'],
+    cause:['therefore','thus','hence','consequently','accordingly','as a result','because','since','due to','this leads to','thereby','so','for this reason'],
+    sequence:['first','second','third','then','next','after','before','finally','later','subsequently','previously','meanwhile','initially','afterwards'],
+    conclusion:['in conclusion','to conclude','in summary','to summarize','overall','ultimately','finally','in closing','after all','in short','all things considered'],
+    emphasis:['indeed','certainly','undoubtedly','without a doubt','in fact','of course','clearly','obviously','importantly','notably','significantly','especially','above all'],
+    illustration:['for example','for instance','such as','like','specifically','in particular','namely','to illustrate','as an example','including']
+  };
+
+  var clicheList=[
+    'at the end of the day','think outside the box','the bottom line','back to the drawing board',
+    'ballpark figure','cutting edge','deep dive','game plan','get the ball rolling',
+    'in this day and age','it is what it is','low hanging fruit','move the needle','paradigm shift',
+    'raise the bar','raising the bar','reinvent the wheel','state of the art','synergy',
+    'touch base','win win situation','all hands on deck','best of both worlds','break the ice',
+    'circle back','elephant in the room','hit the ground running','keep me in the loop',
+    'leverage','push the envelope','take it to the next level','the devil is in the details',
+    'the whole nine yards','too many cooks','under the weather','up in the air','value add',
+    'each and every','first and foremost','last but not least','in a nutshell','blue sky thinking',
+    'drill down','give 110 percent','par for the course','put a pin in it',
+    'table that','actionable insights','boil the ocean','bleeding edge','open the kimono',
+    'singing from the same hymn sheet','the ask','drinking from a fire hose','eat your own dog food'
+  ];
+
+  var historyKey='wqa_history';
+
+  function countWords(s){if(typeof s!=='string'||!s.trim())return 0;return s.trim().split(/\s+/).length;}
+
+  function getSentences(s){
+    if(typeof s!=='string'||!s.trim())return[];
+    var clean=s.replace(/\b(Dr|Mr|Mrs|Ms|Prof|Sr|Jr|St|vs|etc|Inc|Ltd|Dept|Ave|Blvd|Capt|Col|Gen|Gov|Lt|Maj|Sgt|Rev|Hon|Rep|Sen|Esq)\./gi,'');
+    var parts=clean.split(/[.!?]+/);
+    var out=[];
+    for(var i=0;i<parts.length;i++){
+      var p=parts[i].trim();
+      if(p&&p.split(/\s+/).length>=2)out.push(p);
+    }
+    return out.length?out:[s.trim()];
+  }
+
+  function getWords(s){
+    if(typeof s!=='string'||!s.trim())return[];
+    return s.trim().toLowerCase().split(/[^a-z0-9']+/).filter(function(w){return w.length>0;});
+  }
+
+  function getContentWords(s){
+    return getWords(s).filter(function(w){return!stopWords.has(w)&&w.length>1;});
+  }
+
+  function countSyllables(w){
+    if(typeof w!=='string'||!w)return 0;
+    w=w.toLowerCase().replace(/[^a-z]/g,'');
+    if(!w.length)return 0;
+    if(w.length<=3)return 1;
+    w=w.replace(/(?:es|ed|e)$/,'');
+    var vowels=w.match(/[aeiouy]+/gi);
+    return Math.max(1,vowels?vowels.length:1);
+  }
+
+  function readingTimeSec(s){
+    var w=countWords(s);
+    return Math.ceil(w/200*60);
+  }
+
+  function esc(v){var e=document.createElement('div');e.innerText=v||'';return e.innerHTML;}
+
+  function calcReadability(text){
+    var sents=getSentences(text), words=getWords(text);
+    if(!words.length||!sents.length)return{fkgl:0,fre:0,fog:0};
+    var totalSyllables=0;
+    for(var i=0;i<words.length;i++)totalSyllables+=countSyllables(words[i]);
+    var avgWPS=words.length/sents.length, avgSPW=totalSyllables/words.length;
+    var fkgl=0.39*avgWPS+11.8*avgSPW-15.59;
+    var fre=206.835-1.015*avgWPS-84.6*avgSPW;
+    var complex=0;
+    for(var i=0;i<words.length;i++)if(countSyllables(words[i])>=3)complex++;
+    var fog=0.4*(avgWPS+(complex/words.length*100));
+    return{fkgl:Math.max(1,Math.round(fkgl*10)/10),fre:Math.max(0,Math.min(100,Math.round(fre))),fog:Math.max(1,Math.round(fog*10)/10),complexWords:complex,totalWords:words.length,totalSents:sents.length,avgWPS:Math.round(avgWPS*10)/10,avgSPW:Math.round(avgSPW*10)/10};
+  }
+
+  function readabilityLabel(fre){
+    if(fre>=90)return'Very Easy';if(fre>=80)return'Easy';if(fre>=70)return'Fairly Easy';if(fre>=60)return'Standard';if(fre>=50)return'Fairly Difficult';if(fre>=30)return'Difficult';return'Very Confusing';
+  }
+
+  function detectPassive(text){
+    var passiveRe=/\b(am|is|are|was|were|be|been|being)\s+(\w+ed|\w+en|\w+t)\b/gi;
+    var matches=[], m;
+    while((m=passiveRe.exec(text))!==null){
+      matches.push({index:m.index,length:m[0].length,text:m[0]});
+    }
+    return matches;
+  }
+
+  function detectAdverbs(text){
+    var rawWords=getWords(text);
+    var adverbMatches=[];
+    var seenKeys=new Set();
+    var doneWords=new Set();
+    for(var i=0;i<rawWords.length;i++){
+      var w=rawWords[i];
+      if(!w.endsWith('ly')||commonLyAdverbs.has(w)||w.length<=4||doneWords.has(w))continue;
+      doneWords.add(w);
+      var rx=new RegExp('\\b'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','gi');
+      var m;
+      while((m=rx.exec(text))!==null){
+        var key=m[0]+'|'+m.index;
+        if(!seenKeys.has(key)){seenKeys.add(key);adverbMatches.push({index:m.index,length:m[0].length,text:m[0]});}
+      }
+    }
+    return adverbMatches;
+  }
+
+  function detectComplexWords(text, words){
+    var complexMatches=[];
+    var seenKeys=new Set();
+    var doneWords=new Set();
+    for(var i=0;i<words.length;i++){
+      var w=words[i];
+      if(countSyllables(w)<3||w.length<=5||doneWords.has(w))continue;
+      doneWords.add(w);
+      var rx=new RegExp('\\b'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','gi');
+      var m;
+      while((m=rx.exec(text))!==null){
+        var key=m[0]+'|'+m.index;
+        if(!seenKeys.has(key)){seenKeys.add(key);complexMatches.push({index:m.index,length:m[0].length,text:m[0]});}
+      }
+    }
+    return complexMatches;
+  }
+
+  function detectCliches(text){
+    var matches=[];
+    var lower=text.toLowerCase();
+    for(var i=0;i<clicheList.length;i++){
+      var phrase=clicheList[i];
+      var rx=new RegExp('\\b'+phrase.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','gi');
+      var m;
+      while((m=rx.exec(lower))!==null){
+        var original=text.substring(m.index,m.index+m[0].length);
+        matches.push({index:m.index,length:m[0].length,text:original,phrase:phrase});
+      }
+    }
+    return matches;
+  }
+
+  function calcVocabulary(text, words){
+    if(!words.length)return{ttr:0,lexicalDensity:0,hapax:0,uniqueWords:0,freq:[]};
+    var unique={}, freq={};
+    for(var i=0;i<words.length;i++){
+      var w=words[i];
+      unique[w]=true;
+      freq[w]=(freq[w]||0)+1;
+    }
+    var uniqueArr=Object.keys(unique);
+    var ttr=Math.round(uniqueArr.length/words.length*10000)/100;
+    var contentWords=getContentWords(text);
+    var lexicalDensity=words.length?Math.round(contentWords.length/words.length*100):0;
+    var hapax=0;
+    for(var w in freq)if(freq[w]===1)hapax++;
+    var freqArr=[];
+    for(var w in freq)freqArr.push({word:w,count:freq[w]});
+    freqArr.sort(function(a,b){return b.count-a.count;});
+    return{ttr:ttr,lexicalDensity:lexicalDensity,hapax:hapax,uniqueWords:uniqueArr.length,freq:freqArr.slice(0,10)};
+  }
+
+  function calcTransitions(sents){
+    if(!sents||!sents.length)return{covered:0,total:0,pct:0,used:[]};
+    var allTransitions=[];
+    for(var cat in transitionWords){
+      for(var i=0;i<transitionWords[cat].length;i++){
+        allTransitions.push(transitionWords[cat][i]);
+      }
+    }
+    allTransitions.sort(function(a,b){return b.length-a.length;});
+    var covered=0, usedTrans={};
+    for(var i=0;i<sents.length;i++){
+      var sent=sents[i].toLowerCase();
+      var found=false;
+      for(var j=0;j<allTransitions.length;j++){
+        var t=allTransitions[j];
+        var rx=new RegExp('^'+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','i');
+        var trimmed=sent.replace(/^[^a-z]*/,'');
+        if(rx.test(trimmed)){
+          var tokens=t.split(' ');
+          var firstWord=tokens[0];
+          usedTrans[firstWord]=(usedTrans[firstWord]||0)+1;
+          found=true;
+          break;
+        }
+      }
+      if(found)covered++;
+    }
+    var pct=sents.length?Math.round(covered/sents.length*100):0;
+    var usedArr=[];
+    for(var w in usedTrans)usedArr.push({word:w,count:usedTrans[w]});
+    usedArr.sort(function(a,b){return b.count-a.count;});
+    return{covered:covered,total:sents.length,pct:pct,used:usedArr};
+  }
+
+  function analyzeSentences(sents, passive, adverbs, complex){
+    if(!sents||!sents.length)return[];
+    var passiveSent={}, adverbSent={};
+    for(var i=0;i<passive.length;i++){
+      var pt=passive[i].text.toLowerCase();
+      for(var j=0;j<sents.length;j++){if(sents[j].toLowerCase().indexOf(pt)>=0)passiveSent[j]=true;}
+    }
+    for(var i=0;i<adverbs.length;i++){
+      var at=adverbs[i].text.toLowerCase();
+      for(var j=0;j<sents.length;j++){if(sents[j].toLowerCase().indexOf(at)>=0)adverbSent[j]=true;}
+    }
+    var out=[];
+    for(var i=0;i<sents.length;i++){
+      var wc=countWords(sents[i]);
+      var hasPassive=passiveSent[i]||false;
+      var hasAdverb=adverbSent[i]||false;
+      var hasComplex=false;
+      var sw=getWords(sents[i]);
+      for(var j=0;j<sw.length;j++)if(countSyllables(sw[j])>=3&&sw[j].length>5){hasComplex=true;break;}
+      var isRunon=wc>30;
+      var issueCount=(hasPassive?1:0)+(hasAdverb?1:0)+(hasComplex?1:0)+(isRunon?1:0);
+      out.push({text:sents[i],words:wc,hasPassive:hasPassive,hasAdverb:hasAdverb,hasComplex:hasComplex,isRunon:isRunon,issueCount:issueCount});
+    }
+    return out;
+  }
+
+  function analyze(text){
+    if(!text||!text.trim())return null;
+    if(typeof text!=='string')return null;
+    var sents=getSentences(text);
+    if(!sents.length)return null;
+    var words=getWords(text);
+    if(!words.length)return null;
+
+    var readability=calcReadability(text);
+    var passive=detectPassive(text);
+    var adverbs=detectAdverbs(text);
+    var complex=detectComplexWords(text, words);
+    var cliches=detectCliches(text);
+
+    var shortSents=0, medSents=0, longSents=0, runonSents=0;
+    for(var i=0;i<sents.length;i++){
+      var wc=countWords(sents[i]);
+      if(wc<=12)shortSents++;
+      else if(wc<=25)medSents++;
+      else{longSents++;if(wc>30)runonSents++;}
+    }
+
+    var adverbDensity=words.length>0?Math.round(adverbs.length/words.length*10000)/100:0;
+    var passiveDensity=words.length>0?Math.round(passive.length/words.length*10000)/100:0;
+    var complexRatio=words.length>0?Math.round(complex.length/words.length*100):0;
+
+    var toneScores={formal:0,casual:0,persuasive:0,positive:0,negative:0};
+    var lowerWords=getContentWords(text);
+    var lowerText=text.toLowerCase();
+    for(var i=0;i<lowerWords.length;i++){
+      var w=lowerWords[i].toLowerCase();
+      for(var cat in toneDict){
+        for(var j=0;j<toneDict[cat].length;j++){
+          var tw=toneDict[cat][j];
+          if(tw.indexOf(' ')>=0)continue;
+          if(w===tw)toneScores[cat]=(toneScores[cat]||0)+1;
+        }
+      }
+    }
+    for(var cat in toneDict){
+      for(var j=0;j<toneDict[cat].length;j++){
+        var tw=toneDict[cat][j];
+        if(tw.indexOf(' ')<0)continue;
+        var rx=new RegExp('\\b'+tw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','gi');
+        var m;
+        while((m=rx.exec(lowerText))!==null)toneScores[cat]=(toneScores[cat]||0)+1;
+      }
+    }
+    var dominantTone='neutral', maxScore=0;
+    for(var cat in toneScores){
+      if(toneScores[cat]>maxScore){maxScore=toneScores[cat];dominantTone=cat;}
+    }
+    var toneSummary=[];
+    for(var cat in toneScores){
+      if(toneScores[cat]>0)toneSummary.push({cat:cat,score:toneScores[cat]});
+    }
+    toneSummary.sort(function(a,b){return b.score-a.score;});
+
+    var readScore=0;
+    if(readability.fre>=80)readScore=100;
+    else if(readability.fre>=60)readScore=70;
+    else if(readability.fre>=40)readScore=45;
+    else if(readability.fre>=20)readScore=20;
+    else readScore=5;
+
+    var sentVarScore=0;
+    var total=sents.length;
+    if(total>0){
+      var shortPct=shortSents/total, longPct=longSents/total;
+      if(shortPct>=0.2&&shortPct<=0.6&&longPct<=0.3)sentVarScore=100;
+      else if(shortPct>=0.1&&longPct<=0.4)sentVarScore=65;
+      else if(longPct>0.5)sentVarScore=25;
+      else sentVarScore=45;
+    }
+
+    var passivePenalty=Math.max(0,100-passiveDensity*20);
+    var adverbPenalty=Math.max(0,100-adverbDensity*15);
+    var complexPenalty=Math.max(0,100-complexRatio*2);
+    var clichePenalty=Math.max(0,100-cliches.length*10);
+
+    var qualityScore=Math.round(readScore*0.25+sentVarScore*0.15+passivePenalty*0.15+adverbPenalty*0.15+complexPenalty*0.15+clichePenalty*0.15);
+    qualityScore=Math.max(0,Math.min(100,qualityScore));
+
+    var grade, gradeClass;
+    if(qualityScore>=90){grade='A';gradeClass='wqa-grade-a';}
+    else if(qualityScore>=75){grade='B';gradeClass='wqa-grade-b';}
+    else if(qualityScore>=55){grade='C';gradeClass='wqa-grade-c';}
+    else if(qualityScore>=35){grade='D';gradeClass='wqa-grade-d';}
+    else{grade='F';gradeClass='wqa-grade-f';}
+
+    var vocab=calcVocabulary(text, words);
+    var transitions=calcTransitions(sents);
+    var sentAnalysis=analyzeSentences(sents, passive, adverbs, complex);
+
+    return{
+      text:text,sents:sents,words:words,readability:readability,
+      passive:passive,adverbs:adverbs,complex:complex,cliches:cliches,
+      shortSents:shortSents,medSents:medSents,longSents:longSents,runonSents:runonSents,
+      adverbDensity:adverbDensity,passiveDensity:passiveDensity,complexRatio:complexRatio,
+      toneScores:toneScores,dominantTone:dominantTone,toneSummary:toneSummary,
+      qualityScore:qualityScore,grade:grade,gradeClass:gradeClass,
+      readScore:readScore,sentVarScore:sentVarScore,
+      passivePenalty:passivePenalty,adverbPenalty:adverbPenalty,complexPenalty:complexPenalty,clichePenalty:clichePenalty,
+      vocab:vocab,transitions:transitions,sentAnalysis:sentAnalysis
+    };
+  }
+
+  function buildRunonHighlights(text, sents){
+    var matches=[];
+    var searchPos=0;
+    for(var i=0;i<sents.length;i++){
+      var sent=sents[i];
+      var wc=countWords(sent);
+      if(wc>30){
+        var prefix=sent.substring(0,20);
+        var startIdx=text.indexOf(prefix, searchPos);
+        if(startIdx<0){searchPos+=10;continue;}
+        matches.push({index:startIdx,length:Math.min(sent.length+5,text.length-startIdx),text:sent.substring(0,60)+'…'});
+        searchPos=startIdx+sent.length;
+      }else{
+        var skip=text.indexOf(sent.substring(0,10), searchPos);
+        if(skip>=0)searchPos=skip+sent.length;
+      }
+    }
+    return matches;
+  }
+
+  function buildAnnotatedHtml(result){
+    var text=result.text;
+    var allHighlights=[];
+
+    for(var i=0;i<result.passive.length;i++){
+      var h=result.passive[i];
+      allHighlights.push({start:h.index,end:h.index+h.length,type:'passive',text:h.text,tip:'Passive voice: "'+esc(h.text)+'". Consider rewriting in active voice for stronger, clearer writing.'});
+    }
+
+    for(var i=0;i<result.adverbs.length;i++){
+      var h=result.adverbs[i];
+      allHighlights.push({start:h.index,end:h.index+h.length,type:'adverb',text:h.text,tip:'Adverb: "'+esc(h.text)+'". Ask: can this be replaced with a stronger verb?'});
+    }
+
+    for(var i=0;i<result.complex.length;i++){
+      var h=result.complex[i];
+      allHighlights.push({start:h.index,end:h.index+h.length,type:'complex',text:h.text,tip:'Complex word ('+countSyllables(h.text)+' syllables): "'+esc(h.text)+'". Consider a simpler alternative.'});
+    }
+
+    var runonHighlights=buildRunonHighlights(text, result.sents);
+    for(var i=0;i<runonHighlights.length;i++){
+      var h=runonHighlights[i];
+      allHighlights.push({start:h.index,end:h.index+h.length,type:'runon',text:h.text,tip:'Run-on sentence ('+countWords(h.text.replace(/…/g,'').trim())+' words). Consider splitting into shorter sentences.'});
+    }
+
+    for(var i=0;i<result.cliches.length;i++){
+      var h=result.cliches[i];
+      allHighlights.push({start:h.index,end:h.index+h.length,type:'cliche',text:h.text,tip:'Cliché: "'+esc(h.text)+'". Consider a fresh, original phrasing.'});
+    }
+
+    allHighlights.sort(function(a,b){return a.start-b.start;});
+
+    var merged=[];
+    for(var i=0;i<allHighlights.length;i++){
+      var last=merged.length?merged[merged.length-1]:null;
+      if(last&&allHighlights[i].start<last.end){
+        if(allHighlights[i].end>last.end){
+          last.end=allHighlights[i].end;
+          last.text+=', '+allHighlights[i].text;
+          last.tip+=' | '+allHighlights[i].tip;
+          if(allHighlights[i].type!==last.type)last.type='multi';
+        }
+      }else{
+        merged.push({start:allHighlights[i].start,end:allHighlights[i].end,type:allHighlights[i].type,text:allHighlights[i].text,tip:allHighlights[i].tip});
+      }
+    }
+
+    var html='', pos=0;
+    for(var i=0;i<merged.length;i++){
+      var h=merged[i];
+      if(h.start>pos)html+=esc(text.substring(pos,h.start));
+      var raw=text.substring(h.start,h.end);
+      var cls='wqa-highlight wqa-highlight-'+h.type;
+      html+='<span class="'+cls+'">'+esc(raw)+'<span class="wqa-tooltip">'+h.tip+'</span></span>';
+      pos=h.end;
+    }
+    if(pos<text.length)html+=esc(text.substring(pos));
+    return html;
+  }
+
+  function render(result){
+    if(!result){
+      empty.style.display='flex';results.style.display='none';actions.style.display='none';
+      status.textContent='Waiting for input';
+      return;
+    }
+
+    empty.style.display='none';results.style.display='';actions.style.display='';
+    var r=result;
+
+    annotated.innerHTML=buildAnnotatedHtml(r);
+    status.textContent=r.sents.length+' sentences | '+r.words.length+' words | '+r.qualityScore+'% quality';
+
+    var pct=r.qualityScore;
+    var color;
+    if(pct>=90)color='#22c55e';else if(pct>=75)color='#84cc16';else if(pct>=55)color='#eab308';else if(pct>=35)color='#f97316';else color='#ef4444';
+    gradeRing.style.background='conic-gradient('+color+' 0%,'+color+' '+pct+'%,var(--color-base-300) '+pct+'%,var(--color-base-300) 100%)';
+    gradeLetter.textContent=r.grade;
+    gradeLetter.className=r.gradeClass;
+    var gradeTexts={A:'Excellent — clear, well-structured writing',B:'Good — minor improvements recommended',C:'Fair — needs moderate revision',D:'Poor — significant revision needed',F:'Hard to read — major rewrite recommended'};
+    gradeLabel.textContent=gradeTexts[r.grade]||'';
+
+    var bdHtml='';
+    var bdItems=[
+      {label:'Readability',score:r.readScore,color:'#3b82f6'},
+      {label:'Sentence Variety',score:r.sentVarScore,color:'#a855f7'},
+      {label:'Passive Voice',score:r.passivePenalty,color:'#f97316'},
+      {label:'Adverb Density',score:r.adverbPenalty,color:'#84cc16'},
+      {label:'Word Choice',score:r.complexPenalty,color:'#ef4444'},
+      {label:'Cliché Score',score:r.clichePenalty,color:'#06b6d4'}
+    ];
+    for(var i=0;i<bdItems.length;i++){
+      bdHtml+='<div class="wqa-score-row"><span class="wqa-score-label">'+bdItems[i].label+'</span><div class="wqa-score-bar-wrap"><div class="wqa-score-bar" style="width:'+bdItems[i].score+'%;background:'+bdItems[i].color+'"></div></div><span class="wqa-score-val">'+bdItems[i].score+'%</span></div>';
+    }
+    breakdown.innerHTML=bdHtml;
+
+    var read=r.readability;
+    if(read&&read.totalWords>0){
+      var readItems=[
+        {label:'FK Grade',val:read.fkgl,sfx:'',desc:'target 7-8'},{label:'Reading Ease',val:read.fre,sfx:'',desc:readabilityLabel(read.fre)},
+        {label:'Fog Index',val:read.fog,sfx:'',desc:'target 7-12'},{label:'Avg Sent Len',val:read.avgWPS,sfx:'w',desc:''},
+        {label:'Avg Syll/Wd',val:read.avgSPW,sfx:'',desc:''},{label:'Complex Words',val:read.complexWords,sfx:'',desc:'of '+read.totalWords+' words'}
+      ];
+      var rh='';
+      for(var i=0;i<readItems.length;i++){
+        rh+='<div class="wqa-read-item"><div class="wqa-rl">'+readItems[i].label+'</div><div class="wqa-rv">'+readItems[i].val+'<span class="text-[9px] font-mono font-normal opacity-40">'+readItems[i].sfx+'</span></div><div class="wqa-rd">'+readItems[i].desc+'</div></div>';
+      }
+      readDiv.innerHTML=rh;
+      badgeRead.textContent='G'+read.fkgl+' | '+read.fre;
+    }else{
+      readDiv.innerHTML='<em class="opacity-40 text-[11px]">Not enough text</em>';
+      badgeRead.textContent='—';
+    }
+
+    var toneHtml='';
+    if(r.toneSummary.length){
+      for(var i=0;i<Math.min(r.toneSummary.length,3);i++){
+        var t=r.toneSummary[i];
+        var cl='wqa-tone-badge wqa-tone-'+t.cat;
+        toneHtml+='<span class="'+cl+'">'+t.cat.charAt(0).toUpperCase()+t.cat.slice(1)+'</span>';
+      }
+    }else{
+      toneHtml+='<span class="wqa-tone-badge wqa-tone-neutral">Neutral</span>';
+    }
+    toneBadges.innerHTML=toneHtml;
+
+    sentLength.innerHTML='<span class="font-semibold">Short:</span> '+r.shortSents+' &middot; <span class="font-semibold">Medium:</span> '+r.medSents+' &middot; <span class="font-semibold">Long:</span> '+r.longSents;
+    if(r.runonSents>0)sentLength.innerHTML+=' &middot; <span class="font-semibold text-error">Run-on:</span> '+r.runonSents;
+    sentLength.innerHTML+='<div class="mt-1.5" style="display:flex;gap:0.25rem;height:0.75rem;align-items:flex-end;">'+renderDistBar('Short',r.shortSents,r.sents.length,'#3b82f6')+renderDistBar('Med',r.medSents,r.sents.length,'#a855f7')+renderDistBar('Long',r.longSents,r.sents.length,'#f97316')+renderDistBar('Run-on',r.runonSents,r.sents.length,'#ef4444')+'</div>';
+
+    var issuesHtml='', issueCount=0;
+    if(r.passive.length){
+      issuesHtml+='<div class="wqa-issue-item"><div class="wqa-issue-icon" style="background:#a855f7;color:#fff">P</div><div class="wqa-issue-text"><strong>'+r.passive.length+' passive voice construction'+(r.passive.length>1?'s':'')+'</strong><br>Consider rewriting in active voice for stronger, clearer writing. Overusing passive voice can make text feel indirect.</div></div>';
+      issueCount+=r.passive.length;
+    }
+    if(r.adverbs.length){
+      issuesHtml+='<div class="wqa-issue-item"><div class="wqa-issue-icon" style="background:#f97316;color:#fff">A</div><div class="wqa-issue-text"><strong>'+r.adverbs.length+' adverb'+(r.adverbs.length>1?'s':'')+' ('+r.adverbDensity+' per 100 words)</strong><br>Replace weak adverb+verb combinations with stronger verbs. E.g., "ran quickly" &rarr; "sprinted".</div></div>';
+      issueCount+=r.adverbs.length;
+    }
+    if(r.complex.length){
+      issuesHtml+='<div class="wqa-issue-item"><div class="wqa-issue-icon" style="background:#ef4444;color:#fff">C</div><div class="wqa-issue-text"><strong>'+r.complex.length+' complex word'+(r.complex.length>1?'s':'')+' ('+r.complexRatio+'% of text)</strong><br>Complex words (3+ syllables) can reduce readability. Aim for simpler alternatives when possible.</div></div>';
+      issueCount+=r.complex.length;
+    }
+    if(r.runonSents){
+      issuesHtml+='<div class="wqa-issue-item"><div class="wqa-issue-icon" style="background:#eab308;color:#000">R</div><div class="wqa-issue-text"><strong>'+r.runonSents+' run-on sentence'+(r.runonSents>1?'s':'')+'</strong><br>Sentences over 30 words can be hard to follow. Try splitting into shorter, focused sentences.</div></div>';
+      issueCount+=r.runonSents;
+    }
+    if(r.cliches.length){
+      issuesHtml+='<div class="wqa-issue-item"><div class="wqa-issue-icon" style="background:#06b6d4;color:#fff">!</div><div class="wqa-issue-text"><strong>'+r.cliches.length+' cliché'+(r.cliches.length>1?'s':'')+' detected</strong><br>Clichés make writing feel unoriginal. Try replacing with fresh, specific language.</div></div>';
+      issueCount+=r.cliches.length;
+    }
+    if(!issuesHtml){
+      issuesHtml='<em class="opacity-40 text-[11px]">No significant issues detected. Great writing!</em>';
+    }
+    issues.innerHTML=issuesHtml;
+    badgeIssues.textContent=issueCount+' issues';
+
+    renderVocabulary(r);
+    renderTransitions(r);
+    renderSentBreakdown(r);
+    saveToHistory(r);
+  }
+
+  function renderDistBar(label, count, total, color){
+    var pct=total>0?Math.round(count/total*100):0;
+    return '<div title="'+label+': '+count+' ('+pct+'%)" style="flex:'+pct+';background:'+color+';height:'+Math.max(4,Math.round(pct/2))+'px;border-radius:2px;transition:all 0.3s;"></div>';
+  }
+
+  function renderVocabulary(r){
+    var v=r.vocab;
+    if(!v||!v.ttr){
+      vocabGrid.innerHTML='<em class="opacity-40 text-[11px]">Not enough text</em>';
+      badgeVocab.textContent='—';return;
+    }
+    var ttrLabel=v.ttr>=60?'High':v.ttr>=40?'Moderate':'Low';
+    var ldLabel=v.lexicalDensity>=55?'Dense':v.lexicalDensity>=40?'Balanced':'Light';
+    var html='<div class="wqa-vocab-item"><div class="wqa-vl">TTR</div><div class="wqa-vv">'+v.ttr+'%</div><div class="wqa-rd">'+ttrLabel+' diversity</div></div>';
+    html+='<div class="wqa-vocab-item"><div class="wqa-vl">Lexical Density</div><div class="wqa-vv">'+v.lexicalDensity+'%</div><div class="wqa-rd">'+ldLabel+'</div></div>';
+    html+='<div class="wqa-vocab-item"><div class="wqa-vl">Unique Words</div><div class="wqa-vv">'+v.uniqueWords+'</div><div class="wqa-rd">of '+r.words.length+' total</div></div>';
+    html+='<div class="wqa-vocab-item"><div class="wqa-vl">Hapax Legomena</div><div class="wqa-vv">'+v.hapax+'</div><div class="wqa-rd">words used once</div></div>';
+    vocabGrid.innerHTML=html;
+    badgeVocab.textContent=v.ttr+'% TTR';
+
+    var freqHtml='';
+    var maxCount=v.freq.length?v.freq[0].count:1;
+    for(var i=0;i<v.freq.length;i++){
+      var f=v.freq[i];
+      var pct=Math.round(f.count/maxCount*100);
+      freqHtml+='<div class="wqa-freq-row"><span class="wqa-freq-word">'+esc(f.word)+'</span><div class="wqa-freq-bar" style="width:'+pct+'%"></div><span class="wqa-freq-count">'+f.count+'x</span></div>';
+    }
+    if(!freqHtml)freqHtml='<em class="opacity-40 text-[11px]">Not enough data</em>';
+    freqList.innerHTML=freqHtml;
+  }
+
+  function renderTransitions(r){
+    var t=r.transitions;
+    if(!t||!t.total){
+      transSummary.innerHTML='<em class="opacity-40 text-[11px]">Not enough text</em>';
+      transList.innerHTML='';
+      badgeTrans.textContent='—';return;
+    }
+    var quality=t.pct>=40?'Excellent':t.pct>=25?'Good':t.pct>=15?'Fair':'Poor';
+    transSummary.innerHTML='<strong>'+t.covered+'/'+t.total+'</strong> sentences start with a transition word (<strong>'+t.pct+'%</strong> — '+quality+')';
+    if(t.used.length){
+      var th='<div class="flex flex-wrap gap-1 mt-1.5">';
+      for(var i=0;i<t.used.length;i++){
+        th+='<span class="wqa-trans-item">'+esc(t.used[i].word)+' <span class="opacity-40">x'+t.used[i].count+'</span></span>';
+      }
+      th+='</div>';
+      transList.innerHTML=th;
+    }else{
+      transList.innerHTML='<em class="opacity-40 text-[11px]">No transition words used at sentence starts.</em>';
+    }
+    badgeTrans.textContent=t.pct+'%';
+  }
+
+  function renderSentBreakdown(r){
+    var sa=r.sentAnalysis;
+    if(!sa||!sa.length){
+      sentBody.innerHTML='<tr><td colspan="4" class="opacity-40 text-[11px] p-2">No sentences to display</td></tr>';
+      badgeSents.textContent='0';return;
+    }
+    var html='';
+    for(var i=0;i<sa.length;i++){
+      var s=sa[i];
+      var badges='';
+      if(s.hasPassive)badges+='<span class="wqa-badge-sm wqa-badge-passive">P</span>';
+      if(s.hasAdverb)badges+='<span class="wqa-badge-sm wqa-badge-adverb">A</span>';
+      if(s.hasComplex)badges+='<span class="wqa-badge-sm wqa-badge-complex">C</span>';
+      if(s.isRunon)badges+='<span class="wqa-badge-sm wqa-badge-runon">R</span>';
+      if(!badges)badges='<span class="wqa-badge-sm wqa-badge-clean">OK</span>';
+      html+='<tr><td class="wqa-st-num">'+(i+1)+'</td><td class="wqa-st-text" title="'+esc(s.text)+'">'+esc(s.text.substring(0,80))+'</td><td class="wqa-st-words">'+s.words+'</td><td>'+badges+'</td></tr>';
+    }
+    sentBody.innerHTML=html;
+    badgeSents.textContent=sa.length+' sents';
+  }
+
+  function run(){
+    var t=input.value.trim();
+    if(!t){status.textContent='No text to analyze';return;}
+    var result=analyze(t);
+    if(!result){status.textContent='Could not analyze text';return;}
+    render(result);
+  }
+
+  function resetAll(){
+    input.value='';
+    charCount.textContent='0 / 5000';
+    wc.textContent='0';sc.textContent='0';cc.textContent='0';rt.textContent='0s';
+    render(null);
+    status.textContent='Waiting for input';
+  }
+
+  function loadSample(){
+    input.value='Artificial intelligence has transformed the way we work, learn, and communicate. From voice assistants to recommendation systems, AI is being used to reshape industries across the globe. In healthcare, machine learning algorithms are being utilized to detect diseases earlier than traditional methods. In education, personalized learning platforms adapt to each student\'s unique pace and style. The transportation sector is being revolutionized by self-driving cars and optimized logistics. However, these advances also raise important questions about privacy, job displacement, and ethical decision-making. At the end of the day, community engagement and thoughtful public discourse will be crucial for shaping the ethical frameworks that will guide AI development for generations to come. Generally speaking, the future of AI is not just about technology; it is fundamentally about how we choose to integrate it into society in a responsible manner. Organizations must invest in comprehensive reskilling programs to adequately prepare workers for an AI-driven economy. It is believed by many experts that collaborative approaches will ultimately yield the best outcomes for everyone involved.';
+    input.dispatchEvent(new Event('input'));
+    run();
+  }
+
+  function updateStats(){
+    var t=input.value, w=countWords(t), s=getSentences(t).length, c=t.length;
+    wc.textContent=w;sc.textContent=s;cc.textContent=c;
+    rt.textContent=w>0?readingTimeSec(t)+'s':'0s';
+    charCount.textContent=c+' / 5000';
+  }
+
+  function copyResult(){
+    var t=input.value.trim();if(!t)return;
+    var result=analyze(t);
+    if(!result)return;
+    var r=result;
+    var lines=[];
+    lines.push('=== Writing Quality Report ===');
+    lines.push('Grade: '+r.grade+' ('+r.qualityScore+'%)');
+    lines.push('');
+    lines.push('Readability:');
+    lines.push('  FK Grade Level: '+r.readability.fkgl);
+    lines.push('  Reading Ease: '+r.readability.fre+' ('+readabilityLabel(r.readability.fre)+')');
+    lines.push('  Fog Index: '+r.readability.fog);
+    lines.push('');
+    lines.push('Vocabulary:');
+    lines.push('  TTR: '+r.vocab.ttr+'% | Lexical Density: '+r.vocab.lexicalDensity+'% | Unique Words: '+r.vocab.uniqueWords+' | Hapax: '+r.vocab.hapax);
+    lines.push('');
+    lines.push('Transitions: '+r.transitions.pct+'% of sentences ('+r.transitions.covered+'/'+r.transitions.total+')');
+    lines.push('');
+    lines.push('Issues:');
+    lines.push('  Passive Voice: '+r.passive.length);
+    lines.push('  Adverbs: '+r.adverbs.length+' ('+r.adverbDensity+'/100 words)');
+    lines.push('  Complex Words: '+r.complex.length+' ('+r.complexRatio+'%)');
+    lines.push('  Run-on Sentences: '+r.runonSents);
+    lines.push('  Cliches: '+r.cliches.length);
+    lines.push('');
+    lines.push('Tone: '+r.dominantTone.charAt(0).toUpperCase()+r.dominantTone.slice(1));
+    lines.push('Sentences: '+r.sents.length+' | Words: '+r.words.length);
+    var text=lines.join('\n');
+    navigator.clipboard.writeText(text).then(function(){
+      copyBtn.innerHTML='{{ lucide_icon("check","w-4 h-4", 16) | safe }} Copied!';
+      setTimeout(function(){copyBtn.innerHTML='{{ lucide_icon("copy","w-4 h-4", 16) | safe }} Copy Report';},1500);
+    });
+  }
+
+  function exportPdf(){
+    var t=input.value.trim();if(!t)return;
+    var result=analyze(t);
+    if(!result)return;
+    var r=result;
+    var gradeTexts={A:'Excellent',B:'Good',C:'Fair',D:'Poor',F:'Hard to read'};
+    var body='<div style="font-family:Georgia,serif;max-width:650px;margin:40px auto;padding:0 20px;line-height:1.7;color:#222;">';
+    body+='<h1 style="font-size:1.5rem;border-bottom:2px solid #eee;padding-bottom:8px;margin-bottom:16px;">Writing Quality Report</h1>';
+    body+='<div style="font-size:1.25rem;font-weight:bold;margin-bottom:16px;">Grade: '+r.grade+' &mdash; '+gradeTexts[r.grade]+' ('+r.qualityScore+'%)</div>';
+    body+='<h2 style="font-size:1rem;margin:16px 0 8px;">Readability</h2>';
+    body+='<table style="width:100%;border-collapse:collapse;font-size:0.875rem;"><tr><td style="padding:4px 8px;font-weight:bold;">FK Grade Level</td><td>'+r.readability.fkgl+'</td></tr>';
+    body+='<tr><td style="padding:4px 8px;font-weight:bold;">Reading Ease</td><td>'+r.readability.fre+' ('+readabilityLabel(r.readability.fre)+')</td></tr>';
+    body+='<tr><td style="padding:4px 8px;font-weight:bold;">Fog Index</td><td>'+r.readability.fog+'</td></tr>';
+    body+='<tr><td style="padding:4px 8px;font-weight:bold;">Complex Words</td><td>'+r.readability.complexWords+' of '+r.readability.totalWords+'</td></tr></table>';
+    body+='<h2 style="font-size:1rem;margin:16px 0 8px;">Issues</h2>';
+    body+='<ul style="font-size:0.875rem;">';
+    body+='<li>Passive Voice: '+r.passive.length+' instance'+(r.passive.length!==1?'s':'')+'</li>';
+    body+='<li>Adverbs: '+r.adverbs.length+' ('+r.adverbDensity+' per 100 words)</li>';
+    body+='<li>Complex Words: '+r.complex.length+' ('+r.complexRatio+'% of text)</li>';
+    body+='<li>Run-on Sentences: '+r.runonSents+'</li>';
+    body+='<li>Cliches: '+r.cliches.length+'</li></ul>';
+    body+='<h2 style="font-size:1rem;margin:16px 0 8px;">Vocabulary</h2>';
+    body+='<p style="font-size:0.875rem;">TTR: '+r.vocab.ttr+'% | Lexical Density: '+r.vocab.lexicalDensity+'% | Unique Words: '+r.vocab.uniqueWords+' | Hapax Legomena: '+r.vocab.hapax+'</p>';
+    body+='<h2 style="font-size:1rem;margin:16px 0 8px;">Transitions</h2>';
+    body+='<p style="font-size:0.875rem;">'+r.transitions.pct+'% of sentences start with a transition ('+r.transitions.covered+'/'+r.transitions.total+')</p>';
+    body+='<h2 style="font-size:1rem;margin:16px 0 8px;">Tone</h2>';
+    body+='<p style="font-size:0.875rem;">Dominant: '+r.dominantTone.charAt(0).toUpperCase()+r.dominantTone.slice(1)+'</p>';
+    body+='<h2 style="font-size:1rem;margin:16px 0 8px;">Sentence Variety</h2>';
+    body+='<p style="font-size:0.875rem;">Short (&le;12w): '+r.shortSents+' &middot; Medium (13-25w): '+r.medSents+' &middot; Long (&gt;25w): '+r.longSents+'</p>';
+    body+='<p style="color:#999;font-size:0.75rem;border-top:1px solid #eee;padding-top:8px;margin-top:24px;">Generated by StoryBrain AI Writing Quality Analyzer &mdash; '+r.words.length+' words, '+r.sents.length+' sentences</p>';
+    body+='</div>';
+    var html='<!DOCTYPE html><html><head><style>body{font-family:Georgia,serif;max-width:650px;margin:40px auto;padding:0 20px;line-height:1.7;color:#222;}h1{font-size:1.5rem;border-bottom:2px solid #eee;padding-bottom:8px;}h2{font-size:1rem;margin:16px 0 8px;}ul{margin:0 0 1em 0;padding-left:1.5em;}table{width:100%;border-collapse:collapse;}td{padding:4px 8px;}@media print{body{margin:20px;}}</style></head><body>'+body+'</body></html>';
+    var w=window.open('','_blank');
+    if(w){w.document.write(html);w.document.close();setTimeout(function(){w.print();},300);}else{expPdf.innerHTML='{{ lucide_icon("ban","w-4 h-4", 16) | safe }} Allow popups';setTimeout(function(){expPdf.innerHTML='{{ lucide_icon("file-text","w-4 h-4", 16) | safe }} PDF';},3000);}
+  }
+
+  function saveToHistory(result){
+    try{
+      var raw=localStorage.getItem(historyKey);
+      var hist=raw?JSON.parse(raw):[];
+      var preview=result.text.substring(0,80);
+      var entry={text:result.text,preview:preview,grade:result.grade,qualityScore:result.qualityScore,words:result.words.length,sents:result.sents.length,ts:Date.now()};
+      var dup=false;
+      for(var i=0;i<hist.length;i++)if(hist[i].preview===preview&&hist[i].grade===result.grade){dup=true;hist[i]=entry;break;}
+      if(!dup){hist.unshift(entry);if(hist.length>10)hist=hist.slice(0,10);}
+      localStorage.setItem(historyKey,JSON.stringify(hist));
+      renderHistory(hist);
+    }catch(e){}
+  }
+
+  function renderHistory(hist){
+    if(!hist||!hist.length){
+      histList.innerHTML='<em class="opacity-30 text-[11px]">No saved analyses yet. Run an analysis to see history here.</em>';
+      badgeHist.textContent='0 saved';return;
+    }
+    var html='';
+    for(var i=0;i<hist.length;i++){
+      var h=hist[i], d=new Date(h.ts);
+      var timeStr=d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      var cls=h.grade==='A'?'wqa-grade-a':h.grade==='B'?'wqa-grade-b':h.grade==='C'?'wqa-grade-c':h.grade==='D'?'wqa-grade-d':'wqa-grade-f';
+      html+='<div class="wqa-hist-item"><button type="button" class="btn btn-ghost btn-xs wqa-hist-restore" data-idx="'+i+'">{{ lucide_icon("rotate-ccw","w-3 h-3", 12) | safe }}</button><div class="flex-1 min-w-0"><div class="text-[11px] truncate">'+esc(h.preview)+'</div><div class="text-[9px] font-mono opacity-40"><span class="'+cls+'">'+h.grade+'</span> | '+h.qualityScore+'% | '+h.words+'w | '+h.sents+'s</div></div><span class="wqa-hist-meta">'+timeStr+'</span></div>';
+    }
+    histList.innerHTML=html;
+    badgeHist.textContent=hist.length+' saved';
+        var btns=histList.querySelectorAll('.wqa-hist-restore');
+    for(var i=0;i<btns.length;i++){
+      btns[i].addEventListener('click',function(e){
+        var btn=e.currentTarget;
+        var idx=parseInt(btn.getAttribute('data-idx'));
+        try{var raw=localStorage.getItem(historyKey);var hist=raw?JSON.parse(raw):[];if(hist[idx]&&hist[idx].text){input.value=hist[idx].text;input.dispatchEvent(new Event('input'));run();}}catch(ex){}
+      });
+    }
+  }
+
+  input.addEventListener('input',updateStats);
+  go.addEventListener('click',run);
+  reset.addEventListener('click',resetAll);
+  sample.addEventListener('click',loadSample);
+  copyBtn.addEventListener('click',copyResult);
+  expPdf.addEventListener('click',exportPdf);
+  updateStats();
+  try{var raw=localStorage.getItem(historyKey);if(raw)renderHistory(JSON.parse(raw));}catch(e){}
+})();
+</script>
+{% endblock %}

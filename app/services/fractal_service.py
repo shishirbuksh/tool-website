@@ -5,7 +5,6 @@ import base64
 import hashlib
 import io
 import json
-import re
 import time
 
 import requests

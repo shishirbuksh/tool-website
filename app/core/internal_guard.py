@@ -15,9 +15,8 @@ def require_internal(request: Request) -> None:
     real_ip = request.headers.get("X-Real-IP", "")
     client_host = request.client.host if request.client else ""
 
-    if real_ip and client_host:
-        if client_host not in _INTERNAL_IPS:
-            raise HTTPException(status_code=403, detail="Forbidden")
+    if real_ip and client_host and client_host not in _INTERNAL_IPS:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
     client_ip = real_ip or client_host
     if client_ip not in _INTERNAL_IPS:

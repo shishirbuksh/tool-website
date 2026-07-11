@@ -22,9 +22,9 @@ class TestSettings:
 
     def test_default_project_name(self):
         s = Settings()
-        assert s.PROJECT_NAME == "Multi-Tool Website"
+        assert s.PROJECT_NAME == "StoryBrain AI"
 
     def test_settings_singleton(self):
         from app.core.config import settings
 
-        assert settings.PROJECT_NAME == "Multi-Tool Website"
+        assert settings.PROJECT_NAME == "StoryBrain AI"

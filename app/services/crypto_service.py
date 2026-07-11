@@ -73,11 +73,11 @@ class CryptoService:
                     self._rust_predictor = rust_predictor
                 else:
                     logger.warning("rust_predictor native module not compiled — predictions will be degraded")
-                    self._rust_predictor = False
+                    self._rust_predictor = None
             except Exception:
                 logger.warning("rust_predictor not available — predictions will be degraded")
-                self._rust_predictor = False
-        return self._rust_predictor if self._rust_predictor is not False else None
+                self._rust_predictor = None
+        return self._rust_predictor
 
     async def predict(self, symbol: str = "BTC-USD") -> dict:
         cache = get_cache()
@@ -166,7 +166,7 @@ class CryptoService:
             sem = _get_prophet_semaphore()
             try:
                 await asyncio.wait_for(sem.acquire(), timeout=5.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.warning(f"Prophet prediction timeout for {symbol}: Too many concurrent models")
                 return None
             try:

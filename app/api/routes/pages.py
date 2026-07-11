@@ -13,7 +13,7 @@ from markupsafe import Markup
 from app.core.config import settings
 from app.core.icons import lucide_icon
 from app.core.log import get_logger
-from app.core.responses import cached_json, no_cache_json
+from app.core.responses import cached_json
 from app.services.catalog_service import CatalogService
 from app.services.seo_service import SeoService
 
@@ -144,11 +144,7 @@ async def tools_catalog():
     return cached_json(tools, max_age=300, stale_while_revalidate=3600)
 
 
-@router.api_route("/offline", methods=["GET", "HEAD"], response_class=HTMLResponse)
-async def offline_page(request: Request):
-    resp = templates.TemplateResponse(request=request, name="offline.html")
-    resp.headers.update(_PAGE_CACHE_HEADERS)
-    return resp
+
 
 
 @router.api_route("/sw.js", methods=["GET", "HEAD"], include_in_schema=False)

@@ -1,6 +1,6 @@
 """NFT generation API: text-to-image via local/remote AI providers."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from app.core.config import settings
 from app.core.log import get_logger
@@ -16,6 +16,8 @@ logger = get_logger(__name__)
 
 @router.post("/generate-nft")
 async def generate_nft(req: NFTRequest):
+    if not req.api_key and req.provider != "local":
+        raise HTTPException(status_code=500, detail="API Key required")
     return await fractal_service.generate_nft(
         prompt=req.prompt,
         style=req.style,

@@ -22,7 +22,7 @@ def _patched_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
     return _original_getaddrinfo(host, port, family, type, proto, flags)
 
 socket.getaddrinfo = _patched_getaddrinfo
-from app.core.exceptions import ServiceError, ValidationException
+from app.core.exceptions import ServiceError, ValidationException  # noqa: E402
 
 
 class ProxyService:

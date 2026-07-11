@@ -13,7 +13,7 @@ _PATH_CARDINALITY_WARNED: set[str] = set()
 
 def _safe_path_label(request, max_labels: int = 100) -> str:
     """Return the route pattern path to bound Prometheus label cardinality.
-    
+
     Falls back to a truncated raw path when no route is matched, and warns
     once per unknown path pattern.
     """
