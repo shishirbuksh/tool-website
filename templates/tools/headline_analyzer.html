@@ -1,0 +1,1236 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
+{% block title %}Headline Analyzer — Free Online Headline Score & Report | StoryBrain AI{% endblock %}
+{% block meta_description %}Score your headlines instantly. Get a 0-100 rating based on structure, word balance, emotion, and readability. Free online tool — no signup needed.{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/headline-analyzer{% endblock %}
+{% block og_title %}Headline Analyzer — Free Online Headline Score & Report | StoryBrain AI{% endblock %}
+{% block og_description %}Score your headlines instantly. Get a 0-100 rating based on structure, word balance, emotion, and readability. Free, no sign-up.{% endblock %}
+{% block head %}
+<style>
+.ha-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.25rem;border:1px solid var(--color-base-300)}
+.ha-card-sm{background:var(--color-base-200);border-radius:1rem;padding:.75rem 1rem;border:1px solid var(--color-base-300)}
+.ha-label{font-size:0.625rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:4px;display:block}
+.ha-textarea{width:100%;min-height:90px;border-radius:.85rem;padding:.65rem .85rem;font-weight:600;font-size:1rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:inherit;resize:vertical;transition:border-color .18s;box-sizing:border-box;line-height:1.5}
+.ha-textarea:focus{border-color:var(--color-primary);outline:none}.ha-textarea:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.ha-textarea::placeholder{opacity:.25;font-weight:400}
+.ha-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.ha-input:focus{border-color:var(--color-primary);outline:none}.ha-input:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.ha-input::placeholder{opacity:.25;font-weight:400}
+.ha-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.55rem .85rem;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;touch-action:manipulation}
+.ha-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.ha-pri:active{transform:translateY(0)}
+.ha-pri:disabled{opacity:.5;cursor:not-allowed;transform:none;filter:none}
+.ha-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.4rem .65rem;font-weight:700;font-size:.65rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;touch-action:manipulation;white-space:nowrap}
+.ha-sec:hover{border-color:var(--color-base-content)}
+.ha-pri:focus-visible,.ha-sec:focus-visible,.ha-tab:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.ha-tab{background:none;border:none;padding:.45rem .85rem;font-weight:800;font-size:.6rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;opacity:.3;transition:all .15s;color:var(--color-base-content);border-radius:.6rem;font-family:inherit}
+.ha-tab.act{opacity:1;background:var(--color-base-100)}
+.ha-tab:hover{opacity:.6}
+.ha-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px;pointer-events:none;max-width:calc(100vw - 48px)}
+.ha-toast.show{opacity:1;transform:translateY(0)}
+.ha-tab-bar{display:flex;gap:6px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--color-base-300)}
+.ha-tab-panel{display:none}
+.ha-tab-panel.act{display:block}
+.ha-score-ring{width:120px;height:120px;position:relative;flex-shrink:0;margin:0 auto}
+.ha-score-ring svg{transform:rotate(-90deg)}.ha-score-ring .ha-sr-bg{fill:none;stroke:var(--color-base-300);stroke-width:8}.ha-score-ring .ha-sr-fg{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .4s,stroke .3s}
+.ha-score-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;font-size:1.75rem;font-family:monospace;line-height:1;color:var(--color-base-content)}
+.ha-score-val .ha-sv-label{font-size:.45rem;opacity:.35;font-weight:700;text-transform:uppercase;font-family:inherit;letter-spacing:.06em}
+.ha-score-ring.ha-sr-empty .ha-sr-fg{stroke:var(--color-base-300);opacity:.3}
+.ha-bar-group{display:flex;flex-direction:column;gap:8px;flex:1}
+.ha-bar-row{display:flex;align-items:center;gap:8px}
+.ha-bar-label{font-size:.5rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;opacity:.5;min-width:88px;flex-shrink:0;white-space:nowrap}
+.ha-bar-track{flex:1;height:8px;background:var(--color-base-300);border-radius:4px;overflow:hidden}
+.ha-bar-fill{height:100%;border-radius:4px;transition:width .4s,background .3s}
+.ha-bar-num{font-size:.55rem;font-weight:800;font-family:monospace;min-width:24px;text-align:right;opacity:.6}
+.ha-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-base-300)}
+.ha-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:.45rem;font-size:.475rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;background:var(--color-base-100);border:1px solid var(--color-base-300)}
+.ha-badge .ha-bd-dot{width:5px;height:5px;border-radius:50%;display:inline-block}
+.ha-suggestion{padding:6px 0;font-size:.6rem;font-weight:700;display:flex;align-items:start;gap:6px;opacity:.7}
+.ha-suggestion::before{content:'\2192';flex-shrink:0;opacity:.4}
+.ha-empty{text-align:center;padding:24px 16px;font-size:.65rem;font-weight:600;opacity:.25;line-height:1.6}
+.ha-history-row{display:flex;align-items:center;gap:8px;padding:8px;border-radius:.6rem;background:var(--color-base-100);border:1px solid var(--color-base-300);margin-bottom:4px;cursor:pointer;transition:all .12s;font-size:.6rem;font-weight:600}
+.ha-history-row:hover{border-color:var(--color-base-content)}
+.ha-history-row .ha-hr-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.7}
+.ha-history-row .ha-hr-score{font-family:monospace;font-weight:800;flex-shrink:0;min-width:28px;text-align:right}
+.ha-history-row .ha-hr-del{background:none;border:none;cursor:pointer;opacity:.2;font-size:.7rem;padding:2px;color:var(--color-base-content);flex-shrink:0;font-family:inherit}
+.ha-history-row .ha-hr-del:hover{opacity:1}
+.ha-char-warn{font-size:.5rem;font-weight:800;margin-top:4px;display:flex;align-items:center;gap:4px}
+.ha-char-warn.ha-cw-ok{color:var(--color-success)}.ha-char-warn.ha-cw-warn{color:var(--color-warning,var(--color-primary))}.ha-char-warn.ha-cw-err{color:var(--color-error)}
+.ha-compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ha-compare-textarea{width:100%;min-height:70px;border-radius:.75rem;padding:.55rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:inherit;resize:vertical;transition:border-color .18s;box-sizing:border-box;line-height:1.5}
+.ha-compare-textarea:focus{border-color:var(--color-primary);outline:none}.ha-compare-textarea:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.ha-compare-textarea::placeholder{opacity:.25;font-weight:400}
+.ha-winner{border-color:var(--color-success)!important;background:color-mix(in oklab,var(--color-success) 4%,transparent)}
+.ha-lcol,.ha-rcol{width:100%}
+@media print{@page{size:A4;margin:12mm}.no-print{display:none!important}.ha-card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}body{background:#fff!important;color:#000!important}.ha-score-val{color:#000!important}}
+@media (max-width:700px){.ha-compare-grid{grid-template-columns:1fr}.ha-score-ring{width:100px;height:100px}.ha-score-val{font-size:1.375rem}.ha-bar-label{min-width:72px;font-size:.45rem}}
+@media (max-width:480px){.ha-bar-label{min-width:64px}.ha-card{padding:.85rem}.ha-tab{padding:.35rem .6rem;font-size:.5rem}}
+@media (min-width:1024px){.ha-lcol{width:38%}.ha-rcol{width:62%}}
+.ha-em-section{margin-top:10px;padding-top:10px;border-top:1px solid var(--color-base-300)}
+.ha-em-row{display:flex;align-items:center;gap:5px;margin-bottom:3px}
+.ha-em-label{font-size:.425rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;opacity:.5;min-width:40px;flex-shrink:0;text-align:right}
+.ha-em-track{flex:1;height:4px;background:var(--color-base-300);border-radius:2px;overflow:hidden}
+.ha-em-fill{height:100%;border-radius:2px;transition:width .5s ease}
+.ha-clickbait{display:inline-flex;align-items:center;gap:4px;margin-top:6px}
+.ha-cb-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
+.ha-serp-card{margin-top:0}
+.ha-serp-preview{background:#fff;border-radius:.6rem;padding:8px 12px;border:1px solid var(--color-base-300);font-size:.65rem;line-height:1.4}
+.ha-serp-preview .ha-serp-url{font-size:.5rem;color:#006621;margin-bottom:1px;word-break:break-all}
+.ha-serp-preview .ha-serp-title{font-size:.75rem;font-weight:400;color:#1a0dab;cursor:pointer;display:inline;line-height:1.3}
+.ha-serp-preview .ha-serp-title b{font-weight:700}
+.ha-serp-preview .ha-serp-desc{font-size:.6rem;color:#545454;margin-top:2px;word-break:break-all;line-height:1.4}
+.ha-serp-preview .ha-serp-desc b{font-weight:700;color:#545454}
+.ha-serp-bar{height:2px;background:var(--color-base-300);border-radius:1px;margin-top:6px;position:relative}
+.ha-serp-bar .ha-serp-trunc{position:absolute;top:-3px;height:8px;width:2px;background:var(--color-error);border-radius:1px}
+.ha-serp-label{font-size:.425rem;font-weight:700;opacity:.4;margin-top:4px;display:flex;justify-content:space-between}
+.ha-rewrite-section{margin-top:10px;padding-top:10px;border-top:1px solid var(--color-base-300)}
+.ha-rewrite-title{font-size:.5rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;opacity:.5;margin-bottom:6px;display:block}
+.ha-rewrite{font-size:.6rem;font-weight:600;padding:5px 8px;border-radius:.5rem;background:var(--color-base-100);border:1px solid var(--color-base-300);margin-bottom:4px;display:block;cursor:pointer;transition:all .12s;color:var(--color-base-content);line-height:1.4}
+.ha-rewrite:hover{border-color:var(--color-primary);background:color-mix(in oklab,var(--color-primary) 6%,transparent)}
+.ha-rewrite::before{content:'\270F\00a0';opacity:.5}
+.ha-fml-section{margin-top:14px;padding-top:12px;border-top:1px solid var(--color-base-300)}
+.ha-fml-title{font-size:.5rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;opacity:.5;margin-bottom:8px;display:block}
+.ha-fml-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;max-height:200px;overflow-y:auto}
+.ha-fml-item{font-size:.5rem;font-weight:600;padding:5px 7px;border-radius:.45rem;background:var(--color-base-100);border:1px solid var(--color-base-300);cursor:pointer;transition:all .1s;color:var(--color-base-content);text-align:left;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:inherit}
+.ha-fml-item:hover{border-color:var(--color-primary);background:color-mix(in oklab,var(--color-primary) 6%,transparent)}
+.ha-fml-item .ha-fml-cat{font-size:.4rem;font-weight:700;text-transform:uppercase;opacity:.4;margin-right:4px}
+.ha-read-table{width:100%;border-collapse:collapse;margin-top:6px;font-size:.5rem}
+.ha-read-table th{text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.05em;opacity:.4;padding:3px 6px;border-bottom:1px solid var(--color-base-300)}
+.ha-read-table td{padding:3px 6px;border-bottom:1px solid var(--color-base-300);opacity:.75;font-weight:600}
+.ha-read-table td:last-child{text-align:right;font-family:monospace;font-weight:800}
+.ha-read-table tr:last-child td{border-bottom:none}
+.ha-read-section{margin-top:8px;padding-top:8px;border-top:1px solid var(--color-base-300)}
+.ha-tone-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:.5rem;font-size:.475rem;font-weight:800;border:1px solid var(--color-base-300);background:var(--color-base-100)}
+.ha-tone-label{opacity:.5;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.ha-tone-value{font-weight:800}
+.ha-tone-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.ha-batch-textarea{width:100%;min-height:130px;border-radius:.75rem;padding:.55rem .75rem;font-weight:600;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:inherit;resize:vertical;transition:border-color .18s;box-sizing:border-box;line-height:1.6}
+.ha-batch-textarea:focus{border-color:var(--color-primary);outline:none}
+.ha-batch-textarea::placeholder{opacity:.25;font-weight:400}
+.ha-batch-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.55rem}
+.ha-batch-table th{text-align:left;font-weight:800;text-transform:uppercase;letter-spacing:.05em;opacity:.4;padding:5px 8px;border-bottom:1px solid var(--color-base-300);cursor:pointer;white-space:nowrap}
+.ha-batch-table th:hover{opacity:.7}
+.ha-batch-table td{padding:5px 8px;border-bottom:1px solid var(--color-base-300);font-weight:600;opacity:.75;vertical-align:middle}
+.ha-batch-table .ha-bt-score{font-family:monospace;font-weight:800;text-align:center}
+.ha-batch-table tr:hover td{background:color-mix(in oklab,var(--color-base-content) 2%,transparent)}
+.ha-batch-note{font-size:.45rem;font-weight:600;opacity:.4;margin-top:6px;text-align:center}
+.ha-spark{width:100%;height:36px;margin-top:8px}
+.ha-spark svg{width:100%;height:100%}
+.ha-pw-section{margin-top:10px;padding-top:10px;border-top:1px solid var(--color-base-300)}
+.ha-pw-title{font-size:.5rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;opacity:.5;margin-bottom:6px;display:block}
+.ha-pw-cats{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px}
+.ha-pw-cat{font-size:.45rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 7px;border-radius:.35rem;background:var(--color-base-100);border:1px solid var(--color-base-300);cursor:pointer;transition:all .1s;color:var(--color-base-content);font-family:inherit;opacity:.5}
+.ha-pw-cat.act{opacity:1;border-color:var(--color-primary);background:color-mix(in oklab,var(--color-primary) 8%,transparent)}
+.ha-pw-cat:hover{opacity:.8}
+.ha-pw-grid{display:flex;flex-wrap:wrap;gap:3px;max-height:120px;overflow-y:auto}
+.ha-pw-word{font-size:.5rem;font-weight:600;padding:3px 7px;border-radius:.3rem;background:var(--color-base-100);border:1px solid var(--color-base-300);cursor:pointer;transition:all .1s;color:var(--color-base-content);font-family:inherit;line-height:1}
+.ha-pw-word:hover{border-color:var(--color-primary);background:color-mix(in oklab,var(--color-primary) 6%,transparent)}
+.ha-pw-word:active{transform:scale(.95)}
+.ha-prof-select{font-size:.65rem;font-weight:700;padding:4px 8px;border-radius:.5rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-family:inherit;cursor:pointer;width:100%;margin-top:6px}
+.ha-prof-select:focus{border-color:var(--color-primary);outline:none}
+.ha-slider-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.ha-slider-label{font-size:.45rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;opacity:.5;min-width:72px;flex-shrink:0}
+.ha-slider{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:var(--color-base-300);border-radius:2px;outline:none;cursor:pointer}
+.ha-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;border-radius:50%;background:var(--color-primary);cursor:pointer;border:none}
+.ha-slider::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--color-primary);cursor:pointer;border:none}
+.ha-slider-val{font-size:.5rem;font-weight:800;font-family:monospace;min-width:20px;text-align:right;opacity:.6}
+.ha-highlight{position:relative;display:inline}
+.ha-highlight .ha-hl-complex{border-bottom:2px dotted var(--color-warning,var(--color-primary));cursor:help}
+.ha-hl-info{font-size:.45rem;font-weight:700;opacity:.4;margin-top:6px;display:flex;gap:12px}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("newspaper","SEO","Headline Analyzer","ANALYZER","Score your headlines instantly. Get a 0-100 rating with breakdowns for structure, word balance, emotion, and readability. Free online tool — no signup needed.") }}
+<div id="haToast" class="ha-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div class="ha-lcol">
+<div class="ha-card no-print">
+<div class="ha-tab-bar"><button type="button" class="ha-tab act" data-tab="single" aria-label="Analyze a single headline">Analyze</button><button type="button" class="ha-tab" data-tab="compare" aria-label="Compare two headlines side by side">Compare</button><button type="button" class="ha-tab" data-tab="batch" aria-label="Batch analyze multiple headlines">Batch</button></div>
+<div id="haPanelSingle" class="ha-tab-panel act">
+<div class="ha-label" for="haHeadline">Headline</div>
+<textarea id="haHeadline" class="ha-textarea" placeholder="Paste or type your headline here..." aria-label="Enter your headline to analyze" spellcheck="true"></textarea>
+<div id="haCharWarn" class="ha-char-warn ha-cw-ok" aria-live="polite">0 characters</div>
+<div class="mt-3"><label class="ha-label" for="haKeyword">Target Keyword <span style="opacity:.4">(optional)</span></label><input type="text" id="haKeyword" class="ha-input" placeholder="e.g. SEO tips" aria-label="Optional target keyword for SEO analysis"></div>
+<label class="ha-label" for="haPlatform" style="margin-top:10px">Platform</label>
+<select id="haPlatform" class="ha-prof-select" aria-label="Select platform for optimized scoring"><option value="blog">Blog / SEO</option><option value="social">Social Media</option><option value="email">Email</option><option value="ad">Ad / PPC</option></select>
+</div>
+<div id="haPanelCompare" class="ha-tab-panel">
+<div class="ha-compare-grid"><div><div class="ha-label" for="haCmp1">Headline A</div><textarea id="haCmp1" class="ha-compare-textarea" placeholder="Headline A..." aria-label="First headline for comparison" spellcheck="true"></textarea><div class="ha-char-warn ha-cw-ok" style="margin-top:2px" id="haCcw1">0 chars</div></div><div><div class="ha-label" for="haCmp2">Headline B</div><textarea id="haCmp2" class="ha-compare-textarea" placeholder="Headline B..." aria-label="Second headline for comparison" spellcheck="true"></textarea><div class="ha-char-warn ha-cw-ok" style="margin-top:2px" id="haCcw2">0 chars</div></div></div>
+</div>
+<div id="haPanelBatch" class="ha-tab-panel">
+<div class="ha-label" for="haBatchInput">Enter one headline per line</div>
+<textarea id="haBatchInput" class="ha-batch-textarea" placeholder="7 Proven Headline Formulas That Triple CTR&#10;How to Write Headlines That Convert&#10;The Ultimate Guide to Headline Analysis&#10;Why Your Headlines Aren't Getting Clicks" aria-label="Enter multiple headlines, one per line" spellcheck="true"></textarea>
+<div id="haBatchResults"></div>
+<div class="ha-batch-note">Headlines are scored automatically. Click a row to load it into the analyzer.</div>
+</div>
+</div>
+<div class="ha-card mt-4 no-print"><h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2"><svg class="w-4 h-4" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg> Formulas</h2><div id="haFormulaGrid" class="ha-fml-grid"></div></div>
+<div class="ha-card mt-4 no-print"><h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2"><svg class="w-4 h-4" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-4a2 2 0 0 1-2-2V1"/><path d="M4 7V4a2 2 0 0 1 2-2h6l6 6v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/></svg> Power Words</h2><div class="ha-pw-section"><div class="ha-pw-cats" id="haPWCats"></div><div id="haPWGrid" class="ha-pw-grid"></div></div></div>
+<div class="ha-card mt-4 no-print"><h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("clock","w-4 h-4",16) | safe }} History</h2><div id="haHistoryList"></div></div>
+</div>
+<div class="ha-rcol">
+<div id="haResults" role="region" aria-live="polite" aria-atomic="true">
+<div class="ha-card mb-4"><h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("gauge","w-4 h-4",16) | safe }} Score</h2><div class="flex items-start gap-4 flex-wrap"><div id="haScoreRing" class="ha-score-ring ha-sr-empty"><svg width="120" height="120" viewBox="0 0 120 120"><circle class="ha-sr-bg" cx="60" cy="60" r="50"/><circle class="ha-sr-fg" cx="60" cy="60" r="50" stroke-dasharray="314.16" stroke-dashoffset="314.16"/></svg><div class="ha-score-val"><span id="haScoreNum">--</span><span class="ha-sv-label">/ 100</span></div></div><div class="ha-bar-group"><div class="ha-bar-row"><span class="ha-bar-label">Structure</span><div class="ha-bar-track"><div class="ha-bar-fill" id="haBarStructure" style="width:0%;background:var(--color-base-300)"></div></div><span class="ha-bar-num" id="haNStructure">0</span></div><div class="ha-bar-row"><span class="ha-bar-label">Word Balance</span><div class="ha-bar-track"><div class="ha-bar-fill" id="haBarBalance" style="width:0%;background:var(--color-base-300)"></div></div><span class="ha-bar-num" id="haNBalance">0</span></div><div class="ha-bar-row"><span class="ha-bar-label">Emotion</span><div class="ha-bar-track"><div class="ha-bar-fill" id="haBarEmotion" style="width:0%;background:var(--color-base-300)"></div></div><span class="ha-bar-num" id="haNEmotion">0</span></div><div class="ha-bar-row"><span class="ha-bar-label">Readability</span><div class="ha-bar-track"><div class="ha-bar-fill" id="haBarReadability" style="width:0%;background:var(--color-base-300)"></div></div><span class="ha-bar-num" id="haNReadability">0</span></div></div><div id="haSparkSection" style="display:none"><div id="haSparkline" class="ha-spark"></div></div>
+<div id="haEmotionSection" class="ha-em-section" style="display:none">
+<span class="ha-label" style="margin-bottom:6px">Emotion Profile</span>
+<div id="haEmotionBars"></div>
+</div><div class="ha-read-section" id="haWeightSection"><span class="ha-label" style="margin-bottom:6px">Custom Weights</span>
+<div class="ha-slider-row"><span class="ha-slider-label">Structure</span><input type="range" id="haWStruct" class="ha-slider" min="0" max="50" value="35" step="1"><span class="ha-slider-val" id="haWVStruct">35</span></div>
+<div class="ha-slider-row"><span class="ha-slider-label">Balance</span><input type="range" id="haWBalance" class="ha-slider" min="0" max="40" value="25" step="1"><span class="ha-slider-val" id="haWVBalance">25</span></div>
+<div class="ha-slider-row"><span class="ha-slider-label">Emotion</span><input type="range" id="haWEmotion" class="ha-slider" min="0" max="35" value="20" step="1"><span class="ha-slider-val" id="haWVEmotion">20</span></div>
+<div class="ha-slider-row"><span class="ha-slider-label">Readability</span><input type="range" id="haWReadability" class="ha-slider" min="0" max="35" value="20" step="1"><span class="ha-slider-val" id="haWVReadability">20</span></div>
+</div>
+<div id="haReadabilitySection" class="ha-read-section" style="display:none">
+<span class="ha-label" style="margin-bottom:4px">Readability Scores</span>
+<table class="ha-read-table"><thead><tr><th>Formula</th><th>Score</th></tr></thead>
+<tbody id="haReadabilityBody"></tbody></table></div></div><div id="haMeta" class="ha-meta"></div>
+<div id="haHLInfo" class="ha-hl-info" style="display:none"></div><div id="haToneSection" class="ha-read-section" style="display:none">
+<span class="ha-label" style="margin-bottom:4px">Tone Profile</span>
+<div id="haToneBadges" class="ha-tone-row"></div></div></div>
+<div id="haSERPPreview" class="ha-card mb-4 ha-serp-card" style="display:none">
+<h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2"><svg class="w-4 h-4" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> SERP Preview</h2>
+<div id="haSERPContent"></div>
+</div>
+<div id="haSuggestions" class="ha-card mb-4"><h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("lightbulb","w-4 h-4",16) | safe }} Suggestions</h2><div id="haSuggestionList"><div class="ha-empty">Start typing your headline above to see instant feedback.</div></div><div id="haRewriteSection" class="ha-rewrite-section" style="display:none">
+<span class="ha-rewrite-title">Try These Alternatives</span>
+<div id="haRewriteList"></div>
+</div></div>
+<div class="flex gap-2 mt-4 no-print flex-wrap"><button type="button" id="haCopyBtn" class="ha-sec" aria-label="Copy report">Copy Report</button><button type="button" id="haShareBtn" class="ha-sec ha-share-btn" aria-label="Copy shareable link">Share</button><button type="button" id="haResetBtn" class="ha-sec" aria-label="Reset headline and results">Reset</button></div>
+</div>
+</div>
+</div>
+<script nonce="{{ nonce }}">
+(function(){'use strict';
+var headlineEl=document.getElementById('haHeadline'),
+  keywordEl=document.getElementById('haKeyword'),
+  scoreNumEl=document.getElementById('haScoreNum'),
+  scoreRing=document.getElementById('haScoreRing'),
+  barStructure=document.getElementById('haBarStructure'),
+  barBalance=document.getElementById('haBarBalance'),
+  barEmotion=document.getElementById('haBarEmotion'),
+  barReadability=document.getElementById('haBarReadability'),
+  nStructure=document.getElementById('haNStructure'),
+  nBalance=document.getElementById('haNBalance'),
+  nEmotion=document.getElementById('haNEmotion'),
+  nReadability=document.getElementById('haNReadability'),
+  metaEl=document.getElementById('haMeta'),
+  suggestionList=document.getElementById('haSuggestionList'),
+  charWarn=document.getElementById('haCharWarn'),
+  copyBtn=document.getElementById('haCopyBtn'),
+  resetBtn=document.getElementById('haResetBtn'),
+  historyList=document.getElementById('haHistoryList'),
+  tabs=document.querySelectorAll('.ha-tab'),
+  panelSingle=document.getElementById('haPanelSingle'),
+  panelCompare=document.getElementById('haPanelCompare'),
+  cmp1=document.getElementById('haCmp1'),
+  cmp2=document.getElementById('haCmp2'),
+  ccw1=document.getElementById('haCcw1'),
+  ccw2=document.getElementById('haCcw2'),
+  toastEl=document.getElementById('haToast');
+var emotionSection=document.getElementById('haEmotionSection'),
+  emotionBars=document.getElementById('haEmotionBars'),
+  serpPreview=document.getElementById('haSERPPreview'),
+  serpContent=document.getElementById('haSERPContent'),
+  rewriteSection=document.getElementById('haRewriteSection'),
+  rewriteList=document.getElementById('haRewriteList');
+
+var CIRC=2*Math.PI*50;
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function escapeHTML(s){var d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML}
+function debounce(fn,ms){var t;return function(){clearTimeout(t);t=setTimeout(fn,ms)}}
+
+var powerWords=['essential','proven','ultimate','insider','secret','exclusive','instant','guaranteed','free','limited','breakthrough','revolutionary','results','strategies','complete','simple','powerful','effective','amazing','incredible','unbelievable','remarkable','extraordinary','massive','huge','enormous','massive','critical','crucial','vital','urgent','important','significant','major','key','top','best','greatest','biggest','fastest','easiest','smartest','ultimate','definitive','essential','must-have','expert','professional','advanced','new','updated','improved','upgrade','boost','accelerate','supercharge','maximize','optimize','transform','change','discover','unlock','reveal','exposed','shocking','surprising','stunning','jaw-dropping','mind-blowing','eye-opening','game-changing','next-level','world-class','award-winning','proven','tested','scientifically-proven','data-driven','research-backed','exclusive','limited-time','act-now','don\'t-miss','last-chance','hurry','immediately','today','now','before','deadline','while-supplies-last','risk-free','money-back','satisfaction-guaranteed','no-obligation','free-trial','no-risk','easy','quick','fast','instant','simple','step-by-step','foolproof','effortless','painless','stress-free','hassle-free'];
+var emotionalWords=['love','hate','fear','joy','trust','shocking','amazing','incredible','heartbreaking','thrilling','inspiring','devastating','exhilarating','devastated','ecstatic','terrifying','hilarious','outrageous','heartwarming','gut-wrenching','jaw-dropping','mind-blowing','wonderful','horrible','fantastic','awful','brilliant','dreadful','magnificent','terrible','splendid','disgusting','superb','appalling','stunning','pitiful','glorious','sorrow','delight','misery','bliss','agony','euphoria','torment','rage','serenity','fury','tranquility','wrath','passion','hatred','affection','contempt','admiration','disgust','excitement','boredom','hope','despair','pride','shame','gratitude','resentment','sympathy','jealousy','courage','cowardice','generosity','greed'];
+var urgencyWords=['now','today','before','deadline','last-chance','limited-time','hurry','immediately','soon','expires','ending','final','instant','while-supplies-last','act-now','don\'t-delay','hurry-up','quick','fast','urgent','critical','crucial','pressing','imminent','soon','never-again'];
+var curiosityWords=['this','these','why','what-happens','the-reason','because','that','secret-behind','truth-about','inside','revealed','exposed','uncovered','untold','behind-the-scenes','you-won\'t-believe','what-everyone-needs','the-real','how-i','the-one','everything-you-need','the-ultimate-guide','what-you-need','what-nobody-tells'];
+var commonWords=['a','an','the','this','that','these','those','of','in','to','for','with','on','at','by','is','it','are','was','were','be','been','being','have','has','had','do','does','did','but','or','and','if','so','than','not','no','nor','can','will','may','would','could','should','shall','about','into','over','after','before','between','under','above','below','out','off','up','down','just','also','very','too','really','quite','some','any','each','every','all','both','few','more','most','other','such','only','own','same','here','there','when','where','why','how','what','which','who','whom'];
+
+// --- HEADLINE FORMULAS ---
+var headlineFormulas = [
+  {cat:'List',tmpl:'{num} {adj} Ways to {goal} {time}',desc:'Numbered list'},
+  {cat:'List',tmpl:'{num} {topic} That {benefit}',desc:'List with benefit'},
+  {cat:'List',tmpl:'{num} Things You Didn\'t Know About {topic}',desc:'Curiosity list'},
+  {cat:'List',tmpl:'Top {num} {topic} for {audience}',desc:'Top N list'},
+  {cat:'How-to',tmpl:'How to {goal} Without {pain}',desc:'Pain-free how-to'},
+  {cat:'How-to',tmpl:'How to {goal} in {time}',desc:'Fast how-to'},
+  {cat:'How-to',tmpl:'How I {achieved} in {time} (Step by Step)',desc:'Personal how-to'},
+  {cat:'How-to',tmpl:'How to {goal} Even If {obstacle}',desc:'Overcoming how-to'},
+  {cat:'Question',tmpl:'Are You Making These {num} {topic} Mistakes?',desc:'Self-diagnosis'},
+  {cat:'Question',tmpl:'What {expert} Taught Me About {topic}',desc:'Insider question'},
+  {cat:'Question',tmpl:'Why {belief} Is Wrong (And What to Do Instead)',desc:'Contrarian Q'},
+  {cat:'Question',tmpl:'Is {topic} Right for You?',desc:'Decision question'},
+  {cat:'Command',tmpl:'Stop {bad_action} and Start {good_action}',desc:'Turnaround'},
+  {cat:'Command',tmpl:'Master {topic} in {time} Without {pain}',desc:'Mastery command'},
+  {cat:'Command',tmpl:'Discover the {adj} Secret to {goal}',desc:'Discovery command'},
+  {cat:'Curiosity',tmpl:'The {adj} Truth About {topic}',desc:'Truth reveal'},
+  {cat:'Curiosity',tmpl:'What Nobody Tells You About {topic}',desc:'Secret reveal'},
+  {cat:'Curiosity',tmpl:'The Secret to {goal} That {source} Doesn\'t Tell You',desc:'Insider secret'},
+  {cat:'Curiosity',tmpl:'This {adj} {topic} Will Change How You {result}',desc:'Transformation'},
+  {cat:'Comparison',tmpl:'{x} vs {y}: Which Is Better for {goal}?',desc:'Head-to-head'},
+  {cat:'Comparison',tmpl:'We Tested {x} Against {y}. Here\'s the Winner.',desc:'Tested comparison'},
+  {cat:'Warning',tmpl:'Warning: {num} {topic} Mistakes That Cost You {loss}',desc:'Warning list'},
+  {cat:'Warning',tmpl:'Why {common_thing} Is Slowly Killing Your {result}',desc:'Gradual warning'},
+  {cat:'Story',tmpl:'I {action} for {time} and This Is What Happened',desc:'Personal story'},
+  {cat:'Story',tmpl:'They Said I Couldn\'t {goal}. Here\'s How I Proved Them Wrong.',desc:'Underdog story'},
+  {cat:'Story',tmpl:'How I Went from {start} to {end} in {time}',desc:'Transformation story'},
+  {cat:'Problem',tmpl:'Struggling with {pain}? Here\'s How to Fix It.',desc:'Problem solver'},
+  {cat:'Problem',tmpl:'Finally: A {adj} Way to {goal}',desc:'Solution announce'},
+  {cat:'Authority',tmpl:'The {adj} Guide to {topic}: Everything You Need to Know',desc:'Ultimate guide'},
+  {cat:'Authority',tmpl:'What Every {audience} Needs to Know About {topic}',desc:'Authority check'},
+  {cat:'Direct',tmpl:'Write {topic} Like a {pro} in {time}',desc:'Direct result'},
+  {cat:'Direct',tmpl:'Get More {benefit} Without {pain}',desc:'Benefit direct'},
+  {cat:'Direct',tmpl:'{num} Minutes to a Better {topic}',desc:'Quick win'}
+];
+
+var emotionJoy=['delightful','happy','laugh','cheerful','enjoy','pleasure','funny','celebrate','wonderful','amazing','fantastic','brilliant','thrilled','excited','elated','glad','merry','joyful','bliss','euphoria','triumph','rejoice','ecstasy','jubilant','radiant','lively','spirited'];
+var emotionTrust=['trust','faith','confidence','believe','honest','loyal','reliable','dependable','secure','safe','sure','certain','committed','devoted','faithful','truthful','authentic','genuine','integrity','reputable','assured','guaranteed','proven','tested','verified','certified','official','endorsed'];
+var emotionFear=['afraid','scared','frightened','terrified','anxious','worried','nervous','panic','dread','horror','alarm','fear','threat','danger','risk','unsafe','vulnerable','insecure','apprehensive','uneasy','tense','distressed','fearful','petrified','intimidated'];
+var emotionSurprise=['surprise','amazing','astonishing','unexpected','shocking','startling','stunning','remarkable','extraordinary','incredible','sudden','abrupt','unforeseen','staggering','breathtaking','astounding','eye-opening','unpredictable','jaw-dropping','mind-blowing'];
+var emotionAnticipation=['expect','anticipate','await','hope','eager','imminent','coming','approaching','forthcoming','future','planned','prepared','ready','prospect','expectant','awaiting','look','forward','predict','forecast','promising'];
+var emotionAnger=['angry','furious','outraged','irritated','frustrated','annoyed','enraged','hostile','bitter','wrath','rage','fury','resentment','indignation','exasperated','aggravated','livid','infuriated','mad','fuming'];
+var emotionSadness=['sad','unhappy','sorrowful','depressed','miserable','gloomy','mournful','heartbroken','devastated','grief','despair','hopeless','lonely','melancholy','somber','bleak','dismal','heartbreaking','sorrow','crying','tearful','wistful','regret'];
+var emotionDisgust=['disgust','gross','repulsive','revolting','offensive','distasteful','nauseating','sickening','appalling','abhorrent','loathsome','repugnant','despicable','contemptible','vile','foul','nasty','yuck','disgusting','repulsive'];
+var clickbaitPhrases=['you won\'t believe','you won\'t guess','you won\'t expect','what happens next','what happened next','this one trick','one weird trick','the reason why','the real reason','will shock you','will surprise you','can\'t believe','mind blowing','mind-blowing','number','will shock','will surprise','here\'s what happened','wait till you see','wait until you','this is what happens'];
+
+function classifyWords(tokens){
+  var result={power:0,emotional:0,urgency:0,curiosity:0,common:0,uncommon:0,total:tokens.length};
+  for(var i=0;i<tokens.length;i++){
+    var w=tokens[i];
+    if(powerWords.indexOf(w)>=0)result.power++;
+    else if(emotionalWords.indexOf(w)>=0)result.emotional++;
+    else if(urgencyWords.indexOf(w)>=0)result.urgency++;
+    else if(curiosityWords.indexOf(w)>=0)result.curiosity++;
+    else if(commonWords.indexOf(w)>=0)result.common++;
+    else result.uncommon++;
+  }
+  return result
+}
+
+function detectType(text){
+  var t=text.trim().toLowerCase();
+  if(/^how\s+to\b/.test(t)||/^how\s+i\b/.test(t))return{label:'How-to',emoji:'\uD83D\uDD0D'};
+  if(/^\d+\s+/.test(t)||/^\d+[a-z]+\s+/.test(t)||/^(top|best|essential|greatest|biggest)\s+\d+/.test(t)||/\bways\s+(to|you)\b/.test(t)||/\btips?\s+(to|for|on)\b/.test(t)||/\btricks?\s+(to|for)\b/.test(t)||/\breasons?\s+(why|to)\b/.test(t)||/\bthings?\s+(you|to)\b/.test(t))return{label:'List',emoji:'\uD83D\uDCCA'};
+  if(t.indexOf('?')>=0)return{label:'Question',emoji:'\u2753'};
+  if(/^(how|why|what|when|where|who|which)\b/.test(t))return{label:'Question',emoji:'\u2753'};
+  if(/^(stop|start|try|get|make|use|learn|find|build|create|grow|save|earn|boost|improve|master|avoid|fix|solve|discover|transform|unlock|reveal)\b/i.test(t))return{label:'Command',emoji:'\u26A1'};
+  if(/\b(this|these)\b/i.test(t)||/\b(why|the reason|because)\b/i.test(t)||t.slice(-3)==='...')return{label:'Curiosity Gap',emoji:'\uD83E\uDDE0'};
+  return{label:'Generic',emoji:'\uD83D\uDCDD'}
+}
+
+function computeSentiment(tokens,classified){
+  var pos=0,neg=0;
+  var posWords=['love','amazing','incredible','wonderful','fantastic','brilliant','magnificent','superb','glorious','delight','bliss','euphoria','serenity','tranquility','passion','affection','admiration','excitement','hope','pride','gratitude','sympathy','courage','generosity','joy','trust','inspiring','thrilling','heartwarming','stunning','splendid','best','top','great','excellent','perfect','easy','fast','simple','powerful','effective','proven','free','guaranteed','essential','ultimate'];
+  var negWords=['hate','fear','shocking','heartbreaking','devastating','devastated','terrifying','outrageous','gut-wrenching','horrible','awful','dreadful','terrible','disgusting','appalling','pitiful','sorrow','misery','agony','torment','rage','fury','wrath','hatred','contempt','disgust','boredom','despair','shame','resentment','jealousy','cowardice','greed','painful','difficult','hard','waste','bad','worst','ugly','dangerous','harmful','toxic','deadly','awful','terrible','horrible','dreadful'];
+  for(var i=0;i<tokens.length;i++){
+    var w=tokens[i];
+    if(posWords.indexOf(w)>=0)pos++;
+    if(negWords.indexOf(w)>=0)neg++;
+  }
+  if(pos>neg)return{label:'Positive',cls:'success',ratio:pos/(pos+neg||1)};
+  if(neg>pos)return{label:'Negative',cls:'error',ratio:neg/(pos+neg||1)};
+  return{label:'Neutral',cls:'',ratio:0.5}
+}
+
+function estimateSyllables(word){
+  if(word.length<=3)return 1;
+  var w=word.replace(/e$/,'').replace(/[aeiouy]{2,}/g,'a');
+  var m=w.match(/[aeiouy]/g);
+  return m?m.length:1
+}
+
+function computeGradeLevel(text,tokens){
+  var sentences=text.split(/[.!?]+/).filter(function(s){return s.trim().length>0}).length||1;
+  var words=tokens.length||1;
+  var syllables=0;
+  for(var i=0;i<tokens.length;i++)syllables+=estimateSyllables(tokens[i]);
+  var grade=0.39*(words/sentences)+11.8*(syllables/words)-15.59;
+  grade=Math.max(1,Math.min(grade,18));
+  var label;
+  if(grade<=5)label='Grade '+Math.round(grade);
+  else if(grade<=8)label='Grade '+Math.round(grade);
+  else if(grade<=12)label='Grade '+Math.round(grade);
+  else label='College';
+  return{grade:Math.round(grade),label:label}
+}
+
+function keywordStats(text,keyword){
+  if(!keyword||!keyword.trim())return null;
+  var kw=keyword.trim().toLowerCase();
+  var t=text.toLowerCase();
+  var pos=t.indexOf(kw);
+  return{
+    present:pos>=0,
+    frontLoaded:pos>=0&&pos<Math.min(t.length*0.3,30),
+    position:pos>=0?pos+1:null,
+    density:kw.length>0?(t.split(kw).length-1)/(t.split(/\s+/).length||1):0
+  }
+}
+
+function scoreStructure(stats,type,kwStats){
+  var score=0;
+  var wc=stats.wordCount;
+  if(wc>=5&&wc<=8)score+=10;
+  else if(wc>=9&&wc<=12)score+=8;
+  else if(wc>=3&&wc<=4||wc>=13&&wc<=15)score+=4;
+  else if(wc>=1&&wc<=2)score+=1;
+  var cc=stats.charCount;
+  if(cc>=40&&cc<=55)score+=10;
+  else if(cc>=30&&cc<=39||cc>=56&&cc<=65)score+=8;
+  else if(cc>=20&&cc<=29||cc>=66&&cc<=80)score+=4;
+  else if(cc>=15&&cc<=19)score+=2;
+  if(type.label!=='Generic')score+=4;
+  if(type.label==='List')score+=1;
+  if(stats.hasNumber)score+=3;
+  if(kwStats&&kwStats.frontLoaded)score+=5;
+  else if(kwStats&&kwStats.present)score+=2;
+  return Math.min(score,35)
+}
+
+function scoreWordBalance(classified){
+  var score=0;
+  var total=classified.total||1;
+  score+=Math.min(classified.power*3,8);
+  score+=Math.min(classified.emotional*2.5,6);
+  var ucRatio=classified.uncommon/total;
+  score+=Math.min(Math.round(ucRatio*20),6);
+  var commonRatio=classified.common/total;
+  if(commonRatio>0.65)score-=Math.min(Math.round((commonRatio-0.65)*30),5);
+  return Math.max(Math.min(score,25),0)
+}
+
+function scoreEmotion(classified,sentiment,type){
+  var score=0;
+  score+=Math.min(classified.urgency*2.5,4);
+  score+=Math.min(classified.curiosity*2,4);
+  if(sentiment.label==='Positive')score+=8;
+  else if(sentiment.label==='Neutral')score+=4;
+  else score+=0;
+  if(type.label==='Curiosity Gap')score+=3;
+  else if(type.label==='Question')score+=2;
+  return Math.min(score,20)
+}
+
+function scoreReadability(stats,grade){
+  var score=0;
+  if(grade.grade>=6&&grade.grade<=8)score+=8;
+  else if(grade.grade>=4&&grade.grade<=5||grade.grade>=9&&grade.grade<=10)score+=5;
+  else if(grade.grade>=3&&grade.grade<=4||grade.grade>=11&&grade.grade<=12)score+=3;
+  else score+=1;
+  var awl=stats.avgWordLength;
+  if(awl>=4&&awl<=5.5)score+=4;
+  else if(awl>=3&&awl<=3.9||awl>=5.6&&awl<=6.5)score+=2;
+  if(awl>3.5)score+=3;
+  var words=stats.tokens;
+  var allit=0;
+  for(var i=0;i<words.length-1;i++){
+    if(words[i][0]===words[i+1][0])allit++;
+  }
+  score+=Math.min(allit,3);
+  return Math.min(score,20)
+}
+
+function generateRecommendations(result){
+  var recs=[];
+  var s=result.scores;
+  if(result.metrics.charCount<20)recs.push('Your headline is too short. Add more descriptive words to give readers a reason to click.');
+  if(result.metrics.charCount>80)recs.push('Headlines over 65 characters may get truncated in search results. Consider shortening.');
+  if(result.metrics.charCount>65&&result.metrics.charCount<=80)recs.push('At '+result.metrics.charCount+' chars, your headline may be truncated in SERPs. Aim for 40-65 characters.');
+  if(result.metrics.wordCount<4)recs.push('Add 2-5 more words. Strong headlines typically have 6-12 words.');
+  if(result.metrics.wordCount>15&&result.metrics.charCount>80)recs.push('Your headline is very long. Try cutting it to under 12 words for better engagement.');
+  if(s.wordBalance<12)recs.push('Add a power word to strengthen your headline (e.g., Essential, Proven, Ultimate, Free, Exclusive).');
+  if(s.emotion<8)recs.push('Try incorporating an emotional or urgency word to make your headline more compelling (e.g., Now, Love, Easy, Critical).');
+  if(s.readability<10&&result.metrics.gradeLevel>10)recs.push('Your headline reads at a '+result.metrics.gradeLabel+' level. Aim for grade 6-8 for broad appeal.');
+  if(s.structure<12&&result.metrics.wordCount>=4)recs.push('Try using a number, question, or "How to" format. These headline types consistently drive higher CTR.');
+  if(result.kwStats&&!result.kwStats.frontLoaded)recs.push('Move your target keyword closer to the front of the headline for better SEO impact.');
+  if(result.kwStats&&!result.kwStats.present)recs.push('Include your target keyword in the headline for stronger SEO relevance.');
+  var posWords=['how to','ways','tips','reasons','things','steps','guide','tricks','ideas','secrets','strategies','techniques','methods'];
+  var hasPos=false;
+  for(var i=0;i<posWords.length;i++){if(result.headline.toLowerCase().indexOf(posWords[i])>=0){hasPos=true;break}}
+  if(!hasPos&&result.metrics.wordCount>=4)recs.push('Strong headlines often use words like "How to," "Ways," "Tips," or "Guide." Consider your format.');
+  if(s.total>=85)recs.push('Great headline! This is ready to publish.');
+  if(recs.length===0)recs.push('Consider testing different headline formats (List, How-to, Question) to find what resonates with your audience.');
+  return recs.slice(0,6)
+}
+
+function analyzeEmotions(tokens){
+  var emotions={joy:0,trust:0,fear:0,surprise:0,anticipation:0,anger:0,sadness:0,disgust:0};
+  var maps={joy:emotionJoy,trust:emotionTrust,fear:emotionFear,surprise:emotionSurprise,anticipation:emotionAnticipation,anger:emotionAnger,sadness:emotionSadness,disgust:emotionDisgust};
+  for(var i=0;i<tokens.length;i++){
+    var w=tokens[i];
+    for(var k in maps){
+      if(maps[k].indexOf(w)>=0)emotions[k]++;
+    }
+  }
+  var max=0,dominant='neutral';
+  var labels={joy:'Joy',trust:'Trust',fear:'Fear',surprise:'Surprise',anticipation:'Anticipation',anger:'Anger',sadness:'Sadness',disgust:'Disgust'};
+  for(var k in emotions){
+    if(emotions[k]>max){max=emotions[k];dominant=k}
+  }
+  var total=0;for(var k in emotions)total+=emotions[k];
+  return{counts:emotions,dominant:dominant,dominantLabel:dominant==='neutral'?'Neutral':labels[dominant],intensity:tokens.length>0?Math.min(total/tokens.length*3,1):0}
+}
+
+function detectClickbait(text){
+  var t=text.toLowerCase();var score=0;var flags=[];
+  var fwdRefs=['this','these','here\'s','what happens','the reason','why'];
+  for(var i=0;i<fwdRefs.length;i++){if(new RegExp('^'+fwdRefs[i]+'\\b','i').test(t)||new RegExp('\\b'+fwdRefs[i]+'\\s+(is|why|happens)','i').test(t)){score+=12;flags.push('Forward reference');break}}
+  for(var i=0;i<clickbaitPhrases.length;i++){if(t.indexOf(clickbaitPhrases[i])>=0){score+=18;flags.push('Bait phrase');break}}
+  var excl=(text.match(/!/g)||[]).length;var ques=(text.match(/\?/g)||[]).length;
+  if(excl>=2)score+=8;if(ques+excl>=3)score+=5;
+  if(/\.\.\./.test(text))score+=8;
+  return{score:Math.min(score,100),level:score<15?'low':score<35?'medium':'high',flags:flags,isClickbait:score>=35}
+}
+
+function detectAlliterationAdvanced(words){
+  var skipWords={'the':1,'and':1,'for':1,'with':1,'that':1,'this':1,'are':1,'was':1,'were':1,'have':1,'has':1,'had':1,'but':1,'not':1,'can':1,'will':1,'all':1,'its':1,'you':1,'your':1,'our':1,'their':1,'its':1,'from':1,'they':1,'been':1,'just':1,'also':1,'very':1,'too':1,'some':1,'any':1,'each':1,'every':1,'what':1,'which':1,'when':1,'where':1,'who':1,'how':1,'why':1,'into':1,'over':1,'than':1,'then':1,'them':1,'these':1,'those':1};
+  var count=0;var pairs=[];
+  for(var i=0;i<words.length-1;i++){
+    var a=words[i].toLowerCase();var b=words[i+1].toLowerCase();
+    if(skipWords[a]||skipWords[b])continue;
+    if(a.length>0&&b.length>0&&a[0]===b[0]){count++;pairs.push(a+'/'+b)}
+  }
+  return{count:count,pairs:pairs}
+}
+
+function computeGunningFog(text,tokens){
+  var sentences=text.split(/[.!?]+/).filter(function(s){return s.trim().length>0}).length||1;
+  var words=tokens.length||1;
+  var complex=0;
+  for(var i=0;i<tokens.length;i++){
+    var syl=estimateSyllables(tokens[i]);
+    if(syl>=3)complex++;
+  }
+  var grade=0.4*((words/sentences)+100*(complex/words));
+  return Math.round(Math.max(1,Math.min(grade,20)))
+}
+
+function computeSMOG(text,tokens){
+  var sentences=text.split(/[.!?]+/).filter(function(s){return s.trim().length>0}).length||1;
+  if(sentences<3)return Math.round(computeGunningFog(text,tokens));
+  var polysyllabic=0;
+  for(var i=0;i<tokens.length;i++){
+    var syl=estimateSyllables(tokens[i]);
+    if(syl>=3)polysyllabic++;
+  }
+  var grade=1.0430*Math.sqrt(polysyllabic*(30/sentences))+3.1291;
+  return Math.round(Math.max(1,Math.min(grade,20)))
+}
+
+function computeColemanLiau(text,tokens){
+  var words=tokens.length||1;
+  var sentences=text.split(/[.!?]+/).filter(function(s){return s.trim().length>0}).length||1;
+  var letters=text.replace(/\s/g,'').length;
+  var L=(letters/words)*100;
+  var S=(sentences/words)*100;
+  var grade=0.0588*L-0.296*S-15.8;
+  return Math.round(Math.max(1,Math.min(grade,20)))
+}
+
+function computeAllReadability(text,tokens){
+  return{
+    flesch:computeGradeLevel(text,tokens).grade,
+    gunningFog:computeGunningFog(text,tokens),
+    smog:computeSMOG(text,tokens),
+    colemanLiau:computeColemanLiau(text,tokens)
+  }
+}
+
+var formalWords=['utilize','demonstrate','therefore','however','nevertheless','consequently','subsequently','implement','establish','determine','indicate','regarding','commence','terminate','participate','approximately','sufficient','additional','compensate','encounter','expedite','facilitate','identical','initiate','nonetheless','obtain','particular','portion','provided','pursuant','require','respective','specified','undertake','wherein','whereas','hitherto','forthwith','notwithstanding','endeavor'];
+var conversationalWords=['get','use','so','but','and','or','just','like','really','actually','basically','honestly','pretty','quite','sort','kind','totally','absolutely','sure','ok','well','hey','okay','yeah','nope','yep','gonna','wanna','gotta','dunno','kinda','lots','stuff','things','way','goes','guess','figure','check','help','try','start','keep','need','want','come','give','take','make','say','let','put','set'];
+
+var authoritativeWords=['must','essential','critical','crucial','vital','imperative','never','always','guaranteed','proven','definitive','absolute','undisputed','unquestionable','mandatory','required','expert','leading','foremost','premier','authority','definitive','comprehensive','complete','ultimate'];
+var friendlyWords=['friendly','helpful','supportive','caring','warm','gentle','kind','easy','simple','comfortable','cozy','welcome','inviting','approachable','accessible','casual','relaxed','informal','buddy','pal','friend','share','together','community','collaborate'];
+
+var analyticalWords=['analyze','analysis','data','research','study','evidence','statistics','metrics','percentage','ratio','correlation','causation','framework','methodology','systematic','empirical','quantitative','qualitative','measurement','evaluation','assessment','implications','hypothesis','variable','parameter'];
+var emotionalWords2=['feel','feeling','heart','soul','passion','love','hate','fear','joy','hope','dream','believe','inspiring','touching','moving','powerful','beautiful','wonderful','amazing','incredible','terrible','horrible','heartbreaking','gut-wrenching','thrilling','devastating'];
+
+var pwCategories={
+  'Authority':['proven','ultimate','definitive','essential','expert','guaranteed','research-backed','data-driven','award-winning','world-class','professional','advanced','tested','official','certified'],
+  'Urgency':['now','today','immediately','hurry','limited','last-chance','deadline','before','instant','urgent','critical','exclusive','act-now','while-supplies-last','never-again'],
+  'Curiosity':['secret','hidden','revealed','exposed','uncovered','behind-the-scenes','truth','shocking','surprising','unexpected','untold','mind-blowing','what-nobody-tells','the-real','eye-opening'],
+  'Emotion':['love','amazing','incredible','heartbreaking','thrilling','inspiring','devastating','wonderful','horrible','brilliant','terrible','magnificent','heartwarming','gut-wrenching','jaw-dropping'],
+  'Benefit':['free','easy','quick','fast','simple','results','effective','powerful','boost','save','improve','transform','supercharge','maximize','step-by-step']
+};
+var pwCategoriesList=['Authority','Urgency','Curiosity','Emotion','Benefit'];
+
+var platformProfiles={
+  blog:{label:'Blog / SEO',weights:{structure:38,wordBalance:22,emotion:18,readability:22},idealChars:{min:40,max:65},idealWords:{min:6,max:12},desc:'Optimized for search rankings'},
+  social:{label:'Social Media',weights:{structure:25,wordBalance:30,emotion:30,readability:15},idealChars:{min:20,max:50},idealWords:{min:4,max:9},desc:'Optimized for engagement & shareability'},
+  email:{label:'Email',weights:{structure:30,wordBalance:25,emotion:25,readability:20},idealChars:{min:30,max:55},idealWords:{min:5,max:10},desc:'Optimized for open rates'},
+  ad:{label:'Ad / PPC',weights:{structure:28,wordBalance:22,emotion:35,readability:15},idealChars:{min:20,max:40},idealWords:{min:3,max:8},desc:'Optimized for click-through rates'}
+};
+
+function analyzeTone(tokens){
+  var result={formal:0,conversational:0,authoritative:0,friendly:0,analytical:0,emotional:0};
+  for(var i=0;i<tokens.length;i++){
+    var w=tokens[i];
+    if(formalWords.indexOf(w)>=0)result.formal++;
+    if(conversationalWords.indexOf(w)>=0)result.conversational++;
+    if(authoritativeWords.indexOf(w)>=0)result.authoritative++;
+    if(friendlyWords.indexOf(w)>=0)result.friendly++;
+    if(analyticalWords.indexOf(w)>=0)result.analytical++;
+    if(emotionalWords2.indexOf(w)>=0)result.emotional++;
+  }
+  var formality=result.formal>result.conversational?'Formal':result.conversational>result.formal?'Conversational':'Neutral';
+  var authority=result.authoritative>result.friendly?'Authoritative':result.friendly>result.authoritative?'Friendly':'Neutral';
+  var style=result.analytical>result.emotional?'Analytical':result.emotional>result.analytical?'Emotional':'Balanced';
+  return{formality:formality,authority:authority,style:style,scores:result}
+}
+
+function generateRewrites(result){
+  var rewrites=[];var t=result.headline;var type=result.metrics.type.label;var s=result.scores;
+  var hasNum=/\d/.test(t);var hasQ=t.indexOf('?')>=0;var wc=result.metrics.wordCount;
+  var lower=t.toLowerCase();
+  if(type==='Generic'&&!hasNum&&wc>=4)rewrites.push('5 '+t.charAt(0).toUpperCase()+t.slice(1)+' That Actually Work');
+  else if(type==='Generic')rewrites.push('How to '+lower.replace(/^(a|an|the|some)\s+/,'')+' (Step by Step)');
+  if(type==='How-to'&&!hasNum)rewrites.push('7 '+(lower.indexOf('without')>=0?'Ways to Succeed at ':'Essential ')+lower.replace(/^how\s+to\s+/i,'').trim().replace(/^(a|an|the)\s+/,'')+' You Need to Know');
+  if(type==='Question'&&s.structure<20)rewrites.push(lower.replace(/\?\s*$/,'')+' \u2014 Here\u2019s What the Data Says');
+  if(type==='List'&&wc<8)rewrites.push('The #1 Way to '+lower.replace(/^\d+\s+\w+\s+/,'').replace(/^(to|you|for|of)\s+/,'').trim().slice(0,40)+' (Backed by Research)');
+  if(s.wordBalance<12){var pw='Essential';if(result.metrics.classified.power<1)pw='Proven';rewrites.push(pw+' '+t.charAt(0).toUpperCase()+t.slice(1))}
+  if(s.emotion<10&&result.metrics.classified.emotional<1)rewrites.push('The Surprising Truth About '+lower.replace(/^(a|an|the|some|why|how|what)\s+/,'').trim().slice(0,40));
+  if(rewrites.length<2&&wc>2)rewrites.push('Stop Doing '+lower.replace(/^(how|why|what|when|where)\s+(to|do|does|is|are)\s+/i,'').trim().slice(0,35)+' \u2014 Do This Instead');
+  if(rewrites.length<2)rewrites.push(t.slice(0,45)+' \u2014 Complete Guide for 2026');
+  var seen={};var unique=[];
+  for(var i=0;i<rewrites.length;i++){var norm=rewrites[i].toLowerCase();if(!seen[norm]){seen[norm]=1;unique.push(rewrites[i])}}
+  return unique.slice(0,3)
+}
+
+function simulateSERPPreview(text){
+  if(!text.trim())return null;
+  var widths={};'ilj\''.split('').forEach(function(c){widths[c]=4.5});'rtf '.split('').forEach(function(c){widths[c]=6.5});'aenos'.split('').forEach(function(c){widths[c]=9.5});'mwMW'.split('').forEach(function(c){widths[c]=16});
+  var def=9;var desktopPx=0;
+  for(var i=0;i<text.length;i++){desktopPx+=widths[text[i]]||def}
+  var truncated=desktopPx>580;var danger=desktopPx>600;var warning=desktopPx>510;
+  return{pixels:Math.round(desktopPx),truncated:truncated,danger:danger,warning:warning,charCount:text.length,displayText:text.slice(0,truncated?Math.floor(text.length*0.85):text.length)+(truncated?'...':'')}
+}
+
+function readWeights(){
+  var g=function(id,def){var n=parseInt(document.getElementById(id).value,10);return isNaN(n)?def:n};
+  return{structure:g('haWStruct',35),wordBalance:g('haWBalance',25),emotion:g('haWEmotion',20),readability:g('haWReadability',20)}
+}
+
+function computeScore(){
+  var headline=headlineEl.value;
+  var keyword=keywordEl.value;
+  if(!headline.trim()){clearResults();return}
+  var tokens=headline.toLowerCase().match(/\b\w+\b/g)||[];
+  if(tokens.length===0){clearResults();return}
+  var classified=classifyWords(tokens);
+  var type=detectType(headline);
+  var sentiment=computeSentiment(tokens,classified);
+  var grade=computeGradeLevel(headline,tokens);
+  var kwStats=keywordStats(headline,keyword);
+  var stats={
+    wordCount:tokens.length,
+    charCount:headline.length,
+    avgWordLength:tokens.length>0?headline.replace(/\s/g,'').length/tokens.length:0,
+    tokens:tokens,
+    hasNumber:/\d/.test(headline)
+  };
+  var s={
+    structure:scoreStructure(stats,type,kwStats),
+    wordBalance:scoreWordBalance(classified),
+    emotion:scoreEmotion(classified,sentiment,type),
+    readability:scoreReadability(stats,grade),
+    total:0
+  };
+  var cw=readWeights();
+  s.structure=Math.round(s.structure*cw.structure/35);
+  s.wordBalance=Math.round(s.wordBalance*cw.wordBalance/25);
+  s.emotion=Math.round(s.emotion*cw.emotion/20);
+  s.readability=Math.round(s.readability*cw.readability/20);
+  s.total=Math.min(Math.round(s.structure+s.wordBalance+s.emotion+s.readability),100);
+  var result={
+    headline:headline,
+    keyword:keyword,
+    timestamp:Date.now(),
+    scores:s,
+    metrics:{
+      wordCount:stats.wordCount,charCount:stats.charCount,avgWordLength:stats.avgWordLength,
+      gradeLevel:grade.grade,gradeLabel:grade.label,sentiment:sentiment.label,
+      type:type,hasNumber:stats.hasNumber,
+      tokens:tokens,classified:classified
+    },
+    kwStats:kwStats,
+    emotions:analyzeEmotions(tokens),
+    clickbait:detectClickbait(headline),
+    serpPreview:simulateSERPPreview(headline),
+    alliteration:detectAlliterationAdvanced(tokens),
+    rewrites:generateRewrites({
+      headline:headline,metrics:{
+        type:type,wordCount:stats.wordCount,
+        classified:classified,gradeLabel:grade.label
+      },scores:s
+    }),
+    allReadability:computeAllReadability(headline,tokens),
+    tone:analyzeTone(tokens),
+    recommendations:generateRecommendations({
+      headline:headline,kwStats:kwStats,scores:s,clickbait:detectClickbait(headline),metrics:{
+        wordCount:stats.wordCount,charCount:stats.charCount,
+        gradeLevel:grade.grade,gradeLabel:grade.label
+      }
+    })
+  };
+  renderResults(result);
+  saveHistory(result);
+  renderHistory()
+}
+
+function clearResults(){
+  scoreNumEl.textContent='--';
+  scoreRing.className='ha-score-ring ha-sr-empty';
+  var fg=scoreRing.querySelector('.ha-sr-fg');if(fg){fg.style.stroke='';fg.style.strokeDashoffset=CIRC}
+  barStructure.style.width='0%';barStructure.style.background='var(--color-base-300)';
+  barBalance.style.width='0%';barBalance.style.background='var(--color-base-300)';
+  barEmotion.style.width='0%';barEmotion.style.background='var(--color-base-300)';
+  barReadability.style.width='0%';barReadability.style.background='var(--color-base-300)';
+  nStructure.textContent='0';nBalance.textContent='0';nEmotion.textContent='0';nReadability.textContent='0';
+  metaEl.innerHTML='';
+  suggestionList.innerHTML='<div class="ha-empty">Start typing your headline above to see instant feedback.</div>'
+  emotionSection.style.display='none';serpPreview.style.display='none';rewriteSection.style.display='none';
+  document.getElementById('haReadabilitySection').style.display='none';
+  document.getElementById('haToneSection').style.display='none';
+  document.getElementById('haBatchResults').innerHTML='';
+  document.getElementById('haSparkline').innerHTML='';
+  document.getElementById('haHLInfo').style.display='none';
+  scoreHistory=[];
+}
+
+function renderResults(r){
+  var s=r.scores;
+  scoreNumEl.textContent=s.total;
+  scoreRing.className='ha-score-ring';
+  var color=s.total>=85?'var(--color-success)':s.total>=70?'var(--color-primary)':s.total>=50?'var(--color-warning,var(--color-primary))':'var(--color-error)';
+  var fg=scoreRing.querySelector('.ha-sr-fg');
+  if(fg){fg.style.stroke=color;fg.style.strokeDashoffset=CIRC-(CIRC*s.total/100)}
+  function setBar(el,num,full,maxColor){
+    var pct=Math.round((num/full)*100);
+    el.style.width=Math.min(pct,100)+'%';
+    var c=pct>=80?'var(--color-success)':pct>=50?'var(--color-warning,var(--color-primary))':'var(--color-error)';
+    el.style.background=c
+  }
+  setBar(barStructure,s.structure,35);
+  setBar(barBalance,s.wordBalance,25);
+  setBar(barEmotion,s.emotion,20);
+  setBar(barReadability,s.readability,20);
+  nStructure.textContent=s.structure;nBalance.textContent=s.wordBalance;nEmotion.textContent=s.emotion;nReadability.textContent=s.readability;
+  if(r.allReadability){
+    var rd=r.allReadability;
+    document.getElementById('haReadabilitySection').style.display='';
+    document.getElementById('haReadabilityBody').innerHTML=
+      '<tr><td>Flesch-Kincaid</td><td>Grade '+rd.flesch+'</td></tr>'+
+      '<tr><td>Gunning Fog</td><td>Grade '+rd.gunningFog+'</td></tr>'+
+      '<tr><td>SMOG</td><td>Grade '+rd.smog+'</td></tr>'+
+      '<tr><td>Coleman-Liau</td><td>Grade '+rd.colemanLiau+'</td></tr>'
+  }else{document.getElementById('haReadabilitySection').style.display='none'}
+  var m=r.metrics;
+  updateSparkline(s.total);
+  var readTime=computeReadingTime(headlineEl.value);
+  var html='';
+  html+='<span class="ha-badge">'+m.type.emoji+' '+escapeHTML(m.type.label)+'</span>';
+  html+='<span class="ha-badge"><span class="ha-bd-dot" style="background:'+(m.sentiment==='Positive'?'var(--color-success)':m.sentiment==='Negative'?'var(--color-error)':'var(--color-base-content)')+'"></span>'+escapeHTML(m.sentiment)+'</span>';
+  html+='<span class="ha-badge">'+m.wordCount+' words</span>';
+  html+='<span class="ha-badge">'+m.charCount+' chars</span>';
+  if(m.gradeLabel)html+='<span class="ha-badge">'+escapeHTML(m.gradeLabel)+' level</span>';
+  if(r.kwStats){
+    if(r.kwStats.present)html+='<span class="ha-badge" style="border-color:var(--color-success);color:var(--color-success)">Keyword: pos '+r.kwStats.position+(r.kwStats.frontLoaded?', front-loaded':'')+'</span>';
+    else html+='<span class="ha-badge" style="border-color:var(--color-error);color:var(--color-error)">Keyword not found</span>';
+  }
+  html+='<span class="ha-badge">'+readTime+'</span>';
+  metaEl.innerHTML=html;
+  var hlDiv=document.getElementById('haHLInfo');
+  if(hlDiv){
+    hlDiv.style.display='';
+    hlDiv.innerHTML='<span>'+readTime+' read</span><span style="opacity:.4">\u00B7</span><span>Dotted = complex words (\u22653 syllables)</span>'
+  }
+  if(r.emotions&&r.emotions.intensity>0){
+    emotionSection.style.display='';
+    var ehtml='';var ecolors={joy:'#f59e0b',trust:'#10b981',fear:'#8b5cf6',surprise:'#f97316',anticipation:'#3b82f6',anger:'#ef4444',sadness:'#6366f1',disgust:'#84cc16'};
+    var elabels={joy:'Joy',trust:'Trust',fear:'Fear',surprise:'Surprise',anticipation:'Anticipation',anger:'Anger',sadness:'Sadness',disgust:'Disgust'};
+    var maxCount=0;for(var k in r.emotions.counts){if(r.emotions.counts[k]>maxCount)maxCount=r.emotions.counts[k]}
+    maxCount=Math.max(maxCount,1);
+    for(var k in r.emotions.counts){
+      var pct=Math.round((r.emotions.counts[k]/maxCount)*100);
+      if(r.emotions.counts[k]>0)ehtml+='<div class="ha-em-row"><span class="ha-em-label">'+elabels[k]+'</span><div class="ha-em-track"><div class="ha-em-fill" style="width:'+pct+'%;background:'+ecolors[k]+'"></div></div></div>'
+    }
+    if(ehtml!=='')emotionBars.innerHTML=ehtml;else emotionSection.style.display='none'
+  }else{emotionSection.style.display='none'}
+
+  if(r.tone){
+    document.getElementById('haToneSection').style.display='';
+    var t=r.tone;var tHtml='';
+    tHtml+='<span class="ha-tone-badge"><span class="ha-tone-label">Formality</span><span class="ha-tone-value">'+t.formality+'</span></span>';
+    tHtml+='<span class="ha-tone-badge"><span class="ha-tone-label">Authority</span><span class="ha-tone-value">'+t.authority+'</span></span>';
+    tHtml+='<span class="ha-tone-badge"><span class="ha-tone-label">Style</span><span class="ha-tone-value">'+t.style+'</span></span>';
+    document.getElementById('haToneBadges').innerHTML=tHtml
+  }else{document.getElementById('haToneSection').style.display='none'}
+
+  if(r.clickbait){
+    var cb=r.clickbait;
+    var cbHtml='<div class="ha-clickbait"><span class="ha-cb-dot" style="background:'+(cb.isClickbait?'var(--color-error)':cb.score>15?'var(--color-warning,var(--color-primary))':'var(--color-success)')+'"></span><span style="font-size:.475rem;font-weight:800;text-transform:uppercase;opacity:.7">Clickbait Risk: '+cb.level+' ('+cb.score+'/100)'+(cb.flags.length>0?' \u00B7 '+cb.flags.join(', '):'')+'</span></div>';
+    metaEl.insertAdjacentHTML('beforeend',cbHtml)
+  }
+
+  if(r.serpPreview){
+    serpPreview.style.display='';
+    var sp=r.serpPreview;
+    var serpTitle=escapeHTML(sp.displayText);
+    var serpUrl='https://www.example.com/blog/'+r.metrics.type.label.toLowerCase().replace(/\s+/g,'-');
+    var truncMarker=sp.danger?' <span style="color:var(--color-error);font-size:.425rem;font-weight:800">TRUNCATED</span>':'';
+    serpContent.innerHTML='<div class="ha-serp-preview"><div class="ha-serp-url">'+escapeHTML(serpUrl)+'</div><div class="ha-serp-title"><b>'+serpTitle+'</b>'+truncMarker+'</div><div class="ha-serp-desc">Your page description appears here in Google search results. Optimize your meta description for better click-through rates.</div><div class="ha-serp-bar" style="position:relative"><div class="ha-serp-trunc" style="left:'+Math.min(100,Math.round((sp.pixels/600)*100))+'%"></div></div><div class="ha-serp-label"><span>'+sp.charCount+' chars</span><span style="color:'+(sp.danger?'var(--color-error)':sp.warning?'var(--color-warning,var(--color-primary))':'var(--color-success)')+'">'+(sp.danger?'Overflow':sp.warning?'Warning':'Safe')+' \u00B7 '+sp.pixels+'px</span></div></div></div>'
+  }else{serpPreview.style.display='none'}
+
+  if(r.rewrites&&r.rewrites.length>0){
+    rewriteSection.style.display='';
+    var rhtml='';
+    for(var ri=0;ri<r.rewrites.length;ri++){rhtml+='<span class="ha-rewrite" data-rewrite="'+escapeHTML(r.rewrites[ri])+'">'+escapeHTML(r.rewrites[ri])+'</span>'}
+    rewriteList.innerHTML=rhtml;
+    rewriteList.querySelectorAll('.ha-rewrite').forEach(function(el){
+      el.addEventListener('click',function(){
+        headlineEl.value=this.getAttribute('data-rewrite');
+        updateCharCountSingle();computeScore()
+      })
+    })
+  }else{rewriteSection.style.display='none'}
+  var recs=r.recommendations;
+  if(recs.length>0){suggestionList.innerHTML='';for(var i=0;i<recs.length;i++){var d=document.createElement('div');d.className='ha-suggestion';d.textContent=recs[i];suggestionList.appendChild(d)}}
+  else suggestionList.innerHTML='<div class="ha-empty">No specific suggestions — your headline looks solid.</div>'
+}
+
+function updateCharCount(el,warnEl){
+  var len=el.value.length;
+  warnEl.textContent=len+' characters';
+  warnEl.className='ha-char-warn ha-cw-'+(len<=65?'ok':len<=80?'warn':'err')
+}
+function updateCharCountSingle(){updateCharCount(headlineEl,charWarn)}
+function updateCharCountC1(){updateCharCount(cmp1,ccw1)}
+function updateCharCountC2(){updateCharCount(cmp2,ccw2)}
+
+function loadHistory(){try{return JSON.parse(localStorage.getItem('sb_ha_history')||'[]')}catch(e){return[]}}
+function saveHistory(result){
+  try{
+    var arr=loadHistory();
+    arr.unshift(result);
+    if(arr.length>10)arr=arr.slice(0,10);
+    localStorage.setItem('sb_ha_history',JSON.stringify(arr))
+  }catch(e){}
+}
+function deleteHistory(idx){try{var arr=loadHistory();arr.splice(idx,1);localStorage.setItem('sb_ha_history',JSON.stringify(arr));renderHistory()}catch(e){}}
+
+function renderHistory(){
+  var arr=loadHistory();
+  if(arr.length===0){historyList.innerHTML='<div class="ha-empty">No headlines analyzed yet.</div>';return}
+  var h='';
+  for(var i=0;i<arr.length;i++){
+    var s=arr[i].scores?arr[i].scores.total:'--';
+    var txt=arr[i].headline||'';
+    var c=s>=85?'var(--color-success)':s>=70?'var(--color-primary)':s>=50?'var(--color-warning,var(--color-primary))':'var(--color-error)';
+    h+='<div class="ha-history-row" data-idx="'+i+'"><span class="ha-hr-text">'+escapeHTML(txt.length>60?txt.slice(0,60)+'...':txt)+'</span><span class="ha-hr-score" style="color:'+c+'">'+s+'</span><button class="ha-hr-del" data-idx="'+i+'" aria-label="Delete headline from history">\u2715</button></div>'
+  }
+  historyList.innerHTML=h
+}
+
+function copyReport(){
+  computeScore();
+  var num=scoreNumEl.textContent;
+  if(num==='--'||isNaN(parseInt(num,10))){toast('Enter a headline first');return}
+  var txt='=== Headline Analysis Report ===\n';
+  txt+='Headline: '+headlineEl.value+'\n';
+  if(keywordEl.value.trim())txt+='Target Keyword: '+keywordEl.value.trim()+'\n';
+  txt+='Overall Score: '+num+'/100\n';
+  txt+='Breakdown:\n';
+  txt+='  Structure: '+nStructure.textContent+'/35\n';
+  txt+='  Word Balance: '+nBalance.textContent+'/25\n';
+  txt+='  Emotion: '+nEmotion.textContent+'/20\n';
+  txt+='  Readability: '+nReadability.textContent+'/20\n';
+  var cbEl=metaEl.querySelector('.ha-clickbait');
+  if(cbEl)txt+='Clickbait Risk: '+cbEl.textContent.trim()+'\n';
+  txt+='\nSuggestions:\n';
+  var rwEls=rewriteList.querySelectorAll('.ha-rewrite');
+  if(rwEls.length>0){txt+='Alternatives:\n';for(var ri=0;ri<rwEls.length;ri++)txt+='  \u2022 '+rwEls[ri].textContent+'\n'}
+  var sugEls=suggestionList.querySelectorAll('.ha-suggestion');
+  for(var i=0;i<sugEls.length;i++)txt+='  \u2022 '+sugEls[i].textContent+'\n';
+  txt+='\n--- storybrainai.com/tool/headline-analyzer';
+  if(!navigator.clipboard){toast('Copy requires HTTPS');return}
+  navigator.clipboard.writeText(txt).then(function(){toast('Report copied!')}).catch(function(){toast('Copy failed')})
+}
+
+function resetAll(){
+  headlineEl.value='';keywordEl.value='';cmp1.value='';cmp2.value='';
+  updateCharCountSingle();updateCharCountC1();updateCharCountC2();
+  clearResults()
+}
+
+// --- FORMULA LIBRARY ---
+function renderFormulas(){
+  var grid=document.getElementById('haFormulaGrid');if(!grid)return;
+  var cats={};
+  for(var i=0;i<headlineFormulas.length;i++){
+    var f=headlineFormulas[i];
+    if(!cats[f.cat])cats[f.cat]=[];
+    cats[f.cat].push(f)
+  }
+  var html='';
+  var catKeys=Object.keys(cats);
+  for(var ci=0;ci<catKeys.length;ci++){
+    var cat=catKeys[ci];
+    var items=cats[cat];
+    for(var fi=0;fi<items.length;fi++){
+      var f=items[fi];
+      html+='<button type="button" class="ha-fml-item" data-tmpl="'+escapeHTML(f.tmpl)+'" data-cat="'+cat+'" title="'+escapeHTML(f.desc)+'"><span class="ha-fml-cat">'+cat+'</span>'+escapeHTML(f.tmpl.replace(/\{[^}]+\}/g,'...'))+'</button>'
+    }
+  }
+  grid.innerHTML=html;
+  grid.addEventListener('click',function(e){
+    var btn=e.target.closest('.ha-fml-item');
+    if(!btn)return;
+    var tmpl=btn.getAttribute('data-tmpl');
+    if(tmpl)applyFormula(tmpl)
+  })
+}
+
+function applyFormula(tmpl){
+  var kw=keywordEl.value.trim()||'your topic';
+  var replacements={
+    '{num}':Math.floor(Math.random()*5+3).toString(),
+    '{adj}':['Proven','Essential','Ultimate','Powerful','Expert'][Math.floor(Math.random()*5)],
+    '{goal}':'Achieve '+kw,
+    '{time}':Math.floor(Math.random()*4+1)+' Minutes',
+    '{pain}':'the Struggle',
+    '{topic}':kw,
+    '{benefit}':['That Work','That Deliver','That Convert'][Math.floor(Math.random()*3)],
+    '{audience}':'Everyone',
+    '{obstacle}':'You\'re a Beginner',
+    '{expert}':'a Top Expert',
+    '{belief}':'Everything You Know',
+    '{bad_action}':'Overthinking',
+    '{good_action}':'Taking Action',
+    '{adj2}':'Hidden',
+    '{source}':'the Experts',
+    '{result}':'Think',
+    '{x}':'Option A',
+    '{y}':'Option B',
+    '{loss}':'Money',
+    '{common_thing}':'Bad Habits',
+    '{action}':'tried this',
+    '{end}':'a Pro',
+    '{start}':'a Beginner',
+    '{pro}':'Pro',
+    '{achieved}':'Did It'
+  };
+  var result=tmpl;
+  for(var key in replacements){result=result.replace(new RegExp(key.replace(/[-\/\\^$*+?.()|[\]{}]/g,'\\$&'),'g'),replacements[key])}
+  headlineEl.value=result;
+  updateCharCountSingle();computeScore();
+  // Switch to single tab
+  for(var j=0;j<tabs.length;j++){tabs[j].classList.remove('act')}
+  if(tabs.length>0)tabs[0].classList.add('act');
+  panelSingle.classList.add('act');panelCompare.classList.remove('act');
+  var batchPanel=document.getElementById('haPanelBatch');if(batchPanel)batchPanel.classList.remove('act');
+  toast('Formula applied!')
+}
+
+// --- BATCH ANALYSIS ---
+function runBatchAnalysis(){
+  var input=document.getElementById('haBatchInput');
+  var resultsDiv=document.getElementById('haBatchResults');
+  if(!input||!resultsDiv)return;
+  var lines=input.value.split('\n').map(function(s){return s.trim()}).filter(function(s){return s.length>0});
+  if(lines.length===0){resultsDiv.innerHTML='<div class="ha-empty">Enter at least one headline per line.</div>';return}
+  var scored=[];
+  for(var bi=0;bi<lines.length;bi++){
+    var line=lines[bi];
+    var tokens=line.toLowerCase().match(/\b\w+\b/g)||[];
+    if(tokens.length===0)continue;
+    var classified=classifyWords(tokens);
+    var type=detectType(line);
+    var sentiment=computeSentiment(tokens,classified);
+    var grade=computeGradeLevel(line,tokens);
+    var kw=keywordEl.value;
+    var kwStats=keywordStats(line,kw);
+    var stats={wordCount:tokens.length,charCount:line.length,avgWordLength:line.replace(/\s/g,'').length/(tokens.length||1),tokens:tokens,hasNumber:/\d/.test(line)};
+    var sc={structure:scoreStructure(stats,type,kwStats),wordBalance:scoreWordBalance(classified),emotion:scoreEmotion(classified,sentiment,type),readability:scoreReadability(stats,grade),total:0};
+    sc.total=Math.min(Math.round(sc.structure+sc.wordBalance+sc.emotion+sc.readability),100);
+    scored.push({text:line,score:sc,tokens:tokens,type:type})
+  }
+  scored.sort(function(a,b){return b.score.total-a.score.total});
+  var html='<table class="ha-batch-table"><thead><tr><th>#</th><th>Headline</th><th>Type</th><th>Words</th><th style="cursor:default">Score</th></tr></thead><tbody>';
+  for(var bi=0;bi<scored.length;bi++){
+    var s=scored[bi];
+    var rank=bi+1;
+    var c=s.score.total>=85?'var(--color-success)':s.score.total>=70?'var(--color-primary)':s.score.total>=50?'var(--color-warning,var(--color-primary))':'var(--color-error)';
+    html+='<tr data-batch-idx="'+bi+'" style="cursor:pointer"><td style="opacity:.4;font-weight:700">'+rank+'</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHTML(s.text.slice(0,60))+'</td><td style="opacity:.6">'+s.type.emoji+'</td><td style="text-align:center;opacity:.6">'+s.tokens.length+'</td><td class="ha-bt-score" style="color:'+c+'">'+s.score.total+'</td></tr>'
+  }
+  html+='</tbody></table>';
+  resultsDiv.innerHTML=html;
+  resultsDiv._batchData=scored
+}
+
+// --- SHARE ---
+function shareAnalysis(){
+  var h=headlineEl.value.trim();
+  if(!h){toast('Enter a headline first');return}
+  var kw=keywordEl.value.trim();
+  var params='headline='+encodeURIComponent(h);
+  if(kw)params+='&keyword='+encodeURIComponent(kw);
+  var url=window.location.origin+window.location.pathname+'#'+params;
+  if(!navigator.clipboard){toast('Copy requires HTTPS');return}
+  navigator.clipboard.writeText(url).then(function(){toast('Link copied!')}).catch(function(){toast('Copy failed')})
+}
+
+// --- URL HASH ---
+function loadFromHash(){
+  try{
+    var hash=window.location.hash.replace(/^#/,'');
+    if(!hash)return;
+    var params=new URLSearchParams(hash);
+    var h=params.get('headline');var kw=params.get('keyword');
+    if(h){headlineEl.value=h;if(kw)keywordEl.value=kw;updateCharCountSingle();computeScore()}
+  }catch(e){}
+}
+
+// --- SPARKLINE ---
+var scoreHistory=[];
+function updateSparkline(total){
+  scoreHistory.push(total);
+  if(scoreHistory.length>20)scoreHistory.shift();
+  if(scoreHistory.length<2)return;
+  var w=180,h=30,pad=2;
+  var min=Math.min.apply(null,scoreHistory),max=Math.max.apply(null,scoreHistory);
+  var range=Math.max(max-min,5);
+  var pts=[];
+  for(var i=0;i<scoreHistory.length;i++){
+    var x=pad+(i/(scoreHistory.length-1))*(w-2*pad);
+    var y=h-pad-((scoreHistory[i]-min)/range)*(h-2*pad);
+    pts.push(x.toFixed(1)+','+y.toFixed(1))
+  }
+  var polyline=pts.join(' ');
+  var color=total>=85?'#22c55e':total>=70?'var(--color-primary)':total>=50?'#f59e0b':'#ef4444';
+  var sparkDiv=document.getElementById('haSparkline');
+  if(sparkDiv)sparkDiv.innerHTML='<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" style="display:block"><polyline fill="none" stroke="'+color+'" stroke-width="1.5" points="'+polyline+'"/><circle cx="'+pts[pts.length-1].split(',')[0]+'" cy="'+pts[pts.length-1].split(',')[1]+'" r="2" fill="'+color+'"/></svg>'
+}
+
+// --- POWER WORD EXPLORER ---
+function renderPWCategories(){
+  var catsDiv=document.getElementById('haPWCats');
+  if(!catsDiv)return;
+  var html='';
+  for(var ci=0;ci<pwCategoriesList.length;ci++){
+    html+='<button type="button" class="ha-pw-cat'+(ci===0?' act':'')+'" data-cat="'+pwCategoriesList[ci]+'">'+pwCategoriesList[ci]+'</button>'
+  }
+  catsDiv.innerHTML=html;
+  renderPWWords(pwCategoriesList[0]);
+  catsDiv.addEventListener('click',function(e){
+    var btn=e.target.closest('.ha-pw-cat');
+    if(!btn)return;
+    catsDiv.querySelectorAll('.ha-pw-cat').forEach(function(b){b.classList.remove('act')});
+    btn.classList.add('act');
+    renderPWWords(btn.getAttribute('data-cat'))
+  })
+}
+function renderPWWords(cat){
+  var grid=document.getElementById('haPWGrid');
+  if(!grid||!pwCategories[cat])return;
+  var html='';
+  var words=pwCategories[cat];
+  for(var wi=0;wi<words.length;wi++){
+    html+='<button type="button" class="ha-pw-word" data-word="'+words[wi]+'">'+words[wi]+'</button>'
+  }
+  grid.innerHTML=html
+}
+document.addEventListener('click',function(e){
+  var btn=e.target.closest('.ha-pw-word');
+  if(!btn)return;
+  var word=btn.getAttribute('data-word');
+  if(!word)return;
+  var val=headlineEl.value;
+  var cursor=headlineEl.selectionStart||val.length;
+  headlineEl.value=val.slice(0,cursor)+' '+word+val.slice(cursor);
+  headlineEl.focus();
+  var newPos=cursor+word.length+1;
+  headlineEl.setSelectionRange(newPos,newPos);
+  updateCharCountSingle();computeScore();
+  toast('Added: '+word)
+});
+
+// --- PLATFORM PROFILES ---
+function applyPlatformProfile(platform){
+  var prof=platformProfiles[platform];
+  if(!prof)return;
+  if(document.getElementById('haWStruct')){
+    document.getElementById('haWStruct').value=prof.weights.structure;
+    document.getElementById('haWBalance').value=prof.weights.wordBalance;
+    document.getElementById('haWEmotion').value=prof.weights.emotion;
+    document.getElementById('haWReadability').value=prof.weights.readability;
+    updateWeightDisplay()
+  }
+}
+
+// --- WEIGHT SLIDERS ---
+function updateWeightDisplay(){
+  var ws=readWeights();
+  document.getElementById('haWVStruct').textContent=ws.structure;
+  document.getElementById('haWVBalance').textContent=ws.wordBalance;
+  document.getElementById('haWVEmotion').textContent=ws.emotion;
+  document.getElementById('haWVReadability').textContent=ws.readability;
+  try{localStorage.setItem('sb_ha_weights',JSON.stringify(ws))}catch(e){}
+  return ws
+}
+function loadWeights(){
+  try{
+    var saved=JSON.parse(localStorage.getItem('sb_ha_weights'));
+    if(saved){
+      if(saved.structure!=null)document.getElementById('haWStruct').value=saved.structure;
+      if(saved.wordBalance!=null)document.getElementById('haWBalance').value=saved.wordBalance;
+      if(saved.emotion!=null)document.getElementById('haWEmotion').value=saved.emotion;
+      if(saved.readability!=null)document.getElementById('haWReadability').value=saved.readability;
+    }
+  }catch(e){}
+  updateWeightDisplay()
+}
+
+// --- READING TIME + COMPLEX WORD HIGHLIGHT ---
+function computeReadingTime(text){
+  var wpm=238;var words=text.trim().split(/\s+/).filter(function(s){return s.length>0}).length;var seconds=Math.round((words/wpm)*60);if(seconds<1)return'<1 sec';if(seconds<60)return seconds+' sec';return Math.floor(seconds/60)+' min '+(seconds%60)+' sec'
+}
+function getHighlightedHeadline(text){
+  if(!text.trim())return escapeHTML(text);
+  var tokens=text.match(/\b\w+\b/g)||[];
+  var result='';var lastIdx=0;
+  for(var ti=0;ti<tokens.length;ti++){
+    var word=tokens[ti];
+    var idx=text.toLowerCase().indexOf(word.toLowerCase(),lastIdx);
+    if(idx<0){result+=escapeHTML(text.slice(lastIdx));break}
+    result+=escapeHTML(text.slice(lastIdx,idx));
+    var syl=1;
+    if(word.length<=3)syl=1;else{var w=word.toLowerCase().replace(/e$/,'').replace(/[aeiouy]{2,}/g,'a');var m=w.match(/[aeiouy]/g);syl=m?m.length:1}
+    if(syl>=3)result+='<span class="ha-highlight"><span class="ha-hl-complex" title="'+syl+' syllables">'+escapeHTML(word)+'</span></span>';
+    else result+=escapeHTML(word);
+    lastIdx=idx+word.length
+  }
+  result+=escapeHTML(text.slice(lastIdx));
+  return result
+}
+
+// --- EVENT LISTENERS ---
+var batchInput=document.getElementById('haBatchInput');
+var batchResultsDiv=document.getElementById('haBatchResults');
+var shareBtn=document.getElementById('haShareBtn');
+var batchPanel=document.getElementById('haPanelBatch');
+
+if(batchInput)batchInput.addEventListener('input',debounce(runBatchAnalysis,400));
+if(batchResultsDiv)batchResultsDiv.addEventListener('click',function(e){
+  var row=e.target.closest('tr[data-batch-idx]');
+  if(!row)return;
+  var idx=parseInt(row.getAttribute('data-batch-idx'),10);
+  var data=this._batchData;
+  if(data&&data[idx]){headlineEl.value=data[idx].text;updateCharCountSingle();computeScore();toast('Loaded into analyzer')}
+});
+var pfSelect=document.getElementById('haPlatform');
+if(pfSelect)pfSelect.addEventListener('change',function(){applyPlatformProfile(this.value);computeScore()});
+var wSliders=['haWStruct','haWBalance','haWEmotion','haWReadability'];
+for(var si=0;si<wSliders.length;si++){(function(id){var el=document.getElementById(id);if(el)el.addEventListener('input',function(){updateWeightDisplay();debouncedScore()})})(wSliders[si])}
+if(shareBtn)shareBtn.addEventListener('click',shareAnalysis);
+
+headlineEl.addEventListener('input',function(){updateCharCountSingle();debouncedScore()});
+keywordEl.addEventListener('input',debouncedScore);
+cmp1.addEventListener('input',function(){updateCharCountC1();debouncedCompare()});
+cmp2.addEventListener('input',function(){updateCharCountC2();debouncedCompare()});
+var debouncedScore=debounce(computeScore,300);
+var debouncedCompare=debounce(function(){
+  var t1=cmp1.value.trim(),t2=cmp2.value.trim();
+  if(!t1&&!t2){clearResults();return}
+  var kw=keywordEl.value;
+  function scoreCmp(text){
+    var tokens=text.toLowerCase().match(/\b\w+\b/g)||[];
+    if(tokens.length===0)return null;
+    var classified=classifyWords(tokens);
+    var type=detectType(text);
+    var sentiment=computeSentiment(tokens,classified);
+    var grade=computeGradeLevel(text,tokens);
+    var kwStats=keywordStats(text,kw);
+    var stats={wordCount:tokens.length,charCount:text.length,avgWordLength:text.replace(/\s/g,'').length/(tokens.length||1),tokens:tokens,hasNumber:/\d/.test(text)};
+    var sc={structure:scoreStructure(stats,type,kwStats),wordBalance:scoreWordBalance(classified),emotion:scoreEmotion(classified,sentiment,type),readability:scoreReadability(stats,grade),total:0};
+    sc.total=Math.min(Math.round(sc.structure+sc.wordBalance+sc.emotion+sc.readability),100);
+    return{scores:sc,metrics:{type:type,sentiment:sentiment,wordCount:tokens.length,charCount:text.length,gradeLabel:grade.label,classified:classified},kwStats:kwStats,clickbait:detectClickbait(text),emotions:analyzeEmotions(tokens)}
+  }
+  var r1=scoreCmp(t1),r2=scoreCmp(t2);
+  var best=null;
+  if(r1&&r2){if(r1.scores.total>r2.scores.total)best=1;else if(r2.scores.total>r1.scores.total)best=2}
+  else if(r1)best=1;else if(r2)best=2;
+  var h='';
+  if(r1)h+='<div class="ha-card-sm'+(best===1?' ha-winner':'')+'"><div style="display:flex;align-items:center;gap:10px"><div class="ha-score-ring" style="width:80px;height:80px;margin:0"><svg width="80" height="80" viewBox="0 0 120 120"><circle class="ha-sr-bg" cx="60" cy="60" r="50"/><circle class="ha-sr-fg" cx="60" cy="60" r="50" stroke-dasharray="314.16" stroke-dashoffset="'+(CIRC-(CIRC*r1.scores.total/100))+'" style="stroke:'+(r1.scores.total>=85?'var(--color-success)':r1.scores.total>=70?'var(--color-primary)':r1.scores.total>=50?'var(--color-warning,var(--color-primary))':'var(--color-error)')+'"></circle></svg><div class="ha-score-val" style="font-size:1rem"><span>'+r1.scores.total+'</span></div></div><div style="flex:1;font-size:.55rem;font-weight:700"><div>'+escapeHTML(t1.slice(0,80))+'</div><div style="opacity:.4;margin-top:3px">'+r1.metrics.type.emoji+' '+escapeHTML(r1.metrics.type.label)+' \u00B7 '+r1.metrics.wordCount+' words \u00B7 '+r1.metrics.charCount+' chars</div></div></div></div>';
+  else h+='<div class="ha-card-sm ha-empty" style="padding:20px;text-align:center">Enter Headline A</div>';
+  if(r2)h+='<div class="ha-card-sm'+(best===2?' ha-winner':'')+'"><div style="display:flex;align-items:center;gap:10px"><div class="ha-score-ring" style="width:80px;height:80px;margin:0"><svg width="80" height="80" viewBox="0 0 120 120"><circle class="ha-sr-bg" cx="60" cy="60" r="50"/><circle class="ha-sr-fg" cx="60" cy="60" r="50" stroke-dasharray="314.16" stroke-dashoffset="'+(CIRC-(CIRC*r2.scores.total/100))+'" style="stroke:'+(r2.scores.total>=85?'var(--color-success)':r2.scores.total>=70?'var(--color-primary)':r2.scores.total>=50?'var(--color-warning,var(--color-primary))':'var(--color-error)')+'"></circle></svg><div class="ha-score-val" style="font-size:1rem"><span>'+r2.scores.total+'</span></div></div><div style="flex:1;font-size:.55rem;font-weight:700"><div>'+escapeHTML(t2.slice(0,80))+'</div><div style="opacity:.4;margin-top:3px">'+r2.metrics.type.emoji+' '+escapeHTML(r2.metrics.type.label)+' \u00B7 '+r2.metrics.wordCount+' words \u00B7 '+r2.metrics.charCount+' chars</div></div></div></div>';
+  else h+='<div class="ha-card-sm ha-empty" style="padding:20px;text-align:center">Enter Headline B</div>';
+  if(r1&&r2)h='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+h+'</div>';
+  if(best===1)h+='<div style="margin-top:10px;font-size:.55rem;font-weight:800;text-align:center;color:var(--color-success)">Headline A wins by '+(r1.scores.total-r2.scores.total)+' points</div>';
+  else if(best===2)h+='<div style="margin-top:10px;font-size:.55rem;font-weight:800;text-align:center;color:var(--color-success)">Headline B wins by '+(r2.scores.total-r1.scores.total)+' points</div>';
+  else if(r1&&r2&&best===null)h+='<div style="margin-top:10px;font-size:.55rem;font-weight:800;text-align:center;opacity:.4">Tie</div>';
+  suggestionList.innerHTML=h
+},300);
+
+for(var i=0;i<tabs.length;i++){
+  tabs[i].addEventListener('click',function(){
+    for(var j=0;j<tabs.length;j++){tabs[j].classList.remove('act')}
+    this.classList.add('act');
+    var tab=this.getAttribute('data-tab');
+    panelSingle.classList.toggle('act',tab==='single');
+    panelCompare.classList.toggle('act',tab==='compare');
+    if(batchPanel)batchPanel.classList.toggle('act',tab==='batch');
+    if(tab==='batch')setTimeout(runBatchAnalysis,50);
+    clearResults()
+  })
+}
+
+historyList.addEventListener('click',function(e){
+  var del=e.target.closest('.ha-hr-del');
+  if(del){var idx=parseInt(del.getAttribute('data-idx'),10);deleteHistory(idx);return}
+  var row=e.target.closest('.ha-history-row');
+  if(!row)return;
+  var idx=parseInt(row.getAttribute('data-idx'),10);
+  var arr=loadHistory();
+  if(!arr[idx])return;
+  headlineEl.value=arr[idx].headline||'';
+  keywordEl.value=arr[idx].keyword||'';
+  updateCharCountSingle();
+  computeScore()
+});
+
+copyBtn.addEventListener('click',copyReport);
+resetBtn.addEventListener('click',resetAll);
+updateCharCountSingle();updateCharCountC1();updateCharCountC2();
+clearResults();
+renderHistory();
+renderFormulas();renderPWCategories();loadWeights();
+loadFromHash();
+})();
+</script>
+{% endblock %}
+{% block seo_schema %}
+  {% set seo = {
+  "name": "Headline Analyzer",
+  "description": "Score your headlines instantly. Get a 0-100 rating with breakdowns for structure, word balance, emotion, and readability. Free online tool, no signup required.",
+  "url": "https://www.storybrainai.com/tool/headline-analyzer",
+  "app_category": "WebApplication",
+  "date_modified": "2026-07-13",
+  "faqs": [
+    {"q": "What is a headline score?", "a": "A headline score is a 0-100 rating that measures how effective your headline is based on structure, word balance, emotional appeal, and readability. Higher scores indicate stronger headlines."},
+    {"q": "What makes a great headline?", "a": "Great headlines are 6-12 words (40-65 characters), use power words and emotional triggers, have a clear format (How-to, List, Question, or Command), and read at a grade 6-8 level."},
+    {"q": "What's the ideal headline length?", "a": "The ideal headline length is 40-65 characters or 6-12 words. Headlines under 30 characters are too short to convey value. Headlines over 80 characters risk being truncated in search results."},
+    {"q": "Why use a headline analyzer?", "a": "A headline analyzer gives you objective, data-backed feedback on your headlines before you publish. It helps you catch structural issues, improve emotional impact, and optimize for both readers and search engines."},
+    {"q": "How is the headline score calculated?", "a": "The score has four components: Structure (35 points) — word/character count, type, numbers, keyword placement. Word Balance (25 points) — power words, emotional words, uncommon words vs filler. Emotion (20 points) — sentiment, urgency, curiosity gap. Readability (20 points) — grade level, word length, alliteration."}
+  ],
+  "howto_steps": [
+    {"title": "Enter Your Headline", "desc": "Type or paste your headline into the text area. The analysis updates instantly as you type."},
+    {"title": "Add a Target Keyword (Optional)", "desc": "Enter a target keyword to check if it's included and whether it's front-loaded for SEO."},
+    {"title": "Review Your Score", "desc": "See your overall 0-100 score and four category breakdowns. Each category shows you exactly where to improve."},
+    {"title": "Read the Suggestions", "desc": "Actionable tips tell you what to change and why — add power words, adjust length, or try a different format."},
+    {"title": "Compare Headlines (Optional)", "desc": "Switch to Compare mode to test two headlines side by side and see which one scores higher."}
+  ],
+  "about_title": "About the Headline Analyzer",
+  "about_body": "<p>The Headline Analyzer helps you write better headlines by scoring them across four dimensions: structure, word balance, emotion, and readability. Each dimension gives you specific, actionable feedback so you can improve your headlines before you publish.</p><p>Whether you're writing blog posts, email subject lines, social media content, or ad copy, a strong headline is the difference between getting clicked and getting scrolled past. All analysis happens in your browser — nothing is sent to any server.</p>",
+  "related": seo_data.related
+} %}
+{{ tool_seo_all(seo) }}
+{% endblock %}

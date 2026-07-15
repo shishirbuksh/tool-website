@@ -1,0 +1,1035 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
+{% block title %}Break-Even Analysis Calculator — Free Online | StoryBrain AI{% endblock %}
+{% block meta_description %}Find the sales volume needed to cover costs. See profit at any volume, compare pricing scenarios, and visualize your cost structure. Free online, no sign-up.{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/break-even-analysis-calculator{% endblock %}
+{% block og_title %}Break-Even Analysis Calculator — Free Online | StoryBrain AI{% endblock %}
+{% block og_description %}Calculate your break-even point with an interactive chart. Find the sales volume needed to cover fixed and variable costs.{% endblock %}
+{% block head %}
+<style>
+.be-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.25rem;border:1px solid var(--color-base-300)}
+.be-label{font-size:0.625rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:4px;display:block}
+.be-input{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.85rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;box-sizing:border-box}
+.be-input:focus{border-color:var(--color-primary);outline:none}.be-input:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.be-pri{background:var(--color-primary);color:var(--color-primary-content);border:none;border-radius:.75rem;padding:.55rem .85rem;font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:0.08em;cursor:pointer;transition:all .18s;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;touch-action:manipulation}
+.be-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.be-pri:active{transform:translateY(0)}
+.be-pri:disabled{opacity:.5;cursor:not-allowed;transform:none;filter:none}
+.be-sec{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.4rem .65rem;font-weight:700;font-size:.65rem;text-transform:uppercase;letter-spacing:0.06em;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:inherit;touch-action:manipulation}
+.be-sec:hover{border-color:var(--color-base-content)}
+.be-pri:focus-visible,.be-sec:focus-visible,.s-btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.be-switch input:focus-visible+.slider{outline:2px solid var(--color-primary);outline-offset:2px}
+.be-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.be-stat{background:var(--color-base-100);border-radius:.85rem;padding:12px;text-align:center;border:1px solid var(--color-base-300)}
+.be-stat .sv{font-size:1.625rem;font-weight:900;font-family:monospace;line-height:1.2;color:var(--color-primary)}
+.be-stat .sl{font-size:0.4375rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-top:3px}
+.be-stat.full{grid-column:1/-1}
+.be-stat.profit .sv{color:var(--color-success)}
+.be-stat.loss .sv{color:var(--color-error)}
+.be-chart-wrap{background:var(--color-base-100);border-radius:.85rem;padding:10px;border:1px solid var(--color-base-300)}
+.be-chart-wrap canvas{width:100%;height:auto;display:block}
+.be-table{width:100%;border-collapse:collapse;font-size:0.625rem;font-weight:600}
+.be-table th{padding:4px 6px;text-align:right;font-size:0.4375rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;opacity:.35;border-bottom:1px solid var(--color-base-300)}
+.be-table th:first-child{text-align:left}
+.be-table td{padding:4px 6px;text-align:right;font-family:monospace;border-bottom:1px solid var(--color-base-200)}
+.be-table td:first-child{text-align:left;font-weight:800}
+.be-table-wrap{max-height:280px;overflow:auto;border-radius:.75rem;border:1px solid var(--color-base-300)}
+.be-scenario-card{background:var(--color-base-100);border-radius:.85rem;padding:12px;border:1px solid var(--color-base-300);text-align:center}
+.be-scenario-card .scn-name{font-size:0.5625rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;opacity:.5;margin-bottom:4px}
+.be-scenario-card .scn-val{font-size:1.125rem;font-weight:900;font-family:monospace}
+.be-scenario-card .scn-sub{font-size:0.4375rem;font-weight:700;opacity:.35;margin-top:2px}
+.be-scenario-card.best .scn-name{color:var(--color-success);opacity:1}
+.be-empty{text-align:center;padding:16px;font-size:0.625rem;font-weight:600;opacity:.3}
+.be-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px;pointer-events:none;max-width:calc(100vw - 48px)}
+.be-toast.show{opacity:1;transform:translateY(0)}
+.be-mode-bar{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.be-mode-bar .mode-l{font-size:0.5rem;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;opacity:.3}
+.be-mode-bar .mode-l.act{opacity:.7}
+.be-switch{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0}
+.be-switch input{opacity:0;width:0;height:0}
+.be-switch .slider{position:absolute;cursor:pointer;inset:0;background:var(--color-base-300);border-radius:11px;transition:.2s}
+.be-switch .slider::before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:var(--color-base-content);border-radius:50%;transition:.2s}
+.be-switch input:checked+.slider{background:var(--color-primary)}
+.be-switch input:checked+.slider::before{transform:translateX(18px)}
+.be-multi-inputs{display:none;flex-direction:column;gap:6px}
+.be-multi-inputs.show{display:flex}
+.be-prod-row{display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr;gap:6px;align-items:end;padding:8px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-300)}
+.be-prod-row .be-label{font-size:0.5rem;margin-bottom:2px}
+.be-prod-row .be-input{padding:.25rem .45rem;font-size:.7rem}
+.be-prod-name{width:100%;font-family:inherit;font-weight:600;font-size:.7rem;padding:.25rem .35rem;border:2px solid var(--color-base-300);border-radius:.5rem;background:var(--color-base-100);color:var(--color-base-content);box-sizing:border-box}
+.be-prod-name:focus{border-color:var(--color-primary);outline:none}
+.be-single-inputs{display:flex;flex-direction:column;gap:12px}
+.be-single-inputs.hide{display:none}
+.be-multi-note{font-size:0.4375rem;font-weight:700;opacity:.3;margin-top:4px;display:flex;align-items:center;gap:4px}
+#beMultiBreakdown{display:none}
+#beMultiBreakdown.show{display:block}
+.be-sen-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+.be-sen-controls .be-label{font-size:0.4375rem;margin-bottom:2px}
+.be-sen-controls .be-input{padding:.3rem .5rem;font-size:.7rem}
+.be-sen-wrap{max-height:280px;overflow:auto;border-radius:.75rem;border:1px solid var(--color-base-300)}
+.be-sen-table{width:100%;border-collapse:collapse;font-size:0.5625rem;font-weight:600}
+.be-sen-table th{padding:3px 5px;text-align:center;font-size:0.375rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;opacity:.35;border:1px solid var(--color-base-300);position:sticky;top:0;background:var(--color-base-200);z-index:2}
+.be-sen-table th:first-child{text-align:left;position:sticky;left:0;z-index:2}
+.be-sen-table td{padding:3px 5px;text-align:center;font-family:monospace;border:1px solid var(--color-base-200)}
+.be-sen-table td:first-child{text-align:left;font-weight:800;position:sticky;left:0;background:var(--color-base-200);z-index:1}
+.be-is-row{display:flex;justify-content:space-between;padding:3px 0;font-size:11px;font-weight:700;line-height:1.4}
+.be-is-row .il{opacity:.6}.be-is-row .ia{font-family:monospace;text-align:right;min-width:60px}.be-is-row .ip{font-size:9px;opacity:.4;min-width:44px;text-align:right;flex-shrink:0}
+.be-is-row.total{border-top:2px solid var(--color-base-300);padding-top:5px;margin-top:5px;font-size:13px}
+.be-ue-row{display:flex;align-items:center;gap:6px;padding:3px 0}
+.be-ue-label{font-size:9px;font-weight:800;opacity:.5;min-width:80px}
+.be-ue-track{flex:1;height:8px;background:var(--color-base-200);border-radius:4px;overflow:hidden}
+.be-ue-fill{height:100%;border-radius:4px;transition:width .3s}
+.be-ue-val{font-family:monospace;font-size:9px;font-weight:700;min-width:50px;text-align:right}
+.be-scenario-item{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:.6rem;background:var(--color-base-100);border:1px solid var(--color-base-300);margin-bottom:4px;font-size:10px;font-weight:700}
+.be-scenario-item .s-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.7}
+.be-scenario-item .s-actions{display:flex;gap:4px;flex-shrink:0}
+.be-scenario-item .s-btn{background:none;border:1px solid var(--color-base-300);border-radius:.4rem;padding:2px 6px;font-size:7px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;font-family:inherit;transition:all .1s}
+.be-scenario-item .s-btn:hover{background:var(--color-base-300)}
+.be-lcol,.be-rcol{width:100%}
+.be-compare-disabled{display:none}
+.be-mix-warn{display:none;color:var(--color-error);font-size:7px;margin-top:2px}
+@media print{@page{size:A4;margin:12mm}.no-print{display:none!important}.be-card{break-inside:avoid;box-shadow:none;border:1px solid #ccc}.be-chart-wrap canvas{max-width:100%!important;width:100%!important;height:auto!important}body{background:#fff!important;color:#000!important}.be-stat .sv{color:#000!important}#beResults{width:100%!important}.flex-col{flex-direction:column!important}.be-lcol{width:100%!important}.be-rcol{width:100%!important}}
+@media (max-width:600px){.be-prod-row{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.be-sen-controls{grid-template-columns:1fr 1fr}.be-grid{grid-template-columns:1fr}.be-stat.full{grid-column:1}.flex.gap-2.mt-4{flex-wrap:wrap;justify-content:center}}
+@media (min-width:1024px){.be-lcol{width:36%}.be-rcol{width:64%}}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("chart-bar","Calculators","Break-Even Analysis","CALCULATOR","Find the sales volume needed to cover your costs. See profit at any volume, compare pricing scenarios, and visualize your cost structure.") }}
+<div id="beToast" class="be-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="be-lcol">
+    <div class="be-card">
+      <div class="be-mode-bar">
+        <span class="mode-l act" id="beModeL1">Single</span>
+        <label class="be-switch"><input type="checkbox" id="beModeToggle" aria-label="Toggle single product / multi-product mode"><span class="slider"></span></label>
+        <span class="mode-l" id="beModeL2">Multi-Product</span>
+      </div>
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("dollar-sign","w-4 h-4",16) | safe }} Cost &amp; Revenue</h2>
+      <div id="beSingleInputs" class="be-single-inputs">
+        <div><label class="be-label" for="beFixedCost">Total Fixed Costs ($/mo)</label><input type="text" id="beFixedCost" class="be-input" value="10000" inputmode="decimal"></div>
+        <div><label class="be-label" for="beVarCost">Variable Cost Per Unit ($)</label><input type="text" id="beVarCost" class="be-input" value="15" inputmode="decimal"></div>
+        <div><label class="be-label" for="bePrice">Selling Price Per Unit ($)</label><input type="text" id="bePrice" class="be-input" value="40" inputmode="decimal"></div>
+      </div>
+      <div id="beMultiInputs" class="be-multi-inputs">
+        <div class="be-prod-row" data-idx="0">
+          <div><label class="be-label" for="beProdName0">Name</label><input type="text" class="be-prod-name" id="beProdName0" value="Product A"></div>
+          <div><label class="be-label" for="beProdPrice0">Price ($)</label><input type="text" class="be-input" id="beProdPrice0" value="50" inputmode="decimal"></div>
+          <div><label class="be-label" for="beProdVarCost0">Var Cost ($)</label><input type="text" class="be-input" id="beProdVarCost0" value="20" inputmode="decimal"></div>
+          <div><label class="be-label" for="beProdMix0">Mix %</label><input type="text" class="be-input" id="beProdMix0" value="50" inputmode="decimal"></div>
+        </div>
+        <div class="be-prod-row" data-idx="1">
+          <div><label class="be-label" for="beProdName1">Name</label><input type="text" class="be-prod-name" id="beProdName1" value="Product B"></div>
+          <div><label class="be-label" for="beProdPrice1">Price ($)</label><input type="text" class="be-input" id="beProdPrice1" value="35" inputmode="decimal"></div>
+          <div><label class="be-label" for="beProdVarCost1">Var Cost ($)</label><input type="text" class="be-input" id="beProdVarCost1" value="12" inputmode="decimal"></div>
+          <div><label class="be-label" for="beProdMix1">Mix %</label><input type="text" class="be-input" id="beProdMix1" value="30" inputmode="decimal"></div>
+        </div>
+        <div class="be-prod-row" data-idx="2">
+          <div><label class="be-label" for="beProdName2">Name</label><input type="text" class="be-prod-name" id="beProdName2" value="Product C"></div>
+          <div><label class="be-label" for="beProdPrice2">Price ($)</label><input type="text" class="be-input" id="beProdPrice2" value="25" inputmode="decimal"></div>
+          <div><label class="be-label" for="beProdVarCost2">Var Cost ($)</label><input type="text" class="be-input" id="beProdVarCost2" value="10" inputmode="decimal"></div>
+          <div><label class="be-label" for="beProdMix2">Mix %</label><input type="text" class="be-input" id="beProdMix2" value="20" inputmode="decimal"></div>
+        </div>
+        <div class="be-multi-note" id="beMixTotal">{{ lucide_icon("info","w-2 h-2",8) | safe }} Mix total: <span id="beMixSum">100</span>%<span id="beMixWarn" class="be-mix-warn" role="alert"> — Mix does not sum to 100%</span></div>
+      </div>
+      <div class="flex flex-col gap-3 mt-3">
+        <div><label class="be-label" for="beVolume">Expected Monthly Sales (units)</label><input type="text" id="beVolume" class="be-input" value="500" inputmode="numeric"></div>
+        <div><label class="be-label" for="beTargetProfit">Target Monthly Profit ($) — optional</label><input type="text" id="beTargetProfit" class="be-input" value="" placeholder="e.g. 5000" inputmode="decimal"></div>
+      </div>
+    </div>
+    <div class="be-card mt-4" id="beCompareSection">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("git-compare","w-4 h-4",16) | safe }} Compare Scenario</h2>
+      <p class="text-[8px] font-bold opacity-30 mb-3">Adjust inputs below to compare against your main scenario</p>
+      <div id="beCompareDisabled" class="be-compare-disabled be-empty">Compare is not available in multi-product mode.</div>
+      <div class="flex flex-col gap-3" id="beCompareBody">
+        <div><label class="be-label" for="beS2Price">Alt. Selling Price ($)</label><input type="text" id="beS2Price" class="be-input" value="35" inputmode="decimal"></div>
+        <div><label class="be-label" for="beS2VarCost">Alt. Variable Cost ($)</label><input type="text" id="beS2VarCost" class="be-input" value="12" inputmode="decimal"></div>
+        <div><label class="be-label" for="beS2FixedCost">Alt. Fixed Costs ($/mo)</label><input type="text" id="beS2FixedCost" class="be-input" value="10000" inputmode="numeric"></div>
+      </div>
+    </div>
+    <div class="be-card mt-4" id="beScenariosCard">
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("bookmark","w-4 h-4",16) | safe }} Saved Scenarios</h2>
+      <div class="flex gap-2 mb-3">
+        <label for="beScenarioName" class="sr-only">Scenario name</label>
+        <input type="text" id="beScenarioName" class="be-input" placeholder="Name this setup..." style="flex:1">
+        <button type="button" id="beScenarioSaveBtn" class="be-pri" aria-label="Save current scenario" style="flex-shrink:0">Save</button>
+      </div>
+      <div id="beScenarioList"></div>
+    </div>
+    <div class="flex gap-2 mt-4 no-print">
+      <button type="button" id="beCopyBtn" class="be-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
+      <button type="button" id="bePrintBtn" class="be-sec" aria-label="Print report">{{ lucide_icon("printer","w-3 h-3",12) | safe }}</button>
+      <button type="button" id="beCsvBtn" class="be-sec" aria-label="Download CSV">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
+      <button type="button" id="bePngBtn" class="be-sec" aria-label="Download Chart PNG">{{ lucide_icon("image","w-3 h-3",12) | safe }}</button>
+    </div>
+  </div>
+  <div class="be-rcol">
+    <div id="beResults" role="region" aria-live="polite" aria-atomic="true">
+      <div class="be-card mb-4">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("crosshair","w-4 h-4",16) | safe }} Break-Even Summary</h2>
+        <div class="be-grid">
+          <div class="be-stat full"><div class="sv" id="beBepUnits">--</div><div class="sl">Break-Even Units (monthly)</div></div>
+          <div class="be-stat"><div class="sv" id="beBepRevenue">--</div><div class="sl">Break-Even Revenue</div></div>
+          <div class="be-stat"><div class="sv" id="beContributionMargin">--</div><div class="sl">Contribution Margin / Unit</div></div>
+          <div class="be-stat"><div class="sv" id="beCmRatio">--</div><div class="sl">Contribution Margin Ratio</div></div>
+          <div class="be-stat" id="beProfitStat"><div class="sv" id="beProfit">--</div><div class="sl">Profit at Expected Volume</div></div>
+          <div class="be-stat"><div class="sv" id="beMarginOfSafety">--</div><div class="sl">Margin of Safety (%)</div></div>
+          <div class="be-stat"><div class="sv" id="beTargetVol">--</div><div class="sl">Volume to Reach Target</div></div>
+          <div class="be-stat"><div class="sv" id="beTargetRev">--</div><div class="sl">Revenue to Reach Target</div></div>
+          <div class="be-stat"><div class="sv" id="beDol">--</div><div class="sl">Degree of Operating Leverage</div></div>
+          <div class="be-stat full"><div class="sv" id="beDolImpact" style="font-size:10px;font-family:inherit;font-weight:700;color:var(--color-base-content);opacity:.5">--</div><div class="sl">Sales impact estimate (at ±10%)</div></div>
+        </div>
+      </div>
+      <div class="be-card mb-4" id="beIncomeStatement">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("receipt","w-4 h-4",16) | safe }} CM Income Statement</h2>
+        <div id="beIsBody" style="font-size:11px;font-weight:600"></div>
+      </div>
+      <div class="be-card mb-4" id="beUnitEconomics">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("gantt-chart-square","w-4 h-4",16) | safe }} Unit Economics</h2>
+        <div id="beUeBody" style="font-size:10px"></div>
+      </div>
+      <div class="be-card mb-4" id="beMultiBreakdown">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("layers","w-4 h-4",16) | safe }} Product Breakdown</h2>
+        <div class="be-table-wrap"><table class="be-table"><thead><tr><th>Product</th><th style="text-align:right">Mix</th><th style="text-align:right">CM/Unit</th><th style="text-align:right">BEP Units</th><th style="text-align:right">BEP Revenue</th></tr></thead><tbody id="beMultiTbody"></tbody></table></div>
+      </div>
+      <div class="be-card mb-4">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("chart-line","w-4 h-4",16) | safe }} Cost-Volume-Profit Chart</h2>
+        <div class="be-chart-wrap"><canvas id="beChart" height="240" aria-label="Break-even chart showing total revenue and total cost lines" role="img"></canvas></div>
+      </div>
+      <div class="be-card mb-4">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("area-chart","w-4 h-4",16) | safe }} Profit-Volume Chart</h2>
+        <div class="be-chart-wrap"><canvas id="bePvChart" height="120" aria-label="Profit-volume chart showing profit at different sales volumes" role="img"></canvas></div>
+      </div>
+      <div class="be-card mb-4" id="beCompareSection2">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("git-compare","w-4 h-4",16) | safe }} Scenario Comparison</h2>
+        <div id="beCompareGrid" class="be-grid" style="grid-template-columns:1fr 1fr"></div>
+      </div>
+      <div class="be-card mb-4">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("table","w-4 h-4",16) | safe }} Profit Table</h2>
+        <div class="be-table-wrap"><table class="be-table"><thead><tr><th>Units Sold</th><th style="text-align:right">Revenue</th><th style="text-align:right">Fixed Costs</th><th style="text-align:right">Variable Costs</th><th style="text-align:right">Total Costs</th><th style="text-align:right">Profit</th></tr></thead><tbody id="beTableBody"></tbody></table></div>
+      </div>
+      <div class="be-card mb-4 no-print">
+        <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-4 h-4",16) | safe }} Sensitivity Analysis (What-If)</h2>
+        <p class="text-[8px] font-bold opacity-30 mb-3">See how profit changes across different prices and volumes</p>
+        <div class="be-sen-controls">
+          <div><label class="be-label" for="beSenPriceMin">Price Min ($)</label><input type="text" id="beSenPriceMin" class="be-input" value="" inputmode="decimal"></div>
+          <div><label class="be-label" for="beSenPriceMax">Price Max ($)</label><input type="text" id="beSenPriceMax" class="be-input" value="" inputmode="decimal"></div>
+          <div><label class="be-label" for="beSenPriceStep">Step ($)</label><input type="text" id="beSenPriceStep" class="be-input" value="5" inputmode="decimal"></div>
+          <div><label class="be-label" for="beSenVolMin">Volume Min</label><input type="text" id="beSenVolMin" class="be-input" value="" inputmode="numeric"></div>
+          <div><label class="be-label" for="beSenVolMax">Volume Max</label><input type="text" id="beSenVolMax" class="be-input" value="" inputmode="numeric"></div>
+          <div><label class="be-label" for="beSenVolStep">Step</label><input type="text" id="beSenVolStep" class="be-input" value="50" inputmode="numeric"></div>
+        </div>
+        <button type="button" id="beSenGenerateBtn" class="be-pri" aria-label="Generate sensitivity analysis grid">{{ lucide_icon("sparkles","w-3 h-3",12) | safe }} Generate Grid</button>
+        <div id="beSenGrid" class="mt-3"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script nonce="{{ nonce }}">
+(function(){'use strict';
+var fixedCostEl=document.getElementById('beFixedCost'),
+  varCostEl=document.getElementById('beVarCost'),
+  priceEl=document.getElementById('bePrice'),
+  volumeEl=document.getElementById('beVolume'),
+  targetProfitEl=document.getElementById('beTargetProfit'),
+  s2PriceEl=document.getElementById('beS2Price'),
+  s2VarCostEl=document.getElementById('beS2VarCost'),
+  s2FixedCostEl=document.getElementById('beS2FixedCost'),
+  modeToggle=document.getElementById('beModeToggle'),
+  modeL1=document.getElementById('beModeL1'),
+  modeL2=document.getElementById('beModeL2'),
+  singleInputs=document.getElementById('beSingleInputs'),
+  multiInputs=document.getElementById('beMultiInputs'),
+  compareSection=document.getElementById('beCompareSection'),
+  compareBody=document.getElementById('beCompareBody'),
+  compareDisabled=document.getElementById('beCompareDisabled'),
+  compareSection2=document.getElementById('beCompareSection2'),
+  multiBreakdown=document.getElementById('beMultiBreakdown'),
+  multiTbody=document.getElementById('beMultiTbody'),
+  mixSumEl=document.getElementById('beMixSum'),
+  mixWarn=document.getElementById('beMixWarn'),
+  copyBtn=document.getElementById('beCopyBtn'),
+  printBtn=document.getElementById('bePrintBtn'),
+  csvBtn=document.getElementById('beCsvBtn'),
+  pngBtn=document.getElementById('bePngBtn'),
+  bepUnitsEl=document.getElementById('beBepUnits'),
+  bepRevenueEl=document.getElementById('beBepRevenue'),
+  cmEl=document.getElementById('beContributionMargin'),
+  cmRatioEl=document.getElementById('beCmRatio'),
+  profitEl=document.getElementById('beProfit'),
+  profitStat=document.getElementById('beProfitStat'),
+  mosEl=document.getElementById('beMarginOfSafety'),
+  targetVolEl=document.getElementById('beTargetVol'),
+  targetRevEl=document.getElementById('beTargetRev'),
+  dolEl=document.getElementById('beDol'),
+  dolImpactEl=document.getElementById('beDolImpact'),
+  canvas=document.getElementById('beChart'),
+  pvCanvas=document.getElementById('bePvChart'),
+  tableBody=document.getElementById('beTableBody'),
+  compareGrid=document.getElementById('beCompareGrid'),
+  senPriceMin=document.getElementById('beSenPriceMin'),
+  senPriceMax=document.getElementById('beSenPriceMax'),
+  senPriceStep=document.getElementById('beSenPriceStep'),
+  senVolMin=document.getElementById('beSenVolMin'),
+  senVolMax=document.getElementById('beSenVolMax'),
+  senVolStep=document.getElementById('beSenVolStep'),
+  senGenerate=document.getElementById('beSenGenerateBtn'),
+  senGrid=document.getElementById('beSenGrid'),
+  toastEl=document.getElementById('beToast'),
+  isBody=document.getElementById('beIsBody'),
+  ueBody=document.getElementById('beUeBody'),
+  scenarioNameEl=document.getElementById('beScenarioName'),
+  scenarioSaveBtn=document.getElementById('beScenarioSaveBtn'),
+  scenarioListEl=document.getElementById('beScenarioList');
+
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+
+function escapeHTML(s){var d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML}
+
+function safeNum(v,def){var n=parseFloat(String(v).replace(/[^0-9.eE\-+]/g,''));return isFinite(n)?n:(def||0)}
+
+function csvSafe(v){var s=String(v);return /^[=+\-@\t]/.test(s)?"'"+s:s}
+
+function fmt(n){
+  if(isNaN(n)||!isFinite(n))n=0;
+  return '$'+Math.round(n).toLocaleString('en-US');
+}
+
+function fmtPct(n){if(!isFinite(n)||isNaN(n))return '';return (n*100).toFixed(1)+'%'}
+
+function debounce(fn,ms){var t;return function(){clearTimeout(t);t=setTimeout(fn,ms)}}
+
+var prodNameEls=[document.getElementById('beProdName0'),document.getElementById('beProdName1'),document.getElementById('beProdName2')];
+var prodPriceEls=[document.getElementById('beProdPrice0'),document.getElementById('beProdPrice1'),document.getElementById('beProdPrice2')];
+var prodVarCostEls=[document.getElementById('beProdVarCost0'),document.getElementById('beProdVarCost1'),document.getElementById('beProdVarCost2')];
+var prodMixEls=[document.getElementById('beProdMix0'),document.getElementById('beProdMix1'),document.getElementById('beProdMix2')];
+
+var _cachedChartColors=null;
+function getChartColors(){
+  if(_cachedChartColors)return _cachedChartColors;
+  try{
+    var d=document.createElement('div');d.style.cssText='position:absolute;visibility:hidden;color:var(--color-base-content);background:var(--color-base-100)';
+    document.body.appendChild(d);
+    var tc=getComputedStyle(d).color,bc=getComputedStyle(d).backgroundColor;
+    d.style.color='var(--color-primary)';var pc=getComputedStyle(d).color;
+    d.style.color='var(--color-success)';var sc=getComputedStyle(d).color;
+    d.style.color='var(--color-error)';var ec=getComputedStyle(d).color;
+    d.style.color='var(--color-warning,var(--color-primary))';var wc=getComputedStyle(d).color;
+    document.body.removeChild(d);
+    function rgba(s,a){var m=s.match(/(\d+)/g);if(!m)return'rgba(128,128,128,'+a+')';return'rgba('+m[0]+','+m[1]+','+m[2]+','+a+')'}
+    _cachedChartColors={text:rgba(tc,.35),grid:rgba(tc,.08),bg:bc,primary:rgba(pc,1),success:rgba(sc,1),error:rgba(ec,1),warning:rgba(wc,1),lossFill:rgba(ec,.12),profitFill:rgba(sc,.12)};
+    return _cachedChartColors;
+  }catch(e){_cachedChartColors=null;return{text:'rgba(128,128,128,0.35)',grid:'rgba(128,128,128,0.08)',bg:'rgba(128,128,128,0.05)',primary:'rgba(59,130,246,1)',success:'rgba(34,197,94,1)',error:'rgba(239,68,68,1)',warning:'rgba(234,179,8,1)',lossFill:'rgba(239,68,68,0.12)',profitFill:'rgba(34,197,94,0.12)'}}
+}
+
+function getMode(){return modeToggle.checked}
+
+function updateMixTotal(){
+  var s=0;
+  for(var i=0;i<3;i++){s+=safeNum(prodMixEls[i].value,0)}
+  mixSumEl.textContent=isNaN(s)?'0':s.toFixed(0);
+  var err=Math.abs(s-100)>0.5;
+  mixSumEl.style.color=err?'var(--color-error)':'';
+  mixWarn.style.display=err?'inline':'none'
+}
+
+function toggleMode(){
+  var m=getMode();
+  singleInputs.classList.toggle('hide',m);
+  multiInputs.classList.toggle('show',m);
+  compareSection.style.display=m?'none':'';
+  compareSection2.style.display=m?'none':'';
+  compareBody.style.display=m?'none':'';
+  compareDisabled.style.display=m?'block':'none';
+  multiBreakdown.classList.toggle('show',m);
+  modeL1.classList.toggle('act',!m);
+  modeL2.classList.toggle('act',m);
+  calc(true)
+}
+
+function calc(skipSave){
+  var fc=safeNum(fixedCostEl.value),
+    m=getMode();
+  if(m){calcMulti(fc)}else{calcSingle(fc)}
+  if(!skipSave)saveState()
+}
+
+function calcSingle(fc){
+  var vc=safeNum(varCostEl.value),
+    p=safeNum(priceEl.value),
+    v=Math.max(0,safeNum(volumeEl.value)),
+    tp=safeNum(targetProfitEl.value),
+    s2p=safeNum(s2PriceEl.value),
+    s2vc=safeNum(s2VarCostEl.value),
+    s2fc=Math.max(0,safeNum(s2FixedCostEl.value,fc));
+
+  if(p<=0||vc<0||fc<0||v<=0){clearResults();toast('Enter positive price, volume, and non-negative costs');return}
+
+  var cm=p-vc;
+  if(cm<=0){clearResults();bepUnitsEl.textContent='N/A (no BEP)';cmEl.textContent=fmt(cm);cmRatioEl.textContent='N/A';return}
+
+  var cmRatio=p>0?cm/p:0;
+  var bepUnits=Math.ceil(fc/cm);
+  var bepRevenue=bepUnits*p;
+  var profit=(cm*v)-fc;
+  var mos=v>0?((v-bepUnits)/v)*100:0;
+  mosEl.textContent=mos.toFixed(1)+'%';
+
+  var s2cm=s2p-s2vc;
+  var s2Bep=s2cm>0?Math.ceil(s2fc/s2cm):0;
+  var s2Profit=(s2cm*v)-s2fc;
+
+  var targetUnits=tp>0?Math.ceil((fc+tp)/cm):0;
+  var targetRevenue=targetUnits*p;
+
+  var dol=profit>0?(cm*v/profit):0;
+  var dolPct=dol>0?(dol*10).toFixed(1):0;
+
+  bepUnitsEl.textContent=bepUnits.toLocaleString('en-US')+' units';
+  bepRevenueEl.textContent=fmt(bepRevenue);
+  cmEl.textContent=fmt(cm);
+  cmRatioEl.textContent=fmtPct(cmRatio);
+  profitEl.textContent=fmt(profit);
+  profitStat.className='be-stat'+(profit>0?' profit':profit<0?' loss':'');
+  profitStat.setAttribute('aria-label',(profit>0?'Profit: ':(profit<0?'Loss: ':'Breakeven: '))+'$'+Math.round(Math.abs(profit)).toLocaleString('en-US'));
+  targetVolEl.textContent=targetUnits>0?targetUnits.toLocaleString('en-US')+' units':'--';
+  targetRevEl.textContent=targetRevenue>0?fmt(targetRevenue):'--';
+  dolEl.textContent=profit>0?dol.toFixed(2):'N/A';
+  dolImpactEl.textContent=profit>0?'A 10% change in sales would change profit by '+dolPct+'%':'N/A (zero/negative profit)';
+
+  drawChartSingle(p,vc,fc,v,bepUnits,bepRevenue,targetUnits,targetRevenue);
+  drawPVChart(p,vc,fc,v,bepUnits,targetUnits);
+  renderTable(p,vc,fc,v,bepUnits);
+  renderCompare(bepUnits,bepRevenue,profit,s2Bep,s2Profit,s2cm,s2p);
+  renderIncomeStatement(p*v,vc*v,cm*v,fc,profit,v,p);
+  renderUnitEconomics(p,vc,fc);
+}
+
+function calcMulti(fc){
+  var v=Math.max(0,safeNum(volumeEl.value)),
+    tp=safeNum(targetProfitEl.value);
+  var prods=[];
+  var totalMix=0;
+  for(var i=0;i<3;i++){
+    var pr=safeNum(prodPriceEls[i].value);
+    var vc=safeNum(prodVarCostEls[i].value);
+    var mx=Math.max(0,safeNum(prodMixEls[i].value));
+    if(pr<=0)continue;
+    prods.push({name:prodNameEls[i].value||'Product '+(i+1),price:pr,vc:vc,mix:mx,cm:pr-vc});
+    totalMix+=mx;
+  }
+  if(prods.length===0||totalMix===0||v<=0){clearResults();toast('Enter at least one product with price > 0 and volume > 0');return}
+  var norm=1/totalMix;
+  var wcm=0,wprice=0,wvc=0;
+  for(var i=0;i<prods.length;i++){var w=prods[i].mix*norm;wcm+=w*prods[i].cm;wprice+=w*prods[i].price;wvc+=w*prods[i].vc}
+  if(wcm<=0){clearResults();bepUnitsEl.textContent='N/A (no BEP)';cmEl.textContent=fmt(wcm);cmRatioEl.textContent='N/A';return}
+
+  var cmRatio=wprice>0?wcm/wprice:0;
+  var bepUnits=Math.ceil(fc/wcm);
+  var profit=(wcm*v)-fc;
+  var mos=v>0?((v-bepUnits)/v)*100:0;
+
+  var targetUnits=tp>0?Math.ceil((fc+tp)/wcm):0;
+  var targetRevenue=0;
+  for(var i=0;i<prods.length;i++){targetRevenue+=targetUnits*prods[i].mix*norm*prods[i].price}
+
+  var dol=profit>0?(wcm*v/profit):0;
+  var dolPct=dol>0?(dol*10).toFixed(1):0;
+
+  bepUnitsEl.textContent=bepUnits.toLocaleString('en-US')+' units';
+  bepRevenueEl.textContent=fmt(bepUnits*wprice);
+  cmEl.textContent=fmt(wcm);
+  cmRatioEl.textContent=fmtPct(cmRatio);
+  profitEl.textContent=fmt(profit);
+  profitStat.className='be-stat'+(profit>0?' profit':profit<0?' loss':'');
+  profitStat.setAttribute('aria-label',(profit>0?'Profit: ':(profit<0?'Loss: ':'Breakeven: '))+'$'+Math.round(Math.abs(profit)).toLocaleString('en-US'));
+  mosEl.textContent=mos.toFixed(1)+'%';
+  targetVolEl.textContent=targetUnits>0?targetUnits.toLocaleString('en-US')+' units':'--';
+  targetRevEl.textContent=targetRevenue>0?fmt(targetRevenue):'--';
+  dolEl.textContent=profit>0?dol.toFixed(2):'N/A';
+  dolImpactEl.textContent=profit>0?'A 10% change in sales would change profit by '+dolPct+'%':'N/A (zero/negative profit)';
+
+  var mh='';
+  for(var i=0;i<prods.length;i++){
+    var pbep=bepUnits*prods[i].mix*norm;
+    mh+='<tr><td>'+escapeHTML(prods[i].name)+'</td><td style="text-align:right">'+fmtPct(prods[i].mix*norm)+'</td><td style="text-align:right">'+fmt(prods[i].cm)+'</td><td style="text-align:right">'+Math.round(pbep).toLocaleString('en-US')+'</td><td style="text-align:right">'+fmt(pbep*prods[i].price)+'</td></tr>';
+  }
+  multiTbody.innerHTML=mh;
+
+  drawChartMulti(wprice,wvc,fc,v,bepUnits,targetUnits,targetRevenue);
+  drawPVChart(wprice,wvc,fc,v,bepUnits,targetUnits);
+  renderTableMulti(wprice,wvc,fc,v,bepUnits);
+  renderIncomeStatement(wprice*v,wvc*v,wcm*v,fc,profit,v,wprice);
+  renderUnitEconomics(wprice,wvc,fc);
+  if(compareGrid)compareGrid.innerHTML='';
+}
+
+function clearResults(){
+  var els=[bepUnitsEl,bepRevenueEl,cmEl,cmRatioEl,profitEl,mosEl,targetVolEl,targetRevEl,dolEl,dolImpactEl];
+  for(var i=0;i<els.length;i++)els[i].textContent='--';
+  tableBody.innerHTML='';multiTbody.innerHTML='';
+  if(isBody)isBody.innerHTML='';if(ueBody)ueBody.innerHTML='';
+  profitStat.className='be-stat';
+  if(canvas){var ctx2=canvas.getContext('2d');if(ctx2)ctx2.clearRect(0,0,canvas.width,canvas.height)}
+  if(pvCanvas){var pvCtx=pvCanvas.getContext('2d');if(pvCtx)pvCtx.clearRect(0,0,pvCanvas.width,pvCanvas.height)}
+  if(compareGrid)compareGrid.innerHTML='';if(senGrid)senGrid.innerHTML=''
+}
+
+function drawChartSingle(p,vc,fc,vol,bepUnits,bepRevenue,targetUnits,targetRevenue){
+  if(!canvas)return;
+  var cc=getChartColors();
+  var ctx=canvas.getContext('2d');if(!ctx)return;
+  var par=canvas.parentElement;
+  var W=par.clientWidth-parseFloat(getComputedStyle(par).paddingLeft||0)-parseFloat(getComputedStyle(par).paddingRight||0);
+  var dpr=window._bePrinting?4:(window.devicePixelRatio||1);
+  var H=240,bw=Math.round(W*dpr),bh=Math.round(H*dpr);
+  if(canvas.width!==bw||canvas.height!==bh){canvas.width=bw;canvas.height=bh;canvas.style.width=W+'px';canvas.style.height=H+'px'}
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  var maxUnits=Math.max(vol,bepUnits*2,100,targetUnits*1.1);
+  var maxRev=Math.max(p*maxUnits,fc+vc*maxUnits,targetRevenue*1.1)*1.15;
+  drawChartAxes(ctx,W,H,cc)
+  var c=drawChartLines(ctx,W,H,maxUnits,maxRev,p,vc,fc,bepUnits,bepRevenue,cc);
+  drawChartTarget(ctx,maxUnits,maxRev,targetUnits,targetRevenue,cc,c);
+  drawChartLabels(ctx,W,H,maxUnits,maxRev,cc,c)
+}
+
+function drawChartMulti(avgP,avgVC,fc,vol,bepUnits,targetUnits,targetRevenue){
+  if(!canvas)return;
+  var cc=getChartColors();
+  var ctx=canvas.getContext('2d');if(!ctx)return;
+  var par=canvas.parentElement;
+  var W=par.clientWidth-parseFloat(getComputedStyle(par).paddingLeft||0)-parseFloat(getComputedStyle(par).paddingRight||0);
+  var dpr=window._bePrinting?4:(window.devicePixelRatio||1);
+  var H=240,bw=Math.round(W*dpr),bh=Math.round(H*dpr);
+  if(canvas.width!==bw||canvas.height!==bh){canvas.width=bw;canvas.height=bh;canvas.style.width=W+'px';canvas.style.height=H+'px'}
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  var maxUnits=Math.max(vol,bepUnits*2,100,targetUnits*1.1);
+  var maxRev=Math.max(avgP*maxUnits,fc+avgVC*maxUnits,targetRevenue*1.1)*1.15;
+  drawChartAxes(ctx,W,H,cc)
+  var c=drawChartLines(ctx,W,H,maxUnits,maxRev,avgP,avgVC,fc,bepUnits,bepUnits*avgP,cc);
+  drawChartTarget(ctx,maxUnits,maxRev,targetUnits,targetRevenue,cc,c);
+  drawChartLabels(ctx,W,H,maxUnits,maxRev,cc,c)
+}
+
+function drawChartAxes(ctx,W,H,cc){
+  ctx.clearRect(0,0,W,H);
+  var margin=45,pt=20,pb=30,cw=W-margin*2,ch=H-pt-pb;
+  ctx.strokeStyle=cc.grid;
+  ctx.lineWidth=0.5;
+  for(var i=0;i<=4;i++){var y=pt+ch-(ch/4)*i;ctx.beginPath();ctx.moveTo(margin,y);ctx.lineTo(margin+cw,y);ctx.stroke()}
+}
+
+function drawChartLines(ctx,W,H,maxUnits,maxRev,p,vc,fc,bepUnits,bepRevenue,cc){
+  var margin=45,pt=20,pb=30,cw=W-margin*2,ch=H-pt-pb;
+
+  ctx.save();
+  if(bepUnits>=0&&bepUnits<=maxUnits){
+    var bx=margin+(bepUnits/maxUnits)*cw;
+    var x0=margin,x1=margin+cw;
+    var y0Rev=pt+ch,y1Rev=pt+ch-(p*maxUnits/maxRev)*ch;
+    var y0Cost=pt+ch-(fc/maxRev)*ch,y1Cost=pt+ch-((fc+vc*maxUnits)/maxRev)*ch;
+    var byRev=pt+ch-((p*bepUnits)/maxRev)*ch;
+    var byCost=pt+ch-((fc+vc*bepUnits)/maxRev)*ch;
+
+    ctx.beginPath();ctx.moveTo(x0,y0Rev);ctx.lineTo(bx,byRev);ctx.lineTo(bx,byCost);ctx.lineTo(x0,y0Cost);ctx.closePath();
+    ctx.fillStyle=cc.lossFill;ctx.fill();
+
+    ctx.beginPath();ctx.moveTo(bx,byRev);ctx.lineTo(x1,y1Rev);ctx.lineTo(x1,y1Cost);ctx.lineTo(bx,byCost);ctx.closePath();
+    ctx.fillStyle=cc.profitFill;ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.strokeStyle=cc.success;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(margin,pt+ch);ctx.lineTo(margin+cw,pt+ch-(p*maxUnits/maxRev)*ch);ctx.stroke();
+
+  ctx.strokeStyle=cc.error;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(margin,pt+ch-(fc/maxRev)*ch);ctx.lineTo(margin+cw,pt+ch-((fc+vc*maxUnits)/maxRev)*ch);ctx.stroke();
+
+  if(bepUnits>0&&bepUnits<=maxUnits){
+    var bx=margin+(bepUnits/maxUnits)*cw,by=pt+ch-(bepRevenue/maxRev)*ch;
+    ctx.strokeStyle=cc.primary;ctx.lineWidth=1;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.moveTo(bx,pt);ctx.lineTo(bx,by);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(margin,by);ctx.lineTo(bx,by);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=cc.primary;ctx.beginPath();ctx.arc(bx,by,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=cc.primary;ctx.font='7px monospace';ctx.textAlign='center';
+    ctx.fillText('BEP: '+bepUnits.toLocaleString('en-US')+' units',bx,by-10);
+  }
+
+  return{margin:margin,pt:pt,cw:cw,ch:ch}
+}
+
+function drawChartTarget(ctx,maxUnits,maxRev,targetUnits,targetRevenue,cc,c){
+  if(!targetUnits||targetUnits<=0||!c)return;
+  var tx=c.margin+(targetUnits/maxUnits)*c.cw,ty=c.pt+c.ch-(targetRevenue/maxRev)*c.ch;
+  ctx.strokeStyle=cc.warning;ctx.lineWidth=1;ctx.setLineDash([2,3]);
+  ctx.beginPath();ctx.moveTo(tx,c.pt);ctx.lineTo(tx,ty);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(c.margin,ty);ctx.lineTo(tx,ty);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle=cc.warning;ctx.beginPath();ctx.arc(tx,ty,3,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=cc.warning;ctx.font='7px monospace';ctx.textAlign='center';
+  ctx.fillText('Target: '+targetUnits.toLocaleString('en-US')+' units',tx,ty+12);
+}
+
+function drawChartLabels(ctx,W,H,maxUnits,maxRev,cc,c){
+  var margin=45,pt=20,pb=30,cw=W-margin*2,ch=H-pt-pb;
+  for(var i=0;i<=4;i++){
+    var y=pt+ch-(ch/4)*i;
+    ctx.fillStyle=cc.text;ctx.font='8px monospace';ctx.textAlign='right';
+    ctx.fillText(fmt(maxRev/4*i),margin-4,y+3);
+  }
+  ctx.fillStyle=cc.text;ctx.font='7px monospace';ctx.textAlign='center';
+  ctx.fillText('0',margin,pt+ch+14);
+  ctx.fillText(maxUnits.toLocaleString('en-US'),margin+cw,pt+ch+14);
+  ctx.fillText('Units',margin+cw/2,pt+ch+24);
+  ctx.fillStyle=cc.success;ctx.font='7px monospace';ctx.textAlign='left';
+  ctx.fillText('Revenue',margin+4,pt+12);
+  ctx.fillStyle=cc.error;ctx.fillText('Costs',margin+4,pt+22);
+}
+
+function drawPVChart(p,vc,fc,vol,bepUnits,targetUnits){
+  if(!pvCanvas)return;
+  var cc=getChartColors();
+  var ctx=pvCanvas.getContext('2d');if(!ctx)return;
+  var pvPar=pvCanvas.parentElement;
+  var W=pvPar.clientWidth-parseFloat(getComputedStyle(pvPar).paddingLeft||0)-parseFloat(getComputedStyle(pvPar).paddingRight||0);
+  var dpr=window._bePrinting?4:(window.devicePixelRatio||1);
+  var H=120,bw=Math.round(W*dpr),bh=Math.round(H*dpr);
+  if(pvCanvas.width!==bw||pvCanvas.height!==bh){pvCanvas.width=bw;pvCanvas.height=bh;pvCanvas.style.width=W+'px';pvCanvas.style.height=H+'px'}
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  var margin=40,pt=15,pb=25,cw=W-margin*2,ch=H-pt-pb;
+  ctx.clearRect(0,0,W,H);
+  var maxUnits=Math.max(vol,bepUnits*2,100,targetUnits*1.1);
+  var cm=p-vc;
+  var minP=-fc;
+  var maxP=cm>0?cm*maxUnits-fc:0;
+  var pRange=Math.max(maxP-minP,1);
+
+  ctx.strokeStyle=cc.grid;ctx.lineWidth=0.5;
+  for(var i=0;i<=4;i++){var y=pt+ch-(ch/4)*i;ctx.beginPath();ctx.moveTo(margin,y);ctx.lineTo(margin+cw,y);ctx.stroke()}
+
+  var zeroY=pt+ch-((0-minP)/pRange)*ch;
+  ctx.strokeStyle=cc.text;ctx.lineWidth=0.5;ctx.setLineDash([2,2]);
+  ctx.beginPath();ctx.moveTo(margin,zeroY);ctx.lineTo(margin+cw,zeroY);ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.save();
+  if(bepUnits>0&&bepUnits<=maxUnits){
+    var bx=margin+(bepUnits/maxUnits)*cw;
+    var bProf=cm*bepUnits-fc;
+    var by=pt+ch-((bProf-minP)/pRange)*ch;
+
+    ctx.beginPath();
+    ctx.moveTo(margin,pt+ch-((cm*0-fc-minP)/pRange)*ch);
+    ctx.lineTo(bx,by);
+    ctx.lineTo(bx,zeroY);
+    ctx.lineTo(margin,zeroY);
+    ctx.closePath();
+    ctx.fillStyle=cc.lossFill;ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(bx,by);
+    ctx.lineTo(margin+cw,pt+ch-((cm*maxUnits-fc-minP)/pRange)*ch);
+    ctx.lineTo(margin+cw,zeroY);
+    ctx.lineTo(bx,zeroY);
+    ctx.closePath();
+    ctx.fillStyle=cc.profitFill;ctx.fill();
+  }else if(cm>0){
+    ctx.beginPath();
+    ctx.moveTo(margin,pt+ch-((-fc-minP)/pRange)*ch);
+    ctx.lineTo(margin+cw,pt+ch-((cm*maxUnits-fc-minP)/pRange)*ch);
+    ctx.lineTo(margin+cw,zeroY);
+    ctx.lineTo(margin,zeroY);
+    ctx.closePath();
+    ctx.fillStyle=cc.profitFill;ctx.fill();
+  }else{
+    ctx.beginPath();
+    ctx.moveTo(margin,pt+ch-((-fc-minP)/pRange)*ch);
+    ctx.lineTo(margin+cw,pt+ch-((-fc-minP)/pRange)*ch);
+    ctx.lineTo(margin+cw,zeroY);
+    ctx.lineTo(margin,zeroY);
+    ctx.closePath();
+    ctx.fillStyle=cc.lossFill;ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.strokeStyle=cc.primary;ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(margin,pt+ch-((-fc-minP)/pRange)*ch);
+  var steps=20;
+  for(var s=1;s<=steps;s++){
+    var u=maxUnits*s/steps;
+    var pr=cm*u-fc;
+    var x=margin+(u/maxUnits)*cw,yy=pt+ch-((pr-minP)/pRange)*ch;
+    ctx.lineTo(x,yy);
+  }
+  ctx.stroke();
+
+  if(bepUnits>0&&bepUnits<=maxUnits){
+    var bx=margin+(bepUnits/maxUnits)*cw;
+    var by=pt+ch-((cm*bepUnits-fc-minP)/pRange)*ch;
+    ctx.strokeStyle=cc.primary;ctx.lineWidth=1;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.moveTo(bx,pt);ctx.lineTo(bx,by);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=cc.primary;ctx.beginPath();ctx.arc(bx,by,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=cc.primary;ctx.font='6px monospace';ctx.textAlign='center';
+    ctx.fillText('BEP',bx,by-8);
+  }
+
+  if(targetUnits>0&&targetUnits<=maxUnits){
+    var tx=margin+(targetUnits/maxUnits)*cw;
+    var tProf=cm*targetUnits-fc;
+    var ty=pt+ch-((tProf-minP)/pRange)*ch;
+    ctx.strokeStyle=cc.warning;ctx.lineWidth=1;ctx.setLineDash([2,3]);
+    ctx.beginPath();ctx.moveTo(tx,pt);ctx.lineTo(tx,ty);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle=cc.warning;ctx.beginPath();ctx.arc(tx,ty,2,0,Math.PI*2);ctx.fill();
+  }
+
+  ctx.fillStyle=cc.text;ctx.font='6px monospace';ctx.textAlign='center';
+  ctx.fillText('0',margin,pt+ch+14);
+  ctx.fillText(maxUnits.toLocaleString('en-US'),margin+cw,pt+ch+14);
+  ctx.fillText('Units',margin+cw/2,pt+ch+22);
+  ctx.fillStyle=cc.text;ctx.font='6px monospace';ctx.textAlign='right';
+  ctx.fillText(fmt(minP),margin-3,pt+ch);
+  ctx.fillText(fmt(maxP),margin-3,pt+5);
+  ctx.fillStyle=cc.text;ctx.font='6px monospace';ctx.textAlign='right';
+  ctx.fillText('$0',margin-3,zeroY+2);
+}
+
+function renderTable(p,vc,fc,vol,bepUnits){
+  var tableMax=Math.max(vol,bepUnits);
+  var rows=Math.min(Math.max(tableMax,1)*2,1000);
+  var step=Math.max(1,Math.floor(rows/12));
+  var bepRow=0,minDiff=Infinity;
+  for(var u2=0;u2<=rows;u2+=step){var d=Math.abs(u2-bepUnits);if(d<minDiff){minDiff=d;bepRow=u2}}
+  var h='';
+  for(var u=0;u<=rows;u+=step){
+    var rev=p*u;var tot=fc+vc*u;var prof=rev-tot;
+    h+='<tr'+(u===bepRow?' style="font-weight:900;background:color-mix(in oklab,var(--color-primary) 10%,transparent)"':'')+'><td>'+u.toLocaleString('en-US')+'</td><td style="text-align:right">'+fmt(rev)+'</td><td style="text-align:right">'+fmt(fc)+'</td><td style="text-align:right">'+fmt(vc*u)+'</td><td style="text-align:right">'+fmt(tot)+'</td><td style="text-align:right;color:'+(prof>0?'var(--color-success)':prof<0?'var(--color-error)':'')+'">'+fmt(prof)+'</td></tr>';
+  }
+  tableBody.innerHTML=h||'<tr><td colspan="6" class="be-empty">No data</td></tr>';
+}
+
+function renderTableMulti(avgP,avgVC,fc,vol,bepUnits){
+  var tableMax=Math.max(vol,bepUnits);
+  var rows=Math.min(Math.max(tableMax,1)*2,1000);
+  var step=Math.max(1,Math.floor(rows/12));
+  var bepRow=0,minDiff=Infinity;
+  for(var u2=0;u2<=rows;u2+=step){var d=Math.abs(u2-bepUnits);if(d<minDiff){minDiff=d;bepRow=u2}}
+  var h='';
+  for(var u=0;u<=rows;u+=step){
+    var rev=avgP*u;var tot=fc+avgVC*u;var prof=rev-tot;
+    h+='<tr'+(u===bepRow?' style="font-weight:900;background:color-mix(in oklab,var(--color-primary) 10%,transparent)"':'')+'><td>'+u.toLocaleString('en-US')+'</td><td style="text-align:right">'+fmt(rev)+'</td><td style="text-align:right">'+fmt(fc)+'</td><td style="text-align:right">'+fmt(avgVC*u)+'</td><td style="text-align:right">'+fmt(tot)+'</td><td style="text-align:right;color:'+(prof>0?'var(--color-success)':prof<0?'var(--color-error)':'')+'">'+fmt(prof)+'</td></tr>';
+  }
+  tableBody.innerHTML=h||'<tr><td colspan="6" class="be-empty">No data</td></tr>';
+}
+
+function renderCompare(bepU,bepR,profit,s2Bep,s2Profit,s2cm,s2p){
+  if(!compareGrid)return;
+  if(getMode()){compareGrid.innerHTML='';return}
+  var fc=safeNum(fixedCostEl.value);
+  var vc=safeNum(varCostEl.value);
+  var p=safeNum(priceEl.value);
+  var s2cmPct=s2p>0?s2cm/s2p:0;
+  var cmPct=p>0?(p-vc)/p:0;
+  var h='';
+  h+='<div class="be-scenario-card'+(profit>s2Profit?' best':'')+'"><div class="scn-name">Scenario 1 (Main)</div><div class="scn-val">'+bepU.toLocaleString('en-US')+' units</div><div class="scn-sub">BEP: '+fmt(bepR)+'</div><div class="scn-sub" style="color:'+(profit>0?'var(--color-success)':profit<0?'var(--color-error)':'')+'">'+(profit>0?'Profit':profit<0?'Loss':'Breakeven')+': '+fmt(profit)+'/mo</div><div class="scn-sub">CM: '+fmt(p-vc)+' ('+fmtPct(cmPct)+')</div></div>';
+  h+='<div class="be-scenario-card'+(s2Profit>profit?' best':'')+'"><div class="scn-name">Scenario 2 (Alt)</div><div class="scn-val">'+(s2cm>0?s2Bep.toLocaleString('en-US'):'--')+' units</div><div class="scn-sub">BEP: '+(s2cm>0?fmt(s2Bep*s2p):'--')+'</div><div class="scn-sub" style="color:'+(s2Profit>0?'var(--color-success)':s2Profit<0?'var(--color-error)':'')+'">'+(s2Profit>0?'Profit':s2Profit<0?'Loss':'Breakeven')+': '+fmt(s2Profit)+'/mo</div><div class="scn-sub">CM: '+fmt(s2cm)+' ('+fmtPct(s2cmPct)+')</div></div>';
+  compareGrid.innerHTML=h;
+}
+
+function renderIncomeStatement(rev,vcTotal,cm,fixedC,prof,vol,p){
+  if(!isBody)return;
+  isBody.innerHTML='<div class="be-is-row"><span class="il">Sales Revenue ('+vol.toLocaleString('en-US')+' units × '+fmt(p)+')</span><span class="ia">'+fmt(rev)+'</span><span class="ip">100%</span></div><div class="be-is-row" style="opacity:.7"><span class="il">Less: Variable Costs</span><span class="ia" style="color:var(--color-error)">'+fmt(vcTotal)+'</span><span class="ip">'+(rev>0?fmtPct(vcTotal/rev):'')+'</span></div><div class="be-is-row" style="border-top:1px solid var(--color-base-200);padding-top:4px;margin-top:4px"><span class="il">= Contribution Margin</span><span class="ia" style="color:var(--color-primary)">'+fmt(cm)+'</span><span class="ip">'+(rev>0?fmtPct(cm/rev):'')+'</span></div><div class="be-is-row"><span class="il">Less: Fixed Costs</span><span class="ia" style="color:var(--color-error)">'+fmt(fixedC)+'</span><span class="ip">'+(rev>0?fmtPct(fixedC/rev):'')+'</span></div><div class="be-is-row total"><span class="il">= Operating Income (Profit)</span><span class="ia" style="color:'+(prof>0?'var(--color-success)':'var(--color-error)')+'">'+fmt(prof)+'</span><span class="ip">'+(rev>0?fmtPct(prof/rev):'')+'</span></div>'
+}
+
+function renderUnitEconomics(p,vc,fc){
+  if(!ueBody)return;
+  var cm=p-vc,cmRatio=p>0?cm/p:0;
+  var bars=[{label:'Revenue/Unit',val:p,pct:100,color:'var(--color-primary)'},{label:'Variable Cost/Unit',val:vc,pct:p>0?vc/p*100:0,color:'var(--color-error)'},{label:'Gross Margin/Unit',val:cm,pct:p>0?cm/p*100:0,color:'var(--color-success)'},{label:'CM Ratio',val:cmRatio,pct:100,color:'var(--color-primary)',pctDisplay:fmtPct(cmRatio)}];
+  var h='';
+  for(var i=0;i<bars.length;i++){
+    var b=bars[i];
+    h+='<div class="be-ue-row"><span class="be-ue-label">'+b.label+'</span><div class="be-ue-track"><div class="be-ue-fill" style="width:'+b.pct+'%;background:'+b.color+'"></div></div><span class="be-ue-val">'+(b.pctDisplay||fmt(b.val))+'</span></div>'
+  }
+  ueBody.innerHTML=h
+}
+
+function generateSensitivity(){
+  var vc=safeNum(varCostEl.value),p=safeNum(priceEl.value),fc=safeNum(fixedCostEl.value);
+  var mode=getMode();
+  if(mode){
+    var prods=[];
+    for(var i=0;i<3;i++){
+      var mx=Math.max(0,safeNum(prodMixEls[i].value));
+      var pr=safeNum(prodPriceEls[i].value);
+      if(pr<=0)continue;
+      prods.push({mix:mx,price:pr,vc:safeNum(prodVarCostEls[i].value)})
+    }
+    if(prods.length===0){senGrid.innerHTML='<div class="be-empty">No products configured</div>';return}
+    var tMix=0;for(var i=0;i<prods.length;i++)tMix+=prods[i].mix;
+    if(tMix===0){senGrid.innerHTML='<div class="be-empty">No products configured</div>';return}
+    p=0;vc=0;
+    for(var i=0;i<prods.length;i++){var w=prods[i].mix/tMix;p+=w*prods[i].price;vc+=w*prods[i].vc}
+  }
+  var pMin=safeNum(senPriceMin.value),pMax=safeNum(senPriceMax.value),pStep=safeNum(senPriceStep.value);
+  var vMin=safeNum(senVolMin.value),vMax=safeNum(senVolMax.value),vStep=safeNum(senVolStep.value);
+  if(!senPriceMin.value){pMin=Math.max(0,p-10);senPriceMin.value=pMin}
+  if(!senPriceMax.value){pMax=p+10;senPriceMax.value=pMax}
+  if(!senVolMin.value){vMin=Math.max(0,safeNum(volumeEl.value,0)-200);senVolMin.value=vMin}
+  if(!senVolMax.value){vMax=safeNum(volumeEl.value,0)+200;senVolMax.value=vMax}
+  if(pStep<=0)pStep=5;if(vStep<=0)vStep=50
+  if(pMin>=pMax||vMin>=vMax){senGrid.innerHTML='<div class="be-empty">Invalid range</div>';return}
+
+  var prices=[],volumes=[];
+  for(var pp=pMin;pp<=pMax&&prices.length<100;pp+=pStep)prices.push(pp);
+  for(var vv=vMin;vv<=vMax&&volumes.length<100;vv+=vStep)volumes.push(vv);
+  if(prices.length*volumes.length>2500){senGrid.innerHTML='<div class="be-empty">Grid too large. Reduce range or increase step.</div>';return}
+
+  var h='<div class="be-sen-wrap"><table class="be-sen-table"><thead><tr><th>Price ↓ / Vol →</th>';
+  for(var j=0;j<volumes.length;j++)h+='<th>'+volumes[j].toLocaleString('en-US')+'</th>';
+  h+='</tr></thead><tbody>';
+  for(var r=0;r<prices.length;r++){
+    h+='<tr><td>'+fmt(prices[r])+'</td>';
+    for(var c=0;c<volumes.length;c++){
+      var prof=(prices[r]-vc)*volumes[c]-fc;
+      var bg='transparent';
+      if(prof>0){var a=Math.min(prof/5000,0.3);bg='color-mix(in oklab,var(--color-success) '+(a*100)+'%, transparent)'}
+      else if(prof<0){var a2=Math.min(Math.abs(prof)/5000,0.3);bg='color-mix(in oklab,var(--color-error) '+(a2*100)+'%, transparent)'}
+      h+='<td style="background:'+bg+';color:'+(prof>0?'var(--color-success)':prof<0?'var(--color-error)':'')+'">'+fmt(prof)+'</td>';
+    }
+    h+='</tr>';
+  }
+  h+='</tbody></table></div>';
+  senGrid.innerHTML=h;
+}
+
+function copyReport(){
+  calc(true);
+  var mode=getMode();
+  var txt='=== Break-Even Analysis Report ===\nDate: '+new Date().toISOString().slice(0,10)+'\n\nInputs:\n';
+  if(!mode){
+    txt+='Mode: Single Product\nFixed Costs: '+fmt(safeNum(fixedCostEl.value))+'/mo\nVariable Cost/Unit: '+fmt(safeNum(varCostEl.value))+'\nSelling Price/Unit: '+fmt(safeNum(priceEl.value))+'\nExpected Volume: '+safeNum(volumeEl.value).toLocaleString('en-US')+' units/mo\nTarget Profit: '+(targetProfitEl.value?fmt(safeNum(targetProfitEl.value)):'N/A')+'\n';
+  }else{
+    txt+='Mode: Multi-Product\nFixed Costs: '+fmt(safeNum(fixedCostEl.value))+'/mo\nTotal Volume: '+safeNum(volumeEl.value).toLocaleString('en-US')+' units/mo\n\nProducts:\n';
+    for(var i=0;i<3;i++){txt+='  '+(prodNameEls[i].value||'Product '+(i+1))+': Price '+fmt(safeNum(prodPriceEls[i].value))+', VC '+fmt(safeNum(prodVarCostEls[i].value))+', Mix '+safeNum(prodMixEls[i].value)+'%\n'}
+  }
+  txt+='\nResults:\nBEP Units: '+bepUnitsEl.textContent+'\nBEP Revenue: '+bepRevenueEl.textContent+'\nCM: '+cmEl.textContent+'\nProfit: '+profitEl.textContent+'\nMOS: '+mosEl.textContent+'\nDOL: '+dolEl.textContent+'\n\n---\nstorybrainai.com/tool/break-even-analysis-calculator';
+  if(!navigator.clipboard){toast('Copy requires HTTPS');return}
+  navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')});
+}
+
+function handlePrint(){calc(true);window.print()}
+
+function handleCsvExport(){
+  calc(true);
+  var mode=getMode(),fc=safeNum(fixedCostEl.value),v=safeNum(volumeEl.value);
+  var rows=[];
+  rows.push('Break-Even Analysis Report');
+  rows.push('Date,'+new Date().toISOString().slice(0,10));
+  rows.push('URL,storybrainai.com/tool/break-even-analysis-calculator');
+  rows.push('');
+  rows.push('INPUTS');
+  rows.push('Mode,'+(mode?'Multi-Product':'Single Product'));
+  rows.push('Fixed Costs,'+fc);
+  if(!mode){
+    rows.push('Variable Cost Per Unit,'+safeNum(varCostEl.value));
+    rows.push('Selling Price Per Unit,'+safeNum(priceEl.value));
+  }else{
+    for(var i=0;i<3;i++){rows.push('Product '+(i+1)+' Name,'+csvSafe(prodNameEls[i].value||'Product '+(i+1)));rows.push('Product '+(i+1)+' Price,'+safeNum(prodPriceEls[i].value));rows.push('Product '+(i+1)+' Var Cost,'+safeNum(prodVarCostEls[i].value));rows.push('Product '+(i+1)+' Mix,'+safeNum(prodMixEls[i].value))}
+  }
+  rows.push('Expected Volume,'+v);
+  rows.push('Target Profit,'+(targetProfitEl.value?safeNum(targetProfitEl.value):''));
+  rows.push('');
+  rows.push('RESULTS');
+  rows.push('Break-Even Units,'+bepUnitsEl.textContent);
+  rows.push('Break-Even Revenue,'+bepRevenueEl.textContent);
+  rows.push('Contribution Margin,'+cmEl.textContent);
+  rows.push('CM Ratio,'+cmRatioEl.textContent);
+  rows.push('Profit,'+profitEl.textContent);
+  rows.push('Margin of Safety,'+mosEl.textContent);
+  rows.push('Volume to Target,'+targetVolEl.textContent);
+  rows.push('Revenue to Target,'+targetRevEl.textContent);
+  rows.push('Degree of Operating Leverage,'+dolEl.textContent);
+  rows.push('');
+  rows.push('PROFIT TABLE');
+  rows.push('Units Sold,Revenue,Fixed Costs,Variable Costs,Total Costs,Profit');
+  var tRows=tableBody.querySelectorAll('tr');
+  for(var i=0;i<tRows.length;i++){var tds=tRows[i].querySelectorAll('td');if(tds.length===6){var c=[];for(var j=0;j<6;j++){var v=tds[j].textContent.trim();if(/^[=+\-@\t]/.test(v))v="'"+v;c.push(v.indexOf(',')>=0?'"'+v+'"':v)}rows.push(c.join(','))}}
+  var csv=rows.join('\r\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='break-even-report.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);
+  toast('CSV downloaded');
+}
+
+function handlePngExport(){
+  calc(true);
+  try{
+    var dataUrl=canvas.toDataURL('image/png');
+    var a=document.createElement('a');a.href=dataUrl;a.download='break-even-chart.png';document.body.appendChild(a);a.click();document.body.removeChild(a);
+    toast('PNG downloaded');
+  }catch(e){toast('Could not export PNG')}
+}
+
+function getStateObj(){
+  return{
+    mode:modeToggle.checked?1:0,fc:fixedCostEl.value,vc:varCostEl.value,p:priceEl.value,v:volumeEl.value,tp:targetProfitEl.value,
+    s2p:s2PriceEl.value,s2vc:s2VarCostEl.value,s2fc:s2FixedCostEl.value,
+    pn0:prodNameEls[0].value,pp0:prodPriceEls[0].value,pvc0:prodVarCostEls[0].value,pm0:prodMixEls[0].value,
+    pn1:prodNameEls[1].value,pp1:prodPriceEls[1].value,pvc1:prodVarCostEls[1].value,pm1:prodMixEls[1].value,
+    pn2:prodNameEls[2].value,pp2:prodPriceEls[2].value,pvc2:prodVarCostEls[2].value,pm2:prodMixEls[2].value,
+    spmin:senPriceMin.value,spmax:senPriceMax.value,sps:senPriceStep.value,svmin:senVolMin.value,svmax:senVolMax.value,svs:senVolStep.value
+  }
+}
+
+function applyStateObj(s){
+  if(!s||typeof s!=='object')return;
+  if(s.mode!==undefined)modeToggle.checked=s.mode===1;
+  if(s.fc!==undefined)fixedCostEl.value=s.fc;
+  if(s.vc!==undefined)varCostEl.value=s.vc;
+  if(s.p!==undefined)priceEl.value=s.p;
+  if(s.v!==undefined)volumeEl.value=s.v;
+  if(s.tp!==undefined)targetProfitEl.value=s.tp;
+  if(s.s2p!==undefined)s2PriceEl.value=s.s2p;
+  if(s.s2vc!==undefined)s2VarCostEl.value=s.s2vc;
+  if(s.s2fc!==undefined)s2FixedCostEl.value=s.s2fc;
+  for(var i=0;i<3;i++){var pn=s['pn'+i],pp=s['pp'+i],pvc=s['pvc'+i],pm=s['pm'+i];if(pn!==undefined)prodNameEls[i].value=pn;if(pp!==undefined)prodPriceEls[i].value=pp;if(pvc!==undefined)prodVarCostEls[i].value=pvc;if(pm!==undefined)prodMixEls[i].value=pm}
+  if(s.spmin!==undefined)senPriceMin.value=s.spmin;
+  if(s.spmax!==undefined)senPriceMax.value=s.spmax;
+  if(s.svmin!==undefined)senVolMin.value=s.svmin;
+  if(s.svmax!==undefined)senVolMax.value=s.svmax;
+  if(s.sps!==undefined)senPriceStep.value=s.sps;
+  if(s.svs!==undefined)senVolStep.value=s.svs;
+  senPriceStep.value=senPriceStep.value||'5';senVolStep.value=senVolStep.value||'50'
+}
+
+function saveState(){try{localStorage.setItem('sb_be_state',JSON.stringify(getStateObj()))}catch(e){}}
+
+function restoreState(){
+  try{
+    var s=JSON.parse(localStorage.getItem('sb_be_state')||'null');
+    if(s)applyStateObj(s);
+    toggleMode()
+  }catch(e){}
+}
+
+function loadScenariosArray(){try{return JSON.parse(localStorage.getItem('sb_be_scenarios')||'[]')}catch(e){return[]}}
+function saveScenariosArray(a){try{localStorage.setItem('sb_be_scenarios',JSON.stringify(a))}catch(e){}}
+
+function saveNamedScenario(){
+  var name=scenarioNameEl.value.trim();
+  if(!name){toast('Enter a name');return}
+  var arr=loadScenariosArray();
+  arr.push({name:name,state:getStateObj(),ts:Date.now()});
+  saveScenariosArray(arr);
+  scenarioNameEl.value='';
+  renderScenarioList();
+  toast('Scenario saved')
+}
+
+function renderScenarioList(){
+  var arr=loadScenariosArray();
+  if(!arr.length){scenarioListEl.innerHTML='<div class="be-empty" style="padding:8px">No saved scenarios</div>';return}
+  var h='';
+  for(var i=0;i<arr.length;i++){
+    h+='<div class="be-scenario-item"><span class="s-name">'+escapeHTML(arr[i].name)+'</span><span class="s-actions"><button class="s-btn" data-idx="'+i+'" data-action="load">Load</button><button class="s-btn" data-idx="'+i+'" data-action="del">Delete</button></span></div>'
+  }
+  scenarioListEl.innerHTML=h;
+}
+scenarioListEl.addEventListener('click',function(e){
+  var btn=e.target.closest('.s-btn');if(!btn)return;
+  var idx=parseInt(btn.dataset.idx,10);
+  if(btn.dataset.action==='load')loadNamedScenario(idx);
+  else if(btn.dataset.action==='del')deleteNamedScenario(idx)
+});
+
+function loadNamedScenario(idx){
+  var arr=loadScenariosArray();
+  if(!arr[idx])return;
+  applyStateObj(arr[idx].state);
+  toggleMode();
+  saveState();
+  updateMixTotal();
+  toast('Loaded: '+arr[idx].name)
+}
+
+function deleteNamedScenario(idx){
+  var arr=loadScenariosArray();
+  if(!arr[idx])return;
+  arr.splice(idx,1);
+  saveScenariosArray(arr);
+  renderScenarioList();
+  toast('Scenario deleted')
+}
+
+modeToggle.addEventListener('change',function(){toggleMode();updateMixTotal();saveState()});
+copyBtn.addEventListener('click',copyReport);
+printBtn.addEventListener('click',handlePrint);
+csvBtn.addEventListener('click',handleCsvExport);
+pngBtn.addEventListener('click',handlePngExport);
+senGenerate.addEventListener('click',generateSensitivity);
+scenarioSaveBtn.addEventListener('click',saveNamedScenario);
+scenarioNameEl.addEventListener('keydown',function(e){if(e.key==='Enter')saveNamedScenario()});
+
+var calcInputs=(fixedCostEl&&fixedCostEl.nodeType)?[fixedCostEl,varCostEl,priceEl,volumeEl,targetProfitEl,s2PriceEl,s2VarCostEl,s2FixedCostEl]:[];
+for(var i=0;i<3;i++){calcInputs.push(prodNameEls[i],prodPriceEls[i],prodVarCostEls[i],prodMixEls[i])}
+// sensitivity fields excluded from auto-calc — only generate on button click
+
+var debouncedCalc=debounce(calc,150);
+for(var i=0;i<calcInputs.length;i++){
+  if(calcInputs[i]){
+    calcInputs[i].addEventListener('input',function(){
+      if(this.id.indexOf('beProdMix')===0)updateMixTotal();
+      debouncedCalc()
+    })
+  }
+}
+
+restoreState();
+renderScenarioList();
+senGrid.innerHTML='';
+updateMixTotal();
+window.addEventListener('resize',debounce(function(){calc(true)},100));
+window.addEventListener('beforeunload',function(){saveState()});
+var _themeObserver=new MutationObserver(function(){_cachedChartColors=null});
+_themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+window.addEventListener('pagehide',function(){_themeObserver.disconnect()});
+window.addEventListener('pageshow',function(){_themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']})});
+window.addEventListener('beforeprint',function(){if(window._bePrinting)return;window._bePrinting=true;calc(true)});
+window.addEventListener('afterprint',function(){window._bePrinting=false;calc(true)});
+})();
+</script>
+{% endblock %}
+{% block seo_schema %}
+  {% set seo = {
+  "name": "Break-Even Analysis Calculator",
+  "description": "Calculate your break-even point: find the sales volume needed to cover costs, see profit at any volume, compare pricing scenarios, and visualize your cost-revenue structure.",
+  "url": "https://www.storybrainai.com/tool/break-even-analysis-calculator",
+  "app_category": "FinanceApplication",
+  "date_modified": "2026-07-13",
+  "faqs": [
+    {"q": "What is a break-even point?", "a": "The break-even point is the sales volume where total revenue equals total costs. At this point there is no profit or loss — you've covered all your fixed and variable costs."},
+    {"q": "How do you calculate break-even?", "a": "Break-even units = Fixed Costs / (Selling Price − Variable Cost Per Unit). Break-even revenue = Break-Even Units × Selling Price."},
+    {"q": "What is contribution margin?", "a": "Contribution margin is the selling price minus the variable cost per unit. It represents how much each unit sold contributes toward covering fixed costs and generating profit."},
+    {"q": "What is margin of safety?", "a": "Margin of safety measures how far actual sales are above the break-even point. It's calculated as (Actual Sales − Break-Even Sales) / Actual Sales × 100%. A higher margin of safety means lower risk."},
+    {"q": "Can I compare different scenarios?", "a": "Yes. Enter an alternative selling price, variable cost, and fixed cost in the Compare Scenario section to see a side-by-side comparison of break-even points and profitability."},
+    {"q": "What if my selling price is less than variable cost?", "a": "If the selling price is less than variable cost, the contribution margin is negative and there is no break-even point — every sale increases the loss. Review your pricing strategy."}
+  ],
+  "howto_steps": [
+    {"title": "Enter Costs & Pricing", "desc": "Fill in your total fixed costs, variable cost per unit, selling price per unit, and expected monthly sales volume."},
+    {"title": "Set Alternative Scenario (Optional)", "desc": "Enter an alternative price, variable cost, and fixed cost to compare two business models side by side."},
+    {"title": "Review Break-Even Summary", "desc": "See break-even units, break-even revenue, contribution margin, profit at volume, and margin of safety."},
+    {"title": "Analyze the Chart", "desc": "The CVP chart shows where total revenue crosses total costs. The gap between the lines at your expected volume shows profit or loss."},
+    {"title": "Explore the Profit Table", "desc": "The table shows revenue, costs, and profit at different volume levels. The highlighted row is your break-even point."},
+    {"title": "Copy Results", "desc": "Click the copy button to save a plain-text report of your analysis."}
+  ],
+  "howto_calculate": "<p><strong>Break-Even Formula:</strong> <code>Break-Even Units = Fixed Costs / (Selling Price − Variable Cost Per Unit)</code></p><p><strong>Contribution Margin:</strong> <code>CM = Selling Price − Variable Cost Per Unit</code>. This is the amount each sale contributes to covering fixed costs.</p><p><strong>Profit:</strong> <code>Profit = (Selling Price × Volume) − Fixed Costs − (Variable Cost × Volume)</code></p><p><strong>Margin of Safety:</strong> <code>MOS = (Expected Volume − Break-Even Volume) / Expected Volume × 100%</code></p>",
+  "about_title": "About the Break-Even Analysis Calculator",
+  "about_body": "<p>The Break-Even Analysis Calculator helps you determine the sales volume needed to cover your costs. Enter your fixed costs, variable costs, and selling price to instantly see your break-even point, contribution margin, and profit at any sales volume.</p><p>Use the scenario comparison to test different pricing strategies or cost structures. The interactive chart visualizes the relationship between revenue, costs, and volume. All calculations happen in your browser — nothing is sent to any server.</p>",
+  "related": seo_data.related
+} %}
+{{ tool_seo_all(seo) }}
+{% endblock %}
