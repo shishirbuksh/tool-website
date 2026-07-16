@@ -27,22 +27,22 @@ _CSP_BASE = (
     "connect-src 'self' https://unpkg.com https://cloudflareinsights.com https://www.google-analytics.com "
     "https://analytics.google.com https://pagead2.googlesyndication.com "
     "https://googleads.g.doubleclick.net https://ep1.adtrafficquality.google "
-    "https://ep2.adtrafficquality.google; "
+    "https://ep2.adtrafficquality.google https://cdn.jsdelivr.net; "
     "frame-src 'self' https://googleads.g.doubleclick.net "
     "https://tpc.googlesyndication.com https://www.google.com "
     "https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google; "
     "frame-ancestors 'none'; "
     "base-uri 'self'; "
     "form-action 'self'; "
-    "worker-src 'self' blob: https://cdnjs.cloudflare.com; "
+    "worker-src 'self' blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
 )
 _CSP_SCRIPT_ALLOWED = (
-    "'self' https://static.cloudflareinsights.com "
+    "'self' 'wasm-unsafe-eval' https://static.cloudflareinsights.com "
     "https://www.googletagmanager.com https://pagead2.googlesyndication.com "
     "https://partner.googleadservices.com https://adservice.google.com "
     "https://googleads.g.doubleclick.net https://www.google-analytics.com "
     "https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google "
-    "https://unpkg.com https://cdnjs.cloudflare.com"
+    "https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net"
 )
 
 

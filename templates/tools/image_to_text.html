@@ -1,0 +1,1157 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
+{% block title %}Image to Text — Free OCR Tool: Extract Text from Images Online{% endblock %}
+{% block meta_description %}Extract text from images using OCR. Upload or paste any image, choose a language, and get editable text in seconds. 100% free, no sign-up, all in-browser.{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/image-to-text{% endblock %}
+{% block og_title %}Image to Text — Free OCR Tool Online{% endblock %}
+{% block og_description %}Convert images to text with our free OCR tool. Supports English, Spanish, French, German, and 100+ languages. No sign-up, all in-browser.{% endblock %}
+{% block og_image %}<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Image to Text OCR Tool — extract text from images, supports 100+ languages">{% endblock %}
+{% block twitter_image %}<meta name="twitter:image" content="https://www.storybrainai.com/static/og-image.jpg">{% endblock %}
+{% block head %}
+<style>
+.ocr-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.ocr-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.ocr-select{border-radius:.75rem;padding:.5rem .75rem;font-weight:600;font-size:.8rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);width:100%;font-family:inherit;transition:border-color .18s;cursor:pointer}
+.ocr-select:focus{border-color:var(--color-primary);outline:none}
+.ocr-upload-zone{aspect-ratio:16/9;background:var(--color-base-100);border:2px dashed var(--color-base-300);border-radius:1rem;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:pointer;transition:border-color .2s,background .2s;min-height:160px}
+.ocr-upload-zone:hover,.ocr-upload-zone.dragover{border-color:var(--color-primary);background:color-mix(in oklab,var(--color-primary) 5%,var(--color-base-100))}
+.ocr-upload-zone.dragover{transform:scale(1.01)}
+.ocr-upload-zone img{max-width:100%;max-height:100%;object-fit:contain;position:absolute;inset:0;padding:8px}
+.ocr-upload-zone .placeholder{text-align:center;pointer-events:none}
+.ocr-upload-zone .placeholder .icon-wrap{margin:0 auto 10px;width:48px;height:48px;border-radius:999px;background:var(--color-primary);display:flex;align-items:center;justify-content:center}
+.ocr-upload-zone .placeholder .icon-wrap svg{color:#fff}
+.ocr-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:999px;font-size:10px;font-weight:800;cursor:pointer;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;text-transform:uppercase;letter-spacing:.04em;touch-action:manipulation}
+.ocr-pill:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.ocr-pill.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.ocr-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px;pointer-events:none}
+.ocr-toast.show{opacity:1;transform:translateY(0)}
+.ocr-empty-state{text-align:center;padding:48px 20px}
+.ocr-empty-state svg{opacity:.15;margin:0 auto 16px}
+.ocr-empty-state p{font-size:13px;font-weight:600;opacity:.4}
+.ocr-progress{background:var(--color-base-100);border-radius:.75rem;padding:.75rem 1rem;border:1px solid var(--color-base-300);font-size:11px;font-weight:600;font-family:monospace;display:flex;align-items:center;gap:10px}
+.ocr-progress .bar{flex:1;height:4px;background:var(--color-base-300);border-radius:2px;overflow:hidden}
+.ocr-progress .bar .fill{height:100%;background:var(--color-primary);border-radius:2px;transition:width .3s;width:0}
+.ocr-progress .lbl{white-space:nowrap;opacity:.6;min-width:60px;text-align:right}
+.ocr-result-area{width:100%;min-height:180px;border-radius:.75rem;padding:.75rem;background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);font-size:.85rem;font-family:inherit;line-height:1.6;resize:vertical;transition:border-color .18s}
+.ocr-result-area:focus{border-color:var(--color-primary);outline:none}
+.ocr-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ocr-stat{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-300)}
+.ocr-stat .num{font-size:18px;font-weight:900;font-family:monospace}
+.ocr-stat .lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.4}
+.ocr-checkbox{cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-300);font-size:12px;font-weight:600;transition:border-color .18s}
+.ocr-checkbox:hover{border-color:color-mix(in oklab,var(--color-primary) 30%,transparent)}
+.ocr-checkbox input[type=checkbox]{accent-color:var(--color-primary);width:16px;height:16px;cursor:pointer}
+.ocr-slider-row{display:flex;align-items:center;gap:10px;padding:4px 0}
+.ocr-slider-row label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;opacity:.45;flex-shrink:0;min-width:50px}
+.ocr-slider-row input[type=range]{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:var(--color-base-300);border-radius:2px;outline:none}
+.ocr-slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:999px;background:var(--color-primary);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.ocr-slider-row .sv{font-size:10px;font-weight:700;font-family:monospace;width:28px;text-align:right;opacity:.6}
+.ocr-img-preview{background:var(--color-base-100);border-radius:.75rem;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;min-height:120px;border:1px solid var(--color-base-300)}
+.ocr-img-preview img{max-width:100%;max-height:240px;object-fit:contain}
+.ocr-history-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-300);cursor:pointer;transition:border-color .18s}
+.ocr-history-item:hover{border-color:color-mix(in oklab,var(--color-primary) 30%,transparent)}
+.ocr-history-item .preview-text{flex:1;font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.8}
+.ocr-history-item .time{font-size:9px;font-weight:700;font-family:monospace;opacity:.35;flex-shrink:0}
+.ocr-output-tab{display:inline-flex;align-items:center;padding:5px 12px;border-radius:999px;font-size:10px;font-weight:800;cursor:pointer;border:2px solid var(--color-base-300);background:transparent;color:var(--color-base-content);transition:all .12s;text-transform:uppercase;letter-spacing:.04em}
+.ocr-output-tab.active,.ocr-output-tab:hover{border-color:var(--color-primary);background:var(--color-primary);color:#fff}
+.ocr-batch-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-300);font-size:11px;font-weight:500}
+.ocr-batch-item .remove{cursor:pointer;font-weight:900;color:var(--color-error,red);font-size:14px;line-height:1;opacity:.6;margin-left:auto;padding:0 2px}
+.ocr-batch-item .remove:hover{opacity:1}
+.ocr-advanced{border:1px solid var(--color-base-300);border-radius:1rem;overflow:hidden}
+.ocr-advanced summary{padding:1rem 1.25rem;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;opacity:.6;user-select:none}
+.ocr-advanced summary:hover{opacity:1}
+.ocr-advanced[open] summary{border-bottom:1px solid var(--color-base-300)}
+.ocr-advanced .inner{padding:0 1.25rem 1.25rem;display:flex;flex-direction:column;gap:12px}
+.ocr-preview-sm{max-width:100%;max-height:80px;border-radius:.5rem;border:1px solid var(--color-base-300);margin-top:8px;display:none}
+.ocr-overlay-canvas{position:absolute;top:0;left:0;width:100%;height:100%}
+.ocr-conf-canvas{pointer-events:none;z-index:5}
+.ocr-layout-canvas{z-index:10}
+.ocr-zone-label{position:absolute;font-size:8px;font-weight:700;color:var(--color-primary);pointer-events:none;z-index:11}
+@media(max-width:767px){
+.ocr-upload-zone{min-height:120px}
+.ocr-stat-grid{grid-template-columns:repeat(3,1fr)}
+}
+.ocr-deskew-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-top:1px solid var(--color-base-300);margin-top:4px}
+.ocr-deskew-row label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;opacity:.45;flex-shrink:0;min-width:50px}
+.ocr-deskew-row input[type=range]{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:var(--color-base-300);border-radius:2px;outline:none}
+.ocr-deskew-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:999px;background:var(--color-primary);cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.ocr-deskew-row .sv{font-size:10px;font-weight:700;font-family:monospace;width:28px;text-align:right;opacity:.6}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("scan-text","Image Processing","IMAGE","TO TEXT","Convert images to editable text with AI-powered OCR. Upload, paste, or drop — works in your browser.") }}
+<div class="container-site px-4 pb-24">
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+    <div class="lg:col-span-2 space-y-6">
+      <div class="ocr-card">
+        <label class="ocr-label">Upload Image</label>
+        <div id="ocrUploadZone" class="ocr-upload-zone" tabindex="0" role="button" aria-label="Upload or drop an image for OCR">
+          <input type="file" id="ocrFileInput" class="absolute top-0 left-0 w-full h-full opacity-0" style="cursor:pointer;z-index:10;font-size:0" accept="image/*" aria-label="Choose image file">
+          <div class="placeholder" aria-hidden="true">
+            <div class="icon-wrap">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <p class="font-bold text-sm">Drop image here or click</p>
+            <p class="text-xs text-base-content/40 mt-1">PNG &bull; JPG &bull; WebP &bull; BMP &bull; paste supported</p>
+          </div>
+          <img id="ocrPreviewImg" class="hidden" alt="Uploaded image preview">
+        </div>
+        <div id="ocrImageMeta" class="hidden flex items-center gap-3 mt-3">
+          <span id="ocrFileName" class="text-xs font-mono text-base-content/60 flex-1 truncate"></span>
+          <button class="btn btn-ghost btn-xs" id="ocrClearBtn" type="button">Remove</button>
+        </div>
+      </div>
+      <div class="ocr-card">
+        <label class="ocr-label" for="ocrLang">Language</label>
+        <select id="ocrLang" class="ocr-select">
+          <option value="eng">English</option>
+          <option value="spa">Spanish</option>
+          <option value="fra">French</option>
+          <option value="deu">German</option>
+          <option value="ita">Italian</option>
+          <option value="por">Portuguese</option>
+          <option value="rus">Russian</option>
+          <option value="ara">Arabic</option>
+          <option value="hin">Hindi</option>
+          <option value="chi_sim">Chinese (Simplified)</option>
+          <option value="chi_tra">Chinese (Traditional)</option>
+          <option value="jpn">Japanese</option>
+          <option value="kor">Korean</option>
+          <option value="tha">Thai</option>
+          <option value="vie">Vietnamese</option>
+          <option value="nld">Dutch</option>
+          <option value="pol">Polish</option>
+          <option value="tur">Turkish</option>
+          <option value="swe">Swedish</option>
+          <option value="dan">Danish</option>
+          <option value="fin">Finnish</option>
+          <option value="nor">Norwegian</option>
+          <option value="ces">Czech</option>
+          <option value="ron">Romanian</option>
+          <option value="ukr">Ukrainian</option>
+          <option value="ell">Greek</option>
+          <option value="heb">Hebrew</option>
+          <option value="ara">Arabic</option>
+        </select>
+      </div>
+      <div class="ocr-card">
+        <label class="ocr-label">Page Segmentation Mode</label>
+        <select id="ocrPsm" class="ocr-select">
+          <option value="3">Fully automatic (default)</option>
+          <option value="6">Single uniform block of text</option>
+          <option value="7">Single text line</option>
+          <option value="8">Single word</option>
+          <option value="11">Single text block (no orientation)</option>
+          <option value="4">Single column of text</option>
+          <option value="1">Automatic with OSD</option>
+        </select>
+      </div>
+      <div class="ocr-card">
+        <label class="ocr-label">Preprocessing</label>
+        <div class="ocr-checkbox">
+          <input type="checkbox" id="ocrGrayscale">
+          <span>Convert to grayscale</span>
+        </div>
+        <div class="mt-3">
+          <div class="ocr-slider-row">
+            <label>Threshold</label>
+            <input type="range" id="ocrThreshold" min="0" max="255" value="0">
+            <span class="sv" id="ocrThresholdVal">Off</span>
+          </div>
+          <p class="text-[9px] text-base-content/30 mt-1 font-medium">Adjusts the binarization threshold. 0 = off.</p>
+        </div>
+        <div class="flex flex-wrap gap-1.5 mt-3">
+          <button class="ocr-pill on" data-preset="default" type="button">Default</button>
+          <button class="ocr-pill" data-preset="document" type="button">Document</button>
+          <button class="ocr-pill" data-preset="receipt" type="button">Receipt</button>
+          <button class="ocr-pill" data-preset="screenshot" type="button">Screenshot</button>
+          <button class="ocr-pill" data-preset="handwriting" type="button">Handwriting</button>
+        </div>
+      </div>
+      <div class="ocr-card">
+        <button class="btn btn-primary btn-sm w-full" id="ocrRunBtn" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          Extract Text
+        </button>
+      </div>
+      <div class="ocr-card" id="ocrStatusCard" style="display:none">
+        <div class="ocr-progress">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin" id="ocrSpinner"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+          <span class="lbl" id="ocrStatusText">Initializing...</span>
+        </div>
+      </div>
+      <details class="ocr-advanced" id="ocrAdvSettings">
+        <summary>Advanced Settings</summary>
+        <div class="inner">
+          <div>
+            <label class="ocr-label">Multi-Worker OCR</label>
+            <div class="flex gap-2 items-center">
+              <select id="ocrWorkerCount" class="ocr-select" style="width:auto">
+                <option value="1">1 Worker</option>
+                <option value="2">2 Workers</option>
+                <option value="3">3 Workers</option>
+                <option value="4">4 Workers</option>
+              </select>
+              <select id="ocrMergeStrategy" class="ocr-select" style="width:auto">
+                <option value="best">Best per word</option>
+                <option value="avg">Average confidence</option>
+                <option value="vote">Voting</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="ocr-label">Batch Processing</label>
+            <div class="flex flex-wrap gap-1.5">
+              <button class="btn btn-ghost btn-xs" id="ocrAddBatchBtn" type="button">Add to Batch</button>
+              <button class="btn btn-ghost btn-xs" id="ocrBatchClearBtn" type="button">Clear Batch</button>
+              <button class="btn btn-primary btn-xs" id="ocrBatchRunBtn" type="button">Process Batch</button>
+            </div>
+            <div id="ocrBatchItems" class="space-y-1 mt-2"></div>
+            <div id="ocrBatchProgress" class="hidden mt-2">
+              <div class="ocr-progress" style="font-size:10px">
+                <div class="bar"><div class="fill" id="ocrBatchFill" style="width:0"></div></div>
+                <span class="lbl" id="ocrBatchProgressText">0/0</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <label class="ocr-label">Image Preprocessing</label>
+            <div class="ocr-slider-row">
+              <label>Contrast</label>
+              <input type="range" id="ocrContrast" min="50" max="200" value="100">
+              <span class="sv" id="ocrContrastVal">100</span>
+            </div>
+            <div class="ocr-checkbox">
+              <input type="checkbox" id="ocrSharpen">
+              <span>Sharpen</span>
+            </div>
+            <div class="ocr-slider-row" id="ocrSharpenRow" style="display:none">
+              <label>Amount</label>
+              <input type="range" id="ocrSharpenAmt" min="0" max="100" value="50">
+              <span class="sv" id="ocrSharpenAmtVal">50</span>
+            </div>
+            <div class="ocr-checkbox">
+              <input type="checkbox" id="ocrDenoise">
+              <span>Denoise (median filter)</span>
+            </div>
+            <div class="ocr-checkbox">
+              <input type="checkbox" id="ocrAutoThreshold">
+              <span>Auto-threshold (Otsu)</span>
+            </div>
+            <div class="flex gap-1.5 mt-2">
+              <button class="btn btn-ghost btn-xs" id="ocrPreprocessBtn" type="button">Preview Preprocessing</button>
+            </div>
+            <canvas id="ocrPreprocessPreview" class="ocr-preview-sm"></canvas>
+          </div>
+          <div>
+            <label class="ocr-label">Layout / Zone Selection</label>
+            <div class="flex flex-wrap gap-1.5 items-center">
+              <button class="ocr-pill" id="ocrLayoutBtn" type="button">Select Zone</button>
+              <button class="btn btn-ghost btn-xs" id="ocrLayoutClear" type="button">Clear Zones</button>
+            </div>
+            <div id="ocrLayoutInfo" class="text-[10px] text-base-content/50 mt-1"></div>
+          </div>
+          <div>
+            <label class="ocr-label">Deskew / Rotation</label>
+            <div class="ocr-deskew-row">
+              <label>Rotate</label>
+              <input type="range" id="ocrRotate" min="-30" max="30" value="0">
+              <span class="sv" id="ocrRotateVal">0</span>
+            </div>
+            <div class="ocr-checkbox mt-2">
+              <input type="checkbox" id="ocrAutoDeskew">
+              <span>Auto deskew (detect &amp; correct rotation)</span>
+            </div>
+          </div>
+          <div>
+            <label class="ocr-label">Confidence Visualization</label>
+            <button class="ocr-pill" id="ocrConfVizBtn" type="button">Show Confidence</button>
+          </div>
+          <div>
+            <label class="ocr-label">Post-Processing</label>
+            <div class="ocr-checkbox">
+              <input type="checkbox" id="ocrSpellCheck">
+              <span>Spell check (marks unknown words)</span>
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+    <div class="lg:col-span-3 space-y-6">
+      <div class="ocr-card">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-black uppercase tracking-widest">Image Preview</h2>
+          <div class="flex gap-1">
+            <button class="ocr-pill" id="ocrConfVizBtn2" type="button">Show Confidence</button>
+            <button class="ocr-pill" id="ocrLayoutBtn2" type="button">Select Zone</button>
+          </div>
+        </div>
+        <div id="ocrPreviewArea" class="ocr-img-preview">
+          <div id="ocrEmptyPreview" class="text-center py-8">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.15;margin:0 auto 10px"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <p class="text-xs text-base-content/40">Upload an image to extract text</p>
+          </div>
+          <div class="relative w-full" id="ocrPreviewWrap" style="display:none">
+            <img id="ocrPreviewTarget" class="hidden" alt="Image to process" style="width:100%">
+            <canvas id="ocrConfCanvas" class="ocr-overlay-canvas ocr-conf-canvas hidden"></canvas>
+            <canvas id="ocrLayoutCanvas" class="ocr-overlay-canvas ocr-layout-canvas hidden"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="ocr-card" id="ocrResultsCard" style="display:none">
+        <div class="flex items-center gap-1 mb-3 flex-wrap">
+          <button class="ocr-output-tab active" id="ocrTabPlain" type="button">Plain</button>
+          <button class="ocr-output-tab" id="ocrTabJson" type="button">JSON</button>
+          <button class="ocr-output-tab" id="ocrTabHocr" type="button">HOCR</button>
+          <button class="ocr-output-tab" id="ocrTabTable" type="button">Table</button>
+          <div class="flex-1 min-w-[4px]"></div>
+          <button class="btn btn-ghost btn-xs" id="ocrCopyBtn" type="button">Copy</button>
+          <button class="btn btn-ghost btn-xs" id="ocrDownloadBtn" type="button">TXT</button>
+          <button class="btn btn-ghost btn-xs" id="ocrDownloadJson" type="button">JSON</button>
+          <button class="btn btn-ghost btn-xs" id="ocrDownloadHocrBtn" type="button">HOCR</button>
+          <button class="btn btn-ghost btn-xs" id="ocrDownloadPdf" type="button">PDF</button>
+          <button class="btn btn-ghost btn-xs" id="ocrDownloadCsv" type="button">CSV</button>
+        </div>
+        <textarea id="ocrOutputPlain" class="ocr-result-area" readonly placeholder="Extracted text will appear here..." spellcheck="false"></textarea>
+        <textarea id="ocrOutputJson" class="ocr-result-area hidden" readonly placeholder="JSON output will appear here..." spellcheck="false"></textarea>
+        <textarea id="ocrOutputHocr" class="ocr-result-area hidden" readonly placeholder="HOCR output will appear here..." spellcheck="false"></textarea>
+        <textarea id="ocrOutputTable" class="ocr-result-area hidden" readonly placeholder="Table output will appear here..." spellcheck="false"></textarea>
+        <div class="ocr-stat-grid mt-3" id="ocrStats">
+          <div class="ocr-stat"><div><div class="num" id="ocrStatChars">0</div><div class="lbl">Chars</div></div></div>
+          <div class="ocr-stat"><div><div class="num" id="ocrStatWords">0</div><div class="lbl">Words</div></div></div>
+          <div class="ocr-stat"><div><div class="num" id="ocrStatConf">--</div><div class="lbl">Avg. Confidence</div></div></div>
+          <div class="ocr-stat"><div><div class="num" id="ocrStatHighConf">0</div><div class="lbl">High (≥80)</div></div></div>
+          <div class="ocr-stat"><div><div class="num" id="ocrStatMedConf">0</div><div class="lbl">Med (≥50)</div></div></div>
+          <div class="ocr-stat"><div><div class="num" id="ocrStatLowConf">0</div><div class="lbl">Low</div></div></div>
+          <div class="ocr-stat"><div><div class="num" id="ocrStatUnknown">--</div><div class="lbl">Unknown</div></div></div>
+        </div>
+      </div>
+      <div class="ocr-card">
+        <div class="flex items-center justify-between mb-3">
+          <label class="ocr-label" style="margin:0">History</label>
+          <button class="btn btn-ghost btn-xs text-error" id="ocrClearHistory" type="button">Clear</button>
+        </div>
+        <div id="ocrHistoryList" class="space-y-1.5 max-h-52 overflow-y-auto"><p class="text-xs text-base-content/40 text-center py-3">No OCR history yet.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="ocrToast" class="ocr-toast" role="status" aria-live="polite"></div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.min.js" nonce="{{ nonce }}"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js" nonce="{{ nonce }}"></script>
+<script nonce="{{ nonce }}">
+(function(){
+'use strict';
+var dz=document.getElementById('ocrUploadZone'),fi=document.getElementById('ocrFileInput'),pi=document.getElementById('ocrPreviewImg'),fn_=document.getElementById('ocrFileName'),im=document.getElementById('ocrImageMeta'),cb=document.getElementById('ocrClearBtn'),runBtn=document.getElementById('ocrRunBtn'),langSel=document.getElementById('ocrLang'),psmSel=document.getElementById('ocrPsm'),grayChk=document.getElementById('ocrGrayscale'),threshRange=document.getElementById('ocrThreshold'),threshVal=document.getElementById('ocrThresholdVal'),resultsCard=document.getElementById('ocrResultsCard'),statusCard=document.getElementById('ocrStatusCard'),statusText=document.getElementById('ocrStatusText'),spinner=document.getElementById('ocrSpinner'),emptyPreview=document.getElementById('ocrEmptyPreview'),previewTarget=document.getElementById('ocrPreviewTarget'),previewWrap=document.getElementById('ocrPreviewWrap'),statChars=document.getElementById('ocrStatChars'),statWords=document.getElementById('ocrStatWords'),statConf=document.getElementById('ocrStatConf'),toast=document.getElementById('ocrToast'),copyBtn=document.getElementById('ocrCopyBtn'),downloadBtn=document.getElementById('ocrDownloadBtn'),histList=document.getElementById('ocrHistoryList'),clearHist=document.getElementById('ocrClearHistory'),wc=document.getElementById('ocrWorkerCount'),ms=document.getElementById('ocrMergeStrategy'),ab=document.getElementById('ocrAddBatchBtn'),bc=document.getElementById('ocrBatchClearBtn'),rb=document.getElementById('ocrBatchRunBtn'),bi=document.getElementById('ocrBatchItems'),bp=document.getElementById('ocrBatchProgress'),bf=document.getElementById('ocrBatchFill'),bpt=document.getElementById('ocrBatchProgressText'),ctr=document.getElementById('ocrContrast'),ctrv=document.getElementById('ocrContrastVal'),shp=document.getElementById('ocrSharpen'),shpa=document.getElementById('ocrSharpenAmt'),shpav=document.getElementById('ocrSharpenAmtVal'),dns=document.getElementById('ocrDenoise'),ath=document.getElementById('ocrAutoThreshold'),ppb=document.getElementById('ocrPreprocessBtn'),ppv=document.getElementById('ocrPreprocessPreview'),tp=document.getElementById('ocrTabPlain'),tj=document.getElementById('ocrTabJson'),th=document.getElementById('ocrTabHocr'),op=document.getElementById('ocrOutputPlain'),oj=document.getElementById('ocrOutputJson'),oh=document.getElementById('ocrOutputHocr'),cvb=document.getElementById('ocrConfVizBtn'),cvb2=document.getElementById('ocrConfVizBtn2'),cvc=document.getElementById('ocrConfCanvas'),lb=document.getElementById('ocrLayoutBtn'),lb2=document.getElementById('ocrLayoutBtn2'),lc=document.getElementById('ocrLayoutCanvas'),lcl=document.getElementById('ocrLayoutClear'),li=document.getElementById('ocrLayoutInfo'),sc=document.getElementById('ocrSpellCheck'),sh=document.getElementById('ocrStatHighConf'),sm=document.getElementById('ocrStatMedConf'),sl=document.getElementById('ocrStatLowConf'),su=document.getElementById('ocrStatUnknown'),dj=document.getElementById('ocrDownloadJson'),dh=document.getElementById('ocrDownloadHocrBtn'),shpRow=document.getElementById('ocrSharpenRow');
+var currentFile=null,currentDataUrl=null,worker=null,isRunning=false,isBatchRunning=false,historyKey='ocr_history',batchQueue=[],zones=[],lastBlocks=null,lastText=null,lastImgWidth=null,lastImgHeight=null,lastJson=null,lastHocr=null,layoutEnabled=false,confVizEnabled=false,isDrawing=false,drawStartX=0,drawStartY=0,currentRect=null,currentTab='plain';
+var tt=document.getElementById('ocrTabTable'),ot=document.getElementById('ocrOutputTable'),ocrRotate=document.getElementById('ocrRotate'),ocrRotateVal=document.getElementById('ocrRotateVal'),ocrAutoDeskew=document.getElementById('ocrAutoDeskew'),currentCsv=null;
+
+var dict = new Set(['the','be','to','of','and','a','in','that','have','i','it','for','not','on','with','he','as','you','do','at','this','but','his','by','from','they','we','say','her','she','or','an','will','my','one','all','would','there','their','what','so','up','out','if','about','who','get','which','go','me','when','make','can','like','time','no','just','him','know','take','people','into','year','your','good','some','could','them','see','other','than','then','now','look','only','come','its','over','think','also','back','after','use','two','how','our','work','first','well','way','even','new','want','because','any','these','give','day','most','us','great','such','every','right','still','own','help','long','here','thing','number','large','small','place','point','home','man','woman','world','hand','eye','head','face','state','nation','country','company','group','family','school','child','student','teacher','water','land','food','air','earth','fire','money','power','energy','business','life','time','day','week','month','year','night','morning','afternoon','evening','order','light','dark','door','room','house','city','town','road','street','line','end','part','side','area','body','book','page','letter','word','name','form','case','show','set','turn','move','play','start','stop','open','close','run','keep','find','give','take','come','went','made','said','seen','felt','told','done','being','under','above','below','between','among','before','after','since','until','during','through','against','without','within','along','across','around','behind','beyond','down','near','off','past','top','bottom','left','right','front','back','side','center','middle','inside','outside','away','here','there','where','place','level','high','low','big','small','long','short','old','new','young','good','bad','high','low','hot','cold','warm','cool','soft','hard','dark','light','clean','dirty','fast','slow','dry','wet','full','empty','deep','shallow','wide','narrow','true','false','able','unable','alive','dead','alone','together','common','rare','easy','hard','simple','complex','free','cheap','expensive','happy','sad','angry','calm','brave','strong','weak','rich','poor','wise','foolish','kind','mean','proud','humble','eager','lazy','busy','idle','quiet','loud','sweet','sour','bitter','fresh','stale','whole','broken','safe','dangerous','public','private','special','general','certain','possible','likely','unlikely','usual','strange','natural','artificial','modern','ancient','native','foreign','local','global','human','animal','male','female','married','single','present','absent','ready','quick','sudden','gradual','direct','indirect','correct','wrong','proper','fit','tight','loose','thick','thin','heavy','light','rough','smooth','clear','vague','sharp','dull','flat','round','straight','curved','various','similar','different','separate','joined','main','minor','major','basic','extra','mere','sheer','utter','very','quite','almost','nearly','hardly','scarcely','just','still','already','yet','soon','early','late','once','twice','often','always','never','sometimes','seldom','frequently','rarely','annually','daily','weekly','monthly','yearly','forward','backward','upward','downward','inward','outward','northward','southward','eastward','westward','hence','thence','whence','thus','therefore','however','moreover','nevertheless','nonetheless','accordingly','consequently','besides','furthermore','likewise','meanwhile','otherwise','perhaps','maybe','indeed','surely','certainly','definitely','absolutely','probably','possibly','barely','merely','mostly','chiefly','mainly','largely','partly','entirely','totally','completely','fully','partially','deeply','highly','greatly','widely','broadly','narrowly','closely','tightly','loosely','directly','indirectly','quickly','slowly','suddenly','gradually','immediately','presently','shortly','briefly','easily','hard','well','badly','carefully','carelessly','properly','wrongly','smoothly','roughly','equally','similarly','differently','variously','respectively','collectively','separately','together','apart','aside','abroad','ahead','behind','below','beneath','underneath','alongside','abroad','ashore','indoors','outdoors','downtown','nearby','faraway','forever','briefly','eternally','basically','essentially','fundamentally','practically','theoretically','ideally','actually','really','truly','apparently','evidently','obviously','clearly','plainly','simply','easily','smoothly','roughly','faithfully','loyally','honestly','fairly','justly','rightfully','wrongfully','lawfully','illegally','legally','illegally','logically','rationally','reasonably','emotionally','physically','mentally','spiritually','financially','economically','politically','socially','culturally','technically','scientifically','medically','legally','officially','formally','informally','personally','privately','publicly','secretly','openly','candidly','freely','willingly','reluctantly','eagerly','anxiously','nervously','calmly','peacefully','quietly','loudly','silently','patiently','impatiently','proudly','humbly','boldly','timidly','firmly','gently','kindly','cruelly','generously','selfishly','politely','rudely','wisely','foolishly','bravely','cowardly','cheerfully','sadly','bitterly','sweetly','softly','tenderly','warmly','coldly','angrily','furiously','joyfully','happily','gladly','merrily','gaily','wearily','sleepily','dreamily','wildly','madly','crazily','busily','idly','actively','passively','productively','creatively','constructively','destructively','gainfully','usefully','vainly','fruitlessly','effectively','efficiently','adequately','sufficiently','barely','largely','mostly','chiefly','mainly','primarily','secondarily','especially','particularly','specifically','generally','broadly','typically','normally','usually','ordinarily','commonly','traditionally','conventionally','unusually','extraordinarily','remarkably','notably','strikingly','impressively','surprisingly','amazingly','astonishingly','shockingly','dismally','miserably','wretchedly','horribly','terribly','awfully','dreadfully','frightfully','extremely','exceedingly','excessively','unduly','overly','super','ultra','hyper','extra','special','especial','peculiar','singular','unique','uncommon','unusual','exceptional','remarkable','notable','noteworthy','outstanding','striking','impressive','distinctive','distinct','different','diverse','varied','various','manifold','multiple','numerous','countless','innumerable','untold','endless','infinite','boundless','limitless','vast','immense','enormous','huge','giant','gigantic','colossal','massive','tremendous','great','large','big','grand','mighty','powerful','strong','potent','forceful','vigorous','energetic','dynamic','active','lively','vivid','brilliant','bright','shining','glowing','radiant','luminous','dazzling','blinding','gleaming','glistening','glittering','sparkling','twinkling','flashing','flickering','shimmering','glowing','burning','blazing','flaming','fiery','hot','scorching','searing','sweltering','steaming','roasting','baking','boiling','scalding','sizzling','smoldering','cool','chilly','cold','freezing','icy','frigid','arctic','polar','wintry','frosty','chilled','cooled','refrigerated','icy','glacial','numb','crisp','brisk','fresh','vigorous','clear','fair','fine','pleasant','sunny','bright','cloudy','overcast','gloomy','dreary','dull','gray','murky','foggy','misty','hazy','smoky','clear','translucent','transparent','opaque','solid','liquid','gaseous','vapor','steam','mist','fog','cloud','rain','snow','sleet','hail','storm','wind','breeze','gale','hurricane','tornado','typhoon','cyclone','blizzard','drought','flood','tide','wave','surf','current','stream','flow','river','lake','pond','pool','sea','ocean','bay','gulf','cove','harbor','port','dock','pier','wharf','quay','jetty','breakwater','lighthouse','beacon','signal','flare','torch','lantern','lamp','light','bulb','candle','wick','flame','spark','ember','ash','dust','dirt','soil','earth','ground','land','field','meadow','pasture','plain','plateau','hill','mountain','peak','summit','ridge','valley','canyon','gorge','ravine','cliff','bluff','crag','rock','stone','boulder','pebble','gravel','sand','mud','clay','loam','silt','sediment','layer','stratum','crust','core','mantle','surface','interior','exterior','outside','inside','edge','border','boundary','frontier','limit','margin','rim','brink','verge','threshold','doorway','gateway','entrance','exit','passage','corridor','hall','lobby','foyer','room','chamber','cell','cabin','cottage','villa','mansion','palace','castle','fort','tower','spire','dome','arch','column','pillar','beam','rafter','joist','girder','foundation','base','basis','root','source','origin','beginning','start','commencement','outset','onset','launch','birth','creation','formation','establishment','institution','foundation','organization','association','society','union','league','guild','club','group','band','crew','team','squad','troop','company','corps','regiment','division','battalion','brigade','army','navy','air','force','marines','guard','reserve','militia','police','fire','emergency','rescue','relief','aid','assistance','help','support','backing','sponsorship','patronage','endorsement','approval','sanction','permission','authorization','consent','agreement','contract','treaty','pact','alliance','coalition','federation','confederation','union','merger','acquisition','takeover','consolidation','integration','combination','amalgamation','blend','mixture','compound','composite','synthesis','fusion','alloy','hybrid','cross','mix','variety','diversity','multitude','array','range','spectrum','gamut','compass','scope','extent','breadth','width','length','height','depth','volume','capacity','size','dimension','measurement','magnitude','quantity','amount','number','count','total','sum','aggregate','whole','entirety','total','gross','net','balance','remainder','residue','surplus','excess','overflow','surfeit','glut','abundance','plenty','wealth','riches','fortune','treasure','hoard','cache','store','reserve','stock','supply','provision','ration','allotment','portion','share','part','piece','segment','section','division','subdivision','chapter','verse','passage','paragraph','sentence','phrase','clause','expression','idiom','saying','proverb','maxim','aphorism','adage','epigram','quote','quotation','citation','reference','mention','allusion','hint','clue','indication','sign','signal','token','symbol','emblem','badge','insignia','crest','seal','stamp','mark','brand','trademark','logo','emblem','device','motif','pattern','design','model','template','prototype','archetype','exemplar','example','instance','case','illustration','sample','specimen','representative','typical','normal','standard','average','mean','median','mode','norm','benchmark','yardstick','criterion','gauge','measure','test','trial','experiment','pilot','study','research','investigation','examination','inspection','scrutiny','analysis','evaluation','assessment','appraisal','review','survey','poll','census','ballot','vote','election','selection','choice','option','alternative','preference','pick','decision','judgment','verdict','ruling','sentence','decree','edict','order','command','instruction','direction','guidance','leadership','management','administration','governance','government','authority','rule','reign','regime','empire','kingdom','domain','realm','territory','region','area','zone','district','quarter','neighborhood','community','population','public','citizen','resident','inhabitant','native','foreigner','alien','immigrant','emigrant','refugee','exile','migrant','traveler','voyager','tourist','visitor','guest','host','stranger','acquaintance','friend','companion','colleague','partner','ally','associate','comrade','fellow','peer','equal','match','counterpart','equivalent','rival','competitor','opponent','adversary','enemy','foe','antagonist','villain','criminal','thief','robber','burglar','bandit','outlaw','pirate','marauder','raider','invader','conqueror','victor','winner','champion','hero','legend','myth','tale','story','narrative','account','report','record','chronicle','history','biography','autobiography','memoir','diary','journal','log','blog','article','essay','paper','thesis','dissertation','treatise','monograph','book','volume','edition','publication','issue','number','copy','print','reprint','reproduction','facsimile','scan','image','picture','photograph','photo','snapshot','portrait','landscape','still','video','film','movie','cinema','theater','stage','screen','display','monitor','panel','board','plank','sheet','page','leaf','folio','document','file','record','archive','library','museum','gallery','exhibit','collection','set','series','sequence','chain','train','string','row','line','queue','list','catalog','index','register','directory','roster','schedule','agenda','calendar','timetable','program','plan','blueprint','map','chart','graph','diagram','figure','illustration','plate','table','spreadsheet','database','inventory','stock','store','shop','market','mall','plaza','square','park','garden','yard','lawn','field','court','alley','lane','path','trail','route','way','road','highway','freeway','expressway','turnpike','street','avenue','boulevard','drive','circle','place','square','court','plaza','terrace','walk','esplanade','promenade','boardwalk','sidewalk','crosswalk','bridge','tunnel','underpass','overpass','ramp','stair','step','ladder','elevator','escalator','conveyor','transit','transport','vehicle','car','truck','bus','train','plane','boat','ship','bicycle','motorcycle','scooter','taxi','cab','ride','drive','trip','journey','travel','voyage','expedition','excursion','outing','tour','visit','stay','stop','pause','rest','break','interruption','hiatus','gap','space','hole','cavity','hollow','pit','well','spring','fountain','spout','jet','spray','splash','drip','drop','bead','globule','bubble','foam','froth','lather','suds','soap','detergent','cleaner','polish','wax','paint','dye','stain','pigment','color','hue','shade','tint','tone','cast','tinge','blush','flush','glow','glare','shine','sheen','luster','patina','finish','surface','texture','grain','grit','feel','touch','contact','impact','collision','crash','smash','break','crack','split','tear','rip','cut','slice','chop','hack','slash','stab','pierce','puncture','penetrate','enter','invade','occupy','settle','colonize','populate','inhabit','dwell','reside','live','exist','survive','thrive','prosper','flourish','bloom','blossom','grow','develop','mature','age','evolve','transform','change','alter','modify','adjust','adapt','accommodate','fit','suit','match','correspond','agree','harmonize','coordinate','integrate','unite','merge','combine','join','link','connect','attach','fasten','secure','lock','close','shut','seal','block','obstruct','bar','hinder','impede','prevent','stop','halt','cease','end','finish','complete','conclude','resolve','solve','settle','decide','determine','establish','set','fix','repair','mend','correct','rectify','improve','enhance','boost','increase','raise','elevate','lift','heighten','strengthen','reinforce','intensify','magnify','amplify','expand','extend','broaden','widen','deepen','enrich','augment','supplement','complement','complete','fill','occupy','cover','blanket','coat','layer','overlay','wrap','envelop','surround','enclose','encircle','circle','ring','round','loop','coil','spiral','twist','turn','rotate','spin','whirl','swirl','revolve','orbit','circle','wheel','roll','tumble','fall','drop','descend','sink','plunge','dive','immerse','submerge','dip','duck','lower','reduce','decrease','diminish','lessen','shrink','contract','compress','condense','concentrate','focus','direct','aim','point','steer','guide','lead','conduct','escort','accompany','follow','pursue','chase','track','trail','hunt','seek','search','look','find','discover','detect','identify','recognize','notice','observe','watch','view','see','witness','perceive','discern','distinguish','differentiate','separate','divide','split','part','break','cleave','sever','detach','disconnect','loosen','release','free','liberate','emancipate','rescue','save','protect','defend','guard','shield','shelter','cover','hide','conceal','mask','veil','cloak','disguise','camouflage','obscure','shroud','screen','filter','separate','sort','classify','categorize','group','arrange','order','organize','systematize','structure','framework','skeleton','outline','profile','silhouette','shape','form','figure','image','likeness','resemblance','similarity','analogy','comparison','contrast','difference','distinction','variation','deviation','departure','divergence','drift','shift','move','motion','action','activity','operation','function','behavior','conduct','manner','way','method','technique','system','approach','strategy','tactic','plan','scheme','plot','design','device','contraption','apparatus','machine','engine','motor','mechanism','tool','instrument','implement','utensil','device','gadget','widget','appliance','fixture','fitting','accessory','attachment','component','part','piece','element','constituent','ingredient','factor','aspect','feature','attribute','quality','property','characteristic','trait','mark','stamp','hallmark','earmark','signature','identity','character','nature','essence','core','heart','soul','spirit','mind','intellect','intelligence','wisdom','knowledge','understanding','comprehension','grasp','awareness','consciousness','sense','perception','insight','intuition','instinct','feeling','emotion','passion','sentiment','affection','warmth','kindness','compassion','sympathy','empathy','tenderness','love','adoration','devotion','loyalty','fidelity','faith','trust','belief','conviction','certainty','confidence','assurance','poise','calm','composure','serenity','peace','tranquility','harmony','balance','stability','security','safety','protection','refuge','sanctuary','haven','retreat','escape','release','relief','comfort','solace','consolation','support','encouragement','inspiration','motivation','drive','ambition','aspiration','goal','objective','target','aim','purpose','intention','intent','design','plan','scheme','project','undertaking','enterprise','venture','initiative','campaign','drive','effort','attempt','try','endeavor','struggle','fight','battle','war','conflict','combat','engagement','clash','confrontation','encounter','meeting','rendezvous','appointment','date','engagement','interview','audience','session','conference','meeting','gathering','assembly','congregation','audience','crowd','throng','multitude','mass','horde','mob','riot','uprising','revolt','rebellion','revolution','coup','overthrow','defeat','conquest','victory','triumph','win','success','achievement','accomplishment','milestone','breakthrough','advance','progress','development','evolution','growth','expansion','extension','spread','diffusion','dissemination','distribution','allocation','assignment','designation','appointment','nomination','election','selection','choice','option','alternative','substitute','replacement','standby','reserve','backup','auxiliary','secondary','supplementary','additional','extra','further','more','else','other','another','different','unlike','distinct','separate','individual','single','sole','only','unique','alone','lonely','solitary','isolated','secluded','remote','distant','far','near','close','adjacent','neighboring','proximate','immediate','direct','straight','forthright','candid','frank','open','honest','truthful','sincere','genuine','real','authentic','original','actual','true','factual','correct','accurate','precise','exact','specific','particular','detailed','thorough','comprehensive','complete','entire','full','total','whole','absolute','utter','perfect','flawless','impeccable','faultless','ideal','supreme','superb','excellent','wonderful','marvelous','splendid','glorious','magnificent','grand','majestic','noble','dignified','elegant','graceful','refined','cultured','polished','sophisticated','urbane','cultivated','civilized','enlightened','educated','learned','scholarly','academic','intellectual','erudite','knowledgeable','informed','aware','conscious','cognizant','mindful','attentive','alert','watchful','vigilant','observant','perceptive','discerning','keen','sharp','acute','astute','shrewd','clever','smart','intelligent','bright','brilliant','genius','gifted','talented','skilled','proficient','adept','expert','master','specialist','professional','experienced','seasoned','veteran','accomplished','consummate','virtuoso','maestro','authority','connoisseur','arbiter','judge','critic','reviewer','commentator','analyst','observer','spectator','onlooker','witness','bystander','passerby','viewer','listener','audience','reader','student','pupil','learner','trainee','apprentice','novice','beginner','starter','rookie','newcomer','freshman','greenhorn','tyro','neophyte','initiate','convert','proselyte','believer','follower','disciple','adherent','supporter','champion','advocate','proponent','spokesperson','representative','delegate','agent','proxy','deputy','substitute','alternate','standby','understudy','backup','relief','replacement','successor','heir','legatee','beneficiary','recipient','receiver','acquirer','gainer','winner','victor','champion','titleholder','recordholder','leader','pioneer','frontrunner','pacesetter','trailblazer','innovator','creator','originator','founder','instituteur','father','mother','parent','grandparent','ancestor','forefather','progenitor','descendant','offspring','child','baby','infant','toddler','youth','adolescent','teenager','adult','grownup','senior','elder','aged','retiree','pensioner','dependent','ward','charge','protégé','student','trainee','intern','resident','fellow','scholar','scientist','researcher','investigator','explorer','pioneer','colonist','settler','immigrant','emigrant','refugee','exile','displaced','homeless','itinerant','nomad','traveler','wayfarer','vagabond','wanderer','rover','drifter','transient','migrant','seasonal','temporary','permanent','constant','steady','stable','fixed','firm','solid','strong','durable','lasting','enduring','perpetual','eternal','everlasting','immortal','undying','infinite','boundless','limitless','endless','ceaseless','unending','continuous','continual','constant','persistent','incessant','uninterrupted','unbroken','steady','regular','rhythmic','periodic','recurring','cyclic','seasonal','annual','biennial','centennial','millennial','decade','century','era','epoch','age','period','phase','stage','step','grade','rank','level','degree','extent','intensity','strength','force','power','energy','might','potency','vigor','vitality','spirit','animation','liveliness','vivacity','enthusiasm','eagerness','zeal','passion','ardor','fervor','fire','spark','dynamism','drive','initiative','enterprise','ambition','aspiration','motivation','inspiration','creativity','imagination','ingenuity','inventiveness','resourcefulness','adaptability','flexibility','elasticity','resilience','toughness','hardiness','stamina','endurance','persistence','perseverance','determination','resolve','resolution','firmness','steadfastness','tenacity','grit','backbone','courage','bravery','valor','heroism','gallantry','chivalry','nobility','virtue','morality','ethics','principle','integrity','honesty','truthfulness','sincerity','candor','frankness','openness','transparency','accountability','responsibility','duty','obligation','commitment','dedication','devotion','loyalty','allegiance','fidelity','faithfulness','constancy','steadiness','reliability','dependability','trustworthiness','credibility','believability','plausibility','validity','soundness','logic','reason','rationality','judgment','discernment','acumen','sagacity','wisdom','prudence','caution','carefulness','circumspection','discretion','tact','diplomacy','politeness','courtesy','civility','decorum','propriety','etiquette','manners','protocol','formality','ceremony','ritual','rite','custom','tradition','convention','practice','usage','habit','routine','regimen','discipline','order','organization','system','structure','framework','pattern','model','standard','norm','usual','common','ordinary','typical','regular','normal','average','medium','moderate','middling','fair','adequate','passable','tolerable','acceptable','satisfactory','decent','respectable','proper','appropriate','suitable','fitting','right','correct','true','accurate','exact','precise','strict','rigorous','stringent','demanding','challenging','difficult','hard','tough','rough','harsh','stern','severe','extreme','intense','fierce','violent','forceful','powerful','strong','mighty','robust','vigorous','energetic','dynamic','active','lively','animated','spirited','passionate','intense','burning','fiery','heated','feverish','frantic','frenzied','wild','crazy','mad','insane','deranged','unhinged','disturbed','troubled','anxious','worried','concerned','nervous','restless','uneasy','tense','strained','stressed','overwrought','agitated','upset','distressed','frustrated','irritated','annoyed','vexed','exasperated','irked','piqued','angry','furious','enraged','incensed','livid','wrathful','irate','infuriated','apoplectic','boiling','seething','fuming','raging','storming','explosive','volatile','touchy','irritable','cranky','grumpy','sullen','moody','temperamental','testy','peevish','petulant','crabby','crotchety','ornery','cantankerous','difficult','impossible','unreasonable','absurd','ridiculous','ludicrous','preposterous','outrageous','shocking','scandalous','appalling','horrifying','terrifying','frightening','alarming','disturbing','disquieting','unsettling','unerving','disconcerting','bewildering','perplexing','confusing','baffling','mystifying','puzzling','enigmatic','cryptic','obscure','ambiguous','vague','nebulous','indefinite','uncertain','unclear','doubtful','questionable','debatable','arguable','controversial','contentious','disputed','litigious','polemical','divisive','polarizing','splitting','fragmenting','breaking','cracking','splintering','shattering','smashing','crushing','squashing','flattening','leveling','smoothing','polishing','burnishing','buffing','waxing','coating','painting','varnishing','lacquering','glazing','enameling','plating','gilding','silvering','gold','silver','bronze','copper','brass','steel','iron','tin','lead','zinc','nickel','chrome','aluminum','titanium','platinum','palladium','rhodium','iridium','osmium','ruthenium','cobalt','manganese','tungsten','vanadium','chromium','molybdenum','niobium','tantalum','hafnium','zirconium','ytrium','scandium','lanthanum','actinium','cerium','praseodymium','neodymium','promethium','samarium','europium','gadolinium','terbium','dysprosium','holmium','erbium','thulium','ytterbium','lutetium','radium','francium','radon','xenon','krypton','argon','neon','helium','hydrogen','oxygen','nitrogen','carbon','sulfur','phosphorus','chlorine','fluorine','bromine','iodine','astatine','tennessine','oganesson','nobelium','mendelevium','fermium','einsteinium','californium','berkelium','curium','americium','plutonium','neptunium','uranium','protactinium','thorium','actinium','radium','francium','astatine','polonium','bismuth','lead','thallium','mercury','gold','platinum','iridium','osmium','rhenium','tungsten','tantalum','hafnium','lutetium','ytterbium','thulium','erbium','holmium','dysprosium','terbium','gadolinium','europium','samarium','promethium','neodymium','praseodymium','cerium','lanthanum','barium','cesium','xenon','iodine','tellurium','antimony','tin','indium','cadmium','silver','palladium','rhodium','ruthenium','technetium','molybdenum','niobium','zirconium','strontium','rubidium','krypton','bromine','selenium','arsenic','germanium','gallium','zinc','copper','nickel','cobalt','iron','manganese','chromium','vanadium','titanium','scandium','calcium','potassium','argon','chlorine','sulfur','phosphorus','silicon','aluminum','magnesium','sodium','fluorine','oxygen','nitrogen','carbon','boron','beryllium','lithium','helium','hydrogen'])
+
+function showToast(m){toast.textContent=m;toast.classList.add('show');setTimeout(function(){toast.classList.remove('show')},2200)}
+
+function fmtBytes(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB'}
+
+function loadHistory(){try{var raw=localStorage.getItem(historyKey);return raw?JSON.parse(raw):[]}catch(e){return[]}}
+function saveHistory(data){try{localStorage.setItem(historyKey,JSON.stringify(data))}catch(e){}}
+function renderHistory(){
+  var h=loadHistory();
+  if(!h.length){histList.innerHTML='<p class="text-xs text-base-content/40 text-center py-3">No OCR history yet.</p>';return}
+  var html='';
+  for(var i=h.length-1;i>=0;i--){var e=h[i];html+='<div class="ocr-history-item" data-idx="'+i+'"><span class="preview-text">'+escHtml(e.text.slice(0,80))+(e.text.length>80?'…':'')+'</span><span class="time">'+e.time+'</span><button class="btn btn-ghost btn-xs text-error history-del" data-idx="'+i+'" title="Delete">&times;</button></div>'}
+  histList.innerHTML=html}
+function escHtml(s){var d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML}
+function addHistory(text,conf){
+  if(!text.trim())return;
+  var h=loadHistory();h.push({text:text.slice(0,500),conf:conf,time:new Date().toLocaleString()});if(h.length>20)h=h.slice(-20);saveHistory(h);renderHistory()}
+function restoreHistory(idx){
+  var h=loadHistory();if(!h[idx])return;
+  op.value=h[idx].text;resultsCard.style.display='';updateStats(h[idx].text);showToast('Restored from history')}
+function deleteHistory(idx){
+  var h=loadHistory();h.splice(idx,1);saveHistory(h);renderHistory()}
+
+histList.addEventListener('click',function(e){
+  var delBtn=e.target.closest('.history-del');var item=e.target.closest('.ocr-history-item');
+  if(delBtn){var idx=parseInt(delBtn.dataset.idx);deleteHistory(idx);return}
+  if(item){var idx=parseInt(item.dataset.idx);restoreHistory(idx)}});
+
+clearHist.addEventListener('click',function(){if(confirm('Delete all OCR history?')){saveHistory([]);renderHistory();showToast('History cleared')}});
+
+threshRange.addEventListener('input',function(){
+  var v=parseInt(this.value);threshVal.textContent=v===0?'Off':v});
+
+ctr.addEventListener('input',function(){ctrv.textContent=this.value});
+shp.addEventListener('change',function(){shpRow.style.display=this.checked?'':'none'});
+shpa.addEventListener('input',function(){shpav.textContent=this.value});
+
+async function initWorker(){
+  if(worker)return worker;
+  try{
+    statusCard.style.display='';statusText.textContent='Loading OCR engine...';
+    worker=await Tesseract.createWorker(langSel.value,1,{
+      logger:function(m){
+        if(m.status==='loading tesseract core')statusText.textContent='Loading OCR engine (1/3)...';
+        else if(m.status==='initializing tesseract')statusText.textContent='Starting OCR engine (2/3)...';
+        else if(m.status==='loading language traineddata')statusText.textContent='Downloading language data...';
+        else if(m.status==='initializing api')statusText.textContent='Ready';
+        else if(m.status==='recognizing text')statusText.textContent='Recognizing text...';
+        else if(m.status==='done'){statusText.textContent='Complete!'}
+      }
+    });
+    statusCard.style.display='none';
+    return worker
+  }catch(e){
+    statusCard.style.display='none';
+    showToast('Failed to load OCR engine: '+e.message);
+    return null}
+}
+
+function applyPreprocessing(c,ctx,w,h){
+  if(grayChk.checked){
+    var id=ctx.getImageData(0,0,w,h),d=id.data;
+    for(var i=0;i<d.length;i+=4){var g=d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114;d[i]=d[i+1]=d[i+2]=g}
+    ctx.putImageData(id,0,0)}
+  var t=parseInt(threshRange.value);
+  if(t>0&&!grayChk.checked){
+    var id2=ctx.getImageData(0,0,w,h),d2=id2.data;
+    for(var i=0;i<d2.length;i+=4){var g2=d2[i]*0.299+d2[i+1]*0.587+d2[i+2]*0.114;var b2=g2>=t?255:0;d2[i]=d2[i+1]=d2[i+2]=b2}
+    ctx.putImageData(id2,0,0)}
+  if(ath.checked){otsuThreshold(ctx,w,h)}
+  var cf=parseInt(ctr.value)/100;
+  if(cf!==1){adjustContrast(ctx,w,h,cf)}
+  if(shp.checked){sharpenImage(ctx,w,h,parseInt(shpa.value)/100)}
+  if(dns.checked){medianFilter(ctx,w,h)}
+}
+
+function adjustContrast(ctx,w,h,factor){
+  var id=ctx.getImageData(0,0,w,h),d=id.data;
+  for(var i=0;i<d.length;i+=4){
+    for(var j=0;j<3;j++){var v=d[i+j];v=((v/255-0.5)*factor+0.5)*255;d[i+j]=Math.max(0,Math.min(255,Math.round(v)))}}
+  ctx.putImageData(id,0,0)}
+
+function sharpenImage(ctx,w,h,amount){
+  var id=ctx.getImageData(0,0,w,h),d=id.data,out=new Uint8ClampedArray(d);
+  var kernel=[0,-1,0,-1,5,-1,0,-1,0];
+  for(var y=1;y<h-1;y++){for(var x=1;x<w-1;x++){
+    var idx=(y*w+x)*4;
+    for(var c=0;c<3;c++){
+      var sum=0;
+      for(var ky=-1;ky<=1;ky++){for(var kx=-1;kx<=1;kx++){
+        var pidx=((y+ky)*w+(x+kx))*4+c;
+        sum+=d[pidx]*kernel[(ky+1)*3+(kx+1)]}}
+      out[idx+c]=Math.max(0,Math.min(255,Math.round(d[idx+c]*(1-amount)+sum*amount)))}}
+  }
+  for(var i=0;i<d.length;i++){d[i]=out[i]}
+  ctx.putImageData(id,0,0)}
+
+function medianFilter(ctx,w,h){
+  var id=ctx.getImageData(0,0,w,h),d=id.data,out=new Uint8ClampedArray(d);
+  for(var y=1;y<h-1;y++){for(var x=1;x<w-1;x++){
+    var idx=(y*w+x)*4;
+    for(var c=0;c<3;c++){
+      var vals=[];
+      for(var ky=-1;ky<=1;ky++){for(var kx=-1;kx<=1;kx++){
+        vals.push(d[((y+ky)*w+(x+kx))*4+c])}}
+      vals.sort(function(a,b){return a-b});
+      out[idx+c]=vals[4]}}
+  }
+  for(var i=0;i<d.length;i++){d[i]=out[i]}
+  ctx.putImageData(id,0,0)}
+
+function otsuThreshold(ctx,w,h){
+  var id=ctx.getImageData(0,0,w,h),d=id.data,hist=new Array(256).fill(0);
+  for(var i=0;i<d.length;i+=4){var g=Math.round(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114);hist[Math.min(255,Math.max(0,g))]++}
+  var total=w*h,sum=0;
+  for(var i=0;i<256;i++){sum+=i*hist[i]}
+  var sumB=0,wB=0,wF=0,maxV=0,thr=0;
+  for(var i=0;i<256;i++){
+    wB+=hist[i];if(wB===0)continue;wF=total-wB;if(wF===0)break;
+    sumB+=i*hist[i];var mB=sumB/wB,mF=(sum-sumB)/wF;
+    var between=wB*wF*(mB-mF)*(mB-mF);
+    if(between>maxV){maxV=between;thr=i}}
+  for(var i=0;i<d.length;i+=4){var g2=Math.round(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114);var b2=g2>=thr?255:0;d[i]=d[i+1]=d[i+2]=b2}
+  ctx.putImageData(id,0,0)}
+
+function preprocessImage(c){
+  var ctx=c.getContext('2d',{willReadFrequently:true}),w=c.width,h=c.height;
+  var rot=ocrRotate?parseInt(ocrRotate.value):0;
+  if(rot&&rot!==0){applyDeskew(c,ctx,w,h,rot)}
+  applyPreprocessing(c,ctx,w,h);
+  if(ocrAutoDeskew&&ocrAutoDeskew.checked){
+    var skewAngle=detectSkew(c,ctx,w,h);
+    if(Math.abs(skewAngle)>=0.5){applyDeskew(c,ctx,w,h,skewAngle)}
+  }
+  return c}
+
+function detectSkew(c,ctx,w,h){
+  var imageData=ctx.getImageData(0,0,w,h);var data=imageData.data;
+  var edgeData=new Uint8Array(w*h);
+  for(var y=1;y<h-1;y++){for(var x=1;x<w-1;x++){
+    var idx=(y*w+x)*4;var gray=0.299*data[idx]+0.587*data[idx+1]+0.114*data[idx+2];
+    var idxL=((y)*w+(x-1))*4;var grayL=0.299*data[idxL]+0.587*data[idxL+1]+0.114*data[idxL+2];
+    var idxR=((y)*w+(x+1))*4;var grayR=0.299*data[idxR]+0.587*data[idxR+1]+0.114*data[idxR+2];
+    var gradX=Math.abs(grayR-grayL);var gradY=Math.abs(grayR-grayL);
+    if(gradX>30||gradY>30){edgeData[y*w+x]=255}}
+  }
+  var bestAngle=0,bestScore=0;
+  for(var a=-15;a<=15;a+=0.5){
+    var rad=a*Math.PI/180;var score=0;var count=0;
+    for(var y=20;y<h-20;y+=4){for(var x=20;x<w-20;x+=4){
+      var px=Math.round(x*Math.cos(rad)-y*Math.sin(rad)+w/2*(1-Math.cos(rad))+h/2*Math.sin(rad));
+      var py=Math.round(x*Math.sin(rad)+y*Math.cos(rad)-w/2*Math.sin(rad)+h/2*(1-Math.cos(rad)));
+      if(px>=0&&px<w&&py>=0&&py<h&&edgeData[py*w+px]){score++;count++}
+    }}
+    if(count>0){var norm=score/count;if(norm>bestScore){bestScore=norm;bestAngle=a}}
+  }
+  return bestAngle;
+}
+
+function applyDeskew(c,ctx,w,h,angle){
+  if(Math.abs(angle)<0.5)return false;
+  var tC=document.createElement('canvas');tC.width=w;tC.height=h;
+  var tCtx=tC.getContext('2d');tCtx.drawImage(c,0,0);
+  ctx.clearRect(0,0,w,h);ctx.save();
+  ctx.translate(w/2,h/2);ctx.rotate(angle*Math.PI/180);
+  ctx.drawImage(tC,-w/2,-h/2,w,h);ctx.restore();
+  return true;
+}
+
+ppb.addEventListener('click',function(){
+  if(!currentDataUrl){showToast('Upload an image first');return}
+  var img=new Image();img.onload=function(){
+    var c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;
+    var ctx=c.getContext('2d');ctx.drawImage(img,0,0);
+    preprocessImage(c);
+    var ratio=Math.min(80/c.height,1);var dispW=Math.round(c.width*ratio),dispHP=Math.round(c.height*ratio);
+    var pc=document.createElement('canvas');pc.width=dispW;pc.height=dispHP;
+    var pctx=pc.getContext('2d');pctx.drawImage(c,0,0,dispW,dispHP);
+    ppv.width=dispW;ppv.height=dispHP;
+    var vctx=ppv.getContext('2d');vctx.drawImage(pc,0,0);
+    ppv.style.display='block'};
+  img.src=currentDataUrl});
+
+async function runOcr(dataUrl,batchMode,batchIdx,batchTotal){
+  if(!batchMode&&isRunning)return;
+  if(!batchMode){isRunning=true;runBtn.disabled=true;
+  runBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin" style="margin-right:4px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Processing...';}
+  try{
+    if(!batchMode){op.value='';resultsCard.style.display='none';statusCard.style.display='';
+    statusText.textContent='Initializing...';}
+    var img=new Image();img.src=dataUrl;await new Promise(function(r){img.onload=r});
+    var nw=img.naturalWidth,nh=img.naturalHeight;
+    lastImgWidth=nw;lastImgHeight=nh;
+    var c=document.createElement('canvas');c.width=nw;c.height=nh;
+    var ctx=c.getContext('2d');ctx.drawImage(img,0,0);
+    var zoneMode=zones.length>0;
+    var zoneBlobs=[];var scaleX=1,scaleY=1;
+    if(zoneMode){
+      scaleX=nw/(previewTarget.offsetWidth||1);
+      scaleY=nh/(previewTarget.offsetHeight||1);
+      for(var zi=0;zi<zones.length;zi++){
+        var z=zones[zi];
+        var zx=Math.round(z.x*scaleX),zy=Math.round(z.y*scaleY),zw=Math.max(10,Math.round(z.w*scaleX)),zh=Math.max(10,Math.round(z.h*scaleY));
+        var zc=document.createElement('canvas');zc.width=zw;zc.height=zh;
+        var zctx=zc.getContext('2d');zctx.drawImage(img,zx,zy,zw,zh,0,0,zw,zh);
+        preprocessImage(zc);
+        zoneBlobs.push(await new Promise(function(rr){zc.toBlob(rr,'image/png')}))}
+    }else{
+      preprocessImage(c)}
+    var blob=zoneMode?null:await new Promise(function(rr){c.toBlob(rr,'image/png')});
+    if(!batchMode){statusText.textContent='Recognizing text...';}
+    var psmVal=parseInt(psmSel.value);
+    var numWorkers=parseInt(wc.value);
+    var text='',blocks=[],totalConf=0,confCount=0;
+
+    if(numWorkers>1&&!batchMode&&!zoneMode){
+      statusText.textContent='Starting '+numWorkers+' workers...';
+      var scheduler=Tesseract.createScheduler();
+      var workers=[];
+      for(var wi=0;wi<numWorkers;wi++){
+        var w2=await Tesseract.createWorker(langSel.value,1,{});
+        scheduler.addWorker(w2);workers.push(w2)}
+      statusText.textContent='Processing with '+numWorkers+' workers...';
+      var jobPromises=[];
+      for(var wi=0;wi<numWorkers;wi++){
+        jobPromises.push(scheduler.addJob('recognize',blob,{},{text:true,blocks:true}))}
+      var results=await Promise.all(jobPromises);
+      for(var wi=0;wi<workers.length;wi++){try{workers[wi].terminate()}catch(e){}}
+      worker=null;
+      var allTexts=[];var allBlocks=[];
+      for(var ri=0;ri<results.length;ri++){
+        var rText=results[ri].data.text||'';
+        var rBlocks=results[ri].data.blocks||[];
+        allTexts.push(rText);allBlocks.push(rBlocks);
+        for(var b=0;b<rBlocks.length;b++){
+          var bl=rBlocks[b];
+          if(bl.confidence>0){totalConf+=bl.confidence;confCount++}
+          if(bl.paragraphs){for(var p=0;p<bl.paragraphs.length;p++){var pa=bl.paragraphs[p];
+            if(pa.words){for(var wo=0;wo<pa.words.length;wo++){if(pa.words[wo].confidence>0){totalConf+=pa.words[wo].confidence;confCount++}}}}}}
+      }
+      var strategy=ms.value;
+      if(strategy==='best'){
+        var mergedBlocks=mergeBlocksByBest(allBlocks);
+        blocks=mergedBlocks;
+        text=blocksToText(mergedBlocks);
+      }else if(strategy==='avg'){
+        text=allTexts[0];
+        blocks=allBlocks[0];
+      }else{
+        text=allTexts[0];
+        blocks=allBlocks[0];
+      }
+      totalConf=0;confCount=0;
+      for(var b=0;b<blocks.length;b++){var bl2=blocks[b];
+        if(bl2.confidence>0){totalConf+=bl2.confidence;confCount++}
+        if(bl2.paragraphs){for(var p=0;p<bl2.paragraphs.length;p++){var pa2=bl2.paragraphs[p];
+          if(pa2.words){for(var wo=0;wo<pa2.words.length;wo++){if(pa2.words[wo].confidence>0){totalConf+=pa2.words[wo].confidence;confCount++}}}}}}
+    }else{
+      var w=await initWorker();if(!w)return;
+      if(zoneMode){
+        var zTexts=[];var zBlocks=[];
+        for(var zi=0;zi<zoneBlobs.length;zi++){
+          if(!batchMode){statusText.textContent='Recognizing zone '+(zi+1)+'/'+zoneBlobs.length+'...';}
+          var zRes=await w.recognize(zoneBlobs[zi],{},{text:true,blocks:true});
+          zTexts.push(zRes.data.text||'');zBlocks=zBlocks.concat(zRes.data.blocks||[])};
+        text=zTexts.join('\n');blocks=zBlocks;
+      }else{
+        var result=await w.recognize(blob,{},{text:true,blocks:true});
+        text=result.data.text||'';blocks=result.data.blocks||[]}
+      totalConf=0;confCount=0;
+      for(var b=0;b<blocks.length;b++){var bl3=blocks[b];
+        if(bl3.confidence>0){totalConf+=bl3.confidence;confCount++}
+        if(bl3.paragraphs){for(var p=0;p<bl3.paragraphs.length;p++){var pa3=bl3.paragraphs[p];
+          if(pa3.words){for(var wo=0;wo<pa3.words.length;wo++){if(pa3.words[wo].confidence>0){totalConf+=pa3.words[wo].confidence;confCount++}}}}}}
+    }
+
+    if(sc.checked){
+      var spellResult=spellCheckText(text);
+      text=spellResult.text;
+      lastText=text;
+    }else{
+      lastText=text;
+    }
+    lastBlocks=blocks;
+
+    if(!batchMode){
+      op.value=text;resultsCard.style.display='';updateStats(text,blocks);
+      var avgConf=confCount>0?(totalConf/confCount).toFixed(1):'--';
+      statConf.textContent=avgConf;
+      lastJson=generateJsonOutput(text,blocks);
+      oj.value=lastJson;
+      lastHocr=generateHocrOutput(text,blocks,nw,nh);
+      oh.value=lastHocr;
+      switchTab(currentTab);
+      statusCard.style.display='none';showToast('Text extracted');
+      addHistory(text,avgConf);
+      if(cvc&&!cvc.classList.contains('hidden')){resizeCanvases();drawConfidenceOverlay(cvc,blocks,nw,nh,cvc.width,cvc.height)}
+    }
+    return {text:text,blocks:blocks,avgConf:confCount>0?(totalConf/confCount).toFixed(1):'--'}
+  }catch(e){
+    if(!batchMode){statusCard.style.display='none';showToast('OCR failed: '+e.message)}
+    return null
+  }finally{
+    if(!batchMode){isRunning=false;runBtn.disabled=false;
+    runBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg> Extract Text'}
+  }
+}
+
+function mergeBlocksByBest(allBlocks){
+  var wordMap={};
+  for(var wi=0;wi<allBlocks.length;wi++){
+    var blocks=allBlocks[wi];
+    for(var b=0;b<blocks.length;b++){var block=blocks[b];
+      if(block.paragraphs){for(var p=0;p<block.paragraphs.length;p++){var para=block.paragraphs[p];
+        if(para.words){for(var wo=0;wo<para.words.length;wo++){var word=para.words[wo];
+          if(word.text&&word.text.trim()){
+            var key=Math.round(word.bbox&&word.bbox.x0||0)+'_'+Math.round(word.bbox&&word.bbox.y0||0)+'_'+word.text.trim().toLowerCase();
+            if(!wordMap[key]||word.confidence>wordMap[key].confidence){wordMap[key]=word}}}}}}}}
+  var mergedWords=[];
+  for(var k in wordMap){if(wordMap.hasOwnProperty(k)){mergedWords.push(wordMap[k])}}
+  mergedWords.sort(function(a,b){
+    var ay=a.bbox?Math.round(a.bbox.y0*100):0,by=b.bbox?Math.round(b.bbox.y0*100):0;
+    if(ay!==by)return ay-by;
+    var ax=a.bbox?Math.round(a.bbox.x0*100):0,bx=b.bbox?Math.round(b.bbox.x0*100):0;
+    return ax-bx});
+  var text='';
+  var lastY=null;
+  for(var i=0;i<mergedWords.length;i++){
+    var wd=mergedWords[i];
+    if(lastY!==null&&wd.bbox&&Math.abs(wd.bbox.y0-lastY)>10&&wd.bbox.y0>lastY+5){text+='\n'}
+    text+=wd.text+' ';lastY=wd.bbox?wd.bbox.y0:null}
+  return [{text:text,paragraphs:[{words:mergedWords}],confidence:mergedWords.length>0?mergedWords.reduce(function(s,w){return s+(w.confidence||0)},0)/mergedWords.length:0}]}
+
+function blocksToText(blocks){
+  var parts=[];
+  for(var b=0;b<blocks.length;b++){var block=blocks[b];
+    if(block.text){parts.push(block.text);continue}
+    if(block.paragraphs){for(var p=0;p<block.paragraphs.length;p++){var para=block.paragraphs[p];
+      if(para.text){parts.push(para.text);continue}
+      if(para.words){var line='';var lh=null;
+        for(var wo=0;wo<para.words.length;wo++){var wd=para.words[wo];
+          if(lh!==null&&wd.bbox&&Math.abs(wd.bbox.y0-lh)>5){parts.push(line.trim());line=''}
+          line+=wd.text+' ';lh=wd.bbox?wd.bbox.y0:null}
+        if(line.trim()){parts.push(line.trim())}}}}}
+  return parts.join('\n')}
+
+function updateStats(text,blocks){
+  var chars=text.length;var words=text.trim()?text.trim().split(/\s+/).length:0;
+  statChars.textContent=chars;statWords.textContent=words;
+  var highC=0,medC=0,lowC=0;
+  if(blocks){for(var b=0;b<blocks.length;b++){var bl=blocks[b];
+    if(bl.paragraphs){for(var p=0;p<bl.paragraphs.length;p++){var pa=bl.paragraphs[p];
+      if(pa.words){for(var wo=0;wo<pa.words.length;wo++){var w=pa.words[wo];
+        if(w.confidence!==undefined){
+          if(w.confidence>=80)highC++;
+          else if(w.confidence>=50)medC++;
+          else lowC++}}}}}}}
+  sh.textContent=highC;sm.textContent=medC;sl.textContent=lowC;
+  if(sc.checked){
+    var ukCount=0;var tWords=text.trim().split(/\s+/);
+    for(var i=0;i<tWords.length;i++){var tw=tWords[i].replace(/^[*]+/,'').replace(/[^a-zA-Z]/g,'').toLowerCase();
+      if(tw.length>1&&!dict.has(tw)){ukCount++}}
+    su.textContent=ukCount}else{su.textContent='--'}}
+
+function handleFile(file){
+  if(!file||!file.type.match(/^image\//)){showToast('Please select an image file');return}
+  currentFile=file;var reader=new FileReader();
+  reader.onload=function(e){
+    currentDataUrl=e.target.result;pi.src=currentDataUrl;pi.classList.remove('hidden');
+    fn_.textContent=file.name;im.classList.remove('hidden');
+    dz.querySelector('.placeholder').classList.add('hidden');
+    previewTarget.classList.remove('hidden');emptyPreview.classList.add('hidden');
+    previewWrap.style.display='';resultsCard.style.display='none';
+    ppv.style.display='none';resetCanvases();
+    previewTarget.onload=function(){resizeCanvases()};
+    previewTarget.src=currentDataUrl;
+    showToast(fmtBytes(file.size)+' loaded')};
+  reader.readAsDataURL(file)}
+
+function resizeCanvases(){
+  if(!previewTarget||previewTarget.classList.contains('hidden'))return;
+  var dw=previewTarget.offsetWidth,dh=previewTarget.offsetHeight;
+  if(dw>0&&dh>0){
+    cvc.width=dw;cvc.height=dh;
+    lc.width=dw;lc.height=dh}}
+
+function resetCanvases(){
+  cvc.classList.add('hidden');cvc.width=0;cvc.height=0;
+  lc.classList.add('hidden');lc.width=0;lc.height=0;
+  confVizEnabled=false;cvb.textContent='Show Confidence';cvb.classList.remove('on');cvb2.textContent='Show Confidence';cvb2.classList.remove('on')}
+
+fi.addEventListener('change',function(e){if(e.target.files&&e.target.files[0])handleFile(e.target.files[0])});
+dz.addEventListener('click',function(){fi.click()});
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('dragover')});
+dz.addEventListener('dragleave',function(){dz.classList.remove('dragover')});
+dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files&&e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])});
+document.addEventListener('paste',function(e){
+  var items=e.clipboardData&&e.clipboardData.items;if(!items)return;
+  for(var i=0;i<items.length;i++){if(items[i].type.indexOf('image')!==-1){var blob=items[i].getAsFile();if(blob){handleFile(blob);return}}}});
+
+cb.addEventListener('click',function(){
+  currentFile=null;currentDataUrl=null;
+  fi.value='';pi.classList.add('hidden');im.classList.add('hidden');dz.querySelector('.placeholder').classList.remove('hidden');
+  previewTarget.src='';previewTarget.classList.add('hidden');emptyPreview.classList.remove('hidden');previewWrap.style.display='none';
+  resultsCard.style.display='none';op.value='';oj.value='';oh.value='';
+  statChars.textContent='0';statWords.textContent='0';statConf.textContent='--';sh.textContent='0';sm.textContent='0';sl.textContent='0';su.textContent='--';
+  ppv.style.display='none';resetCanvases();zones=[];redrawZones()});
+
+langSel.addEventListener('change',function(){
+  if(worker){worker.terminate();worker=null}});
+
+runBtn.addEventListener('click',function(){
+  if(!currentDataUrl){showToast('Upload an image first');return}
+  runOcr(currentDataUrl,false,0,0)});
+
+copyBtn.addEventListener('click',function(){
+  var activePane=op;
+  if(!tp.classList.contains('active')){if(!tj.classList.contains('active')){activePane=oh}else{activePane=oj}}
+  if(!activePane.value){showToast('No text to copy');return}
+  navigator.clipboard.writeText(activePane.value).then(function(){showToast('Copied!')})});
+
+downloadBtn.addEventListener('click',function(){
+  if(!op.value&&!oj.value&&!oh.value){showToast('No text to download');return}
+  var content,filename;
+  if(!tp.classList.contains('active')){if(!tj.classList.contains('active')){content=oh.value;filename='extracted_text.hocr.html'}else{content=oj.value;filename='extracted_text.json'}}else{content=op.value;filename='extracted_text.txt'}
+  if(!content){showToast('No content to download');return}
+  var blob=new Blob([content],{type:'text/plain;charset=utf-8'});var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url)});
+
+dj.addEventListener('click',function(){
+  if(!lastJson){showToast('No JSON output yet');return}
+  var blob=new Blob([lastJson],{type:'application/json;charset=utf-8'});var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='extracted_text.json';a.click();URL.revokeObjectURL(url)});
+
+dh.addEventListener('click',function(){
+  if(!lastHocr){showToast('No HOCR output yet');return}
+  var blob=new Blob([lastHocr],{type:'text/html;charset=utf-8'});var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='extracted_text.hocr.html';a.click();URL.revokeObjectURL(url)});
+
+window.addEventListener('beforeunload',function(){if(worker){try{worker.terminate()}catch(e){}}});
+
+ab.addEventListener('click',function(){
+  if(!currentDataUrl){showToast('Upload an image first');return}
+  batchQueue.push({filename:currentFile?currentFile.name:'image',dataUrl:currentDataUrl});
+  renderBatch();showToast('Added to batch ('+batchQueue.length+' items)')});
+
+bc.addEventListener('click',function(){batchQueue=[];renderBatch();bp.classList.add('hidden');showToast('Batch cleared')});
+
+function renderBatch(){
+  if(!batchQueue.length){bi.innerHTML='<p class="text-[10px] text-base-content/40 text-center py-2">No items in batch queue.</p>';return}
+  var html='';
+  for(var i=0;i<batchQueue.length;i++){html+='<div class="ocr-batch-item" data-idx="'+i+'"><span>'+escHtml(batchQueue[i].filename)+'</span><span class="remove" data-idx="'+i+'">&times;</span></div>'}
+  bi.innerHTML=html}
+
+bi.addEventListener('click',function(e){
+  var rm=e.target.closest('.remove');
+  if(rm){var idx=parseInt(rm.dataset.idx);batchQueue.splice(idx,1);renderBatch();if(!batchQueue.length)bp.classList.add('hidden')}});
+
+rb.addEventListener('click',async function(){
+  if(!batchQueue.length){showToast('Batch queue is empty');return}
+  if(isBatchRunning)return;isBatchRunning=true;rb.disabled=true;
+  bp.classList.remove('hidden');bpt.textContent='0/'+batchQueue.length;bf.style.width='0%';
+  var allTexts=[];var allConfs=[];op.value='';resultsCard.style.display='none';
+  for(var i=0;i<batchQueue.length;i++){
+    bpt.textContent='Processing '+(i+1)+'/'+batchQueue.length;bf.style.width=((i+1)/batchQueue.length*100)+'%';
+    var result=await runOcr(batchQueue[i].dataUrl,true,i+1,batchQueue.length);
+    if(result){allTexts.push('--- '+batchQueue[i].filename+' ---\n'+result.text);allConfs.push(result.avgConf)}}
+  var combined=allTexts.join('\n\n');
+  op.value=combined;resultsCard.style.display='';updateStats(combined,lastBlocks);
+  var avgC=allConfs.length;var sumC=0;
+  for(var i=0;i<allConfs.length;i++){if(allConfs[i]!=='--'){sumC+=parseFloat(allConfs[i]);avgC--}}
+  avgC=allConfs.length>0?(sumC/(allConfs.length)).toFixed(1):'--';
+  if(isNaN(avgC))avgC='--';
+  statConf.textContent=avgC;
+  bpt.textContent='Complete!';bf.style.width='100%';
+  setTimeout(function(){bp.classList.add('hidden')},2000);
+  showToast('Batch complete ('+batchQueue.length+' items)');
+  isBatchRunning=false;rb.disabled=false});
+
+function switchTab(tab){
+  currentTab=tab;
+  tp.classList.remove('active');tj.classList.remove('active');th.classList.remove('active');tt.classList.remove('active');
+  op.classList.add('hidden');oj.classList.add('hidden');oh.classList.add('hidden');ot.classList.add('hidden');
+  if(tab==='json'){tj.classList.add('active');oj.classList.remove('hidden')}
+  else if(tab==='hocr'){th.classList.add('active');oh.classList.remove('hidden')}
+  else if(tab==='table'){tt.classList.add('active');ot.classList.remove('hidden');
+    var tableHtml='No table structure detected.';
+    if(lastBlocks){
+      var tableData=detectTable(lastBlocks);
+      if(tableData){tableHtml=tableData.html;currentCsv=tableData.csv}
+    }
+    ot.value=tableHtml;
+  }
+  else{tp.classList.add('active');op.classList.remove('hidden')}}
+
+tp.addEventListener('click',function(){switchTab('plain')});
+tj.addEventListener('click',function(){switchTab('json')});
+th.addEventListener('click',function(){switchTab('hocr')});
+tt.addEventListener('click',function(){switchTab('table')});
+
+function generateJsonOutput(text,blocks){
+  var jsonObj={text:text,confidence:statConf.textContent,blocks:[]};
+  for(var b=0;b<blocks.length;b++){var bl=blocks[b];
+    var blockObj={text:bl.text||'',confidence:bl.confidence||0,bbox:bl.bbox||null,paragraphs:[]};
+    if(bl.paragraphs){for(var p=0;p<bl.paragraphs.length;p++){var pa=bl.paragraphs[p];
+      var paraObj={text:pa.text||'',confidence:pa.confidence||0,bbox:pa.bbox||null,lines:[]};
+      if(pa.words){
+        var currentLine=[];var lineWords=[];
+        for(var wo=0;wo<pa.words.length;wo++){var wd=pa.words[wo];
+          currentLine.push(wd.text||'');
+          lineWords.push({text:wd.text||'',confidence:wd.confidence||0,bbox:wd.bbox||null})}
+        paraObj.lines.push({text:currentLine.join(' '),words:lineWords})}
+      blockObj.paragraphs.push(paraObj)}}
+    jsonObj.blocks.push(blockObj)}
+  return JSON.stringify(jsonObj,null,2)}
+
+function generateHocrOutput(text,blocks,imgWidth,imgHeight){
+  var html='<div class="ocr_page" title="bbox 0 0 '+imgWidth+' '+imgHeight+'">\n';
+  for(var b=0;b<blocks.length;b++){var bl=blocks[b];
+    var bbox=bl.bbox?('bbox '+Math.round(bl.bbox.x0)+' '+Math.round(bl.bbox.y0)+' '+Math.round(bl.bbox.x1)+' '+Math.round(bl.bbox.y1)):'';
+    html+='  <div class="ocr_carea" title="'+bbox+'">\n';
+    if(bl.paragraphs){for(var p=0;p<bl.paragraphs.length;p++){var pa=bl.paragraphs[p];
+      var pbbox=pa.bbox?('bbox '+Math.round(pa.bbox.x0)+' '+Math.round(pa.bbox.y0)+' '+Math.round(pa.bbox.x1)+' '+Math.round(pa.bbox.y1)):'';
+      html+='    <p class="ocr_par" title="'+pbbox+'">\n';
+      if(pa.words){
+        var lineStarted=false;
+        for(var wo=0;wo<pa.words.length;wo++){var wd=pa.words[wo];
+          if(wd.bbox){var wbbox='bbox '+Math.round(wd.bbox.x0)+' '+Math.round(wd.bbox.y0)+' '+Math.round(wd.bbox.x1)+' '+Math.round(wd.bbox.y1);var conf='x_confidence '+Math.round(wd.confidence||0);html+='      <span class="ocrx_word" title="'+wbbox+'; '+conf+'">'+escHtml(wd.text||'')+'</span>\n'}
+        }html+='    </p>\n'}}
+    html+='  </div>\n'}
+  html+='</div>';
+  return html}}
+
+function drawConfidenceOverlay(canvas,blocks,imgWidth,imgHeight,displayWidth,displayHeight){
+  if(!canvas||!blocks||!blocks.length)return;
+  var ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);
+  var sx=displayWidth/imgWidth,sy=displayHeight/imgHeight;
+  for(var b=0;b<blocks.length;b++){var bl=blocks[b];
+    if(bl.paragraphs){for(var p=0;p<bl.paragraphs.length;p++){var pa=bl.paragraphs[p];
+      if(pa.words){for(var wo=0;wo<pa.words.length;wo++){var wd=pa.words[wo];
+        if(wd.bbox&&wd.text&&wd.text.trim()){
+          var x=wd.bbox.x0*sx,y=wd.bbox.y0*sy,w=(wd.bbox.x1-wd.bbox.x0)*sx,h=(wd.bbox.y1-wd.bbox.y0)*sy;
+          if(w<2)w=2;if(h<2)h=2;
+          var conf=wd.confidence||0;var color;
+          if(conf>=80){color='rgba(0,204,0,0.4)'}else if(conf>=50){color='rgba(204,204,0,0.4)'}else{color='rgba(204,0,0,0.4)'}
+          ctx.fillStyle=color;ctx.fillRect(x,y,w,h);
+          ctx.strokeStyle=color.replace('0.4','0.8');ctx.lineWidth=1;ctx.strokeRect(x,y,w,h);
+          ctx.fillStyle='rgba(0,0,0,0.7)';ctx.font='9px monospace';ctx.fillText(wd.text,x,y-2)}}}}}}}
+
+function resizeConfCanvas(){
+  if(!previewTarget||previewTarget.classList.contains('hidden'))return;
+  var dw=previewTarget.offsetWidth,dh=previewTarget.offsetHeight;
+  if(dw>0&&dh>0){cvc.width=dw;cvc.height=dh;cvc.style.width=dw+'px';cvc.style.height=dh+'px';cvc.style.top='0';cvc.style.left='0';
+    if(!cvc.classList.contains('hidden')&&lastBlocks){drawConfidenceOverlay(cvc,lastBlocks,lastImgWidth||dw,lastImgHeight||dh,cvc.width,cvc.height)}}
+}
+
+function toggleConfViz(){
+  if(!lastBlocks||!lastBlocks.length||!lastImgWidth){showToast('Run OCR first');return}
+  confVizEnabled=!confVizEnabled;
+  if(confVizEnabled){
+    cvc.classList.remove('hidden');resizeConfCanvas();
+    cvb.textContent='Hide Confidence';cvb.classList.add('on');
+    cvb2.textContent='Hide Confidence';cvb2.classList.add('on')
+  }else{
+    cvc.classList.add('hidden');
+    cvb.textContent='Show Confidence';cvb.classList.remove('on');
+    cvb2.textContent='Show Confidence';cvb2.classList.remove('on')}}
+
+cvb.addEventListener('click',toggleConfViz);
+cvb2.addEventListener('click',toggleConfViz);
+
+function toggleLayout(){
+  layoutEnabled=!layoutEnabled;
+  if(layoutEnabled){
+    if(!previewTarget||previewTarget.classList.contains('hidden')){showToast('Upload an image first');layoutEnabled=false;return}
+    lc.classList.remove('hidden');resizeLayoutCanvas();redrawZones();
+    lb.textContent='Done Selecting';lb.classList.add('on');
+    lb2.textContent='Done Selecting';lb2.classList.add('on');
+    li.textContent='Click and drag to draw a zone. Click existing zone to remove.';li.style.display=''
+  }else{
+    lc.classList.add('hidden');
+    lb.textContent='Select Zone';lb.classList.remove('on');
+    lb2.textContent='Select Zone';lb2.classList.remove('on');
+    li.textContent=''}}
+
+lb.addEventListener('click',toggleLayout);
+lb2.addEventListener('click',toggleLayout);
+
+lcl.addEventListener('click',function(){zones=[];redrawZones();li.textContent='Zones cleared'});
+
+function resizeLayoutCanvas(){
+  if(!previewTarget||previewTarget.classList.contains('hidden'))return;
+  var dw=previewTarget.offsetWidth,dh=previewTarget.offsetHeight;
+  if(dw>0&&dh>0){lc.width=dw;lc.height=dh;lc.style.width=dw+'px';lc.style.height=dh+'px';lc.style.top='0';lc.style.left='0'}}
+
+function redrawZones(){
+  if(!lc||lc.classList.contains('hidden'))return;
+  var ctx=lc.getContext('2d');ctx.clearRect(0,0,lc.width,lc.height);
+  for(var i=0;i<zones.length;i++){var z=zones[i];
+    ctx.fillStyle='rgba(99,102,241,0.2)';ctx.fillRect(z.x,z.y,z.w,z.h);
+    ctx.strokeStyle='rgba(99,102,241,0.8)';ctx.lineWidth=2;ctx.strokeRect(z.x,z.y,z.w,z.h);
+    ctx.fillStyle='rgba(99,102,241,0.9)';ctx.font='9px monospace';ctx.fillText('Zone '+(i+1),z.x+3,z.y+12)}
+  if(isDrawing&&currentRect){
+    ctx.fillStyle='rgba(99,102,241,0.15)';ctx.fillRect(currentRect.x,currentRect.y,currentRect.w,currentRect.h);
+    ctx.strokeStyle='rgba(99,102,241,0.6)';ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.strokeRect(currentRect.x,currentRect.y,currentRect.w,currentRect.h);ctx.setLineDash([])}}
+
+lc.addEventListener('mousedown',function(e){
+  if(!layoutEnabled)return;
+  var rect=lc.getBoundingClientRect();
+  var x=e.clientX-rect.left,y=e.clientY-rect.top;
+  for(var i=0;i<zones.length;i++){var z=zones[i];
+    if(x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h){zones.splice(i,1);redrawZones();li.textContent='Zone removed';return}}
+  isDrawing=true;drawStartX=x;drawStartY=y;currentRect={x:x,y:y,w:0,h:0}});
+
+lc.addEventListener('mousemove',function(e){
+  if(!isDrawing)return;
+  var rect=lc.getBoundingClientRect();
+  var x=e.clientX-rect.left,y=e.clientY-rect.top;
+  currentRect={x:Math.min(drawStartX,x),y:Math.min(drawStartY,y),w:Math.abs(x-drawStartX),h:Math.abs(y-drawStartY)};
+  redrawZones()});
+
+lc.addEventListener('mouseup',function(e){
+  if(!isDrawing||!currentRect)return;
+  if(currentRect.w>10&&currentRect.h>10){
+    zones.push({x:currentRect.x,y:currentRect.y,w:currentRect.w,h:currentRect.h});
+    li.textContent=zones.length+' zone(s) selected. Run OCR on selected zones.'}
+  isDrawing=false;currentRect=null;redrawZones()});
+
+lc.addEventListener('mouseleave',function(){if(isDrawing){isDrawing=false;currentRect=null;redrawZones()}});
+
+function detectTable(blocks){
+  if(!blocks||!blocks.length)return null;
+  var words=[];
+  for(var b=0;b<blocks.length;b++){var bl=blocks[b];
+    if(bl.paragraphs){for(var p=0;p<bl.paragraphs.length;p++){var pa=bl.paragraphs[p];
+      if(pa.words){for(var wo=0;wo<pa.words.length;wo++){var wd=pa.words[wo];
+        if(wd.bbox&&wd.text&&wd.text.trim()){
+          words.push({text:wd.text,x:wd.bbox.x0,y:wd.bbox.y0,x2:wd.bbox.x1,y2:wd.bbox.y1})}}
+      }}
+    }}
+  if(words.length<8)return null;
+  var rows={};var rowThreshold=Math.max((words[words.length-1].y2-words[0].y)/40,8);
+  for(var i=0;i<words.length;i++){
+    var found=false;
+    for(var ry in rows){
+      if(Math.abs(words[i].y-parseFloat(ry))<rowThreshold){rows[ry].push(words[i]);found=true;break}
+    }
+    if(!found){rows[words[i].y]=[words[i]]}
+  }
+  var rowKeys=Object.keys(rows).sort(function(a,b){return parseFloat(a)-parseFloat(b)});
+  if(rowKeys.length<3)return null;
+  var cols={};var colThreshold=(words[words.length-1].x2-words[0].x)/20;
+  for(var i=0;i<rowKeys.length;i++){var row=rows[rowKeys[i]];
+    for(var j=0;j<row.length;j++){
+      var found=false;
+      for(var cx in cols){
+        if(Math.abs(row[j].x-parseFloat(cx))<colThreshold){cols[cx].push(row[j].text);found=true;break}
+      }
+      if(!found){
+        cols[row[j].x]=[row[j].text];
+        for(var k=0;k<rowKeys.length-1;k++){if(cols[row[j].x].length<=k)cols[row[j].x].push('')}
+      }
+    }
+  }
+  var colKeys=Object.keys(cols).sort(function(a,b){return parseFloat(a)-parseFloat(b)});
+  if(colKeys.length<2)return null;
+  var html='<table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse;width:100%;font-size:12px">';
+  html+='<thead><tr>';for(var c=0;c<colKeys.length;c++){html+='<th style="background:#f0f0f0;text-align:left">Column '+(c+1)+'</th>'}html+='</tr></thead><tbody>';
+  for(var r=0;r<rowKeys.length;r++){
+    html+='<tr>';
+    for(var c=0;c<colKeys.length;c++){
+      var cellText='';
+      if(r<cols[colKeys[c]].length){cellText=cols[colKeys[c]][r]||''}
+      html+='<td>'+escHtml(cellText)+'</td>'
+    }
+    html+='</tr>'
+  }
+  html+='</tbody></table>';
+  var csv='';
+  for(var c=0;c<colKeys.length;c++){csv+='"Column '+(c+1)+'"';if(c<colKeys.length-1)csv+=','}csv+='\n';
+  for(var r=0;r<rowKeys.length;r++){
+    for(var c=0;c<colKeys.length;c++){
+      var ct='';if(r<cols[colKeys[c]].length)ct=cols[colKeys[c]][r]||'';
+      csv+='"'+ct.replace(/"/g,'""')+'"';if(c<colKeys.length-1)csv+=','
+    }
+    csv+='\n'
+  }
+  return {html:html,csv:csv,rows:rowKeys.length,cols:colKeys.length}
+}
+
+function generateSearchablePDF(text,blocks,imgDataUrl,imgWidth,imgHeight){
+  if(typeof PDFLib==='undefined'){showToast('PDF library not loaded');return Promise.resolve(null)}
+  return PDFLib.PDFDocument.create().then(function(doc){
+    var page=doc.addPage([imgWidth||612,imgHeight||792]);
+    if(imgDataUrl){
+      var imgBin=atob(imgDataUrl.split(',')[1]);var imgBytes=new Uint8Array(imgBin.length);
+      for(var i=0;i<imgBin.length;i++){imgBytes[i]=imgBin.charCodeAt(i)}
+      return doc.embedPng(imgBytes).then(function(img){
+        var pw=page.getWidth(),ph=page.getHeight();
+        var sw=pw/(imgWidth||pw),sh=ph/(imgHeight||ph);var s=Math.min(sw,sh);
+        var iw=(imgWidth||pw)*s,ih=(imgHeight||ph)*s;
+        page.drawImage(img,{x:(pw-iw)/2,y:(ph-ih)/2,width:iw,height:ih,opacity:1});
+        return doc.embedFont(PDFLib.StandardFonts.Helvetica).then(function(font){
+          var fontSize=9;
+          for(var b=0;b<blocks.length;b++){var bl=blocks[b];
+            if(bl.paragraphs){for(var p=0;p<bl.paragraphs.length;p++){var pa=bl.paragraphs[p];
+              if(pa.words){for(var wo=0;wo<pa.words.length;wo++){var wd=pa.words[wo];
+                if(wd.bbox&&wd.text&&wd.text.trim()){
+                  var bx=wd.bbox.x0*s+8,by=ph-(wd.bbox.y1*s+8);
+                  var bw=(wd.bbox.x1-wd.bbox.x0)*s,bh=(wd.bbox.y1-wd.bbox.y0)*s;
+                  try{
+                    page.drawText(wd.text,{
+                      x:bx,y:by,size:Math.max(4,Math.min(fontSize,bh*0.8)),
+                      font:font,color:PDFLib.rgb(0,0,0),opacity:0
+                    })
+                  }catch(e){}
+                }}
+              }}
+            }}
+          return doc.save()
+        })
+      })
+    }else{
+      return doc.embedFont(PDFLib.StandardFonts.Helvetica).then(function(font){
+        page.drawText(text||'',{x:50,y:page.getHeight()-50,size:11,font:font,color:PDFLib.rgb(0,0,0),maxWidth:page.getWidth()-100});
+        return doc.save()
+      })
+    }
+  })
+}
+
+function spellCheckText(text){
+  var words=text.split(/(\s+)/);
+  var unknownCount=0;
+  for(var i=0;i<words.length;i++){
+    var clean=words[i].replace(/[^a-zA-Z]/g,'').toLowerCase();
+    if(clean.length>1&&!dict.has(clean)){unknownCount++;words[i]='*'+words[i]}}
+  return {text:words.join(''),unknownCount:unknownCount}}
+
+window.addEventListener('resize',function(){if(confVizEnabled){resizeConfCanvas()}});
+
+document.querySelectorAll('[data-preset]').forEach(function(b){
+  b.addEventListener('click',function(){
+    document.querySelectorAll('[data-preset]').forEach(function(x){x.classList.remove('on')});
+    this.classList.add('on');
+    var preset=this.getAttribute('data-preset');
+    if(preset=='default'){
+      ocrGrayscale.checked=false;ocrThreshold.value='0';ocrThresholdVal.textContent='Off';
+      ocrContrast.value='100';ocrContrastVal.textContent='100';
+      ocrSharpen.checked=false;ocrDenoise.checked=false;ocrAutoThreshold.checked=false;
+    }else if(preset=='document'){
+      ocrGrayscale.checked=true;ocrThreshold.value='0';ocrThresholdVal.textContent='Off';
+      ocrContrast.value='100';ocrContrastVal.textContent='100';
+      ocrSharpen.checked=false;ocrDenoise.checked=true;ocrAutoThreshold.checked=true;
+    }else if(preset=='receipt'){
+      ocrGrayscale.checked=false;ocrThreshold.value='150';ocrThresholdVal.textContent='150';
+      ocrContrast.value='160';ocrContrastVal.textContent='160';
+      ocrSharpen.checked=true;ocrDenoise.checked=false;ocrAutoThreshold.checked=false;
+    }else if(preset=='screenshot'){
+      ocrGrayscale.checked=false;ocrThreshold.value='0';ocrThresholdVal.textContent='Off';
+      ocrContrast.value='120';ocrContrastVal.textContent='120';
+      ocrSharpen.checked=false;ocrDenoise.checked=false;ocrAutoThreshold.checked=false;
+    }else if(preset=='handwriting'){
+      ocrGrayscale.checked=true;ocrThreshold.value='0';ocrThresholdVal.textContent='Off';
+      ocrContrast.value='180';ocrContrastVal.textContent='180';
+      ocrSharpen.checked=true;ocrDenoise.checked=true;ocrAutoThreshold.checked=true;
+    }
+    if(ocrSharpenAmt){var sv=document.getElementById('ocrSharpenAmtVal');
+      ocrSharpenAmt.value='70';if(sv)sv.textContent='70'}
+    var sr=document.getElementById('ocrSharpenRow');
+    if(sr)sr.style.display=ocrSharpen.checked?'':'none'
+  })
+});
+
+if(ocrRotate){
+  ocrRotate.addEventListener('input',function(){
+    ocrRotateVal.textContent=this.value;
+  })
+}
+
+document.getElementById('ocrDownloadPdf').addEventListener('click',function(){
+  if(!lastText){showToast('No OCR results to download');return}
+  generateSearchablePDF(lastText,lastBlocks,currentDataUrl,lastImgWidth,lastImgHeight).then(function(bytes){
+    if(!bytes)return;
+    var blob=new Blob([bytes],{type:'application/pdf'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download='ocr-result.pdf';a.click();
+    URL.revokeObjectURL(url);
+  })
+});
+
+document.getElementById('ocrDownloadCsv').addEventListener('click',function(){
+  if(!currentCsv){showToast('No table data to download. Switch to Table tab first.');return}
+  var blob=new Blob([currentCsv],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');a.href=url;a.download='ocr-table.csv';a.click();
+  URL.revokeObjectURL(url);
+});
+
+renderHistory();
+})();
+</script>
+{% endblock %}
