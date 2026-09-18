@@ -242,7 +242,7 @@ async def get_tool(request: Request, tool_name: str):
         raise HTTPException(status_code=404, detail='Tool not found')
     categories, _ = catalog_service.get_categorized_tools()
     seo_data = seo_service.get_seo(tool_name)
-    template_name = f'tools/{tool_name.replace('-', '_')}.html'
+    template_name = f"tools/{tool_name.replace('-', '_')}.html"
     try:
         resp = templates.TemplateResponse(
             request=request,
