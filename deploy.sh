@@ -147,7 +147,7 @@ health_check() {
     if [ "$dial_host" = "0.0.0.0" ] || [ "$dial_host" = "::" ]; then
         dial_host="127.0.0.1"
     fi
-    local retries=15
+    local retries=30
     log_info "Health check on $dial_host:$port (HOST=$host PORT=$port)..."
     for i in $(seq 1 $retries); do
         if curl -sf "http://$dial_host:$port/healthz" >/dev/null 2>&1; then
