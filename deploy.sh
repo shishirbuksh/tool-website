@@ -273,10 +273,7 @@ install_python
 build_rust
 # Build frontend assets (CSS + JS) — build failures are fatal (no `|| true`).
 if command -v npm >/dev/null 2>&1; then
-    log_info "Building frontend assets..."
-    npm ci --quiet
-    npm run build
-    log_info "Frontend built"
+    log_info "Skipping npm build - using pre-built assets from repository"
 fi
 # Export the deployed commit SHA so the app can report its version,
 # and persist it to .env so systemd workers (which load EnvironmentFile=.env) see it.
