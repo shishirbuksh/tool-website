@@ -5,6 +5,7 @@ import ipaddress
 import socket
 import threading
 import time
+from typing import Any
 from urllib.parse import urlparse
 
 import requests
