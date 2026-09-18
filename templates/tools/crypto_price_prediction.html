@@ -7,7 +7,16 @@
 {% block og_title %}Crypto Price Predictor - Free Online Tool | StoryBrain AI{% endblock %}
 {% block og_description %}Forecast future cryptocurrency prices using advanced prediction models. Free — no signup required.{% endblock %}
 {% block head %}
-<script src="/static/js/vendor/apexcharts.min.js" defer></script>
+<!-- ROUND-2 perf: apexcharts lazy-loaded on user action (was blocking vendor defer) -->
+<script nonce="{{ nonce }}">
+async function loadChart(){ if(window._chartLoaded) return; const s=document.createElement('script'); s.src='/static/js/vendor/apexcharts.min.js'; s.defer=true; document.body.appendChild(s); await new Promise(r=>s.onload=r); window._chartLoaded=true; }
+document.addEventListener('DOMContentLoaded', function(){
+  var btn = document.getElementById('predictBtn');
+  if (btn) { btn.addEventListener('click', function(){ loadChart(); }, {once:true}); }
+  var c = document.getElementById('chartContainer');
+  if (c && 'IntersectionObserver' in window) { var io = new IntersectionObserver(function(entries){ if(entries[0].isIntersecting){ loadChart(); io.disconnect(); } }); io.observe(c); }
+});
+</script>
 <style>
 @keyframes spinHologram{0%{transform:rotate(0deg) scale(0.8);opacity:0.5}50%{transform:rotate(180deg) scale(1.1);opacity:1}100%{transform:rotate(360deg) scale(0.8);opacity:0.5}}.hologram-spinner{width:100px;height:100px;border:2px solid transparent;border-top-color:var(--color-primary);border-bottom-color:#10b981;border-radius:50%;animation:spinHologram 2s cubic-bezier(0.4,0,0.2,1) infinite;filter:drop-shadow(0 0 15px rgba(124,58,237,0.5))}.loader-overlay{position:absolute;inset:0;z-index:100;background:rgba(5,5,5,0.8);backdrop-filter:blur(20px);display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:2.5rem;transition:all 0.5s ease}.stat-card{border-left:4px solid var(--color-primary)}.stat-card.success{border-left-color:#10b981}.stat-card.info{border-left-color:#0ea5e9}
 </style>
@@ -69,6 +78,7 @@
           <p class="text-base-content/45 text-xs font-bold uppercase tracking-widest">Bridging Prophet & MLP</p>
         </div>
 
+        {% include "components/ymyl_disclaimer.html" %}
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <div class="stat-cinematic border-l-4 border-l-primary">
             <span class="label-cinematic block mb-1">Live Market</span>

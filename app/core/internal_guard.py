@@ -12,10 +12,10 @@ def require_internal(request: Request) -> None:
     proxy (e.g. Caddy on localhost). If X-Real-IP is present but the ASGI client
     host is NOT a trusted proxy, reject the forged header.
     """
-    real_ip = request.headers.get("X-Real-IP", "")
+    real_ip = request.headers.get("X-Real-IP", "").strip()
     client_host = request.client.host if request.client else ""
 
-    if real_ip and client_host and client_host not in _INTERNAL_IPS:
+    if not client_host or client_host not in _INTERNAL_IPS:
         raise HTTPException(status_code=403, detail="Forbidden")
 
     client_ip = real_ip or client_host

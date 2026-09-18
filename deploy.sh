@@ -27,13 +27,17 @@ fi
 
 ensure_system_deps() {
     local missing=""
-    for cmd in python3 pip3; do
+    for cmd in python3 pip3 curl; do
         command -v "$cmd" >/dev/null 2>&1 || missing="$missing $cmd"
     done
+    # npm (Node.js) is required for the frontend build step below.
+    if ! command -v npm >/dev/null 2>&1; then
+        missing="$missing npm(nodejs)"
+    fi
     if [ -n "$missing" ]; then
         log_info "Installing missing system deps: $missing"
         sudo apt-get update -qq
-        sudo apt-get install -y -qq python3 python3-pip python3-venv libgomp1 libglib2.0-0
+        sudo apt-get install -y -qq python3 python3-pip python3-venv libgomp1 libglib2.0-0 curl nodejs npm
     else
         # Just to be safe, ensure these libraries exist for OpenCV/onnxruntime
         sudo apt-get install -y -qq libgomp1 libglib2.0-0 >/dev/null 2>&1 || true
@@ -90,9 +94,12 @@ backup_current() {
     fi
     log_info "Backing up current version..."
     mkdir -p "$BACKUP_DIR"
+    # ROUND-2: exclude var/ (SQLite WAL -wal/-shm + analytics.db) — live DB
+    # files must not be rsynced mid-write; they are recreated/warmed on boot.
     rsync -a --exclude='node_modules' --exclude='venv' --exclude='.git' \
              --exclude='rust_predictor/target' --exclude='__pycache__' \
              --exclude='*.pyc' --exclude='.pytest_cache' --exclude='.ruff_cache' \
+             --exclude='var/' \
              "$APP_DIR/" "$BACKUP_DIR/"
 }
 
@@ -116,6 +123,10 @@ restart_service() {
             sudo systemctl daemon-reload
             rm -f "$fixed"
         fi
+    # ROUND-2: prefer `systemctl reload` for zero-downtime when only config
+    # changed and the unit defines ExecReload; we keep `restart` here because
+    # gunicorn code/venv/model changes require fresh workers. Add
+    # `ExecReload=/bin/kill -HUP $MAINPID` to the unit if reload is desired.
         sudo systemctl restart "$APP_NAME"
         log_info "Service restarted."
     else
@@ -128,11 +139,18 @@ restart_service() {
 }
 
 health_check() {
+    # Respect HOST/PORT from .env (gunicorn binds $HOST:$PORT). Dial 127.0.0.1
+    # when HOST is a wildcard (0.0.0.0/::) since wildcards aren't dialable.
+    local host="${HOST:-0.0.0.0}"
     local port="${PORT:-8090}"
+    local dial_host="$host"
+    if [ "$dial_host" = "0.0.0.0" ] || [ "$dial_host" = "::" ]; then
+        dial_host="127.0.0.1"
+    fi
     local retries=15
-    log_info "Health check on port $port..."
+    log_info "Health check on $dial_host:$port (HOST=$host PORT=$port)..."
     for i in $(seq 1 $retries); do
-        if curl -sf "http://127.0.0.1:$port/healthz" >/dev/null 2>&1; then
+        if curl -sf "http://$dial_host:$port/healthz" >/dev/null 2>&1; then
             log_info "Application is healthy! ✓"
             return 0
         fi
@@ -162,6 +180,21 @@ setup_env_file() {
             log_warn "  Set: ALLOWED_HOSTS=www.storybrainai.com,storybrainai.com"
             log_warn "  Set: CORS_ORIGINS=https://www.storybrainai.com,https://storybrainai.com"
         fi
+    fi
+    # Ensure SECRET_KEY exists even if .env predates the SECRET_KEY key:
+    # append a generated value when missing or empty.
+    if [ -f "$APP_DIR/.env" ]; then
+        if ! grep -q "^SECRET_KEY=.\+" "$APP_DIR/.env" 2>/dev/null; then
+            SECRET=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))" 2>/dev/null || echo "change-me")
+            # Remove any empty/stale SECRET_KEY line, then append the new one.
+            sed -i "/^SECRET_KEY=.*/d" "$APP_DIR/.env"
+            echo "SECRET_KEY=$SECRET" >> "$APP_DIR/.env"
+            log_warn "SECRET_KEY was missing — generated and appended to .env"
+        fi
+    fi
+    # ROUND-2: .env holds secrets — restrict to owner read/write.
+    if [ -f "$APP_DIR/.env" ]; then
+        chmod 600 "$APP_DIR/.env" || true
     fi
     set -a; source "$APP_DIR/.env"; set +a
 }
@@ -238,15 +271,21 @@ backup_current   # <-- backup BEFORE pulling so we can rollback to known-good
 pull_latest
 install_python
 build_rust
-# Build frontend assets (CSS + JS)
+# Build frontend assets (CSS + JS) — build failures are fatal (no `|| true`).
 if command -v npm >/dev/null 2>&1; then
     log_info "Building frontend assets..."
-    npm ci --quiet 2>/dev/null || true
-    npm run build 2>/dev/null && log_info "Frontend built" || log_warn "npm build failed"
+    npm ci --quiet
+    npm run build
+    log_info "Frontend built"
 fi
-# Export the deployed commit SHA so the app can report its version
+# Export the deployed commit SHA so the app can report its version,
+# and persist it to .env so systemd workers (which load EnvironmentFile=.env) see it.
 export APP_VERSION
 APP_VERSION="$(git -C "$APP_DIR" rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+if [ -f "$APP_DIR/.env" ]; then
+    sed -i "/^APP_VERSION=.*/d" "$APP_DIR/.env"
+    echo "APP_VERSION=$APP_VERSION" >> "$APP_DIR/.env"
+fi
 setup_permissions
 restart_service
 health_check

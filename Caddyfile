@@ -1,8 +1,11 @@
 # StoryBrain AI — Caddy reverse proxy with automatic HTTPS
-# Override env vars for custom deployment:
-#   CADDY_DOMAIN, CADDY_PROXY_UPSTREAM, CADDY_STATIC_ROOT
+# Override env vars for custom deployment (see .env.example):
+#   CADDY_DOMAIN — apex domain, e.g. storybrainai.com (default below)
+#   CADDY_PROXY_UPSTREAM — gunicorn upstream, e.g. 127.0.0.1:8090
+#   CADDY_STATIC_ROOT — must match $APP_DIR/static from deploy.sh,
+#     e.g. CADDY_STATIC_ROOT=/opt/storybrain-ai/static
 
-{$CADDY_DOMAIN:storybrainai.com, www.storybrainai.com} {
+{$CADDY_DOMAIN:storybrainai.com}, www.{$CADDY_DOMAIN:storybrainai.com} {
     @nonwww {
         not host www.storybrainai.com
     }
@@ -16,7 +19,7 @@
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"
-        Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), browsing-topics=()"
     }
 
     # Logging
@@ -25,26 +28,30 @@
         format json
     }
 
-    # Proxy to FastAPI backend
-    reverse_proxy {$CADDY_PROXY_UPSTREAM:app:8090} {
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-    }
-
-    # Cache static assets
+    # Cache static assets (must come before the reverse_proxy fallback)
     handle_path /static/* {
-        root * {$CADDY_STATIC_ROOT:/app/static}
+        root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
         file_server {
             precompressed br gzip
         }
         header Cache-Control "public, max-age=31536000, immutable"
     }
 
-    # Handle Service Worker (must NOT be cached)
-    handle_path /sw.js {
-        reverse_proxy {$CADDY_PROXY_UPSTREAM:app:8090} {
+    # Handle Service Worker (must NOT be aggressively cached).
+    # NOTE: `handle` (not `handle_path`) preserves the /sw.js URI for the upstream.
+    handle /sw.js {
+        reverse_proxy {$CADDY_PROXY_UPSTREAM:127.0.0.1:8090} {
             header_up Host {host}
         }
+        header Service-Worker-Allowed "/"
+        # Must match app no-cache for /sw.js so updates activate promptly.
+        header Cache-Control "no-cache"
+    }
+
+    # Proxy everything else to the FastAPI backend (gunicorn on $PORT, default 8090)
+    reverse_proxy {$CADDY_PROXY_UPSTREAM:127.0.0.1:8090} {
+        header_up X-Real-IP {client_ip}
+        header_up X-Forwarded-For {client_ip}
+        header_up X-Forwarded-Proto {scheme}
     }
 }

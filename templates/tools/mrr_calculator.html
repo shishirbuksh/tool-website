@@ -7,7 +7,17 @@
 {% block og_title %}MRR Calculator — Free SaaS Revenue Calculator{% endblock %}
 {% block og_description %}Track MRR, net new MRR, expansion revenue, churn, quick ratio, and see a 12-month MRR growth projection chart. Free SaaS revenue calculator.{% endblock %}
 {% block head %}
-<script src="/static/js/vendor/chart.min.js" defer></script>
+<!-- ROUND-2 perf: chart.js lazy-loaded on user action (was blocking vendor defer) -->
+<script nonce="{{ nonce }}">
+async function loadChart(){ if(window._chartLoaded) return; const s=document.createElement('script'); s.src='/static/js/vendor/chart.min.js'; s.defer=true; document.body.appendChild(s); await new Promise(r=>s.onload=r); window._chartLoaded=true; }
+document.addEventListener('DOMContentLoaded', function(){
+  // TODO: no single Run/Calculate button id found; lazy-load on chart visibility + first input.
+  var c = document.getElementById('mrrChart');
+  if (c && 'IntersectionObserver' in window) { var io = new IntersectionObserver(function(entries){ if(entries[0].isIntersecting){ loadChart(); io.disconnect(); } }); io.observe(c); }
+  var firstInput = document.getElementById('totalCustomers');
+  if (firstInput) { firstInput.addEventListener('focus', function(){ loadChart(); }, {once:true}); }
+});
+</script>
 <style>
   .input-visible { background-color: color-mix(in oklab, var(--color-base-100) 85%, var(--color-base-300)); border-color: var(--color-base-content); color: var(--color-base-content); font-weight: 700; }
   .input-visible:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 25%, transparent); outline: none; }

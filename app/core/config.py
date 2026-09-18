@@ -1,13 +1,39 @@
-"""Application configuration via Pydantic Settings (env file + defaults)."""
+"""Application configuration via Pydantic Settings (env file + defaults).
+
+Wiring notes (kept trivial on purpose):
+- ``LOG_LEVEL`` is consumed by ``app.core.log.setup_logging`` / gunicorn
+  (``gunicorn_conf.py`` reads ``LOG_LEVEL`` env directly).
+- ``CACHE_DEFAULT_TTL`` is the fallback TTL used by
+  ``app.core.cache.CacheService`` when callers pass no explicit TTL.
+"""
 
 import os
 
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def _normalize_host(host: str) -> str:
+    """Lowercase, strip whitespace/port for host comparison."""
+    h = host.strip().lower()
+    # Strip port if present (but keep IPv6 brackets handling simple).
+    if h.startswith("["):
+        # [::1]:8090 -> ::1
+        end = h.find("]")
+        if end != -1:
+            return h[1:end]
+        return h
+    # host:port -> host (only when a single colon, to avoid mangling IPv6)
+    if h.count(":") == 1:
+        h = h.split(":", 1)[0]
+    return h
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=os.path.join(_BASE_DIR, ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -29,6 +55,8 @@ class Settings(BaseSettings):
     ANALYTICS_RETENTION_DAYS: int = 90
     ANALYTICS_CLEANUP_INTERVAL: int = 300
     CACHE_DEFAULT_TTL: int = 300
+    SECRET_KEY: str = Field(default="", description="App secret key (sessions/signed URLs); set via env")
+    ENV: str = "dev"
 
     HUB_CATEGORIES: dict[str, tuple[str, str]] = {
         "ai-tools": ("AI & Crypto", "AI & Crypto Tools — Free Online Predictors & Calculators"),
@@ -62,6 +90,28 @@ class Settings(BaseSettings):
             "http://127.0.0.1:8090",
         ]
 
+    @model_validator(mode="after")
+    def _fail_fast_on_wildcard_hosts(self):
+        raw = (self.ALLOWED_HOSTS or "").strip()
+        if raw:
+            parts = [h.strip() for h in raw.split(",") if h.strip()]
+            if any(h == "*" for h in parts):
+                raise ValueError(
+                    "ALLOWED_HOSTS set to '*' — this is insecure. "
+                    "Specify actual domains/IPs in .env. "
+                    "Example: ALLOWED_HOSTS=storybrainai.com,www.storybrainai.com"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def _fail_fast_on_missing_secret(self):
+        if (self.ENV or "").lower() == "prod" and self.SECRET_KEY in ("", "change-me"):
+            raise ValueError(
+                "SECRET_KEY must be set to a strong value when ENV==prod. "
+                "Set SECRET_KEY in .env to a long random string."
+            )
+        return self
+
     @property
     def allowed_hosts_list(self) -> list[str]:
         if not self.ALLOWED_HOSTS.strip():
@@ -71,14 +121,8 @@ class Settings(BaseSettings):
                 "storybrainai.com",
                 "www.storybrainai.com",
             ]
-        result = [h.strip() for h in self.ALLOWED_HOSTS.split(",") if h.strip()]
-        if any(h == "*" for h in result):
-            raise ValueError(
-                "ALLOWED_HOSTS set to '*' — this is insecure. "
-                "Specify actual domains/IPs in .env. "
-                "Example: ALLOWED_HOSTS=storybrainai.com,www.storybrainai.com"
-            )
-        return result
+        result = [_normalize_host(h) for h in self.ALLOWED_HOSTS.split(",") if h.strip()]
+        return [h for h in result if h]
 
 
 settings = Settings()

@@ -1,6 +1,9 @@
 (function () {
   'use strict';
 
+  /* SCHEMA localStorage keys: sb-theme ('light'|'night'), cookieConsent ('accepted'|'rejected'), sbr_tools_recent_search (JSON array) */
+  const store={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
+
   const STORAGE_KEY = 'sbr_tools_recent_search';
   const MAX_RECENT = 5;
   const $ = (s, p) => (p || document).querySelector(s);
@@ -20,9 +23,9 @@
   let currentFocusIdx = -1;
   let suggestionItems = [];
 
-  /* ── Recent searches (localStorage) ── */
+  /* ── Recent searches (localStorage via safe store wrapper) ── */
   function getRecentSearches() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]').slice(0, MAX_RECENT); }
+    try { return JSON.parse(store.get(STORAGE_KEY) || '[]').slice(0, MAX_RECENT); }
     catch { return []; }
   }
   function addRecentSearch(q) {
@@ -31,10 +34,10 @@
     let recents = getRecentSearches().filter(r => r !== ql);
     recents.unshift(ql);
     if (recents.length > MAX_RECENT) recents = recents.slice(0, MAX_RECENT);
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(recents)); } catch {}
+    store.set(STORAGE_KEY, JSON.stringify(recents));
   }
   function clearRecentSearches() {
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    store.del(STORAGE_KEY);
     renderSuggestions(searchInput ? searchInput.value.trim().toLowerCase() : '');
   }
 
@@ -79,6 +82,7 @@
   function buildSuggestionList(items) {
     if (!suggestions || !suggestionHeader) return;
     suggestions.innerHTML = '';
+    if (searchInput) searchInput.removeAttribute('aria-activedescendant');
     if (items.length === 0 || (items.length === 1 && items[0].type === 'empty')) {
       suggestions.classList.remove('open');
       searchInput && searchInput.setAttribute('aria-expanded', 'false');
@@ -87,10 +91,12 @@
     suggestions.classList.add('open');
 
     const firstType = items[0].type;
-    if (firstType === 'recent') suggestionHeader.textContent = 'Recent Searches';
-    else if (firstType === 'match') suggestionHeader.textContent = 'Matching Tools';
-    else suggestionHeader.textContent = 'Popular Tools';
-    suggestions.appendChild(suggestionHeader.cloneNode(true));
+    const headerClone = suggestionHeader.cloneNode(true);
+    headerClone.removeAttribute('id');
+    if (firstType === 'recent') headerClone.textContent = 'Recent Searches';
+    else if (firstType === 'match') headerClone.textContent = 'Matching Tools';
+    else headerClone.textContent = 'Popular Tools';
+    suggestions.appendChild(headerClone);
 
     items.forEach((item, i) => {
       const div = document.createElement('div');
@@ -147,13 +153,20 @@
       el.setAttribute('aria-selected', i === idx ? 'true' : 'false');
     });
     currentFocusIdx = idx;
+    if (searchInput) {
+      if (idx >= 0) searchInput.setAttribute('aria-activedescendant', 'sug-' + idx);
+      else searchInput.removeAttribute('aria-activedescendant');
+    }
   }
 
   function closeSuggestions() {
     suggestions && suggestions.classList.remove('open');
     suggestionItems = [];
     currentFocusIdx = -1;
-    searchInput && searchInput.setAttribute('aria-expanded', 'false');
+    if (searchInput) {
+      searchInput.setAttribute('aria-expanded', 'false');
+      searchInput.removeAttribute('aria-activedescendant');
+    }
   }
 
   /* ── Filter tools ── */
@@ -218,44 +231,69 @@
         e.preventDefault();
         const next = currentFocusIdx < items.length - 1 ? currentFocusIdx + 1 : 0;
         setFocus(next);
+        if (items[next]) items[next].scrollIntoView({ block: 'nearest' });
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         const prev = currentFocusIdx > 0 ? currentFocusIdx - 1 : items.length - 1;
         setFocus(prev);
+        if (items[prev]) items[prev].scrollIntoView({ block: 'nearest' });
       } else if (e.key === 'Enter' && currentFocusIdx >= 0) {
         e.preventDefault();
         selectSuggestion(currentFocusIdx);
       } else if (e.key === 'Escape') {
         closeSuggestions();
         this.blur();
-      } else if (e.key === '/' && document.activeElement !== searchInput) {
-        e.preventDefault();
-        searchInput.focus();
       }
     });
   }
 
+  function _isEditable(el) {
+    if (!el || !el.tagName) return false;
+    const t = el.tagName.toLowerCase();
+    return t === 'input' || t === 'textarea' || t === 'select' || el.isContentEditable === true;
+  }
+
   document.addEventListener('keydown', function (e) {
-    if (e.key === '/' && document.activeElement !== searchInput && document.activeElement !== document.body) return;
-    if (e.key === '/' && document.activeElement !== searchInput) {
-      e.preventDefault();
-      if (searchInput) searchInput.focus();
-    }
+    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+    // Never steal '/' while the global search dialog is open (app.js owns it there),
+    // or while typing in any editable field (incl. heroSearchInput).
+    const dia = document.getElementById('searchDialog');
+    if (dia && dia.open) return;
+    if (_isEditable(document.activeElement)) return;
+    if (!searchInput) return;
+    e.preventDefault();
+    searchInput.focus();
+    // Make the target visible before focusing on small screens.
+    try { searchInput.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch {}
   });
 
-  /* Category cards */
+  /* Category cards — click + ArrowLeft/Right roving for tablist pattern */
   if (categoryBtns.length) {
-    categoryBtns.forEach(function (btn) {
+    categoryBtns.forEach(function (btn, idx) {
       btn.addEventListener('click', function () {
         categoryBtns.forEach(function (b) {
           b.classList.remove('active');
           b.setAttribute('aria-selected', 'false');
+          b.setAttribute('tabindex', '-1');
         });
         this.classList.add('active');
         this.setAttribute('aria-selected', 'true');
+        this.removeAttribute('tabindex');
         closeSuggestions();
         filterTools();
       });
+      btn.addEventListener('keydown', function (e) {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Home' && e.key !== 'End') return;
+        e.preventDefault();
+        let next = idx;
+        if (e.key === 'ArrowRight') next = (idx + 1) % categoryBtns.length;
+        else if (e.key === 'ArrowLeft') next = (idx - 1 + categoryBtns.length) % categoryBtns.length;
+        else if (e.key === 'Home') next = 0;
+        else if (e.key === 'End') next = categoryBtns.length - 1;
+        categoryBtns[next].focus();
+        categoryBtns[next].click();
+      });
+      if (!btn.classList.contains('active')) btn.setAttribute('tabindex', '-1');
     });
   }
 
@@ -267,9 +305,11 @@
         categoryBtns.forEach(function (b) {
           b.classList.remove('active');
           b.setAttribute('aria-selected', 'false');
+          b.setAttribute('tabindex', '-1');
         });
         allBtn.classList.add('active');
         allBtn.setAttribute('aria-selected', 'true');
+        allBtn.removeAttribute('tabindex');
       }
       if (searchInput) searchInput.value = '';
       filterTools();
@@ -277,15 +317,11 @@
     });
   }
 
-  /* ── Init ── */
+  /* ── Init: grid is server-rendered (LCP content) — show it immediately,
+     don't hide it behind a skeleton flash. ── */
   function init() {
-    showSkeleton(true);
-    requestAnimationFrame(function () {
-      setTimeout(function () {
-        showSkeleton(false);
-        filterTools();
-      }, 400);
-    });
+    showSkeleton(false);
+    filterTools();
   }
 
   if (document.readyState === 'loading') {

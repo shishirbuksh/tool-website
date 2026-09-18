@@ -1,3 +1,17 @@
+{# Re-exports components/tool_ui_macros.html + components/tool_seo_macros.html. #}
+{#
+  CSP MIGRATION GUIDE (inline-handler -> data-action + addEventListener):
+  Inline onclick=/onchange=/oninput= are blocked by the nonce-based
+  Content-Security-Policy (see app/core/middleware.py). Exemplar: templates/tools/qr_generator.html.
+  Pattern for remaining tools:
+    1. Replace `onclick="doX(...)"` with `data-action="do-x" data-*="..."` (+ type="button").
+    2. Replace `onchange="..."` / `oninput="..."` with matching data-action.
+    3. In the page's <script nonce="{{ nonce }}"> add delegated listeners:
+         document.addEventListener('click', e => { const el = e.target.closest('[data-action]'); ... });
+         document.addEventListener('change', ...); document.addEventListener('input', ...);
+    4. Keep the underlying functions unchanged; call them from the dispatcher.
+       This also covers dynamically injected HTML (history lists, presets).
+#}
 {% import 'components/tool_ui_macros.html' as ui %}
 {% import 'components/tool_seo_macros.html' as seo %}
 

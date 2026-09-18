@@ -1,13 +1,45 @@
 """Pydantic models for NFT generation and fractal parameter validation."""
 
-from pydantic import BaseModel, Field, field_validator
+from typing import Literal
+
+from pydantic import BaseModel, Field, SecretStr, field_validator
 
 
 class NFTRequest(BaseModel):
-    prompt: str
-    style: str = Field(default="3d", description="Art style for generation")
-    provider: str = Field(default="local", description="AI provider (local, openai, gemini, deepseek)")
-    api_key: str | None = Field(default=None, description="API key for external provider")
+    prompt: str = Field(min_length=1, max_length=2000, description="Text prompt for generation")
+    style: Literal["3d", "cyberpunk", "pixel"] = Field(
+        default="3d", description="Art style for generation"
+    )
+    provider: Literal["local", "openai", "gemini", "deepseek"] = Field(
+        default="local", description="AI provider (local, openai, gemini, deepseek)"
+    )
+    api_key: SecretStr | None = Field(default=None, description="API key for external provider")
+
+    @field_validator("prompt")
+    @classmethod
+    def _strip_prompt(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("prompt must not be blank")
+        return v
+
+    @field_validator("api_key")
+    @classmethod
+    def _validate_api_key(cls, v: SecretStr | None) -> SecretStr | None:
+        if v is None:
+            return v
+        secret = v.get_secret_value() if isinstance(v, SecretStr) else str(v)
+        if not secret.strip():
+            raise ValueError("api_key must not be blank when provided")
+        if len(secret) > 500:
+            raise ValueError("api_key too long")
+        return v
+
+
+class NFTResponse(BaseModel):
+    status: str = Field(..., description="Status of NFT generation")
+    image_url: str = Field(..., description="Data URL or image URL of generated NFT")
+    prompt: str = Field(..., description="Prompt used for generation")
 
 
 class FractalParams(BaseModel):

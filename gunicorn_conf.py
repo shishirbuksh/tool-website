@@ -9,7 +9,13 @@ bind = f"{host}:{port}"
 cores = multiprocessing.cpu_count()
 workers_per_core = float(os.getenv("WORKERS_PER_CORE", "1"))
 default_web_concurrency = workers_per_core * cores + 1
-web_concurrency = int(float(os.getenv("WORKERS", str(default_web_concurrency))))
+# WORKERS=0 (or any value <= 0) means "auto": cores + 1. This matches the
+# .env.example convention (WORKERS=0 = auto) instead of clamping to 2.
+_requested_workers = int(float(os.getenv("WORKERS", str(default_web_concurrency))))
+if _requested_workers <= 0:
+    web_concurrency = int(default_web_concurrency)
+else:
+    web_concurrency = _requested_workers
 workers = max(int(web_concurrency), 2)
 
 worker_class = "uvicorn.workers.UvicornWorker"
@@ -20,11 +26,14 @@ loglevel = os.getenv("LOG_LEVEL", "info").lower()
 accesslog = "-"
 errorlog = "-"
 
-timeout = int(os.getenv("TIMEOUT", "120"))
+timeout = int(os.getenv("TIMEOUT", "120"))  # 120s to allow rembg/prophet cold starts; lower to 30-60 behind a fast proxy
 keepalive = int(os.getenv("KEEP_ALIVE", "5"))
 
-forwarded_allow_ips = os.getenv("FORWARDED_ALLOW_IPS", "*")
-proxy_allow_ips = os.getenv("PROXY_ALLOW_IPS", "*")
+# SECURITY: "*" trusts any X-Forwarded-For sender, allowing IP spoofing of
+# internal-guarded endpoints (/metrics, /api/analytics/top). In production set
+# FORWARDED_ALLOW_IPS to your trusted reverse proxy only, e.g. "127.0.0.1".
+forwarded_allow_ips = os.getenv("FORWARDED_ALLOW_IPS", "127.0.0.1")
+proxy_allow_ips = os.getenv("PROXY_ALLOW_IPS", "127.0.0.1")
 
 logging.basicConfig(level=logging.INFO)
 logging.info(

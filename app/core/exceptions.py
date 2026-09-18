@@ -1,8 +1,12 @@
 """Application exception hierarchy and FastAPI exception handler registration."""
 
+import contextvars
+import html
 import threading
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from starlette import status
 
@@ -13,8 +17,11 @@ _templates_lock = threading.Lock()
 
 logger = get_logger(__name__)
 
-# Sentinel to prevent recursive error handling when templates fail
-_recursion_guard = threading.local()
+# Sentinel to prevent recursive error handling when templates fail.
+# ContextVar (not threading.local) so async tasks / context propagation are safe.
+_recursion_guard: contextvars.ContextVar[bool] = contextvars.ContextVar(
+    "exc_recursion_guard", default=False
+)
 
 
 def _with_request_id(content: dict) -> dict:
@@ -49,27 +56,59 @@ def _should_render_html(request) -> bool:
     return "text/html" in accept
 
 
+_ERROR_CACHE_CONTROL = {"Cache-Control": "no-cache, no-store, must-revalidate"}
+
+
 def _error_html_response(request, status_code: int, detail: str) -> HTMLResponse:
-    if getattr(_recursion_guard, "in_handler", False):
+    safe_detail = html.escape(str(detail))
+    if _recursion_guard.get():
         return HTMLResponse(
-            content=f"<html><body><h1>{status_code}</h1><p>{detail}</p></body></html>",
+            content=f"<html><body><h1>{status_code}</h1><p>{safe_detail}</p></body></html>",
             status_code=status_code,
+            headers=_ERROR_CACHE_CONTROL,
         )
-    _recursion_guard.in_handler = True
+    token = _recursion_guard.set(True)
     try:
         if templates is None:
             return HTMLResponse(
-                content=f"<html><body><h1>{status_code}</h1><p>{detail}</p></body></html>",
+                content=f"<html><body><h1>{status_code}</h1><p>{safe_detail}</p></body></html>",
                 status_code=status_code,
+                headers=_ERROR_CACHE_CONTROL,
             )
-        return templates.TemplateResponse(
-            request=request,
-            name="pages/404.html",
-            context={"status_code": status_code, "detail": detail},
-            status_code=status_code,
-        )
+        # Use a dedicated 500 template for server errors; 404 template otherwise.
+        template_name = "pages/500.html" if status_code >= 500 else "pages/404.html"
+        try:
+            return templates.TemplateResponse(
+                request=request,
+                name=template_name,
+                context={"status_code": status_code, "detail": detail},
+                status_code=status_code,
+                headers=_ERROR_CACHE_CONTROL,
+            )
+        except Exception:
+            logger.exception("Error template %s failed, using fallback", template_name)
+            # Fall back to the other template, then to a generic message.
+            fallback = "pages/404.html" if template_name != "pages/404.html" else None
+            if fallback is not None:
+                try:
+                    return templates.TemplateResponse(
+                        request=request,
+                        name=fallback,
+                        context={"status_code": status_code, "detail": detail},
+                        status_code=status_code,
+                        headers=_ERROR_CACHE_CONTROL,
+                    )
+                except Exception:
+                    logger.exception("Fallback error template failed")
+            if status_code >= 500:
+                safe_detail = "Internal server error"
+            return HTMLResponse(
+                content=f"<html><body><h1>{status_code}</h1><p>{safe_detail}</p></body></html>",
+                status_code=status_code,
+                headers=_ERROR_CACHE_CONTROL,
+            )
     finally:
-        _recursion_guard.in_handler = False
+        _recursion_guard.reset(token)
 
 
 def _app_exception_handler(request, exc: AppException):
@@ -78,6 +117,7 @@ def _app_exception_handler(request, exc: AppException):
     return JSONResponse(
         status_code=exc.status_code,
         content=_with_request_id({"detail": exc.detail}),
+        headers=_ERROR_CACHE_CONTROL,
     )
 
 
@@ -87,6 +127,7 @@ def _http_exception_handler(request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
         content=_with_request_id({"detail": exc.detail}),
+        headers=_ERROR_CACHE_CONTROL,
     )
 
 
@@ -97,6 +138,17 @@ def _generic_exception_handler(request, exc: Exception):
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content=_with_request_id({"detail": "Internal server error"}),
+        headers=_ERROR_CACHE_CONTROL,
+    )
+
+
+async def _validation_exception_handler(request: Request, exc: RequestValidationError):
+    if _should_render_html(request):
+        return _error_html_response(request, status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc.errors()))
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        content=_with_request_id({"detail": jsonable_encoder(exc.errors(), custom_encoder={Exception: str})}),
+        headers=_ERROR_CACHE_CONTROL,
     )
 
 
@@ -109,4 +161,5 @@ def register_exception_handlers(app: FastAPI):
                 templates = page_templates
     app.add_exception_handler(AppException, _app_exception_handler)
     app.add_exception_handler(HTTPException, _http_exception_handler)
+    app.add_exception_handler(RequestValidationError, _validation_exception_handler)
     app.add_exception_handler(Exception, _generic_exception_handler)

@@ -69,3 +69,16 @@ class TestCacheService:
         svc.clear()
         assert svc.get("a") is None
         assert svc.get("b") is None
+
+    def test_authoritative_redis_miss_does_not_resurrect_memory(self, monkeypatch):
+        from unittest.mock import MagicMock
+        from app.core import cache
+        from app.core.cache import CacheService, _memory_cache
+
+        mock_redis = MagicMock()
+        mock_redis.get.return_value = None
+        monkeypatch.setattr(cache, "_get_redis", lambda: mock_redis)
+
+        _memory_cache.set("stale_key", "old_stale_value", ttl=60)
+        svc = CacheService(default_ttl=60)
+        assert svc.get("stale_key") is None

@@ -1,8 +1,31 @@
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use rand::Rng;
+use std::collections::VecDeque;
 
 #[pyfunction]
-fn train_and_predict(prices: Vec<f64>, lookback: usize, epochs: usize, future_days: usize) -> PyResult<Vec<f64>> {
+fn train_and_predict(py: Python, prices: Vec<f64>, lookback: usize, epochs: usize, future_days: usize) -> PyResult<Vec<f64>> {
+    // ── Input guards: reject degenerate / abusive parameters ──
+    if lookback == 0 || future_days == 0 || epochs == 0 {
+        return Err(PyValueError::new_err(
+            "lookback, future_days and epochs must all be > 0",
+        ));
+    }
+    if future_days > 365 {
+        return Err(PyValueError::new_err("future_days must be <= 365"));
+    }
+    if epochs > 1000 {
+        return Err(PyValueError::new_err("epochs must be <= 1000"));
+    }
+    if lookback > 500 {
+        return Err(PyValueError::new_err("lookback must be <= 500"));
+    }
+    // Reject NaN / infinite prices — they would poison scaling and training.
+    if prices.iter().any(|p| !p.is_finite()) {
+        return Err(PyValueError::new_err(
+            "prices must not contain NaN or infinite values",
+        ));
+    }
     let n = prices.len();
     if n <= lookback {
         return Ok(vec![0.0; future_days]);
@@ -40,6 +63,13 @@ fn train_and_predict(prices: Vec<f64>, lookback: usize, epochs: usize, future_da
     let input_size = lookback;
     let hidden_size = 50;
     
+    // NOTE on RNG: rand::thread_rng() is intentionally non-seeded per call so
+    // concurrent Python threads don't share deterministic state. If reproducible
+    // training is needed, seed a per-call StdRng (e.g. from a `seed` argument).
+    // ROUND-2: CPU-bound training releases the GIL via `py.allow_threads`
+    // so async workers / other Python threads stay responsive while training.
+    // (Callers do NOT need an extra `loop.run_in_executor` for this path.)
+    let predictions = py.allow_threads(|| {
     let mut rng = rand::thread_rng();
     
     // Weights and biases
@@ -107,8 +137,19 @@ fn train_and_predict(prices: Vec<f64>, lookback: usize, epochs: usize, future_da
     }
     
     // Predict future_days
-    let mut current_seq = scaled[n - lookback..].to_vec();
+    // Use a VecDeque as a sliding window (O(1) pop_front) instead of
+    // `Vec::remove(0)` which is O(n) per step.
+    let mut current_seq: VecDeque<f64> = VecDeque::from(scaled[n - lookback..].to_vec());
     let mut predictions = Vec::new();
+    // Clamp outputs to a sane non-negative range so one divergent step can't
+    // produce negative prices or explode to infinity. Upper bound is 10x the
+    // observed max (or 10x last price if max <= 0).
+    let clamp_hi = if max > 0.0 { max * 10.0 } else { prices.last().copied().unwrap_or(0.0) * 10.0 };
+    let clamp_hi = if clamp_hi.is_finite() && clamp_hi > 0.0 {
+        clamp_hi
+    } else {
+        f64::MAX / 2.0
+    };
     
     for _ in 0..future_days {
         let mut hidden = vec![0.0; hidden_size];
@@ -124,19 +165,60 @@ fn train_and_predict(prices: Vec<f64>, lookback: usize, epochs: usize, future_da
             output += w2[j] * hidden[j];
         }
         
-        let res = output * (max - min) + min;
+        let mut res = output * (max - min) + min;
+        // Clamp to [0, max*10] so predictions stay non-negative and bounded.
+        if !res.is_finite() {
+            // Fall back to last good prediction (or 0.0) instead of NaN/Inf.
+            res = predictions.last().copied().unwrap_or(0.0);
+            if !res.is_finite() {
+                res = 0.0;
+            }
+            res = res.clamp(0.0, clamp_hi);
+        } else {
+            res = res.clamp(0.0, clamp_hi);
+        }
         predictions.push(res);
-        
-        current_seq.remove(0);
-        current_seq.push(output);
+
+        current_seq.pop_front();
+        current_seq.push_back(output);
     }
-    
+
+        predictions
+    });
     Ok(predictions)
 }
 
 #[pyfunction]
-fn generate_pattern(width: u32, height: u32, zoom: f64, c_re: f64, c_im: f64, max_iter: u32) -> PyResult<Vec<u8>> {
-    let mut data = Vec::with_capacity((width * height) as usize);
+fn generate_pattern(py: Python, width: u32, height: u32, zoom: f64, c_re: f64, c_im: f64, max_iter: u32) -> PyResult<Vec<u8>> {
+    // ── Guards: reject degenerate / abusive sizes ──
+    if max_iter == 0 {
+        return Err(PyValueError::new_err("max_iter must be > 0"));
+    }
+    if max_iter > 1000 {
+        return Err(PyValueError::new_err("max_iter must be <= 1000"));
+    }
+    if width == 0 || height == 0 {
+        return Err(PyValueError::new_err("width and height must be > 0"));
+    }
+    // Cap total pixels at 4M (~4 MB payload) to avoid OOM from huge requests.
+    let pixels = (width as u64).checked_mul(height as u64).unwrap_or(u64::MAX);
+    if pixels > 4_000_000 {
+        return Err(PyValueError::new_err(
+            "width*height must be <= 4,000,000 pixels",
+        ));
+    }
+    if !zoom.is_finite() || zoom <= 0.0 {
+        return Err(PyValueError::new_err("zoom must be a positive finite number"));
+    }
+    if !c_re.is_finite() || !c_im.is_finite() {
+        return Err(PyValueError::new_err(
+            "c_re and c_im must be finite numbers",
+        ));
+    }
+    // ROUND-2: Julia-set loop is CPU-bound — release the GIL via
+    // `py.allow_threads` so the async event loop stays responsive.
+    let data = py.allow_threads(|| {
+    let mut data = Vec::with_capacity((width as u64 * height as u64) as usize);
 
     for y in 0..height {
         for x in 0..width {
@@ -160,7 +242,8 @@ fn generate_pattern(width: u32, height: u32, zoom: f64, c_re: f64, c_im: f64, ma
             data.push(v);
         }
     }
-    
+        data
+    });
     Ok(data)
 }
 

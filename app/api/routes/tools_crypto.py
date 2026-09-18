@@ -1,11 +1,14 @@
 """Crypto prediction and trend analysis API (async job-based)."""
 
 import re
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
 from app.core.config import settings
+from app.core.exceptions import ServiceError
 from app.core.log import get_logger
+from app.models.job import JobResponse
 from app.services.crypto_service import CryptoService
 from app.services.job_service import get_job_service
 
@@ -18,37 +21,101 @@ crypto_service = CryptoService(settings)
 job_service = get_job_service()
 logger = get_logger(__name__)
 
+# NOTE: async job endpoints use GET for backwards compat (deprecated).
+# Prefer POST for new clients to avoid cache/CDN issues and enable rate-limiting.
+# TODO: ensure per-IP rate-limit middleware covers these expensive endpoints.
 
-def _validate_symbol(symbol: str):
-    if not _SYMBOL_RE.match(symbol):
+
+def _validate_symbol(symbol: Any) -> str:
+    if not symbol or not isinstance(symbol, str) or not symbol.strip():
         raise HTTPException(status_code=400, detail=f"Invalid symbol format: {symbol}")
+    normalized = symbol.upper().strip()
+    if not _SYMBOL_RE.match(normalized):
+        raise HTTPException(status_code=400, detail=f"Invalid symbol format: {symbol}")
+    return normalized
+
+
+def _service_error_to_502(e: ServiceError) -> HTTPException:
+    # Preserve 502 mapping for upstream/service failures (ServiceError stays 502-worthy).
+    return HTTPException(status_code=502, detail=str(e.detail) if hasattr(e, "detail") else "Service error")
 
 
 @router.get("/predict-crypto")
-async def predict_crypto(symbol: str = "BTC-USD"):
-    _validate_symbol(symbol)
-    return await crypto_service.predict(symbol)
+async def predict_crypto(symbol: str = "BTC-USD") -> dict[str, Any]:
+    symbol = _validate_symbol(symbol)
+    try:
+        return await crypto_service.predict(symbol)
+    except ServiceError as e:
+        raise _service_error_to_502(e) from e
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Unexpected error in predict_crypto for %s", symbol)
+        raise HTTPException(status_code=500, detail="Prediction failed") from e
 
 
-@router.get("/predict-crypto-async")
-async def predict_crypto_async(symbol: str = "BTC-USD"):
-    _validate_symbol(symbol)
-    return job_service.submit(
-        name=f"predict:{symbol}",
-        coro_factory=lambda: crypto_service.predict(symbol),
-    )
+@router.get("/predict-crypto-async", response_model=JobResponse, deprecated=True)
+async def predict_crypto_async(symbol: str = "BTC-USD") -> JobResponse:
+    symbol = _validate_symbol(symbol)
+    try:
+        return job_service.submit(
+            name=f"predict:{symbol}",
+            coro_factory=lambda s=symbol: crypto_service.predict(s),
+        )
+    except Exception as e:
+        logger.exception("Failed to schedule async prediction job for %s", symbol)
+        raise HTTPException(status_code=503, detail="Failed to schedule prediction job") from e
+
+
+@router.post("/predict-crypto-async", response_model=JobResponse, include_in_schema=False)
+async def predict_crypto_async_post(payload: dict | None = None) -> JobResponse:
+    symbol = _validate_symbol((payload or {}).get("symbol", "BTC-USD"))
+    try:
+        return job_service.submit(
+            name=f"predict:{symbol}",
+            coro_factory=lambda s=symbol: crypto_service.predict(s),
+        )
+    except Exception as e:
+        logger.exception("Failed to schedule async prediction job for %s", symbol)
+        raise HTTPException(status_code=503, detail="Failed to schedule prediction job") from e
 
 
 @router.get("/analyze-crypto-trend")
-async def analyze_crypto_trend(symbol: str = "BTC-USD"):
-    _validate_symbol(symbol)
-    return await crypto_service.analyze_trend(symbol)
+async def analyze_crypto_trend(symbol: str = "BTC-USD") -> dict[str, Any]:
+    symbol = _validate_symbol(symbol)
+    try:
+        return await crypto_service.analyze_trend(symbol)
+    except ServiceError as e:
+        raise _service_error_to_502(e) from e
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Unexpected error in analyze_crypto_trend for %s", symbol)
+        raise HTTPException(status_code=500, detail="Trend analysis failed") from e
 
 
-@router.get("/analyze-crypto-trend-async")
-async def analyze_crypto_trend_async(symbol: str = "BTC-USD"):
-    _validate_symbol(symbol)
-    return job_service.submit(
-        name=f"trend:{symbol}",
-        coro_factory=lambda: crypto_service.analyze_trend(symbol),
-    )
+@router.get("/analyze-crypto-trend-async", response_model=JobResponse, deprecated=True)
+async def analyze_crypto_trend_async(symbol: str = "BTC-USD") -> JobResponse:
+    symbol = _validate_symbol(symbol)
+    try:
+        return job_service.submit(
+            name=f"trend:{symbol}",
+            coro_factory=lambda s=symbol: crypto_service.analyze_trend(s),
+        )
+    except Exception as e:
+        logger.exception("Failed to schedule async trend job for %s", symbol)
+        raise HTTPException(status_code=503, detail="Failed to schedule trend job") from e
+
+
+@router.post("/analyze-crypto-trend-async", response_model=JobResponse, include_in_schema=False)
+async def analyze_crypto_trend_async_post(payload: dict | None = None) -> JobResponse:
+    symbol = _validate_symbol((payload or {}).get("symbol", "BTC-USD"))
+    try:
+        return job_service.submit(
+            name=f"trend:{symbol}",
+            coro_factory=lambda s=symbol: crypto_service.analyze_trend(s),
+        )
+    except Exception as e:
+        logger.exception("Failed to schedule async trend job for %s", symbol)
+        raise HTTPException(status_code=503, detail="Failed to schedule trend job") from e
+

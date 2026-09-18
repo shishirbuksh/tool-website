@@ -1,7 +1,15 @@
-"""Public model exports: NFTRequest, FractalParams, ProxyRequest, JobResponse, JobStatus."""
+"""Public model exports: NFTRequest, NFTResponse, FractalParams, ProxyRequest, ProxyResponse, JobResponse, JobStatus."""
 
 from app.models.job import JobResponse, JobStatus
-from app.models.nft import FractalParams, NFTRequest
-from app.models.proxy import ProxyRequest
+from app.models.nft import FractalParams, NFTRequest, NFTResponse
+from app.models.proxy import ProxyRequest, ProxyResponse
 
-__all__ = ["NFTRequest", "FractalParams", "ProxyRequest", "JobResponse", "JobStatus"]
+__all__ = [
+    "NFTRequest",
+    "NFTResponse",
+    "FractalParams",
+    "ProxyRequest",
+    "ProxyResponse",
+    "JobResponse",
+    "JobStatus",
+]

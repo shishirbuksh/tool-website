@@ -73,4 +73,6 @@ class TestAnalyticsService:
     def test_track_empty_name(self):
         track("", "test")
         counts = get_counts(limit=10)
-        assert "" in counts
+        # Desired behavior: empty tool names are rejected and never stored.
+        assert "" not in counts
+

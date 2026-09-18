@@ -8,9 +8,7 @@
 {% block og_description %}Create custom memes with classic templates and your own images. Add text, customize styles, download PNG. Free, no sign-up.{% endblock %}
 
 {% block head %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Impact&family=Roboto:wght@400;700&family=Oswald:wght@400;700&family=Bangers&display=swap" rel="stylesheet">
+<!-- Self-hosted fonts only: Google Fonts preconnect/stylesheet removed for privacy + performance; canvas uses local system fonts -->
 {% endblock %}
 
 {% block content %}
@@ -272,12 +270,13 @@
 
           <div class="flex flex-col gap-2">
             <div class="flex gap-2">
-              <button class="btn btn-primary flex-1" onclick="gen()">Generate</button>
-              <button class="btn btn-ghost btn-square" onclick="saveHist()" aria-label="Save to history">
+              <button type="button" class="btn btn-primary flex-1" data-action="gen">Generate</button>
+              <button type="button" class="btn btn-ghost btn-square" data-action="save-hist" aria-label="Save to history">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
               </button>
             </div>
-            <button class="btn btn-ghost btn-sm text-base-content/60" onclick="resetAll()">Reset All</button>
+            <button type="button" class="btn btn-ghost btn-sm text-base-content/60" data-action="reset-all">Reset All</button>
+            <!-- TODO: convert remaining inline onclick (color presets, downloadMeme, copyMeme, clearHist, restoreHist, delHist) to data-action + delegated listener per components/tool_layout.html guide -->
           </div>
         </div>
       </div>
@@ -991,6 +990,16 @@
     localStorage.removeItem(_histKey);
     renderHist();
   }
+
+  // Delegated data-action dispatcher (CSP-safe, keeps function names: gen, saveHist, resetAll)
+  document.addEventListener('click', function(e) {
+    var el = e.target.closest ? e.target.closest('[data-action]') : null;
+    if (!el) return;
+    var a = el.getAttribute('data-action');
+    if (a === 'gen') gen();
+    else if (a === 'save-hist') saveHist();
+    else if (a === 'reset-all') resetAll();
+  });
 
   _getVal('sb_tpl').onchange = function() {
     _img = null;

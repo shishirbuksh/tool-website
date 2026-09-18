@@ -33,6 +33,18 @@ class TestPages:
     def test_tools_directory(self):
         resp = client.get("/tools")
         assert resp.status_code == 200
+        
+    def test_directory_redirect(self):
+        resp = client.get("/directory", follow_redirects=False)
+        assert resp.status_code in (301, 302, 307, 308)
+        assert "/tools" in resp.headers.get("location", "")
+
+    def test_homepage_contains_all_tools(self):
+        resp = client.get("/")
+        assert resp.status_code == 200
+        assert 'id="tools"' in resp.text
+        assert 'id="toolSearchInput"' in resp.text
+        assert 'id="toolsGrid"' in resp.text
 
     def test_qr_generator_returns_200(self):
         resp = client.get("/tool/qr-generator")
@@ -194,3 +206,110 @@ class TestSecurityHeaders:
         resp = client.get("/")
         val = resp.headers.get("x-content-type-options") or resp.headers.get("X-Content-Type-Options")
         assert val == "nosniff"
+
+
+class TestNewRouteFeatures:
+    def test_contact_submission(self):
+        resp = client.post(
+            "/api/contact",
+            json={"name": "Alice", "email": "alice@example.com", "message": "Hello world"},
+        )
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "ok"}
+
+    def test_contact_submission_invalid(self):
+        resp = client.post("/api/contact", json={"name": "", "email": "invalid", "message": ""})
+        assert resp.status_code in (400, 422)
+
+    def test_fng_invalid_limit(self):
+        resp = client.get("/api/fng?limit=0")
+        assert resp.status_code == 400
+        resp2 = client.get("/api/fng?limit=999")
+        assert resp2.status_code == 400
+
+    def test_convert_to_pdf_invalid_type(self):
+        resp = client.post(
+            "/api/convert-to-pdf",
+            files={"file": ("test.exe", b"binary content", "application/x-msdownload")},
+        )
+        assert resp.status_code == 400
+
+    def test_convert_to_pdf_corrupt_image(self):
+        resp = client.post(
+            "/api/convert-to-pdf",
+            files={"file": ("test.png", b"not-a-valid-image", "image/png")},
+        )
+        assert resp.status_code in (400, 422)
+
+    def test_remove_background_unsupported_type(self):
+        resp = client.post(
+            "/api/remove-background",
+            files={"image": ("test.txt", b"plain text", "text/plain")},
+        )
+        assert resp.status_code == 400
+
+    def test_remove_watermark_invalid_algo(self):
+        resp = client.post(
+            "/api/remove-watermark",
+            files={
+                "image": ("img.png", _make_png(), "image/png"),
+                "mask": ("mask.png", _make_png(), "image/png"),
+            },
+            data={"algorithm": "invalid_algo"},
+        )
+        assert resp.status_code == 400
+
+    def test_nft_requires_key_for_external(self):
+        resp = client.post(
+            "/api/generate-nft",
+            json={"prompt": "cyberpunk city", "provider": "openai"},
+        )
+        assert resp.status_code == 401
+
+    def test_proxy_blocks_private_ip(self):
+        resp = client.post(
+            "/api/proxy-request",
+            json={"url": "http://127.0.0.1:8000/secret", "method": "GET"},
+        )
+        assert resp.status_code in (400, 422)
+
+    def test_empty_job_id(self):
+        resp = client.get("/api/jobs/%20")
+        assert resp.status_code in (400, 404)
+
+
+class TestHeadersAndCaching:
+    def test_favicon_cache_control(self):
+        resp = client.get("/favicon.ico")
+        if resp.status_code == 200:
+            assert "cache-control" in {k.lower(): v for k, v in resp.headers.items()}
+            assert "max-age" in resp.headers.get("cache-control", "").lower()
+
+    def test_ads_txt_cache_control(self):
+        resp = client.get("/ads.txt")
+        if resp.status_code == 200:
+            assert "cache-control" in {k.lower(): v for k, v in resp.headers.items()}
+            assert "max-age" in resp.headers.get("cache-control", "").lower()
+
+    def test_static_sw_cache_control(self):
+        resp = client.get("/static/sw.js")
+        if resp.status_code == 200:
+            cc = resp.headers.get("cache-control", "")
+            assert "no-store" in cc or "no-cache" in cc
+
+    def test_cors_expose_headers(self):
+        resp = client.options(
+            "/api/tools/catalog",
+            headers={
+                "Origin": "http://localhost:8090",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        exposed = resp.headers.get("access-control-expose-headers", "")
+        # Either preflight or simple request with Origin should expose X-Request-ID
+        simple_resp = client.get(
+            "/api/tools/catalog",
+            headers={"Origin": "http://localhost:8090"},
+        )
+        assert "x-request-id" in simple_resp.headers.get("access-control-expose-headers", "").lower()
+

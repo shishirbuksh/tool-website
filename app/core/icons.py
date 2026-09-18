@@ -1,51 +1,69 @@
 """Lucide SVG icon rendering: lazy-loaded JSON, cache, and Jinja2 helper."""
 
+import html
 import json
 import os
 import re
+import threading
 from collections import OrderedDict
 
 _cache: OrderedDict[str, str] = OrderedDict()
+_cache_lock = threading.Lock()
+_icons_lock = threading.Lock()
 _MAX_CACHE_SIZE = 500
 
 _JSON_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "lucide_icons.json")
 _icons = None
 
-_ATTRS_TO_KEEP = {"xmlns", "viewBox", "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin"}
+# Ordered list (not a set) so kept attributes render deterministically.
+_ATTRS_TO_KEEP = ["xmlns", "viewBox", "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin"]
+
+_COLOR_CLASS_RE = re.compile(
+    r"\btext-(?:primary|secondary|accent|base-content|success|warning|error|info|neutral)\b"
+)
 
 
 def _load_icons():
     global _icons
     if _icons is None:
-        with open(_JSON_PATH, encoding="utf-8") as f:
-            _icons = json.load(f)
+        with _icons_lock:
+            if _icons is None:
+                with open(_JSON_PATH, encoding="utf-8") as f:
+                    _icons = json.load(f)
 
 
 def lucide_icon(name: str, class_name: str = "", size: int = 24) -> str:
     _load_icons()
 
-    cache_key = f"{name}_{size}"
-    if cache_key in _cache:
-        _cache.move_to_end(cache_key)
-        svg = _cache[cache_key]
-    else:
-        if name not in _icons:
-            return f'<span class="icon-missing" title="Icon {name} not found"></span>'
-        svg = _icons[name]
-        _cache[cache_key] = svg
-        if len(_cache) > _MAX_CACHE_SIZE:
-            _cache.popitem(last=False)
+    try:
+        size_int = int(size)
+    except (TypeError, ValueError):
+        size_int = 24
+    size_int = max(1, min(size_int, 512))
+    safe_class = html.escape(class_name, quote=True)
+    safe_name = html.escape(name, quote=True)
 
-    has_color_class = bool(
-        re.search(r"\btext-(?:primary|secondary|accent|base-content|success|warning|error|info|neutral)\b", class_name)
-    )
+    # Cache raw SVG by name only (size/class applied per-call).
+    with _cache_lock:
+        svg = _cache.get(name)
+        if svg is not None:
+            _cache.move_to_end(name)
+        else:
+            if name not in _icons:
+                return f'<span class="icon-missing" title="Icon {safe_name} not found"></span>'
+            svg = _icons[name]
+            _cache[name] = svg
+            if len(_cache) > _MAX_CACHE_SIZE:
+                _cache.popitem(last=False)
+
+    has_color_class = bool(_COLOR_CLASS_RE.search(class_name))
     base_color = "" if has_color_class else "color:var(--color-base-content);"
 
     try:
         start = svg.index("<svg")
         end = svg.index(">", start) + 1
     except ValueError:
-        return f'<span class="icon-missing" title="Malformed icon {name}"></span>'
+        return f'<span class="icon-missing" title="Malformed icon {safe_name}"></span>'
     tag = svg[start:end]
 
     kept = []
@@ -54,9 +72,9 @@ def lucide_icon(name: str, class_name: str = "", size: int = 24) -> str:
         if found:
             kept.append(found.group(0))
 
-    new_tag = f'<svg class="{class_name}" width="{size}" height="{size}" {" ".join(kept)} style="display:inline-block;{base_color}" aria-hidden="true" focusable="false">'
+    new_tag = f'<svg class="{safe_class}" width="{size_int}" height="{size_int}" {" ".join(kept)} style="display:inline-block;{base_color}" aria-hidden="true" focusable="false">'
     inner = svg[end:]
     if "</svg>" not in inner:
-        return f'<span class="icon-missing" title="Malformed icon {name} (no closing tag)"></span>'
+        return f'<span class="icon-missing" title="Malformed icon {safe_name} (no closing tag)"></span>'
     svg = new_tag + inner
     return svg

@@ -5,8 +5,6 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-import numpy as np
-
 from app.core.cache import get_cache
 from app.core.config import Settings
 from app.core.exceptions import ServiceError
@@ -33,7 +31,7 @@ class CryptoService:
         self._yf = None
         self._rust_predictor = None
 
-    def _get_pd(self):
+    def _get_pd(self) -> Any:
         if self._pd is None:
             try:
                 import pandas as pd
@@ -43,7 +41,7 @@ class CryptoService:
                 raise ServiceError("pandas library is not available") from e
         return self._pd
 
-    def _get_yf(self):
+    def _get_yf(self) -> Any:
         if self._yf is None:
             try:
                 import yfinance as yf
@@ -53,7 +51,7 @@ class CryptoService:
                 raise ServiceError("yfinance library is not available") from e
         return self._yf
 
-    def _get_prophet(self):
+    def _get_prophet(self) -> Any:
         if self._prophet is None:
             try:
                 from prophet import Prophet
@@ -64,7 +62,7 @@ class CryptoService:
                 self._prophet = False
         return self._prophet if self._prophet is not False else None
 
-    def _get_rust_predictor(self):
+    def _get_rust_predictor(self) -> Any:
         if self._rust_predictor is None:
             try:
                 import rust_predictor
@@ -79,24 +77,29 @@ class CryptoService:
                 self._rust_predictor = None
         return self._rust_predictor
 
+
     async def predict(self, symbol: str = "BTC-USD") -> dict:
+        symbol_norm = (symbol or "BTC-USD").strip().upper()
+        cache_key = f"predict:{symbol_norm.lower()}"
         cache = get_cache()
-        cached = cache.get(f"predict:{symbol}")
+        cached = cache.get(cache_key)
         if cached:
             return cached
 
-        result = await self._run_analysis(symbol, period="1y", lookback=20, rust_epochs=150)
-        cache.set(f"predict:{symbol}", result, ttl=300)
+        result = await self._run_analysis(symbol_norm, period="1y", lookback=20, rust_epochs=150)
+        cache.set(cache_key, result, ttl=300)
         return result
 
     async def analyze_trend(self, symbol: str = "BTC-USD") -> dict:
+        symbol_norm = (symbol or "BTC-USD").strip().upper()
+        cache_key = f"trend:{symbol_norm.lower()}"
         cache = get_cache()
-        cached = cache.get(f"trend:{symbol}")
+        cached = cache.get(cache_key)
         if cached:
             return cached
 
-        result = await self._run_analysis(symbol, period="4mo", lookback=15, rust_epochs=100, include_ta=True)
-        cache.set(f"trend:{symbol}", result, ttl=300)
+        result = await self._run_analysis(symbol_norm, period="4mo", lookback=15, rust_epochs=100, include_ta=True)
+        cache.set(cache_key, result, ttl=300)
         return result
 
     async def _run_analysis(
@@ -107,6 +110,7 @@ class CryptoService:
         rust_epochs: int,
         include_ta: bool = False,
     ) -> dict:
+        symbol = (symbol or "").strip().upper() or "BTC-USD"
         loop = asyncio.get_running_loop()
 
         def _download():
@@ -117,7 +121,10 @@ class CryptoService:
                 raise ServiceError(msg)
             return df
 
-        df = await loop.run_in_executor(None, _download)
+        try:
+            df = await asyncio.wait_for(loop.run_in_executor(None, _download), timeout=30)
+        except TimeoutError:
+            raise ServiceError("Market data download timed out after 30 seconds") from None
         df = df.dropna()
         if df.empty:
             msg = f"No valid data after cleaning for symbol '{symbol}'"
@@ -139,28 +146,37 @@ class CryptoService:
             prophet_mod = self._get_prophet()
             if prophet_mod is None:
                 return None
-            prophet_df = pd.DataFrame(
-                {
-                    "ds": pd.to_datetime(df.index.tz_localize(None) if df.index.tz is not None else df.index),
-                    "y": close_prices,
-                }
-            )
-            m = prophet_mod(daily_seasonality=True, yearly_seasonality=True)
-            m.fit(prophet_df)
-            future = m.make_future_dataframe(periods=future_days)
-            forecast = m.predict(future)
-            return forecast["yhat"].tail(future_days).values.tolist()
+            try:
+                prophet_df = pd.DataFrame(
+                    {
+                        "ds": pd.to_datetime(df.index.tz_localize(None) if df.index.tz is not None else df.index),
+                        "y": close_prices,
+                    }
+                )
+                m = prophet_mod(daily_seasonality=True, yearly_seasonality=True)
+                m.fit(prophet_df)
+                future = m.make_future_dataframe(periods=future_days)
+                forecast = m.predict(future)
+                return forecast["yhat"].tail(future_days).values.tolist()
+            except Exception:
+                logger.warning("Prophet model fitting failed for %s — degrading", symbol)
+                return None
 
         def _run_rust():
             predictor = self._get_rust_predictor()
             if predictor is None:
                 return None
-            return predictor.train_and_predict(
-                close_prices.tolist(),
-                lookback,
-                rust_epochs,
-                future_days,
-            )
+            try:
+                return predictor.train_and_predict(
+                    close_prices.tolist(),
+                    lookback,
+                    rust_epochs,
+                    future_days,
+                )
+            except Exception:
+                logger.warning("Rust predictor model failed for %s — degrading", symbol)
+                return None
+
 
         async def _run_prophet_async():
             sem = _get_prophet_semaphore()
@@ -174,8 +190,10 @@ class CryptoService:
             finally:
                 sem.release()
 
-        prophet_preds = await _run_prophet_async()
-        rust_preds = await loop.run_in_executor(None, _run_rust)
+        prophet_preds, rust_preds = await asyncio.gather(
+            _run_prophet_async(),
+            loop.run_in_executor(None, _run_rust),
+        )
 
         if prophet_preds is None and rust_preds is None:
             raise ServiceError("No prediction engine available (requires Prophet or rust_predictor)")
@@ -216,7 +234,7 @@ class CryptoService:
             result["degraded"] = degraded_flag
         return result
 
-    def _compute_ta(self, close_prices: np.ndarray, df_index) -> Any:
+    def _compute_ta(self, close_prices: Any, df_index: Any) -> Any:
         pd = self._get_pd()
         df_ta = pd.DataFrame({"Close": close_prices}, index=df_index)
 
@@ -234,44 +252,81 @@ class CryptoService:
         df_ta["MACD"] = exp1 - exp2
         df_ta["Signal"] = df_ta["MACD"].ewm(span=9, adjust=False).mean()
         df_ta["MACD_Hist"] = df_ta["MACD"] - df_ta["Signal"]
-        df_ta = df_ta.fillna(0)
+        # RSI 0/0 (flat market, gain==0 and loss==0) -> NaN; neutral is 50.
+        try:
+            flat_mask = (gain.fillna(0) == 0) & (loss.fillna(0) == 0)
+            df_ta["RSI"] = df_ta["RSI"].mask(flat_mask, 50)
+        except Exception:
+            logger.exception("Failed to compute RSI flat mask")
+        # Prefer forward/back-fill over zeros to preserve trend continuity.
+        trend_cols = ["SMA20", "SMA50", "MACD", "Signal", "MACD_Hist"]
+        try:
+            df_ta[trend_cols] = df_ta[trend_cols].ffill().bfill().fillna(0)
+            df_ta["RSI"] = df_ta["RSI"].ffill().bfill().fillna(50)
+        except Exception:
+            df_ta = df_ta.fillna(0)
+            try:
+                df_ta.loc[df_ta["RSI"] == 0, "RSI"] = 50
+            except Exception:
+                logger.exception("Failed to fallback RSI to 50")
 
         return df_ta
 
     def _build_trend_result(
         self,
         symbol: str,
-        close_prices,
-        timestamps,
-        future_dates,
-        prophet_preds,
-        rust_preds,
-        df,
-    ) -> dict:
+        close_prices: Any,
+        timestamps: list[str],
+        future_dates: list[str],
+        prophet_preds: list[Any],
+        rust_preds: list[Any],
+        df: Any,
+    ) -> dict[str, Any]:
         df_ta = self._compute_ta(close_prices, df.index)
 
-        history = []
-        for i in range(len(timestamps)):
-            history.append(
-                {
-                    "date": timestamps[i],
-                    "price": float(close_prices[i]),
-                    "sma20": float(df_ta["SMA20"].iloc[i]),
-                    "sma50": float(df_ta["SMA50"].iloc[i]),
-                    "rsi": float(df_ta["RSI"].iloc[i]),
-                    "macd": float(df_ta["MACD"].iloc[i]),
-                    "macd_hist": float(df_ta["MACD_Hist"].iloc[i]),
-                }
-            )
+        sma20_vals = df_ta["SMA20"].to_numpy()
+        sma50_vals = df_ta["SMA50"].to_numpy()
+        rsi_vals = df_ta["RSI"].to_numpy()
+        macd_vals = df_ta["MACD"].to_numpy()
+        macd_hist_vals = df_ta["MACD_Hist"].to_numpy()
+
+        history = [
+            {
+                "date": timestamps[i],
+                "price": float(close_prices[i]),
+                "sma20": float(sma20_vals[i]),
+                "sma50": float(sma50_vals[i]),
+                "rsi": float(rsi_vals[i]),
+                "macd": float(macd_vals[i]),
+                "macd_hist": float(macd_hist_vals[i]),
+            }
+            for i in range(len(timestamps))
+        ]
 
         future_data = []
         for d, p, r in zip(future_dates, prophet_preds, rust_preds, strict=True):
-            future_data.append({"date": d, "prophet_price": float(p), "rust_price": float(r)})
+            entry: dict[str, Any] = {"date": d}
+            if p is not None:
+                try:
+                    entry["prophet_price"] = float(p)
+                except (TypeError, ValueError):
+                    pass
+            if r is not None:
+                try:
+                    entry["rust_price"] = float(r)
+                except (TypeError, ValueError):
+                    pass
+            future_data.append(entry)
 
         curr_price = float(close_prices[-1])
-        curr_rsi = float(df_ta["RSI"].iloc[-1])
-        curr_sma20 = float(df_ta["SMA20"].iloc[-1])
-        proj_rs_price = rust_preds[-1]
+        curr_rsi = float(rsi_vals[-1])
+        curr_sma20 = float(sma20_vals[-1])
+        proj_raw = rust_preds[-1] if rust_preds else None
+        try:
+            proj_rs_price = float(proj_raw) if proj_raw is not None else None
+        except (TypeError, ValueError):
+            proj_rs_price = None
+
 
         score = 0
         if curr_rsi < 40:
@@ -284,14 +339,16 @@ class CryptoService:
         else:
             score -= 1
 
-        if proj_rs_price > curr_price * 1.025:
-            score += 2
-        elif proj_rs_price > curr_price * 1.005:
-            score += 1
-        elif proj_rs_price < curr_price * 0.975:
-            score -= 2
-        elif proj_rs_price < curr_price * 0.995:
-            score -= 1
+        # Skip projection component when Rust engine degraded (None).
+        if proj_rs_price is not None:
+            if proj_rs_price > curr_price * 1.025:
+                score += 2
+            elif proj_rs_price > curr_price * 1.005:
+                score += 1
+            elif proj_rs_price < curr_price * 0.975:
+                score -= 2
+            elif proj_rs_price < curr_price * 0.995:
+                score -= 1
 
         if score >= 3:
             verdict = "Strong Bullish"

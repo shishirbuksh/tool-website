@@ -4,7 +4,7 @@
 
 ![StoryBrain AI Banner](static/og-image.jpg)
 
-**[StoryBrain AI](https://www.storybrainai.com/)** is a production-grade, lightning-fast SaaS platform offering 70+ free browser-based tools. It includes AI utilities, crypto calculators, image processors, PDF generators, and business calculators.
+**[StoryBrain AI](https://www.storybrainai.com/)** is a production-grade, lightning-fast SaaS platform offering 101 free browser-based tools. It includes AI utilities, crypto calculators, image processors, PDF generators, and business calculators.
 
 The platform is engineered for absolute maximum performance (100/100 Core Web Vitals) featuring an enterprise architecture built on FastAPI, Jinja2, and TailwindCSS.
 
@@ -17,7 +17,7 @@ The platform is engineered for absolute maximum performance (100/100 Core Web Vi
 ## 🛠️ Tech Stack
 
 ### Backend
-- **Python 3.13+**
+- **Python 3.11+**
 - **FastAPI** (High-performance API routing and middleware)
 - **Jinja2** (Server-side HTML rendering)
 - **Uvicorn & Gunicorn** (ASGI server and process manager)
@@ -30,7 +30,8 @@ The platform is engineered for absolute maximum performance (100/100 Core Web Vi
 
 ### Infrastructure
 - **Hostinger VPS** (Ubuntu OS)
-- **CloudPanel** (Nginx Vhost routing)
+- **Caddy** (reverse proxy with automatic HTTPS — see `Caddyfile`)
+- **Systemd** (`storybrain-ai.service` runs Gunicorn on port 8090)
 - **Cloudflare** (CDN, Brotli Compression, HTTP/3 QUIC)
 
 ---
@@ -38,7 +39,7 @@ The platform is engineered for absolute maximum performance (100/100 Core Web Vi
 ## 💻 Local Development
 
 ### Prerequisites
-- Python 3.13+
+- Python 3.11+
 - Node.js (for TailwindCSS building)
 - GNU Make (optional, for automation)
 
@@ -67,7 +68,7 @@ The platform is engineered for absolute maximum performance (100/100 Core Web Vi
    ```
 3. **Start the FastAPI server:**
    ```bash
-   python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+   python -m uvicorn app.main:app --host 127.0.0.1 --port 8090 --reload
    ```
 
 ---
@@ -99,6 +100,12 @@ StoryBrain AI uses a seamless deployment script optimized for Hostinger VPS (Ubu
    ```
 
 This script will automatically pull the latest `main` branch, rebuild assets, restart the Gunicorn workers via Systemd, and flush any necessary caches.
+
+### Environment, Caddy & Systemd
+- **Layout:** HTML templates live in `templates/` and static assets in `static/` (both at the repo root — not under `app/`). Tool pages are `templates/tools/<slug_with_underscores>.html` for each slug in `data/tools.yaml`.
+- **Env:** copy `.env.example` to `.env` and set `SECRET_KEY`, `ALLOWED_HOSTS`, `CORS_ORIGINS`, plus `CADDY_DOMAIN` / `CADDY_PROXY_UPSTREAM` / `CADDY_STATIC_ROOT` (must equal `$APP_DIR/static`), `FORWARDED_ALLOW_IPS=127.0.0.1`, and `U2NET_HOME`. `deploy.sh` auto-generates `SECRET_KEY` if missing and persists `APP_VERSION` to `.env`.
+- **Caddy:** `Caddyfile` reverse-proxies to Gunicorn on `127.0.0.1:8090`, serves `/static/*` from `CADDY_STATIC_ROOT`, and serves `/sw.js` with `Service-Worker-Allowed: /`. Override the apex domain with `CADDY_DOMAIN`.
+- **Systemd:** `storybrain-ai.service` loads `{{APP_DIR}}/.env` via `EnvironmentFile`, runs `gunicorn app.main:app -c gunicorn_conf.py` as the `storybrainai` user, and sets `U2NET_HOME={{APP_DIR}}/.u2net`.
 
 ---
 

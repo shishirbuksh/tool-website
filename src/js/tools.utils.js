@@ -1,7 +1,13 @@
 (function () {
   'use strict';
 
+  /* SCHEMA localStorage keys: sb-theme ('light'|'night'), cookieConsent ('accepted'|'rejected'), sbr_tools_recent_search (JSON array) */
+  const store={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
+
   window.sbr = window.sbr || {};
+  // Share safe storage wrapper; cookieConsent/sb-theme/sbr_tools_recent_search go through store.
+  window.sbr.store = window.sbr.store || store;
+  window.sbr.getConsent = function () { return store.get('cookieConsent'); };
 
   /* ── Clipboard ── */
   window.sbr.copyToClipboard = function (text, btnEl, successMsg) {
@@ -50,7 +56,8 @@
   window.sbr.formatFileSize = function (bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / 1048576).toFixed(2) + ' MB';
+    if (bytes < 1073741824) return (bytes / 1048576).toFixed(2) + ' MB';
+    return (bytes / 1073741824).toFixed(2) + ' GB';
   };
 
   /* ── Download data URL ── */
@@ -122,7 +129,9 @@
   window.sbr.initErrorHandler = function () {
     window.onerror = function (msg, url, line, col, err) {
       console.error('[sbr] Uncaught error:', msg, 'at', url, line + ':' + col);
-      return true;
+      // Return false so the error still propagates to the browser console /
+      // reporting hooks — never silently swallow uncaught errors.
+      return false;
     };
     window.addEventListener('unhandledrejection', function (e) {
       console.error('[sbr] Unhandled promise rejection:', e.reason);
@@ -162,12 +171,27 @@
     return '<svg class="lucide lucide-' + name + '" xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
   };
 
-  /* ── Delegate: loading buttons ── */
+  /* ── Delegate: loading buttons (restores original label after 10s failsafe) ── */
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-loading]');
     if (btn && btn.getAttribute('data-loading')) {
+      if (btn.dataset.loadingActive === 'true') return;
+      btn.dataset.loadingActive = 'true';
+      if (btn.dataset.origHtml === undefined) btn.dataset.origHtml = btn.innerHTML;
       btn.innerHTML = 'Processing...';
       btn.disabled = true;
+      // Failsafe: restore original label if no explicit reset happens
+      // (e.g. fetch never resolves). Cleared early by resetLoadingButton().
+      btn.dataset.loadingTimer = String(setTimeout(function () {
+        window.sbr.resetLoadingButton(btn);
+      }, 10000));
     }
   });
+  window.sbr.resetLoadingButton = function (btn) {
+    if (!btn) return;
+    if (btn.dataset.loadingTimer) clearTimeout(Number(btn.dataset.loadingTimer));
+    if (btn.dataset.origHtml !== undefined) btn.innerHTML = btn.dataset.origHtml;
+    btn.disabled = false;
+    delete btn.dataset.loadingActive;
+  };
 })();

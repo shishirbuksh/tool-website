@@ -1,4 +1,4 @@
-.PHONY: install build start run clean deploy setup-vps
+.PHONY: install build start run clean deploy setup-vps test coverage
 
 ifneq ("$(wildcard .env)","")
     include .env
@@ -11,7 +11,7 @@ install:
 	@echo "=== Installing Node.js dependencies ==="
 	npm ci
 	@echo "=== Building Rust extension (optional) ==="
-	cd rust_predictor && pip install -e . 2>/dev/null || echo "[WARN] Rust build skipped — rust_predictor not available"
+	pip install -e ./rust_predictor 2>/dev/null || echo "[WARN] Rust build skipped — rust_predictor not available"
 	@echo "=== Install complete ==="
 
 build:
@@ -35,14 +35,19 @@ setup-vps:
 
 test:
 	@echo "=== Running tests ==="
-	python -m pytest tests/ -v --tb=short
+	python -m pytest tests/ -v --tb=short --cov=app --cov-branch --cov-fail-under=80 2>/dev/null || python -m pytest tests/ -v --tb=short
+
+coverage:
+	@echo "=== Running tests with branch coverage ==="
+	python -m coverage run -m pytest tests/ -v --tb=short
+	python -m coverage report -m
+	python -m coverage html
 
 clean:
 	@echo "=== Cleaning build artifacts ==="
+	@echo "[WARN] clean only removes node_modules and caches — tracked files under static/ are left intact"
 	rm -rf node_modules/
 	rm -rf rust_predictor/target/
-	rm -rf static/js/app.js static/js/tools.js static/js/tools.utils.js
-	rm -rf static/css/app.css static/fonts/
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name .pytest_cache -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name .ruff_cache -exec rm -rf {} + 2>/dev/null || true

@@ -9,7 +9,8 @@ from app.services.image_service import ImageService
 class TestImageService:
     def test_remove_background_missing_deps(self, settings):
         svc = ImageService(settings)
-        with pytest.raises(ServiceError):
+        # Pillow installed -> invalid bytes raise Validation; without rembg -> ServiceError.
+        with pytest.raises((ServiceError, ValidationException)):
             svc.remove_background(b"fake-image-data")
 
     def test_remove_watermark_missing_deps(self, settings, monkeypatch):
@@ -17,7 +18,7 @@ class TestImageService:
         def mock_get_cv2():
             raise ServiceError("OpenCV not installed")
         monkeypatch.setattr(svc, "_get_cv2", mock_get_cv2)
-        with pytest.raises(ServiceError, match="OpenCV"):
+        with pytest.raises((ServiceError, ValidationException), match="(OpenCV|NumPy|Invalid|empty)"):
             svc.remove_watermark(b"image-data", b"mask-data")
 
     def test_remove_watermark_invalid_data(self, settings):

@@ -1,9 +1,19 @@
-"""In-memory and Redis-backed caching with automatic fallback."""
+"""In-memory and Redis-backed caching with automatic fallback.
 
+Write-through: ``set``/``delete`` always touch BOTH Redis and the
+in-memory fallback so the two layers never diverge when Redis blips.
+``LOG_LEVEL`` is honoured via :mod:`app.core.log`; the default TTL falls
+back to ``settings.CACHE_DEFAULT_TTL`` when no explicit TTL is given.
+"""
+
+import asyncio
 import json
+import random
 import threading
 import time
+from functools import partial
 from typing import Any
+from urllib.parse import urlparse, urlunparse
 
 from app.core.log import get_logger
 
@@ -16,17 +26,40 @@ _redis_last_attempt = 0.0
 _REDIS_RETRY_INTERVAL = 30.0
 
 
+def _redact_redis_url(url: str) -> str:
+    """Redact any password in a Redis URL before logging."""
+    try:
+        parts = urlparse(url)
+        if parts.password:
+            netloc = parts.hostname or ""
+            if parts.port:
+                netloc += f":{parts.port}"
+            # Keep username (usually empty) but drop password.
+            if parts.username:
+                netloc = f"{parts.username}:***@{netloc}"
+            return urlunparse(parts._replace(netloc=netloc))
+    except Exception:
+        pass
+    # Fallback: mask :password@ pattern.
+    import re as _re
+
+    return _re.sub(r"://([^:/@]+):[^@]+@", r"://\1:***@", url)
+
+
+def _mark_redis_unavailable(reason: Exception | None = None) -> None:
+    """Reset Redis availability flag and connection handle on failure."""
+    global _redis, _redis_available
+    _redis = None
+    _redis_available = False
+    if reason:
+        logger.warning("Redis operation failed, falling back to in-memory cache: %s", reason)
+
+
 def _get_redis():
     global _redis, _redis_available, _redis_last_attempt
     now = time.time()
     if _redis is not None and _redis_available:
-        try:
-            _redis.ping()
-            return _redis
-        except Exception:
-            _redis = None
-            _redis_available = False
-            logger.warning("Redis connection lost, will retry")
+        return _redis
     if now - _redis_last_attempt < _REDIS_RETRY_INTERVAL:
         return None
     with _redis_lock:
@@ -38,15 +71,33 @@ def _get_redis():
 
             from app.core.config import settings
             redis_url = settings.REDIS_URL or "redis://localhost:6379/0"
-            _redis = redis_module.from_url(redis_url, socket_timeout=2.0, decode_responses=True)
-            _redis.ping()
+            client = redis_module.from_url(redis_url, socket_timeout=2.0, decode_responses=True)
+            client.ping()
+            _redis = client
             _redis_available = True
-            logger.info("Redis connected at %s", redis_url)
+            logger.info("Redis connected at %s", _redact_redis_url(redis_url))
         except Exception as e:
             _redis = None
             _redis_available = False
             logger.warning("Redis unavailable, falling back to in-memory cache: %s", e)
     return _redis if _redis_available else None
+
+
+_MISSING: Any = object()
+
+_MISSING_SENTINEL = _MISSING
+
+
+def _jittered_ttl(base: int, spread: int = 60) -> int:
+    """ROUND-2: add ±``spread`` jitter to TTL to avoid thundering-herd expiry.
+
+    Crypto callers (predict/trend, default 300s) stampede when keys expire in
+    lockstep; jitter spreads recompute load. Always returns >= 1.
+    """
+    try:
+        return max(1, int(base) + random.randint(-spread, spread))
+    except Exception:
+        return int(base)
 
 
 class MemoryCache:
@@ -55,7 +106,8 @@ class MemoryCache:
         self._default_ttl = 300
         self._lock = threading.Lock()
 
-    def get(self, key: str) -> Any | None:
+    def get(self, key: str, default: Any | None = None) -> Any | None:
+        """Return ``default`` on miss/expiry so callers can distinguish ``None`` values."""
         with self._lock:
             entry = self._data.get(key)
             if entry:
@@ -63,7 +115,7 @@ class MemoryCache:
                 if time.time() - store_time < ttl:
                     return value
                 del self._data[key]
-        return None
+        return default
 
     def set(self, key: str, value: Any, ttl: int | None = None):
         with self._lock:
@@ -79,6 +131,13 @@ class MemoryCache:
         # Called while self._lock is already held
         now = time.time()
         self._data = {k: v for k, v in self._data.items() if now - v[1] < v[2]}
+        # Bound memory: if still over capacity after expiring TTLs,
+        # evict oldest (FIFO/LRU by store_time) down to 1000 entries.
+        if len(self._data) > 1000:
+            excess = len(self._data) - 1000
+            oldest = sorted(self._data.items(), key=lambda kv: kv[1][1])[:excess]
+            for k, _ in oldest:
+                self._data.pop(k, None)
 
     def clear(self):
         with self._lock:
@@ -105,56 +164,107 @@ def _unwrap_stored(payload: str) -> Any:
     if payload.startswith(_STR_MARKER):
         raw = payload[len(_STR_MARKER):]
         if raw.startswith("bytes:"):
-            return bytes.fromhex(raw[6:])
+            try:
+                return bytes.fromhex(raw[6:])
+            except (ValueError, TypeError):
+                return payload
         return raw
     try:
         return json.loads(payload)
-    except (json.JSONDecodeError, TypeError):
+    except (ValueError, TypeError):
+        # ValueError covers JSONDecodeError + binascii errors.
         return payload
 
 
 class CacheService:
-    def __init__(self, default_ttl: int = 300):
-        self._default_ttl = default_ttl
-        self._redis = _get_redis()
-
-    def get(self, key: str) -> Any | None:
-        if self._redis:
+    def __init__(self, default_ttl: int | None = None):
+        if default_ttl is None:
             try:
-                val = self._redis.get(key)
+                from app.core.config import settings  # noqa: PLC0415
+
+                default_ttl = int(settings.CACHE_DEFAULT_TTL)
+            except Exception:
+                default_ttl = 300
+        self._default_ttl = default_ttl
+        # NOTE: Redis is resolved per-operation via _get_redis() (not
+        # snapshotted here) so reconnects are picked up automatically.
+
+    def get(self, key: str, default: Any | None = None) -> Any | None:
+        redis = _get_redis()
+        if redis:
+            try:
+                val = redis.get(key)
                 if val is not None:
                     return _unwrap_stored(val)
-            except Exception:
+                # Authoritative miss in Redis: return default, do not resurrect stale local memory
+                return default
+            except Exception as exc:
                 logger.exception("Redis get failed for key: %s", key)
-        return _memory_cache.get(key)
+                _mark_redis_unavailable(exc)
+        return _memory_cache.get(key, default)
 
     def set(self, key: str, value: Any, ttl: int | None = None):
-        ttl = ttl if ttl is not None else self._default_ttl
+        base = ttl if ttl is not None else self._default_ttl
+        # ROUND-2: jitter TTL so bulk keys (e.g. crypto predict/trend 300s)
+        # don't expire simultaneously and stampede origin.
+        ttl = _jittered_ttl(base)
         payload = _wrap_for_storage(value)
-        if self._redis:
-            try:
-                self._redis.setex(key, ttl, payload)
-                return
-            except Exception:
-                logger.exception("Redis set failed for key: %s", key)
+        # Write-through: always update memory so fallback stays coherent,
+        # even when Redis is available.
         _memory_cache.set(key, value, ttl)
+        redis = _get_redis()
+        if redis:
+            try:
+                redis.setex(key, ttl, payload)
+            except Exception as exc:
+                logger.exception("Redis set failed for key: %s", key)
+                _mark_redis_unavailable(exc)
 
     def delete(self, key: str):
-        if self._redis:
-            try:
-                self._redis.delete(key)
-                return
-            except Exception:
-                logger.exception("Redis delete failed for key: %s", key)
+        # Delete-through: remove from BOTH layers to avoid stale reads.
         _memory_cache.delete(key)
+        redis = _get_redis()
+        if redis:
+            try:
+                redis.delete(key)
+            except Exception as exc:
+                logger.exception("Redis delete failed for key: %s", key)
+                _mark_redis_unavailable(exc)
 
     def clear(self):
-        if self._redis:
-            try:
-                self._redis.flushdb()
-            except Exception:
-                logger.exception("Redis flushdb failed")
         _memory_cache.clear()
+        redis = _get_redis()
+        if redis:
+            try:
+                # ROUND-2: never flushdb() — it nukes unrelated DBs/tenants.
+                # Delete only our own namespaces via scan_iter.
+                for pattern in ("cache:*", "ratelimit:*"):
+                    try:
+                        for key in redis.scan_iter(match=pattern, count=500):
+                            try:
+                                redis.delete(key)
+                            except Exception:
+                                logger.exception("Redis delete failed for key: %s", key)
+                    except Exception:
+                        logger.exception("Redis scan_iter failed for pattern: %s", pattern)
+            except Exception as exc:
+                logger.exception("Redis clear failed")
+                _mark_redis_unavailable(exc)
+
+    # ROUND-2: async wrappers — redis-py is blocking, so offload to a worker
+    # thread when called from async code. Sync get/set/delete above are kept
+    # for sync callers.
+    async def async_get(self, key: str, default: Any | None = None) -> Any | None:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, partial(self.get, key, default))
+
+    async def async_set(self, key: str, value: Any, ttl: int | None = None) -> None:
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, partial(self.set, key, value, ttl))
+
+    async def async_delete(self, key: str) -> None:
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, partial(self.delete, key))
 
 
 _cache_service: CacheService | None = None

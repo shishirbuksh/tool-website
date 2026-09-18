@@ -1,6 +1,7 @@
-// StoryBrain AI Service Worker v1.0.1
-const CACHE_NAME = 'storybrain-v32';
-const STATIC_CACHE = 'storybrain-static-v30';
+// StoryBrain AI Service Worker v36 (keep in sync with CACHE_NAME / STATIC_CACHE below)
+const CACHE_NAME = 'storybrain-v36';
+const STATIC_CACHE = 'storybrain-static-v36';
+const PAGE_CACHE_MAX_ENTRIES = 50;
 
 // Assets to pre-cache on install
 const PRECACHE_URLS = [
@@ -8,19 +9,28 @@ const PRECACHE_URLS = [
   '/static/css/app.css',
   '/static/css/fonts.css',
   '/static/favicon.svg',
+  '/static/favicon.ico',
+  '/static/icon-192.png',
+  '/static/icon-512.png',
   '/static/og-image.jpg',
   '/static/manifest.json',
   '/offline',
   '/static/js/app.js',
   '/static/js/tools.utils.js',
   '/static/js/tools.js',
+  // NOTE: qrcode.min.js + jsqr.min.js intentionally NOT precached (large vendor
+  // bundles) — they are cached lazily on first use via fetchAndCache below.
 ];
 
-// Install: cache static assets
+// Install: cache static assets (per-URL so one 404 doesn't fail the whole install)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
-      return cache.addAll(PRECACHE_URLS);
+      return Promise.allSettled(
+        PRECACHE_URLS.map((url) => cache.add(url).catch((err) => {
+          console.warn('[sw] precache failed:', url, err);
+        }))
+      );
     }).then(() => {
       self.skipWaiting();
     })
@@ -61,7 +71,10 @@ self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests (CDN fonts, external APIs, etc.)
   if (url.origin !== location.origin) return;
 
-  // Static assets: cache-first (CSS, JS, fonts, images)
+  // Static assets: cache-first (CSS, JS, fonts, images).
+  // NOTE: app.css/js carry ?v=<app_version> query strings — match EXACTLY
+  // (no ignoreSearch) so a cached v1 can never serve a v2 URL. Each versioned
+  // URL caches under its own full key; old caches are purged on activate.
   if (
     url.pathname.startsWith('/static/') ||
     url.pathname === '/favicon.ico'
@@ -89,10 +102,12 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
-        // Cache successful page responses
+        // Cache successful page responses (LRU-capped to avoid unbounded growth)
         if (response.status === 200) {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, copy).then(() => trimPageCache(cache)).catch(() => {});
+          }).catch(() => {});
         }
         return response;
       })
@@ -103,6 +118,20 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+// LRU cap: keep at most PAGE_CACHE_MAX_ENTRIES page responses, evict oldest first.
+async function trimPageCache(cache) {
+  try {
+    const keys = await cache.keys();
+    if (keys.length > PAGE_CACHE_MAX_ENTRIES) {
+      await cache.delete(keys[0]);
+      // Recurse in case multiple puts raced past the cap.
+      return trimPageCache(cache);
+    }
+  } catch (err) {
+    // Cache trim is best-effort; never break page serving.
+  }
+}
 
 async function fetchAndCache(request) {
   try {

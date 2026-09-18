@@ -1,0 +1,98 @@
+{# Reusable blog rendering macros: card, FAQ, HowTo, JSON-LD schema. #}
+{% macro blog_card(post) %}
+<article class="p-5 rounded-2xl bg-base-200/20 border border-base-300/20 h-full transition-all hover:border-primary/30 hover:shadow-sm">
+  <div class="text-[11px] font-bold uppercase tracking-widest text-primary mb-2">{{ post.pillar }}</div>
+  <h3 class="text-base font-bold mb-1">
+    <a href="/blog/{{ post.pillar }}/{{ post.slug }}" class="text-base-content hover:text-primary transition-colors">{{ post.title }}</a>
+  </h3>
+  {% if post.description %}<p class="text-base-content/50 text-sm leading-relaxed">{{ post.description }}</p>{% endif %}
+  {% if post.date_published %}<p class="text-xs text-base-content/40 mt-2"><time datetime="{{ post.date_published }}">{{ post.date_published }}</time></p>{% endif %}
+</article>
+{% endmacro %}
+
+{% macro blog_faq(faqs) %}
+{% if faqs %}
+<div class="mt-10 pt-8 border-t border-base-300/15">
+  <h2 class="text-2xl md:text-3xl font-bold mb-6" id="faqs">Frequently Asked Questions</h2>
+  <div class="space-y-3">
+    {% for item in faqs %}
+    <details class="glass-card glass-border-gradient rounded-xl card-focus-ring" {% if loop.first %}open{% endif %}>
+      <summary class="text-base font-bold px-5 py-4 cursor-pointer">{{ item.q }}</summary>
+      <div class="text-sm text-base-content/55 px-5 pb-4">{{ item.a }}</div>
+    </details>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro blog_howto(steps) %}
+{% if steps %}
+<div class="mt-10 pt-8 border-t border-base-300/15">
+  <h2 class="text-2xl md:text-3xl font-bold mb-6" id="how-to">How To</h2>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {% for step in steps %}
+    <div class="glass-card glass-border-gradient rounded-xl p-5 card-focus-ring">
+      <div class="text-primary font-black text-4xl mb-3 opacity-40">0{{ loop.index }}</div>
+      <h3 class="text-lg font-bold mb-2">{{ step.title }}</h3>
+      <p class="text-sm text-base-content/45">{{ step.desc }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% macro blog_schema(post, site_url) %}
+{% set base = site_url | default('https://www.storybrainai.com', true) %}
+<script type="application/ld+json" nonce="{{ nonce }}">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Article",
+      "headline": {{ post.title | tojson }},
+      "description": {{ post.description | default('', true) | tojson }},
+      "image": {{ (post.image or (base + '/static/og-image.webp')) | tojson }},
+      "author": {"@type": "Organization", "name": "StoryBrain AI", "url": {{ base | tojson }}},
+      "publisher": {"@type": "Organization", "name": "StoryBrain AI"},
+      {% if post.date_published %}"datePublished": {{ post.date_published | tojson }},{% endif %}
+      {% if post.date_modified %}"dateModified": {{ post.date_modified | tojson }},{% endif %}
+      "mainEntityOfPage": {"@type": "WebPage", "@id": {{ (base + '/blog/' + post.pillar + '/' + post.slug) | tojson }}},
+      "wordCount": 1500
+    }
+    {% if post.faqs %},{
+      "@type": "FAQPage",
+      "mainEntity": [
+        {% for item in post.faqs %}{
+          "@type": "Question",
+          "name": {{ item.q | tojson }},
+          "acceptedAnswer": {"@type": "Answer", "text": {{ item.a | tojson }}}
+        }{% if not loop.last %},{% endif %}{% endfor %}
+      ]
+    }{% endif %}
+    {% if post.howto_steps %},{
+      "@type": "HowTo",
+      "name": {{ ("How to use " + post.title) | tojson }},
+      "step": [
+        {% for step in post.howto_steps %}{
+          "@type": "HowToStep",
+          "position": {{ loop.index }},
+          "name": {{ step.title | tojson }},
+          "text": {{ step.desc | tojson }}
+        }{% if not loop.last %},{% endif %}{% endfor %}
+      ]
+    }{% endif %}
+    ,{
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {"@type": "ListItem", "position": 1, "name": "Home", "item": {{ (base + '/') | tojson }}},
+        {"@type": "ListItem", "position": 2, "name": "Blog", "item": {{ (base + '/blog') | tojson }}},
+        {"@type": "ListItem", "position": 3, "name": {{ post.pillar | tojson }}, "item": {{ (base + '/blog/' + post.pillar) | tojson }}},
+        {"@type": "ListItem", "position": 4, "name": {{ post.title | tojson }}, "item": {{ (base + '/blog/' + post.pillar + '/' + post.slug) | tojson }}}
+      ]
+    }
+  ]
+}
+</script>
+{% endmacro %}

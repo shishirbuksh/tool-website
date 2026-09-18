@@ -1,6 +1,7 @@
 """ASGI middleware: request ID propagation, origin-based CSRF, security headers, rate limiting."""
 
 import asyncio
+import re
 import secrets
 import time
 import uuid
@@ -10,14 +11,18 @@ from urllib.parse import urlparse
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import RedirectResponse, Response
 
 from app.core.config import settings
 from app.core.log import reset_request_id, set_request_id
 
+_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9-]{1,64}$")
+_TRUSTED_PROXY_HOSTS = {"127.0.0.1", "::1", "localhost"}
+
 _HSTS = "max-age=31536000; includeSubDomains; preload"
 _CSP_BASE = (
     "default-src 'self'; "
+    "object-src 'none'; "
     "style-src 'self' 'unsafe-inline'; "
     "font-src 'self' data:; "
     "img-src 'self' data: blob: https://pagead2.googlesyndication.com "
@@ -48,7 +53,11 @@ _CSP_SCRIPT_ALLOWED = (
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
-        request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+        raw_id = request.headers.get("X-Request-ID", "")
+        if raw_id and _REQUEST_ID_RE.match(raw_id):
+            request_id = raw_id
+        else:
+            request_id = str(uuid.uuid4())
         token = set_request_id(request_id)
         response = None
         try:
@@ -70,14 +79,14 @@ class OriginCheckMiddleware(BaseHTTPMiddleware):
             allowed = settings.allowed_hosts_list + [
                 url.hostname for url in map(URL, settings.cors_origins_list)
             ]
-            self._allowed = {h for h in allowed if h}
+            self._allowed = {h.lower() for h in allowed if h}
         return self._allowed
 
     async def dispatch(self, request: Request, call_next) -> Response:
         if request.method in ("POST", "PUT", "DELETE", "PATCH"):
             origin = request.headers.get("Origin")
             if origin:
-                origin_host = urlparse(origin).hostname or ""
+                origin_host = (urlparse(origin).hostname or "").lower()
                 if origin_host not in self._get_allowed():
                     return Response(
                         content='{"detail":"Cross-origin request blocked"}',
@@ -97,9 +106,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=(), browsing-topics=(), interest-cohort=()"
+        )
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
+        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+        response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
         response.headers["Content-Security-Policy"] = csp
-        response.headers["Vary"] = "Accept-Encoding, Origin"
+        # Merge Vary instead of overwriting (preserve upstream values, e.g. Origin from CORS).
+        existing_vary = response.headers.get("Vary", "")
+        vary_parts = [p.strip() for p in existing_vary.split(",") if p.strip()] if existing_vary else []
+        if "Accept-Encoding" not in vary_parts:
+            vary_parts.append("Accept-Encoding")
+        response.headers["Vary"] = ", ".join(vary_parts)
         return response
 
 
@@ -131,16 +150,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     @staticmethod
     def _resolve_ip(request: Request) -> str:
-        """Return the real client IP, trusting the reverse-proxy headers."""
-        # X-Real-IP is set by Caddy to the actual remote addr — authoritative.
-        real_ip = request.headers.get("X-Real-IP", "").strip()
-        if real_ip:
-            return real_ip
-        # Fallback: rightmost token in XFF is appended by the outermost trusted proxy.
-        xff = request.headers.get("X-Forwarded-For", "")
-        if xff:
-            return xff.split(",")[-1].strip()
-        return request.client.host if request.client else "unknown"
+        """Return the real client IP, trusting proxy headers only for loopback peers."""
+        direct_ip = request.client.host if request.client else ""
+        # Only trust X-Real-IP/XFF when the direct peer is a local proxy;
+        # otherwise a client could spoof these headers to bypass rate limits.
+        if direct_ip in _TRUSTED_PROXY_HOSTS:
+            # X-Real-IP is set by Caddy to the actual remote addr — authoritative.
+            real_ip = request.headers.get("X-Real-IP", "").strip()
+            if real_ip:
+                return real_ip
+            # Fallback: rightmost token in XFF is appended by the outermost trusted proxy.
+            xff = request.headers.get("X-Forwarded-For", "")
+            if xff:
+                return xff.split(",")[-1].strip()
+        return direct_ip or "unknown"
 
     def _is_rate_limited_redis(self, redis, key: str, now: float) -> bool:
         """Sliding-window check via Redis sorted set. Returns True if request should be blocked."""
@@ -148,13 +171,21 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             pipe = redis.pipeline()
             cutoff = now - 60
             pipe.zremrangebyscore(key, "-inf", cutoff)
-            pipe.zadd(key, {str(now): now})
+            # Unique member per request (uuid) to avoid ZADD collisions when
+            # two requests share the same timestamp.
+            pipe.zadd(key, {f"{now}:{uuid.uuid4().hex}": now})
             pipe.zcard(key)
             pipe.expire(key, 120)
             results = pipe.execute()
             count = results[2]
             return count > self.requests_per_minute
-        except Exception:
+        except Exception as exc:
+            try:
+                from app.core.cache import _mark_redis_unavailable  # noqa: PLC0415
+
+                _mark_redis_unavailable(exc)
+            except Exception:
+                pass
             return False  # fail open on Redis errors — allow request rather than block all traffic
 
     def _is_rate_limited_memory(self, client_ip: str, now: float) -> bool:
@@ -175,8 +206,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         for ip in stale:
             del self._windows[ip]
 
+    _EXPENSIVE_GET_PREFIXES = (
+        "/api/predict-crypto",
+        "/api/analyze-crypto",
+        "/api/fng",
+        "/api/jobs",
+    )
+
     async def dispatch(self, request: Request, call_next) -> Response:
-        if request.method in ("GET", "HEAD", "OPTIONS"):
+        path = request.url.path
+        is_expensive_get = request.method == "GET" and path.startswith(self._EXPENSIVE_GET_PREFIXES)
+        if request.method in ("GET", "HEAD", "OPTIONS") and not is_expensive_get:
             return await call_next(request)
 
         client_ip = self._resolve_ip(request)
@@ -243,7 +283,7 @@ class MaxBodySizeMiddleware:
                 await send({"type": "http.response.body", "body": b'{"detail":"Invalid Content-Length header"}'})
                 return
 
-        if scope.get("method") in ("POST", "PUT", "PATCH") and cl_header is None:
+        if scope.get("method") in ("POST", "PUT", "PATCH", "DELETE"):
             body_total = 0
             _overflow = False
             _response_started = False
@@ -288,8 +328,10 @@ class CaseSensitiveRedirectMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         path = request.url.path
         if path != path.lower() and not path.startswith("/static/"):
-            from starlette.responses import RedirectResponse
-            return RedirectResponse(url=str(request.url.replace(path=path.lower())), status_code=301)
+            target = path.lower()
+            if request.url.query:
+                target = f"{target}?{request.url.query}"
+            return RedirectResponse(url=target, status_code=308)
         return await call_next(request)
 
 

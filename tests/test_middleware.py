@@ -50,3 +50,56 @@ class TestRequestIDMiddleware:
         assert _request_id_var.get() == "outer-id"
         reset_request_id(token)
         assert _request_id_var.get() == ""
+
+
+class TestSecurityHeadersMiddleware:
+    @pytest.mark.asyncio
+    async def test_security_headers_present(self):
+        from app.core.middleware import SecurityHeadersMiddleware
+
+        mock_request = AsyncMock(spec=Request)
+        mock_request.state = type("State", (), {})()
+        mock_call_next = AsyncMock(return_value=Response())
+
+        middleware = SecurityHeadersMiddleware(lambda: None)
+        response = await middleware.dispatch(mock_request, mock_call_next)
+
+        assert "object-src 'none'" in response.headers["Content-Security-Policy"]
+        assert response.headers["Cross-Origin-Opener-Policy"] == "same-origin-allow-popups"
+        assert response.headers["Cross-Origin-Resource-Policy"] == "same-origin"
+        assert response.headers["X-Permitted-Cross-Domain-Policies"] == "none"
+        assert "browsing-topics=()" in response.headers["Permissions-Policy"]
+        assert "Accept-Encoding" in response.headers["Vary"]
+
+
+class TestCaseSensitiveRedirectMiddleware:
+    @pytest.mark.asyncio
+    async def test_relative_redirect_preserves_query(self):
+        from app.core.middleware import CaseSensitiveRedirectMiddleware
+
+        mock_url = type("Url", (), {"path": "/TOOL/Image-Compressor", "query": "source=header&ref=test"})()
+        mock_request = AsyncMock(spec=Request)
+        mock_request.url = mock_url
+        mock_call_next = AsyncMock(return_value=Response())
+
+        middleware = CaseSensitiveRedirectMiddleware(lambda: None)
+        response = await middleware.dispatch(mock_request, mock_call_next)
+
+        assert response.status_code == 308
+        assert response.headers["location"] == "/tool/image-compressor?source=header&ref=test"
+
+
+class TestOriginCheckMiddleware:
+    @pytest.mark.asyncio
+    async def test_blocks_unauthorized_cross_origin_post(self):
+        from app.core.middleware import OriginCheckMiddleware
+
+        mock_request = AsyncMock(spec=Request)
+        mock_request.method = "POST"
+        mock_request.headers = {"Origin": "https://malicious-site.com"}
+        mock_call_next = AsyncMock(return_value=Response())
+
+        middleware = OriginCheckMiddleware(lambda: None)
+        response = await middleware.dispatch(mock_request, mock_call_next)
+
+        assert response.status_code == 403

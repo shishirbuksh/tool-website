@@ -1,3 +1,4 @@
+import re
 import time
 
 from prometheus_client import Counter, Gauge, Histogram
@@ -10,19 +11,62 @@ from app.core.log import get_logger
 logger = get_logger(__name__)
 
 _PATH_CARDINALITY_WARNED: set[str] = set()
+_CARDINALITY_CAP_WARNED = False
+
+_UUID_RE = re.compile(
+    r"/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?=/|$)"
+)
+_NUMERIC_RE = re.compile(r"/\d+(?=/|$)")
+_TOOL_SLUG_RE = re.compile(r"^/tool/[^/]+")
+_PAGE_RE = re.compile(r"^/(about|contact|privacy|terms|disclaimer)/?$")
+
+
+def reset_cardinality() -> None:
+    """Reset cardinality tracking state (test helper)."""
+    global _CARDINALITY_CAP_WARNED
+    _PATH_CARDINALITY_WARNED.clear()
+    _CARDINALITY_CAP_WARNED = False
+
+
+def _normalize_path(path: str) -> str:
+    """Bound cardinality: collapse high-cardinality segments to templates."""
+    if path.startswith("/static/"):
+        return "/static/*"
+    if _PAGE_RE.match(path):
+        return "/{page}"
+    # /tool/<anything> (incl. deeper) -> /tool/{slug}[...]
+    if _TOOL_SLUG_RE.match(path):
+        path = _TOOL_SLUG_RE.sub("/tool/{slug}", path, count=1)
+    path = _UUID_RE.sub("/{id}", path)
+    path = _NUMERIC_RE.sub("/{id}", path)
+    return path
 
 def _safe_path_label(request, max_labels: int = 100) -> str:
     """Return the route pattern path to bound Prometheus label cardinality.
 
-    Falls back to a truncated raw path when no route is matched, and warns
+    Falls back to a normalized raw path when no route is matched, and warns
     once per unknown path pattern.
     """
+    global _CARDINALITY_CAP_WARNED
     route = request.scope.get("route")
     if route is not None:
-        return getattr(route, "path", request.url.path)
-    path = request.url.path
-    if len(_PATH_CARDINALITY_WARNED) < max_labels and path not in _PATH_CARDINALITY_WARNED:
-        _PATH_CARDINALITY_WARNED.add(path)
+        path_attr = getattr(route, "path", None)
+        if path_attr:
+            return path_attr
+    raw_path = request.url.path
+    path = _normalize_path(raw_path)
+    if path not in _PATH_CARDINALITY_WARNED:
+        if len(_PATH_CARDINALITY_WARNED) < max_labels:
+            _PATH_CARDINALITY_WARNED.add(path)
+        elif not _CARDINALITY_CAP_WARNED:
+            _CARDINALITY_CAP_WARNED = True
+            logger.warning(
+                "Path label cardinality cap (%d) exceeded; "
+                "additional paths will still be normalized but not tracked separately. "
+                "Example overflow path: %s",
+                max_labels,
+                path,
+            )
     return path
 
 request_count = Counter(
