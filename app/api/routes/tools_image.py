@@ -1,6 +1,7 @@
 """Image processing API endpoints: background removal, watermark removal."""
 
 import asyncio
+import concurrent.futures
 import io
 import re
 
@@ -17,6 +18,10 @@ __all__ = ["router"]
 router = APIRouter(prefix="/api", tags=["Image"])
 image_service = ImageService(settings)
 logger = get_logger(__name__)
+
+# Ensure ML tasks don't starve the global event loop threadpool
+_ml_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_prefix="img_ml_worker")
+
 _VALID_ALGORITHMS = {"telea", "ns"}
 _BG_COLOR_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 _image_semaphore = None
@@ -76,7 +81,7 @@ async def remove_background(
     loop = _get_loop()
     try:
         async with _get_semaphore():
-            result = await loop.run_in_executor(None, image_service.remove_background, image_data, bg_color, smooth_edges)
+            result = await loop.run_in_executor(_ml_executor, image_service.remove_background, image_data, bg_color, smooth_edges)
         return Response(content=result, media_type="image/png")
     except HTTPException:
         raise
@@ -103,7 +108,7 @@ async def remove_watermark(
     loop = _get_loop()
     try:
         async with _get_semaphore():
-            result = await loop.run_in_executor(None, image_service.remove_watermark, image_data, mask_data, algorithm)
+            result = await loop.run_in_executor(_ml_executor, image_service.remove_watermark, image_data, mask_data, algorithm)
         return Response(content=result, media_type="image/png")
     except HTTPException:
         raise

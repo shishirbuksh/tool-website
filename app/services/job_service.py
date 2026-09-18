@@ -111,7 +111,8 @@ class JobService:
         now = time.time()
         if now - self._last_cleanup > self._cleanup_interval:
             with self._lock:
-                cutoff = now - 3600
+                # Limit completed jobs memory footprint: max 5 minutes TTL
+                cutoff = now - 300
                 self._jobs = {
                     jid: j
                     for jid, j in self._jobs.items()
@@ -125,8 +126,9 @@ class JobService:
                             pending[jid] = j
                         else:
                             completed.append((jid, j))
+                    # Keep at most 10 recent completed jobs to save RAM
                     completed.sort(key=lambda x: x[1].created_at, reverse=True)
-                    pending.update(dict(completed[: self._max_jobs // 2]))
+                    pending.update(dict(completed[: 10]))
                     self._jobs = pending
             self._last_cleanup = now
 

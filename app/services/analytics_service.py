@@ -123,7 +123,7 @@ def track(name: str, category: str = "page_view") -> bool:
         logger.exception("Failed to track analytics event")
         return False
     try:
-        with _write_lock:
+        if True:  # _write_lock removed for SQLite WAL concurrency
             try:
                 conn.execute(
                     "INSERT INTO events (name, category, ts) VALUES (?, ?, ?)",
@@ -173,7 +173,7 @@ def _cleanup_old_events() -> None:
         logger.exception("Failed to cleanup old analytics events")
         return
     try:
-        with _write_lock:
+        if True:  # _write_lock removed for SQLite WAL concurrency
             try:
                 cutoff = (datetime.now(UTC) - timedelta(days=_RETENTION_DAYS)).isoformat()
                 conn.execute("DELETE FROM events WHERE ts < ?", (cutoff,))

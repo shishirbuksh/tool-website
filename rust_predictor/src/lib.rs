@@ -91,9 +91,14 @@ fn train_and_predict(py: Python, prices: Vec<f64>, lookback: usize, epochs: usiz
     
     fn relu(val: f64) -> f64 { if val > 0.0 { val } else { 0.0 } }
     
+    // Pre-allocate working memory to avoid heap thrashing in the hot loops
+    let mut hidden = vec![0.0; hidden_size];
+    let mut d_w2 = vec![0.0; hidden_size];
+    let mut d_hidden = vec![0.0; hidden_size];
+    
     for _epoch in 0..epochs {
         for i in 0..x.len() {
-            let mut hidden = vec![0.0; hidden_size];
+            // Forward pass
             for j in 0..hidden_size {
                 let mut sum = b1[j];
                 for k in 0..input_size {
@@ -107,18 +112,16 @@ fn train_and_predict(py: Python, prices: Vec<f64>, lookback: usize, epochs: usiz
                 output += w2[j] * hidden[j];
             }
             
-            let target = y[i];
-            let err = output - target;
+            let err = output - y[i];
             
+            // Backprop
             let d_output = 2.0 * err; // MSE derivative wrt prediction
             
-            let mut d_w2 = vec![0.0; hidden_size];
             for j in 0..hidden_size {
                 d_w2[j] = d_output * hidden[j];
             }
             let d_b2 = d_output;
             
-            let mut d_hidden = vec![0.0; hidden_size];
             for j in 0..hidden_size {
                 let d_relu = if hidden[j] > 0.0 { 1.0 } else { 0.0 };
                 d_hidden[j] = d_output * w2[j] * d_relu;

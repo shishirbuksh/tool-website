@@ -9,12 +9,14 @@ from app.core.cache import get_cache
 from app.core.config import Settings
 from app.core.exceptions import ServiceError
 from app.core.log import get_logger
+import concurrent.futures
 
 logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
 
 logger = get_logger(__name__)
 
 _prophet_semaphore: asyncio.Semaphore | None = None
+_ml_executor = concurrent.futures.ThreadPoolExecutor(max_workers=10, thread_name_prefix="ml_worker")
 
 def _get_prophet_semaphore() -> asyncio.Semaphore:
     global _prophet_semaphore
@@ -122,7 +124,7 @@ class CryptoService:
             return df
 
         try:
-            df = await asyncio.wait_for(loop.run_in_executor(None, _download), timeout=30)
+            df = await asyncio.wait_for(loop.run_in_executor(_ml_executor, _download), timeout=30)
         except TimeoutError:
             raise ServiceError("Market data download timed out after 30 seconds") from None
         df = df.dropna()
@@ -186,13 +188,13 @@ class CryptoService:
                 logger.warning(f"Prophet prediction timeout for {symbol}: Too many concurrent models")
                 return None
             try:
-                return await loop.run_in_executor(None, _run_prophet)
+                return await loop.run_in_executor(_ml_executor, _run_prophet)
             finally:
                 sem.release()
 
         prophet_preds, rust_preds = await asyncio.gather(
             _run_prophet_async(),
-            loop.run_in_executor(None, _run_rust),
+            loop.run_in_executor(_ml_executor, _run_rust),
         )
 
         if prophet_preds is None and rust_preds is None:
