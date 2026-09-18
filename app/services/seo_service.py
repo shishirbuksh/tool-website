@@ -108,7 +108,7 @@ class SeoService:
             elif cat in ("Developer & SEO",):
                 meta_title = f"{name} — Free SEO Tool Online | StoryBrain AI"
             elif cat in ("Image Processing", "Productivity & Utilities"):
-                meta_title = f"Free {name} Online Tool | StoryBrain AI"
+                meta_title = f"{name} - Fast & Private Browser Utility | StoryBrain AI"
             else:
                 meta_title = f"{name} — Free Online Tool | StoryBrain AI"
         else:
@@ -143,7 +143,7 @@ class SeoService:
         return ToolSEO(
             slug=slug,
             name=name,
-            meta_title=f"Free {name} Online Tool | StoryBrain AI",
+            meta_title=f"{name} - Fast & Private Browser Utility | StoryBrain AI",
             icon=_CATEGORY_ICONS.get(cat, "wand-2"),
             description=f"Free online {name} — fast, private, no-signup browser tool | StoryBrain AI",
             app_category=_CATEGORY_APP.get(cat, "UtilitiesApplication"),

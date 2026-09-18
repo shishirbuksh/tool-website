@@ -116,7 +116,7 @@ class ImageService:
         bg_color = _validate_bg_color(bg_color)
         try:
             rembg = self._get_rembg()
-            input_img = Image.open(io.BytesIO(image_data)).convert("RGBA")
+            with Image.open(io.BytesIO(image_data)) as orig_img: input_img = orig_img.convert("RGBA")
             max_dim = 800 if smooth_edges else 2048
             if input_img.width > max_dim or input_img.height > max_dim:
                 input_img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)

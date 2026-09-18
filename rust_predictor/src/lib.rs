@@ -111,11 +111,13 @@ fn train_and_predict(py: Python, prices: Vec<f64>, lookback: usize, epochs: usiz
             for j in 0..hidden_size {
                 output += w2[j] * hidden[j];
             }
+            // Sigmoid activation to bound predictions to [0, 1]
+            output = 1.0 / (1.0 + (-output).exp());
             
             let err = output - y[i];
             
-            // Backprop
-            let d_output = 2.0 * err; // MSE derivative wrt prediction
+            // Backprop: MSE derivative * Sigmoid derivative
+            let d_output = 2.0 * err * output * (1.0 - output);
             
             for j in 0..hidden_size {
                 d_w2[j] = d_output * hidden[j];
@@ -167,6 +169,7 @@ fn train_and_predict(py: Python, prices: Vec<f64>, lookback: usize, epochs: usiz
         for j in 0..hidden_size {
             output += w2[j] * hidden[j];
         }
+        output = 1.0 / (1.0 + (-output).exp());
         
         let mut res = output * (max - min) + min;
         // Clamp to [0, max*10] so predictions stay non-negative and bounded.

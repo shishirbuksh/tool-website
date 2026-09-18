@@ -155,7 +155,7 @@ class CryptoService:
                         "y": close_prices,
                     }
                 )
-                m = prophet_mod(daily_seasonality=True, yearly_seasonality=True)
+                m = prophet_mod(daily_seasonality=False, yearly_seasonality=False, weekly_seasonality=True)
                 m.fit(prophet_df)
                 future = m.make_future_dataframe(periods=future_days)
                 forecast = m.predict(future)
