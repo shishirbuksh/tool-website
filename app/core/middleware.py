@@ -166,18 +166,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return direct_ip or "unknown"
 
     def _is_rate_limited_redis(self, redis, key: str, now: float) -> bool:
-        """Sliding-window check via Redis sorted set. Returns True if request should be blocked."""
+        """Fixed-window check via Redis INCR. O(1) memory per IP, immune to DDoS RAM exhaustion."""
         try:
+            window_key = f"{key}:{int(now // 60)}"
             pipe = redis.pipeline()
-            cutoff = now - 60
-            pipe.zremrangebyscore(key, "-inf", cutoff)
-            # Unique member per request (uuid) to avoid ZADD collisions when
-            # two requests share the same timestamp.
-            pipe.zadd(key, {f"{now}:{uuid.uuid4().hex}": now})
-            pipe.zcard(key)
-            pipe.expire(key, 120)
+            pipe.incr(window_key)
+            pipe.expire(window_key, 120)
             results = pipe.execute()
-            count = results[2]
+            count = results[0]
             return count > self.requests_per_minute
         except Exception as exc:
             try:
