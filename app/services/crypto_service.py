@@ -124,6 +124,23 @@ class CryptoService:
         def _download():
             import requests, datetime
             pd = self._get_pd()
+            
+            # 1. Try CoinGecko (Never blocks datacenters)
+            coin_map = {"BTC-USD": "bitcoin", "ETH-USD": "ethereum", "SOL-USD": "solana"}
+            if symbol in coin_map:
+                try:
+                    r = requests.get(f"https://api.coingecko.com/api/v3/coins/{coin_map[symbol]}/market_chart?vs_currency=usd&days=365&interval=daily", timeout=10)
+                    if r.status_code == 200:
+                        data = r.json()
+                        prices = data.get("prices", [])
+                        if prices:
+                            dates = [datetime.datetime.fromtimestamp(x[0]/1000, tz=datetime.timezone.utc) for x in prices]
+                            closes = [float(x[1]) for x in prices]
+                            return pd.DataFrame({"Close": closes}, index=pd.DatetimeIndex(dates))
+                except Exception:
+                    pass
+
+            # 2. Try Binance & Binance US
             binance_sym = symbol.replace("-USD", "USDT")
             urls = [
                 f"https://api.binance.com/api/v3/klines?symbol={binance_sym}&interval=1d&limit=365",
@@ -134,31 +151,16 @@ class CryptoService:
             for url in urls:
                 try:
                     r = requests.get(url, timeout=10)
-                    r.raise_for_status()
-                    data = r.json()
-                    if not data:
-                        continue
-                    dates = [datetime.datetime.fromtimestamp(x[0]/1000, tz=datetime.timezone.utc) for x in data]
-                    closes = [float(x[4]) for x in data]
-                    df = pd.DataFrame({"Close": closes}, index=pd.DatetimeIndex(dates))
-                    return df
+                    if r.status_code == 200:
+                        data = r.json()
+                        if data:
+                            dates = [datetime.datetime.fromtimestamp(x[0]/1000, tz=datetime.timezone.utc) for x in data]
+                            closes = [float(x[4]) for x in data]
+                            return pd.DataFrame({"Close": closes}, index=pd.DatetimeIndex(dates))
                 except Exception as e:
                     last_error = str(e)
-                    continue
-
-            # Fallback to yfinance
-            try:
-                yf = self._get_yf()
-                session = requests.Session()
-                session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'})
-                df = yf.download(symbol, period=period, interval="1d", progress=False, session=session)
-                if not df.empty:
-                    return df
-            except Exception as e:
-                last_error += f" | yfinance error: {str(e)}"
-                
+                    
             raise ServiceError(f"Symbol '{symbol}' not found or blocked by exchanges. Details: {last_error}")
-
         try:
             df = await asyncio.wait_for(loop.run_in_executor(_ml_executor, _download), timeout=30)
         except TimeoutError:
