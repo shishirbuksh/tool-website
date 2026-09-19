@@ -24,14 +24,20 @@ from pydantic import ValidationError as PydanticValidationError
 
 logger = get_logger(__name__)
 
-_fractal_semaphore: asyncio.Semaphore | None = None
+_fractal_semaphores: dict[int, asyncio.Semaphore] = {}
+_fractal_sem_lock = __import__("threading").Lock()
 
 
 def _get_fractal_semaphore() -> asyncio.Semaphore:
-    global _fractal_semaphore
-    if _fractal_semaphore is None:
-        _fractal_semaphore = asyncio.Semaphore(3)
-    return _fractal_semaphore
+    loop_id = id(asyncio.get_running_loop())
+    with _fractal_sem_lock:
+        sem = _fractal_semaphores.get(loop_id)
+        if sem is None:
+            sem = asyncio.Semaphore(3)
+            _fractal_semaphores[loop_id] = sem
+            if len(_fractal_semaphores) > 8:
+                _fractal_semaphores.pop(next(iter(_fractal_semaphores)), None)
+        return sem
 
 
 class FractalService:

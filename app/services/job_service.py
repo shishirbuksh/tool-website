@@ -24,10 +24,10 @@ class Job:
 
 
 class JobService:
-    def __init__(self, max_concurrent: int = 10, task_timeout: float = 300.0) -> None:
-        # ROUND-2: task_timeout (300s) MUST stay < gunicorn timeout (see
-        # gunicorn_conf.py TIMEOUT, default 120s — raise gunicorn timeout
-        # above this when running long rembg/prophet jobs, or lower this).
+    def __init__(self, max_concurrent: int = 10, task_timeout: float = 90.0) -> None:
+        # task_timeout (90s) MUST stay < gunicorn timeout (see
+        # gunicorn_conf.py TIMEOUT, default 320s). Gunicorn SIGKILLs workers
+        # past TIMEOUT, so jobs must finish well before that.
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
         self._tasks: set[asyncio.Task[Any]] = set()
@@ -36,13 +36,23 @@ class JobService:
         self._last_cleanup = time.time()
         self._max_concurrent = max_concurrent
         self._task_timeout = task_timeout
-        # Async concurrency limiter (created lazily to avoid loop binding at import).
-        self._sem: asyncio.Semaphore | None = None
+        # Async concurrency limiters per event loop (Uvicorn reload/tests create
+        # new loops; a Semaphore bound to a closed loop raises RuntimeError).
+        self._sems: dict[int, asyncio.Semaphore] = {}
+        self._sem_lock = threading.Lock()
 
     def _get_sem(self) -> asyncio.Semaphore:
-        if self._sem is None:
-            self._sem = asyncio.Semaphore(self._max_concurrent)
-        return self._sem
+        loop_id = id(asyncio.get_running_loop())
+        with self._sem_lock:
+            sem = self._sems.get(loop_id)
+            if sem is None:
+                sem = asyncio.Semaphore(self._max_concurrent)
+                self._sems[loop_id] = sem
+                # Bound memory: drop stale loop entries.
+                if len(self._sems) > 8:
+                    oldest = next(iter(self._sems))
+                    self._sems.pop(oldest, None)
+            return sem
 
     def submit(self, name: str, coro_factory: Callable[[], Coroutine[Any, Any, Any]]) -> JobResponse:
         if not callable(coro_factory):

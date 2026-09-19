@@ -14,6 +14,8 @@ from jinja2.exceptions import TemplateNotFound
 from markupsafe import Markup
 from pydantic import BaseModel, Field, ValidationError
 
+from app.core.sanitize import sanitize_html
+
 try:
     from pydantic import EmailStr
 
@@ -58,6 +60,10 @@ class ContactResponse(BaseModel):
 
 _CONTACT_MAX_BYTES = 32_000
 
+# Per-email contact throttle (spam oracle guard): 3/min per sender address.
+_CONTACT_EMAIL_WINDOWS: dict[str, list[float]] = {}
+_CONTACT_EMAIL_LOCK = __import__("threading").Lock()
+
 
 
 router = APIRouter()
@@ -70,7 +76,7 @@ templates.env.globals["lucide_icon"] = lucide_icon
 templates.env.globals["today"] = lambda: datetime.now(UTC).strftime("%Y-%m-%d")
 templates.env.globals["SITE_URL"] = settings.SITE_URL.rstrip("/")
 templates.env.globals["site_url"] = settings.SITE_URL.rstrip("/")
-templates.env.filters["sanitize"] = lambda html: Markup(nh3.clean(html or ""))
+templates.env.filters["sanitize"] = sanitize_html
 
 APP_VERSION = os.getenv("APP_VERSION", "dev")
 templates.env.globals["app_version"] = APP_VERSION
@@ -98,9 +104,23 @@ def _get_cached_page_names() -> list[str]:
 
 @router.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def home(request: Request) -> HTMLResponse:
-    categories, static_pages = catalog_service.get_categorized_tools()
+    # Sync YAML/dir scans run in a worker thread so the event loop stays free.
+    categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools)
+    recent_posts, popular_posts, pillars = await asyncio.gather(
+        asyncio.to_thread(blog_service.get_recent, 3),
+        asyncio.to_thread(blog_service.get_popular, 3),
+        asyncio.to_thread(blog_service.get_pillars),
+    )
     resp = templates.TemplateResponse(
-        request=request, name="index.html", context={"categories": categories, "static_pages": static_pages}
+        request=request,
+        name="index.html",
+        context={
+            "categories": categories,
+            "static_pages": static_pages,
+            "recent_posts": recent_posts,
+            "popular_posts": popular_posts,
+            "pillars": pillars,
+        },
     )
     resp.headers.update(_PAGE_CACHE_HEADERS)
     return resp
@@ -108,7 +128,7 @@ async def home(request: Request) -> HTMLResponse:
 
 @router.api_route("/tools", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def tools_page(request: Request) -> HTMLResponse:
-    categories, static_pages = catalog_service.get_categorized_tools()
+    categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools)
     resp = templates.TemplateResponse(
         request=request, name="pages/tools.html", context={"categories": categories, "static_pages": static_pages}
     )
@@ -201,7 +221,24 @@ async def contact_submission(request: Request) -> ContactResponse:
     safe_name = re.sub(r"[\r\n]+", " ", form.name).strip()
     safe_email = str(form.email).replace("\r", "").replace("\n", "").strip()
     safe_message_snippet = form.message.replace("\r", " ").replace("\n", " ")
+    # Sanitize ANSI/log injection: strip control chars except space.
+    safe_name = re.sub(r"[\x00-\x1f\x7f]", "", safe_name)
+    safe_message_snippet = re.sub(r"[\x00-\x1f\x7f]", "", safe_message_snippet)
     logger.info("Contact form submission from %s (%s): %.80s", safe_name, safe_email, safe_message_snippet)
+
+    # Per-sender throttle (in addition to global RateLimitMiddleware 60/min).
+    now = time.time()
+    with _CONTACT_EMAIL_LOCK:
+        bucket = _CONTACT_EMAIL_WINDOWS.setdefault(safe_email.lower(), [])
+        while bucket and bucket[0] < now - 60:
+            bucket.pop(0)
+        if len(bucket) >= 3:
+            raise HTTPException(status_code=429, detail="Too many messages from this address")
+        bucket.append(now)
+
+    if not CONTACT_RECIPIENT:
+        logger.warning("Contact form received but CONTACT_EMAIL not configured — queued without email")
+        return ContactResponse(status="ok")
 
     if CONTACT_RECIPIENT:
         try:
@@ -216,11 +253,18 @@ async def contact_submission(request: Request) -> ContactResponse:
             msg["Reply-To"] = safe_email
             smtp_host = os.getenv("SMTP_HOST", "localhost")
             smtp_port = int(os.getenv("SMTP_PORT", "25"))
+            smtp_user = os.getenv("SMTP_USER", "")
             with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as s:
                 try:
                     s.starttls()
-                except Exception:
-                    pass  # Server may not support STARTTLS; try plain
+                except Exception as e:
+                    # Fail closed when credentials/TLS expected; allow plaintext only for local relay.
+                    if smtp_user or smtp_host not in ("localhost", "127.0.0.1", "::1"):
+                        raise HTTPException(status_code=502, detail="Mail TLS required") from e
+                if smtp_user:
+                    smtp_pass = os.getenv("SMTP_PASS", "")
+                    if smtp_pass:
+                        s.login(smtp_user, smtp_pass)
                 s.send_message(msg)
         except HTTPException:
             raise
@@ -264,6 +308,10 @@ async def get_page(request: Request, page_name: str) -> HTMLResponse:
         raise HTTPException(status_code=404, detail="Not found")
     if page_name in ("sw.js", "favicon.ico"):
         raise HTTPException(status_code=404, detail="Not found")
+
+    # Legacy hub alias: /pdf-tools -> /productivity-tools (301, preserves SEO equity).
+    if page_name == "pdf-tools":
+        return RedirectResponse(url="/productivity-tools", status_code=301)
 
     if page_name in settings.HUB_CATEGORIES:
         category_name, seo_title = settings.HUB_CATEGORIES[page_name]

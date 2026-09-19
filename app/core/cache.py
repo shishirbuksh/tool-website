@@ -89,13 +89,16 @@ _MISSING_SENTINEL = _MISSING
 
 
 def _jittered_ttl(base: int, spread: int = 60) -> int:
-    """ROUND-2: add ±``spread`` jitter to TTL to avoid thundering-herd expiry.
+    """Add ±``spread`` jitter to TTL to avoid thundering-herd expiry.
 
     Crypto callers (predict/trend, default 300s) stampede when keys expire in
-    lockstep; jitter spreads recompute load. Always returns >= 1.
+    lockstep; jitter spreads recompute load. Spread scales down for small TTLs
+    so a 60s TTL never collapses to ~1s. Always returns >= 1.
     """
     try:
-        return max(1, int(base) + random.randint(-spread, spread))
+        b = int(base)
+        s = max(1, min(int(spread), b // 3))
+        return max(1, b + random.randint(-s, s))
     except Exception:
         return int(base)
 
@@ -233,12 +236,22 @@ class CacheService:
 
     def clear(self):
         _memory_cache.clear()
+        # Best-effort: reset in-process singleflight/cached layers too.
+        try:
+            from app.api.routes.tools_fng import _FNG_LOCKS  # noqa: PLC0415
+            from app.api.routes.tools_fng import _get_cached_fng  # noqa: PLC0415
+
+            _FNG_LOCKS.clear()
+            if hasattr(_get_cached_fng, "_cache"):
+                _get_cached_fng._cache.clear()  # type: ignore[attr-defined]
+        except Exception:
+            pass
         redis = _get_redis()
         if redis:
             try:
                 # ROUND-2: never flushdb() — it nukes unrelated DBs/tenants.
                 # Delete only our own namespaces via scan_iter.
-                for pattern in ("cache:*", "ratelimit:*"):
+                for pattern in ("cache:*", "ratelimit:*", "predict:*", "trend:*", "fng:*", "seo:*", "blog:*"):
                     try:
                         for key in redis.scan_iter(match=pattern, count=500):
                             try:

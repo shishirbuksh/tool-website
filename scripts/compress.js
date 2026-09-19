@@ -6,9 +6,12 @@ const zlib = require('zlib');
 // Targets mirror scripts/build.js outputs + postcss CSS output. No deps.
 const targets = [
   'static/css/app.css',
+  'static/css/fonts.css',
   'static/js/app.js',
   'static/js/tools.utils.js',
   'static/js/tools.js',
+  'static/manifest.json',
+  'static/sitemap.xsl',
 ];
 
 function compressOne(rel) {

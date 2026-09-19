@@ -17,7 +17,7 @@ from app.core.config import settings
 from app.core.log import reset_request_id, set_request_id
 
 _REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9-]{1,64}$")
-_TRUSTED_PROXY_HOSTS = {"127.0.0.1", "::1", "localhost"}
+_TRUSTED_PROXY_HOSTS = {"127.0.0.1", "::1", "::ffff:127.0.0.1", "localhost"}
 
 _HSTS = "max-age=31536000; includeSubDomains; preload"
 _CSP_BASE = (
@@ -165,8 +165,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 return xff.split(",")[-1].strip()
         return direct_ip or "unknown"
 
-    def _is_rate_limited_redis(self, redis, key: str, now: float) -> bool:
+    def _is_rate_limited_redis(self, redis, key: str, now: float, limit: int | None = None) -> bool:
         """Fixed-window check via Redis INCR. O(1) memory per IP, immune to DDoS RAM exhaustion."""
+        check = limit if limit is not None else self.requests_per_minute
         try:
             window_key = f"{key}:{int(now // 60)}"
             pipe = redis.pipeline()
@@ -174,7 +175,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             pipe.expire(window_key, 120)
             results = pipe.execute()
             count = results[0]
-            return count > self.requests_per_minute
+            return count > check
         except Exception as exc:
             try:
                 from app.core.cache import _mark_redis_unavailable  # noqa: PLC0415
@@ -184,13 +185,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 pass
             return False  # fail open on Redis errors — allow request rather than block all traffic
 
-    def _is_rate_limited_memory(self, client_ip: str, now: float) -> bool:
+    def _is_rate_limited_memory(self, client_ip: str, now: float, limit: int | None = None) -> bool:
         """Sliding-window check against in-process dict."""
-        window = self._windows[client_ip]
+        check = limit if limit is not None else self.requests_per_minute
+        # Namespace memory buckets by limit so 60/min and 200/min don't share counts.
+        bucket = f"{client_ip}#{check}"
+        window = self._windows[bucket]
         cutoff = now - 60
         while window and window[0] < cutoff:
             window.pop(0)
-        if len(window) >= self.requests_per_minute:
+        if len(window) >= check:
             return True
         window.append(now)
         return False
@@ -208,34 +212,54 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/api/fng",
         "/api/jobs",
     )
+    # Heavy HTML pages (Jinja render) — high but bounded limit to stop GET-flood DDoS
+    # while allowing NATed offices. 200/min vs 60/min for writes.
+    _HEAVY_GET_PREFIXES = (
+        "/tool/",
+        "/blog",
+        "/tools",
+        "/calculators",
+        "/ai-tools",
+        "/image-tools",
+        "/developer-tools",
+        "/business-tools",
+        "/pdf-tools",
+        "/productivity-tools",
+    )
+    _HEAVY_GET_LIMIT = 200
 
     async def dispatch(self, request: Request, call_next) -> Response:
         path = request.url.path
-        is_expensive_get = request.method == "GET" and path.startswith(self._EXPENSIVE_GET_PREFIXES)
-        if request.method in ("GET", "HEAD", "OPTIONS") and not is_expensive_get:
-            return await call_next(request)
+        limit = self.requests_per_minute
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            if path.startswith(self._EXPENSIVE_GET_PREFIXES):
+                pass  # limit stays 60
+            elif path == "/" or path.startswith(self._HEAVY_GET_PREFIXES):
+                limit = self._HEAVY_GET_LIMIT
+            else:
+                return await call_next(request)
 
         client_ip = self._resolve_ip(request)
         now = time.time()
         redis = self._get_redis()
 
         if redis:
-            key = f"ratelimit:{client_ip}"
+            key = f"ratelimit:{client_ip}:{limit}"
             blocked = await asyncio.get_running_loop().run_in_executor(
-                None, self._is_rate_limited_redis, redis, key, now
+                None, self._is_rate_limited_redis, redis, key, now, limit
             )
         else:
             if now - self._last_window_cleanup > 300:
                 self._cleanup_windows()
                 self._last_window_cleanup = now
-            blocked = self._is_rate_limited_memory(client_ip, now)
+            blocked = self._is_rate_limited_memory(client_ip, now, limit)
 
         if blocked:
             return Response(
                 content='{"detail":"Rate limit exceeded. Try again in a minute."}',
                 status_code=429,
                 media_type="application/json",
-                headers={"Retry-After": "60", "X-RateLimit-Limit": str(self.requests_per_minute)},
+                headers={"Retry-After": "60", "X-RateLimit-Limit": str(limit)},
             )
         return await call_next(request)
 
@@ -323,7 +347,7 @@ class MaxBodySizeMiddleware:
 class CaseSensitiveRedirectMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         path = request.url.path
-        if path != path.lower() and not path.startswith("/static/"):
+        if path != path.lower() and not path.lower().startswith("/static/"):
             target = path.lower()
             if request.url.query:
                 target = f"{target}?{request.url.query}"

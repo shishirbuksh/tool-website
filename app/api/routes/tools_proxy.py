@@ -15,16 +15,30 @@ logger = get_logger(__name__)
 
 
 async def _proxy_rate_limit_stub() -> None:
-    # Rate-limit dependency stub: replace with real per-IP limiter.
-    # TODO: enforce rate-limit middleware + auth guard (require_internal or API key).
-    # Open proxies are abusable; at minimum rate-limit and strip credentials (see below).
+    # Global RateLimitMiddleware already enforces 60/min on POST /api/proxy-request.
+    # This dependency exists to keep an explicit hook for future per-URL quotas/API keys.
     return None
+
+
+_STRIPPED_PROXY_HEADERS = frozenset(
+    {
+        "authorization",
+        "cookie",
+        "host",
+        "x-forwarded-for",
+        "x-real-ip",
+        "proxy-authorization",
+        "te",
+        "transfer-encoding",
+    }
+)
 
 
 @router.post("/proxy-request", response_model=ProxyResponse, dependencies=[Depends(_proxy_rate_limit_stub)])
 async def proxy_request(req: ProxyRequest) -> ProxyResponse:
-    # Strip credentialed headers so callers cannot forward ambient auth.
-    safe_headers = {k: v for k, v in (req.headers or {}).items() if k.lower() not in ("authorization", "cookie")}
+    # Strip credentialed + routing headers so callers cannot forward ambient auth
+    # or spoof upstream proxy chain.
+    safe_headers = {k: v for k, v in (req.headers or {}).items() if k.lower() not in _STRIPPED_PROXY_HEADERS}
     try:
         result = await proxy_service.execute(str(req.url), req.method, safe_headers, req.body)
         return ProxyResponse(**result) if isinstance(result, dict) else result

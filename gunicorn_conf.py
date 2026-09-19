@@ -2,7 +2,7 @@ import logging
 import multiprocessing
 import os
 
-host = os.getenv("HOST", "0.0.0.0")
+host = os.getenv("HOST", "127.0.0.1")
 port = os.getenv("PORT", "8090")
 bind = f"{host}:{port}"
 
@@ -26,8 +26,12 @@ loglevel = os.getenv("LOG_LEVEL", "info").lower()
 accesslog = "-"
 errorlog = "-"
 
-timeout = int(os.getenv("TIMEOUT", "120"))  # 120s to allow rembg/prophet cold starts; lower to 30-60 behind a fast proxy
+timeout = int(os.getenv("TIMEOUT", "320"))  # MUST stay > JobService task_timeout (90s). 320s allows rembg/prophet cold starts.
 keepalive = int(os.getenv("KEEP_ALIVE", "5"))
+graceful_timeout = int(os.getenv("GRACEFUL_TIMEOUT", "110"))
+worker_tmp_dir = "/dev/shm"
+limit_request_line = 8190
+limit_request_fields = 100
 
 # SECURITY: "*" trusts any X-Forwarded-For sender, allowing IP spoofing of
 # internal-guarded endpoints (/metrics, /api/analytics/top). In production set

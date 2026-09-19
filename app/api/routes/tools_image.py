@@ -24,13 +24,19 @@ _ml_executor = concurrent.futures.ThreadPoolExecutor(max_workers=8, thread_name_
 
 _VALID_ALGORITHMS = {"telea", "ns"}
 _BG_COLOR_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
-_image_semaphore = None
+_image_semaphores: dict[int, asyncio.Semaphore] = {}
+_image_sem_lock = __import__("threading").Lock()
 
 def _get_semaphore() -> asyncio.Semaphore:
-    global _image_semaphore
-    if _image_semaphore is None:
-        _image_semaphore = asyncio.Semaphore(3)
-    return _image_semaphore
+    loop_id = id(asyncio.get_running_loop())
+    with _image_sem_lock:
+        sem = _image_semaphores.get(loop_id)
+        if sem is None:
+            sem = asyncio.Semaphore(3)
+            _image_semaphores[loop_id] = sem
+            if len(_image_semaphores) > 8:
+                _image_semaphores.pop(next(iter(_image_semaphores)), None)
+        return sem
 
 def _get_loop() -> asyncio.AbstractEventLoop:
     return asyncio.get_running_loop()

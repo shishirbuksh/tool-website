@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Install Python deps
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest==8.3.4 pytest-asyncio==0.24.0 httpx==0.28.1 ruff==0.9.0 mypy==1.11.2
+      - name: Lint (ruff)
+        run: ruff check . && ruff format --check .
+      - name: Typecheck (mypy strict)
+        run: mypy --strict app
+      - name: Tests with coverage gate (80%)
+        run: python -m pytest tests/ -v --tb=short --cov=app --cov-branch --cov-fail-under=80
+      - name: Frontend build
+        run: |
+          npm ci
+          npm run build
+      - name: Audit (pip + npm) — blocking
+        run: |
+          pip install pip-audit
+          pip-audit --strict
+          npm audit --audit-level=high

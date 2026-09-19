@@ -44,11 +44,10 @@ setup_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ROUND-2: startup warmup + background reaper.
-    # NOTE: JobService task_timeout (300s) must stay < gunicorn worker
-    # timeout (gunicorn_conf.py TIMEOUT, default 120s) — raise gunicorn
-    # TIMEOUT for long rembg/prophet jobs or lower task_timeout, else
-    # gunicorn will kill workers mid-job.
+    # Startup warmup + background reaper.
+    # NOTE: JobService task_timeout (90s) must stay < gunicorn worker
+    # timeout (gunicorn_conf.py TIMEOUT, default 320s) or gunicorn
+    # will kill workers mid-job.
     _startup_logger.info("Lifespan startup: warming caches")
     try:
         from app.core.tool_data import ToolDataLoader  # noqa: PLC0415
@@ -104,10 +103,9 @@ app = FastAPI(
 
 # NOTE: Starlette builds the stack so the LAST added middleware is outermost.
 # TrustedHost must be outermost to reject untrusted Host headers first.
+# RateLimit/MaxBodySize run just inside it so floods are shed before GZip/CORS work.
 hosts = settings.allowed_hosts_list
 
-app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
-app.add_middleware(MaxBodySizeMiddleware, max_size=max(settings.IMAGE_MAX_SIZE, settings.PDF_MAX_SIZE))
 app.add_middleware(OriginCheckMiddleware)
 app.add_middleware(MetricsMiddleware)
 app.add_middleware(NoIndexAPIMiddleware)
@@ -121,7 +119,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=[
         "Content-Type",
         "Authorization",
@@ -130,8 +128,11 @@ app.add_middleware(
         "Origin",
     ],
     expose_headers=["X-Request-ID", "Content-Disposition"],
+    max_age=600,
 )
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(MaxBodySizeMiddleware, max_size=max(settings.IMAGE_MAX_SIZE, settings.PDF_MAX_SIZE))
+app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
 # TrustedHost outermost (added last) so Host validation runs first.
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=hosts or ["127.0.0.1", "localhost"])
 
@@ -146,7 +147,9 @@ except OSError as exc:
 
 
 class CachedStaticFiles(StaticFiles):
-    _lm_cache: dict[str, str] = {}
+    _lm_cache: dict[str, tuple[str, float]] = {}
+    _LM_TTL = 300
+    _LM_MAX = 2000
 
     async def _get_mtime(self, full_path: str) -> float | None:
         loop = asyncio.get_running_loop()
@@ -169,14 +172,23 @@ class CachedStaticFiles(StaticFiles):
                 response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
 
             if response.status_code == 200:
-                if path not in self._lm_cache:
+                import time as _time
+
+                now = _time.time()
+                cached = self._lm_cache.get(path)
+                if cached is None or (now - cached[1]) > self._LM_TTL:
                     mtime = await self._get_mtime(os.path.join(settings.static_dir, path))
                     if mtime is not None:
-                        self._lm_cache[path] = datetime.fromtimestamp(mtime, tz=UTC).strftime(
-                            "%a, %d %b %Y %H:%M:%S GMT"
+                        if len(self._lm_cache) >= self._LM_MAX:
+                            # Evict oldest entry to bound memory.
+                            oldest = min(self._lm_cache.items(), key=lambda kv: kv[1][1])[0]
+                            self._lm_cache.pop(oldest, None)
+                        self._lm_cache[path] = (
+                            datetime.fromtimestamp(mtime, tz=UTC).strftime("%a, %d %b %Y %H:%M:%S GMT"),
+                            now,
                         )
                 if path in self._lm_cache:
-                    response.headers["Last-Modified"] = self._lm_cache[path]
+                    response.headers["Last-Modified"] = self._lm_cache[path][0]
         return response
 
 

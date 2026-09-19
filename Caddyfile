@@ -4,12 +4,24 @@
 #   CADDY_PROXY_UPSTREAM — gunicorn upstream, e.g. 127.0.0.1:8090
 #   CADDY_STATIC_ROOT — must match $APP_DIR/static from deploy.sh,
 #     e.g. CADDY_STATIC_ROOT=/opt/storybrain-ai/static
+#
+# SECURITY: origin must only accept HTTPS from Cloudflare/client through Caddy.
+# Bind gunicorn to 127.0.0.1 (HOST=127.0.0.1) and firewall 8090 (ufw deny 8090).
+# If Cloudflare is in front, set trusted_proxies to CF ranges + client_ip_headers
+# below so {client_ip} is the real user, not the edge. Never expose 8090 directly.
+
+{
+    servers {
+        trusted_proxies static 127.0.0.1/32 ::1
+        client_ip_headers CF-Connecting-IP X-Forwarded-For
+    }
+}
 
 {$CADDY_DOMAIN:storybrainai.com}, www.{$CADDY_DOMAIN:storybrainai.com} {
     @nonwww {
-        not host www.storybrainai.com
+        not host www.{$CADDY_DOMAIN:storybrainai.com}
     }
-    redir @nonwww https://www.storybrainai.com{uri} 301
+    redir @nonwww https://www.{$CADDY_DOMAIN:storybrainai.com}{uri} 301
 
     encode zstd br gzip
 
@@ -22,13 +34,32 @@
         Permissions-Policy "camera=(), microphone=(), geolocation=(), browsing-topics=()"
     }
 
-    # Logging
+    # Logging with rotation (prevents unbounded disk fill)
     log {
-        output file /var/log/caddy/access.log
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 168h
+        }
         format json
     }
 
     # Cache static assets (must come before the reverse_proxy fallback)
+    # manifest.json / ads.txt use short cache to match app (86400), rest immutable 1y.
+    handle_path /static/manifest.json {
+        root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
+        file_server {
+            precompressed br gzip
+        }
+        header Cache-Control "public, max-age=86400"
+    }
+    handle_path /static/ads.txt {
+        root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
+        file_server {
+            precompressed br gzip
+        }
+        header Cache-Control "public, max-age=86400"
+    }
     handle_path /static/* {
         root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
         file_server {
@@ -42,16 +73,24 @@
     handle /sw.js {
         reverse_proxy {$CADDY_PROXY_UPSTREAM:127.0.0.1:8090} {
             header_up Host {host}
+            header_up X-Real-IP {client_ip}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-Host {host}
         }
         header Service-Worker-Allowed "/"
-        # Must match app no-cache for /sw.js so updates activate promptly.
-        header Cache-Control "no-cache"
+        # Must match app no-cache,no-store for /sw.js so updates activate promptly.
+        header Cache-Control "no-cache, no-store, must-revalidate"
     }
 
-    # Proxy everything else to the FastAPI backend (gunicorn on $PORT, default 8090)
+    # Proxy everything else to the FastAPI backend (gunicorn on 127.0.0.1:$PORT)
     reverse_proxy {$CADDY_PROXY_UPSTREAM:127.0.0.1:8090} {
+        header_up Host {host}
         header_up X-Real-IP {client_ip}
-        header_up X-Forwarded-For {client_ip}
         header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+        header_up X-Forwarded-Port {server_port}
+        health_uri /readyz
+        health_interval 10s
+        dial_timeout 5s
     }
 }

@@ -7,7 +7,7 @@ import tempfile
 import pytest
 
 import app.services.analytics_service as analytics_service
-from app.services.analytics_service import get_counts, track
+from app.services.analytics_service import flush, get_counts, track
 
 TEST_DB_PATH = os.path.join(tempfile.gettempdir(), "test_analytics.db")
 analytics_service.DB_PATH = TEST_DB_PATH
@@ -45,6 +45,7 @@ def cleanup_db():
 class TestAnalyticsService:
     def test_track_and_get_counts(self):
         track("test_tool_1", "page_view")
+        flush()
         counts = get_counts(limit=10)
         assert isinstance(counts, dict)
         assert counts.get("test_tool_1", 0) >= 1
@@ -53,6 +54,7 @@ class TestAnalyticsService:
         track("test_tool_2", "page_view")
         track("test_tool_2", "page_view")
         track("test_tool_2", "page_view")
+        flush()
         counts = get_counts(limit=10)
         assert counts.get("test_tool_2", 0) >= 3
 
@@ -61,6 +63,7 @@ class TestAnalyticsService:
         track("test_popular", "page_view")
         track("test_popular", "page_view")
         track("test_popular", "page_view")
+        flush()
         counts = get_counts(limit=5)
         keys = list(counts.keys())
         if len(keys) > 1:

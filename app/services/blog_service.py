@@ -149,5 +149,28 @@ class BlogService:
         pillars = sorted({p.pillar for p in self._get_post_map().values() if p.pillar})
         return pillars
 
+    def get_recent(self, limit: int = 3) -> list[BlogPost]:
+        """Newest posts by date_published (homepage Recent Guides)."""
+        return self.get_all()[: max(0, limit)]
+
+    def get_popular(self, limit: int = 3) -> list[BlogPost]:
+        """Most in-depth/useful posts (homepage Popular Guides).
+
+        Heuristic proxy for popularity without tracking: posts that link the most
+        tools + most FAQs + longest body rank highest (most useful guides).
+        Tiebreak by newest date_published. Deterministic, no analytics needed.
+        """
+        posts = list(self._get_post_map().values())
+
+        def _score(p: BlogPost) -> tuple[int, str, str]:
+            return (
+                3 * len(p.tools) + len(p.faqs) + len(p.body_html) // 2000,
+                p.date_published or "",
+                p.slug,
+            )
+
+        posts.sort(key=_score, reverse=True)
+        return posts[: max(0, limit)]
+
 
 BlogEngineService = BlogService

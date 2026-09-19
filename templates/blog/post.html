@@ -27,48 +27,87 @@
 {% endblock %}
 
 {% block content %}
+<style>
+.article-body .table-scroll{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid color-mix(in oklab,var(--color-base-content) 10%,transparent);border-radius:1rem;margin:1.5rem 0}
+.article-body .table-scroll:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.article-body table{width:100%;min-width:560px;border-collapse:collapse;font-size:14px;background:transparent}
+.article-body caption{text-align:left;font-weight:800;font-size:15px;padding:14px 16px 6px;color:var(--color-base-content)}
+.article-body thead th{position:sticky;top:0;background:color-mix(in oklab,var(--color-primary) 12%,var(--color-base-100));text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:12px 14px;border-bottom:2px solid color-mix(in oklab,var(--color-primary) 35%,transparent);white-space:nowrap}
+.article-body tbody th[scope="row"]{text-align:left}
+.article-body td,.article-body tbody th{padding:11px 14px;border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 8%,transparent);vertical-align:top}
+.article-body tbody tr:nth-child(even) td,.article-body tbody tr:nth-child(even) th{background:color-mix(in oklab,var(--color-base-content) 3%,transparent)}
+.article-body tbody tr:hover td,.article-body tbody tr:hover th{background:color-mix(in oklab,var(--color-primary) 6%,transparent)}
+.article-body td.tnum{font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (max-width:640px){.article-body table{font-size:13px}.article-body td,.article-body thead th{padding:9px 10px}}
+</style>
 <div class="relative pt-6 pb-20 sm:pb-28 overflow-hidden">
   <div class="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
     <div class="absolute left-1/2 top-0 -translate-x-1/2 w-[700px] h-[320px] bg-primary/10 opacity-60 blur-[120px] rounded-full"></div>
   </div>
-  <article class="max-w-3xl mx-auto px-4 sm:px-6 relative z-10">
-    <header class="mb-10">
+  <div class="fixed top-0 left-0 right-0 h-1 z-[60] bg-transparent" aria-hidden="true">
+    <div id="readingProgress" class="h-full w-0 bg-gradient-to-r from-primary via-secondary to-accent"></div>
+  </div>
+  <article class="max-w-3xl mx-auto px-4 sm:px-6 relative z-10" itemscope itemtype="https://schema.org/Article">
+    <header class="mb-8">
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-base-content/10 bg-base-content/5 text-xs font-medium text-base-content/70 mb-6">
         <a href="/blog" class="hover:text-primary">Blog</a>
         <span aria-hidden="true">/</span>
-        <a href="/blog/{{ post.pillar }}" class="hover:text-primary">{{ post.pillar }}</a>
+        <a href="/blog/{{ post.pillar }}" class="hover:text-primary">{{ post.pillar | replace("-", " ") | title }}</a>
       </div>
-      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-[-0.03em] text-base-content mb-4 leading-[1.1]">{{ post.title }}</h1>
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-[-0.03em] text-base-content mb-4 leading-[1.1]" itemprop="headline">{{ post.title }}</h1>
       <p class="text-lg text-base-content/60 leading-relaxed">{{ post.description }}</p>
       <div class="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs text-base-content/50 border-b border-base-content/10 pb-6 mt-6">
-        {% if post.date_published %}<span>Published: <span class="text-base-content/70 font-medium"><time datetime="{{ post.date_published }}">{{ post.date_published }}</time></span></span><span>•</span>{% endif %}
-        {% if post.date_modified %}<span>Updated: <span class="text-base-content/70 font-medium"><time datetime="{{ post.date_modified }}">{{ post.date_modified }}</time></span></span>{% endif %}
+        {% if post.date_published %}<span>Published: <span class="text-base-content/70 font-medium"><time datetime="{{ post.date_published }}" itemprop="datePublished">{{ post.date_published }}</time></span></span><span aria-hidden="true">•</span>{% endif %}
+        {% if post.date_modified %}<span>Updated: <span class="text-base-content/70 font-medium"><time datetime="{{ post.date_modified }}" itemprop="dateModified">{{ post.date_modified }}</time></span></span><span aria-hidden="true">•</span>{% endif %}
+        <span>{{ ((post.body_html | striptags | length) // 1500 + 1) }} min read</span>
       </div>
+      <div class="flex flex-wrap items-center gap-3 mt-6">
+        <div class="flex items-center gap-3" aria-label="About the author">
+          <div class="w-10 h-10 rounded-full bg-primary/15 text-primary flex items-center justify-center font-black" aria-hidden="true">S</div>
+          <div class="text-xs leading-tight">
+            <p class="font-bold text-base-content">StoryBrain AI Team</p>
+            <p class="text-base-content/50">Tool builders · Educational content, not professional advice</p>
+          </div>
+        </div>
+        <div class="ml-auto flex items-center gap-2" aria-label="Share this guide">
+          <span class="text-[11px] font-bold uppercase tracking-widest text-base-content/40">Share</span>
+          <a href="https://twitter.com/intent/tweet?text={{ post.title | urlencode }}&url={{ (SITE_URL | default('https://www.storybrainai.com', true)) }}/blog/{{ post.pillar }}/{{ post.slug }}" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-ghost btn-sm btn-square rounded-xl min-target" aria-label="Share on X" title="Share on X">𝕏</a>
+          <a href="https://www.facebook.com/sharer/sharer.php?u={{ (SITE_URL | default('https://www.storybrainai.com', true)) }}/blog/{{ post.pillar }}/{{ post.slug }}" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-ghost btn-sm btn-square rounded-xl min-target" aria-label="Share on Facebook" title="Share on Facebook">f</a>
+          <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ (SITE_URL | default('https://www.storybrainai.com', true)) }}/blog/{{ post.pillar }}/{{ post.slug }}" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-ghost btn-sm btn-square rounded-xl min-target" aria-label="Share on LinkedIn" title="Share on LinkedIn">in</a>
+          <button type="button" id="copyLinkBtn" class="btn btn-ghost btn-sm rounded-xl min-target" aria-label="Copy link">Copy link</button>
+        </div>
+      </div>
+      {% if post.image %}
+      <figure class="mt-8 overflow-hidden rounded-2xl border border-base-content/10">
+        <img src="{{ post.image }}" alt="{{ post.title }} — illustrated guide cover" class="w-full h-auto object-cover" width="1200" height="630" fetchpriority="high" itemprop="image">
+      </figure>
+      {% endif %}
     </header>
 
-    <div class="rounded-2xl border border-base-content/10 bg-base-content/[0.02] p-6 mb-12">
+    <div class="rounded-2xl border border-base-content/10 bg-base-content/[0.02] p-6 mb-10">
       <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-base-content/50 mb-4">
         <span>Key Takeaways</span>
       </div>
       <ul class="list-disc pl-5 space-y-2 text-sm text-base-content/70 leading-relaxed">
-        <li>{{ post.title }} — quick practical overview.</li>
-        <li>Uses our free tools; runs in your browser, no signup.</li>
-        <li>Educational only — verify with a qualified professional.</li>
+        <li>{{ post.description | truncate(160) }}</li>
+        {% if post.tools %}<li>Try it now: {% for slug in post.tools[:3] %}<a href="/tool/{{ slug }}" class="link link-primary">{{ (tool_names.get(slug) if tool_names else None) or (slug | replace('-', ' ') | title) }}</a>{% if not loop.last %}, {% endif %}{% endfor %} — free, no signup.</li>{% endif %}
+        <li>Educational only — verify with a qualified professional (see Methodology).</li>
       </ul>
     </div>
 
-    <nav class="p-5 rounded-xl border border-base-content/10 bg-base-content/[0.02] mb-12" aria-label="Table of Contents">
+    <nav class="p-5 rounded-xl border border-base-content/10 bg-base-content/[0.02] mb-10" aria-label="Table of Contents">
       <div class="text-xs font-semibold uppercase tracking-wider text-base-content/50 mb-3">On this page</div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4 text-sm">
         <a href="#guide" class="text-base-content/70 hover:text-primary transition-colors">Guide</a>
-        <a href="#how-to" class="text-base-content/70 hover:text-primary transition-colors">How To</a>
-        <a href="#faqs" class="text-base-content/70 hover:text-primary transition-colors">FAQs</a>
+        {% if post.howto_steps %}<a href="#how-to" class="text-base-content/70 hover:text-primary transition-colors">How To ({{ post.howto_steps | length }} steps)</a>{% endif %}
+        {% if post.faqs %}<a href="#faqs" class="text-base-content/70 hover:text-primary transition-colors">FAQs ({{ post.faqs | length }})</a>{% endif %}
+        {% if post.tools %}<a href="#related-tools" class="text-base-content/70 hover:text-primary transition-colors">Related Tools ({{ post.tools | length }})</a>{% endif %}
         <a href="#methodology" class="text-base-content/70 hover:text-primary transition-colors">Methodology</a>
       </div>
     </nav>
 
     <div class="space-y-8" id="guide">
-      <div class="text-base text-base-content/80 leading-relaxed space-y-4">{{ post.body_html | sanitize }}</div>
+      <div class="text-base text-base-content/80 leading-relaxed space-y-4 article-body">{{ post.body_html | tables | sanitize }}</div>
     </div>
 
     {% include "components/ymyl_disclaimer.html" %}
@@ -77,11 +116,12 @@
     {{ blog_faq(post.faqs) }}
 
     {% if post.tools %}
-    <div class="mt-10 pt-8 border-t border-base-300/15">
-      <h2 class="text-2xl md:text-3xl font-bold mb-6">Related Tools</h2>
-      <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+    <div class="mt-10 pt-8 border-t border-base-300/15" id="related-tools">
+      <h2 class="text-2xl md:text-3xl font-bold mb-2">Related Tools</h2>
+      <p class="text-sm text-base-content/55 mb-6">Open the free tool behind this guide — no signup.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {% for slug in post.tools %}
-        <a href="/tool/{{ slug }}" class="glass-card glass-border-gradient p-3 h-full card-focus-ring"><span class="text-sm font-semibold">{{ slug | replace('-', ' ') | title }}</span></a>
+        <a href="/tool/{{ slug }}" class="glass-card glass-border-gradient p-4 h-full card-focus-ring group" title="Open {{ (tool_names.get(slug) if tool_names else None) or (slug | replace('-', ' ') | title) }} free tool" aria-label="Open {{ (tool_names.get(slug) if tool_names else None) or (slug | replace('-', ' ') | title) }}"><span class="text-sm font-semibold group-hover:text-primary transition-colors">{{ (tool_names.get(slug) if tool_names else None) or (slug | replace('-', ' ') | title) }}</span><span class="block mt-1 text-xs text-primary/80 font-bold uppercase tracking-widest">Use free →</span></a>
         {% endfor %}
       </div>
     </div>
@@ -102,6 +142,22 @@
       <h2 class="text-lg font-bold text-base-content mb-2">Methodology</h2>
       <p>Guides are written from our free browser-based tools and reviewed for accuracy on {{ post.date_modified or post.date_published or today() }}. Calculations run client-side; figures are estimates for education only, not professional advice.</p>
     </footer>
+
+    <nav class="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4" aria-label="More guides">
+      {% if prev_post %}
+      <a href="/blog/{{ prev_post.pillar }}/{{ prev_post.slug }}" class="apple-glass rounded-2xl p-5 hover:bg-base-content/5 transition-colors" title="Previous: {{ prev_post.title }}" aria-label="Previous guide: {{ prev_post.title }}">
+        <span class="text-[11px] font-bold uppercase tracking-widest text-base-content/40">← Previous</span>
+        <span class="block font-bold mt-1">{{ prev_post.title | truncate(70) }}</span>
+      </a>
+      {% endif %}
+      {% if next_post %}
+      <a href="/blog/{{ next_post.pillar }}/{{ next_post.slug }}" class="apple-glass rounded-2xl p-5 hover:bg-base-content/5 transition-colors sm:text-right {% if not prev_post %}sm:col-start-2{% endif %}" title="Next: {{ next_post.title }}" aria-label="Next guide: {{ next_post.title }}">
+        <span class="text-[11px] font-bold uppercase tracking-widest text-base-content/40">Next →</span>
+        <span class="block font-bold mt-1">{{ next_post.title | truncate(70) }}</span>
+      </a>
+      {% endif %}
+    </nav>
   </article>
 </div>
+<script nonce="{{ nonce }}">(function(){var b=document.getElementById('copyLinkBtn');if(b){b.addEventListener('click',function(){var u=location.href;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(u).then(function(){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy link';},1500);});}else{var t=document.createElement('textarea');t.value=u;document.body.appendChild(t);t.select();try{document.execCommand('copy');b.textContent='Copied!';}catch(e){}document.body.removeChild(t);}});}var p=document.getElementById('readingProgress');if(p){var onScroll=function(){var h=document.documentElement;var max=h.scrollHeight-h.clientHeight;var r=max>0?(h.scrollTop/max):0; p.style.width=(r*100).toFixed(1)+'%';};document.addEventListener('scroll',onScroll,{passive:true});onScroll();}})();</script>
 {% endblock %}

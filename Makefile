@@ -35,12 +35,12 @@ setup-vps:
 
 test:
 	@echo "=== Running tests ==="
-	python -m pytest tests/ -v --tb=short --cov=app --cov-branch --cov-fail-under=80 2>/dev/null || python -m pytest tests/ -v --tb=short
+	python -m pytest tests/ -v --tb=short --cov=app --cov-branch --cov-fail-under=80
 
 coverage:
 	@echo "=== Running tests with branch coverage ==="
 	python -m coverage run -m pytest tests/ -v --tb=short
-	python -m coverage report -m
+	python -m coverage report -m --fail-under=80
 	python -m coverage html
 
 clean:

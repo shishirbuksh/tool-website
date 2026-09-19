@@ -75,6 +75,31 @@ def _writer_worker():
                     _write_queue.task_done()
                 batch.clear()
 
+        # Periodic retention cleanup on writer thread (avoids competing with pool conns).
+        now_mono = time.monotonic()
+        global _last_cleanup
+        if now_mono - _last_cleanup > _CLEANUP_INTERVAL:
+            with _cleanup_lock:
+                if now_mono - _last_cleanup > _CLEANUP_INTERVAL:
+                    _last_cleanup = now_mono
+                    try:
+                        cutoff_ts = int(time.time()) - (_RETENTION_DAYS * 86400)
+                        conn.execute("DELETE FROM events_v2 WHERE ts < ?", (cutoff_ts,))
+                        conn.execute("PRAGMA incremental_vacuum;")
+                        conn.commit()
+                    except Exception:
+                        logger.exception("Failed to cleanup old analytics events")
+
+
+def flush(timeout: float = 5.0) -> bool:
+    """Block until queued analytics writes are persisted (for tests/scripts)."""
+    try:
+        _write_queue.join()
+        return True
+    except Exception:
+        logger.exception("Failed to flush analytics queue")
+        return False
+
 
 def _init_pool() -> None:
     global _conn_pool, _writer_thread
@@ -170,12 +195,6 @@ def track(name: str, category: str = "page_view") -> bool:
         logger.warning("Analytics write queue is full, dropping event")
         return False
 
-    now_mono = time.monotonic()
-    if now_mono - _last_cleanup > _CLEANUP_INTERVAL:
-        with _cleanup_lock:
-            if now_mono - _last_cleanup > _CLEANUP_INTERVAL:
-                _last_cleanup = now_mono
-                _cleanup_old_events()
     return True
 
 
@@ -207,9 +226,11 @@ def _cleanup_old_events() -> None:
     try:
         cutoff_ts = int(time.time()) - (_RETENTION_DAYS * 86400)
         conn.execute("DELETE FROM events_v2 WHERE ts < ?", (cutoff_ts,))
-        conn.execute("PRAGMA incremental_vacuum;")
-        conn.execute("PRAGMA wal_checkpoint(TRUNCATE);")
         conn.commit()
+        try:
+            conn.execute("PRAGMA wal_checkpoint(PASSIVE);")
+        except Exception:
+            pass
     except Exception:
         logger.exception("Failed to cleanup old analytics events")
     finally:

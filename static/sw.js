@@ -1,18 +1,18 @@
-// StoryBrain AI Service Worker v36 (keep in sync with CACHE_NAME / STATIC_CACHE below)
-const CACHE_NAME = 'storybrain-v36';
-const STATIC_CACHE = 'storybrain-static-v36';
+// StoryBrain AI Service Worker v38 (keep in sync with CACHE_NAME / STATIC_CACHE below)
+const CACHE_NAME = 'storybrain-v38';
+const STATIC_CACHE = 'storybrain-static-v38';
 const PAGE_CACHE_MAX_ENTRIES = 50;
 
-// Assets to pre-cache on install
+// Assets to pre-cache on install (app-shell only; OG/screenshots lazy via runtime cache)
 const PRECACHE_URLS = [
   '/',
   '/static/css/app.css',
   '/static/css/fonts.css',
   '/static/favicon.svg',
   '/static/favicon.ico',
+  '/static/apple-touch-icon.png',
   '/static/icon-192.png',
   '/static/icon-512.png',
-  '/static/og-image.jpg',
   '/static/manifest.json',
   '/offline',
   '/static/js/app.js',

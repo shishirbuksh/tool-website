@@ -7,4 +7,4 @@
 # ============================================================
 set -euo pipefail
 cd "$(dirname "$0")"
-sudo bash deploy.sh "${1:-}"
+sudo bash deploy.sh "$@"

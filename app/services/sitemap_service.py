@@ -84,6 +84,8 @@ class SitemapService:
         hub_pages = list(self.settings.HUB_CATEGORIES.keys())
         hub_filepath = os.path.join(self.settings.templates_dir, "hub.html")
         for hub in hub_pages:
+            if hub == "pdf-tools":
+                continue  # legacy alias 301s to /productivity-tools — don't index
             pages.append({"loc": f"/{hub}", "priority": "0.6", "changefreq": "weekly", "filepath": hub_filepath})
 
         tools_dir = os.path.join(self.settings.templates_dir, "tools")
@@ -187,6 +189,8 @@ class SitemapService:
             f"User-agent: *\n"
             f"Disallow: /api/\n"
             f"Disallow: /offline\n"
+            f"Disallow: /*?*\n"
+            f"Disallow: /pdf-tools\n"
             f"\n"
             f"Sitemap: {site_url}/sitemap.xml\n"
         )

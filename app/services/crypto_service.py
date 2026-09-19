@@ -15,14 +15,20 @@ logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
 
 logger = get_logger(__name__)
 
-_prophet_semaphore: asyncio.Semaphore | None = None
+_prophet_semaphores: dict[int, asyncio.Semaphore] = {}
+_prophet_sem_lock = __import__("threading").Lock()
 _ml_executor = concurrent.futures.ThreadPoolExecutor(max_workers=10, thread_name_prefix="ml_worker")
 
 def _get_prophet_semaphore() -> asyncio.Semaphore:
-    global _prophet_semaphore
-    if _prophet_semaphore is None:
-        _prophet_semaphore = asyncio.Semaphore(2)
-    return _prophet_semaphore
+    loop_id = id(asyncio.get_running_loop())
+    with _prophet_sem_lock:
+        sem = _prophet_semaphores.get(loop_id)
+        if sem is None:
+            sem = asyncio.Semaphore(2)
+            _prophet_semaphores[loop_id] = sem
+            if len(_prophet_semaphores) > 8:
+                _prophet_semaphores.pop(next(iter(_prophet_semaphores)), None)
+        return sem
 
 
 class CryptoService:
@@ -82,26 +88,26 @@ class CryptoService:
 
     async def predict(self, symbol: str = "BTC-USD") -> dict:
         symbol_norm = (symbol or "BTC-USD").strip().upper()
-        cache_key = f"predict:{symbol_norm.lower()}"
+        cache_key = f"cache:predict:{symbol_norm.lower()}"
         cache = get_cache()
-        cached = cache.get(cache_key)
+        cached = await cache.async_get(cache_key)
         if cached:
             return cached
 
         result = await self._run_analysis(symbol_norm, period="1y", lookback=20, rust_epochs=150)
-        cache.set(cache_key, result, ttl=300)
+        await cache.async_set(cache_key, result, ttl=300)
         return result
 
     async def analyze_trend(self, symbol: str = "BTC-USD") -> dict:
         symbol_norm = (symbol or "BTC-USD").strip().upper()
-        cache_key = f"trend:{symbol_norm.lower()}"
+        cache_key = f"cache:trend:{symbol_norm.lower()}"
         cache = get_cache()
-        cached = cache.get(cache_key)
+        cached = await cache.async_get(cache_key)
         if cached:
             return cached
 
         result = await self._run_analysis(symbol_norm, period="4mo", lookback=15, rust_epochs=100, include_ta=True)
-        cache.set(cache_key, result, ttl=300)
+        await cache.async_set(cache_key, result, ttl=300)
         return result
 
     async def _run_analysis(

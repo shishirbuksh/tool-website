@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     PORT: int = 8090
     LOG_LEVEL: str = "info"
     WORKERS: int = 0
-    TIMEOUT: int = 120
+    TIMEOUT: int = 320
     KEEP_ALIVE: int = 5
     REDIS_URL: str = ""
     ALLOWED_HOSTS: str = ""
@@ -64,6 +64,11 @@ class Settings(BaseSettings):
         "calculators": ("Calculators", "Free Online Calculators — Math, Finance & Life Calculators"),
         "developer-tools": ("Developer & SEO", "Free Developer & SEO Tools — Schema, Sitemap & Code Generators"),
         "business-tools": ("Business & Operations", "Free Business Tools — Invoice, Orders & Finance Calculators"),
+        "productivity-tools": (
+            "Productivity & Utilities",
+            "Free PDF & Productivity Tools — Converter, Password & Trackers",
+        ),
+        # Legacy alias: /pdf-tools 301s to /productivity-tools (kept for backlinks).
         "pdf-tools": ("Productivity & Utilities", "Free PDF & Productivity Tools — Converter, Password & Trackers"),
     }
 
@@ -80,15 +85,24 @@ class Settings(BaseSettings):
         return os.path.join(self.base_dir, "static")
 
     @property
+    def is_prod(self) -> bool:
+        return (self.ENV or "").strip().lower() in ("prod", "production")
+
+    @property
     def cors_origins_list(self) -> list[str]:
         if self.CORS_ORIGINS:
             return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
-        return [
+        base = [
             "https://www.storybrainai.com",
             "https://storybrainai.com",
-            "http://localhost:8090",
-            "http://127.0.0.1:8090",
         ]
+        # Localhost origins only for non-prod (dev/test) to avoid credentialed local fetch in prod.
+        if not self.is_prod:
+            base += [
+                "http://localhost:8090",
+                "http://127.0.0.1:8090",
+            ]
+        return base
 
     @model_validator(mode="after")
     def _fail_fast_on_wildcard_hosts(self):
@@ -105,10 +119,19 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _fail_fast_on_missing_secret(self):
-        if (self.ENV or "").lower() == "prod" and self.SECRET_KEY in ("", "change-me"):
+        if self.is_prod and self.SECRET_KEY in ("", "change-me"):
             raise ValueError(
                 "SECRET_KEY must be set to a strong value when ENV==prod. "
                 "Set SECRET_KEY in .env to a long random string."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _fail_fast_on_prod_hosts(self):
+        if self.is_prod and not (self.ALLOWED_HOSTS or "").strip():
+            raise ValueError(
+                "ALLOWED_HOSTS must be set when ENV==prod. "
+                "Example: ALLOWED_HOSTS=storybrainai.com,www.storybrainai.com"
             )
         return self
 
