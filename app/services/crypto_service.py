@@ -203,15 +203,56 @@ class CryptoService:
                 return None
 
         def _run_rust():
-            predictor = self._get_rust_predictor()
-            if predictor is None:
-                return None
-            try:
-                return predictor.train_and_predict(close_prices.tolist(), future_days, rust_epochs)
-            except Exception:
-                logger.warning("Rust predictor model failed for %s — degrading", symbol)
-                return None
-
+            # PURE PYTHON FALLBACK: No Rust/C++ required!
+            import math, random
+            prices = close_prices.tolist()
+            n = len(prices)
+            if n < lookback: return None
+            
+            p_min, p_max = min(prices), max(prices)
+            if p_max - p_min < 1e-6: return [prices[-1]] * future_days
+            
+            scaled = [(p - p_min) / (p_max - p_min) for p in prices]
+            x_train = [scaled[i - lookback : i] for i in range(lookback, n)]
+            y_train = [scaled[i] for i in range(lookback, n)]
+            
+            hidden_size = 50
+            w1 = [[random.uniform(-0.5, 0.5) for _ in range(lookback)] for _ in range(hidden_size)]
+            b1 = [random.uniform(-0.5, 0.5) for _ in range(hidden_size)]
+            w2 = [random.uniform(-0.5, 0.5) for _ in range(hidden_size)]
+            b2 = 0.0
+            
+            lr = 0.01
+            for _ in range(min(10, rust_epochs)):
+                for i in range(len(x_train)):
+                    hidden = [max(0.0, sum(w1[j][k] * x_train[i][k] for k in range(lookback)) + b1[j]) for j in range(hidden_size)]
+                    out = sum(w2[j] * hidden[j] for j in range(hidden_size)) + b2
+                    out = 1.0 / (1.0 + math.exp(max(-50, min(50, -out))))
+                    err = out - y_train[i]
+                    d_out = 2.0 * err * out * (1.0 - out)
+                    d_w2 = [d_out * h for h in hidden]
+                    d_hidden = [d_out * w2[j] if hidden[j] > 0 else 0.0 for j in range(hidden_size)]
+                    for j in range(hidden_size):
+                        w2[j] -= lr * d_w2[j]
+                        b1[j] -= lr * d_hidden[j]
+                        for k in range(lookback):
+                            w1[j][k] -= lr * d_hidden[j] * x_train[i][k]
+                    b2 -= lr * d_out
+            
+            current_seq = scaled[-lookback:]
+            predictions = []
+            clamp_hi = p_max * 10.0 if p_max > 0 else 1000000.0
+            
+            for _ in range(future_days):
+                hidden = [max(0.0, sum(w1[j][k] * current_seq[k] for k in range(lookback)) + b1[j]) for j in range(hidden_size)]
+                out = sum(w2[j] * hidden[j] for j in range(hidden_size)) + b2
+                out = 1.0 / (1.0 + math.exp(max(-50, min(50, -out))))
+                res = out * (p_max - p_min) + p_min
+                predictions.append(max(0.0, min(res, clamp_hi)))
+                current_seq.pop(0)
+                current_seq.append(out)
+                
+            return predictions
 
         async def _run_prophet_async():
             sem = _get_prophet_semaphore()
