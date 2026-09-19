@@ -125,26 +125,39 @@ class CryptoService:
             import requests, datetime
             pd = self._get_pd()
             binance_sym = symbol.replace("-USD", "USDT")
-            url = f"https://api.binance.com/api/v3/klines?symbol={binance_sym}&interval=1d&limit=365"
+            urls = [
+                f"https://api.binance.com/api/v3/klines?symbol={binance_sym}&interval=1d&limit=365",
+                f"https://api.binance.us/api/v3/klines?symbol={binance_sym}&interval=1d&limit=365"
+            ]
+            
+            last_error = ""
+            for url in urls:
+                try:
+                    r = requests.get(url, timeout=10)
+                    r.raise_for_status()
+                    data = r.json()
+                    if not data:
+                        continue
+                    dates = [datetime.datetime.fromtimestamp(x[0]/1000, tz=datetime.timezone.utc) for x in data]
+                    closes = [float(x[4]) for x in data]
+                    df = pd.DataFrame({"Close": closes}, index=pd.DatetimeIndex(dates))
+                    return df
+                except Exception as e:
+                    last_error = str(e)
+                    continue
+
+            # Fallback to yfinance
             try:
-                r = requests.get(url, timeout=10)
-                r.raise_for_status()
-                data = r.json()
-                if not data:
-                    raise Exception("Empty data")
-                dates = [datetime.datetime.fromtimestamp(x[0]/1000, tz=datetime.timezone.utc) for x in data]
-                closes = [float(x[4]) for x in data]
-                df = pd.DataFrame({"Close": closes}, index=pd.DatetimeIndex(dates))
-                return df
-            except Exception as e:
-                # Fallback to yfinance if binance fails
                 yf = self._get_yf()
                 session = requests.Session()
                 session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'})
                 df = yf.download(symbol, period=period, interval="1d", progress=False, session=session)
-                if df.empty:
-                    raise ServiceError(f"Symbol '{symbol}' not found or no data available (Binance and Yahoo both failed)")
-                return df
+                if not df.empty:
+                    return df
+            except Exception as e:
+                last_error += f" | yfinance error: {str(e)}"
+                
+            raise ServiceError(f"Symbol '{symbol}' not found or blocked by exchanges. Details: {last_error}")
 
         try:
             df = await asyncio.wait_for(loop.run_in_executor(_ml_executor, _download), timeout=30)
