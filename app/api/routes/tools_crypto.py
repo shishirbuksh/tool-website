@@ -35,9 +35,9 @@ def _validate_symbol(symbol: Any) -> str:
     return normalized
 
 
-def _service_error_to_502(e: ServiceError) -> HTTPException:
+def _service_error_to_400(e: ServiceError) -> HTTPException:
     # Preserve 502 mapping for upstream/service failures (ServiceError stays 502-worthy).
-    return HTTPException(status_code=502, detail=str(e.detail) if hasattr(e, "detail") else "Service error")
+    return HTTPException(status_code=400, detail=str(e.detail) if hasattr(e, "detail") else "Service error")
 
 
 @router.get("/predict-crypto")
@@ -46,7 +46,7 @@ async def predict_crypto(symbol: str = "BTC-USD") -> dict[str, Any]:
     try:
         return await crypto_service.predict(symbol)
     except ServiceError as e:
-        raise _service_error_to_502(e) from e
+        raise _service_error_to_400(e) from e
     except HTTPException:
         raise
     except Exception as e:
@@ -86,7 +86,7 @@ async def analyze_crypto_trend(symbol: str = "BTC-USD") -> dict[str, Any]:
     try:
         return await crypto_service.analyze_trend(symbol)
     except ServiceError as e:
-        raise _service_error_to_502(e) from e
+        raise _service_error_to_400(e) from e
     except HTTPException:
         raise
     except Exception as e:

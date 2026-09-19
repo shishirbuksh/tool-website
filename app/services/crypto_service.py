@@ -46,7 +46,7 @@ class CryptoService:
 
                 self._pd = pd
             except Exception as e:
-                raise ServiceError("pandas library is not available") from e
+                raise ServiceError(f"pandas library is not available: {str(e)}") from e
         return self._pd
 
     def _get_yf(self) -> Any:
@@ -56,7 +56,7 @@ class CryptoService:
 
                 self._yf = yf
             except Exception as e:
-                raise ServiceError("yfinance library is not available") from e
+                raise ServiceError(f"yfinance library is not available: {str(e)}") from e
         return self._yf
 
     def _get_prophet(self) -> Any:
