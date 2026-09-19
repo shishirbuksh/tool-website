@@ -370,7 +370,7 @@ fi
 # Export the deployed commit SHA so the app can report its version,
 # and persist it to .env atomically so systemd workers (EnvironmentFile=.env) see it.
 export APP_VERSION
-APP_VERSION="$(git -C "$APP_DIR" rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+APP_VERSION="$(git -C "$APP_DIR" rev-parse --short HEAD 2>/dev/null || date +%s)"
 if [ -f "$APP_DIR/.env" ]; then
     tmp_env="$(mktemp)"
     grep -v "^APP_VERSION=" "$APP_DIR/.env" > "$tmp_env" || true
