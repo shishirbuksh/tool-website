@@ -205,12 +205,7 @@ class CryptoService:
             if predictor is None:
                 return None
             try:
-                return predictor.train_and_predict(
-                    close_prices.tolist(),
-                    lookback,
-                    rust_epochs,
-                    future_days,
-                )
+                return predictor.train_and_predict(close_prices.tolist(), future_days, rust_epochs)
             except Exception:
                 logger.warning("Rust predictor model failed for %s — degrading", symbol)
                 return None
