@@ -123,7 +123,7 @@ class CryptoService:
 
         def _download():
             yf = self._get_yf()
-            df = yf.download(symbol, period=period, interval="1d", progress=False)
+            import requests; session = requests.Session(); session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'}); df = yf.download(symbol, period=period, interval='1d', progress=False, session=session)
             if df.empty:
                 msg = f"Symbol '{symbol}' not found or no data available"
                 raise ServiceError(msg)
