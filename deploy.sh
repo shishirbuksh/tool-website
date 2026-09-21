@@ -345,14 +345,7 @@ backup_current   # <-- backup BEFORE pulling so we can rollback to known-good
 pull_latest
 install_python
 build_rust
-# Build frontend assets (CSS + JS + precompressed .br/.gz) — failures are fatal.
-if command -v npm >/dev/null 2>&1; then
-    log_info "Building frontend assets (npm run build)..."
-    if [ -f "$APP_DIR/package-lock.json" ]; then
-        npm ci --prefix "$APP_DIR" || npm install --prefix "$APP_DIR"
-    else
-        npm install --prefix "$APP_DIR"
-    fi
+log_info "Frontend assets are pre-built and synced via Git"
     npm run build --prefix "$APP_DIR"
 else
     log_warn "npm missing — using pre-built assets (may be stale)"
