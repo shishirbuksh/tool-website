@@ -346,10 +346,6 @@ pull_latest
 install_python
 build_rust
 log_info "Frontend assets are pre-built and synced via Git"
-    npm run build --prefix "$APP_DIR"
-else
-    log_warn "npm missing — using pre-built assets (may be stale)"
-fi
 # Export the deployed commit SHA so the app can report its version,
 # and persist it to .env atomically so systemd workers (EnvironmentFile=.env) see it.
 export APP_VERSION
