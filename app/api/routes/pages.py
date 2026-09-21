@@ -164,7 +164,7 @@ async def html_sitemap(request: Request) -> HTMLResponse:
             "categories": categories,
             "static_pages": static_pages,
             "pillars": blog_service.get_pillars(),
-            "blog_posts": blog_service.get_all()[:20],
+            "blog_posts": blog_service.get_all(),
         },
     )
     resp.headers.update(_PAGE_CACHE_HEADERS)

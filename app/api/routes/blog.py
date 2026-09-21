@@ -93,15 +93,15 @@ async def blog_pillar(request: Request, pillar: str) -> HTMLResponse:
     if not posts and pillar not in pillars:
         raise HTTPException(status_code=404, detail="Pillar not found")
     categories, static_pages = cat_static
-    # Tools covered by this pillar (chips linking post→tool, max 8, order-stable).
+    # Tools covered by this pillar (chips linking post→tool, max 12, order-stable).
     seen: list[str] = []
     for p in posts:
         for t in p.tools:
             if t not in seen:
                 seen.append(t)
-            if len(seen) >= 8:
+            if len(seen) >= 12:
                 break
-        if len(seen) >= 8:
+        if len(seen) >= 12:
             break
     resp = templates.TemplateResponse(
         request=request,

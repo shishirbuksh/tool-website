@@ -64,7 +64,12 @@ _ALLOWED_URL_SCHEMES = {"http", "https", "mailto"}
 
 
 def sanitize_html(html: str | None) -> Markup:
-    """Clean untrusted HTML and mark safe for Jinja (already-escaped)."""
+    """Clean untrusted HTML and mark safe for Jinja (already-escaped).
+
+    nh3 applies ``link_rel`` to every anchor, so post-process: strip the
+    ``nofollow`` token from same-origin links (``/path``, ``#frag``) to keep
+    internal equity flowing, while external links keep full nofollow.
+    """
     cleaned = nh3.clean(
         html or "",
         tags=_ALLOWED_TAGS,
@@ -72,6 +77,27 @@ def sanitize_html(html: str | None) -> Markup:
         url_schemes=_ALLOWED_URL_SCHEMES,
         link_rel="noopener noreferrer nofollow",
     )
+    try:
+        from app.core.config import settings as _settings  # noqa: PLC0415
+
+        _origin = (_settings.SITE_URL or "").rstrip("/")
+    except Exception:
+        _origin = "https://www.storybrainai.com"
+    import re as _re
+
+    def _fix_link(m: _re.Match) -> str:
+        tag = m.group(0)
+        href = m.group(1)
+        if href.startswith(("/", "#")) or (_origin and href.startswith(_origin)):
+
+            def _strip_nofollow(rm: _re.Match) -> str:
+                tokens = [t for t in rm.group(1).split() if t != "nofollow"]
+                return 'rel="' + " ".join(tokens) + '"'
+
+            tag = _re.sub(r'rel="([^"]*)"', _strip_nofollow, tag)
+        return tag
+
+    cleaned = _re.sub(r'<a\b[^>]*href="([^"]*)"[^>]*>', _fix_link, cleaned)
     return Markup(cleaned)
 
 

@@ -105,18 +105,26 @@ class SitemapService:
                     })
 
         pages_dir = os.path.join(self.settings.templates_dir, "pages")
-        skip_pages = {"sitemap", "404", "offline"}
+        skip_pages = {"sitemap", "404", "offline", "500"}
         if os.path.exists(pages_dir):
             for f in self._get_cached_dir_listing(pages_dir):
                 if f.endswith(".html"):
                     slug = f[:-5]
                     if slug not in skip_pages:
-                        pages.append({
-                            "loc": f"/{slug}",
-                            "priority": "0.4",
-                            "changefreq": "monthly",
-                            "filepath": os.path.join(pages_dir, f),
-                        })
+                        if slug == "tools":
+                            pages.append({
+                                "loc": f"/{slug}",
+                                "priority": "0.8",
+                                "changefreq": "weekly",
+                                "filepath": os.path.join(pages_dir, f),
+                            })
+                        else:
+                            pages.append({
+                                "loc": f"/{slug}",
+                                "priority": "0.4",
+                                "changefreq": "monthly",
+                                "filepath": os.path.join(pages_dir, f),
+                            })
 
         try:
             from app.services.blog_service import BlogService  # noqa: PLC0415
@@ -140,7 +148,7 @@ class SitemapService:
                 pages.append({
                     "loc": f"/blog/{post.pillar}/{post.slug}",
                     "priority": "0.5",
-                    "changefreq": self._get_changefreq(post.slug),
+                    "changefreq": self._get_changefreq(f"/blog/{post.slug}"),
                     "filepath": os.path.join(blog_tpl_dir, "post.html"),
                     "yaml_date": post.date_modified or None,
                 })
@@ -226,6 +234,31 @@ class SitemapService:
                     else:
                         lines.append(f"- [{name}]({link})")
 
+        site_base = self.settings.SITE_URL.rstrip("/")
+        lines.append("")
+        lines.append("## Categories")
+        lines.append("")
+        lines.append(f"- [All Tools]({site_base}/tools): complete directory of every free tool")
+        for hub in self.settings.HUB_CATEGORIES:
+            if hub == "pdf-tools":
+                continue  # legacy alias, not indexed
+            lines.append(f"- [{hub}]({site_base}/{hub})")
+        lines.append("")
+        lines.append("## Guides")
+        lines.append("")
+        lines.append(f"- [Blog]({site_base}/blog): step-by-step guides for every free tool")
+        try:
+            from app.services.blog_service import BlogService  # noqa: PLC0415
+
+            for post in BlogService(self.settings).get_all():
+                lines.append(f"- [{post.title}]({site_base}/blog/{post.pillar}/{post.slug})")
+        except Exception:
+            from app.core.log import get_logger
+            logger = get_logger(__name__)
+            logger.exception("Failed to build llms.txt guides section")
+
+        lines.append("")
+        lines.append(f"Sitemap: {site_base}/sitemap.xml")
 
         content = "\n".join(lines)
         with self._lock:

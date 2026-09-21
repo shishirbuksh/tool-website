@@ -1,5 +1,7 @@
 """Tests for SitemapService: XML structure, robots.txt, llms.txt generation, and content validation."""
 
+import re
+
 from app.services.sitemap_service import SitemapService
 
 
@@ -55,3 +57,27 @@ class TestSitemapService:
         svc = SitemapService(settings)
         result = svc.build_llms_txt()
         assert "/tool/" in result
+
+    def test_tools_priority_08_weekly(self, settings):
+        svc = SitemapService(settings)
+        result = svc.build_sitemap_xml()
+        m = re.search(r"<loc>(https://[^<]*/tools)</loc>\s*<lastmod>[^<]*</lastmod>\s*<changefreq>([^<]*)</changefreq>\s*<priority>([^<]*)</priority>", result)
+        assert m, "/tools entry missing"
+        assert m.group(2) == "weekly", m.group(2)
+        assert m.group(3) == "0.8", m.group(3)
+
+    def test_blog_posts_changefreq_monthly(self, settings):
+        svc = SitemapService(settings)
+        result = svc.build_sitemap_xml()
+        freqs = re.findall(r"<loc>(https://[^<]*/blog/[^/<]*\/[^<]*)</loc>\s*<lastmod>[^<]*</lastmod>\s*<changefreq>([^<]*)</changefreq>", result)
+        assert freqs, "no blog post entries"
+        bad = [loc for loc, freq in freqs if freq != "monthly"]
+        assert not bad, f"non-monthly blog entries: {bad[:5]}"
+
+    def test_llms_has_guides_and_categories(self, settings):
+        svc = SitemapService(settings)
+        result = svc.build_llms_txt()
+        assert "## Guides" in result
+        assert "## Categories" in result
+        assert "/blog/calculators/emi-calculator-guide" in result
+        assert "/calculators" in result

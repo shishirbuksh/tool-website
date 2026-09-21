@@ -39,6 +39,30 @@ class TestPages:
         assert resp.status_code in (301, 302, 307, 308)
         assert "/tools" in resp.headers.get("location", "")
 
+    def test_offline_noindex(self):
+        resp = client.get("/offline")
+        assert resp.status_code == 200
+        assert 'name="robots"' in resp.text and "noindex" in resp.text
+
+    def test_500_template_exists(self):
+        import os
+
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        assert os.path.isfile(os.path.join(base, "templates", "pages", "500.html"))
+
+    def test_pdf_tools_two_hop_documented(self):
+        r1 = client.get("/PDF-TOOLS", follow_redirects=False)
+        assert r1.status_code in (301, 302, 307, 308)
+        assert "/pdf-tools" in r1.headers.get("location", "")
+        r2 = client.get("/pdf-tools", follow_redirects=False)
+        assert r2.status_code in (301, 302, 307, 308)
+        assert "/productivity-tools" in r2.headers.get("location", "")
+
+    def test_trailing_slash_307_pinned(self):
+        resp = client.get("/tools/", follow_redirects=False)
+        assert resp.status_code in (301, 302, 307, 308)
+        assert resp.headers.get("location", "").rstrip("/").endswith("/tools") or resp.headers.get("location", "") == "/tools"
+
     def test_homepage_contains_all_tools(self):
         resp = client.get("/")
         assert resp.status_code == 200

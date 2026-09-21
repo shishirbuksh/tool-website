@@ -29,6 +29,16 @@ class TestSanitize:
     def test_none_safe(self):
         assert "None" not in str(sanitize_html(None))
 
+    def test_internal_relative_links_have_no_nofollow(self):
+        out = str(sanitize_html('<a href="/tool/emi-calculator">x</a>'))
+        assert 'href="/tool/emi-calculator"' in out
+        assert "noopener" in out
+        assert "nofollow" not in out
+
+    def test_internal_fragment_links_have_no_nofollow(self):
+        out = str(sanitize_html('<a href="#methodology">x</a>'))
+        assert "nofollow" not in out
+
 
 class TestArticleTables:
     def test_caption_and_scope_survive_sanitize(self):
