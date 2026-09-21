@@ -35,10 +35,7 @@ class CryptoService:
     def __init__(self, settings: Settings):
         self.settings = settings
         self._pd = None
-        self._prophet = None
-        self._yf = None
-        self._rust_predictor = None
-
+        
     def _get_pd(self) -> Any:
         if self._pd is None:
             try:
@@ -49,41 +46,8 @@ class CryptoService:
                 raise ServiceError(f"pandas library is not available: {str(e)}") from e
         return self._pd
 
-    def _get_yf(self) -> Any:
-        if self._yf is None:
-            try:
-                import yfinance as yf
 
-                self._yf = yf
-            except Exception as e:
-                raise ServiceError(f"yfinance library is not available: {str(e)}") from e
-        return self._yf
 
-    def _get_prophet(self) -> Any:
-        if self._prophet is None:
-            try:
-                from prophet import Prophet
-
-                self._prophet = Prophet
-            except Exception:
-                logger.warning("Prophet not available — predictions will be degraded")
-                self._prophet = False
-        return self._prophet if self._prophet is not False else None
-
-    def _get_rust_predictor(self) -> Any:
-        if self._rust_predictor is None:
-            try:
-                import rust_predictor
-
-                if hasattr(rust_predictor, "train_and_predict"):
-                    self._rust_predictor = rust_predictor
-                else:
-                    logger.warning("rust_predictor native module not compiled — predictions will be degraded")
-                    self._rust_predictor = None
-            except Exception:
-                logger.warning("rust_predictor not available — predictions will be degraded")
-                self._rust_predictor = None
-        return self._rust_predictor
 
 
     async def predict(self, symbol: str = "BTC-USD") -> dict:
@@ -254,32 +218,12 @@ class CryptoService:
                 
             return predictions
 
-        async def _run_prophet_async():
-            sem = _get_prophet_semaphore()
-            try:
-                await asyncio.wait_for(sem.acquire(), timeout=5.0)
-            except TimeoutError:
-                logger.warning(f"Prophet prediction timeout for {symbol}: Too many concurrent models")
-                return None
-            try:
-                return await loop.run_in_executor(_ml_executor, _run_prophet)
-            finally:
-                sem.release()
 
         prophet_preds, rust_preds = await asyncio.gather(
             _run_prophet_async(),
             loop.run_in_executor(_ml_executor, _run_rust),
         )
 
-        if prophet_preds is None and rust_preds is None:
-            raise ServiceError("No prediction engine available (requires Prophet or rust_predictor)")
-
-        if prophet_preds is None:
-            prophet_preds = [None] * future_days
-            degraded.append("prophet")
-        if rust_preds is None:
-            rust_preds = [None] * future_days
-            degraded.append("rust_predictor")
 
         last_date = df.index[-1]
         future_dates = [(last_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, future_days + 1)]

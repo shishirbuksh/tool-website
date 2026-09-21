@@ -66,7 +66,6 @@ fix_service_paths() {
 # Pinned heavy ML deps — keep in sync with requirements.txt comments.
 HEAVY_REMBG="rembg[cpu]==2.2.1"
 HEAVY_CV2="opencv-python-headless==4.10.0.84"
-HEAVY_PROPHET="prophet==1.1.7"
 
 install_python() {
     log_info "Installing Python core dependencies..."
@@ -84,11 +83,6 @@ install_python() {
         pip install -q --no-cache-dir "$HEAVY_CV2"
     fi
 
-    # Install prophet for crypto forecasting (optional, degraded if missing)
-    if ! python3 -c "import prophet" 2>/dev/null; then
-        log_info "Installing Prophet ($HEAVY_PROPHET)..."
-        pip install -q --no-cache-dir "$HEAVY_PROPHET" 2>/dev/null || log_warn "Prophet install skipped (optional)"
-    fi
 
     # Pre-download rembg models so gunicorn workers don't timeout
     if python3 -c "import rembg" 2>/dev/null; then
@@ -99,11 +93,7 @@ install_python() {
 }
 
 build_rust() {
-    if [ -f "$APP_DIR/rust_predictor/Cargo.toml" ]; then
-        log_info "Building Rust extension..."
-        pip install -q maturin 2>/dev/null || true
-        pip install -q -e "$APP_DIR/rust_predictor" 2>/dev/null && log_info "Rust extension built" || log_warn "Rust build skipped"
-    fi
+    log_info "Rust extension replaced by pure Python MLP (skipped)"
 }
 
 backup_current() {
