@@ -37,7 +37,7 @@ class CatalogService:
             except OSError:
                 entries = []
             for f in entries:
-                if f.endswith(".html") and f != "sitemap.html":
+                if f.endswith(".html") and f not in ("sitemap.html", "404.html", "500.html", "offline.html"):
                     name = f[:-5].replace("-", " ").title()
                     static_pages.append({"name": name, "url": f"/{f[:-5]}"})
         static_pages.sort(key=lambda x: x["name"])

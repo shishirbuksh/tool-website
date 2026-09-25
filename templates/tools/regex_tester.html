@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+{% block title %}Regex Tester - Free Online Regular Expression Tester{% endblock %}
+{% block meta_description %}Test regular expressions live with syntax highlighting, match groups, flags and error detection. Free online regex tester with presets and cheatsheet, no sign-up.{% endblock %}
+{% block canonical_url %}https://www.storybrainai.com/tool/regex-tester{% endblock %}
+{% block og_title %}Regex Tester - Free Online Regular Expression Tester{% endblock %}
+{% block og_description %}Live regex testing with highlighted matches, capture groups table, flags, presets and cheatsheet. Copy matches and share via link.{% endblock %}
+{% block og_image %}<meta property="og:image" content="https://www.storybrainai.com/static/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Regex Tester — free online regular expression tester">{% endblock %}
+{% block twitter_image %}<meta name="twitter:image" content="https://www.storybrainai.com/static/og-image.jpg">{% endblock %}
+{% block head %}
+<style>
+.rxt-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
+.rxt-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;opacity:.45;margin-bottom:5px;display:block}
+.rxt-pattern-wrap{display:flex;align-items:center;gap:6px;background:var(--color-base-100);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.5rem .75rem;transition:border-color .18s}
+.rxt-pattern-wrap:focus-within{border-color:var(--color-primary)}
+.rxt-slash{font-family:monospace;font-weight:900;opacity:.35;font-size:15px;flex-shrink:0}
+.rxt-input{flex:1;border:none;background:none;color:var(--color-base-content);font-family:monospace;font-size:14px;font-weight:600;min-width:0}
+.rxt-input:focus{outline:none}
+.rxt-flag{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:999px;font-size:11px;font-weight:800;cursor:pointer;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);transition:all .12s;font-family:monospace;user-select:none}
+.rxt-flag:hover{border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)}
+.rxt-flag.on{background:var(--color-primary);color:#fff;border-color:var(--color-primary)}
+.rxt-flag input{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.rxt-flag-wrap{display:flex;flex-wrap:wrap;gap:4px}
+.rxt-flag-hint{font-size:10px;opacity:.45;font-weight:600;margin-top:6px;line-height:1.5}
+.rxt-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:.75rem;font-weight:700;font-size:12px;border:none;cursor:pointer;transition:all .15s;touch-action:manipulation;font-family:inherit}
+.rxt-btn-primary{background:var(--color-primary);color:#fff}
+.rxt-btn-primary:hover{opacity:.85}
+.rxt-btn-ghost{background:var(--color-base-100);color:var(--color-base-content);border:2px solid var(--color-base-300)}
+.rxt-btn-ghost:hover{border-color:var(--color-primary)}
+.rxt-btn-sm{padding:4px 10px;font-size:10px;border-radius:.55rem}
+.rxt-preset-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:8px 10px;border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-300);cursor:pointer;transition:all .12s;font-size:11px;font-weight:700;font-family:inherit;color:var(--color-base-content)}
+.rxt-preset-btn:hover{border-color:var(--color-primary)}
+.rxt-preset-btn code{font-family:monospace;font-size:10px;opacity:.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
+.rxt-editor-wrap{display:flex;border-radius:.75rem;background:var(--color-base-100);border:2px solid var(--color-base-300);overflow:hidden;transition:border-color .18s}
+.rxt-editor-wrap:focus-within{border-color:var(--color-primary)}
+.rxt-gutter{flex-shrink:0;padding:.75rem 6px .75rem 10px;text-align:right;font-family:monospace;font-size:12px;line-height:1.7;color:var(--color-base-content);opacity:.35;user-select:none;min-width:34px;background:var(--color-base-200);border-right:1px solid var(--color-base-300);white-space:pre}
+.rxt-area{flex:1;min-height:150px;padding:.75rem;border:none;background:none;font-family:monospace;font-size:12px;line-height:1.7;color:var(--color-base-content);resize:vertical;box-sizing:border-box}
+.rxt-area:focus{outline:none}
+.rxt-highlight{width:100%;min-height:90px;padding:.75rem;border-radius:.75rem;background:var(--color-base-100);border:2px solid var(--color-base-300);font-family:monospace;font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-word;box-sizing:border-box;max-height:260px;overflow:auto}
+.rxt-highlight mark{background:color-mix(in oklab,var(--color-primary) 30%,#fbbf24);color:inherit;border-radius:3px;padding:0 1px;outline:1px solid var(--color-primary)}
+.rxt-highlight mark.rxt-alt{background:color-mix(in oklab,var(--color-primary) 14%,transparent);outline:1px dashed var(--color-primary)}
+.rxt-error{display:none;padding:10px 14px;border-radius:.75rem;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.4);color:#dc2626;font-family:monospace;font-size:12px;font-weight:600;line-height:1.5}
+.rxt-error.show{display:block}
+.rxt-error-pos{font-weight:900;text-decoration:underline}
+.rxt-ok{display:none;padding:8px 14px;border-radius:.75rem;background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.35);font-size:11px;font-weight:700}
+.rxt-ok.show{display:block}
+.rxt-table-wrap{overflow-x:auto;border-radius:.75rem;border:1px solid var(--color-base-300)}
+.rxt-table{width:100%;border-collapse:collapse;font-size:11px;font-family:monospace}
+.rxt-table th{font-size:9px;text-transform:uppercase;letter-spacing:.06em;opacity:.5;text-align:left;padding:8px 10px;background:var(--color-base-100);white-space:nowrap}
+.rxt-table td{padding:8px 10px;border-top:1px solid var(--color-base-300);vertical-align:top;word-break:break-all}
+.rxt-table tr:hover td{background:color-mix(in oklab,var(--color-primary) 6%,transparent)}
+.rxt-empty{padding:16px;text-align:center;font-size:11px;opacity:.4;font-weight:600;font-family:inherit}
+.rxt-info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.rxt-info-grid .iv{font-size:17px;font-weight:900;font-family:monospace;line-height:1.2}
+.rxt-info-grid .il{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;opacity:.4;line-height:1.2}
+.rxt-cheat{border-radius:.65rem;background:var(--color-base-100);border:1px solid var(--color-base-300);margin-bottom:6px;overflow:hidden}
+.rxt-cheat summary{padding:8px 12px;font-size:11px;font-weight:800;cursor:pointer;list-style:none}
+.rxt-cheat summary::-webkit-details-marker{display:none}
+.rxt-cheat summary:hover{color:var(--color-primary)}
+.rxt-cheat-body{padding:0 12px 10px 12px;font-family:monospace;font-size:11px;line-height:1.9}
+.rxt-cheat-body code{background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:4px;padding:0 5px;font-weight:700}
+.rxt-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:1rem;padding:10px 18px;font-weight:700;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);transition:all .25s;display:flex;align-items:center;gap:8px;pointer-events:none}
+.rxt-toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:767px){
+.rxt-info-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+{% endblock %}
+{% block content %}
+{{ tool_hero_section("type","Developer","REGEX","TESTER","Test regular expressions live with highlighted matches, capture groups, flags and instant error feedback. Presets + cheatsheet included.") }}
+<div class="container-site px-4 pb-24">
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+    <div class="lg:col-span-2 space-y-6">
+      <div class="rxt-card">
+        <label class="rxt-label" for="rxtPattern">Regular Expression</label>
+        <div class="rxt-pattern-wrap">
+          <span class="rxt-slash" aria-hidden="true">/</span>
+          <input type="text" class="rxt-input" id="rxtPattern" value="(\w+)@(\w+\.\w+)" maxlength="500" aria-label="Regex pattern" placeholder="Enter pattern..." spellcheck="false" autocomplete="off">
+          <span class="rxt-slash" aria-hidden="true">/</span>
+          <span class="rxt-slash" id="rxtFlagsEcho" aria-hidden="true" style="opacity:.6;font-size:11px">gm</span>
+        </div>
+      </div>
+      <div class="rxt-card">
+        <span class="rxt-label" id="rxtFlagsLabel">Flags</span>
+        <div class="rxt-flag-wrap" role="group" aria-labelledby="rxtFlagsLabel" id="rxtFlagsWrap">
+          <label class="rxt-flag on" data-flag-label="g"><input type="checkbox" data-flag="g" checked aria-label="Global flag">g</label>
+          <label class="rxt-flag" data-flag-label="i"><input type="checkbox" data-flag="i" aria-label="Case insensitive flag">i</label>
+          <label class="rxt-flag on" data-flag-label="m"><input type="checkbox" data-flag="m" checked aria-label="Multiline flag">m</label>
+          <label class="rxt-flag" data-flag-label="s"><input type="checkbox" data-flag="s" aria-label="Dotall flag">s</label>
+          <label class="rxt-flag" data-flag-label="u"><input type="checkbox" data-flag="u" aria-label="Unicode flag">u</label>
+        </div>
+        <p class="rxt-flag-hint"><b>g</b> global &middot; <b>i</b> ignore case &middot; <b>m</b> multiline &middot; <b>s</b> dotall &middot; <b>u</b> unicode</p>
+      </div>
+      <div class="rxt-card">
+        <span class="rxt-label">Presets</span>
+        <div class="space-y-1.5" id="rxtPresetsList">
+          <button class="rxt-preset-btn" type="button" data-action="rxt-preset" data-preset="email"><span>Email address</span><code>[a-z0-9._%+-]+@[a-z0-9.-]+</code></button>
+          <button class="rxt-preset-btn" type="button" data-action="rxt-preset" data-preset="url"><span>URL</span><code>https?://[^\s/$.?#].[^\s]*</code></button>
+          <button class="rxt-preset-btn" type="button" data-action="rxt-preset" data-preset="phone"><span>Phone number</span><code>\+?[\d\s\-().]{7,}</code></button>
+          <button class="rxt-preset-btn" type="button" data-action="rxt-preset" data-preset="date"><span>Date YYYY-MM-DD</span><code>\d{4}-\d{2}-\d{2}</code></button>
+        </div>
+        <div class="flex gap-2 mt-2" style="flex-wrap:wrap">
+          <button class="rxt-btn rxt-btn-ghost rxt-btn-sm" type="button" data-action="rxt-sample">Load sample text</button>
+          <button class="rxt-btn rxt-btn-ghost rxt-btn-sm" type="button" data-action="rxt-clear">Clear text</button>
+        </div>
+      </div>
+      <div class="rxt-card">
+        <span class="rxt-label">Cheatsheet</span>
+        <details class="rxt-cheat" open>
+          <summary>Character classes</summary>
+          <div class="rxt-cheat-body"><code>\d</code> digit &middot; <code>\D</code> non-digit<br><code>\w</code> word &middot; <code>\W</code> non-word<br><code>\s</code> space &middot; <code>\S</code> non-space<br><code>.</code> any char (or +s flag)<br><code>[abc]</code> set &middot; <code>[^abc]</code> negate</div>
+        </details>
+        <details class="rxt-cheat">
+          <summary>Quantifiers</summary>
+          <div class="rxt-cheat-body"><code>*</code> 0+ &middot; <code>+</code> 1+ &middot; <code>?</code> 0/1<br><code>{n}</code> exact &middot; <code>{n,}</code> min &middot; <code>{n,m}</code> range<br><code>*?</code> <code>+?</code> lazy versions</div>
+        </details>
+        <details class="rxt-cheat">
+          <summary>Anchors &amp; groups</summary>
+          <div class="rxt-cheat-body"><code>^</code> start &middot; <code>$</code> end &middot; <code>\b</code> boundary<br><code>(...)</code> capture &middot; <code>(?:...)</code> non-capture<br><code>(?&lt;name&gt;...)</code> named group<br><code>a|b</code> alternation &middot; <code>\1</code> backreference</div>
+        </details>
+        <details class="rxt-cheat">
+          <summary>Flags</summary>
+          <div class="rxt-cheat-body"><code>g</code> all matches &middot; <code>i</code> ignore case<br><code>m</code> ^$ per line &middot; <code>s</code> dot matches newline<br><code>u</code> unicode &middot; <code>y</code> sticky (engine only)</div>
+        </details>
+      </div>
+      <div class="rxt-card">
+        <span class="rxt-label">Share</span>
+        <div class="flex gap-2" style="flex-wrap:wrap">
+          <button class="rxt-btn rxt-btn-primary" type="button" data-action="rxt-share">Copy Share Link</button>
+          <button class="rxt-btn rxt-btn-ghost" type="button" data-action="rxt-copy-pattern">Copy Pattern</button>
+        </div>
+        <p class="rxt-flag-hint">Share link encodes pattern + flags + test string in the URL hash.</p>
+      </div>
+    </div>
+    <div class="lg:col-span-3 space-y-6">
+      <div class="rxt-card">
+        <div class="flex items-center justify-between mb-2">
+          <label class="rxt-label" for="rxtTest" style="margin:0">Test String</label>
+          <span style="font-size:10px;font-weight:700;font-family:monospace;opacity:.4" id="rxtLineCount">4 lines</span>
+        </div>
+        <div class="rxt-editor-wrap">
+          <div class="rxt-gutter" id="rxtGutter" aria-hidden="true">1&#10;2&#10;3&#10;4</div>
+          <textarea class="rxt-area" id="rxtTest" rows="7" aria-label="Test string" spellcheck="false">contact us at hello@example.com or support@storybrainai.com
+visit https://www.storybrainai.com/tool/regex-tester for docs
+call +1 (555) 123-4567, backup 555-987-6543
+release date 2026-03-14, deadline 2026-09-25</textarea>
+        </div>
+      </div>
+      <div class="rxt-card">
+        <span class="rxt-label">Live Highlight</span>
+        <div class="rxt-highlight" id="rxtHighlight" aria-live="polite"></div>
+        <div class="rxt-info-grid mt-2">
+          <div><div class="iv" id="rxtInfoMatches">0</div><div class="il">Matches</div></div>
+          <div><div class="iv" id="rxtInfoGroups">0</div><div class="il">Groups</div></div>
+          <div><div class="iv" id="rxtInfoTime">0ms</div><div class="il">Exec time</div></div>
+          <div><div class="iv" id="rxtInfoLen">0</div><div class="il">Test chars</div></div>
+        </div>
+        <div class="rxt-error mt-2" id="rxtError" role="alert"></div>
+        <div class="rxt-ok mt-2" id="rxtOk">Valid pattern — no errors.</div>
+      </div>
+      <div class="rxt-card">
+        <div class="flex items-center justify-between mb-2">
+          <span class="rxt-label" style="margin:0">Match Groups</span>
+          <button class="rxt-btn rxt-btn-ghost rxt-btn-sm" type="button" data-action="rxt-copy-all">Copy all matches</button>
+        </div>
+        <div class="rxt-table-wrap">
+          <table class="rxt-table" aria-label="Regex match groups">
+            <thead><tr><th>#</th><th>Match</th><th>Index</th><th>Groups</th><th></th></tr></thead>
+            <tbody id="rxtGroupsBody"></tbody>
+          </table>
+          <div class="rxt-empty" id="rxtGroupsEmpty">No matches yet — adjust the pattern or test string.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="rxtToast" class="rxt-toast" role="status" aria-live="polite"></div>
+{% endblock %}
+{% block scripts %}
+<script nonce="{{ nonce }}">
+(function(){
+var toastEl=document.getElementById('rxtToast');
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function $(id){return document.getElementById(id)}
+var patternEl=$('rxtPattern'),testEl=$('rxtTest'),gutterEl=$('rxtGutter');
+var highlightEl=$('rxtHighlight'),errorEl=$('rxtError'),okEl=$('rxtOk');
+var groupsBody=$('rxtGroupsBody'),groupsEmpty=$('rxtGroupsEmpty');
+var flagsEcho=$('rxtFlagsEcho');
+var PRESETS={
+email:{pattern:'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}',flags:'gm'},
+url:{pattern:'https?://[^\\s/$.?#].[^\\s]*',flags:'gm'},
+phone:{pattern:'\\+?[\\d\\s\\-().]{7,}',flags:'gm'},
+date:{pattern:'\\d{4}-\\d{2}-\\d{2}',flags:'gm'}
+};
+var SAMPLE='contact us at hello@example.com or support@storybrainai.com\nvisit https://www.storybrainai.com/tool/regex-tester for docs\ncall +1 (555) 123-4567, backup 555-987-6543\nrelease date 2026-03-14, deadline 2026-09-25';
+function getFlags(){
+var out='';
+var boxes=document.querySelectorAll('#rxtFlagsWrap input[data-flag]');
+for(var i=0;i<boxes.length;i++){if(boxes[i].checked)out+=boxes[i].getAttribute('data-flag')}
+return out}
+function setFlags(f){
+var boxes=document.querySelectorAll('#rxtFlagsWrap input[data-flag]');
+for(var i=0;i<boxes.length;i++){
+var fl=boxes[i].getAttribute('data-flag');
+boxes[i].checked=f.indexOf(fl)>-1;
+var lab=boxes[i].closest('.rxt-flag');
+if(lab)lab.classList.toggle('on',boxes[i].checked)}
+flagsEcho.textContent=f||'(none)'}
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function compileRe(){
+var p=patternEl.value,fl=getFlags();
+return new RegExp(p,fl)}
+function updateGutter(){
+var lines=testEl.value.split('\n').length;
+var html='';
+for(var i=1;i<=lines;i++){html+=i+(i<lines?'\n':'')}
+gutterEl.textContent=html;
+$('rxtLineCount').textContent=lines+(lines===1?' line':' lines')}
+function renderError(msg,pos){
+if(!msg){errorEl.classList.remove('show');errorEl.innerHTML='';okEl.classList.add('show');return}
+okEl.classList.remove('show');
+var safe=escapeHtml(msg);
+if(typeof pos==='number'&&pos>=0){safe+=' <span class="rxt-error-pos">at position '+pos+'</span>'}
+errorEl.innerHTML='Error: '+safe;
+errorEl.classList.add('show')}
+function runTest(){
+var t0=performance.now();
+updateGutter();
+var text=testEl.value;
+$('rxtInfoLen').textContent=text.length;
+var flags=getFlags();
+flagsEcho.textContent=flags||'(none)';
+if(patternEl.value===''){
+highlightEl.textContent=text;
+groupsBody.innerHTML='';
+groupsEmpty.style.display='';
+$('rxtInfoMatches').textContent='0';
+$('rxtInfoGroups').textContent='0';
+$('rxtInfoTime').textContent='0ms';
+renderError('',-1);
+return}
+var re;
+try{re=compileRe()}
+catch(e){
+highlightEl.textContent=text;
+groupsBody.innerHTML='';
+groupsEmpty.style.display='';
+$('rxtInfoMatches').textContent='0';
+$('rxtInfoGroups').textContent='0';
+var em=e.message||String(e);
+var col=-1;
+var m=/position\s+(\d+)/i.exec(em);
+if(m)col=parseInt(m[1],10);
+renderError(em,col);
+return}
+renderError('',-1);
+var global=flags.indexOf('g')>-1;
+var matches=[];
+var html='';
+var lastIdx=0;
+var count=0;
+if(global){
+re.lastIndex=0;
+var mt;
+var guard=0;
+while((mt=re.exec(text))!==null){
+guard++;
+if(guard>2000)break;
+matches.push(mt);
+count++;
+html+=escapeHtml(text.slice(lastIdx,mt.index));
+var cls=(count%2===0)?' class="rxt-alt"':'';
+html+='<mark'+cls+'>'+escapeHtml(mt[0]||'')+'</mark>';
+lastIdx=mt.index+(mt[0].length||0);
+if(mt[0]===''){re.lastIndex++}
+if(mt.index===text.length)break}
+html+=escapeHtml(text.slice(lastIdx))}
+else{
+var single=re.exec(text);
+if(single){
+matches.push(single);
+count=1;
+html+=escapeHtml(text.slice(0,single.index));
+html+='<mark>'+escapeHtml(single[0]||'')+'</mark>';
+html+=escapeHtml(text.slice(single.index+single[0].length))}
+else{html=escapeHtml(text)}}
+highlightEl.innerHTML=html===''?'&nbsp;':html;
+var dt=Math.max(0,performance.now()-t0);
+$('rxtInfoMatches').textContent=matches.length;
+var gcount=matches.length?matches[0].length-1:0;
+$('rxtInfoGroups').textContent=gcount;
+$('rxtInfoTime').textContent=(dt<1?dt.toFixed(2):Math.round(dt))+'ms';
+renderGroups(matches)}
+function renderGroups(matches){
+if(!matches.length){groupsBody.innerHTML='';groupsEmpty.style.display='';return}
+groupsEmpty.style.display='none';
+var html='';
+for(var i=0;i<matches.length;i++){
+var mt=matches[i];
+var gs=[];
+for(var g=1;g<mt.length;g++){gs.push(mt[g]===undefined?'(undefined)':String(mt[g]))}
+var gtxt=gs.length?escapeHtml(gs.join(' | ')):'<span style="opacity:.35">—</span>';
+html+='<tr><td>'+(i+1)+'</td><td>'+escapeHtml(mt[0]===''?'&empty;':mt[0])+'</td><td>'+mt.index+'</td><td>'+gtxt+'</td>';
+html+='<td style="white-space:nowrap"><button class="rxt-btn rxt-btn-ghost rxt-btn-sm" type="button" data-action="rxt-copy-match" data-index="'+i+'">Copy</button></td></tr>'}
+groupsBody.innerHTML=html;
+groupsBody._cache=matches.map(function(mt){return{full:mt[0],index:mt.index,groups:Array.prototype.slice.call(mt,1)}})}
+function copyText(v,msg){
+if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(v).then(function(){toast(msg)},function(){fallbackCopy(v,msg)})}
+else{fallbackCopy(v,msg)}}
+function fallbackCopy(v,msg){
+var ta=document.createElement('textarea');ta.value=v;document.body.appendChild(ta);ta.select();
+try{document.execCommand('copy');toast(msg)}catch(e){toast('Copy failed')}
+document.body.removeChild(ta)}
+function applyPreset(name){
+var p=PRESETS[name];if(!p)return;
+patternEl.value=p.pattern;
+setFlags(p.flags);
+runTest();updateHash();
+toast('Preset applied: '+name)}
+function encodeState(){
+var payload={p:patternEl.value,f:getFlags(),t:testEl.value};
+return btoa(unescape(encodeURIComponent(JSON.stringify(payload))))}
+function decodeState(hash){
+try{
+var json=decodeURIComponent(escape(atob(hash)));
+var o=JSON.parse(json);
+if(typeof o.p!=='string'||typeof o.f!=='string'||typeof o.t!=='string')return null;
+return o}catch(e){return null}}
+function updateHash(){try{window.location.hash=encodeState()}catch(e){}}
+function restoreFromHash(){
+var h=window.location.hash.slice(1);
+if(!h)return false;
+var d=decodeState(h);if(!d)return false;
+patternEl.value=d.p.slice(0,500);
+testEl.value=d.t.slice(0,20000);
+setFlags(d.f.replace(/[^gimsu]/g,''));
+runTest();return true}
+document.addEventListener('click',function(e){
+var el=e.target.closest?e.target.closest('[data-action]'):null;
+if(!el)return;
+var a=el.getAttribute('data-action');
+if(a==='rxt-preset'){applyPreset(el.getAttribute('data-preset'))}
+else if(a==='rxt-sample'){testEl.value=SAMPLE;runTest();updateHash();toast('Sample loaded')}
+else if(a==='rxt-clear'){testEl.value='';runTest();updateHash();toast('Cleared')}
+else if(a==='rxt-share'){updateHash();var url=window.location.href.split('#')[0]+'#'+encodeState();copyText(url,'Share link copied!')}
+else if(a==='rxt-copy-pattern'){copyText(patternEl.value||'','Pattern copied!')}
+else if(a==='rxt-copy-all'){
+var rows=groupsBody._cache||[];
+if(!rows.length){toast('No matches to copy');return}
+copyText(rows.map(function(r){return r.full}).join('\n'),'All matches copied!')}
+else if(a==='rxt-copy-match'){
+var rows2=groupsBody._cache||[];
+var idx=parseInt(el.getAttribute('data-index'),10);
+if(isNaN(idx)||idx<0||idx>=rows2.length){toast('Nothing to copy');return}
+copyText(rows2[idx].full,'Match '+(idx+1)+' copied!')}});
+patternEl.addEventListener('input',function(){runTest()});
+testEl.addEventListener('input',function(){runTest()});
+testEl.addEventListener('scroll',function(){gutterEl.scrollTop=testEl.scrollTop});
+document.getElementById('rxtFlagsWrap').addEventListener('change',function(e){
+var box=e.target.closest?e.target.closest('input[data-flag]'):null;
+if(box){var lab=box.closest('.rxt-flag');if(lab)lab.classList.toggle('on',box.checked)}
+runTest()});
+var hashT=null;
+patternEl.addEventListener('input',function(){clearTimeout(hashT);hashT=setTimeout(updateHash,800)});
+testEl.addEventListener('input',function(){clearTimeout(hashT);hashT=setTimeout(updateHash,800)});
+function init(){if(!restoreFromHash()){setFlags(getFlags());runTest()}}
+init();
+})();
+</script>
+{% endblock %}
