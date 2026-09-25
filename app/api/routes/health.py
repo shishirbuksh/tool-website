@@ -73,7 +73,6 @@ async def version() -> JSONResponse:
         content={
             "status": "ok",
             "version": os.getenv("APP_VERSION", "dev"),
-            "env": settings.ENV,
         }
     )
 

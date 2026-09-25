@@ -42,7 +42,10 @@ _CSP_BASE = (
     "worker-src 'self' blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
 )
 _CSP_SCRIPT_ALLOWED = (
-    "'self' 'wasm-unsafe-eval' https://static.cloudflareinsights.com "
+    # NOTE: 'wasm-unsafe-eval' removed — no route needs WASM compilation.
+    # Re-add only if a tool requires WebAssembly + eval, with justification.
+    # TODO: add report-uri /report-csp when a reporting endpoint exists.
+    "'self' https://static.cloudflareinsights.com "
     "https://www.googletagmanager.com https://pagead2.googlesyndication.com "
     "https://partner.googleadservices.com https://adservice.google.com "
     "https://googleads.g.doubleclick.net https://www.google-analytics.com "
@@ -93,6 +96,28 @@ class OriginCheckMiddleware(BaseHTTPMiddleware):
                         status_code=403,
                         media_type="application/json",
                     )
+            else:
+                # No Origin: check Referer, then Fetch Metadata if present.
+                # Allow fully header-less clients (curl, TestClient, server-to-server)
+                # to preserve API usability; strict mode would break legit uses.
+                # TODO(strict): add REQUIRE_FETCH_METADATA=1 env to 403 when all absent.
+                referer = request.headers.get("Referer")
+                if referer:
+                    referer_host = (urlparse(referer).hostname or "").lower()
+                    if referer_host not in self._get_allowed():
+                        return Response(
+                            content='{"detail":"Cross-origin request blocked"}',
+                            status_code=403,
+                            media_type="application/json",
+                        )
+                else:
+                    fetch_site = (request.headers.get("Sec-Fetch-Site") or "").lower()
+                    if fetch_site and fetch_site not in ("same-origin", "same-site", "none"):
+                        return Response(
+                            content='{"detail":"Cross-origin request blocked"}',
+                            status_code=403,
+                            media_type="application/json",
+                        )
         return await call_next(request)
 
 
@@ -140,6 +165,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.requests_per_minute = requests_per_minute
         self._windows: dict[str, list[float]] = defaultdict(list)
         self._last_window_cleanup = 0.0
+        # Bound memory: cap distinct buckets to avoid unbounded growth under DDoS.
+        self._max_buckets = 10000
 
     def _get_redis(self):
         try:
@@ -189,7 +216,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         """Sliding-window check against in-process dict."""
         check = limit if limit is not None else self.requests_per_minute
         # Namespace memory buckets by limit so 60/min and 200/min don't share counts.
+        # Buckets are bounded (see _max_buckets + _cleanup_windows) to cap memory under flood.
         bucket = f"{client_ip}#{check}"
+        if bucket not in self._windows and len(self._windows) >= self._max_buckets:
+            # At capacity: fail open for new IPs but don't grow memory.
+            return False
         window = self._windows[bucket]
         cutoff = now - 60
         while window and window[0] < cutoff:

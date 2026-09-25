@@ -3,6 +3,7 @@
 import contextvars
 import json
 import logging
+import os
 import sys
 from datetime import UTC, datetime
 
@@ -25,14 +26,21 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(msg, default=str)
 
 
-def setup_logging() -> None:
+def setup_logging(force: bool = False) -> None:
+    level_name = os.environ.get("LOG_LEVEL", "INFO").upper()
+    level = getattr(logging, level_name, logging.INFO)
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JSONFormatter())
 
     root = logging.getLogger()
-    root.setLevel(logging.INFO)
-    root.handlers.clear()
-    root.addHandler(handler)
+    root.setLevel(level)
+    # force=False: don't clear existing handlers (e.g. gunicorn) to avoid
+    # dropping their configuration; only attach ours if missing.
+    if force:
+        root.handlers.clear()
+        root.addHandler(handler)
+    elif not root.handlers:
+        root.addHandler(handler)
 
 
 def get_logger(name: str) -> logging.Logger:

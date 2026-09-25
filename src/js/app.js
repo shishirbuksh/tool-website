@@ -71,6 +71,38 @@ var an=document.getElementById('analytics-track');if(an&&'sendBeacon'in navigato
 
 
 
+/* ── CSP-safe delegated actions (replaces inline onclick="...") ──
+   Covers: meme_generator, qr_generator, sitemap_generator, image_background_remover,
+   crypto_fear_greed. Tool-local el.onclick= property assignments are kept as-is. */
+document.addEventListener('click',function(e){
+  var el=e.target&&e.target.closest?e.target.closest('[data-action]'):null;
+  if(!el)return;
+  var a=el.getAttribute('data-action'),w=window;
+  function idx(){var v=parseInt(el.getAttribute('data-index'),10);return isNaN(v)?0:v}
+  if(a==='close-dialog'){var t=el.getAttribute('data-target'),d=t&&document.getElementById(t);if(d&&d.close)d.close();return}
+  if(a==='close-zoom'){el.classList.remove('open');return}
+  if(a==='refresh-fng'){return} /* tool script owns fetchLive via #refreshBtn listener */
+  if(a==='meme-preset'){if(typeof w.applyPreset==='function')w.applyPreset(el.getAttribute('data-preset'));return}
+  if(a==='meme-download'){if(typeof w.downloadMeme==='function')w.downloadMeme();return}
+  if(a==='meme-copy'){if(typeof w.copyMeme==='function')w.copyMeme();return}
+  if(a==='meme-clear-hist'){if(typeof w.clearHist==='function')w.clearHist();return}
+  if(a==='meme-restore-hist'){if(typeof w.restoreHist==='function')w.restoreHist(idx());return}
+  if(a==='meme-del-hist'){if(typeof w.delHist==='function')w.delHist(idx());return}
+  if(a==='qr-dot-style'){if(typeof w.setDotStyle==='function')w.setDotStyle(el.getAttribute('data-style'),el);return}
+  if(a==='qr-eye-style'){if(typeof w.setEyeStyle==='function')w.setEyeStyle(el.getAttribute('data-style'),el);return}
+  if(a==='qr-clear-logo'){if(typeof w.clearLogo==='function')w.clearLogo();return}
+  if(a==='qr-scan'){if(typeof w.scanQR==='function')w.scanQR();return}
+  if(a==='qr-fill-scan'){if(typeof w.fillFromScan==='function')w.fillFromScan();return}
+  if(a==='qr-gen'){if(typeof w.gen==='function')w.gen();return}
+  if(a==='qr-download-png'){if(typeof w.downloadPNG==='function')w.downloadPNG();return}
+  if(a==='qr-download-svg'){if(typeof w.downloadSVG==='function')w.downloadSVG();return}
+  if(a==='qr-copy-png'){if(typeof w.copyPNG==='function')w.copyPNG();return}
+  if(a==='qr-copy-svg'){if(typeof w.copySVGCode==='function')w.copySVGCode();return}
+  if(a==='qr-clear-hist'){if(typeof w.clearHist==='function')w.clearHist();return}
+  if(a==='qr-restore-hist'){if(typeof w.restoreHist==='function')w.restoreHist(idx());return}
+  if(a==='qr-apply-preset'){if(typeof w.applyPreset==='function')w.applyPreset(el.getAttribute('data-fg'),el.getAttribute('data-bg'));return}
+});
+
 /* ── Legacy Hover-Intent Prefetching Removed (Using Speculation Rules instead) ── */
 
 /* ── Hero mouse-follow glow ── */

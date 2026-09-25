@@ -96,6 +96,33 @@ build_rust() {
     log_info "Rust extension replaced by pure Python MLP (skipped)"
 }
 
+build_frontend() {
+    # Node 20 pinned (matches package.json engines + CI setup-node 20).
+    # Use Node 20.x in prod; Node 18 may build but drifts from CI parity.
+    if ! command -v npm >/dev/null 2>&1; then
+        log_error "npm not found — cannot build frontend (need Node 20)"
+        exit 1
+    fi
+    log_info "Node version: $(node --version 2>/dev/null || echo unknown) (want v20.x)"
+    log_info "Building frontend assets (npm ci + npm run build)..."
+    npm ci --prefix "$APP_DIR"
+    npm run build --prefix "$APP_DIR"
+    # Guard: built outputs must exist, else Caddy serves stale 1y-immutable files.
+    for f in "$APP_DIR/static/js/app.js" "$APP_DIR/static/css/app.css"; do
+        if [ ! -f "$f" ]; then
+            log_error "Frontend build missing expected output: $f"
+            exit 1
+        fi
+    done
+    # Guard: warn if static/ has uncommitted changes post-build (dirty deploy).
+    if [ -d "$APP_DIR/.git" ]; then
+        if [ -n "$(git -C "$APP_DIR" status --porcelain -- static/ 2>/dev/null)" ]; then
+            log_warn "static/ has uncommitted changes after build (see git status -- static/)"
+            git -C "$APP_DIR" status --porcelain -- static/ | head -n 20 || true
+        fi
+    fi
+}
+
 backup_current() {
     if [ ! -d "$APP_DIR/.git" ]; then
         log_warn "No .git found — skipping backup (fresh clone)"
@@ -121,6 +148,14 @@ pull_latest() {
     if [ ! -d "$APP_DIR/.git" ]; then
         log_warn "No .git found — skipping git pull"
         return
+    fi
+    # Guard: `reset --hard` below would discard uncommitted static/ work.
+    # Commit/stash built assets first, or set ALLOW_DIRTY_STATIC=1 to override.
+    if [ -n "$(git -C "$APP_DIR" status --porcelain -- static/ 2>/dev/null)" ] && [ "${ALLOW_DIRTY_STATIC:-0}" != "1" ]; then
+        log_error "Refusing to pull: static/ has uncommitted changes (would be lost by reset --hard)"
+        git -C "$APP_DIR" status --porcelain -- static/ | head -n 20 || true
+        log_info "Commit/stash them or re-run with ALLOW_DIRTY_STATIC=1"
+        exit 1
     fi
     log_info "Pulling latest from GitHub..."
     git -C "$APP_DIR" fetch origin
@@ -188,6 +223,16 @@ health_check() {
                 # Confirm deployed version is serving (catches HUP/.env staleness).
                 served="$(curl -sf --max-time 5 "http://$dial_host:$port/versionz" 2>/dev/null | grep -o '"version":"[^"]*"' || true)"
                 log_info "Application is healthy! ✓ (healthz + 3x readyz ${served})"
+                # Via Caddy: ensures reverse_proxy + TLS path works, not just gunicorn.
+                # Non-fatal if Caddy isn't running locally (e.g. dev), fatal in prod setup.
+                caddy_host="${CADDY_DOMAIN:-www.storybrainai.com}"
+                if command -v caddy >/dev/null 2>&1 || curl -sf --max-time 3 http://127.0.0.1/healthz -H "Host: $caddy_host" >/dev/null 2>&1; then
+                    if curl -sf --max-time 5 -H "Host: $caddy_host" "http://127.0.0.1/healthz" >/dev/null 2>&1; then
+                        log_info "Caddy path healthy ✓ (via 127.0.0.1 Host=$caddy_host)"
+                    else
+                        log_warn "Direct gunicorn healthy but Caddy path failed (Host=$caddy_host) — check Caddy/service"
+                    fi
+                fi
                 return 0
             fi
         fi
@@ -244,8 +289,16 @@ setup_env_file() {
     if [ -f "$APP_DIR/.env" ]; then
         chmod 600 "$APP_DIR/.env" || true
     fi
+    # SECURITY (minimal): never `cat`/echo .env, never run with `set -x` while
+    # secrets are in env. Sourcing exports everything; drop secrets right after
+    # so only HOST/PORT/etc stay exported for health_check. Systemd reads the
+    # file directly via EnvironmentFile, so unsetting here is safe.
+    __xtrace_off=0; case $- in *x*) set +x; __xtrace_off=1;; esac
     set -a; source "$APP_DIR/.env"; set +a
-    unset SECRET
+    unset SECRET SECRET_KEY REDIS_URL || true
+    # Re-export just what deploy needs (HOST/PORT/CADDY_DOMAIN) stays; secrets gone.
+    if [ "$__xtrace_off" = "1" ]; then set -x; fi
+    unset __xtrace_off
 }
 
 setup_systemd() {
@@ -326,6 +379,7 @@ if [ "${1:-}" = "--setup" ]; then
     setup_env_file
     install_python
     build_rust
+    build_frontend
     setup_permissions
     setup_systemd
     health_check
@@ -345,7 +399,7 @@ backup_current   # <-- backup BEFORE pulling so we can rollback to known-good
 pull_latest
 install_python
 build_rust
-log_info "Frontend assets are pre-built and synced via Git"
+build_frontend
 # Export the deployed commit SHA so the app can report its version,
 # and persist it to .env atomically so systemd workers (EnvironmentFile=.env) see it.
 export APP_VERSION

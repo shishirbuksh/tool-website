@@ -17,7 +17,9 @@ const targets = [
 function compressOne(rel) {
   const abs = path.join(__dirname, '..', rel);
   if (!fs.existsSync(abs)) {
-    console.warn(`skip (missing): ${rel}`);
+    // Silently skip optional missing targets (e.g. fonts.css/sitemap.xsl not
+    // built yet) to avoid CI noise; use VERBOSE=1 to debug.
+    if (process.env.VERBOSE) console.debug(`skip (missing): ${rel}`);
     return;
   }
   const buf = fs.readFileSync(abs);

@@ -1,6 +1,7 @@
 """Singleton YAML-based tool data loader with TTL caching."""
 
 import os
+import threading
 import time
 from typing import Any
 
@@ -13,17 +14,25 @@ class ToolDataLoader:
     _data: dict[str, Any] | None = None
     _cache_ts: float = 0
     CACHE_TTL: int = 300
+    _lock = threading.Lock()
 
     @classmethod
     def _load(cls) -> dict[str, Any]:
         now = time.time()
         if cls._data is not None and now - cls._cache_ts < cls.CACHE_TTL:
             return cls._data
-        path = os.path.join(settings.base_dir, "data", "tools.yaml")
-        with open(path, "rb") as f:
-            cls._data = yaml.safe_load(f)["tools"]
-        cls._cache_ts = now
-        return cls._data
+        with cls._lock:
+            now = time.time()
+            if cls._data is not None and now - cls._cache_ts < cls.CACHE_TTL:
+                return cls._data
+            path = os.path.join(settings.base_dir, "data", "tools.yaml")
+            try:
+                with open(path, "rb") as f:
+                    cls._data = yaml.safe_load(f)["tools"]
+            except FileNotFoundError as e:
+                raise FileNotFoundError(f"Tool data file not found: {path}") from e
+            cls._cache_ts = now
+            return cls._data
 
     @classmethod
     def get_all(cls) -> dict[str, Any]:

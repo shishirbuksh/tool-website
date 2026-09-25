@@ -38,7 +38,23 @@ templates.env.filters["tables"] = enhance_tables
 APP_VERSION = os.getenv("APP_VERSION", "dev")
 templates.env.globals["app_version"] = APP_VERSION
 
-_PAGE_CACHE_HEADERS = {"Cache-Control": "private, no-cache, no-store, must-revalidate"}
+# Panel verdict (Speaker 3): blog is public, no auth/PII. Index/pillar churn
+# fast -> short TTL; post is immutable-ish keyed by date_modified + ETag.
+_INDEX_CACHE_HEADERS = {"Cache-Control": "public, max-age=300, stale-while-revalidate=3600, stale-if-error=86400"}
+_POST_CACHE_HEADERS = {"Cache-Control": "public, max-age=3600, stale-while-revalidate=86400, stale-if-error=86400"}
+# Back-compat alias for tests importing the old name.
+_PAGE_CACHE_HEADERS = _INDEX_CACHE_HEADERS
+
+
+def _post_etag(pillar: str, slug: str, date_modified: str | None) -> str:
+    import hashlib
+
+    raw = f"{pillar}/{slug}:{date_modified or ''}:{APP_VERSION}".encode()
+    return '"' + hashlib.sha1(raw).hexdigest()[:32] + '"'
+
+
+def _not_modified(request: Request, etag: str) -> bool:
+    return request.headers.get("if-none-match") == etag
 
 _SLUG_RE = re.compile(r"^[a-z0-9-]{1,80}$")
 
@@ -78,7 +94,7 @@ async def blog_index(request: Request) -> HTMLResponse:
             "pillar_counts": pillar_counts,
         },
     )
-    resp.headers.update(_PAGE_CACHE_HEADERS)
+    resp.headers.update(_INDEX_CACHE_HEADERS)
     return resp
 
 
@@ -158,7 +174,11 @@ async def blog_post(request: Request, pillar: str, cluster: str) -> HTMLResponse
             "static_pages": static_pages,
         },
     )
-    resp.headers.update(_PAGE_CACHE_HEADERS)
+    resp.headers.update(_POST_CACHE_HEADERS)
+    etag = _post_etag(pillar, post.slug, post.date_modified)
+    resp.headers["ETag"] = etag
+    if _not_modified(request, etag):
+        raise HTTPException(status_code=304, detail="Not Modified")
     return resp
 
 

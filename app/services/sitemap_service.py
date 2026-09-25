@@ -215,7 +215,7 @@ class SitemapService:
         lines = [
             "# StoryBrain AI — AI Tool Directory",
             "",
-            "> Discover 100+ free AI-powered tools, calculators, and business utilities.",
+            "> Discover 102 free AI-powered tools, calculators, and business utilities.",
             "",
             "## Tools",
         ]

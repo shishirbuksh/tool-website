@@ -1,17 +1,14 @@
 .PHONY: install build start run clean deploy setup-vps test coverage
 
-ifneq ("$(wildcard .env)","")
-    include .env
-    export
-endif
+# NOTE: do NOT `include .env` here — it leaks SECRET_KEY into `make -p`/subprocesses.
+# Load locally with: set -a; source .env; set +a  (or direnv), then run make.
 
 install:
 	@echo "=== Installing Python dependencies ==="
 	pip install -r requirements.txt
 	@echo "=== Installing Node.js dependencies ==="
 	npm ci
-	@echo "=== Building Rust extension (optional) ==="
-	pip install -e ./rust_predictor 2>/dev/null || echo "[WARN] Rust build skipped — rust_predictor not available"
+	@echo "=== Rust extension: skipped (pure Python MLP) ==="
 	@echo "=== Install complete ==="
 
 build:
@@ -21,7 +18,7 @@ build:
 
 start:
 	@echo "=== Starting production server ==="
-	HOST=$${HOST:-0.0.0.0} PORT=$${PORT:-8090} gunicorn app.main:app -c gunicorn_conf.py
+	HOST=$${HOST:-127.0.0.1} PORT=$${PORT:-8090} gunicorn app.main:app -c gunicorn_conf.py
 
 run: install build start
 

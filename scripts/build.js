@@ -1,6 +1,8 @@
 const esbuild = require('esbuild');
 const isProd = process.env.NODE_ENV === 'production';
 
+// TODO(hash): emit content-hashed filenames (e.g. app.[hash].js) so Caddy can
+// safely use `immutable` long cache; non-hashed outputs must use must-revalidate.
 async function build() {
   const makeBundle = (entry, outfile) =>
     esbuild.build({
@@ -23,4 +25,8 @@ async function build() {
   ]);
 }
 
-build().catch(() => process.exit(1));
+build().catch((err) => {
+  console.error('build failed:', err && err.message ? err.message : err);
+  if (err && err.stack) console.error(err.stack);
+  process.exit(1);
+});

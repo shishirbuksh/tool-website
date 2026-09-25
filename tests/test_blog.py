@@ -54,12 +54,24 @@ class TestBlogPages:
         assert "nonce-" in csp
 
     def test_blog_no_cache_header(self):
-        for path in ("/blog", "/blog/calculators", "/blog/calculators/emi-calculator-guide"):
+        # Panel verdict (Speaker 3): public short-TTL + ETag for crawl efficiency.
+        # Index/pillar -> public max-age=300; post -> public max-age=3600 + ETag.
+        for path in ("/blog", "/blog/calculators"):
             resp = client.get(path)
             assert resp.status_code == 200
             cc = resp.headers.get("cache-control", "")
-            assert "private" in cc
-            assert "no-cache" in cc
+            assert "public" in cc
+            assert "max-age=300" in cc
+        resp = client.get("/blog/calculators/emi-calculator-guide")
+        assert resp.status_code == 200
+        cc = resp.headers.get("cache-control", "")
+        assert "public" in cc
+        assert "max-age=3600" in cc
+        assert resp.headers.get("etag"), "post ETag missing"
+        # Conditional request -> 304
+        etag = resp.headers["etag"]
+        resp2 = client.get("/blog/calculators/emi-calculator-guide", headers={"if-none-match": etag})
+        assert resp2.status_code == 304
 
 
 class TestBlogContentGuards:

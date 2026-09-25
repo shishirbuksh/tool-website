@@ -38,10 +38,17 @@ ReadOnlyPaths={{APP_DIR}}/static {{APP_DIR}}/templates {{APP_DIR}}/app
 # Resource Limits (Crucial for high traffic)
 LimitNOFILE=65536
 LimitNPROC=2048
-MemoryMax=2G
+# Raised 2G->4G: rembg/u2net + onnx hold ~1GB per worker; 2G OOM-killed under load.
+# Lower back to 2G only on <=2GB VPS with WORKERS=2 and no rembg warmup.
+MemoryMax=4G
 CPUQuota=200%
+# TODO: enable WatchdogSec=30 with sd_notify in app (python-systemd) so systemd
+# restarts hung masters instead of serving stale /readyz.
 
 ExecStart={{APP_DIR}}/venv/bin/gunicorn app.main:app -c {{APP_DIR}}/gunicorn_conf.py
+# HUP (ExecReload) only reloads workers — it does NOT re-read EnvironmentFile (.env).
+# Use `systemctl restart` for code/venv/.env changes; reserve HUP for manual
+# zero-downtime nudges when only request handling needs a refresh.
 ExecReload=/bin/kill -HUP $MAINPID
 TimeoutStartSec=300
 TimeoutStopSec=360
@@ -50,7 +57,7 @@ KillMode=mixed
 Restart=always
 RestartSec=5
 StartLimitIntervalSec=60
-StartLimitBurst=3
+StartLimitBurst=5
 
 StandardOutput=journal
 StandardError=journal

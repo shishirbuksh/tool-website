@@ -6,7 +6,7 @@ import socket
 import threading
 import time
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 
@@ -147,6 +147,9 @@ class ProxyService:
         headers: dict[str, str] | None = None,
         body: str | None = None,
     ) -> dict[str, Any]:
+        # TODO: add circuit-breaker per upstream host (trip after N consecutive
+        # failures/timeouts via CacheService, cooldown before half-open retry).
+        _MAX_REDIRECTS = 3
         parsed_url = urlparse(url)
         scheme = parsed_url.scheme
         hostname = parsed_url.hostname
@@ -170,127 +173,168 @@ class ProxyService:
 
         loop = asyncio.get_running_loop()
 
-        def _resolve():
-            return self._resolve_cached(hostname)
-
-        ip = await loop.run_in_executor(None, _resolve)
-        if ip is None:
-            raise ValidationException("Access to internal networks is forbidden.")
-        # Validate port AFTER SSRF check so private-IP probes report
-        # "internal" (tests + security clarity) rather than port errors.
-        try:
-            port = parsed_url.port
-        except ValueError:
-            raise ValidationException("Invalid port in URL") from None
-        if port is not None and port not in (80, 443):
-            raise ValidationException("Only ports 80/443 allowed")
-
+        current_url = url
+        current_method = method.upper()
+        current_data: bytes | None = body.encode("utf-8") if body else None
+        response = None
         start_time = time.time()
-
-        # Do NOT forward/set Host manually — requests derives it from the URL.
-        kwargs = {
-            "method": method.upper(),
-            "url": url,
-            "headers": headers_cleaned,
-            "timeout": 15.0,
-            "verify": True,
-            "allow_redirects": False,
-            "stream": True,
-        }
-
-        if body:
-            kwargs["data"] = body.encode("utf-8")
 
         _MAX_RESP = 5_000_000
 
-        def _make_request():
-            _dns_local.target_host = hostname
-            _dns_local.forced_ip = ip
-            try:
-                resp = requests.request(**kwargs)
+        for _redirect in range(_MAX_REDIRECTS + 1):
+                parsed_current = urlparse(current_url)
+                cur_scheme = parsed_current.scheme
+                cur_host = parsed_current.hostname
+                if not cur_host:
+                    raise ValidationException("Invalid URL: missing hostname")
+                if cur_scheme not in ("http", "https"):
+                    raise ValidationException("Only http and https URLs are allowed")
+
+                def _resolve(cur=cur_host):
+                    return self._resolve_cached(cur)
+
+                ip = await loop.run_in_executor(None, _resolve)
+                if ip is None:
+                    raise ValidationException("Access to internal networks is forbidden.")
+                # Validate port AFTER SSRF check so private-IP probes report
+                # "internal" (tests + security clarity) rather than port errors.
                 try:
-                    # Content-Length pre-check before reading body.
-                    cl = resp.headers.get("Content-Length")
-                    if cl is not None:
+                    port = parsed_current.port
+                except ValueError:
+                    raise ValidationException("Invalid port in URL") from None
+                if port is not None and port not in (80, 443):
+                    raise ValidationException("Only ports 80/443 allowed")
+
+                # Do NOT forward/set Host manually — requests derives it from the URL.
+                kwargs = {
+                    "method": current_method,
+                    "url": current_url,
+                    "headers": headers_cleaned,
+                    "timeout": 15.0,
+                    "verify": True,
+                    "allow_redirects": False,
+                    "stream": True,
+                }
+                if current_data:
+                    kwargs["data"] = current_data
+
+                def _make_request(kw=kwargs, h=cur_host, pinned=ip):
+                    _dns_local.target_host = h
+                    _dns_local.forced_ip = pinned
+                    try:
+                        resp = requests.request(**kw)
                         try:
-                            if int(str(cl).strip()) > _MAX_RESP:
+                            # Content-Length pre-check before reading body.
+                            cl = resp.headers.get("Content-Length")
+                            if cl is not None:
+                                try:
+                                    if int(str(cl).strip()) > _MAX_RESP:
+                                        resp.close()
+                                        raise ValidationException("Response exceeds 5MB limit")
+                                except ValidationException:
+                                    raise
+                                except (ValueError, TypeError):
+                                    pass
+                            # Cap body via iter_content (never buffer unbounded).
+                            chunks: list[bytes] = []
+                            total = 0
+                            truncated = False
+                            for chunk in resp.iter_content(chunk_size=64 * 1024):
+                                if not chunk:
+                                    continue
+                                if total + len(chunk) > _MAX_RESP:
+                                    truncated = True
+                                    # Keep only up to cap.
+                                    remaining = _MAX_RESP - total
+                                    if remaining > 0:
+                                        chunks.append(chunk[:remaining])
+                                    break
+                                total += len(chunk)
+                                chunks.append(chunk)
+                            body_bytes = b"".join(chunks)
+                            resp._capped_body = body_bytes  # type: ignore[attr-defined]
+                            resp._truncated = truncated  # type: ignore[attr-defined]
+                            try:
                                 resp.close()
-                                raise ValidationException("Response exceeds 5MB limit")
+                            except Exception:
+                                pass
+                            return resp
                         except ValidationException:
+                            try:
+                                resp.close()
+                            except Exception:
+                                pass
                             raise
-                        except (ValueError, TypeError):
-                            pass
-                    # Cap body via iter_content (never buffer unbounded).
-                    chunks: list[bytes] = []
-                    total = 0
-                    truncated = False
-                    for chunk in resp.iter_content(chunk_size=64 * 1024):
-                        if not chunk:
-                            continue
-                        if total + len(chunk) > _MAX_RESP:
-                            truncated = True
-                            # Keep only up to cap.
-                            remaining = _MAX_RESP - total
-                            if remaining > 0:
-                                chunks.append(chunk[:remaining])
-                            break
-                        total += len(chunk)
-                        chunks.append(chunk)
-                    body_bytes = b"".join(chunks)
-                    resp._capped_body = body_bytes  # type: ignore[attr-defined]
-                    resp._truncated = truncated  # type: ignore[attr-defined]
-                    try:
-                        resp.close()
-                    except Exception:
-                        pass
-                    return resp
+                        except Exception:
+                            try:
+                                resp.close()
+                            except Exception:
+                                pass
+                            raise
+                    finally:
+                        # Clear thread-local pin so pooled threads never leak
+                        # a stale forced IP into an unrelated request.
+                        _dns_local.target_host = None
+                        _dns_local.forced_ip = None
+
+                try:
+                    response = await loop.run_in_executor(None, _make_request)
                 except ValidationException:
-                    try:
-                        resp.close()
-                    except Exception:
-                        pass
                     raise
+                except requests.exceptions.Timeout:
+                    raise ServiceError("Request timed out after 15 seconds") from None
+                except requests.exceptions.ConnectionError:
+                    raise ServiceError("Failed to connect to the remote server") from None
+                except requests.exceptions.RequestException:
+                    raise ServiceError("Request failed") from None
                 except Exception:
+                    raise ServiceError("An unexpected error occurred") from None
+                finally:
+                    # Defense-in-depth: ensure no pin leaks if executor reuses thread
+                    # after an unexpected throw before _make_request ran.
                     try:
-                        resp.close()
+                        _dns_local.target_host = None
+                        _dns_local.forced_ip = None
                     except Exception:
                         pass
-                    raise
-            finally:
-                _dns_local.target_host = None
-                _dns_local.forced_ip = None
 
-        try:
-            response = await loop.run_in_executor(None, _make_request)
-            end_time = time.time()
+                # Manual redirect handling (allow_redirects=False above): follow max
+                # _MAX_REDIRECTS, re-validating SSRF/scheme/port on each hop.
+                if response.status_code in (301, 302, 303, 307, 308):
+                    location = response.headers.get("Location")
+                    if location:
+                        if _redirect >= _MAX_REDIRECTS:
+                            raise ValidationException("Too many redirects")
+                        next_url = urljoin(current_url, location)
+                        nxt = urlparse(next_url)
+                        if nxt.scheme not in ("http", "https") or not nxt.hostname:
+                            raise ValidationException("Invalid redirect target")
+                        current_url = next_url
+                        if response.status_code in (301, 302, 303) and current_method != "HEAD":
+                            current_method = "GET"
+                            current_data = None
+                        continue
 
-            raw_body: bytes = getattr(response, "_capped_body", b"")
-            truncated = bool(getattr(response, "_truncated", False))
-            try:
-                body_content = raw_body.decode("utf-8", errors="replace")
-            except Exception:
-                body_content = ""
-            if truncated:
-                body_content = body_content[:_MAX_RESP] + "\n[truncated: response exceeds 5MB limit]"
+                end_time = time.time()
 
-            # Drop Set-Cookie (session fixation via proxied cookies).
-            resp_headers = {k: v for k, v in response.headers.items() if k.lower() != "set-cookie"}
+                raw_body: bytes = getattr(response, "_capped_body", b"")
+                truncated = bool(getattr(response, "_truncated", False))
+                try:
+                    body_content = raw_body.decode("utf-8", errors="replace")
+                except Exception:
+                    body_content = ""
+                if truncated:
+                    body_content = body_content[:_MAX_RESP] + "\n[truncated: response exceeds 5MB limit]"
 
-            return {
-                "status": "success",
-                "status_code": response.status_code,
-                "time_ms": int((end_time - start_time) * 1000),
-                "size_bytes": len(raw_body),
-                "headers": resp_headers,
-                "body": body_content,
-            }
-        except ValidationException:
-            raise
-        except requests.exceptions.Timeout:
-            raise ServiceError("Request timed out after 15 seconds") from None
-        except requests.exceptions.ConnectionError:
-            raise ServiceError("Failed to connect to the remote server") from None
-        except requests.exceptions.RequestException:
-            raise ServiceError("Request failed") from None
-        except Exception:
-            raise ServiceError("An unexpected error occurred") from None
+                # Drop Set-Cookie (session fixation via proxied cookies).
+                resp_headers = {k: v for k, v in response.headers.items() if k.lower() != "set-cookie"}
+
+                return {
+                    "status": "success",
+                    "status_code": response.status_code,
+                    "time_ms": int((end_time - start_time) * 1000),
+                    "size_bytes": len(raw_body),
+                    "headers": resp_headers,
+                    "body": body_content,
+                }
+        raise ServiceError("An unexpected error occurred") from None

@@ -35,7 +35,7 @@ from app.services.seo_service import SeoService
 
 logger = get_logger(__name__)
 
-CONTACT_RECIPIENT = os.getenv("CONTACT_EMAIL", "")
+CONTACT_RECIPIENT = settings.CONTACT_EMAIL or os.getenv("CONTACT_EMAIL", "")
 
 __all__ = ["router"]
 
@@ -199,6 +199,7 @@ async def service_worker() -> FileResponse:
 
 @router.post("/api/contact", response_model=ContactResponse)
 async def contact_submission(request: Request) -> ContactResponse:
+    # TODO: add honeypot field + Turnstile/CAPTCHA verification to block contact spam bots.
     # Size check via Content-Length to reject oversized payloads early.
     content_length = request.headers.get("content-length")
     if content_length and content_length.isdigit() and int(content_length) > _CONTACT_MAX_BYTES:
@@ -251,21 +252,30 @@ async def contact_submission(request: Request) -> ContactResponse:
             msg["From"] = CONTACT_RECIPIENT or "noreply@localhost"
             msg["To"] = CONTACT_RECIPIENT
             msg["Reply-To"] = safe_email
-            smtp_host = os.getenv("SMTP_HOST", "localhost")
-            smtp_port = int(os.getenv("SMTP_PORT", "25"))
-            smtp_user = os.getenv("SMTP_USER", "")
-            with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as s:
-                try:
-                    s.starttls()
-                except Exception as e:
-                    # Fail closed when credentials/TLS expected; allow plaintext only for local relay.
-                    if smtp_user or smtp_host not in ("localhost", "127.0.0.1", "::1"):
-                        raise HTTPException(status_code=502, detail="Mail TLS required") from e
-                if smtp_user:
-                    smtp_pass = os.getenv("SMTP_PASS", "")
-                    if smtp_pass:
-                        s.login(smtp_user, smtp_pass)
-                s.send_message(msg)
+            smtp_host = settings.SMTP_HOST or os.getenv("SMTP_HOST", "localhost")
+            smtp_port = int(settings.SMTP_PORT or os.getenv("SMTP_PORT", "25"))
+            smtp_user = settings.SMTP_USER or os.getenv("SMTP_USER", "")
+            smtp_pass = settings.SMTP_PASS or os.getenv("SMTP_PASS", "")
+
+            def _send_mail() -> None:
+                with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as s:
+                    try:
+                        s.starttls()
+                    except Exception as e:
+                        # Fail closed: plaintext allowed only for local relay in dev.
+                        is_local = smtp_host in ("localhost", "127.0.0.1", "::1")
+                        if settings.is_prod or not is_local or smtp_user:
+                            raise RuntimeError("Mail TLS required") from e
+                    if smtp_user:
+                        if smtp_pass:
+                            s.login(smtp_user, smtp_pass)
+                    s.send_message(msg)
+
+            # SMTP is blocking — offload to worker thread so event loop stays free.
+            try:
+                await asyncio.to_thread(_send_mail)
+            except RuntimeError as e:
+                raise HTTPException(status_code=502, detail="Mail TLS required") from e
         except HTTPException:
             raise
         except Exception as e:

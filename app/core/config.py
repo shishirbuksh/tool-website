@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     )
 
     PROJECT_NAME: str = "Multi-Tool Website"
-    HOST: str = "0.0.0.0"
+    HOST: str = "127.0.0.1"
     PORT: int = 8090
     LOG_LEVEL: str = "info"
     WORKERS: int = 0
@@ -55,6 +55,12 @@ class Settings(BaseSettings):
     ANALYTICS_RETENTION_DAYS: int = 90
     ANALYTICS_CLEANUP_INTERVAL: int = 300
     CACHE_DEFAULT_TTL: int = 300
+    TRACK_ENABLED: bool = True
+    CONTACT_EMAIL: str = ""
+    SMTP_HOST: str = "localhost"
+    SMTP_PORT: int = 25
+    SMTP_USER: str = ""
+    SMTP_PASS: str = ""
     SECRET_KEY: str = Field(default="", description="App secret key (sessions/signed URLs); set via env")
     ENV: str = "dev"
 

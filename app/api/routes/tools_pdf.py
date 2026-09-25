@@ -11,6 +11,7 @@ from fastapi.responses import StreamingResponse
 
 from app.core.config import settings
 from app.core.constants import ALLOWED_IMAGE_MIMES
+from app.core.exceptions import ValidationException
 from app.core.log import get_logger
 from app.services.pdf_service import PDFService
 
@@ -80,7 +81,7 @@ async def convert_to_pdf(file: UploadFile = File(...)) -> StreamingResponse:  # 
         try:
             pdf_bytes = await loop.run_in_executor(None, pdf_service.convert_image_to_pdf, image_data, filename)
             return _pdf_response(pdf_bytes, base_name)
-        except HTTPException:
+        except (HTTPException, ValidationException):
             raise
         except Exception as e:
             logger.exception("Failed to convert image to PDF for %s", filename)
@@ -92,7 +93,7 @@ async def convert_to_pdf(file: UploadFile = File(...)) -> StreamingResponse:  # 
         try:
             pdf_bytes = await loop.run_in_executor(None, pdf_service.convert_text_to_pdf, text_data)
             return _pdf_response(pdf_bytes, base_name)
-        except HTTPException:
+        except (HTTPException, ValidationException):
             raise
         except Exception as e:
             logger.exception("Failed to convert text to PDF")

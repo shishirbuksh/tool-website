@@ -1,11 +1,15 @@
 // StoryBrain AI Service Worker v38 (keep in sync with CACHE_NAME / STATIC_CACHE below)
+// CACHE version: bump v38 -> v39 on breaking shell changes.
+// TODO: inject app_version at build time (e.g. __APP_VERSION__) so SW cache
+// busts automatically with each deploy instead of manual version bumps.
 const CACHE_NAME = 'storybrain-v38';
 const STATIC_CACHE = 'storybrain-static-v38';
 const PAGE_CACHE_MAX_ENTRIES = 50;
 
 // Assets to pre-cache on install (app-shell only; OG/screenshots lazy via runtime cache)
+// NOTE: '/' intentionally NOT precached — network-first pages + /offline fallback
+// cover it, and precaching '/' pins a stale HTML shell across deploys.
 const PRECACHE_URLS = [
-  '/',
   '/static/css/app.css',
   '/static/css/fonts.css',
   '/static/favicon.svg',
@@ -75,6 +79,8 @@ self.addEventListener('fetch', (event) => {
   // NOTE: app.css/js carry ?v=<app_version> query strings — match EXACTLY
   // (no ignoreSearch) so a cached v1 can never serve a v2 URL. Each versioned
   // URL caches under its own full key; old caches are purged on activate.
+  // Do NOT use caches.match(request, {ignoreSearch:true}) for /static/*?v= —
+  // ignoreSearch would alias ?v=1 and ?v=2 to the same entry and serve stale CSS/JS.
   if (
     url.pathname.startsWith('/static/') ||
     url.pathname === '/favicon.ico'

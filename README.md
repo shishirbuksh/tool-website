@@ -4,7 +4,7 @@
 
 ![StoryBrain AI Banner](static/og-image.jpg)
 
-**[StoryBrain AI](https://www.storybrainai.com/)** is a production-grade, lightning-fast SaaS platform offering 101 free browser-based tools. It includes AI utilities, crypto calculators, image processors, PDF generators, and business calculators.
+**[StoryBrain AI](https://www.storybrainai.com/)** is a production-grade, lightning-fast SaaS platform offering 102 free browser-based tools. It includes AI utilities, crypto calculators, image processors, PDF generators, and business calculators.
 
 The platform is engineered for absolute maximum performance (100/100 Core Web Vitals) featuring an enterprise architecture built on FastAPI, Jinja2, and TailwindCSS.
 

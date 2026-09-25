@@ -9,7 +9,7 @@
 - Caddy (reverse proxy, automatic HTTPS) + Gunicorn/Systemd on port 8090
 
 ## Catalog
-- 101 free online tools (slugs defined in `data/tools.yaml`)
+- 102 free online tools (slugs defined in `data/tools.yaml`)
 
 ## Project Structure
 - app/api → API routes

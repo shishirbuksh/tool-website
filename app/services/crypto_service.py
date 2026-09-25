@@ -1,7 +1,9 @@
 """Crypto prediction and trend analysis service (async, dependency-gated)."""
 
 import asyncio
+import concurrent.futures
 import logging
+import re
 from datetime import timedelta
 from typing import Any
 
@@ -9,11 +11,13 @@ from app.core.cache import get_cache
 from app.core.config import Settings
 from app.core.exceptions import ServiceError
 from app.core.log import get_logger
-import concurrent.futures
 
 logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
 
 logger = get_logger(__name__)
+
+# Tightened: letters only (no digits), 2-10 chars per side.
+_SYMBOL_RE = re.compile(r"^[A-Z]{2,10}-[A-Z]{2,10}$")
 
 _prophet_semaphores: dict[int, asyncio.Semaphore] = {}
 _prophet_sem_lock = __import__("threading").Lock()
@@ -50,7 +54,29 @@ class CryptoService:
 
 
 
-    async def predict(self, symbol: str = "BTC-USD") -> dict:
+    def _get_prophet(self) -> Any | None:
+        """Lazy import Prophet; return None if not installed."""
+        try:
+            from prophet import Prophet  # noqa: PLC0415
+
+            return Prophet
+        except Exception:
+            return None
+
+    async def _run_prophet_async(self, func: Any) -> Any | None:
+        """Run sync Prophet fn in executor with 90s timeout + per-loop semaphore."""
+        loop = asyncio.get_running_loop()
+        sem = _get_prophet_semaphore()
+        async with sem:
+            try:
+                return await asyncio.wait_for(
+                    loop.run_in_executor(_ml_executor, func), timeout=90
+                )
+            except TimeoutError:
+                logger.warning("Prophet model timed out after 90s — degrading")
+                return None
+
+    async def predict(self, symbol: str = "BTC-USD") -> dict[str, Any]:
         symbol_norm = (symbol or "BTC-USD").strip().upper()
         cache_key = f"cache:predict:{symbol_norm.lower()}"
         cache = get_cache()
@@ -62,7 +88,7 @@ class CryptoService:
         await cache.async_set(cache_key, result, ttl=300)
         return result
 
-    async def analyze_trend(self, symbol: str = "BTC-USD") -> dict:
+    async def analyze_trend(self, symbol: str = "BTC-USD") -> dict[str, Any]:
         symbol_norm = (symbol or "BTC-USD").strip().upper()
         cache_key = f"cache:trend:{symbol_norm.lower()}"
         cache = get_cache()
@@ -81,8 +107,10 @@ class CryptoService:
         lookback: int,
         rust_epochs: int,
         include_ta: bool = False,
-    ) -> dict:
+    ) -> dict[str, Any]:
         symbol = (symbol or "").strip().upper() or "BTC-USD"
+        if not _SYMBOL_RE.match(symbol):
+            raise ServiceError(f"Invalid symbol format: {symbol}")
         loop = asyncio.get_running_loop()
 
         def _download():
@@ -144,7 +172,6 @@ class CryptoService:
             raise ServiceError(msg)
 
         future_days = 7
-        degraded = []
 
         def _run_prophet():
             prophet_mod = self._get_prophet()
@@ -220,7 +247,7 @@ class CryptoService:
 
 
         prophet_preds, rust_preds = await asyncio.gather(
-            _run_prophet_async(),
+            self._run_prophet_async(_run_prophet),
             loop.run_in_executor(_ml_executor, _run_rust),
         )
 
@@ -228,15 +255,11 @@ class CryptoService:
         last_date = df.index[-1]
         future_dates = [(last_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, future_days + 1)]
 
-        degraded_flag = degraded if degraded else None
-
         if include_ta:
             result = await loop.run_in_executor(
                 None, self._build_trend_result,
                 symbol, close_prices, timestamps, future_dates, prophet_preds, rust_preds, df,
             )
-            if degraded_flag:
-                result["degraded"] = degraded_flag
             return result
 
         history = [{"date": d, "price": float(p)} for d, p in zip(timestamps, close_prices, strict=True)]
@@ -250,8 +273,6 @@ class CryptoService:
             future_data.append(entry)
 
         result = {"symbol": symbol, "history": history, "predictions": future_data}
-        if degraded_flag:
-            result["degraded"] = degraded_flag
         return result
 
     def _compute_ta(self, close_prices: Any, df_index: Any) -> Any:

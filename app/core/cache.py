@@ -104,9 +104,16 @@ def _jittered_ttl(base: int, spread: int = 60) -> int:
 
 
 class MemoryCache:
-    def __init__(self):
+    def __init__(self, default_ttl: int | None = None):
+        if default_ttl is None:
+            try:
+                from app.core.config import settings  # noqa: PLC0415
+
+                default_ttl = int(settings.CACHE_DEFAULT_TTL)
+            except Exception:
+                default_ttl = 300
         self._data: dict[str, tuple[Any, float, int]] = {}
-        self._default_ttl = 300
+        self._default_ttl = default_ttl
         self._lock = threading.Lock()
 
     def get(self, key: str, default: Any | None = None) -> Any | None:
@@ -251,7 +258,9 @@ class CacheService:
             try:
                 # ROUND-2: never flushdb() — it nukes unrelated DBs/tenants.
                 # Delete only our own namespaces via scan_iter.
-                for pattern in ("cache:*", "ratelimit:*", "predict:*", "trend:*", "fng:*", "seo:*", "blog:*"):
+                # Unified crypto namespace is cache:predict:* / cache:trend:*
+                # (see CryptoService); bare predict:* / trend:* are legacy.
+                for pattern in ("cache:*", "cache:predict:*", "cache:trend:*", "ratelimit:*", "fng:*", "seo:*", "blog:*"):
                     try:
                         for key in redis.scan_iter(match=pattern, count=500):
                             try:

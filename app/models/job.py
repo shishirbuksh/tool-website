@@ -1,6 +1,5 @@
 """Pydantic models for async job status and result tracking."""
 
-import time
 import uuid
 from enum import StrEnum
 from typing import Any
@@ -31,13 +30,14 @@ class JobResponse(BaseModel):
         try:
             uuid.UUID(v)
         except (ValueError, AttributeError, TypeError) as e:
-            raise ValueError(f"job_id must be a valid UUID, got {v!r}") from e
+            msg = f"job_id must be a valid UUID, got {v!r}"
+            raise ValueError(msg) from e
         return v
 
     @model_validator(mode="after")
     def _check_terminal_state(self):
-        if self.status == JobStatus.DONE and self.result is None:
-            raise ValueError("DONE jobs must include a result")
+        # DONE may carry result=None (e.g. degraded/empty upstream); only
+        # ERROR must include an error message.
         if self.status == JobStatus.ERROR and not self.error:
             raise ValueError("ERROR jobs must include an error message")
         return self

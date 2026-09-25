@@ -2,6 +2,10 @@
 
 from fastapi import HTTPException, Request
 
+# Localhost allowlist: loopback IPv4/IPv6 + Caddy-on-localhost proxy mapping.
+# "localhost" hostname is included for test clients that set client.host literally;
+# DNS rebinding is not a concern here because we also require the direct ASGI peer
+# to be loopback and cross-check X-Real-IP vs rightmost X-Forwarded-For.
 _INTERNAL_IPS = {"127.0.0.1", "::1", "::ffff:127.0.0.1", "localhost"}
 
 

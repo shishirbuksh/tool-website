@@ -18,7 +18,8 @@ class Job:
         self.job_id = job_id
         self.name = name
         self.status = JobStatus.PENDING
-        self.result: Any = None
+        # Result may stay None even for DONE (degraded/empty upstream).
+        self.result: Any | None = None
         self.error: str | None = None
         self.created_at = time.time()
 
@@ -28,6 +29,9 @@ class JobService:
         # task_timeout (90s) MUST stay < gunicorn timeout (see
         # gunicorn_conf.py TIMEOUT, default 320s). Gunicorn SIGKILLs workers
         # past TIMEOUT, so jobs must finish well before that.
+        # NOTE: in-memory _jobs dict is per-process only; multi-worker
+        # (gunicorn) deployments need a Redis shared store for cross-worker
+        # job visibility.
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
         self._tasks: set[asyncio.Task[Any]] = set()
