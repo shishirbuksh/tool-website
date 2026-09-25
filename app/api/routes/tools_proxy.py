@@ -1,6 +1,8 @@
 """HTTP proxy API: fetch external resources with security blocks (private IP, size caps)."""
 
-from fastapi import APIRouter, Depends, HTTPException
+import time
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.core.config import settings
 from app.core.log import get_logger
@@ -13,10 +15,53 @@ router = APIRouter(prefix="/api", tags=["Proxy"])
 proxy_service = ProxyService(settings)
 logger = get_logger(__name__)
 
+_PROXY_MEM_WINDOWS: dict[str, int] = {}
 
-async def _proxy_rate_limit_stub() -> None:
-    # Global RateLimitMiddleware already enforces 60/min on POST /api/proxy-request.
-    # This dependency exists to keep an explicit hook for future per-URL quotas/API keys.
+
+def _proxy_rate_limit_stub(request: Request) -> None:
+    # Real per-IP limit: 10/min. Uses CacheService (shared Redis) when
+    # available, else in-memory fallback. Global RateLimitMiddleware (60/min)
+    # remains as outer guard.
+    try:
+        from app.core.cache import get_cache  # noqa: PLC0415
+
+        cache = get_cache()
+    except Exception:
+        cache = None  # type: ignore[assignment]
+    # Trust proxy headers only from loopback peer (same as RateLimitMiddleware).
+    direct_ip = request.client.host if request.client else ""
+    if direct_ip in ("127.0.0.1", "::1", "::ffff:127.0.0.1", "localhost"):
+        ip = request.headers.get("X-Real-IP", "").strip() or direct_ip
+    else:
+        ip = direct_ip or "unknown"
+    now = time.time()
+    window = int(now // 60)
+    key = f"proxyrl:{ip}:{window}"
+    limit = 10
+    if cache is not None:
+        try:
+            count = cache.get(key, 0) or 0
+            if int(count) >= limit:
+                raise HTTPException(status_code=429, detail="Proxy rate limit exceeded")
+            cache.set(key, int(count) + 1, ttl=70)
+            return None
+        except HTTPException:
+            raise
+        except Exception:
+            pass  # fall through to memory fallback
+    bucket = _PROXY_MEM_WINDOWS.setdefault(key, 0)
+    if bucket >= limit:
+        raise HTTPException(status_code=429, detail="Proxy rate limit exceeded")
+    _PROXY_MEM_WINDOWS[key] = bucket + 1
+    # Opportunistic prune to bound memory.
+    if len(_PROXY_MEM_WINDOWS) > 2000:
+        cutoff = int(now // 60) - 2
+        for k in list(_PROXY_MEM_WINDOWS):
+            try:
+                if int(k.rsplit(":", 1)[-1]) < cutoff:
+                    _PROXY_MEM_WINDOWS.pop(k, None)
+            except (ValueError, IndexError):
+                _PROXY_MEM_WINDOWS.pop(k, None)
     return None
 
 

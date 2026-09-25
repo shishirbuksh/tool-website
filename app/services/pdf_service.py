@@ -60,20 +60,22 @@ class PDFService:
         # Filename used only for metadata/header; sanitized upstream + here.
         filename = _sanitize_filename(filename)
         if not image_data:
-            raise ValueError("Image data must not be empty")
+            raise ValidationException("Image data must not be empty")
+        if len(image_data) > getattr(self.settings, "IMAGE_MAX_SIZE", 50 * 1024 * 1024):
+            raise ValidationException("Image file size exceeds limit (50MB)")
         try:
             with Image.open(io.BytesIO(image_data)) as image:
                 if (image.width * image.height) > MAX_IMAGE_PIXELS:
-                    raise ValueError(f"Image exceeds maximum pixel limit ({MAX_IMAGE_PIXELS})")
+                    raise ValidationException(f"Image exceeds maximum pixel limit ({MAX_IMAGE_PIXELS})")
                 rgb_image = image.convert("RGB")
                 pdf_buf = io.BytesIO()
                 rgb_image.save(pdf_buf, format="PDF", resolution=100.0)
                 pdf_buf.seek(0)
                 return pdf_buf.read()
-        except ValueError:
+        except ValidationException:
             raise
         except Exception as e:
-            raise ValueError(f"Invalid image data: {e}") from e
+            raise ValidationException(f"Invalid image data: {e}") from e
 
 
     def convert_text_to_pdf(self, text_data: bytes, filename: str = "document") -> bytes:

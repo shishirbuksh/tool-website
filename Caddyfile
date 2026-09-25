@@ -9,6 +9,15 @@
 # Bind gunicorn to 127.0.0.1 (HOST=127.0.0.1) and firewall 8090 (ufw deny 8090).
 # If Cloudflare is in front, set trusted_proxies to CF ranges + client_ip_headers
 # below so {client_ip} is the real user, not the edge. Never expose 8090 directly.
+# Cloudflare CIDRs (refresh from https://www.cloudflare.com/ips-v4 and /ips-v6):
+#   v4: 173.245.48.0/20,103.21.244.0/22,103.22.200.0/22,103.31.4.0/22,141.101.64.0/18,
+#       108.162.192.0/18,190.93.240.0/20,188.114.96.0/20,197.234.240.0/22,198.41.128.0/17,
+#       162.158.0.0/15,104.16.0.0/13,104.24.0.0/14,172.64.0.0/13,131.0.72.0/22
+#   v6: 2400:cb00::/32,2606:4700::/32,2803:f800::/32,2405:b500::/32,2405:8100::/32,
+#       2a06:98c0::/29,2c0f:f248::/32
+# NOTE: listed for reference only — keep `trusted_proxies static 127.0.0.1/32 ::1`
+# when Caddy sees only localhost (Cloudflare -> Caddy on same host via loopback
+# or tunnel). Append CF ranges above only if Caddy directly sees CF edge IPs.
 
 {
     servers {
@@ -21,6 +30,7 @@
     @nonwww {
         not host www.{$CADDY_DOMAIN:storybrainai.com}
     }
+    # {uri} preserves path + query on apex->www 301 (e.g. /foo?bar stays /foo?bar).
     redir @nonwww https://www.{$CADDY_DOMAIN:storybrainai.com}{uri} 301
 
     encode zstd br gzip
@@ -35,6 +45,9 @@
     }
 
     # Logging with rotation (prevents unbounded disk fill)
+    # Access logs below; errors go to stderr/journal by default.
+    # To persist errors: add a global `log { output file /var/log/caddy/error.log { ... } }`
+    # stanza in the `{ ... }` global block above.
     log {
         output file /var/log/caddy/access.log {
             roll_size 100mb
@@ -46,21 +59,44 @@
 
     # Cache static assets (must come before the reverse_proxy fallback)
     # manifest.json / ads.txt use short cache to match app (86400), rest immutable 1y.
-    handle_path /static/manifest.json {
+    # TODO: emit content-hashed filenames (e.g. app.[hash].js/css) in scripts/build.js
+    # so hashed assets can safely use `immutable`. Non-hashed app.js/app.css MUST use
+    # `must-revalidate`, otherwise browsers pin stale code for 1y.
+    handle /static/manifest.json {
+        uri strip_prefix /static
         root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
         file_server {
             precompressed br gzip
         }
         header Cache-Control "public, max-age=86400"
     }
-    handle_path /static/ads.txt {
+    handle /static/ads.txt {
+        uri strip_prefix /static
         root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
         file_server {
             precompressed br gzip
         }
         header Cache-Control "public, max-age=86400"
     }
-    handle_path /static/* {
+    # Non-hashed entry points — must revalidate (see TODO above).
+    handle /static/js/app.js {
+        uri strip_prefix /static
+        root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
+        file_server {
+            precompressed br gzip
+        }
+        header Cache-Control "public, max-age=31536000, must-revalidate"
+    }
+    handle /static/css/app.css {
+        uri strip_prefix /static
+        root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
+        file_server {
+            precompressed br gzip
+        }
+        header Cache-Control "public, max-age=31536000, must-revalidate"
+    }
+    handle /static/* {
+        uri strip_prefix /static
         root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
         file_server {
             precompressed br gzip
@@ -92,5 +128,15 @@
         health_uri /readyz
         health_interval 10s
         dial_timeout 5s
+    }
+
+    # Error handling — never leak stack traces; preserve upstream status.
+    # Pair with the `log` stanza above (access) + global error log comment.
+    handle_errors {
+        @5xx expression {http.error.status_code} >= 500
+        handle @5xx {
+            respond "Internal Server Error" 500
+        }
+        respond "{http.error.status_code} {http.error.status_text}" {http.error.status_code}
     }
 }

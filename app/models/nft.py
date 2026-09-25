@@ -46,7 +46,7 @@ class FractalParams(BaseModel):
     c_re: float
     c_im: float
     zoom: float
-    max_iter: int
+    max_iter: int = Field(..., ge=1, le=500)
     palette_choice: str
 
     @field_validator("c_re", "c_im")
