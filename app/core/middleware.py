@@ -219,8 +219,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Buckets are bounded (see _max_buckets + _cleanup_windows) to cap memory under flood.
         bucket = f"{client_ip}#{check}"
         if bucket not in self._windows and len(self._windows) >= self._max_buckets:
-            # At capacity: fail open for new IPs but don't grow memory.
-            return False
+            # At capacity: evict the oldest inserted bucket (O(1)) instead of failing open.
+            oldest_key = next(iter(self._windows))
+            del self._windows[oldest_key]
         window = self._windows[bucket]
         cutoff = now - 60
         while window and window[0] < cutoff:

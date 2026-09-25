@@ -260,7 +260,7 @@ class CacheService:
                 # Delete only our own namespaces via scan_iter.
                 # Unified crypto namespace is cache:predict:* / cache:trend:*
                 # (see CryptoService); bare predict:* / trend:* are legacy.
-                for pattern in ("cache:*", "cache:predict:*", "cache:trend:*", "ratelimit:*", "fng:*", "seo:*", "blog:*"):
+                for pattern in ("cache:*", "ratelimit:*", "fng:*", "seo:*", "blog:*"):
                     try:
                         for key in redis.scan_iter(match=pattern, count=500):
                             try:
