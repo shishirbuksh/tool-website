@@ -22,7 +22,7 @@ class SitemapService:
         self._dir_cache: dict[str, tuple[float, list[str]]] = {}
         self._cache_ttl = 3600
         self._dir_cache_ttl = 300
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def _is_valid_yaml_date(self, value: str | None) -> bool:
         if not value or not _YAML_DATE_RE.match(value):
