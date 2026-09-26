@@ -97,30 +97,7 @@ build_rust() {
 }
 
 build_frontend() {
-    # Node 20 pinned (matches package.json engines + CI setup-node 20).
-    # Use Node 20.x in prod; Node 18 may build but drifts from CI parity.
-    if ! command -v npm >/dev/null 2>&1; then
-        log_error "npm not found — cannot build frontend (need Node 20)"
-        exit 1
-    fi
-    log_info "Node version: $(node --version 2>/dev/null || echo unknown) (want v20.x)"
-    log_info "Building frontend assets (npm ci + npm run build)..."
-    npm ci --prefix "$APP_DIR"
-    npm run build --prefix "$APP_DIR"
-    # Guard: built outputs must exist, else Caddy serves stale 1y-immutable files.
-    for f in "$APP_DIR/static/js/app.js" "$APP_DIR/static/css/app.css"; do
-        if [ ! -f "$f" ]; then
-            log_error "Frontend build missing expected output: $f"
-            exit 1
-        fi
-    done
-    # Guard: warn if static/ has uncommitted changes post-build (dirty deploy).
-    if [ -d "$APP_DIR/.git" ]; then
-        if [ -n "$(git -C "$APP_DIR" status --porcelain -- static/ 2>/dev/null)" ]; then
-            log_warn "static/ has uncommitted changes after build (see git status -- static/)"
-            git -C "$APP_DIR" status --porcelain -- static/ | head -n 20 || true
-        fi
-    fi
+    log_info "Frontend build skipped (Tailwind is pre-compiled and tracked in Git to save VPS memory)"
 }
 
 backup_current() {
