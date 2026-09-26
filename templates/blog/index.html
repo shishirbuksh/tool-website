@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% from "components/blog_macros.html" import blog_card %}
 
-{% block title %}Blog — {{ posts | length }} Free Guides & Tutorials | StoryBrain AI{% endblock %}
-{% block meta_description %}Browse {{ posts | length }} practical StoryBrain AI guides and tutorials for free online tools, calculators, and utilities. New how-tos, no signup.{% endblock %}
-{% block meta_keywords %}blog, guides, tutorials, free tools guides, calculators guide, storybrain ai{% endblock %}
-{% block canonical_url %}{{ SITE_URL | default('https://www.storybrainai.com', true) }}/blog{% endblock %}
+{% block title %}Blog — {{ total_posts | default(posts | length) }} Free Guides & Tutorials{% if page is defined and page > 1 %} — Page {{ page }}{% endif %}{% endblock %}
+{% block meta_description %}Browse {{ total_posts | default(posts | length) }} practical StoryBrain AI guides and tutorials for free online tools, calculators, and utilities. New how-tos, no signup.{% endblock %}
+{% block meta_keywords %}{% endblock %}
+{% block canonical_url %}{{ SITE_URL | default('https://www.storybrainai.com', true) }}/blog{% if page is defined and page > 1 %}?page={{ page }}{% endif %}{% endblock %}
 {% block og_title %}Blog — Free Guides & Tutorials | StoryBrain AI{% endblock %}
 {% block og_description %}Step-by-step guides for every free StoryBrain AI tool — calculators, finance, AI, image, PDF and SEO.{% endblock %}
 {% block twitter_title %}Blog — Free Guides & Tutorials | StoryBrain AI{% endblock %}
@@ -12,7 +12,7 @@
 
 {% block head %}
 <script type="application/ld+json" nonce="{{ nonce }}">
-{"@context":"https://schema.org","@type":"CollectionPage","name":"StoryBrain AI Blog — {{ posts | length }} Guides","description":"Practical guides and tutorials for free online tools.","url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/blog","isPartOf":{"@id":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/#website"}}
+{"@context":"https://schema.org","@type":"CollectionPage","name":"StoryBrain AI Blog — {{ total_posts | default(posts | length) }} Guides","description":"Practical guides and tutorials for free online tools.","url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/blog{% if page is defined and page > 1 %}?page={{ page }}{% endif %}","isPartOf":{"@id":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/#website"}}
 </script>
 <script type="application/ld+json" nonce="{{ nonce }}">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
@@ -21,12 +21,12 @@
 ]}
 </script>
 <script type="application/ld+json" nonce="{{ nonce }}">
-{"@context":"https://schema.org","@type":"ItemList","name":"All Blog Guides","description":"Every StoryBrain AI guide","numberOfItems":{{ posts | length }},"itemListElement":[{% for post in posts %}{"@type":"ListItem","position":{{ loop.index }},"name":{{ post.title | tojson }},"url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/blog/{{ post.pillar }}/{{ post.slug }}","description":{{ post.description | truncate(160) | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]}
+{"@context":"https://schema.org","@type":"ItemList","name":"All Blog Guides — Page {{ page | default(1) }}","description":"StoryBrain AI guides, page {{ page | default(1) }} of {{ total_pages | default(1) }}","numberOfItems":{{ total_posts | default(posts | length) }},"itemListElement":[{% for post in posts %}{"@type":"ListItem","position":{{ (page | default(1) - 1) * (per_page | default(20)) + loop.index }},"name":{{ post.title | tojson }},"url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/blog/{{ post.pillar }}/{{ post.slug }}","description":{{ post.description | truncate(80) | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]}
 </script>
 <script type="application/ld+json" nonce="{{ nonce }}">
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"How do I use a guide with its tool?","acceptedAnswer":{"@type":"Answer","text":"Open any guide below, read the steps, then follow its linked free tool — for example EMI guides link to https://www.storybrainai.com/tool/emi-calculator. No signup."}},
-{"@type":"Question","name":"Are guides free?","acceptedAnswer":{"@type":"Answer","text":"Yes. All {{ posts | length }} guides and every linked tool are 100% free forever."}},
+{"@type":"Question","name":"Are guides free?","acceptedAnswer":{"@type":"Answer","text":"Yes. All {{ total_posts | default(posts | length) }} guides and every linked tool are 100% free forever."}},
 {"@type":"Question","name":"Is this financial advice?","acceptedAnswer":{"@type":"Answer","text":"No. Guides are educational only. Verify figures with a qualified professional. See https://www.storybrainai.com/disclaimer."}}
 ]}
 </script>
@@ -47,9 +47,9 @@
   <div class="pt-6 pb-10 text-center redesign-grid relative overflow-hidden" style="border-radius: var(--redesign-radius-card); border: 1px solid var(--redesign-border); box-shadow: var(--redesign-shadow-sm); background: color-mix(in oklab, var(--color-base-100) 78%, transparent);">
     <div class="redesign-mesh" aria-hidden="true"></div>
     <div class="relative z-10 px-6 py-10">
-      <div class="eyebrow mb-4">{{ posts | length }} guides</div>
+      <div class="eyebrow mb-4">{{ total_posts | default(posts | length) }} guides</div>
       <h1 class="mb-4" style="font-size: clamp(34px, 5vw, 56px); font-weight: 800; letter-spacing: -0.035em; line-height: 1.05;">Blog — Free Guides & Tutorials</h1>
-      <p class="text-base-content/60 font-medium max-w-2xl mx-auto" style="font-size: 17px; line-height: 1.65;">{{ posts | length }} practical guides for our free online tools — calculators, finance, AI, image, PDF and SEO. Read the how-to, then open the tool instantly. No signup required.</p>
+      <p class="text-base-content/60 font-medium max-w-2xl mx-auto" style="font-size: 17px; line-height: 1.65;">{{ total_posts | default(posts | length) }} practical guides for our free online tools — calculators, finance, AI, image, PDF and SEO. Read the how-to, then open the tool instantly. No signup required.</p>
       <div class="flex flex-wrap gap-2 justify-center mt-6">
         {% for p in pillars %}
         <a href="/blog/{{ p }}" class="btn glass btn-sm rounded-full px-4 min-target" title="{{ p | replace('-', ' ') | title }} guides ({{ pillar_counts.get(p, 0) }})">{{ p | replace("-", " ") | title }} ({{ pillar_counts.get(p, 0) }})</a>
@@ -65,12 +65,29 @@
     {% endfor %}
   </div>
   {% endif %}
-  <h2 class="text-xl md:text-2xl font-bold mt-10 mb-5 text-base-content/70">Latest Guides</h2>
+  <h2 class="text-xl md:text-2xl font-bold mt-10 mb-5 text-base-content/70">Latest Guides{% if page is defined and total_pages is defined and total_pages > 1 %} — Page {{ page }} of {{ total_pages }}{% endif %}</h2>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
     {% for post in posts %}
     {{ blog_card(post) }}
     {% endfor %}
   </div>
+  {% if total_pages is defined and total_pages > 1 %}
+  <nav class="flex items-center justify-center gap-2 mt-10" aria-label="Blog pages">
+    {% if page > 1 %}
+    <a href="/blog?page={{ page - 1 }}" rel="prev" class="btn glass btn-sm rounded-full px-4 min-target" aria-label="Previous page">← Newer</a>
+    {% endif %}
+    {% for p in range(1, total_pages + 1) %}
+    {% if p == page %}
+    <span class="btn btn-primary btn-sm rounded-full px-4 min-target" aria-current="page">{{ p }}</span>
+    {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+    <a href="/blog{% if p > 1 %}?page={{ p }}{% endif %}" class="btn glass btn-sm rounded-full px-4 min-target" aria-label="Page {{ p }}">{{ p }}</a>
+    {% endif %}
+    {% endfor %}
+    {% if page < total_pages %}
+    <a href="/blog?page={{ page + 1 }}" rel="next" class="btn glass btn-sm rounded-full px-4 min-target" aria-label="Next page">Older →</a>
+    {% endif %}
+  </nav>
+  {% endif %}
   <div class="max-w-3xl mx-auto mt-14 space-y-4" aria-label="Blog FAQs">
     <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight text-center mb-6">Blog FAQs</h2>
     <details class="apple-glass rounded-2xl p-6 group">
@@ -79,7 +96,7 @@
     </details>
     <details class="apple-glass rounded-2xl p-6 group">
       <summary class="font-bold cursor-pointer">Are guides free?</summary>
-      <p class="mt-3 text-base-content/70 leading-relaxed">Yes. All {{ posts | length }} guides and every linked tool are free forever. Start with <a href="/tools" class="link link-primary">all tools</a> or <a href="/" class="link link-primary">home</a>.</p>
+      <p class="mt-3 text-base-content/70 leading-relaxed">Yes. All {{ total_posts | default(posts | length) }} guides and every linked tool are free forever. Start with <a href="/tools" class="link link-primary">all tools</a> or <a href="/" class="link link-primary">home</a>.</p>
     </details>
     <details class="apple-glass rounded-2xl p-6 group">
       <summary class="font-bold cursor-pointer">Is this financial advice?</summary>

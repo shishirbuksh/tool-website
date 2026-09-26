@@ -30,6 +30,7 @@ from app.core.log import get_logger, setup_logging
 from app.core.metrics import MetricsMiddleware
 from app.core.middleware import (
     CaseSensitiveRedirectMiddleware,
+    CleanQueryMiddleware,
     MaxBodySizeMiddleware,
     NoIndexAPIMiddleware,
     OriginCheckMiddleware,
@@ -133,6 +134,8 @@ app.add_middleware(
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(MaxBodySizeMiddleware, max_size=max(settings.IMAGE_MAX_SIZE, settings.PDF_MAX_SIZE))
 app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
+# CleanQuery just inside TrustedHost so junk params are stripped before redirects.
+app.add_middleware(CleanQueryMiddleware)
 # TrustedHost outermost (added last) so Host validation runs first.
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=hosts or ["127.0.0.1", "localhost"])
 

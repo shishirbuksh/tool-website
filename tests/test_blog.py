@@ -173,7 +173,7 @@ class TestBlogContentGuards:
         assert resp.status_code == 200
         m = _re.search(r'<meta property="og:title" content="([^"]*)"', resp.text)
         assert m, "og:title missing"
-        assert "EMI Calculator Online Free 2026" in m.group(1)
+        assert "EMI Calculator 2026" in m.group(1)
         assert "100+ Free Browser Tools" not in m.group(1)
 
     def test_pillar_faqpage_matches_visible(self):

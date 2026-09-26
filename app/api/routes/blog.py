@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 
 import nh3
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from markupsafe import Markup
 
 from app.api.routes.pages import NonceJinja2Templates
@@ -80,6 +80,16 @@ async def blog_index(request: Request) -> HTMLResponse:
     pillar_counts: dict[str, int] = {}
     for p in posts:
         pillar_counts[p.pillar] = pillar_counts.get(p.pillar, 0) + 1
+    # Paginate the Latest grid (20/page) to bound DOM/TBT on low-end devices.
+    try:
+        page = int(request.query_params.get("page", "1"))
+    except (TypeError, ValueError):
+        page = 1
+    per_page = 20
+    total_posts = len(posts)
+    total_pages = max(1, (total_posts + per_page - 1) // per_page)
+    page = min(max(page, 1), total_pages)
+    page_posts = posts[(page - 1) * per_page : page * per_page]
     resp = templates.TemplateResponse(
         request=request,
         name="blog/index.html",
@@ -88,7 +98,11 @@ async def blog_index(request: Request) -> HTMLResponse:
             "categories": categories,
             "static_pages": static_pages,
             "pillars": pillars,
-            "posts": posts,
+            "posts": page_posts,
+            "total_posts": total_posts,
+            "page": page,
+            "total_pages": total_pages,
+            "per_page": per_page,
             "recent_posts": recent,
             "popular_posts": popular,
             "pillar_counts": pillar_counts,
@@ -178,7 +192,8 @@ async def blog_post(request: Request, pillar: str, cluster: str) -> HTMLResponse
     etag = _post_etag(pillar, post.slug, post.date_modified)
     resp.headers["ETag"] = etag
     if _not_modified(request, etag):
-        raise HTTPException(status_code=304, detail="Not Modified")
+        # 304 must have an empty body (raising HTTPException renders JSON).
+        return Response(status_code=304, headers={"ETag": etag, **_POST_CACHE_HEADERS})
     return resp
 
 

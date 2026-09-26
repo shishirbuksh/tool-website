@@ -376,6 +376,35 @@ class MaxBodySizeMiddleware:
             await self.app(scope, receive, send)
 
 
+class CleanQueryMiddleware(BaseHTTPMiddleware):
+    """Strip crawler-junk query params (?PageSpeed=, utm_*, fbclid, gclid) with a 301.
+
+    Prevents ?PageSpeed=noscript and tracking variants from being indexed as
+    duplicate URLs. Runs before the case redirect so canonicalization is single-hop.
+    """
+
+    _JUNK_EXACT = {"pagespeed", "fbclid", "gclid"}
+    _JUNK_PREFIXES = ("utm_",)
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        if request.method in ("GET", "HEAD") and request.url.query:
+            params = dict(request.query_params)
+            junk = {
+                k
+                for k in params
+                if k in self._JUNK_EXACT
+                or k.lower() == "pagespeed"
+                or k.startswith(self._JUNK_PREFIXES)
+            }
+            if junk:
+                clean = {k: v for k, v in params.items() if k not in junk}
+                from urllib.parse import urlencode
+
+                qs = f"?{urlencode(clean)}" if clean else ""
+                return RedirectResponse(url=f"{request.url.path}{qs}", status_code=301)
+        return await call_next(request)
+
+
 class CaseSensitiveRedirectMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         path = request.url.path
