@@ -81,6 +81,10 @@ class BlogService:
     def _ensure_blog_yaml(self) -> str:
         path = self._blog_yaml_path()
         if not os.path.isfile(path):
+            # data/ is read-only under systemd hardening: auto-creating would
+            # silently serve an empty blog in prod. Fail fast instead.
+            if self.settings.is_prod:
+                raise FileNotFoundError(f"Blog data file not found: {path}")
             try:
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 with open(path, "w", encoding="utf-8") as f:

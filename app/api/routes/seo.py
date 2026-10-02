@@ -1,5 +1,7 @@
 """SEO endpoints: sitemap.xml, robots.txt, llms.txt."""
 
+import asyncio
+
 from fastapi import APIRouter, HTTPException, Response
 
 from app.core.config import settings
@@ -16,7 +18,8 @@ sitemap_service = SitemapService(settings)
 @router.api_route("/sitemap.xml", methods=["GET", "HEAD"], response_class=Response, include_in_schema=False)
 async def sitemap() -> Response:
     try:
-        content = sitemap_service.build_sitemap_xml()
+        # Sync build (YAML scans + dir listing) off the event loop.
+        content = await asyncio.to_thread(sitemap_service.build_sitemap_xml)
         return Response(
             content=content,
             media_type="application/xml",
@@ -30,7 +33,7 @@ async def sitemap() -> Response:
 @router.api_route("/robots.txt", methods=["GET", "HEAD"], response_class=Response, include_in_schema=False)
 async def robots_txt() -> Response:
     try:
-        content = sitemap_service.build_robots_txt()
+        content = await asyncio.to_thread(sitemap_service.build_robots_txt)
         return Response(
             content=content,
             media_type="text/plain",
@@ -44,7 +47,7 @@ async def robots_txt() -> Response:
 @router.api_route("/llms.txt", methods=["GET", "HEAD"], response_class=Response, include_in_schema=False)
 async def llms_txt() -> Response:
     try:
-        content = sitemap_service.build_llms_txt()
+        content = await asyncio.to_thread(sitemap_service.build_llms_txt)
         return Response(
             content=content,
             media_type="text/plain",

@@ -236,6 +236,13 @@ async def contact_submission(request: Request) -> ContactResponse:
         if len(bucket) >= 3:
             raise HTTPException(status_code=429, detail="Too many messages from this address")
         bucket.append(now)
+        # Bound memory against email rotation: prune stale senders past 2000 keys.
+        if len(_CONTACT_EMAIL_WINDOWS) > 2000:
+            cutoff = now - 60
+            for key in list(_CONTACT_EMAIL_WINDOWS):
+                window = _CONTACT_EMAIL_WINDOWS.get(key)
+                if not window or window[-1] < cutoff:
+                    _CONTACT_EMAIL_WINDOWS.pop(key, None)
 
     if not CONTACT_RECIPIENT:
         logger.warning("Contact form received but CONTACT_EMAIL not configured — queued without email")

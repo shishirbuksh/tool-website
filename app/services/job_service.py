@@ -64,6 +64,14 @@ class JobService:
         job_id = str(uuid.uuid4())
         job = Job(job_id, name)
         with self._lock:
+            # Synchronous backpressure: cleanup only runs every 300s, so a burst
+            # between cleanups must not grow _jobs/_tasks without bound.
+            # Callers (tools_crypto._submit) map this to HTTP 503.
+            active = sum(
+                1 for j in self._jobs.values() if j.status in (JobStatus.PENDING, JobStatus.RUNNING)
+            )
+            if active >= self._max_jobs:
+                raise RuntimeError(f"Job queue full ({active} active jobs, max {self._max_jobs})")
             self._jobs[job_id] = job
 
         async def _run():
@@ -72,7 +80,7 @@ class JobService:
             try:
                 sem = self._get_sem()
                 try:
-                    await asyncio.wait_for(sem.acquire(), timeout=10.0)
+                    await asyncio.wait_for(sem.acquire(), timeout=3600.0)
                 except TimeoutError:
                     raise TimeoutError("Too many concurrent jobs (max 10)") from None
                 try:

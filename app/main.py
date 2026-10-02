@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
@@ -149,6 +150,10 @@ except OSError as exc:
     _startup_logger.warning("Failed to create directories", exc_info=exc)
 
 
+# Content-hashed filenames only (e.g. app.a1b2c3d4.js) may be served immutable.
+_HASHED_ASSET_RE = re.compile(r"\.[0-9a-f]{8,}\.[a-z0-9]+$", re.IGNORECASE)
+
+
 class CachedStaticFiles(StaticFiles):
     _lm_cache: dict[str, tuple[str, float]] = {}
     _LM_TTL = 300
@@ -171,8 +176,13 @@ class CachedStaticFiles(StaticFiles):
                 response.headers["Service-Worker-Allowed"] = "/"
             elif path in ("manifest.json", "ads.txt"):
                 response.headers["Cache-Control"] = "public, max-age=86400"
-            else:
+            elif _HASHED_ASSET_RE.search(path):
+                # Only content-hashed filenames (app.[hash].js) are immutable.
                 response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            else:
+                # Non-hashed entry points must revalidate or browsers pin stale
+                # code for a year when Caddy is bypassed (matches Caddyfile).
+                response.headers["Cache-Control"] = "public, max-age=3600, must-revalidate"
 
             if response.status_code == 200:
                 import time as _time

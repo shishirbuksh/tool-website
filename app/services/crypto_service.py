@@ -16,8 +16,9 @@ logging.getLogger("cmdstanpy").setLevel(logging.WARNING)
 
 logger = get_logger(__name__)
 
-# Tightened: letters only (no digits), 2-10 chars per side.
-_SYMBOL_RE = re.compile(r"^[A-Z]{2,10}-[A-Z]{2,10}$")
+# Must match the route-level pattern in app/api/routes/tools_crypto.py
+# (digits are legitimate: e.g. 1000SATS-style symbols).
+_SYMBOL_RE = re.compile(r"^[A-Z0-9]{2,10}-[A-Z0-9]{2,10}$")
 
 _prophet_semaphores: dict[int, asyncio.Semaphore] = {}
 _prophet_sem_lock = __import__("threading").Lock()
@@ -246,10 +247,19 @@ class CryptoService:
             return predictions
 
 
-        prophet_preds, rust_preds = await asyncio.gather(
-            self._run_prophet_async(_run_prophet),
-            loop.run_in_executor(_ml_executor, _run_rust),
-        )
+        # Belt-and-braces overall timeout: components are individually bounded
+        # (prophet 90s + download 30s), but a stuck executor thread must never
+        # pin the gather forever.
+        try:
+            prophet_preds, rust_preds = await asyncio.wait_for(
+                asyncio.gather(
+                    self._run_prophet_async(_run_prophet),
+                    loop.run_in_executor(_ml_executor, _run_rust),
+                ),
+                timeout=150,
+            )
+        except TimeoutError:
+            raise ServiceError("Model inference timed out after 150 seconds") from None
 
 
         last_date = df.index[-1]

@@ -3,6 +3,7 @@
 import io
 import logging
 import re
+import threading
 from typing import Any
 
 from PIL import Image, ImageColor
@@ -21,6 +22,7 @@ _VALID_INPAINT_ALGOS = {"telea", "ns"}
 # ROUND-2: cache rembg sessions per-worker (model load is ~seconds + 100s MB).
 # Reuse across requests instead of new_session() per request.
 _SESSION_CACHE: dict[str, Any] = {}
+_SESSION_LOCK = threading.Lock()
 
 
 def _get_or_create_session(model: str = "u2netp") -> Any:
@@ -28,11 +30,16 @@ def _get_or_create_session(model: str = "u2netp") -> Any:
     cached = _SESSION_CACHE.get(model)
     if cached is not None:
         return cached
-    from rembg import new_session  # noqa: PLC0415
+    with _SESSION_LOCK:
+        # Double-checked: a concurrent cold start may have filled the cache.
+        cached = _SESSION_CACHE.get(model)
+        if cached is not None:
+            return cached
+        from rembg import new_session  # noqa: PLC0415
 
-    sess = new_session(model)
-    _SESSION_CACHE[model] = sess
-    return sess
+        sess = new_session(model)
+        _SESSION_CACHE[model] = sess
+        return sess
 
 
 def _check_pixels_before_decode(image_data: bytes, *, label: str = "Image") -> tuple[int, int]:

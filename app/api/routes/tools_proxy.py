@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 _PROXY_MEM_WINDOWS: dict[str, int] = {}
 
 
-def _proxy_rate_limit_stub(request: Request) -> None:
+async def _proxy_rate_limit_stub(request: Request) -> None:
     # Real per-IP limit: 10/min. Uses CacheService (shared Redis) when
     # available, else in-memory fallback. Global RateLimitMiddleware (60/min)
     # remains as outer guard.
@@ -40,10 +40,10 @@ def _proxy_rate_limit_stub(request: Request) -> None:
     limit = 10
     if cache is not None:
         try:
-            count = cache.get(key, 0) or 0
+            count = await cache.async_get(key, 0) or 0
             if int(count) >= limit:
                 raise HTTPException(status_code=429, detail="Proxy rate limit exceeded")
-            cache.set(key, int(count) + 1, ttl=70)
+            await cache.async_set(key, int(count) + 1, ttl=70)
             return None
         except HTTPException:
             raise
