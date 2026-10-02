@@ -98,6 +98,10 @@ build_rust() {
 
 build_frontend() {
     log_info "Frontend build skipped (Tailwind is pre-compiled and tracked in Git to save VPS memory)"
+    # Clean up stale compressed files so NGINX doesn't serve old CSS
+    rm -f "$APP_DIR"/static/css/*.gz "$APP_DIR"/static/css/*.br
+    rm -f "$APP_DIR"/static/js/*.gz "$APP_DIR"/static/js/*.br
+    rm -f "$APP_DIR"/static/*.gz "$APP_DIR"/static/*.br
 }
 
 backup_current() {
