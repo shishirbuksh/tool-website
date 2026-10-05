@@ -84,11 +84,17 @@ install_python() {
     fi
 
 
-    # Pre-download rembg models so gunicorn workers don't timeout
+    # Pre-download rembg models using curl to avoid ONNX RAM spike
     if python3 -c "import rembg" 2>/dev/null; then
-        log_info "Pre-downloading rembg models..."
+        log_info "Pre-downloading rembg models via curl to save RAM..."
         export U2NET_HOME="$APP_DIR/.u2net"
-        python3 -c "from rembg import new_session; new_session('u2netp'); new_session('u2net')" >/dev/null 2>&1 || true
+        mkdir -p "$U2NET_HOME"
+        if [ ! -f "$U2NET_HOME/u2net.onnx" ]; then
+            curl -L -s -o "$U2NET_HOME/u2net.onnx" "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx" || true
+        fi
+        if [ ! -f "$U2NET_HOME/u2netp.onnx" ]; then
+            curl -L -s -o "$U2NET_HOME/u2netp.onnx" "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx" || true
+        fi
     fi
 }
 
