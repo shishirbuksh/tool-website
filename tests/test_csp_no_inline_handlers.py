@@ -9,7 +9,12 @@ MIDDLEWARE_PATH = os.path.join(BASE_DIR, "app", "core", "middleware.py")
 
 # HTML-attribute handlers blocked by nonce CSP (leading whitespace required so
 # JS property assignments like ``el.onclick = fn`` do not match).
-GLOBAL_BANNED_RE = re.compile(r'\s(onclick|onsubmit|onload)\s*=\s*["\']', re.IGNORECASE)
+# NOTE: keep in sync with BASE_BANNED_RE; comments/docs must avoid writing
+# ``on<event>=`` with a quote (e.g. write "onerror attributes", not "onerror=").
+GLOBAL_BANNED_RE = re.compile(
+    r'\s(onclick|onsubmit|onload|onchange|oninput|onerror|onfocus|onblur|onkeydown|onkeyup|onmouseover|onmouseout)\s*=\s*["\']',
+    re.IGNORECASE,
+)
 BASE_BANNED_RE = re.compile(
     r"\s(onclick|onsubmit|onload|onchange|oninput|onerror|onfocus|onblur|onkeydown|onkeyup)\s*=\s*[\"']",
     re.IGNORECASE,
@@ -17,7 +22,6 @@ BASE_BANNED_RE = re.compile(
 
 BASE_TEMPLATES = [
     os.path.join(TEMPLATES_DIR, "base.html"),
-    os.path.join(TEMPLATES_DIR, "tool_base.html"),
     os.path.join(TEMPLATES_DIR, "hub.html"),
     os.path.join(TEMPLATES_DIR, "index.html"),
     os.path.join(TEMPLATES_DIR, "components", "tool_layout.html"),

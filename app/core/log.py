@@ -18,7 +18,7 @@ class JSONFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
-        if isinstance(record.exc_info, (list, tuple)) and record.exc_info[0]:
+        if isinstance(record.exc_info, list | tuple) and record.exc_info[0]:
             msg["exception"] = self.formatException(record.exc_info)
         rid = _request_id_var.get()
         if rid:

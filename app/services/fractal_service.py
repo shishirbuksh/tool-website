@@ -16,11 +16,12 @@ try:
 except Exception:
     rust_predictor = None
 
+from pydantic import ValidationError as PydanticValidationError
+
 from app.core.config import Settings
 from app.core.exceptions import ServiceError, ValidationException
 from app.core.log import get_logger
 from app.models import FractalParams
-from pydantic import ValidationError as PydanticValidationError
 
 logger = get_logger(__name__)
 
@@ -148,7 +149,8 @@ class FractalService:
 
             return {"status": "success", "image_url": data_url, "prompt": prompt}
         except Exception as e:
-            raise ServiceError(f"Failed to process fractal image: {e}") from e
+            msg = f"Failed to process fractal image: {e}"
+            raise ServiceError(msg) from e
 
 
     async def _call_llm(self, provider: str, api_key: str, system_prompt: str, user_content: str) -> str:
@@ -199,14 +201,16 @@ class FractalService:
             try:
                 resp = requests.post(cfg["url"], headers=cfg["headers"], json=cfg["json"], timeout=30)
             except requests.RequestException as e:
-                raise ServiceError(f"{provider} request failed: {e}") from e
+                msg = f"{provider} request failed: {e}"
+                raise ServiceError(msg) from e
             if resp.status_code != 200:
                 msg = f"{provider} API returned status {resp.status_code}"
                 raise ServiceError(msg)
             try:
                 return str(cfg["parse"](resp))
             except (KeyError, IndexError, ValueError, TypeError) as e:
-                raise ServiceError(f"Failed to parse {provider} response: {e}") from e
+                msg = f"Failed to parse {provider} response: {e}"
+                raise ServiceError(msg) from e
 
         return await loop.run_in_executor(None, _request)
 
@@ -230,7 +234,8 @@ class FractalService:
         except TimeoutError:
             raise ServiceError("Fractal render timed out") from None
         except Exception as e:
-            raise ServiceError(f"Fractal pattern generation failed: {e}") from e
+            msg = f"Fractal pattern generation failed: {e}"
+            raise ServiceError(msg) from e
         finally:
             sem.release()
 

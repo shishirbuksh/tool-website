@@ -2,6 +2,7 @@
 
 import asyncio
 import concurrent.futures
+import contextlib
 import logging
 import re
 from datetime import timedelta
@@ -40,7 +41,7 @@ class CryptoService:
     def __init__(self, settings: Settings):
         self.settings = settings
         self._pd = None
-        
+
     def _get_pd(self) -> Any:
         if self._pd is None:
             try:
@@ -48,7 +49,8 @@ class CryptoService:
 
                 self._pd = pd
             except Exception as e:
-                raise ServiceError(f"pandas library is not available: {str(e)}") from e
+                msg = f"pandas library is not available: {str(e)}"
+                raise ServiceError(msg) from e
         return self._pd
 
 
@@ -111,13 +113,16 @@ class CryptoService:
     ) -> dict[str, Any]:
         symbol = (symbol or "").strip().upper() or "BTC-USD"
         if not _SYMBOL_RE.match(symbol):
-            raise ServiceError(f"Invalid symbol format: {symbol}")
+            msg = f"Invalid symbol format: {symbol}"
+            raise ServiceError(msg)
         loop = asyncio.get_running_loop()
 
         def _download():
-            import requests, datetime
+            import datetime
+
+            import requests
             pd = self._get_pd()
-            
+
             # 1. Try CoinGecko (Never blocks datacenters)
             coin_map = {"BTC-USD": "bitcoin", "ETH-USD": "ethereum", "SOL-USD": "solana"}
             if symbol in coin_map:
@@ -127,7 +132,7 @@ class CryptoService:
                         data = r.json()
                         prices = data.get("prices", [])
                         if prices:
-                            dates = [datetime.datetime.fromtimestamp(x[0]/1000, tz=datetime.timezone.utc) for x in prices]
+                            dates = [datetime.datetime.fromtimestamp(x[0]/1000, tz=datetime.UTC) for x in prices]
                             closes = [float(x[1]) for x in prices]
                             return pd.DataFrame({"Close": closes}, index=pd.DatetimeIndex(dates))
                 except Exception:
@@ -139,7 +144,7 @@ class CryptoService:
                 f"https://api.binance.com/api/v3/klines?symbol={binance_sym}&interval=1d&limit=365",
                 f"https://api.binance.us/api/v3/klines?symbol={binance_sym}&interval=1d&limit=365"
             ]
-            
+
             last_error = ""
             for url in urls:
                 try:
@@ -147,13 +152,14 @@ class CryptoService:
                     if r.status_code == 200:
                         data = r.json()
                         if data:
-                            dates = [datetime.datetime.fromtimestamp(x[0]/1000, tz=datetime.timezone.utc) for x in data]
+                            dates = [datetime.datetime.fromtimestamp(x[0]/1000, tz=datetime.UTC) for x in data]
                             closes = [float(x[4]) for x in data]
                             return pd.DataFrame({"Close": closes}, index=pd.DatetimeIndex(dates))
                 except Exception as e:
                     last_error = str(e)
-                    
-            raise ServiceError(f"Symbol '{symbol}' not found or blocked by exchanges. Details: {last_error}")
+
+            msg = f"Symbol '{symbol}' not found or blocked by exchanges. Details: {last_error}"
+            raise ServiceError(msg)
         try:
             df = await asyncio.wait_for(loop.run_in_executor(_ml_executor, _download), timeout=30)
         except TimeoutError:
@@ -196,24 +202,27 @@ class CryptoService:
 
         def _run_rust():
             # PURE PYTHON FALLBACK: No Rust/C++ required!
-            import math, random
+            import math
+            import random
             prices = close_prices.tolist()
             n = len(prices)
-            if n < lookback: return None
-            
+            if n < lookback:
+                return None
+
             p_min, p_max = min(prices), max(prices)
-            if p_max - p_min < 1e-6: return [prices[-1]] * future_days
-            
+            if p_max - p_min < 1e-6:
+                return [prices[-1]] * future_days
+
             scaled = [(p - p_min) / (p_max - p_min) for p in prices]
             x_train = [scaled[i - lookback : i] for i in range(lookback, n)]
             y_train = [scaled[i] for i in range(lookback, n)]
-            
+
             hidden_size = 50
             w1 = [[random.uniform(-0.5, 0.5) for _ in range(lookback)] for _ in range(hidden_size)]
             b1 = [random.uniform(-0.5, 0.5) for _ in range(hidden_size)]
             w2 = [random.uniform(-0.5, 0.5) for _ in range(hidden_size)]
             b2 = 0.0
-            
+
             lr = 0.01
             for _ in range(min(10, rust_epochs)):
                 for i in range(len(x_train)):
@@ -230,11 +239,11 @@ class CryptoService:
                         for k in range(lookback):
                             w1[j][k] -= lr * d_hidden[j] * x_train[i][k]
                     b2 -= lr * d_out
-            
+
             current_seq = scaled[-lookback:]
             predictions = []
             clamp_hi = p_max * 10.0 if p_max > 0 else 1000000.0
-            
+
             for _ in range(future_days):
                 hidden = [max(0.0, sum(w1[j][k] * current_seq[k] for k in range(lookback)) + b1[j]) for j in range(hidden_size)]
                 out = sum(w2[j] * hidden[j] for j in range(hidden_size)) + b2
@@ -243,7 +252,7 @@ class CryptoService:
                 predictions.append(max(0.0, min(res, clamp_hi)))
                 current_seq.pop(0)
                 current_seq.append(out)
-                
+
             return predictions
 
 
@@ -358,15 +367,11 @@ class CryptoService:
         for d, p, r in zip(future_dates, prophet_preds, rust_preds, strict=True):
             entry: dict[str, Any] = {"date": d}
             if p is not None:
-                try:
+                with contextlib.suppress(TypeError, ValueError):
                     entry["prophet_price"] = float(p)
-                except (TypeError, ValueError):
-                    pass
             if r is not None:
-                try:
+                with contextlib.suppress(TypeError, ValueError):
                     entry["rust_price"] = float(r)
-                except (TypeError, ValueError):
-                    pass
             future_data.append(entry)
 
         curr_price = float(close_prices[-1])

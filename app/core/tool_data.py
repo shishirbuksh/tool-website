@@ -30,7 +30,8 @@ class ToolDataLoader:
                 with open(path, "rb") as f:
                     cls._data = yaml.safe_load(f)["tools"]
             except FileNotFoundError as e:
-                raise FileNotFoundError(f"Tool data file not found: {path}") from e
+                msg = f"Tool data file not found: {path}"
+                raise FileNotFoundError(msg) from e
             cls._cache_ts = now
             return cls._data
 

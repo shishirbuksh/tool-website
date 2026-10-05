@@ -1,13 +1,13 @@
 """Page-view analytics service: SQLite-backed, thread-safe, with batch writing and configurable retention."""
 
 import asyncio
+import contextlib
 import os
+import queue
 import sqlite3
 import threading
 import time
-from datetime import UTC, datetime, timedelta
 from functools import partial
-import queue
 
 from app.core.config import settings
 from app.core.log import get_logger
@@ -40,7 +40,7 @@ def _writer_worker():
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA synchronous=NORMAL;")
     conn.execute("PRAGMA busy_timeout=10000;")
-    
+
     batch = []
     while True:
         try:
@@ -50,7 +50,7 @@ def _writer_worker():
             batch.append(item)
         except queue.Empty:
             pass
-            
+
         # Drain the queue up to 500 items
         while not _write_queue.empty() and len(batch) < 500:
             try:
@@ -60,7 +60,7 @@ def _writer_worker():
                 batch.append(item)
             except queue.Empty:
                 break
-                
+
         if batch:
             try:
                 conn.executemany(
@@ -104,7 +104,7 @@ def flush(timeout: float = 5.0) -> bool:
 def _init_pool() -> None:
     global _conn_pool, _writer_thread
     _ensure_dir()
-    
+
     # Initialize the schema first
     init_conn = sqlite3.connect(DB_PATH, timeout=10.0)
     init_conn.execute("PRAGMA journal_mode=WAL;")
@@ -131,7 +131,7 @@ def _init_pool() -> None:
         conn.execute("PRAGMA mmap_size = 268435456;")
         pool.put(conn)
     _conn_pool = pool
-    
+
     with _writer_lock:
         if _writer_thread is None or not _writer_thread.is_alive():
             _writer_thread = threading.Thread(target=_writer_worker, daemon=True)
@@ -154,17 +154,13 @@ def _put_conn(conn: sqlite3.Connection | None) -> None:
         return
     try:
         if _conn_pool is None:
-            try:
+            with contextlib.suppress(Exception):
                 conn.close()
-            except Exception:
-                pass
             return
         _conn_pool.put_nowait(conn)
     except queue.Full:
-        try:
+        with contextlib.suppress(Exception):
             conn.close()
-        except Exception:
-            pass
 
 
 def _sanitize_field(value: str, max_len: int) -> str:
@@ -182,13 +178,13 @@ def track(name: str, category: str = "page_view") -> bool:
         return False
     category = _sanitize_field(category, 50) or "page_view"
     now_ts = int(time.time())
-    
+
     # Initialize pool & writer if not done
     if _conn_pool is None:
          with _pool_lock:
             if _conn_pool is None:
                 _init_pool()
-                
+
     try:
         _write_queue.put_nowait((name, category, now_ts))
     except queue.Full:
@@ -227,10 +223,8 @@ def _cleanup_old_events() -> None:
         cutoff_ts = int(time.time()) - (_RETENTION_DAYS * 86400)
         conn.execute("DELETE FROM events_v2 WHERE ts < ?", (cutoff_ts,))
         conn.commit()
-        try:
+        with contextlib.suppress(Exception):
             conn.execute("PRAGMA wal_checkpoint(PASSIVE);")
-        except Exception:
-            pass
     except Exception:
         logger.exception("Failed to cleanup old analytics events")
     finally:

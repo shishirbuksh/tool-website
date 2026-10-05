@@ -1,15 +1,6 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section %}
 
-{% block title %}Open Graph Generator — Free OG Meta Tag Generator{% endblock %}
-{% block meta_description %}Generate Open Graph meta tags and Twitter cards for better social media sharing. Preview how your content looks on Facebook, Twitter, and LinkedIn. Free, private, no sign-up.{% endblock %}
-{% block meta_keywords %}open graph, og tags, twitter cards, social media preview, free og generator, storybrain ai{% endblock %}
-{% block canonical_url %}https://www.storybrainai.com/tool/open-graph-generator{% endblock %}
-{% block og_title %}Open Graph Generator — Free OG Meta Tag Generator{% endblock %}
-{% block og_description %}Generate Open Graph meta tags and Twitter cards for better social media sharing. Preview your content on Facebook, Twitter, and LinkedIn.{% endblock %}
-{% block og_url %}<meta property="og:url" content="https://www.storybrainai.com/tool/open-graph-generator">{% endblock %}
-{% block twitter_title %}Open Graph Generator — Free OG Meta Tag Generator | StoryBrain AI{% endblock %}
-{% block twitter_description %}Generate Open Graph meta tags and Twitter cards for better social media sharing. Preview your content on Facebook, Twitter, and LinkedIn.{% endblock %}
 {% block content %}
 {{ tool_hero_section("share-2", "Social Tool", "OPEN GRAPH", "GENERATOR", "Generate Open Graph meta tags and Twitter cards for social media previews on Facebook, Twitter, LinkedIn, and more.") }}
 
@@ -337,7 +328,7 @@
 
   function tryImg(url,el){
     if(!url){el.innerHTML='<span class="opacity-40 font-mono">1200 x 630</span>';return;}
-    el.innerHTML='<img src="'+esc(url)+'" alt="OG preview" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML=\'<span class=opacity-40 font-mono>Load failed</span>\'">';
+    el.innerHTML='<img src="'+esc(url)+'" alt="OG preview" class="w-full h-full object-cover" data-img-fallback-html="<span class=opacity-40 font-mono>Load failed</span>">';
   }
 
   function gen(){
@@ -360,12 +351,12 @@
     tryImg(iv, document.getElementById('ogTwImage'));
     tryImg(iv, document.getElementById('ogLiImage'));
     tryImg(iv, document.getElementById('ogWaImage'));
-    if(iv)slI.innerHTML='<img src="'+esc(iv)+'" alt="OG preview" class="w-full h-full object-cover" onerror="this.innerHTML=\'&nbsp;\'">';else slI.innerHTML='&nbsp;';
+    if(iv)slI.innerHTML='<img src="'+esc(iv)+'" alt="OG preview" class="w-full h-full object-cover">';else slI.innerHTML='&nbsp;';
 
     var h=getHost(uv||'/');
     fbT.textContent=tv; fbD.textContent=dv||'No description.'; fbS.textContent=h;
     twT.textContent=tv; twD.textContent=dv||'No description.'; twH.textContent=twv||'@username';
-    liT.textContent=tv; liD.textContent=dv||'No description.'; liS.textContent=h; liI.innerHTML=iv?'<img src="'+esc(iv)+'" alt="LinkedIn preview" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML=\'<span class=opacity-40 font-mono>1200 x 630</span>\'">':'<span class="opacity-40 font-mono">1200 x 630</span>';
+    liT.textContent=tv; liD.textContent=dv||'No description.'; liS.textContent=h; liI.innerHTML=iv?'<img src="'+esc(iv)+'" alt="LinkedIn preview" class="w-full h-full object-cover" data-img-fallback-html="<span class=opacity-40 font-mono>1200 x 630</span>">':'<span class="opacity-40 font-mono">1200 x 630</span>';
     slT.textContent=tv; slD.textContent=dv||'No description.'; slU.textContent=h;
     waT.textContent=tv; waD.textContent=dv||'No description.'; waU.textContent=h;
 
@@ -462,6 +453,13 @@
   renderHist();
   gen();
 })();
+// CSP-safe image fallback for generated preview HTML (replaces inline onerror attributes blocked by nonce CSP; error events do not bubble, hence capture).
+document.addEventListener('error', function(e) {
+  var t = e.target;
+  if (t && t.tagName === 'IMG' && t.dataset && t.dataset.imgFallbackHtml && t.parentElement) {
+    t.parentElement.innerHTML = t.dataset.imgFallbackHtml;
+  }
+}, true);
 </script>
 
 {% endblock %}

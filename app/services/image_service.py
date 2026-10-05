@@ -48,7 +48,8 @@ def _check_pixels_before_decode(image_data: bytes, *, label: str = "Image") -> t
     Uses lazy Image.open (no full pixel load) to read dimensions first.
     """
     if not image_data:
-        raise ValidationException(f"{label} data must not be empty")
+        msg = f"{label} data must not be empty"
+        raise ValidationException(msg)
     try:
         with Image.open(io.BytesIO(image_data)) as probe:
             w, h = probe.size
@@ -57,13 +58,16 @@ def _check_pixels_before_decode(image_data: bytes, *, label: str = "Image") -> t
     except ValidationException:
         raise
     except Exception as e:
-        raise ValidationException(f"Invalid {label.lower()} data provided") from e
+        msg = f"Invalid {label.lower()} data provided"
+        raise ValidationException(msg) from e
     try:
         pixels = int(w) * int(h)
     except Exception:
-        raise ValidationException(f"Invalid {label.lower()} dimensions")
+        msg = f"Invalid {label.lower()} dimensions"
+        raise ValidationException(msg) from None
     if pixels > MAX_IMAGE_PIXELS:
-        raise ValidationException(f"{label} exceeds maximum pixel limit ({MAX_IMAGE_PIXELS})")
+        msg = f"{label} exceeds maximum pixel limit ({MAX_IMAGE_PIXELS})"
+        raise ValidationException(msg)
     return w, h
 
 
@@ -123,7 +127,8 @@ class ImageService:
         bg_color = _validate_bg_color(bg_color)
         try:
             rembg = self._get_rembg()
-            with Image.open(io.BytesIO(image_data)) as orig_img: input_img = orig_img.convert("RGBA")
+            with Image.open(io.BytesIO(image_data)) as orig_img:
+                input_img = orig_img.convert("RGBA")
             max_dim = 800 if smooth_edges else 2048
             if input_img.width > max_dim or input_img.height > max_dim:
                 input_img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
@@ -169,8 +174,8 @@ class ImageService:
         try:
             import numpy as np
         except ImportError:
-            raise ServiceError("NumPy is required but not installed")
-        
+            raise ServiceError("NumPy is required but not installed") from None
+
         cv2 = self._get_cv2()
         try:
             np_img = np.frombuffer(image_data, np.uint8)

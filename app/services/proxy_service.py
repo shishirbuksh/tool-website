@@ -1,6 +1,7 @@
 """HTTP proxy service with DNS-level private-IP blocking, request/response size caps, and header sanitization."""
 
 import asyncio
+import contextlib
 import ipaddress
 import socket
 import threading
@@ -47,6 +48,7 @@ def _patched_getaddrinfo(
     return _original_getaddrinfo(host, port, family, type, proto, flags)
 
 socket.getaddrinfo = _patched_getaddrinfo
+
 from app.core.exceptions import ServiceError, ValidationException  # noqa: E402
 
 
@@ -111,7 +113,7 @@ class ProxyService:
             if not infos:
                 raise socket.gaierror("no addr")
             first_ip: str | None = None
-            for fam, _t, _p, _c, sockaddr in infos:
+            for _fam, _t, _p, _c, sockaddr in infos:
                 ip_str = sockaddr[0]
                 try:
                     ip_obj = ipaddress.ip_address(ip_str)
@@ -149,7 +151,7 @@ class ProxyService:
     ) -> dict[str, Any]:
         # TODO: add circuit-breaker per upstream host (trip after N consecutive
         # failures/timeouts via CacheService, cooldown before half-open retry).
-        _MAX_REDIRECTS = 3
+        _max_redirects = 3
         parsed_url = urlparse(url)
         scheme = parsed_url.scheme
         hostname = parsed_url.hostname
@@ -179,9 +181,9 @@ class ProxyService:
         response = None
         start_time = time.time()
 
-        _MAX_RESP = 5_000_000
+        _max_resp = 5_000_000
 
-        for _redirect in range(_MAX_REDIRECTS + 1):
+        for _redirect in range(_max_redirects + 1):
                 parsed_current = urlparse(current_url)
                 cur_scheme = parsed_current.scheme
                 cur_host = parsed_current.hostname
@@ -228,7 +230,7 @@ class ProxyService:
                             cl = resp.headers.get("Content-Length")
                             if cl is not None:
                                 try:
-                                    if int(str(cl).strip()) > _MAX_RESP:
+                                    if int(str(cl).strip()) > _max_resp:
                                         resp.close()
                                         raise ValidationException("Response exceeds 5MB limit")
                                 except ValidationException:
@@ -242,10 +244,10 @@ class ProxyService:
                             for chunk in resp.iter_content(chunk_size=64 * 1024):
                                 if not chunk:
                                     continue
-                                if total + len(chunk) > _MAX_RESP:
+                                if total + len(chunk) > _max_resp:
                                     truncated = True
                                     # Keep only up to cap.
-                                    remaining = _MAX_RESP - total
+                                    remaining = _max_resp - total
                                     if remaining > 0:
                                         chunks.append(chunk[:remaining])
                                     break
@@ -254,22 +256,16 @@ class ProxyService:
                             body_bytes = b"".join(chunks)
                             resp._capped_body = body_bytes  # type: ignore[attr-defined]
                             resp._truncated = truncated  # type: ignore[attr-defined]
-                            try:
+                            with contextlib.suppress(Exception):
                                 resp.close()
-                            except Exception:
-                                pass
                             return resp
                         except ValidationException:
-                            try:
+                            with contextlib.suppress(Exception):
                                 resp.close()
-                            except Exception:
-                                pass
                             raise
                         except Exception:
-                            try:
+                            with contextlib.suppress(Exception):
                                 resp.close()
-                            except Exception:
-                                pass
                             raise
                     finally:
                         # Clear thread-local pin so pooled threads never leak
@@ -299,11 +295,11 @@ class ProxyService:
                         pass
 
                 # Manual redirect handling (allow_redirects=False above): follow max
-                # _MAX_REDIRECTS, re-validating SSRF/scheme/port on each hop.
+                # _max_redirects, re-validating SSRF/scheme/port on each hop.
                 if response.status_code in (301, 302, 303, 307, 308):
                     location = response.headers.get("Location")
                     if location:
-                        if _redirect >= _MAX_REDIRECTS:
+                        if _redirect >= _max_redirects:
                             raise ValidationException("Too many redirects")
                         next_url = urljoin(current_url, location)
                         nxt = urlparse(next_url)
@@ -324,7 +320,7 @@ class ProxyService:
                 except Exception:
                     body_content = ""
                 if truncated:
-                    body_content = body_content[:_MAX_RESP] + "\n[truncated: response exceeds 5MB limit]"
+                    body_content = body_content[:_max_resp] + "\n[truncated: response exceeds 5MB limit]"
 
                 # Drop Set-Cookie (session fixation via proxied cookies).
                 resp_headers = {k: v for k, v in response.headers.items() if k.lower() != "set-cookie"}

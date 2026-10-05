@@ -71,7 +71,8 @@ class JobService:
                 1 for j in self._jobs.values() if j.status in (JobStatus.PENDING, JobStatus.RUNNING)
             )
             if active >= self._max_jobs:
-                raise RuntimeError(f"Job queue full ({active} active jobs, max {self._max_jobs})")
+                msg = f"Job queue full ({active} active jobs, max {self._max_jobs})"
+                raise RuntimeError(msg)
             self._jobs[job_id] = job
 
         async def _run():

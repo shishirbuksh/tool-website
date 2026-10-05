@@ -54,6 +54,15 @@ _CATEGORY_APP: dict[str, str] = {
     "Productivity & Utilities": "UtilitiesApplication",
 }
 
+_CATEGORY_IMAGE: dict[str, str] = {
+    "AI & Crypto": "/static/og-ai-tools.webp",
+    "Image Processing": "/static/og-image-tools.webp",
+    "Calculators": "/static/og-calculators.webp",
+    "Developer & SEO": "/static/og-developer-tools.webp",
+    "Business & Operations": "/static/og-business-tools.webp",
+    "Productivity & Utilities": "/static/og-productivity-tools.webp",
+}
+
 
 class SeoService:
 
@@ -123,6 +132,8 @@ class SeoService:
             description=raw.get("description", ""),
             keywords=raw.get("keywords", []),
             app_category=app_category,
+            app_sub_category=raw.get("app_sub_category", ""),
+            image_url=raw.get("image_url") or _CATEGORY_IMAGE.get(cat, ""),
             faqs=raw.get("faqs", []),
             howto_steps=raw.get("howto_steps", []),
             howto_calculate=raw.get("howto_calculate", ""),

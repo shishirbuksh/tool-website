@@ -3,13 +3,10 @@
 import asyncio
 import os
 import re
-import time
 from datetime import UTC, datetime
 
-import nh3
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
-from markupsafe import Markup
 
 from app.api.routes.pages import NonceJinja2Templates
 from app.core.config import settings
@@ -198,7 +195,6 @@ async def blog_post(request: Request, pillar: str, cluster: str) -> HTMLResponse
 
 
 def _related_for_post(post, sibling_posts: list) -> list:
-    from app.services.blog_service import BlogService  # noqa: PLC0415 (type-only)
 
     related = [blog_service.get(s) for s in post.related_posts]
     related = [p for p in related if p is not None]

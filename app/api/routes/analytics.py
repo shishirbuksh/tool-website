@@ -49,7 +49,7 @@ async def api_track(payload: TrackPayload) -> TrackResponse:
             logger.warning("Analytics event dropped for %s", payload.name)
             return TrackResponse(ok=True, dropped=True)
         return TrackResponse(ok=True, dropped=False)
-    except Exception as e:
+    except Exception:
         logger.exception("Failed to record analytics event for %s", payload.name)
         # Still 200 + dropped (don't fail the page view on analytics outage).
         return TrackResponse(ok=True, dropped=True)

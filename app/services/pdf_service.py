@@ -1,5 +1,6 @@
 """PDF conversion service: image-to-PDF and text-to-PDF with PIL-based image handling."""
 
+import contextlib
 import io
 import os
 import re
@@ -66,7 +67,8 @@ class PDFService:
         try:
             with Image.open(io.BytesIO(image_data)) as image:
                 if (image.width * image.height) > MAX_IMAGE_PIXELS:
-                    raise ValidationException(f"Image exceeds maximum pixel limit ({MAX_IMAGE_PIXELS})")
+                    msg = f"Image exceeds maximum pixel limit ({MAX_IMAGE_PIXELS})"
+                    raise ValidationException(msg)
                 rgb_image = image.convert("RGB")
                 pdf_buf = io.BytesIO()
                 rgb_image.save(pdf_buf, format="PDF", resolution=100.0)
@@ -75,7 +77,8 @@ class PDFService:
         except ValidationException:
             raise
         except Exception as e:
-            raise ValidationException(f"Invalid image data: {e}") from e
+            msg = f"Invalid image data: {e}"
+            raise ValidationException(msg) from e
 
 
     def convert_text_to_pdf(self, text_data: bytes, filename: str = "document") -> bytes:
@@ -83,10 +86,8 @@ class PDFService:
             text_data = b""
         safe_name = _sanitize_filename(filename)
         pdf = FPDF()
-        try:
+        with contextlib.suppress(Exception):
             pdf.set_title(safe_name)
-        except Exception:
-            pass
         pdf.add_page()
         if self._unicode_font:
             pdf.add_font("Unicode", "", self._unicode_font)
@@ -100,7 +101,8 @@ class PDFService:
             text = text_data.decode("latin-1")
 
         if len(text) > MAX_TEXT_CHARS:
-            raise ValidationException(f"Text exceeds maximum of {MAX_TEXT_CHARS} characters")
+            msg = f"Text exceeds maximum of {MAX_TEXT_CHARS} characters"
+            raise ValidationException(msg)
 
         if not self._unicode_font:
             text = text.encode("latin-1", "replace").decode("latin-1")
@@ -108,7 +110,8 @@ class PDFService:
         try:
             pdf.multi_cell(w=0, h=10, text=text)
         except Exception as e:
-            raise ValidationException(f"Failed to render text to PDF: {e}") from e
+            msg = f"Failed to render text to PDF: {e}"
+            raise ValidationException(msg) from e
 
         return _fpdf_output_bytes(pdf)
 

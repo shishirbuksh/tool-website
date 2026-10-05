@@ -6,20 +6,17 @@ import re
 import time
 from datetime import UTC, datetime
 
-import nh3
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from jinja2.exceptions import TemplateNotFound
-from markupsafe import Markup
 from pydantic import BaseModel, Field, ValidationError
 
 from app.core.sanitize import sanitize_html
 
 try:
-    from pydantic import EmailStr
-
     import email_validator  # noqa: F401
+    from pydantic import EmailStr
 
     _EmailType = EmailStr
 except ImportError:  # email-validator not installed: fall back to plain str
@@ -273,9 +270,8 @@ async def contact_submission(request: Request) -> ContactResponse:
                         is_local = smtp_host in ("localhost", "127.0.0.1", "::1")
                         if settings.is_prod or not is_local or smtp_user:
                             raise RuntimeError("Mail TLS required") from e
-                    if smtp_user:
-                        if smtp_pass:
-                            s.login(smtp_user, smtp_pass)
+                    if smtp_user and smtp_pass:
+                        s.login(smtp_user, smtp_pass)
                     s.send_message(msg)
 
             # SMTP is blocking — offload to worker thread so event loop stays free.

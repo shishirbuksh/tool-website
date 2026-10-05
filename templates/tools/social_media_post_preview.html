@@ -1,15 +1,6 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
+{% from "components/tool_layout.html" import tool_hero_section %}
 
-{% block title %}Social Media Post Preview — Check OG Tags & Link Cards{% endblock %}
-{% block meta_description %}Preview how your link renders on Twitter, Facebook, LinkedIn, WhatsApp & Slack. Debug missing OG tags, check character limits, and fix social cards before sharing. Free, no sign-up.{% endblock %}
-{% block meta_keywords %}social media preview, link preview checker, og tag checker, twitter card preview, facebook link preview, linkedin url debugger, whatsapp link preview, social card debugger{% endblock %}
-{% block canonical_url %}https://www.storybrainai.com/tool/social-media-post-preview{% endblock %}
-{% block og_title %}Social Media Post Preview — Check OG Tags & Link Cards{% endblock %}
-{% block og_description %}Preview your link on Twitter, Facebook, LinkedIn, WhatsApp & Slack. Debug missing OG tags and fix social cards before you share. Free, no sign-up, 100% private.{% endblock %}
-{% block og_url %}<meta property="og:url" content="https://www.storybrainai.com/tool/social-media-post-preview">{% endblock %}
-{% block twitter_title %}Social Media Post Preview — Check OG Tags & Link Cards | StoryBrain AI{% endblock %}
-{% block twitter_description %}Preview your link on Twitter, Facebook, LinkedIn, WhatsApp & Slack. Debug missing OG tags before sharing. Free, no sign-up.{% endblock %}
 {% block content %}
 {{ tool_hero_section("share-2", "Social Media Tool", "SOCIAL MEDIA", "POST PREVIEW", "See how your link looks when shared on Twitter, Facebook, LinkedIn, WhatsApp, and Slack — debug missing tags before you post.") }}
 
@@ -267,8 +258,6 @@
   </div>
 </div>
 
-{{ tool_seo_all(seo) }}
-
 <script nonce="{{ nonce }}">
 (function(){
   var urlInput=document.getElementById('smpUrl');
@@ -336,7 +325,7 @@
 
   function tryImg(url,el){
     if(!url){el.innerHTML='<span class="opacity-40 font-mono">1200 x 630</span>';return;}
-    el.innerHTML='<img src="'+esc(url)+'" alt="Preview" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML=\'<span class=opacity-40 font-mono>Load failed</span>\'">';
+    el.innerHTML='<img src="'+esc(url)+'" alt="Preview" class="w-full h-full object-cover" data-img-fallback-html="<span class=opacity-40 font-mono>Load failed</span>">';
   }
 
   function parseMetaTags(html){
@@ -425,34 +414,34 @@
 
     // Twitter
     tryImg(image||_tags['og:image']||'','', twI);
-    if(image||_tags['og:image'])twI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="Twitter card preview" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML=\'<span class=opacity-40 font-mono>Load failed</span>\'">';
+    if(image||_tags['og:image'])twI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="Twitter card preview" class="w-full h-full object-cover" data-img-fallback-html="<span class=opacity-40 font-mono>Load failed</span>">';
     twT.textContent=title;
     twD.textContent=desc||'No description available.';
     twH.textContent=twHandle;
 
     // Facebook
     tryImg(image||_tags['og:image']||'','', fbI);
-    if(image||_tags['og:image'])fbI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="Facebook card preview" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML=\'<span class=opacity-40 font-mono>Load failed</span>\'">';
+    if(image||_tags['og:image'])fbI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="Facebook card preview" class="w-full h-full object-cover" data-img-fallback-html="<span class=opacity-40 font-mono>Load failed</span>">';
     fbT.textContent=title;
     fbD.textContent=desc||'No description available.';
     fbS.textContent=site;
 
     // LinkedIn
     tryImg(image||_tags['og:image']||'','', liI);
-    if(image||_tags['og:image'])liI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="LinkedIn card preview" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML=\'<span class=opacity-40 font-mono>Load failed</span>\'">';
+    if(image||_tags['og:image'])liI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="LinkedIn card preview" class="w-full h-full object-cover" data-img-fallback-html="<span class=opacity-40 font-mono>Load failed</span>">';
     liT.textContent=title;
     liD.textContent=desc||'No description available.';
     liS.textContent=site;
 
     // WhatsApp
     tryImg(image||_tags['og:image']||'','', waI);
-    if(image||_tags['og:image'])waI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="WhatsApp link preview" class="w-full h-full object-cover" onerror="this.parentElement.innerHTML=\'<span class=opacity-40 font-mono>Load failed</span>\'">';
+    if(image||_tags['og:image'])waI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="WhatsApp link preview" class="w-full h-full object-cover" data-img-fallback-html="<span class=opacity-40 font-mono>Load failed</span>">';
     waT.textContent=title;
     waD.textContent=desc||'No description available.';
     waU.textContent=host;
 
     // Slack
-    if(image||_tags['og:image'])slI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="Slack link preview" class="w-full h-full object-cover" onerror="this.innerHTML=\'&nbsp;\'">';else slI.innerHTML='<span class="opacity-40 font-mono">img</span>';
+    if(image||_tags['og:image'])slI.innerHTML='<img src="'+esc(image||_tags['og:image'])+'" alt="Slack link preview" class="w-full h-full object-cover">';else slI.innerHTML='<span class="opacity-40 font-mono">img</span>';
     slT.textContent=title;
     slD.textContent=desc||'No description available.';
     slU.textContent=host;
@@ -679,5 +668,12 @@
   renderHist();
   fetchUrl();
 })();
+// CSP-safe image fallback for generated preview HTML (replaces inline onerror attributes blocked by nonce CSP; error events do not bubble, hence capture).
+document.addEventListener('error', function(e) {
+  var t = e.target;
+  if (t && t.tagName === 'IMG' && t.dataset && t.dataset.imgFallbackHtml && t.parentElement) {
+    t.parentElement.innerHTML = t.dataset.imgFallbackHtml;
+  }
+}, true);
 </script>
 {% endblock %}

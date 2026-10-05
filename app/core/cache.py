@@ -245,8 +245,10 @@ class CacheService:
         _memory_cache.clear()
         # Best-effort: reset in-process singleflight/cached layers too.
         try:
-            from app.api.routes.tools_fng import _FNG_LOCKS  # noqa: PLC0415
-            from app.api.routes.tools_fng import _get_cached_fng  # noqa: PLC0415
+            from app.api.routes.tools_fng import (
+                _FNG_LOCKS,  # noqa: PLC0415
+                _get_cached_fng,  # noqa: PLC0415
+            )
 
             _FNG_LOCKS.clear()
             if hasattr(_get_cached_fng, "_cache"):

@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section, tool_seo_all %}
-{% block title %}Watermark Remover - Remove Watermarks from Images Online Free{% endblock %}
-{% block meta_description %}Remove watermarks, text, and logos from images instantly. Free online watermark remover — select the area and remove. No sign-up needed.{% endblock %}
-{% block canonical_url %}https://www.storybrainai.com/tool/watermark-remover{% endblock %}
-{% block og_title %}Watermark Remover - Remove Watermarks from Images Online Free{% endblock %}
-{% block og_description %}Remove watermarks, text, and logos from images instantly. All processing is done in your browser.{% endblock %}
 {% block head %}
 <style>
 .wm-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
 .preview-box{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:1rem;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
 #workCanvas{max-width:100%;max-height:500px;object-fit:contain;display:block;margin:0 auto;border-radius:0.5rem;cursor:crosshair}
+/* CSP-safe hover states (replaces inline onmouseover/onmouseout) */
+#uploadZone:hover{border-color:var(--color-primary)!important}
+#removeBtn:hover{box-shadow:0 6px 20px color-mix(in oklab,var(--color-primary) 45%,transparent)!important}
+#undoBtn:hover{border-color:var(--color-base-content)!important}
+#resetBtn:hover{border-color:var(--color-base-content)!important}
 </style>
 {% endblock %}
 {% block content %}
@@ -17,7 +17,7 @@
 <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="wm-card">
-      <div id="uploadZone" class="preview-box mb-4" tabindex="0" role="button" aria-label="Upload an image" style="cursor:pointer;min-height:120px;border:2px dashed var(--color-base-300);transition:border-color .2s" onmouseover="this.style.borderColor='var(--color-primary)'" onmouseout="this.style.borderColor='var(--color-base-300)'">
+      <div id="uploadZone" class="preview-box mb-4" tabindex="0" role="button" aria-label="Upload an image" style="cursor:pointer;min-height:120px;border:2px dashed var(--color-base-300);transition:border-color .2s">
         <input type="file" id="fileInput" class="absolute top-0 left-0 w-full h-full opacity-0" style="cursor:pointer;z-index:10" accept="image/jpeg,image/png,image/webp" aria-label="Choose image file">
         <div class="text-center" aria-hidden="true">
           <div class="mx-auto mb-2 rounded-full bg-primary/10 flex items-center justify-center" style="width:48px;height:48px">{{ lucide_icon("eraser","w-5 h-5", 20) | safe }}</div>
@@ -27,17 +27,17 @@
       </div>
       <p class="text-xs font-bold text-base-content/60 mb-3 flex items-center gap-2">{{ lucide_icon("info","w-3.5 h-3.5", 14) | safe }} Drag on the image to select the watermark, then click Remove.</p>
       <div class="space-y-3">
-        <button type="button" id="removeBtn" class="w-full py-3 rounded-xl font-bold text-sm uppercase tracking-widest cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2" style="background:var(--color-primary);color:#fff;border:none;box-shadow:0 4px 12px color-mix(in oklab,var(--color-primary) 35%,transparent)" onmouseover="this.style.boxShadow='0 6px 20px color-mix(in oklab,var(--color-primary) 45%,transparent)'" onmouseout="this.style.boxShadow='0 4px 12px color-mix(in oklab,var(--color-primary) 35%,transparent)'" disabled>
+        <button type="button" id="removeBtn" class="w-full py-3 rounded-xl font-bold text-sm uppercase tracking-widest cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2" style="background:var(--color-primary);color:#fff;border:none;box-shadow:0 4px 12px color-mix(in oklab,var(--color-primary) 35%,transparent)" disabled>
           {{ lucide_icon("wand-2","w-4 h-4", 16) | safe }} <span id="removeLabel">REMOVE</span>
         </button>
         <div id="progressWrap" class="hidden">
           <div style="background:var(--color-base-100);border-radius:0.5rem;height:6px;overflow:hidden"><div id="progressBar" style="width:0%;height:100%;background:var(--color-primary);border-radius:0.5rem;transition:width .1s"></div></div>
           <span id="progressText" class="text-xs text-base-content/30 mt-1 block">Processing...</span>
         </div>
-        <button type="button" id="undoBtn" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer transition-all" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);display:none" onmouseover="this.style.borderColor='var(--color-base-content)'" onmouseout="this.style.borderColor='var(--color-base-300)'">
+        <button type="button" id="undoBtn" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer transition-all" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);display:none">
           {{ lucide_icon("rotate-ccw","w-4 h-4", 16) | safe }} UNDO
         </button>
-        <button type="button" id="resetBtn" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer transition-all" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content)" onmouseover="this.style.borderColor='var(--color-base-content)'" onmouseout="this.style.borderColor='var(--color-base-300)'">
+        <button type="button" id="resetBtn" class="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer transition-all" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content)">
           {{ lucide_icon("rotate-ccw","w-4 h-4", 16) | safe }} Reset
         </button>
       </div>
@@ -213,28 +213,4 @@ rb.addEventListener('click',function(){
 });
 })();
 </script>
-{% endblock %}
-
-{% block seo_schema %}
-{% set seo = {
-  "name": "Watermark Remover",
-  "description": "Free online watermark remover — select any watermark, text, or logo on your image and remove it instantly. All processing happens in your browser.",
-  "app_category": "MultimediaApplication",
-  "faqs": [
-    {"q": "How does this watermark remover work?", "a": "Upload your image, drag to select the watermark area, and click Remove. The tool blends the selected region with surrounding pixels using smart edge interpolation — all in your browser."},
-    {"q": "What image formats are supported?", "a": "You can use JPG, PNG, and WebP images. The result is always downloaded as a PNG file for maximum quality."},
-    {"q": "Is my image data private?", "a": "Yes. All processing happens locally on your device. Your images are never uploaded, stored, or shared with any server."}
-  ],
-  "howto_steps": [
-    {"title": "Upload your image", "desc": "Click the upload area or drag and drop an image. Supported formats are JPG, PNG, and WebP."},
-    {"title": "Select the watermark", "desc": "Drag on the image to draw a rectangle around the watermark you want to remove."},
-    {"title": "Remove and download", "desc": "Click Remove to process the image, then download your cleaned image as PNG."}
-  ],
-  "related": [
-    {"name": "Background Remover", "url": "/tool/image-background-remover"},
-    {"name": "Image Converter", "url": "/tool/image-converter"},
-  ],
-  "related": seo_data.related
-} %}
-{{ tool_seo_all(seo) }}
 {% endblock %}

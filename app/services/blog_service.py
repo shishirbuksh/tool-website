@@ -84,7 +84,8 @@ class BlogService:
             # data/ is read-only under systemd hardening: auto-creating would
             # silently serve an empty blog in prod. Fail fast instead.
             if self.settings.is_prod:
-                raise FileNotFoundError(f"Blog data file not found: {path}")
+                msg = f"Blog data file not found: {path}"
+                raise FileNotFoundError(msg)
             try:
                 os.makedirs(os.path.dirname(path), exist_ok=True)
                 with open(path, "w", encoding="utf-8") as f:
