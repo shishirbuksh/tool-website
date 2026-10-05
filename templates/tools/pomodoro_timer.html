@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+
+{% block content %}
+{{ tool_hero_section("timer", "Focus Timer", "POMODORO", "TIMER", "Custom work-break cycles with task list, alarm and stretch reminders.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="card-premium p-6 md:p-8">
+      <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5",20) | safe }} Settings</h2>
+      <div class="flex flex-col gap-5">
+        <div class="grid grid-cols-3 gap-3">
+          <div><label class="label-cinematic" for="focusMin">Focus</label><input aria-label="Focus minutes" type="number" id="focusMin" class="input w-full input-cinematic font-bold rounded-xl" value="25" min="1" max="180"></div>
+          <div><label class="label-cinematic" for="shortMin">Short</label><input aria-label="Short break minutes" type="number" id="shortMin" class="input w-full input-cinematic font-bold rounded-xl" value="5" min="1" max="60"></div>
+          <div><label class="label-cinematic" for="longMin">Long</label><input aria-label="Long break minutes" type="number" id="longMin" class="input w-full input-cinematic font-bold rounded-xl" value="15" min="1" max="120"></div>
+        </div>
+        <div><label class="label-cinematic" for="rounds">Sessions per round</label><input aria-label="Sessions per round" type="number" id="rounds" class="input w-full input-cinematic font-bold rounded-xl" value="4" min="1" max="12"></div>
+        <div class="flex items-center gap-3"><input aria-label="Sound alarm on phase change" type="checkbox" id="soundOn" class="checkbox checkbox-cinematic rounded-md border-base-content/30" checked><label class="label-cinematic mb-0" for="soundOn">Sound alarm</label></div>
+        <div class="flex items-center gap-3"><input aria-label="Auto start next phase" type="checkbox" id="autoStart" class="checkbox checkbox-cinematic rounded-md border-base-content/30"><label class="label-cinematic mb-0" for="autoStart">Auto-start next phase</label></div>
+        <div class="flex gap-3">
+          <button type="button" id="notifBtn" class="btn btn-ghost btn-sm flex-1 py-2 text-xs font-bold uppercase rounded-xl">ENABLE NOTIFICATIONS</button>
+        </div>
+      </div>
+      <h2 class="text-xl font-black mt-8 mb-4 tracking-tight flex items-center gap-3">{{ lucide_icon("list-checks","w-5 h-5",20) | safe }} Tasks</h2>
+      <div class="flex gap-2">
+        <input aria-label="New task name" type="text" id="taskInput" class="input flex-1 input-cinematic rounded-xl" placeholder="Add a task…" maxlength="80">
+        <button type="button" id="addTask" class="btn btn-cinematic px-4 rounded-xl font-bold" aria-label="Add task">+</button>
+      </div>
+      <ul id="taskList" class="mt-3 flex flex-col gap-2"></ul>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="card-premium p-6 md:p-8 text-center">
+      <div id="phaseLabel" class="text-xs font-black uppercase tracking-widest opacity-60">Ready — press start</div>
+      <div class="relative inline-block my-4">
+        <svg viewBox="0 0 220 220" class="w-64 h-64" role="img" aria-label="Timer progress">
+          <circle cx="110" cy="110" r="96" fill="none" stroke="var(--color-base-300)" stroke-width="14"/>
+          <circle id="ring" cx="110" cy="110" r="96" fill="none" stroke="var(--color-primary)" stroke-width="14" stroke-linecap="round" transform="rotate(-90 110 110)" stroke-dasharray="603" stroke-dashoffset="0"/>
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <div id="clock" class="font-black font-mono" style="font-size:3rem">25:00</div>
+          <div id="dots" class="font-mono text-sm opacity-60 tracking-widest"></div>
+        </div>
+      </div>
+      <div class="flex gap-3 justify-center flex-wrap">
+        <button type="button" id="startBtn" class="btn btn-cinematic px-8 py-3 text-sm font-bold tracking-widest uppercase rounded-xl">START</button>
+        <button type="button" id="skipBtn" class="btn btn-ghost px-6 py-3 text-sm font-bold tracking-widest uppercase rounded-xl">SKIP</button>
+        <button type="button" id="resetBtn" class="btn btn-ghost px-6 py-3 text-sm font-bold tracking-widest uppercase rounded-xl">RESET</button>
+      </div>
+      <div id="stretchNote" class="hidden mt-4 rounded-xl p-3 text-sm font-bold bg-success/10 text-success">Stretch break — stand up, roll your shoulders, look far away.</div>
+      <div class="grid grid-cols-3 gap-3 mt-6 text-center">
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Sessions done</div><div id="statDone" class="font-black font-mono text-lg">0</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Focus today</div><div id="statMins" class="font-black font-mono text-lg">0m</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Current streak</div><div id="statStreak" class="font-black font-mono text-lg">0</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script nonce="{{ nonce }}">
+(function(){'use strict';
+var S={phase:'idle',remain:0,total:1,running:false,timer:null,done:0,focusToday:0,tasks:[]};
+function $(id){return document.getElementById(id);}
+function load(){try{var s=JSON.parse(localStorage.getItem('sb_pomo')||'{}');if(s.tasks)S.tasks=s.tasks;if(s.focusToday&&s.day===new Date().toDateString())S.focusToday=s.focusToday;}catch(e){}}
+function save(){try{localStorage.setItem('sb_pomo',JSON.stringify({tasks:S.tasks,focusToday:S.focusToday,day:new Date().toDateString()}));}catch(e){}}
+function fmt(s){s=Math.max(0,Math.ceil(s));var m=Math.floor(s/60),ss=s%60;return (m<10?'0':'')+m+':'+(ss<10?'0':'')+ss;}
+function phaseLen(kind){
+  if(kind==='focus')return Math.max(1,parseInt($('focusMin').value)||25)*60;
+  if(kind==='short')return Math.max(1,parseInt($('shortMin').value)||5)*60;
+  return Math.max(1,parseInt($('longMin').value)||15)*60;
+}
+function setPhase(kind){
+  S.phase=kind;S.total=phaseLen(kind);S.remain=S.total;
+  var labels={idle:'Ready — press start',focus:'FOCUS — work on one task',short:'SHORT BREAK — breathe',long:'LONG BREAK — stretch & rest'};
+  $('phaseLabel').textContent=labels[kind]||kind;
+  $('stretchNote').classList.toggle('hidden',kind!=='long');
+  draw();
+}
+function draw(){
+  $('clock').textContent=fmt(S.remain);
+  var frac=S.total>0?S.remain/S.total:0;
+  $('ring').setAttribute('stroke-dashoffset',(603*(1-frac)).toFixed(1));
+  var rounds=Math.max(1,parseInt($('rounds').value)||4);
+  var dots='';
+  for(var i=0;i<rounds;i++)dots+=(i<S.done%rounds||(S.done>0&&S.done%rounds===0))?'●':'○';
+  $('dots').textContent=dots;
+  $('statDone').textContent=S.done;
+  $('statMins').textContent=S.focusToday+'m';
+  $('statStreak').textContent=(S.done%rounds===0&&S.done>0)?rounds:(S.done%rounds);
+  document.title=(S.phase==='focus'?'('+fmt(S.remain)+') Focus — ':'' )+'Pomodoro Timer';
+}
+function beep(){
+  if(!$('soundOn').checked)return;
+  try{
+    var ctx=new (window.AudioContext||window.webkitAudioContext)();
+    [0,0.25,0.5].forEach(function(t,i){
+      var o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=i===2?660:880;
+      o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+0.2);
+    });
+  }catch(e){}
+}
+function notify(msg){
+  if('Notification' in window&&Notification.permission==='granted'){try{new Notification(msg);}catch(e){}}
+}
+function finishPhase(){
+  beep();
+  if(S.phase==='focus'){
+    S.done++;
+    S.focusToday+=Math.round(S.total/60);
+    save();
+    notify('Focus session done — take a break');
+    var rounds=Math.max(1,parseInt($('rounds').value)||4);
+    setPhase(S.done%rounds===0?'long':'short');
+  }else{
+    notify('Break over — back to focus');
+    setPhase('focus');
+  }
+  if($('autoStart').checked){start();}else{stop();}
+}
+function tick(){S.remain--;draw();if(S.remain<=0)finishPhase();}
+function start(){
+  if(S.phase==='idle')setPhase('focus');
+  if(S.running)return;
+  S.running=true;$('startBtn').textContent='PAUSE';
+  S.timer=setInterval(tick,1000);
+}
+function stop(){S.running=false;if(S.timer)clearInterval(S.timer);S.timer=null;$('startBtn').textContent='START';}
+function resetAll(){stop();S.done=0;setPhase('idle');$('startBtn').textContent='START';document.title='Pomodoro Timer';}
+function renderTasks(){
+  var ul=$('taskList');ul.innerHTML='';
+  S.tasks.forEach(function(t,i){
+    var li=document.createElement('li');
+    li.className='flex items-center gap-2 rounded-xl px-3 py-2 bg-base-300/20 text-sm';
+    var cb=document.createElement('input');
+    cb.type='checkbox';cb.checked=!!t.done;cb.setAttribute('aria-label','Done: '+t.name);
+    cb.className='checkbox checkbox-cinematic checkbox-sm rounded-md border-base-content/30';
+    cb.addEventListener('change',function(){t.done=cb.checked;save();renderTasks();});
+    var sp=document.createElement('span');
+    sp.className='flex-1 '+(t.done?'line-through opacity-50':'font-semibold');
+    sp.textContent=t.name+' ('+(t.sessions||1)+'×)';
+    var del=document.createElement('button');
+    del.type='button';del.className='btn btn-ghost btn-xs rounded-lg';del.textContent='✕';del.setAttribute('aria-label','Delete task');
+    del.addEventListener('click',function(){S.tasks.splice(i,1);save();renderTasks();});
+    li.appendChild(cb);li.appendChild(sp);li.appendChild(del);
+    ul.appendChild(li);
+  });
+}
+document.addEventListener('DOMContentLoaded',function(){
+  load();renderTasks();setPhase('idle');
+  $('startBtn').addEventListener('click',function(){if(S.running)stop();else start();});
+  $('skipBtn').addEventListener('click',function(){if(S.phase==='idle')setPhase('focus');else finishPhase();});
+  $('resetBtn').addEventListener('click',resetAll);
+  ['focusMin','shortMin','longMin','rounds'].forEach(function(id){
+    $(id).addEventListener('change',function(){if(!S.running)setPhase(S.phase==='idle'?'idle':S.phase);draw();});
+  });
+  $('notifBtn').addEventListener('click',function(){
+    if('Notification' in window)Notification.requestPermission();
+  });
+  function addTask(){
+    var v=$('taskInput').value.trim();
+    if(!v)return;
+    S.tasks.push({name:v,sessions:1,done:false});
+    $('taskInput').value='';
+    save();renderTasks();
+  }
+  $('addTask').addEventListener('click',addTask);
+  $('taskInput').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();addTask();}});
+});})();
+</script>
+{% endblock %}

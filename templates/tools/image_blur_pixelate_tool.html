@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+
+{% block content %}
+{{ tool_hero_section("eye-off", "Privacy Editor", "BLUR &", "PIXELATE", "Hide faces, plates and sensitive details before sharing.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-4/12">
+    <div class="card-premium p-6 md:p-8">
+      <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5",20) | safe }} Tools</h2>
+      <div class="flex flex-col gap-5">
+        <div><label class="label-cinematic" for="imgFile">Photo</label><input type="file" id="imgFile" accept="image/*" class="file-input w-full file-input-bordered rounded-xl" aria-label="Upload photo"></div>
+        <div>
+          <span class="label-cinematic">Mode</span>
+          <div class="flex gap-2" role="group" aria-label="Redaction mode">
+            <button type="button" id="modeBlur" class="btn btn-cinematic btn-sm flex-1 py-2 text-xs font-bold uppercase rounded-xl">Blur</button>
+            <button type="button" id="modePixel" class="btn btn-ghost btn-sm flex-1 py-2 text-xs font-bold uppercase rounded-xl">Pixelate</button>
+            <button type="button" id="modeBox" class="btn btn-ghost btn-sm flex-1 py-2 text-xs font-bold uppercase rounded-xl">Box</button>
+          </div>
+        </div>
+        <div><label class="label-cinematic" for="brushSize">Brush size: <output id="brushVal" for="brushSize">60px</output></label><input aria-label="Brush size" type="range" id="brushSize" class="range range-cinematic w-full" min="10" max="200" value="60"></div>
+        <div><label class="label-cinematic" for="strength">Strength: <output id="strengthVal" for="strength">12</output></label><input aria-label="Blur strength" type="range" id="strength" class="range range-cinematic w-full" min="2" max="40" value="12"></div>
+        <div class="flex gap-2">
+          <button type="button" id="undoBtn" class="btn btn-ghost btn-sm flex-1 py-2 text-xs font-bold uppercase rounded-xl">UNDO</button>
+          <button type="button" id="resetBtn" class="btn btn-ghost btn-sm flex-1 py-2 text-xs font-bold uppercase rounded-xl">RESET</button>
+        </div>
+        <button type="button" id="dlBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm rounded-xl">{{ lucide_icon("download","w-5 h-5",20) | safe }} DOWNLOAD PNG</button>
+        <p class="text-xs opacity-60">Paint over faces, plates or text. Box mode: drag a rectangle. Everything stays on your device.</p>
+      </div>
+    </div>
+  </div>
+  <div class="lg:w-8/12">
+    <div class="card-premium p-6 md:p-8">
+      <h3 class="text-xl font-black mb-4 tracking-tight flex items-center gap-3">{{ lucide_icon("image","w-5 h-5",20) | safe }} Canvas</h3>
+      <div id="emptyCanvas" class="text-center opacity-60 py-16 text-sm font-semibold">Upload a photo to start redacting.</div>
+      <canvas id="cv" class="hidden w-full rounded-xl border border-base-300" style="touch-action:none;cursor:crosshair"></canvas>
+    </div>
+  </div>
+</div>
+<script nonce="{{ nonce }}">
+(function(){'use strict';
+var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+var orig=null,mode='blur',painting=false,undoStack=[],boxStart=null,loaded=false;
+function val(id){return parseInt(document.getElementById(id).value)||0;}
+function pushUndo(){try{undoStack.push(ctx.getImageData(0,0,cv.width,cv.height));if(undoStack.length>20)undoStack.shift();}catch(e){}}
+function setMode(m){
+  mode=m;
+  [['modeBlur','blur'],['modePixel','pixel'],['modeBox','box']].forEach(function(p){
+    var el=document.getElementById(p[0]);
+    el.classList.toggle('btn-cinematic',p[1]===m);
+    el.classList.toggle('btn-ghost',p[1]!==m);
+  });
+}
+function pos(e){
+  var r=cv.getBoundingClientRect();
+  var cx=(e.touches&&e.touches[0])?e.touches[0].clientX:e.clientX;
+  var cy=(e.touches&&e.touches[0])?e.touches[0].clientY:e.clientY;
+  return {x:(cx-r.left)*(cv.width/r.width),y:(cy-r.top)*(cv.height/r.height)};
+}
+function blurRegion(rx,ry,rw,rh,clipFn){
+  var s=val('strength'),pad=s*3;
+  var x0=Math.max(0,Math.floor(rx-pad)),y0=Math.max(0,Math.floor(ry-pad));
+  var x1=Math.min(cv.width,Math.ceil(rx+rw+pad)),y1=Math.min(cv.height,Math.ceil(ry+rh+pad));
+  var w=x1-x0,h=y1-y0;
+  if(w<2||h<2)return;
+  pushUndo();
+  var tmp=document.createElement('canvas');tmp.width=w;tmp.height=h;
+  var tctx=tmp.getContext('2d');
+  tctx.filter='blur('+s+'px)';
+  tctx.drawImage(cv,x0,y0,w,h,0,0,w,h);
+  ctx.save();clipFn();
+  ctx.drawImage(tmp,0,0,w,h,x0,y0,w,h);
+  ctx.restore();
+}
+function pixelRegion(rx,ry,rw,rh,clipFn){
+  var s=val('strength');
+  var cell=Math.max(4,Math.round(s/1.2));
+  var x0=Math.max(0,Math.floor(rx)),y0=Math.max(0,Math.floor(ry));
+  var x1=Math.min(cv.width,Math.ceil(rx+rw)),y1=Math.min(cv.height,Math.ceil(ry+rh));
+  var w=x1-x0,h=y1-y0;
+  if(w<2||h<2)return;
+  pushUndo();
+  var tmp=document.createElement('canvas');
+  tmp.width=Math.max(1,Math.ceil(w/cell));tmp.height=Math.max(1,Math.ceil(h/cell));
+  var tctx=tmp.getContext('2d');
+  tctx.drawImage(cv,x0,y0,w,h,0,0,tmp.width,tmp.height);
+  ctx.save();clipFn();
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(tmp,0,0,tmp.width,tmp.height,x0,y0,w,h);
+  ctx.imageSmoothingEnabled=true;
+  ctx.restore();
+}
+function circleClip(x,y,r){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.clip();}
+function rectClip(x,y,w,h){ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();}
+function applyBrush(x,y,r){
+  if(mode==='pixel')pixelRegion(x-r,y-r,r*2,r*2,function(){circleClip(x,y,r);});
+  else blurRegion(x-r,y-r,r*2,r*2,function(){circleClip(x,y,r);});
+}
+function applyBox(x0,y0,x1,y1){
+  var rx=Math.min(x0,x1),ry=Math.min(y0,y1),rw=Math.abs(x1-x0),rh=Math.abs(y1-y0);
+  if(rw<4||rh<4)return;
+  if(mode==='pixel')pixelRegion(rx,ry,rw,rh,function(){rectClip(rx,ry,rw,rh);});
+  else blurRegion(rx,ry,rw,rh,function(){rectClip(rx,ry,rw,rh);});
+}
+function paint(e){
+  if(!loaded||!painting)return;
+  if(e.cancelable)e.preventDefault();
+  var p=pos(e),r=val('brushSize')*(cv.width/cv.getBoundingClientRect().width);
+  if(mode==='box')return;
+  applyBrush(p.x,p.y,r);
+}
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('modeBlur').addEventListener('click',function(){setMode('blur');});
+  document.getElementById('modePixel').addEventListener('click',function(){setMode('pixel');});
+  document.getElementById('modeBox').addEventListener('click',function(){setMode('box');});
+  document.getElementById('brushSize').addEventListener('input',function(){document.getElementById('brushVal').textContent=this.value+'px';});
+  document.getElementById('strength').addEventListener('input',function(){document.getElementById('strengthVal').textContent=this.value;});
+  document.getElementById('imgFile').addEventListener('change',function(e){
+    var f=e.target.files[0];if(!f)return;
+    var r=new FileReader();
+    r.onload=function(){
+      var img=new Image();
+      img.onload=function(){
+        var max=1400,sc=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+        cv.width=Math.round(img.naturalWidth*sc);cv.height=Math.round(img.naturalHeight*sc);
+        ctx.drawImage(img,0,0,cv.width,cv.height);
+        orig=ctx.getImageData(0,0,cv.width,cv.height);
+        undoStack=[];
+        loaded=true;
+        cv.classList.remove('hidden');
+        document.getElementById('emptyCanvas').style.display='none';
+      };
+      img.src=r.result;
+    };
+    r.readAsDataURL(f);
+  });
+  cv.addEventListener('mousedown',function(e){if(!loaded)return;painting=true;var p=pos(e);boxStart=p;if(mode!=='box')applyBrush(p.x,p.y,val('brushSize')*(cv.width/cv.getBoundingClientRect().width));});
+  cv.addEventListener('mousemove',paint);
+  document.addEventListener('mouseup',function(e){
+    if(!painting)return;painting=false;
+    if(mode==='box'&&boxStart&&loaded){var p=pos(e);applyBox(boxStart.x,boxStart.y,p.x,p.y);}
+    boxStart=null;
+  });
+  cv.addEventListener('touchstart',function(e){if(!loaded)return;painting=true;paint(e);},{passive:false});
+  cv.addEventListener('touchmove',paint,{passive:false});
+  cv.addEventListener('touchend',function(){painting=false;});
+  document.getElementById('undoBtn').addEventListener('click',function(){
+    if(undoStack.length){ctx.putImageData(undoStack.pop(),0,0);}
+  });
+  document.getElementById('resetBtn').addEventListener('click',function(){
+    if(orig){ctx.putImageData(orig,0,0);undoStack=[];}
+  });
+  document.getElementById('dlBtn').addEventListener('click',function(){
+    if(!loaded)return;
+    var a=document.createElement('a');
+    a.href=cv.toDataURL('image/png');a.download='redacted.png';
+    document.body.appendChild(a);a.click();a.remove();
+  });
+});})();
+</script>
+{% endblock %}

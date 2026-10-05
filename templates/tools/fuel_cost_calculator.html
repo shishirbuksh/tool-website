@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+
+{% block content %}
+{{ tool_hero_section("fuel", "Fuel Calculator", "FUEL COST", "CALCULATOR", "Estimate fuel cost per km, trip expense and monthly budget. Split with friends, compare fuels.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="card-premium p-6 md:p-8">
+      <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5",20) | safe }} Trip Details</h2>
+      <form class="flex flex-col gap-5" id="fuelForm">
+        <div><label class="label-cinematic" for="distance">Distance (km)</label><input aria-label="Distance in kilometers" type="number" id="distance" class="input w-full input-cinematic font-bold rounded-xl" value="100" min="0"></div>
+        <div><label class="label-cinematic" for="mileage">Mileage (km per litre)</label><input aria-label="Mileage kmpl" type="number" id="mileage" class="input w-full input-cinematic font-bold rounded-xl" value="15" min="0.1" step="0.1"></div>
+        <div><label class="label-cinematic" for="price">Fuel price (per litre)</label><input aria-label="Fuel price per litre" type="number" id="price" class="input w-full input-cinematic font-bold rounded-xl" value="105" min="0" step="0.1"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="label-cinematic" for="passengers">Passengers</label><input aria-label="Passenger count" type="number" id="passengers" class="input w-full input-cinematic font-bold rounded-xl" value="1" min="1" max="50"></div>
+          <div><label class="label-cinematic" for="days">Days / month</label><input aria-label="Driving days per month" type="number" id="days" class="input w-full input-cinematic font-bold rounded-xl" value="22" min="0" max="31"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="label-cinematic" for="altMileage">Alt. mileage (kmpl)</label><input aria-label="Alternative fuel mileage" type="number" id="altMileage" class="input w-full input-cinematic font-bold rounded-xl" value="20" min="0.1" step="0.1"></div>
+          <div><label class="label-cinematic" for="altPrice">Alt. price / litre</label><input aria-label="Alternative fuel price" type="number" id="altPrice" class="input w-full input-cinematic font-bold rounded-xl" value="95" min="0" step="0.1"></div>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="card-premium p-6 md:p-8">
+      <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5",20) | safe }} Cost Breakdown</h3>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Trip cost</div><div id="tripCost" class="font-black font-mono text-xl">—</div></div>
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Per km</div><div id="perKm" class="font-black font-mono text-xl">—</div></div>
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Fuel needed</div><div id="litres" class="font-black font-mono text-xl">—</div></div>
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Per person</div><div id="perPerson" class="font-black font-mono text-xl">—</div></div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Monthly budget (same trip daily)</div><div id="monthly" class="font-black font-mono text-lg">—</div></div>
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Alt fuel trip cost</div><div id="altCost" class="font-black font-mono text-lg">—</div><div id="altVerdict" class="text-xs font-bold mt-1 opacity-70">—</div></div>
+      </div>
+      <button type="button" id="copyBtn" class="btn btn-cinematic mt-5 py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("copy","w-4 h-4",16) | safe }} COPY TRIP SHEET</button>
+    </div>
+  </div>
+</div>
+<script nonce="{{ nonce }}">
+(function(){'use strict';
+function val(id){return parseFloat(document.getElementById(id).value)||0;}
+function fmt(n){return '₹'+n.toLocaleString('en-IN',{maximumFractionDigits:0});}
+function calc(){
+  var d=val('distance'),m=val('mileage'),p=val('price'),n=Math.max(1,Math.round(val('passengers'))),days=val('days');
+  var am=val('altMileage'),ap=val('altPrice');
+  if(!(m>0&&d>=0&&p>=0))return;
+  var litres=d/m,trip=litres*p,perKm=p/m,perPerson=trip/n,monthly=trip*days;
+  document.getElementById('tripCost').textContent=fmt(trip);
+  document.getElementById('perKm').textContent='₹'+perKm.toFixed(2);
+  document.getElementById('litres').textContent=litres.toFixed(2)+' L';
+  document.getElementById('perPerson').textContent=fmt(perPerson);
+  document.getElementById('monthly').textContent=fmt(monthly);
+  if(am>0&&ap>=0){
+    var alt=(d/am)*ap;
+    document.getElementById('altCost').textContent=fmt(alt);
+    var diff=trip-alt;
+    document.getElementById('altVerdict').textContent=diff>0?('Saves '+fmt(diff)+' per trip'):diff<0?('Costs '+fmt(-diff)+' more'):'Same cost';
+  }
+  return {trip:trip,perKm:perKm,litres:litres,perPerson:perPerson,monthly:monthly};
+}
+function copy(){
+  var r=calc();if(!r)return;
+  var t='Fuel trip: '+fmt(r.trip)+' total, ₹'+r.perKm.toFixed(2)+'/km, '+r.litres.toFixed(2)+' L, '+fmt(r.perPerson)+'/person';
+  navigator.clipboard.writeText(t);
+}
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('#fuelForm input').forEach(function(el){el.addEventListener('input',calc);});
+  document.getElementById('copyBtn').addEventListener('click',copy);
+  calc();
+});})();
+</script>
+{% endblock %}

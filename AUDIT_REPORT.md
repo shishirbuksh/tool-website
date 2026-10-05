@@ -1,7 +1,7 @@
 # StoryBrain AI — Full Deep Audit Report
 
-> Generated: 2026-10-05 (Build mode, verified by execution)
-> Scope: full code / files / folders / functions / 107 tools / 87 blog posts / SEO / technical / security / deep audit
+> Generated: 2026-10-05 (Build mode, verified by execution). Updated: catalog expanded 107 → 117 tools.
+> Scope: full code / files / folders / functions / tools / blog / SEO / technical / security / deep audit + product expansion
 > Method: `data/tools.yaml` + `data/blog.yaml` parsed with PyYAML, template grep, `TestClient` render checks, sitemap service invocation, `pytest --collect-only`, `ruff check`.
 
 ## Executive Summary
@@ -140,6 +140,19 @@ What was fixed in the LIVE path: 29 `meta_title` YAML overrides added (all rende
 - [x] P1.3 (done 2026-10-05): qr delegated handlers, hover→CSS, onerror→capture listener; test regex extended to 12 events.
 - [x] P2 titles/descs/images (done 2026-10-05): 29 YAML `meta_title` overrides, 64 YAML descriptions to 120–160ch, 30 redundant image blocks deleted. 39/39 tests green.
 - [ ] P2 (future): per-category OG images (design task); delete dead template head blocks (title/meta/og_title/og_description ×107) to stop misleading editors.
+
+## 9. Product Expansion — 10 New Tools (2026-10-05, multi-agent)
+
+Process: Agent A (long-tail gap research over 1472 normalized keywords) → Agents B+C (YAML content packs) → validation scripts → implementation → Agent D (independent cannibalization + AEO/GEO audit) → fixes → 66/66 tests green.
+
+New tools (107 → 117): delivery-challan-generator, meeting-cost-calculator, freelance-rate-calculator (Business, 10→13); image-exif-remover, image-blur-pixelate-tool, photo-collage-maker (Image, 9→12); bmi-calculator, fuel-cost-calculator (Calculators, 26→28); hash-generator (Dev&SEO, 26→27); pomodoro-timer (Productivity, 20→21).
+
+- Long-tail: 80 keywords, zero exact collisions vs catalog+blog (normalized check); caps respected (≤8/tool).
+- LSI woven into about/FAQ copy (entity-distinct; auditor confirmed stems isolated: challan/collage/pomodoro/freelance/meeting/exif/blur/hash/fuel/bmi).
+- AEO: 60 FAQs, all interrogative-start, answer-first, 25-60 words; 2 audit FIXes applied (fuel Q6 rephrased; pomodoro ADHD claim softened + disclaimer).
+- GEO: entity+audience+privacy about blocks; real formulas in all `howto_calculate`.
+- Templates: 10 working client-side tools (MD5 unit-tested vs hashlib vectors incl. unicode; canvas brush/pixelate/collage/EXIF-strip logic reviewed); zero inline handlers; node syntax-checked; all render 200 with schema.
+- Links: every new tool indegree ≥2 (incl. old-tool backlinks e.g. eway-bill→challan, salary→meeting/freelance); zero orphans catalog-wide.
 - [ ] P1.3: migrate 15 `onclick=` files to `data-action` (per-file, test each tool manually).
 - [ ] P2: title/desc pass on 29 + 63 tools via `data/tools.yaml` (+ `test_content_quality.py`, `test_keywords_no_cannibalization.py` must stay green).
 - [ ] P2: per-category OG images + wire `seo_service.image_url`.

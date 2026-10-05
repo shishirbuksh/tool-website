@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+
+{% block content %}
+{{ tool_hero_section("wallet", "Freelance Pricing", "FREELANCE RATE", "CALCULATOR", "Turn income goals into hourly, project and retainer rates.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="card-premium p-6 md:p-8">
+      <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5",20) | safe }} Your Numbers</h2>
+      <form class="flex flex-col gap-5" id="rateForm">
+        <div><label class="label-cinematic" for="goal">Monthly take-home goal</label><input aria-label="Monthly income goal" type="number" id="goal" class="input w-full input-cinematic font-bold rounded-xl" value="5000" min="0"></div>
+        <div><label class="label-cinematic" for="hours">Billable hours / week</label><input aria-label="Billable hours per week" type="number" id="hours" class="input w-full input-cinematic font-bold rounded-xl" value="25" min="1" max="100"></div>
+        <div><label class="label-cinematic" for="expenses">Monthly expenses</label><input aria-label="Monthly business expenses" type="number" id="expenses" class="input w-full input-cinematic font-bold rounded-xl" value="300" min="0"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="label-cinematic" for="tax">Tax %</label><input aria-label="Tax percent" type="number" id="tax" class="input w-full input-cinematic font-bold rounded-xl" value="20" min="0" max="90"></div>
+          <div><label class="label-cinematic" for="fee">Platform fee %</label><input aria-label="Platform fee percent" type="number" id="fee" class="input w-full input-cinematic font-bold rounded-xl" value="10" min="0" max="90"></div>
+        </div>
+        <div><label class="label-cinematic" for="discount">Bulk discount % (simulator)</label><input aria-label="Bulk discount percent" type="number" id="discount" class="input w-full input-cinematic font-bold rounded-xl" value="10" min="0" max="90"></div>
+      </form>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="card-premium p-6 md:p-8 text-center">
+      <div class="text-[11px] uppercase font-bold opacity-60 tracking-widest">Your required hourly rate</div>
+      <div id="hourly" class="font-black font-mono text-primary" style="font-size:clamp(2.5rem,6vw,4rem)">—</div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4 text-left">
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Day rate (8h)</div><div id="day" class="font-black font-mono text-lg">—</div></div>
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Week rate</div><div id="week" class="font-black font-mono text-lg">—</div></div>
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Monthly capacity</div><div id="month" class="font-black font-mono text-lg">—</div></div>
+      </div>
+    </div>
+    <div class="card-premium p-6 md:p-8 mt-6">
+      <h3 class="text-lg font-black mb-4 flex items-center gap-3">{{ lucide_icon("table","w-5 h-5",20) | safe }} Project &amp; Retainer Guide</h3>
+      <div class="overflow-x-auto"><table class="w-full text-sm"><caption class="sr-only">Project pricing at your hourly rate</caption><thead><tr class="text-left text-xs uppercase opacity-60"><th scope="col" class="py-2 pr-4">Project size</th><th scope="col" class="py-2 pr-4">Standard</th><th scope="col" class="py-2">With bulk discount</th></tr></thead><tbody id="projectTable"></tbody></table></div>
+      <p id="raiseNote" class="text-sm font-semibold mt-4 opacity-80"></p>
+    </div>
+  </div>
+</div>
+<script nonce="{{ nonce }}">
+(function(){'use strict';
+function val(id){return parseFloat(document.getElementById(id).value)||0;}
+function money(n){return '$'+n.toLocaleString('en-US',{maximumFractionDigits:0});}
+function calc(){
+  var goal=val('goal'),hrs=Math.max(1,val('hours')),exp=val('expenses');
+  var tax=Math.min(90,val('tax'))/100,fee=Math.min(90,val('fee'))/100,disc=Math.min(90,val('discount'))/100;
+  var denom=(1-tax)*(1-fee);
+  if(denom<=0)return;
+  var monthlyHrs=hrs*4.33;
+  var hourly=(goal+exp)/denom/monthlyHrs;
+  document.getElementById('hourly').textContent='$'+hourly.toFixed(2);
+  document.getElementById('day').textContent=money(hourly*8);
+  document.getElementById('week').textContent=money(hourly*hrs);
+  document.getElementById('month').textContent=money(hourly*monthlyHrs);
+  var sizes=[5,10,20,40,80];
+  var html='';
+  sizes.forEach(function(h){
+    var std=hourly*h,cut=std*(1-disc);
+    html+='<tr class="border-t border-base-300/20"><td class="py-2 pr-4 font-bold">'+h+'h project</td><td class="py-2 pr-4 font-mono">'+money(std)+'</td><td class="py-2 font-mono text-success">'+money(cut)+'</td></tr>';
+  });
+  document.getElementById('projectTable').innerHTML=html;
+  var w2=hourly*2080;
+  document.getElementById('raiseNote').textContent='Full-time equivalent at this rate: '+money(w2)+'/year. Raise your goal by 10% any time to model your next rate increase.';
+}
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('#rateForm input').forEach(function(el){el.addEventListener('input',calc);});
+  calc();
+});})();
+</script>
+{% endblock %}

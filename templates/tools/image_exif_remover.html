@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+
+{% block content %}
+{{ tool_hero_section("shield", "Privacy Tool", "EXIF", "REMOVER", "Strip EXIF, GPS and metadata from photos before sharing.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="card-premium p-6 md:p-8">
+      <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("upload","w-5 h-5",20) | safe }} Upload Photos</h2>
+      <div id="dropZone" class="rounded-2xl border-2 border-dashed border-base-300 p-8 text-center cursor-pointer" tabindex="0" role="button" aria-label="Upload images to clean">
+        <p class="font-bold">Drop images here or click to browse</p>
+        <p class="text-xs opacity-60 mt-1">JPG, PNG, WebP — processed on your device, never uploaded</p>
+        <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" multiple class="hidden" aria-label="Choose image files">
+      </div>
+      <div class="flex items-center gap-3 mt-5"><input aria-label="Re-encode as JPEG quality" type="checkbox" id="toJpeg" class="checkbox checkbox-cinematic rounded-md border-base-content/30"><label class="label-cinematic mb-0" for="toJpeg">Convert output to JPEG (smaller files)</label></div>
+      <button type="button" id="cleanBtn" class="btn btn-cinematic w-full mt-5 py-3 font-bold tracking-widest uppercase text-sm rounded-xl">{{ lucide_icon("eraser","w-5 h-5",20) | safe }} REMOVE METADATA</button>
+      <button type="button" id="clearBtn" class="btn btn-ghost w-full mt-3 py-2 text-xs font-bold tracking-widest uppercase rounded-xl">CLEAR ALL</button>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="card-premium p-6 md:p-8">
+      <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("list","w-5 h-5",20) | safe }} Files</h3>
+      <div id="emptyState" class="text-center opacity-60 py-10 text-sm font-semibold">No images yet — add photos to inspect and clean them.</div>
+      <ul id="fileList" class="flex flex-col gap-4"></ul>
+    </div>
+  </div>
+</div>
+<script nonce="{{ nonce }}">
+(function(){'use strict';
+var files=[];
+function fmtSize(b){if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(2)+' MB';}
+function addFiles(list){
+  for(var i=0;i<list.length;i++){
+    (function(f){
+      if(!/^image\/(jpeg|png|webp)$/.test(f.type))return;
+      var r=new FileReader();
+      r.onload=function(){
+        var img=new Image();
+        img.onload=function(){
+          files.push({name:f.name,type:f.type,origSize:f.size,w:img.naturalWidth,h:img.naturalHeight,src:r.result,cleaned:null,cleanSize:0});
+          render();
+        };
+        img.src=r.result;
+      };
+      r.readAsDataURL(f);
+    })(list[i]);
+  }
+}
+function cleanAll(){
+  var toJpeg=document.getElementById('toJpeg').checked;
+  var done=0;
+  files.forEach(function(f){
+    if(f.cleaned){done++;if(done===files.length)render();return;}
+    var img=new Image();
+    img.onload=function(){
+      var c=document.createElement('canvas');
+      c.width=f.w;c.height=f.h;
+      // drawImage re-encode drops ALL metadata segments (EXIF/GPS/XMP/thumbnail)
+      c.getContext('2d').drawImage(img,0,0);
+      var mime=toJpeg?'image/jpeg':(f.type==='image/png'?'image/png':'image/jpeg');
+      c.toBlob(function(blob){
+        f.cleaned=URL.createObjectURL(blob);
+        f.cleanSize=blob.size;
+        f.outMime=mime;
+        done++;
+        if(done===files.length)render();
+      },mime,0.92);
+    };
+    img.src=f.src;
+  });
+  if(!files.length)render();
+}
+function render(){
+  var ul=document.getElementById('fileList');ul.innerHTML='';
+  document.getElementById('emptyState').style.display=files.length?'none':'';
+  files.forEach(function(f,i){
+    var li=document.createElement('li');
+    li.className='rounded-2xl p-4 bg-base-300/20 flex gap-4 items-center flex-wrap';
+    var im=document.createElement('img');
+    im.src=f.src;im.alt='Preview of '+f.name;im.className='w-20 h-20 object-cover rounded-xl';
+    im.setAttribute('loading','lazy');im.setAttribute('decoding','async');
+    var info=document.createElement('div');
+    info.className='flex-1 min-w-[180px] text-sm';
+    var saved=f.cleaned?(' → <b>'+fmtSize(f.cleanSize)+'</b> <span class="text-success font-bold">metadata stripped ✓</span>'):'';
+    info.innerHTML='<div class="font-bold break-all">'+f.name.replace(/</g,'&lt;')+'</div>'
+      +'<div class="opacity-60 text-xs font-mono">'+f.w+'×'+f.h+' · '+fmtSize(f.origSize)+saved+'</div>';
+    li.appendChild(im);li.appendChild(info);
+    if(f.cleaned){
+      var a=document.createElement('a');
+      a.href=f.cleaned;a.download='clean-'+f.name.replace(/\.[^.]+$/,'')+(f.outMime==='image/png'?'.png':'.jpg');
+      a.className='btn btn-cinematic btn-sm px-4 py-2 text-xs font-bold uppercase rounded-xl';
+      a.textContent='Download';
+      li.appendChild(a);
+    }
+    ul.appendChild(li);
+  });
+}
+document.addEventListener('DOMContentLoaded',function(){
+  var dz=document.getElementById('dropZone'),fi=document.getElementById('fileInput');
+  dz.addEventListener('click',function(){fi.click();});
+  dz.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click();}});
+  fi.addEventListener('change',function(){addFiles(fi.files);fi.value='';});
+  dz.addEventListener('dragover',function(e){e.preventDefault();});
+  dz.addEventListener('drop',function(e){e.preventDefault();if(e.dataTransfer&&e.dataTransfer.files)addFiles(e.dataTransfer.files);});
+  document.getElementById('cleanBtn').addEventListener('click',cleanAll);
+  document.getElementById('clearBtn').addEventListener('click',function(){files=[];render();});
+});})();
+</script>
+{% endblock %}

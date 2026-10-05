@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+
+{% block content %}
+{{ tool_hero_section("clock", "Business Calculator", "MEETING COST", "CALCULATOR", "See what meetings really cost from salaries, headcount and time.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="card-premium p-6 md:p-8">
+      <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5",20) | safe }} Meeting Setup</h2>
+      <form class="flex flex-col gap-5" id="meetForm">
+        <div><label class="label-cinematic" for="attendees">Attendees</label><input aria-label="Number of attendees" type="number" id="attendees" class="input w-full input-cinematic font-bold rounded-xl" value="6" min="1" max="500"></div>
+        <div><label class="label-cinematic" for="rate">Average hourly rate (per person)</label><input aria-label="Average hourly rate" type="number" id="rate" class="input w-full input-cinematic font-bold rounded-xl" value="25" min="0"></div>
+        <div><label class="label-cinematic" for="minutes">Duration (minutes)</label><input aria-label="Meeting duration in minutes" type="number" id="minutes" class="input w-full input-cinematic font-bold rounded-xl" value="60" min="1" max="1440"></div>
+        <div><label class="label-cinematic" for="freq">Times per week</label><input aria-label="Meetings per week" type="number" id="freq" class="input w-full input-cinematic font-bold rounded-xl" value="3" min="0" max="50"></div>
+      </form>
+    </div>
+  </div>
+  <div class="lg:w-7/12 flex flex-col gap-6">
+    <div class="card-premium p-6 md:p-8 text-center">
+      <div class="text-[11px] uppercase font-bold opacity-60 tracking-widest">This meeting costs</div>
+      <div id="totalCost" class="font-black font-mono text-primary" style="font-size:clamp(2.5rem,6vw,4rem)">—</div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-center">
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Per person</div><div id="perPerson" class="font-bold font-mono">—</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Per minute</div><div id="perMinute" class="font-bold font-mono">—</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Monthly</div><div id="monthly" class="font-bold font-mono">—</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Yearly</div><div id="yearly" class="font-bold font-mono">—</div></div>
+      </div>
+    </div>
+    <div class="card-premium p-6 md:p-8">
+      <h3 class="text-lg font-black mb-4 flex items-center gap-3">{{ lucide_icon("timer","w-5 h-5",20) | safe }} Live Meeting Ticker</h3>
+      <div class="flex items-center gap-4 flex-wrap">
+        <button type="button" id="tickBtn" class="btn btn-cinematic py-2 px-6 text-xs font-bold tracking-widest uppercase rounded-xl">START TICKER</button>
+        <div id="tickCost" class="font-black font-mono text-2xl">$0.00</div>
+        <div id="tickTime" class="font-mono text-sm opacity-60">00:00</div>
+      </div>
+      <h3 class="text-lg font-black mt-6 mb-4 flex items-center gap-3">{{ lucide_icon("piggy-bank","w-5 h-5",20) | safe }} What-If Savings</h3>
+      <div id="savings" class="flex flex-col gap-2 text-sm font-semibold"></div>
+    </div>
+  </div>
+</div>
+<script nonce="{{ nonce }}">
+(function(){'use strict';
+var tickTimer=null,tickStart=0,tickBase=0;
+function val(id){return parseFloat(document.getElementById(id).value)||0;}
+function money(n){return '$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function inputs(){
+  var a=Math.max(1,Math.round(val('attendees'))),r=val('rate'),m=Math.max(1,val('minutes')),f=val('freq');
+  var total=a*r*(m/60);
+  return {a:a,r:r,m:m,f:f,total:total,perPerson:total/a,perMinute:m>0?total/m:0,monthly:total*f*4.33,yearly:total*f*52};
+}
+function calc(){
+  var r=inputs();
+  document.getElementById('totalCost').textContent=money(r.total);
+  document.getElementById('perPerson').textContent=money(r.perPerson);
+  document.getElementById('perMinute').textContent=money(r.perMinute);
+  document.getElementById('monthly').textContent=money(r.monthly);
+  document.getElementById('yearly').textContent=money(r.yearly);
+  var rows=[
+    ['Drop 1 attendee', r.total-((r.a-1)*r.r*(r.m/60))],
+    ['Cut 15 minutes', r.total-(r.a*r.r*((r.m-15)/60))],
+    ['Async instead (90% saved)', r.total*0.9]
+  ];
+  var html='';
+  rows.forEach(function(x){
+    if(x[1]>0)html+='<div class="flex justify-between rounded-xl px-4 py-2 bg-base-300/20"><span>'+x[0]+'</span><span class="font-mono text-success">saves '+money(x[1])+'</span></div>';
+  });
+  document.getElementById('savings').innerHTML=html;
+  return r;
+}
+function fmtTime(s){var m=Math.floor(s/60),ss=Math.floor(s%60);return (m<10?'0':'')+m+':'+(ss<10?'0':'')+ss;}
+function tick(){
+  var r=inputs();
+  var elapsed=(Date.now()-tickStart)/1000;
+  var cost=tickBase+r.a*r.r*(elapsed/3600);
+  document.getElementById('tickCost').textContent=money(cost);
+  document.getElementById('tickTime').textContent=fmtTime(elapsed);
+}
+function toggleTick(){
+  var btn=document.getElementById('tickBtn');
+  if(tickTimer){clearInterval(tickTimer);tickTimer=null;btn.textContent='START TICKER';return;}
+  tickStart=Date.now();tickBase=0;
+  tickTimer=setInterval(tick,250);
+  btn.textContent='STOP TICKER';
+  tick();
+}
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('#meetForm input').forEach(function(el){el.addEventListener('input',calc);});
+  document.getElementById('tickBtn').addEventListener('click',toggleTick);
+  calc();
+});})();
+</script>
+{% endblock %}
