@@ -1,6 +1,6 @@
 # StoryBrain AI — Full Deep Audit Report
 
-> Generated: 2026-10-05 (Build mode, verified by execution). Updated: catalog expanded 107 → 117 tools.
+> Generated: 2026-10-05 (Build mode, verified by execution). Updated: catalog 107 → 117 tools; blog 87 → 99 posts.
 > Scope: full code / files / folders / functions / tools / blog / SEO / technical / security / deep audit + product expansion
 > Method: `data/tools.yaml` + `data/blog.yaml` parsed with PyYAML, template grep, `TestClient` render checks, sitemap service invocation, `pytest --collect-only`, `ruff check`.
 
@@ -153,6 +153,18 @@ New tools (107 → 117): delivery-challan-generator, meeting-cost-calculator, fr
 - GEO: entity+audience+privacy about blocks; real formulas in all `howto_calculate`.
 - Templates: 10 working client-side tools (MD5 unit-tested vs hashlib vectors incl. unicode; canvas brush/pixelate/collage/EXIF-strip logic reviewed); zero inline handlers; node syntax-checked; all render 200 with schema.
 - Links: every new tool indegree ≥2 (incl. old-tool backlinks e.g. eway-bill→challan, salary→meeting/freelance); zero orphans catalog-wide.
+
+## 10. Blog Expansion — 12 New Posts (2026-10-05, multi-agent)
+
+Process: Agent A (long-tail research over 1552 normalized keywords) → Agents B+C (drafting 6+6, one truncated agent output + one missing post recovered via targeted re-draft) → scripted gate validation mirroring every blog test → insertion → Agent D (independent audit) → 102/102 tests green + 12/12 SHIP.
+
+New posts (87 → 99; thin pillars 9-10 → 12-13 each): bmi-by-age-chart-explainer, fuel-cost-per-km-india-planner, emi-vs-sip-vs-fd-decision (calculators); md5-vs-sha-hashing-beginner, fear-greed-sentiment-reading, meme-coin-red-flags-learn (ai-crypto); exif-gps-strip-privacy, face-plate-blur-privacy, collage-grids-layout (image-processing); pomodoro-exam-season-focus, habit-streak-system, meeting-cost-audit (productivity-utilities).
+
+- Long-tail: 108 keywords, zero exact collisions vs 117 tools + 87 old posts; 3 near-dup pairs reviewed ACCEPT (hub-spoke intent split, e.g. emi-vs-sip-vs-fd framework vs sip-vs-fd planner).
+- AEO: 76/76 interrogative FAQs, answer-first, 25-60 words, ≤2 tool links/answer; zero unverified stats/promises.
+- GEO/YMYL: entity+audience framing; strict disclaimer sentences on all 6 finance/health/crypto posts; zero personalized recommendations; no `financial advice` Q.
+- Structural: 12/12 exactly-one-table (caption+thead+3th), no chrome H2s/ids, first-H2 dissimilar, all tools[]/related_posts[] resolve, pillar OG images, ETag + BlogPosting/FAQPage schema verified live.
+- Cross-link: 12/12 posts anchor ≥1 new tool; sitemap auto-includes (105 blog URLs); pagination/index/pillars unaffected (pillar pages unpaginated).
 - [ ] P1.3: migrate 15 `onclick=` files to `data-action` (per-file, test each tool manually).
 - [ ] P2: title/desc pass on 29 + 63 tools via `data/tools.yaml` (+ `test_content_quality.py`, `test_keywords_no_cannibalization.py` must stay green).
 - [ ] P2: per-category OG images + wire `seo_service.image_url`.
