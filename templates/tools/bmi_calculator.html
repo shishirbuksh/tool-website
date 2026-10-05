@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+
+{% block content %}
+{{ tool_hero_section("heart-pulse", "Health Calculator", "BMI", "CALCULATOR", "Check Body Mass Index with ideal-weight range, BMI Prime and waist-to-height ratio.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-5/12">
+    <div class="card-premium p-6 md:p-8">
+      <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5",20) | safe }} Your Details</h2>
+      <form class="flex flex-col gap-5" id="bmiForm">
+        <div>
+          <span class="label-cinematic">Units</span>
+          <div class="flex gap-2" role="group" aria-label="Unit system">
+            <button type="button" id="unitMetric" class="btn btn-cinematic flex-1 py-2 text-xs font-bold uppercase rounded-xl">Metric</button>
+            <button type="button" id="unitImperial" class="btn btn-ghost flex-1 py-2 text-xs font-bold uppercase rounded-xl">Imperial</button>
+          </div>
+        </div>
+        <div id="metricFields" class="flex flex-col gap-5">
+          <div><label class="label-cinematic" for="heightCm">Height (cm)</label><input aria-label="Height in centimeters" type="number" id="heightCm" class="input w-full input-cinematic font-bold rounded-xl" value="170" min="50" max="250"></div>
+          <div><label class="label-cinematic" for="weightKg">Weight (kg)</label><input aria-label="Weight in kilograms" type="number" id="weightKg" class="input w-full input-cinematic font-bold rounded-xl" value="70" min="10" max="400"></div>
+        </div>
+        <div id="imperialFields" class="hidden flex flex-col gap-5">
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="label-cinematic" for="heightFt">Feet</label><input aria-label="Height feet" type="number" id="heightFt" class="input w-full input-cinematic font-bold rounded-xl" value="5" min="1" max="8"></div>
+            <div><label class="label-cinematic" for="heightIn">Inches</label><input aria-label="Height inches" type="number" id="heightIn" class="input w-full input-cinematic font-bold rounded-xl" value="7" min="0" max="11"></div>
+          </div>
+          <div><label class="label-cinematic" for="weightLb">Weight (lb)</label><input aria-label="Weight in pounds" type="number" id="weightLb" class="input w-full input-cinematic font-bold rounded-xl" value="154" min="20" max="900"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="label-cinematic" for="age">Age</label><input aria-label="Age" type="number" id="age" class="input w-full input-cinematic font-bold rounded-xl" value="30" min="2" max="120"></div>
+          <div><label class="label-cinematic" for="gender">Gender</label><select id="gender" class="select w-full select-cinematic font-bold rounded-xl" aria-label="Gender"><option value="other">Other</option><option value="male">Male</option><option value="female">Female</option></select></div>
+        </div>
+        <div><label class="label-cinematic" for="waist">Waist (cm, optional)</label><input aria-label="Waist circumference in centimeters" type="number" id="waist" class="input w-full input-cinematic font-bold rounded-xl" placeholder="e.g. 80" min="20" max="250"></div>
+      </form>
+    </div>
+  </div>
+  <div class="lg:w-7/12">
+    <div class="card-premium p-6 md:p-8">
+      <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("activity","w-5 h-5",20) | safe }} Your Result</h3>
+      <div class="text-center mb-4">
+        <div id="bmiValue" class="font-black font-mono" style="font-size:clamp(2.5rem,6vw,4rem)">—</div>
+        <div id="bmiCat" class="inline-block mt-2 px-4 py-1 rounded-full text-sm font-bold">Enter your details</div>
+      </div>
+      <svg viewBox="0 0 300 170" class="w-full max-w-sm mx-auto" role="img" aria-label="BMI gauge">
+        <path d="M 20 150 A 130 130 0 0 1 280 150" fill="none" stroke="var(--color-base-300)" stroke-width="22" stroke-linecap="round"/>
+        <path id="gaugeArc" d="M 20 150 A 130 130 0 0 1 280 150" fill="none" stroke="var(--color-primary)" stroke-width="22" stroke-linecap="round" stroke-dasharray="408" stroke-dashoffset="408"/>
+        <text x="150" y="150" text-anchor="middle" id="gaugeLabel" font-size="15" font-weight="bold" fill="var(--color-base-content)">BMI</text>
+      </svg>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 text-center">
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Healthy range</div><div id="idealRange" class="font-bold font-mono text-sm">—</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">BMI Prime</div><div id="bmiPrime" class="font-bold font-mono text-sm">—</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Waist / height</div><div id="whtr" class="font-bold font-mono text-sm">—</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Est. body fat</div><div id="bodyFat" class="font-bold font-mono text-sm">—</div></div>
+      </div>
+      <p class="text-xs opacity-60 mt-4">BMI is a screening estimate, not a diagnosis. Athletes, children, pregnant users and older adults should interpret results with a clinician.</p>
+    </div>
+  </div>
+</div>
+<script nonce="{{ nonce }}">
+(function(){'use strict';
+var metric=true;
+function val(id){return parseFloat(document.getElementById(id).value)||0;}
+function setUnit(m){
+  metric=m;
+  document.getElementById('metricFields').classList.toggle('hidden',!m);
+  document.getElementById('imperialFields').classList.toggle('hidden',m);
+  document.getElementById('unitMetric').classList.toggle('btn-cinematic',m);
+  document.getElementById('unitMetric').classList.toggle('btn-ghost',!m);
+  document.getElementById('unitImperial').classList.toggle('btn-cinematic',!m);
+  document.getElementById('unitImperial').classList.toggle('btn-ghost',m);
+  calc();
+}
+function catOf(bmi){
+  if(bmi<18.5)return['Underweight','var(--color-warning)'];
+  if(bmi<25)return['Healthy weight','var(--color-success)'];
+  if(bmi<30)return['Overweight','var(--color-warning)'];
+  return['Obesity range','var(--color-error)'];
+}
+function calc(){
+  var hM,wKg;
+  if(metric){hM=val('heightCm')/100;wKg=val('weightKg');}
+  else{hM=((val('heightFt')*12)+val('heightIn'))*0.0254;wKg=val('weightLb')*0.45359237;}
+  var age=val('age'),gender=document.getElementById('gender').value,waist=val('waist');
+  if(!(hM>0&&wKg>0))return;
+  var bmi=wKg/(hM*hM);
+  var c=catOf(bmi);
+  document.getElementById('bmiValue').textContent=bmi.toFixed(1);
+  var badge=document.getElementById('bmiCat');
+  badge.textContent=c[0];
+  badge.style.background='color-mix(in oklab,'+c[1]+' 15%,transparent)';
+  badge.style.color=c[1];
+  var frac=Math.min(1,Math.max(0,(bmi-12)/(40-12)));
+  document.getElementById('gaugeArc').setAttribute('stroke-dashoffset',(408*(1-frac)).toFixed(0));
+  document.getElementById('gaugeArc').setAttribute('stroke',c[1]);
+  var lo=(18.5*hM*hM),hi=(24.9*hM*hM);
+  document.getElementById('idealRange').textContent=lo.toFixed(1)+'–'+hi.toFixed(1)+(metric?' kg':' kg');
+  document.getElementById('bmiPrime').textContent=(bmi/25).toFixed(2);
+  if(waist>0){var hCm=hM*100;document.getElementById('whtr').textContent=(waist/hCm).toFixed(2);}
+  else{document.getElementById('whtr').textContent='—';}
+  var bf=null;
+  if(age>=18){bf=(1.20*bmi)+(0.23*age)-((gender==='male')?16.2:5.4);}
+  document.getElementById('bodyFat').textContent=(bf===null||bf<0)?'—':bf.toFixed(1)+'%';
+}
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('unitMetric').addEventListener('click',function(){setUnit(true);});
+  document.getElementById('unitImperial').addEventListener('click',function(){setUnit(false);});
+  document.querySelectorAll('#bmiForm input,#bmiForm select').forEach(function(el){el.addEventListener('input',calc);el.addEventListener('change',calc);});
+  calc();
+});})();
+</script>
+{% endblock %}

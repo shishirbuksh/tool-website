@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section %}
+
+{% block content %}
+{{ tool_hero_section("layout-grid", "Photo Grid", "PHOTO", "COLLAGE", "Combine photos into grids with borders and captions. No watermark.") }}
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+  <div class="lg:w-4/12">
+    <div class="card-premium p-6 md:p-8">
+      <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5",20) | safe }} Layout</h2>
+      <div class="flex flex-col gap-5">
+        <div>
+          <span class="label-cinematic">Template</span>
+          <div class="grid grid-cols-2 gap-2" role="group" aria-label="Collage template">
+            <button type="button" class="btn btn-cinematic btn-sm py-2 text-xs font-bold uppercase rounded-xl" data-layout="2side">2 Side</button>
+            <button type="button" class="btn btn-ghost btn-sm py-2 text-xs font-bold uppercase rounded-xl" data-layout="3col">3 Column</button>
+            <button type="button" class="btn btn-ghost btn-sm py-2 text-xs font-bold uppercase rounded-xl" data-layout="grid4">2 × 2 Grid</button>
+            <button type="button" class="btn btn-ghost btn-sm py-2 text-xs font-bold uppercase rounded-xl" data-layout="a4">A4 Family</button>
+          </div>
+        </div>
+        <div><label class="label-cinematic" for="gap">Spacing: <output id="gapVal" for="gap">16px</output></label><input aria-label="Spacing between photos" type="range" id="gap" class="range range-cinematic w-full" min="0" max="60" value="16"></div>
+        <div><label class="label-cinematic" for="borderW">Border: <output id="borderVal" for="borderW">0px</output></label><input aria-label="Border width" type="range" id="borderW" class="range range-cinematic w-full" min="0" max="30" value="0"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="label-cinematic" for="borderColor">Border color</label><input aria-label="Border color" type="color" id="borderColor" value="#ffffff" class="input w-full h-11 p-1 input-cinematic rounded-xl"></div>
+          <div><label class="label-cinematic" for="bgColor">Background</label><input aria-label="Background color" type="color" id="bgColor" value="#111827" class="input w-full h-11 p-1 input-cinematic rounded-xl"></div>
+        </div>
+        <div><label class="label-cinematic" for="capText">Caption (optional)</label><input aria-label="Collage caption" type="text" id="capText" class="input w-full input-cinematic rounded-xl" placeholder="Family trip 2026" maxlength="60"></div>
+        <div><label class="label-cinematic" for="expSize">Export size</label><select id="expSize" class="select w-full select-cinematic rounded-xl" aria-label="Export size"><option value="1080">1080px (Instagram)</option><option value="2048">2048px (High-res)</option></select></div>
+        <button type="button" id="dlBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm rounded-xl">{{ lucide_icon("download","w-5 h-5",20) | safe }} DOWNLOAD</button>
+        <p class="text-xs opacity-60">Click a frame to upload a photo. All processing stays on your device.</p>
+      </div>
+    </div>
+  </div>
+  <div class="lg:w-8/12">
+    <div class="card-premium p-6 md:p-8">
+      <h3 class="text-xl font-black mb-4 tracking-tight flex items-center gap-3">{{ lucide_icon("layout-grid","w-5 h-5",20) | safe }} Canvas <span id="cellHint" class="text-xs font-bold opacity-60"></span></h3>
+      <div id="cells" class="grid gap-3"></div>
+      <input type="file" id="cellFile" accept="image/*" class="hidden" aria-label="Upload cell photo">
+      <canvas id="out" class="hidden"></canvas>
+    </div>
+  </div>
+</div>
+<script nonce="{{ nonce }}">
+(function(){'use strict';
+var LAYOUTS={'2side':{cells:2,cols:2},'3col':{cells:3,cols:3},'grid4':{cells:4,cols:2},'a4':{cells:4,cols:2}};
+var layout='2side',photos={},activeCell=0;
+function val(id){return parseInt(document.getElementById(id).value)||0;}
+function cells(){return LAYOUTS[layout].cells;}
+function cols(){return LAYOUTS[layout].cols;}
+function renderCells(){
+  var wrap=document.getElementById('cells');
+  wrap.innerHTML='';
+  wrap.style.gridTemplateColumns='repeat('+cols()+', minmax(0,1fr))';
+  document.getElementById('cellHint').textContent=cells()+' frames';
+  for(var i=0;i<cells();i++){
+    (function(i){
+      var d=document.createElement('div');
+      d.className='relative rounded-xl overflow-hidden border-2 border-dashed border-base-300 flex items-center justify-center cursor-pointer';
+      d.style.aspectRatio='1/1';
+      d.setAttribute('role','button');d.setAttribute('tabindex','0');
+      d.setAttribute('aria-label','Upload photo for frame '+(i+1));
+      if(photos[i]){
+        var im=document.createElement('img');
+        im.src=photos[i].src;im.alt='Frame '+(i+1)+' photo';
+        im.className='absolute inset-0 w-full h-full object-cover';
+        im.setAttribute('loading','lazy');im.setAttribute('decoding','async');
+        d.appendChild(im);
+      }else{
+        var sp=document.createElement('span');
+        sp.className='text-3xl opacity-40 font-black';
+        sp.textContent='+';
+        d.appendChild(sp);
+      }
+      d.addEventListener('click',function(){activeCell=i;document.getElementById('cellFile').click();});
+      d.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();activeCell=i;document.getElementById('cellFile').click();}});
+      wrap.appendChild(d);
+    })(i);
+  }
+}
+function drawCollage(size){
+  var n=cells(),c=cols(),rows=Math.ceil(n/c);
+  var gap=val('gap'),bw=val('borderW'),cap=document.getElementById('capText').value.trim();
+  var capH=cap?Math.round(size*0.09):0;
+  var cv=document.getElementById('out');
+  cv.width=size;cv.height=Math.round(size*rows/c)+capH;
+  var ctx=cv.getContext('2d');
+  ctx.fillStyle=document.getElementById('bgColor').value;
+  ctx.fillRect(0,0,cv.width,cv.height);
+  var cellW=(size-gap*(c-1))/c,cellH=(size-gap*(c-1))/c;
+  for(var i=0;i<n;i++){
+    (function(i){
+      var r=Math.floor(i/c),col=i%c;
+      var x=Math.round(col*(cellW+gap)),y=Math.round(r*(cellH+gap));
+      var p=photos[i];
+      if(p&&p.img){
+        var iw=p.img.naturalWidth,ih=p.img.naturalHeight;
+        var sc=Math.max(cellW/iw,cellH/ih);
+        var dw=iw*sc,dh=ih*sc;
+        ctx.drawImage(p.img,x+(cellW-dw)/2,y+(cellH-dh)/2,dw,dh);
+      }else{
+        ctx.fillStyle='rgba(255,255,255,0.06)';
+        ctx.fillRect(x,y,cellW,cellH);
+      }
+      if(bw>0){ctx.strokeStyle=document.getElementById('borderColor').value;ctx.lineWidth=bw;ctx.strokeRect(x+bw/2,y+bw/2,cellW-bw,cellH-bw);}
+    })(i);
+  }
+  if(cap){
+    ctx.fillStyle='#f8fafc';ctx.font='bold '+Math.round(size*0.045)+'px Arial';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(cap.slice(0,60),size/2,size+capH/2, size-40);
+  }
+  return cv;
+}
+document.addEventListener('DOMContentLoaded',function(){
+  renderCells();
+  document.querySelectorAll('[data-layout]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      layout=btn.getAttribute('data-layout');
+      document.querySelectorAll('[data-layout]').forEach(function(b){b.classList.toggle('btn-cinematic',b===btn);b.classList.toggle('btn-ghost',b!==btn);});
+      renderCells();
+    });
+  });
+  ['gap','borderW'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',function(){
+      document.getElementById(id+'Val').textContent=this.value+'px';
+    });
+  });
+  document.getElementById('cellFile').addEventListener('change',function(e){
+    var f=e.target.files[0];if(!f)return;
+    var r=new FileReader();
+    r.onload=function(){
+      var img=new Image();
+      img.onload=function(){photos[activeCell]={src:r.result,img:img};renderCells();};
+      img.src=r.result;
+    };
+    r.readAsDataURL(f);
+    e.target.value='';
+  });
+  document.getElementById('dlBtn').addEventListener('click',function(){
+    var size=parseInt(document.getElementById('expSize').value)||1080;
+    var cv=drawCollage(size);
+    var a=document.createElement('a');
+    a.href=cv.toDataURL('image/jpeg',0.92);a.download='collage-'+size+'.jpg';
+    document.body.appendChild(a);a.click();a.remove();
+  });
+});})();
+</script>
+{% endblock %}
