@@ -65,10 +65,13 @@ class SitemapService:
             return None
 
     def _get_changefreq(self, slug: str) -> str:
-        # Tools update frequently; standalone pages rarely.
-        if slug.startswith("/") and not slug.startswith("/tool/"):
+        # Tools update frequently; blog + standalone pages rarely.
+        # Accepts bare tool slugs ("emi-calculator"), "/tool/<slug>", and "/blog/<pillar>/<slug>".
+        if slug.startswith("/blog/"):
             return "monthly"
-        return "weekly"
+        if slug.startswith("/tool/") or not slug.startswith("/"):
+            return "weekly"
+        return "monthly"
 
     def build_sitemap_xml(self) -> str:
         with self._lock:
@@ -91,19 +94,26 @@ class SitemapService:
 
             tools_dir = os.path.join(self.settings.templates_dir, "tools")
             if os.path.exists(tools_dir):
-                for f in self._get_cached_dir_listing(tools_dir):
-                    if f.endswith(".html"):
-                        slug = f[:-5].replace("_", "-")
-                        priority = ToolDataLoader.get_priority(slug)
-                        info = ToolDataLoader.get(slug)
-                        yaml_date = info.get("date_modified") if info else None
-                        pages.append({
-                            "loc": f"/tool/{slug}",
-                            "priority": str(priority),
-                            "changefreq": self._get_changefreq(slug),
-                            "filepath": os.path.join(tools_dir, f),
-                            "yaml_date": yaml_date,
-                        })
+                # YAML is source of truth; filesystem verified to avoid indexing orphans.
+                try:
+                    yaml_slugs = list(ToolDataLoader.get_all().keys())
+                except Exception:
+                    yaml_slugs = []
+                template_files = set(self._get_cached_dir_listing(tools_dir))
+                for slug in sorted(yaml_slugs):
+                    fname = f"{slug.replace('-', '_')}.html"
+                    if fname not in template_files:
+                        continue  # YAML without template — do not index
+                    priority = ToolDataLoader.get_priority(slug)
+                    info = ToolDataLoader.get(slug)
+                    yaml_date = info.get("date_modified") if info else None
+                    pages.append({
+                        "loc": f"/tool/{slug}",
+                        "priority": str(priority),
+                        "changefreq": self._get_changefreq(f"/tool/{slug}"),
+                        "filepath": os.path.join(tools_dir, fname),
+                        "yaml_date": yaml_date,
+                    })
 
             pages_dir = os.path.join(self.settings.templates_dir, "pages")
             skip_pages = {"sitemap", "404", "offline", "500"}
@@ -149,7 +159,7 @@ class SitemapService:
                     pages.append({
                         "loc": f"/blog/{post.pillar}/{post.slug}",
                         "priority": "0.5",
-                        "changefreq": self._get_changefreq(f"/blog/{post.slug}"),
+                        "changefreq": self._get_changefreq(f"/blog/{post.pillar}/{post.slug}"),
                         "filepath": os.path.join(blog_tpl_dir, "post.html"),
                         "yaml_date": post.date_modified or None,
                     })
@@ -217,10 +227,14 @@ class SitemapService:
                 return cached
 
             tools_dir = os.path.join(self.settings.templates_dir, "tools")
+            try:
+                tool_count = len(ToolDataLoader.get_all())
+            except Exception:
+                tool_count = len(self._get_cached_dir_listing(tools_dir)) if os.path.exists(tools_dir) else 0
             lines = [
                 "# StoryBrain AI — AI Tool Directory",
                 "",
-                "> Discover 107 free AI-powered tools, calculators, and business utilities.",
+                f"> Discover {tool_count} free AI-powered tools, calculators, and business utilities.",
                 "",
                 "## Tools",
             ]

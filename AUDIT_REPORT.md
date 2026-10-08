@@ -1,6 +1,7 @@
 # StoryBrain AI — Full Deep Audit Report
 
 > Generated: 2026-10-05 (Build mode, verified by execution). Updated: catalog 107 → 117 tools; blog 87 → 99 posts.
+> Addendum 2026-10-08 (Build mode, verified by execution): boilerplate-elimination + intent-split pass over `data/tools.yaml` / `data/blog.yaml` — see §11. All suites below re-verified green.
 > Scope: full code / files / folders / functions / tools / blog / SEO / technical / security / deep audit + product expansion
 > Method: `data/tools.yaml` + `data/blog.yaml` parsed with PyYAML, template grep, `TestClient` render checks, sitemap service invocation, `pytest --collect-only`, `ruff check`.
 
@@ -8,10 +9,10 @@
 
 | Area | Verdict |
 |---|---|
-| Content integrity (tools/blog links) | **PASS** — 0 broken `related_slugs`, 0 broken blog→tool refs, 0 broken `/tool/` body links, 0 broken `related_posts`, 107/107 templates present |
-| Sitemap / robots | **PASS** — 215 unique URLs, 0 duplicates, valid XML, correct disallows |
-| SEO blocking issues | **NONE** — no noindex on HTML, correct canonical, CSP nonce present, 4× `ld+json` blocks per tool page as designed |
-| Cleanup debt (non-blocking) | **DONE 2026-10-05: 44 `seo_schema` overrides merged; `tool_base.html` deleted; all inline handlers eliminated + CSP test tightened; 29 `meta_title` overrides + 64 descriptions fixed in YAML; 30 redundant image blocks deleted. Remaining: single shared OG image (needs design work), dead template head blocks (see §5)** |
+| Content integrity (tools/blog links) | **PASS** — 0 broken `related_slugs`, 0 broken blog→tool refs, 0 broken `/tool/` body links, 0 broken `related_posts`, 117/117 templates present, min indegree 2 (0 orphans) |
+| Sitemap / robots | **PASS** — 237 unique URLs (117 tools + 99 posts + hubs/pages), 0 duplicates, valid XML, correct disallows; YAML source-of-truth, full `/blog/pillar/slug` changefreq, dynamic `llms.txt` count |
+| SEO blocking issues | **NONE** — no noindex on HTML, correct canonical, CSP nonce present, 4× `ld+json` blocks per tool page as designed; all tool descs 120–160ch, all blog descs 120–160ch, 0 rendered titles >60ch |
+| Cleanup debt (non-blocking) | **DONE 2026-10-05 + 2026-10-08: 44 `seo_schema` overrides merged; `tool_base.html` deleted; inline handlers eliminated; 29 `meta_title` + 64 descriptions fixed; 30 image blocks deleted; 2026-10-08: generic FAQ/howto boilerplate removed (see §11), 13 blog descs fixed, orphan backlinks added, cache tiers aligned, counts 107→117 everywhere. Remaining: per-category OG images (needs design work)** |
 | Perf risk | **Medium** — `app.css` 362.8 KB, vendor `apexcharts 586.7 KB + chart 203.6 KB` (lazy-loaded, OK), HTML `no-store` by design (nonce rotation) |
 | Security | **PASS with 2 alignment TODOs** — CSP/HSTS/nosniff present, `/api/*` noindex, fail-closed prod config |
 | Tests / lint | **201 tests collected, sample suites PASS; `ruff check app` = 78 errors (mostly SIM, fixable)** |
@@ -169,6 +170,31 @@ New posts (87 → 99; thin pillars 9-10 → 12-13 each): bmi-by-age-chart-explai
 - [ ] P2: title/desc pass on 29 + 63 tools via `data/tools.yaml` (+ `test_content_quality.py`, `test_keywords_no_cannibalization.py` must stay green).
 - [ ] P2: per-category OG images + wire `seo_service.image_url`.
 - [ ] P3: hashed assets + SW `ignoreSearch`, `ruff --fix`, archive `fix_*.py`.
+
+## 11. Addendum 2026-10-08 — Boilerplate Elimination + Intent-Split Pass
+
+Scope: `data/tools.yaml` (117), `data/blog.yaml` (99), `app/services/sitemap_service.py`, `Caddyfile`, template/doc counts. All changes verified by `yaml.safe_load`, keyword/content/sitemap/blog/api/middleware/csp suites green (16 + 19 + 62 + 31 passed in-session).
+
+### 11.1 Keyword intent splits (Jaccard ≥0.6 → <0.45, exact collisions stay 0)
+- calculator: 3 intent-colliding keywords replaced with calculator-specific long-tails (keyboard/memory/offline); compound `howto_calculate` + about now carry FV formula, Rule of 72, SIP-vs-lumpsum LSI; credit-utilization FAQs/about now CIBIL/paydown math; crypto-password-generator decontaminated (market FAQs/howto → entropy/seed/offline/BIP39).
+- Tool↔blog pairs split tool=do / blog=learn: airdrop finder/checker (0.75→0.12), EMI 15v20 amortization (0.67→0.42), safe-EMI framework (0.70), mining break-even months (0.75→0.21), meme order-book reading (0.75→0.23), FD-TDS estimator (0.78→0.23).
+
+### 11.2 FAQ/howto boilerplate removal (`tools.yaml` net −300+ lines)
+- Generic "How does X work?" 11→0 and "transparent calculation logic" accurate-answers 14→0 across finance cluster (burn, CAC, date, debt, e-way, FD, GST, instagram, loan, MRR, percentage, adsense, age, EMI) — all now formula-specific with title-case acronyms fixed.
+- Generic howto triples removed where specific steps existed: finance triple (11 tools), crypto `Select Asset/Configure Settings/Review Analysis` (13 tools, 14×→0), dev `Enter Input/Generate/Copy-or-Download` (6 tools, 10×→0), doc `Fill Details/Customize/Download PDF` (8 tools incl. invoice), setup triple (4 tools).
+- Solo-generic triples renamed to tool-specific: uuid, schema, robots-txt, sitemap, note, pdf-converter, random, resume-analyzer, task-manager, calculator (keyboard/memory), e-way/FD/loan, price-prediction bands, meme/image steps, doc "Brand and Print" per-type.
+- Max howto-title repetition 23×→5× (remaining 5× are legitimate workflow verbs with distinct descs). Generic howto descs 22→0. `test_no_duplicate_howto_titles_within_tool` green throughout.
+
+### 11.3 Thin-content expansion
+- About <50 words: 17→0 (all 117 now 50w+ with LSI: RSI/MACD, FIFO/TDS, honeypot audits, JSON-LD types, XMP, fee-aware totals).
+- FAQ answers <15 words: 60→0 (crypto refresh split live-vs-local, offline ×15 per-tool, doc download/valid/customize per-type, pdf-metadata dup Qs merged 9→7, QR/sip/color/seo/text-server expanded).
+- Blog descriptions out-of-range 13→0 (all 99 now 120–160ch). Orphan indegree: 8×1 → min 2, 0 orphans.
+
+### 11.4 Technical fixes
+- `sitemap_service.py`: YAML source-of-truth discovery, explicit changefreq (bare/`/tool/`→weekly, `/blog/`→monthly), full `/blog/pillar/slug` key, dynamic `llms.txt` tool count → 237 URLs live-verified.
+- `Caddyfile`: `app.js/app.css` 31536000→3600 `must-revalidate` to match `app/main.py:185`.
+- Counts 107→117: `base.html`, navbar, footer fallback, search placeholder, about stat, 404 meta, `manifest.json`, `README.md`, `AI_CONTEXT.md`, `package.json`, `pyproject.toml`.
+- Root `fix_*.py` archived to `scripts/archive/` (gitignored). No dead `{% block %}` overrides remain in `templates/tools/` (verified by grep — base else-branches are intentional non-tool fallbacks).
 
 ## Appendix — How This Was Verified
 
