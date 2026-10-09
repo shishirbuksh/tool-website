@@ -259,8 +259,7 @@ class SitemapService:
                     desc = info.get("description", "").strip()
                     link = f"{self.settings.SITE_URL.rstrip('/')}/tool/{slug}"
                     if desc:
-                        desc = desc.replace('
-', ' ')
+                        desc = desc.replace('\n', ' ')
                         tool_lines.append(f"- [{name}]({link}): {desc}")
                     else:
                         tool_lines.append(f"- [{name}]({link})")
