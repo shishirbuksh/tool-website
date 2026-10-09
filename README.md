@@ -101,6 +101,11 @@ StoryBrain AI uses a seamless deployment script optimized for Hostinger VPS (Ubu
 
 This script will automatically pull the latest `main` branch, rebuild assets, restart the Gunicorn workers via Systemd, and flush any necessary caches.
 
+### IndexNow instant indexing (Bing/Yandex)
+1. Generate a key: `python3 -c "import secrets; print(secrets.token_hex(16))"`
+2. Set `INDEXNOW_KEY=<key>` in `.env` and deploy — the app serves `/<KEY>.txt` automatically.
+3. Submit changed URLs after content passes: `python3 scripts/submit_indexnow.py --key <KEY> --url https://www.storybrainai.com/tool/calculator` (repeat `--url`, or `--url-file urls.txt`, or `--all` for the full sitemap with `--dry-run` to preview).
+
 ### Environment, Caddy & Systemd
 - **Layout:** HTML templates live in `templates/` and static assets in `static/` (both at the repo root — not under `app/`). Tool pages are `templates/tools/<slug_with_underscores>.html` for each slug in `data/tools.yaml`.
 - **Env:** copy `.env.example` to `.env` and set `SECRET_KEY`, `ALLOWED_HOSTS`, `CORS_ORIGINS`, plus `CADDY_DOMAIN` / `CADDY_PROXY_UPSTREAM` / `CADDY_STATIC_ROOT` (must equal `$APP_DIR/static`), `FORWARDED_ALLOW_IPS=127.0.0.1`, and `U2NET_HOME`. `deploy.sh` auto-generates `SECRET_KEY` if missing and persists `APP_VERSION` to `.env`.

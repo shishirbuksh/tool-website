@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     SMTP_PASS: str = ""
     SECRET_KEY: str = Field(default="", description="App secret key (sessions/signed URLs); set via env")
     ENV: str = "dev"
+    INDEXNOW_KEY: str = Field(
+        default="",
+        description="IndexNow key (Bing/Yandex instant indexing); served at /<KEY>.txt, used by scripts/submit_indexnow.py",
+    )
 
     HUB_CATEGORIES: dict[str, tuple[str, str]] = {
         "ai-tools": ("AI & Crypto", "AI & Crypto Tools — Free Online Predictors & Calculators"),

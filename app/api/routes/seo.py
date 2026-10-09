@@ -1,6 +1,7 @@
-"""SEO endpoints: sitemap.xml, robots.txt, llms.txt."""
+"""SEO endpoints: sitemap.xml, robots.txt, llms.txt, IndexNow key file."""
 
 import asyncio
+import re
 
 from fastapi import APIRouter, HTTPException, Response
 
@@ -56,4 +57,25 @@ async def llms_txt() -> Response:
     except Exception as e:
         logger.exception("Failed to build llms.txt")
         raise HTTPException(status_code=500, detail="Failed to generate llms.txt") from e
+
+
+_INDEXNOW_KEY_RE = re.compile(r"^[0-9a-fA-F]{8,128}$")
+
+
+@router.api_route("/{key}.txt", methods=["GET", "HEAD"], response_class=Response, include_in_schema=False)
+async def indexnow_key_file(key: str) -> Response:
+    """Serve the IndexNow key file at /<KEY>.txt for Bing/Yandex ownership verification.
+
+    Static SEO files above take precedence (registered first). Only serves when
+    INDEXNOW_KEY is configured and matches; otherwise 404 (no key disclosure).
+    See scripts/submit_indexnow.py for URL submission.
+    """
+    expected = (settings.INDEXNOW_KEY or "").strip()
+    if expected and _INDEXNOW_KEY_RE.match(key) and key == expected:
+        return Response(
+            content=expected,
+            media_type="text/plain",
+            headers={"Cache-Control": "public, max-age=86400"},
+        )
+    raise HTTPException(status_code=404, detail="Not found")
 

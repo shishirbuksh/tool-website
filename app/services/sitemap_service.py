@@ -239,19 +239,35 @@ class SitemapService:
                 "## Tools",
             ]
             if os.path.exists(tools_dir):
-                for f in self._get_cached_dir_listing(tools_dir):
-                    if f.endswith(".html"):
-                        slug = f[:-5].replace("_", "-")
-                        info = ToolDataLoader.get(slug)
-                        name = info.get("name") if isinstance(info, dict) else None
-                        if not name:
-                            name = slug.replace("-", " ").title()
-                        desc = info.get("description", "") if isinstance(info, dict) else ""
-                        link = f"{self.settings.SITE_URL.rstrip('/')}/tool/{slug}"
-                        if desc:
-                            lines.append(f"- [{name}]({link}): {desc}")
-                        else:
-                            lines.append(f"- [{name}]({link})")
+                try:
+                    all_tools = ToolDataLoader.get_all()
+                    yaml_slugs = list(all_tools.keys())
+                except Exception:
+                    all_tools = {}
+                    yaml_slugs = []
+                template_files = set(self._get_cached_dir_listing(tools_dir))
+                
+                tool_lines = []
+                for slug in sorted(yaml_slugs):
+                    fname = f"{slug.replace('-', '_')}.html"
+                    if fname not in template_files:
+                        continue
+                    info = all_tools.get(slug, {})
+                    name = info.get("name")
+                    if not name:
+                        name = slug.replace("-", " ").title()
+                    desc = info.get("description", "").strip()
+                    link = f"{self.settings.SITE_URL.rstrip('/')}/tool/{slug}"
+                    if desc:
+                        desc = desc.replace('
+', ' ')
+                        tool_lines.append(f"- [{name}]({link}): {desc}")
+                    else:
+                        tool_lines.append(f"- [{name}]({link})")
+                
+                # Update lines with real count
+                lines[2] = f"> Discover {len(tool_lines)} free AI-powered tools, calculators, and business utilities."
+                lines.extend(tool_lines)
 
             site_base = self.settings.SITE_URL.rstrip("/")
             lines.append("")
