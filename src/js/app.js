@@ -29,7 +29,7 @@ function oS(){
   dia.showModal();
   if(si)si.focus();
   if(!toolCache){
-    fetch('/api/tools/catalog').then(function(r){return r.json()}).then(function(d){toolCache=d;filterTools()}).catch(function(){if(sr)_msg('Could not load tools. Try again later.')})
+    fetch('/api/tools/catalog?lang='+encodeURIComponent(document.documentElement.lang||'en')).then(function(r){return r.json()}).then(function(d){toolCache=d;filterTools()}).catch(function(){if(sr)_msg('Could not load tools. Try again later.')})
   }
 }
 function filterTools(){if(!si||!sr)return;var q=si.value.trim().toLowerCase();if(!toolCache||!q){_msg(q?'No results found':'Start typing to find tools');return}

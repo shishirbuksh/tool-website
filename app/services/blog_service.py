@@ -26,15 +26,18 @@ class BlogPost(BaseModel):
     body_html: str = ""
     tools: list[str] = Field(default_factory=list)
     related_posts: list[str] = Field(default_factory=list)
+    locale: str = "en"
 
     @property
     def url(self) -> str:
+        from app.core.i18n import localize_path as _lp  # noqa: PLC0415
+
         base = (
             _global_settings.SITE_URL
             if _global_settings and _global_settings.SITE_URL
             else "https://www.storybrainai.com"
         )
-        return f"{base.rstrip('/')}/blog/{self.pillar}/{self.slug}"
+        return f"{base.rstrip('/')}{_lp(f'/blog/{self.pillar}/{self.slug}', self.locale or 'en')}"
 
 
 _PLACEHOLDER_YAML = """posts:
@@ -107,7 +110,21 @@ class BlogService:
         posts = data.get("posts", {})
         return posts if isinstance(posts, dict) else {}
 
-    def _from_raw(self, slug: str, raw: dict[str, Any]) -> BlogPost:
+    def _localized_raw(self, raw: dict[str, Any], locale: str) -> dict[str, Any]:
+        if locale == "en":
+            return raw
+        i18n = raw.get("i18n") or {}
+        over = i18n.get(locale) if isinstance(i18n, dict) else None
+        if not isinstance(over, dict):
+            return raw
+        merged = dict(raw)
+        for k in ("title", "meta_title", "description", "keywords", "faqs", "howto_steps", "body_html"):
+            if over.get(k) not in (None, "", []):
+                merged[k] = over[k]
+        return merged
+
+    def _from_raw(self, slug: str, raw: dict[str, Any], locale: str = "en") -> BlogPost:
+        raw = self._localized_raw(raw, locale)
         return BlogPost(
             slug=slug,
             pillar=str(raw.get("pillar", "")),
@@ -123,30 +140,44 @@ class BlogService:
             body_html=str(raw.get("body_html", "") or ""),
             tools=list(raw.get("tools", []) or []),
             related_posts=list(raw.get("related_posts", []) or []),
+            locale=locale,
         )
 
-    def _get_post_map(self) -> dict[str, BlogPost]:
-        if self._is_cache_valid():
+    def _get_post_map(self, locale: str = "en") -> dict[str, BlogPost]:
+        from app.core.i18n import normalize_locale as _norm  # noqa: PLC0415
+
+        loc = _norm(locale)
+        # Single-locale cache kept for backward compat; per-locale maps stored
+        # in _cache_loc dict to avoid cross-locale collisions.
+        cache_loc: dict[str, tuple[float, dict[str, BlogPost]]] = getattr(self, "_cache_loc", {})
+        entry = cache_loc.get(loc)
+        if entry and (time.time() - entry[0]) < self.CACHE_TTL:
+            return entry[1]
+        # Also honour legacy _cache for en so old tests keep passing.
+        if loc == "en" and self._is_cache_valid():
             assert self._cache is not None
             return self._cache[1]
         raw = self._load_raw()
         result: dict[str, BlogPost] = {}
         for slug, info in raw.items():
             if isinstance(info, dict):
-                result[str(slug)] = self._from_raw(str(slug), info)
-        self._cache = (time.time(), result)
+                result[str(slug)] = self._from_raw(str(slug), info, locale=loc)
+        cache_loc[loc] = (time.time(), result)
+        self._cache_loc = cache_loc  # type: ignore[attr-defined]
+        if loc == "en":
+            self._cache = (time.time(), result)
         return result
 
-    def get_all(self) -> list[BlogPost]:
-        posts = list(self._get_post_map().values())
+    def get_all(self, locale: str = "en") -> list[BlogPost]:
+        posts = list(self._get_post_map(locale).values())
         posts.sort(key=lambda p: (p.date_published or "", p.slug), reverse=True)
         return posts
 
-    def get(self, slug: str) -> BlogPost | None:
-        return self._get_post_map().get(slug)
+    def get(self, slug: str, locale: str = "en") -> BlogPost | None:
+        return self._get_post_map(locale).get(slug)
 
-    def get_by_pillar(self, pillar: str) -> list[BlogPost]:
-        posts = [p for p in self._get_post_map().values() if p.pillar == pillar]
+    def get_by_pillar(self, pillar: str, locale: str = "en") -> list[BlogPost]:
+        posts = [p for p in self._get_post_map(locale).values() if p.pillar == pillar]
         posts.sort(key=lambda p: (p.date_published or "", p.slug), reverse=True)
         return posts
 
@@ -154,18 +185,18 @@ class BlogService:
         pillars = sorted({p.pillar for p in self._get_post_map().values() if p.pillar})
         return pillars
 
-    def get_recent(self, limit: int = 3) -> list[BlogPost]:
+    def get_recent(self, limit: int = 3, locale: str = "en") -> list[BlogPost]:
         """Newest posts by date_published (homepage Recent Guides)."""
-        return self.get_all()[: max(0, limit)]
+        return self.get_all(locale)[: max(0, limit)]
 
-    def get_popular(self, limit: int = 3) -> list[BlogPost]:
+    def get_popular(self, limit: int = 3, locale: str = "en") -> list[BlogPost]:
         """Most in-depth/useful posts (homepage Popular Guides).
 
         Heuristic proxy for popularity without tracking: posts that link the most
         tools + most FAQs + longest body rank highest (most useful guides).
         Tiebreak by newest date_published. Deterministic, no analytics needed.
         """
-        posts = list(self._get_post_map().values())
+        posts = list(self._get_post_map(locale).values())
 
         def _score(p: BlogPost) -> tuple[int, str, str]:
             return (

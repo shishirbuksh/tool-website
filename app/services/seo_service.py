@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import Settings
 from app.core.config import settings as _global_settings
+from app.core.i18n import localize_path, normalize_locale
 from app.core.tool_data import ToolDataLoader
 
 
@@ -29,11 +30,16 @@ class ToolSEO(BaseModel):
     related_slugs: list[str] = Field(default_factory=list)
     related: list[dict[str, Any]] = Field(default_factory=list)
     site_url: str = ""
+    locale: str = "en"
 
     @property
     def url(self) -> str:
         base = (self.site_url or (_global_settings.SITE_URL if _global_settings and _global_settings.SITE_URL else "https://www.storybrainai.com")).rstrip("/")
-        return f"{base}/tool/{self.slug}"
+        return f"{base}{localize_path(f'/tool/{self.slug}', self.locale or 'en')}"
+
+    @property
+    def bare_path(self) -> str:
+        return f"/tool/{self.slug}"
 
 
 _CATEGORY_ICONS: dict[str, str] = {
@@ -68,26 +74,42 @@ class SeoService:
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self._cache: tuple[float, dict[str, ToolSEO]] | None = None
+        self._cache: dict[str, tuple[float, dict[str, ToolSEO]]] = {}
         self.CACHE_TTL = 300
 
-    def _is_cache_valid(self) -> bool:
-        return self._cache is not None and (time.time() - self._cache[0]) < self.CACHE_TTL
+    def _is_cache_valid(self, locale: str = "en") -> bool:
+        entry = self._cache.get(locale)
+        return entry is not None and (time.time() - entry[0]) < self.CACHE_TTL
 
-    def get_seo(self, slug: str) -> ToolSEO:
+    def get_seo(self, slug: str, locale: str = "en") -> ToolSEO:
+        loc = normalize_locale(locale)
         # Populate/refresh cache once, then lookup (avoids repeated builds).
-        seo_map = self.get_seo_map()
+        seo_map = self.get_seo_map(loc)
         if slug in seo_map:
             return seo_map[slug]
-        return self._build_default(slug)
+        return self._build_default(slug, loc)
 
-    def _build_seo(self, slug: str) -> ToolSEO:
+    def _build_seo(self, slug: str, locale: str = "en") -> ToolSEO:
         raw = ToolDataLoader.get(slug)
         if raw:
-            return self._from_raw(slug, raw)
-        return self._build_default(slug)
+            return self._from_raw(slug, raw, locale=locale)
+        return self._build_default(slug, locale)
 
-    def _from_raw(self, slug: str, raw: dict[str, Any], all_tools: dict[str, Any] | None = None) -> ToolSEO:
+    def _localized_raw(self, raw: dict[str, Any], locale: str) -> dict[str, Any]:
+        if locale == "en":
+            return raw
+        i18n = raw.get("i18n") or {}
+        over = i18n.get(locale) if isinstance(i18n, dict) else None
+        if not isinstance(over, dict):
+            return raw
+        merged = dict(raw)
+        for k in ("name", "meta_title", "description", "keywords", "faqs", "howto_steps", "howto_calculate", "about_title", "about_body"):
+            if over.get(k) not in (None, "", []):
+                merged[k] = over[k]
+        return merged
+
+    def _from_raw(self, slug: str, raw: dict[str, Any], all_tools: dict[str, Any] | None = None, locale: str = "en") -> ToolSEO:
+        raw = self._localized_raw(raw, locale)
         related_slugs = raw.get("related_slugs", [])
         if all_tools is None:
             all_tools = ToolDataLoader.get_all()
@@ -103,7 +125,7 @@ class SeoService:
             related.append(
                 {
                     "name": t_name,
-                    "url": f"/tool/{s}",
+                    "url": localize_path(f"/tool/{s}", locale),
                     "desc": t_desc,
                 }
             )
@@ -143,9 +165,10 @@ class SeoService:
             related_slugs=related_slugs,
             related=related,
             site_url=self.settings.SITE_URL,
+            locale=locale,
         )
 
-    def _build_default(self, slug: str) -> ToolSEO:
+    def _build_default(self, slug: str, locale: str = "en") -> ToolSEO:
         name = slug.replace("-", " ").title()
         cat = "Productivity & Utilities"
         info = ToolDataLoader.get(slug)
@@ -159,19 +182,23 @@ class SeoService:
             description=f"Free online {name} — fast, private, no-signup browser tool | StoryBrain AI",
             app_category=_CATEGORY_APP.get(cat, "UtilitiesApplication"),
             site_url=self.settings.SITE_URL,
+            locale=locale,
         )
 
-    def get_seo_map(self) -> dict[str, ToolSEO]:
-        """Build and cache ToolSEO for all tools."""
-        if self._is_cache_valid():
-            return self._cache[1]
+    def get_seo_map(self, locale: str = "en") -> dict[str, ToolSEO]:
+        """Build and cache ToolSEO for all tools (per locale)."""
+        loc = normalize_locale(locale)
+        if self._is_cache_valid(loc):
+            assert loc in self._cache
+            return self._cache[loc][1]
         all_data = ToolDataLoader.get_all()
         result: dict[str, ToolSEO] = {}
         for slug in all_data:
-            result[slug] = self._from_raw(slug, all_data[slug], all_data)
-        self._cache = (time.time(), result)
+            result[slug] = self._from_raw(slug, all_data[slug], all_data, locale=loc)
+        self._cache[loc] = (time.time(), result)
         return result
 
 
 SEOService = SeoService
+
 

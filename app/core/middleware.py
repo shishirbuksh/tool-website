@@ -140,7 +140,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         vary_parts = [p.strip() for p in existing_vary.split(",") if p.strip()] if existing_vary else []
         if "Accept-Encoding" not in vary_parts:
             vary_parts.append("Accept-Encoding")
+        # i18n: keep locale variants separate in edge caches.
+        if "Accept-Language" not in vary_parts:
+            vary_parts.append("Accept-Language")
         response.headers["Vary"] = ", ".join(vary_parts)
+        # Content-Language defaults to en; locale routes override per-response.
+        if "Content-Language" not in response.headers:
+            response.headers["Content-Language"] = "en"
         return response
 
 
@@ -254,6 +260,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/business-tools",
         "/pdf-tools",
         "/productivity-tools",
+        "/hi/",
+        "/es/",
+        "/fr/",
+        "/hi",
+        "/es",
+        "/fr",
     )
     _HEAVY_GET_LIMIT = 200
 

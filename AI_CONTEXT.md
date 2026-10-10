@@ -10,6 +10,7 @@
 
 ## Catalog
 - 117 free online tools (slugs defined in `data/tools.yaml`)
+- i18n: HI/ES/FR via subdirectories (`/hi/ /es/ /fr/`, English slugs kept); per-locale `i18n:` overrides in `data/tools.yaml` / `data/blog.yaml` (pilot: 10 tools + 5 posts/locale); helpers in `app/core/i18n.py`; locale routes in `pages.py`/`blog.py`/`seo.py`; sitemaps `/sitemap.xml + -hi/-es/-fr.xml + -index.xml` with hreflang
 
 ## Project Structure
 - app/api → API routes

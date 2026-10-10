@@ -211,6 +211,16 @@ Scope: `data/tools.yaml` (117), `data/blog.yaml` (99), `app/services/sitemap_ser
 - 8 thinnest favicon-cluster posts expanded with 3 appended practice paragraphs each (no new H2/tables/ids, all internal-link and sanitize safe): dark-mode 380→602, emoji 445→617, favicon-vs-og 443→621, generator-vs-manual 479→649, size-guide 493→655, apple-touch 605→772, svg-support 670→840, pwa-manifest 737→950+. All 27 `test_blog.py` green + live render 200 with ETag verified.
 - Root `fix_*.py` archived to `scripts/archive/` (gitignored). No dead `{% block %}` overrides remain in `templates/tools/` (verified by grep — base else-branches are intentional non-tool fallbacks).
 
+## 12. Multilingual rollout (2026-10-10, Build mode) — HI/ES/FR subdirectories
+
+Scope: `app/core/i18n.py` (new), `config.py`, `seo_service.py`, `blog_service.py`, `catalog_service.py`, `sitemap_service.py`, `pages.py`, `blog.py`, `seo.py`, `middleware.py`, `base.html`, `navbar.html`, `footer.html`, `src/js/app.js` (+ rebuilt `static/js/app.js`), `scripts/submit_indexnow.py`, `data/tools.yaml` (58 tools × hi/es/fr), `data/blog.yaml` (5 posts × hi/es/fr), `tests/test_i18n.py` (23 tests).
+
+- **Infra:** subdirectory strategy (`/hi/ /es/ /fr/`, English slugs kept, no 301 loss); explicit per-locale routes (generic `/{locale}/` avoided — it shadowed `/api/*` and broke 4 `test_api` tests, fixed with explicit prefixes); full hreflang cluster + x-default on every page and in sitemap (`xhtml:link` placed after priority to keep legacy regex tests green); per-locale canonical via `ToolSEO.url`/`BlogPost.url`; `og:locale hi_IN/es_ES/fr_FR` + alternates; `Content-Language` + `Vary: Accept-Language`; rate-limit heavy prefixes extended to locale paths.
+- **Content:** HI/ES/FR keyword-researched (not transliterated): HI Devanagari+roman mix (`ईएमआई कैलकुलेटर`, `home loan emi hindi`), ES (`calculadora emi/préstamo/hipoteca`), FR (`calculatrice/mensualité/amortissement`); all titles ≤70ch, descs 120–200ch, kws ≤8, zero exact normalized EN collisions; non-pilot pages fall back to EN copy with localized URL + locale cache (`slug:locale`).
+- **Discovery:** navbar globe switcher + mobile drawer language links via `locale_urls`; `/api/tools/catalog?lang=` localized names/URLs consumed by `app.js` (`document.documentElement.lang`); `submit_indexnow.py --locale/--all-locales` covers locale sitemaps; robots lists all 5 sitemaps + index.
+- **Verified:** `test_i18n` 23 (incl. generic length-guard test over all 174 locale overrides + `/{hi,es,fr}/blog` index/pillar regression tests for the 2026-10-10 prod-404 report; local render verified 200 + correct `Content-Language`) + `test_api` 47 + `test_sitemap` 12 + keywords/content/blog/middleware/csp/yaml suites green (145 total in-round); `ruff check app tests/test_i18n.py` clean; `npm run build:js + build:compress` regenerated `static/js/app.js` (+br/gz) with locale-aware catalog fetch.
+- **Remaining:** full-catalog ES/FR/HI expansion (59 tools + 94 posts per locale, batch next); per-category OG images (design); GSC/Bing locale sitemap submit + IndexNow `--all --all-locales` post-deploy.
+
 ## Appendix — How This Was Verified
 
 - `audit_tools.py`: TOOLS=107, categories/app_category/priority counters, 0 missing templates, 0 broken related, faq/howto/keyword stats.

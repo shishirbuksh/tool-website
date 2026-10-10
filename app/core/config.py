@@ -68,6 +68,9 @@ class Settings(BaseSettings):
         description="IndexNow key (Bing/Yandex instant indexing); served at /<KEY>.txt, used by scripts/submit_indexnow.py",
     )
 
+    SUPPORTED_LOCALES: tuple[str, ...] = ("en", "hi", "es", "fr")
+    DEFAULT_LOCALE: str = "en"
+
     HUB_CATEGORIES: dict[str, tuple[str, str]] = {
         "ai-tools": ("AI & Crypto", "AI & Crypto Tools — Free Online Predictors & Calculators"),
         "image-tools": ("Image Processing", "Free Online Image Tools — Background Remover, Compressor & Converter"),

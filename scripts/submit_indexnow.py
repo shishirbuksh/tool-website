@@ -13,6 +13,8 @@ Usage:
   python3 scripts/submit_indexnow.py --key <KEY> --url https://www.storybrainai.com/tool/calculator
   python3 scripts/submit_indexnow.py --key <KEY> --all
   python3 scripts/submit_indexnow.py --key <KEY> --all --dry-run
+  python3 scripts/submit_indexnow.py --key <KEY> --all --all-locales --dry-run
+  python3 scripts/submit_indexnow.py --key <KEY> --locale hi --locale es
   python3 scripts/submit_indexnow.py --key <KEY> --sitemap-url https://www.storybrainai.com/sitemap.xml
 
 Docs: https://www.indexnow.org/documentation
@@ -29,6 +31,19 @@ import urllib.request
 API_ENDPOINT = "https://api.indexnow.org/IndexNow"
 LOC_RE = re.compile(r"<loc>\s*([^<\s]+)\s*</loc>")
 CHUNK = 10_000
+# Subdirectory locales (must match app/core/i18n.py SUPPORTED_LOCALES minus "en").
+I18N_LOCALES = ("hi", "es", "fr")
+
+
+def sitemap_urls_for(host: str, *, include_all: bool, locales: list[str]) -> list[str]:
+    """Sitemap.xml URLs to fetch for IndexNow submission (testable, no I/O)."""
+    urls: list[str] = []
+    if include_all:
+        urls.append(f"https://{host}/sitemap.xml")
+    for loc in locales:
+        if loc in I18N_LOCALES:
+            urls.append(f"https://{host}/sitemap-{loc}.xml")
+    return urls
 
 
 def fetch_sitemap_locs(sitemap_url: str, timeout: int) -> list[str]:
@@ -69,6 +84,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--url-file", help="File with one URL per line")
     ap.add_argument("--sitemap-url", help="Fetch URLs from a sitemap.xml URL")
     ap.add_argument("--all", action="store_true", help="Submit every URL in the live sitemap.xml")
+    ap.add_argument("--locale", action="append", dest="locales", default=[],
+                    help="Also submit a locale sitemap (hi/es/fr; repeatable)")
+    ap.add_argument("--all-locales", action="store_true",
+                    help="Submit all locale sitemaps (sitemap-hi/es/fr.xml) too")
     ap.add_argument("--timeout", type=int, default=30)
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
@@ -77,9 +96,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.url_file:
         with open(args.url_file, encoding="utf-8") as f:
             urls += [ln.strip() for ln in f if ln.strip() and not ln.startswith("#")]
+    locales = list(args.locales)
+    if args.all_locales:
+        locales += [loc for loc in I18N_LOCALES if loc not in locales]
+    for sitemap in sitemap_urls_for(args.host, include_all=args.all, locales=locales):
+        urls += fetch_sitemap_locs(sitemap, args.timeout)
     sitemap = args.sitemap_url
-    if args.all:
-        sitemap = sitemap or f"https://{args.host}/sitemap.xml"
     if sitemap:
         urls += fetch_sitemap_locs(sitemap, args.timeout)
 

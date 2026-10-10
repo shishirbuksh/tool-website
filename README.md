@@ -105,6 +105,13 @@ This script will automatically pull the latest `main` branch, rebuild assets, re
 1. Generate a key: `python3 -c "import secrets; print(secrets.token_hex(16))"`
 2. Set `INDEXNOW_KEY=<key>` in `.env` and deploy — the app serves `/<KEY>.txt` automatically.
 3. Submit changed URLs after content passes: `python3 scripts/submit_indexnow.py --key <KEY> --url https://www.storybrainai.com/tool/calculator` (repeat `--url`, or `--url-file urls.txt`, or `--all` for the full sitemap with `--dry-run` to preview).
+4. Multilingual: add `--all-locales` to also submit `sitemap-hi/es/fr.xml`, or `--locale hi` (repeatable) for one locale.
+
+### Multilingual (HI/ES/FR via subdirectories)
+- **URLs:** English stays prefix-less (`/tool/emi-calculator`); Hindi/Spanish/French live under `/hi/`, `/es/`, `/fr/` with identical English slugs (no 301 equity loss). Every page emits a full `hreflang` cluster (`en/hi/es/fr/x-default`), per-locale canonical/OG (`hi_IN/es_ES/fr_FR`) and `Content-Language` + `Vary: Accept-Language`.
+- **Content:** `data/tools.yaml` / `data/blog.yaml` carry per-locale `i18n: {hi/es/fr: {...}}` overrides (name/meta/description/keywords/FAQs/howto/about). Pilot: 10 tools + 5 posts per locale; untranslated pages fall back to EN copy with localized URLs. Keyword guard: zero exact normalized collisions vs EN primaries (see `tests/test_i18n.py`).
+- **Sitemaps:** `/sitemap.xml` (EN + hreflang links), `/sitemap-hi.xml`, `/sitemap-es.xml`, `/sitemap-fr.xml`, `/sitemap-index.xml`; all listed in `robots.txt`. No Caddy change needed (same upstream; subdirectories, not subdomains).
+- **UI/search:** navbar globe switcher + mobile drawer language links (driven by `locale_urls`); `/api/tools/catalog?lang=hi|es|fr` returns translated names/URLs for the search dialog (`app.js` sends `document.documentElement.lang`).
 
 ### Environment, Caddy & Systemd
 - **Layout:** HTML templates live in `templates/` and static assets in `static/` (both at the repo root — not under `app/`). Tool pages are `templates/tools/<slug_with_underscores>.html` for each slug in `data/tools.yaml`.
