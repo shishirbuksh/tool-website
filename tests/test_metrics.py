@@ -26,7 +26,9 @@ class TestMetricsMiddleware:
     async def test_records_latency(self):
         from app.core.metrics import MetricsMiddleware
 
-        mock_request = type("Req", (), {"method": "POST", "url": type("Url", (), {"path": "/api/test"})(), "scope": {}})()
+        mock_request = type(
+            "Req", (), {"method": "POST", "url": type("Url", (), {"path": "/api/test"})(), "scope": {}}
+        )()
 
         async def fast_handler(_):
             return Response(status_code=201)

@@ -19,9 +19,7 @@ logger = get_logger(__name__)
 
 # Sentinel to prevent recursive error handling when templates fail.
 # ContextVar (not threading.local) so async tasks / context propagation are safe.
-_recursion_guard: contextvars.ContextVar[bool] = contextvars.ContextVar(
-    "exc_recursion_guard", default=False
-)
+_recursion_guard: contextvars.ContextVar[bool] = contextvars.ContextVar("exc_recursion_guard", default=False)
 
 
 def _with_request_id(content: dict) -> dict:
@@ -47,8 +45,8 @@ class ValidationException(AppException):
 
 
 class ServiceError(AppException):
-    def __init__(self, detail: str = "Service error"):
-        super().__init__(detail=detail, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def __init__(self, detail: str = "Service error", status_code: int = status.HTTP_500_INTERNAL_SERVER_ERROR):
+        super().__init__(detail=detail, status_code=status_code)
 
 
 def _should_render_html(request) -> bool:
@@ -158,6 +156,7 @@ def register_exception_handlers(app: FastAPI):
         with _templates_lock:
             if templates is None:
                 from app.api.routes.pages import templates as page_templates  # noqa: PLC0415
+
                 templates = page_templates
     app.add_exception_handler(AppException, _app_exception_handler)
     app.add_exception_handler(HTTPException, _http_exception_handler)

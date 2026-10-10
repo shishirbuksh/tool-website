@@ -18,9 +18,7 @@ _icons = None
 # Ordered list (not a set) so kept attributes render deterministically.
 _ATTRS_TO_KEEP = ["xmlns", "viewBox", "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin"]
 
-_COLOR_CLASS_RE = re.compile(
-    r"\btext-(?:primary|secondary|accent|base-content|success|warning|error|info|neutral)\b"
-)
+_COLOR_CLASS_RE = re.compile(r"\btext-(?:primary|secondary|accent|base-content|success|warning|error|info|neutral)\b")
 
 
 def _load_icons():

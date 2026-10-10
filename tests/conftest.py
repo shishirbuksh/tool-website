@@ -53,9 +53,8 @@ def client(isolated_db):
         from app.main import app as _app
 
         for mw in _app.user_middleware:
-            inst = getattr(mw, "cls", None)
+            getattr(mw, "cls", None)
         # Best-effort: clear in-memory rate windows via middleware instances is not
         # directly reachable; rely on function scope + tmp DB for isolation.
     except Exception:
         pass
-

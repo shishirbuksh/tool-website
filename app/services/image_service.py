@@ -93,15 +93,16 @@ class ImageService:
         if self._rembg is None:
             try:
                 import os
+
                 if "U2NET_HOME" not in os.environ:
                     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
                     os.environ["U2NET_HOME"] = os.path.join(base_dir, ".u2net")
-
                 import rembg
+
                 self._rembg = rembg
             except Exception as e:
                 logger.exception("Failed to import rembg")
-                raise ServiceError("Background removal library (rembg) is not available") from e
+                raise ServiceError("Background removal library (rembg) is not available", status_code=502) from e
         return self._rembg
 
     def _get_cv2(self) -> Any:
@@ -111,7 +112,7 @@ class ImageService:
 
                 self._cv2 = cv2
             except Exception as e:
-                raise ServiceError("OpenCV (cv2) is not available") from e
+                raise ServiceError("OpenCV (cv2) is not available", status_code=502) from e
         return self._cv2
 
     def remove_background(self, image_data: bytes, bg_color: str = "", smooth_edges: bool = False) -> bytes:
@@ -209,4 +210,3 @@ class ImageService:
         except Exception as e:
             logger.exception("Failed to remove watermark")
             raise ServiceError("Watermark removal failed") from e
-

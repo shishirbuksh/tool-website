@@ -58,8 +58,11 @@ templates.env.globals["app_version"] = APP_VERSION
 
 # Panel verdict (Speaker 3): blog is public, no auth/PII. Index/pillar churn
 # fast -> short TTL; post is immutable-ish keyed by date_modified + ETag.
-_INDEX_CACHE_HEADERS = {"Cache-Control": "public, max-age=300, stale-while-revalidate=3600, stale-if-error=86400"}
-_POST_CACHE_HEADERS = {"Cache-Control": "public, max-age=3600, stale-while-revalidate=86400, stale-if-error=86400"}
+# NOTE: HTML carries per-request CSP nonce (SecurityHeadersMiddleware), so
+# public edge caching would reuse nonces across users. Use private no-store
+# like pages.py to keep nonces single-use.
+_INDEX_CACHE_HEADERS = {"Cache-Control": "private, no-cache, no-store, must-revalidate"}
+_POST_CACHE_HEADERS = {"Cache-Control": "private, no-cache, no-store, must-revalidate"}
 # Back-compat alias for tests importing the old name.
 _PAGE_CACHE_HEADERS = _INDEX_CACHE_HEADERS
 
@@ -72,7 +75,14 @@ def _post_etag(pillar: str, slug: str, date_modified: str | None) -> str:
 
 
 def _not_modified(request: Request, etag: str) -> bool:
-    return request.headers.get("if-none-match") == etag
+    raw = request.headers.get("if-none-match", "")
+    if not raw:
+        return False
+    # Handle W/"...", multiple values, and whitespace per RFC 7232.
+    candidates = [v.strip().strip("W").strip().strip('"').strip("'") for v in raw.split(",")]
+    clean = etag.strip().strip('"').strip("'")
+    return clean in candidates or raw.strip() == etag
+
 
 _SLUG_RE = re.compile(r"^[a-z0-9-]{1,80}$")
 
@@ -333,7 +343,6 @@ async def blog_post_localized(request: Request, pillar: str, cluster: str) -> HT
 
 
 def _related_for_post(post, sibling_posts: list, locale: str = "en") -> list:
-
     related = [blog_service.get(s, locale) for s in post.related_posts]
     related = [p for p in related if p is not None]
     if not related:

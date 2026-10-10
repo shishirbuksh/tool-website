@@ -59,29 +59,72 @@ class TestI18nSeo:
         from app.core.tool_data import ToolDataLoader
 
         pilots = [
-            "emi-calculator", "eway-bill-calculator", "crypto-tax-calculator", "age-calculator",
-            "bmi-calculator", "fuel-cost-calculator", "salary-calculator", "gst-calculator",
-            "invoice-generator", "word-counter",
+            "emi-calculator",
+            "eway-bill-calculator",
+            "crypto-tax-calculator",
+            "age-calculator",
+            "bmi-calculator",
+            "fuel-cost-calculator",
+            "salary-calculator",
+            "gst-calculator",
+            "invoice-generator",
+            "word-counter",
             # Batch 2 (2026-10-10): high-traffic tools
-            "qr-generator", "sip-calculator", "password-generator", "seo-writing-assistant",
-            "meme-generator", "quotation-generator", "percentage-calculator", "uuid-generator",
-            "json-formatter-validator", "image-compressor", "calculator", "mrr-calculator",
+            "qr-generator",
+            "sip-calculator",
+            "password-generator",
+            "seo-writing-assistant",
+            "meme-generator",
+            "quotation-generator",
+            "percentage-calculator",
+            "uuid-generator",
+            "json-formatter-validator",
+            "image-compressor",
+            "calculator",
+            "mrr-calculator",
             # Batch 3: finance winners + viral + flagship tools
-            "mortgage-overpayment-calculator", "adsense-calculator", "fd-calculator", "love-calculator",
-            "image-background-remover", "crypto-price-prediction", "paraphrasing-tool", "resume-generator",
-            "pdf-merger", "expense-tracker", "compound-calculator", "freelance-rate-calculator",
+            "mortgage-overpayment-calculator",
+            "adsense-calculator",
+            "fd-calculator",
+            "love-calculator",
+            "image-background-remover",
+            "crypto-price-prediction",
+            "paraphrasing-tool",
+            "resume-generator",
+            "pdf-merger",
+            "expense-tracker",
+            "compound-calculator",
+            "freelance-rate-calculator",
             # Batch 4: retirement/creator/image/dev/utility
-            "retirement-planning-calculator", "youtube-calculator", "instagram-calculator", "image-converter",
-            "image-resizer-cropper", "image-exif-remover", "base64-tool", "regex-tester",
-            "meta-tag-generator", "unit-converter", "date-calculator", "text-case-converter",
+            "retirement-planning-calculator",
+            "youtube-calculator",
+            "instagram-calculator",
+            "image-converter",
+            "image-resizer-cropper",
+            "image-exif-remover",
+            "base64-tool",
+            "regex-tester",
+            "meta-tag-generator",
+            "unit-converter",
+            "date-calculator",
+            "text-case-converter",
             # Batch 5: crypto + CSS + doc generators
-            "crypto-dca-calculator", "crypto-mining-calculator", "crypto-profit-calculator", "crypto-portfolio-analyzer",
-            "crypto-fear-greed-index-tracker", "css-gradient-generator", "css-box-shadow-generator", "css-animation-generator",
-            "purchase-order-generator", "sales-order-generator", "service-order-generator", "work-order-generator",
+            "crypto-dca-calculator",
+            "crypto-mining-calculator",
+            "crypto-profit-calculator",
+            "crypto-portfolio-analyzer",
+            "crypto-fear-greed-index-tracker",
+            "css-gradient-generator",
+            "css-box-shadow-generator",
+            "css-animation-generator",
+            "purchase-order-generator",
+            "sales-order-generator",
+            "service-order-generator",
+            "work-order-generator",
         ]
         all_tools = ToolDataLoader.get_all()
         for slug in pilots:
-            i18n = (all_tools[slug].get("i18n") or {})
+            i18n = all_tools[slug].get("i18n") or {}
             for loc in ("hi", "es", "fr"):
                 assert loc in i18n, f"{slug} missing {loc}"
                 assert len(i18n[loc].get("keywords", [])) <= 8
@@ -173,7 +216,7 @@ class TestI18nRoutes:
         assert r.headers.get("Content-Language") == "hi"
         assert 'hreflang="hi"' in r.text
         assert 'hreflang="x-default"' in r.text
-        assert 'og:locale' in r.text and "hi_IN" in r.text
+        assert "og:locale" in r.text and "hi_IN" in r.text
         assert "/hi/tool/emi-calculator" in r.text  # canonical self
 
     def test_tool_en_still_ok(self):
@@ -260,7 +303,7 @@ class TestI18nRoutes:
             # Desktop globe switcher + mobile drawer links cover all locales
             for code in ("hi", "es", "fr"):
                 assert f"/{code}/tool/emi-calculator" in r.text, (path, code)
-            assert 'aria-current="true"' in r.text
+            assert 'aria-current="page"' in r.text
 
     def test_catalog_locale(self):
         from app.main import app
@@ -306,7 +349,7 @@ class TestI18nRoutes:
             assert r.status_code == 200, loc
             assert "text/html" in r.headers.get("content-type", "")
             assert r.headers.get("Content-Language") == loc
-            assert f'/{loc}/blog/' in r.text or f"/{loc}/blog" in r.text
+            assert f"/{loc}/blog/" in r.text or f"/{loc}/blog" in r.text
 
     def test_blog_pillar_localized(self):
         from app.main import app

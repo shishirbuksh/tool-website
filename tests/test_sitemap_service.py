@@ -61,7 +61,10 @@ class TestSitemapService:
     def test_tools_priority_08_weekly(self, settings):
         svc = SitemapService(settings)
         result = svc.build_sitemap_xml()
-        m = re.search(r"<loc>(https://[^<]*/tools)</loc>\s*<lastmod>[^<]*</lastmod>\s*<changefreq>([^<]*)</changefreq>\s*<priority>([^<]*)</priority>", result)
+        m = re.search(
+            r"<loc>(https://[^<]*/tools)</loc>\s*<lastmod>[^<]*</lastmod>\s*<changefreq>([^<]*)</changefreq>\s*<priority>([^<]*)</priority>",
+            result,
+        )
         assert m, "/tools entry missing"
         assert m.group(2) == "weekly", m.group(2)
         assert m.group(3) == "0.8", m.group(3)
@@ -69,7 +72,10 @@ class TestSitemapService:
     def test_blog_posts_changefreq_monthly(self, settings):
         svc = SitemapService(settings)
         result = svc.build_sitemap_xml()
-        freqs = re.findall(r"<loc>(https://[^<]*/blog/[^/<]*\/[^<]*)</loc>\s*<lastmod>[^<]*</lastmod>\s*<changefreq>([^<]*)</changefreq>", result)
+        freqs = re.findall(
+            r"<loc>(https://[^<]*/blog/[^/<]*\/[^<]*)</loc>\s*<lastmod>[^<]*</lastmod>\s*<changefreq>([^<]*)</changefreq>",
+            result,
+        )
         assert freqs, "no blog post entries"
         bad = [loc for loc, freq in freqs if freq != "monthly"]
         assert not bad, f"non-monthly blog entries: {bad[:5]}"

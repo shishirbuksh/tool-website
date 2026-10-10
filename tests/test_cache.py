@@ -72,6 +72,7 @@ class TestCacheService:
 
     def test_authoritative_redis_miss_does_not_resurrect_memory(self, monkeypatch):
         from unittest.mock import MagicMock
+
         from app.core import cache
         from app.core.cache import CacheService, _memory_cache
 

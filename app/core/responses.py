@@ -5,7 +5,9 @@ from typing import Any
 from fastapi.responses import HTMLResponse, JSONResponse
 
 
-def cached_html(content: str, status_code: int = 200, max_age: int = 86400, stale_while_revalidate: int = 604800) -> HTMLResponse:
+def cached_html(
+    content: str, status_code: int = 200, max_age: int = 86400, stale_while_revalidate: int = 604800
+) -> HTMLResponse:
     """Return HTML response with public cache-control."""
     return HTMLResponse(
         content=content,

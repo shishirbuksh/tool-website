@@ -111,4 +111,3 @@ async def analyze_crypto_trend_async_post(payload: dict[str, Any] | None = None)
         name=f"trend:{symbol}",
         coro_factory=lambda s=symbol: crypto_service.analyze_trend(s),
     )
-

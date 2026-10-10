@@ -34,7 +34,14 @@ class ToolSEO(BaseModel):
 
     @property
     def url(self) -> str:
-        base = (self.site_url or (_global_settings.SITE_URL if _global_settings and _global_settings.SITE_URL else "https://www.storybrainai.com")).rstrip("/")
+        base = (
+            self.site_url
+            or (
+                _global_settings.SITE_URL
+                if _global_settings and _global_settings.SITE_URL
+                else "https://www.storybrainai.com"
+            )
+        ).rstrip("/")
         return f"{base}{localize_path(f'/tool/{self.slug}', self.locale or 'en')}"
 
     @property
@@ -71,7 +78,6 @@ _CATEGORY_IMAGE: dict[str, str] = {
 
 
 class SeoService:
-
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self._cache: dict[str, tuple[float, dict[str, ToolSEO]]] = {}
@@ -103,12 +109,24 @@ class SeoService:
         if not isinstance(over, dict):
             return raw
         merged = dict(raw)
-        for k in ("name", "meta_title", "description", "keywords", "faqs", "howto_steps", "howto_calculate", "about_title", "about_body"):
+        for k in (
+            "name",
+            "meta_title",
+            "description",
+            "keywords",
+            "faqs",
+            "howto_steps",
+            "howto_calculate",
+            "about_title",
+            "about_body",
+        ):
             if over.get(k) not in (None, "", []):
                 merged[k] = over[k]
         return merged
 
-    def _from_raw(self, slug: str, raw: dict[str, Any], all_tools: dict[str, Any] | None = None, locale: str = "en") -> ToolSEO:
+    def _from_raw(
+        self, slug: str, raw: dict[str, Any], all_tools: dict[str, Any] | None = None, locale: str = "en"
+    ) -> ToolSEO:
         raw = self._localized_raw(raw, locale)
         related_slugs = raw.get("related_slugs", [])
         if all_tools is None:
@@ -200,5 +218,3 @@ class SeoService:
 
 
 SEOService = SeoService
-
-

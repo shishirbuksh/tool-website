@@ -10,6 +10,12 @@ const targets = [
   'static/js/app.js',
   'static/js/tools.utils.js',
   'static/js/tools.js',
+  'static/js/qrcode.min.js',
+  'static/js/jsqr.min.js',
+  'static/js/vendor/apexcharts.min.js',
+  'static/js/vendor/chart.min.js',
+  'static/sw.js',
+  'static/data/thesaurus.json',
   'static/manifest.json',
   'static/sitemap.xsl',
 ];

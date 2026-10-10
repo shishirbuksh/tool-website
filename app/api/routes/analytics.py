@@ -66,4 +66,3 @@ async def api_analytics_top(
     except Exception as e:
         logger.exception("Failed to retrieve top analytics counts")
         raise HTTPException(status_code=500, detail="Failed to retrieve analytics data") from e
-

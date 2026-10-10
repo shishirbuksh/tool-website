@@ -51,7 +51,9 @@ __all__ = ["router"]
 
 
 class NonceJinja2Templates(Jinja2Templates):
-    def TemplateResponse(self, request, name, context=None, status_code=200, headers=None, media_type=None, background=None):  # noqa: N802
+    def TemplateResponse(  # noqa: N802 - overrides Jinja2Templates.TemplateResponse
+        self, request, name, context=None, status_code=200, headers=None, media_type=None, background=None
+    ):
         if context is None:
             context = {}
         context.setdefault("nonce", getattr(request.state, "nonce", ""))
@@ -59,9 +61,9 @@ class NonceJinja2Templates(Jinja2Templates):
 
 
 class ContactForm(BaseModel):
-    name: str = Field(..., max_length=100)
+    name: str = Field(..., min_length=1, max_length=100)
     email: _EmailType = Field(..., max_length=254)  # type: ignore[valid-type]
-    message: str = Field(..., max_length=5000)
+    message: str = Field(..., min_length=1, max_length=5000)
 
 
 class ContactResponse(BaseModel):
@@ -73,7 +75,6 @@ _CONTACT_MAX_BYTES = 32_000
 # Per-email contact throttle (spam oracle guard): 3/min per sender address.
 _CONTACT_EMAIL_WINDOWS: dict[str, list[float]] = {}
 _CONTACT_EMAIL_LOCK = __import__("threading").Lock()
-
 
 
 router = APIRouter()
@@ -119,6 +120,7 @@ def _get_cached_page_names() -> list[str]:
         _pages_dir_cache = []
     _pages_dir_cache_ts = now
     return _pages_dir_cache
+
 
 @router.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def home(request: Request) -> HTMLResponse:
@@ -184,6 +186,7 @@ async def tools_page(request: Request) -> HTMLResponse:
     resp.headers.update(_PAGE_CACHE_HEADERS)
     return resp
 
+
 @router.api_route("/hi/tools", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/es/tools", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/fr/tools", methods=["GET", "HEAD"], response_class=HTMLResponse)
@@ -198,6 +201,7 @@ async def tools_page_localized(request: Request) -> HTMLResponse:
     resp.headers.update(_PAGE_CACHE_HEADERS)
     resp.headers["Content-Language"] = loc
     return resp
+
 
 @router.api_route("/directory", methods=["GET", "HEAD"], response_class=RedirectResponse)
 async def directory_redirect(request: Request) -> RedirectResponse:
@@ -214,9 +218,6 @@ async def offline_page(request: Request) -> HTMLResponse:
     resp = templates.TemplateResponse(request=request, name="pages/offline.html", context=ctx)
     resp.headers.update(_PAGE_CACHE_HEADERS)
     return resp
-
-
-
 
 
 @router.api_route("/sitemap", methods=["GET", "HEAD"], response_class=HTMLResponse)
@@ -242,9 +243,7 @@ async def tools_catalog(request: Request) -> Response:
         if loc == "en" or not is_supported_locale(loc):
             categories, static_pages = catalog_service.get_categorized_tools()
         else:
-            categories, static_pages = await asyncio.to_thread(
-                catalog_service.get_categorized_tools_localized, loc
-            )
+            categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools_localized, loc)
         tools = []
         for cat_name, cat_tools in categories.items():
             for t in cat_tools:
@@ -274,6 +273,7 @@ async def service_worker() -> FileResponse:
 async def contact_submission(request: Request) -> ContactResponse:
     # TODO: add honeypot field + Turnstile/CAPTCHA verification to block contact spam bots.
     # Size check via Content-Length to reject oversized payloads early.
+    # NOTE: Content-Length can be missing (chunked) — enforce again after parsing.
     content_length = request.headers.get("content-length")
     if content_length and content_length.isdigit() and int(content_length) > _CONTACT_MAX_BYTES:
         raise HTTPException(status_code=413, detail="Payload too large")
@@ -282,6 +282,14 @@ async def contact_submission(request: Request) -> ContactResponse:
         body = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON") from None
+    # Chunked/no-header bypass guard: measure actual parsed size (bounded by MaxBody 10MB).
+    try:
+        if len(str(body)) > _CONTACT_MAX_BYTES:
+            raise HTTPException(status_code=413, detail="Payload too large")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid request body") from None
     try:
         form = ContactForm(**body)
     except ValidationError as e:
@@ -325,6 +333,7 @@ async def contact_submission(request: Request) -> ContactResponse:
         try:
             import smtplib
             from email.message import EmailMessage
+
             msg = EmailMessage()
             msg.set_content(f"Name: {safe_name}\nEmail: {safe_email}\n\nMessage:\n{form.message}")
             msg["Subject"] = f"Contact form: {safe_name}"
@@ -379,27 +388,27 @@ def _i18n_context(bare_path: str, locale: str) -> dict:
 
 async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> HTMLResponse:
     loc = normalize_locale(locale)
-    if '..' in tool_name or '/' in tool_name or '\\' in tool_name:
-        raise HTTPException(status_code=404, detail='Not found')
-    if tool_name in ('tools', 'sitemap', 'offline'):
-        raise HTTPException(status_code=404, detail='Not found')
+    if ".." in tool_name or "/" in tool_name or "\\" in tool_name:
+        raise HTTPException(status_code=404, detail="Not found")
+    if tool_name in ("tools", "sitemap", "offline"):
+        raise HTTPException(status_code=404, detail="Not found")
     valid_tools = catalog_service.get_valid_tools()
     if tool_name not in valid_tools:
-        raise HTTPException(status_code=404, detail='Tool not found')
+        raise HTTPException(status_code=404, detail="Tool not found")
     categories, _ = catalog_service.get_categorized_tools()
     seo_data = seo_service.get_seo(tool_name, locale=loc)
     template_name = f"tools/{tool_name.replace('-', '_')}.html"
     bare_path = f"/tool/{tool_name}"
     ctx = {
-        'tool_name': seo_data.name,
-        'categories': categories,
-        'seo_data': seo_data,
+        "tool_name": seo_data.name,
+        "categories": categories,
+        "seo_data": seo_data,
     }
     ctx.update(_i18n_context(bare_path, loc))
     try:
         resp = templates.TemplateResponse(request=request, name=template_name, context=ctx)
     except TemplateNotFound:
-        raise HTTPException(status_code=404, detail='Tool not found') from None
+        raise HTTPException(status_code=404, detail="Tool not found") from None
     resp.headers.update(_PAGE_CACHE_HEADERS)
     # Vary on language so CDN/edge caches keep locale variants separate.
     vary = resp.headers.get("Vary", "")
@@ -409,25 +418,26 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
     return resp
 
 
-@router.api_route('/tool/{tool_name}', methods=['GET', 'HEAD'], response_class=HTMLResponse)
+@router.api_route("/tool/{tool_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def get_tool(request: Request, tool_name: str):
     return await _render_tool(request, tool_name, locale="en")
 
 
-@router.api_route('/hi/tool/{tool_name}', methods=['GET', 'HEAD'], response_class=HTMLResponse)
-@router.api_route('/es/tool/{tool_name}', methods=['GET', 'HEAD'], response_class=HTMLResponse)
-@router.api_route('/fr/tool/{tool_name}', methods=['GET', 'HEAD'], response_class=HTMLResponse)
+@router.api_route("/hi/tool/{tool_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/es/tool/{tool_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/fr/tool/{tool_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def get_tool_localized(request: Request, tool_name: str):
-    loc = normalize_locale(request.url.path.split('/')[1])
-    if not is_supported_locale(loc) or loc == 'en':
-        raise HTTPException(status_code=404, detail='Not found')
+    loc = normalize_locale(request.url.path.split("/")[1])
+    if not is_supported_locale(loc) or loc == "en":
+        raise HTTPException(status_code=404, detail="Not found")
     return await _render_tool(request, tool_name, locale=loc)
 
-@router.api_route('/hi/{page_name}', methods=['GET', 'HEAD'], response_class=HTMLResponse)
-@router.api_route('/es/{page_name}', methods=['GET', 'HEAD'], response_class=HTMLResponse)
-@router.api_route('/fr/{page_name}', methods=['GET', 'HEAD'], response_class=HTMLResponse)
+
+@router.api_route("/hi/{page_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/es/{page_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/fr/{page_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def get_page_localized(request: Request, page_name: str) -> HTMLResponse:
-    loc = normalize_locale(request.url.path.split('/')[1])
+    loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":
         raise HTTPException(status_code=404, detail="Not found")
     if ".." in page_name or "/" in page_name or "\\" in page_name:
@@ -468,7 +478,8 @@ async def get_page_localized(request: Request, page_name: str) -> HTMLResponse:
         return resp
     raise HTTPException(status_code=404, detail="Page not found")
 
-@router.api_route('/{page_name}', methods=['GET', 'HEAD'], response_class=HTMLResponse)
+
+@router.api_route("/{page_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def get_page(request: Request, page_name: str) -> HTMLResponse:
     if ".." in page_name or "/" in page_name or "\\" in page_name:
         raise HTTPException(status_code=404, detail="Not found")

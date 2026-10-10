@@ -7,9 +7,7 @@ from pydantic import BaseModel, Field, SecretStr, field_validator
 
 class NFTRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=2000, description="Text prompt for generation")
-    style: Literal["3d", "cyberpunk", "pixel"] = Field(
-        default="3d", description="Art style for generation"
-    )
+    style: Literal["3d", "cyberpunk", "pixel"] = Field(default="3d", description="Art style for generation")
     provider: Literal["local", "openai", "gemini", "deepseek"] = Field(
         default="local", description="AI provider (local, openai, gemini, deepseek)"
     )

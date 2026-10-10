@@ -15,8 +15,10 @@ class TestImageService:
 
     def test_remove_watermark_missing_deps(self, settings, monkeypatch):
         svc = ImageService(settings)
+
         def mock_get_cv2():
             raise ServiceError("OpenCV not installed")
+
         monkeypatch.setattr(svc, "_get_cv2", mock_get_cv2)
         with pytest.raises((ServiceError, ValidationException), match="(OpenCV|NumPy|Invalid|empty)"):
             svc.remove_watermark(b"image-data", b"mask-data")

@@ -45,7 +45,9 @@ class FractalService:
     def __init__(self, settings: Settings):
         self.settings = settings
 
-    async def generate_nft(self, prompt: str, style: str = "3d", provider: str = "local", api_key: str | None = None) -> dict[str, Any]:
+    async def generate_nft(
+        self, prompt: str, style: str = "3d", provider: str = "local", api_key: str | None = None
+    ) -> dict[str, Any]:
         # Validate prompt length early.
         if not prompt or not prompt.strip():
             raise ValidationException("Prompt must not be empty")
@@ -102,7 +104,7 @@ class FractalService:
                 start_idx = llm_text.find("{")
                 end_idx = llm_text.rfind("}")
                 if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                    llm_text = llm_text[start_idx:end_idx+1]
+                    llm_text = llm_text[start_idx : end_idx + 1]
                 params = FractalParams(**json.loads(llm_text))
                 c_re, c_im = params.c_re, params.c_im
                 zoom, max_iter = params.zoom, params.max_iter
@@ -151,7 +153,6 @@ class FractalService:
         except Exception as e:
             msg = f"Failed to process fractal image: {e}"
             raise ServiceError(msg) from e
-
 
     async def _call_llm(self, provider: str, api_key: str, system_prompt: str, user_content: str) -> str:
         loop = asyncio.get_running_loop()
@@ -238,4 +239,3 @@ class FractalService:
             raise ServiceError(msg) from e
         finally:
             sem.release()
-

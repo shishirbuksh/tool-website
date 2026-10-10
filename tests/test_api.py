@@ -33,7 +33,7 @@ class TestPages:
     def test_tools_directory(self):
         resp = client.get("/tools")
         assert resp.status_code == 200
-        
+
     def test_directory_redirect(self):
         resp = client.get("/directory", follow_redirects=False)
         assert resp.status_code in (301, 302, 307, 308)
@@ -61,7 +61,10 @@ class TestPages:
     def test_trailing_slash_307_pinned(self):
         resp = client.get("/tools/", follow_redirects=False)
         assert resp.status_code in (301, 302, 307, 308)
-        assert resp.headers.get("location", "").rstrip("/").endswith("/tools") or resp.headers.get("location", "") == "/tools"
+        assert (
+            resp.headers.get("location", "").rstrip("/").endswith("/tools")
+            or resp.headers.get("location", "") == "/tools"
+        )
 
     def test_homepage_contains_all_tools(self):
         resp = client.get("/")
@@ -322,18 +325,16 @@ class TestHeadersAndCaching:
             assert "no-store" in cc or "no-cache" in cc
 
     def test_cors_expose_headers(self):
-        resp = client.options(
+        client.options(
             "/api/tools/catalog",
             headers={
                 "Origin": "http://localhost:8090",
                 "Access-Control-Request-Method": "GET",
             },
         )
-        exposed = resp.headers.get("access-control-expose-headers", "")
         # Either preflight or simple request with Origin should expose X-Request-ID
         simple_resp = client.get(
             "/api/tools/catalog",
             headers={"Origin": "http://localhost:8090"},
         )
         assert "x-request-id" in simple_resp.headers.get("access-control-expose-headers", "").lower()
-

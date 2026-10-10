@@ -67,9 +67,7 @@ class JobService:
             # Synchronous backpressure: cleanup only runs every 300s, so a burst
             # between cleanups must not grow _jobs/_tasks without bound.
             # Callers (tools_crypto._submit) map this to HTTP 503.
-            active = sum(
-                1 for j in self._jobs.values() if j.status in (JobStatus.PENDING, JobStatus.RUNNING)
-            )
+            active = sum(1 for j in self._jobs.values() if j.status in (JobStatus.PENDING, JobStatus.RUNNING))
             if active >= self._max_jobs:
                 msg = f"Job queue full ({active} active jobs, max {self._max_jobs})"
                 raise RuntimeError(msg)
@@ -151,7 +149,7 @@ class JobService:
                             completed.append((jid, j))
                     # Keep at most 10 recent completed jobs to save RAM
                     completed.sort(key=lambda x: x[1].created_at, reverse=True)
-                    pending.update(dict(completed[: 10]))
+                    pending.update(dict(completed[:10]))
                     self._jobs = pending
             self._last_cleanup = now
 
@@ -173,7 +171,6 @@ class JobService:
                 break
             except Exception:
                 logger.exception("Job cleanup_loop iteration failed")
-
 
 
 _job_service: JobService | None = None

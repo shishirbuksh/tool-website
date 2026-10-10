@@ -43,7 +43,9 @@ def _pdf_response(pdf_bytes: bytes, filename: str) -> StreamingResponse:
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{safe}.pdf"; filename*=UTF-8\'\'{quote(safe + ".pdf")}'},
+        headers={
+            "Content-Disposition": f"attachment; filename=\"{safe}.pdf\"; filename*=UTF-8''{quote(safe + '.pdf')}"
+        },
     )
 
 
@@ -56,14 +58,20 @@ async def convert_to_pdf(file: UploadFile = File(...)) -> StreamingResponse:  # 
     ext = os.path.splitext(filename)[1]
     max_size = settings.PDF_MAX_SIZE
 
-    if not file.content_type or (file.content_type not in ALLOWED_IMAGE_MIMES and file.content_type not in ALLOWED_TEXT_MIMES):
+    if not file.content_type or (
+        file.content_type not in ALLOWED_IMAGE_MIMES and file.content_type not in ALLOWED_TEXT_MIMES
+    ):
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {file.content_type}")
 
     # Check extension vs content_type mismatch.
     if file.content_type in ALLOWED_IMAGE_MIMES and ext not in _IMAGE_EXTS:
-        raise HTTPException(status_code=400, detail=f"Extension '{ext}' does not match content type '{file.content_type}'")
+        raise HTTPException(
+            status_code=400, detail=f"Extension '{ext}' does not match content type '{file.content_type}'"
+        )
     if file.content_type in ALLOWED_TEXT_MIMES and ext not in _TEXT_EXTS:
-        raise HTTPException(status_code=400, detail=f"Extension '{ext}' does not match content type '{file.content_type}'")
+        raise HTTPException(
+            status_code=400, detail=f"Extension '{ext}' does not match content type '{file.content_type}'"
+        )
 
     try:
         file.file.seek(0, os.SEEK_END)
@@ -103,4 +111,3 @@ async def convert_to_pdf(file: UploadFile = File(...)) -> StreamingResponse:  # 
         status_code=400,
         detail="Unsupported file format. Only Images and TXT files are supported.",
     )
-

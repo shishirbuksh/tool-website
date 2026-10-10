@@ -26,10 +26,12 @@ import argparse
 import json
 import re
 import sys
+import urllib.parse
 import urllib.request
 
 API_ENDPOINT = "https://api.indexnow.org/IndexNow"
 LOC_RE = re.compile(r"<loc>\s*([^<\s]+)\s*</loc>")
+KEY_RE = re.compile(r"^[0-9a-fA-F]{8,128}$")
 CHUNK = 10_000
 # Subdirectory locales (must match app/core/i18n.py SUPPORTED_LOCALES minus "en").
 I18N_LOCALES = ("hi", "es", "fr")
@@ -46,11 +48,23 @@ def sitemap_urls_for(host: str, *, include_all: bool, locales: list[str]) -> lis
     return urls
 
 
-def fetch_sitemap_locs(sitemap_url: str, timeout: int) -> list[str]:
+def fetch_sitemap_locs(sitemap_url: str, timeout: int, _depth: int = 0) -> list[str]:
     req = urllib.request.Request(sitemap_url, headers={"User-Agent": "StoryBrainAI-IndexNow/1.0"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         xml = resp.read().decode("utf-8", errors="replace")
-    return LOC_RE.findall(xml)
+    locs = LOC_RE.findall(xml)
+    # Recurse one level into sitemap indexes (e.g. sitemap-index.xml lists
+    # sitemap-hi/es/fr.xml); page <loc>s are returned as-is. Depth-capped.
+    if _depth < 1 and ("<sitemapindex" in xml or "sitemapindex" in xml[:2000]):
+        nested: list[str] = []
+        for loc in locs:
+            if loc.strip().lower().endswith(".xml"):
+                try:
+                    nested += fetch_sitemap_locs(loc.strip(), timeout, _depth + 1)
+                except OSError as e:
+                    print(f"skip nested sitemap {loc}: {e}", file=sys.stderr)
+        return nested
+    return locs
 
 
 def post_chunk(*, key: str, host: str, key_location: str, urls: list[str], timeout: int, dry_run: bool) -> int:
@@ -79,18 +93,31 @@ def post_chunk(*, key: str, host: str, key_location: str, urls: list[str], timeo
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="Submit URLs via IndexNow.")
     ap.add_argument("--key", required=True, help="IndexNow key (must match INDEXNOW_KEY in .env)")
-    ap.add_argument("--host", default="www.storybrainai.com", help="Bare host, no scheme (default: www.storybrainai.com)")
+    ap.add_argument(
+        "--host", default="www.storybrainai.com", help="Bare host, no scheme (default: www.storybrainai.com)"
+    )
     ap.add_argument("--url", action="append", dest="urls", default=[], help="URL to submit (repeatable)")
     ap.add_argument("--url-file", help="File with one URL per line")
     ap.add_argument("--sitemap-url", help="Fetch URLs from a sitemap.xml URL")
     ap.add_argument("--all", action="store_true", help="Submit every URL in the live sitemap.xml")
-    ap.add_argument("--locale", action="append", dest="locales", default=[],
-                    help="Also submit a locale sitemap (hi/es/fr; repeatable)")
-    ap.add_argument("--all-locales", action="store_true",
-                    help="Submit all locale sitemaps (sitemap-hi/es/fr.xml) too")
+    ap.add_argument(
+        "--locale",
+        action="append",
+        dest="locales",
+        default=[],
+        help="Also submit a locale sitemap (hi/es/fr; repeatable)",
+    )
+    ap.add_argument("--all-locales", action="store_true", help="Submit all locale sitemaps (sitemap-hi/es/fr.xml) too")
     ap.add_argument("--timeout", type=int, default=30)
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
+
+    if not KEY_RE.fullmatch(args.key or ""):
+        print(
+            'error: --key must be 8-128 hex chars (generate: python3 -c "import secrets; print(secrets.token_hex(16))")',
+            file=sys.stderr,
+        )
+        return 2
 
     urls: list[str] = list(args.urls)
     if args.url_file:
@@ -105,7 +132,8 @@ def main(argv: list[str] | None = None) -> int:
     if sitemap:
         urls += fetch_sitemap_locs(sitemap, args.timeout)
 
-    # De-dupe, keep order; drop non-http(s) and off-host URLs.
+    # De-dupe, keep order; drop non-http(s) and off-host URLs (IndexNow spec:
+    # every submitted URL's host must match `host`).
     seen: set[str] = set()
     clean: list[str] = []
     for u in urls:
@@ -114,6 +142,13 @@ def main(argv: list[str] | None = None) -> int:
             continue
         if not u.startswith(("http://", "https://")):
             print(f"skip non-URL: {u}", file=sys.stderr)
+            continue
+        try:
+            netloc = urllib.parse.urlparse(u).hostname or ""
+        except ValueError:
+            netloc = ""
+        if netloc.lower() != args.host.lower():
+            print(f"skip off-host URL: {u}", file=sys.stderr)
             continue
         seen.add(u)
         clean.append(u)
@@ -126,8 +161,14 @@ def main(argv: list[str] | None = None) -> int:
     statuses = []
     for i in range(0, len(clean), CHUNK):
         statuses.append(
-            post_chunk(key=args.key, host=args.host, key_location=key_location,
-                       urls=clean[i:i + CHUNK], timeout=args.timeout, dry_run=args.dry_run)
+            post_chunk(
+                key=args.key,
+                host=args.host,
+                key_location=key_location,
+                urls=clean[i : i + CHUNK],
+                timeout=args.timeout,
+                dry_run=args.dry_run,
+            )
         )
     print(f"done: chunks={len(statuses)} statuses={statuses}")
     return 0 if all(s in (200, 202) for s in statuses) else 1

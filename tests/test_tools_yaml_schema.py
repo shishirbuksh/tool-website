@@ -45,7 +45,7 @@ class TestToolsYamlSchema:
         bad = [s for s, info in data.items() if not DATE_RE.match(str(info.get("date_modified", "")))]
         assert not bad, f"Bad date_modified format: {bad[:10]}"
 
-    def test_no_literal_backslash_xE2(self):
+    def test_no_literal_backslash_xe2(self):
         raw, _ = _load_raw_and_data()
         # The catalog must contain real UTF-8 (e.g. em dash) — not literal
         # backslash escapes like \xE2 / \xC3 left over from mojibake.

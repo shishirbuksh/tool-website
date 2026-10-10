@@ -36,4 +36,3 @@ async def generate_nft(req: NFTRequest) -> NFTResponse:
     except Exception as e:
         logger.exception("NFT generation failed")
         raise HTTPException(status_code=500, detail="Failed to generate NFT") from e
-

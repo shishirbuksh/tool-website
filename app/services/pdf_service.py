@@ -62,8 +62,10 @@ class PDFService:
         filename = _sanitize_filename(filename)
         if not image_data:
             raise ValidationException("Image data must not be empty")
-        if len(image_data) > getattr(self.settings, "IMAGE_MAX_SIZE", 50 * 1024 * 1024):
-            raise ValidationException("Image file size exceeds limit (50MB)")
+        pdf_max = getattr(self.settings, "PDF_MAX_SIZE", 5 * 1024 * 1024)
+        if len(image_data) > pdf_max:
+            msg = f"Image file size exceeds limit ({pdf_max // (1024 * 1024)}MB)"
+            raise ValidationException(msg)
         try:
             with Image.open(io.BytesIO(image_data)) as image:
                 if (image.width * image.height) > MAX_IMAGE_PIXELS:
@@ -79,7 +81,6 @@ class PDFService:
         except Exception as e:
             msg = f"Invalid image data: {e}"
             raise ValidationException(msg) from e
-
 
     def convert_text_to_pdf(self, text_data: bytes, filename: str = "document") -> bytes:
         if text_data is None:
@@ -114,4 +115,3 @@ class PDFService:
             raise ValidationException(msg) from e
 
         return _fpdf_output_bytes(pdf)
-

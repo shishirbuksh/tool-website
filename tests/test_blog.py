@@ -54,19 +54,19 @@ class TestBlogPages:
         assert "nonce-" in csp
 
     def test_blog_no_cache_header(self):
-        # Panel verdict (Speaker 3): public short-TTL + ETag for crawl efficiency.
-        # Index/pillar -> public max-age=300; post -> public max-age=3600 + ETag.
+        # CSP nonce is per-request — HTML must NOT be publicly cacheable (nonce reuse).
+        # Matches pages.py: private, no-cache, no-store, must-revalidate.
         for path in ("/blog", "/blog/calculators"):
             resp = client.get(path)
             assert resp.status_code == 200
             cc = resp.headers.get("cache-control", "")
-            assert "public" in cc
-            assert "max-age=300" in cc
+            assert "private" in cc
+            assert "no-store" in cc
         resp = client.get("/blog/calculators/emi-calculator-guide")
         assert resp.status_code == 200
         cc = resp.headers.get("cache-control", "")
-        assert "public" in cc
-        assert "max-age=3600" in cc
+        assert "private" in cc
+        assert "no-store" in cc
         assert resp.headers.get("etag"), "post ETag missing"
         # Conditional request -> 304
         etag = resp.headers["etag"]
@@ -80,7 +80,11 @@ class TestBlogContentGuards:
         assert not bad, f"keyword cap breached: {bad}"
 
     def test_blog_keywords_no_financial_advice(self):
-        bad = [s for s, v in _blog_posts().items() if "is this financial advice" in [str(k).lower() for k in (v.get("keywords") or [])]]
+        bad = [
+            s
+            for s, v in _blog_posts().items()
+            if "is this financial advice" in [str(k).lower() for k in (v.get("keywords") or [])]
+        ]
         assert not bad, f"zero-volume KW present: {bad}"
 
     def test_blog_body_no_dup_chrome(self):
@@ -116,7 +120,12 @@ class TestBlogContentGuards:
     def test_crypto_faqs_exclude_financial_advice(self):
         crypto = [s for s, v in _blog_posts().items() if str(v.get("pillar", "")) == "ai-crypto"]
         assert crypto, "no ai-crypto posts found"
-        bad = [s for s in crypto for f in (_blog_posts()[s].get("faqs") or []) if str(f.get("q", "")).lower().strip() == "is this financial advice?"]
+        bad = [
+            s
+            for s in crypto
+            for f in (_blog_posts()[s].get("faqs") or [])
+            if str(f.get("q", "")).lower().strip() == "is this financial advice?"
+        ]
         assert not bad, f"disclaimer Q in FAQPage schema: {bad}"
 
     def test_body_no_duplicate_methodology_faq_ids(self):
@@ -150,8 +159,17 @@ class TestBlogContentGuards:
         posts = _blog_posts()
         zero_inline = [s for s, v in posts.items() if 'href="/tool/' not in str(v.get("body_html", ""))]
         assert not zero_inline, f"0 inline tool links: {zero_inline}"
-        for slug in ["age-calculator", "mortgage-overpayment-calculator", "savings-account-comparison-calculator", "scientific-calculator"]:
-            hits = [s for s, v in posts.items() if slug in (v.get("tools") or []) or f"/tool/{slug}" in str(v.get("body_html", ""))]
+        for slug in [
+            "age-calculator",
+            "mortgage-overpayment-calculator",
+            "savings-account-comparison-calculator",
+            "scientific-calculator",
+        ]:
+            hits = [
+                s
+                for s, v in posts.items()
+                if slug in (v.get("tools") or []) or f"/tool/{slug}" in str(v.get("body_html", ""))
+            ]
             assert hits, f"never linked: {slug}"
         adsense_tools = posts["adsense-youtube-earnings-estimator"].get("tools") or []
         assert "instagram-calculator" in adsense_tools, "instagram not promoted"
@@ -210,7 +228,10 @@ class TestBlogContentGuards:
         assert not bad, f"FAQ cap breached: {bad}"
 
     def test_body_h2_no_chrome_terms(self):
-        ban = re.compile(r"^(key takeaways|takeaways|faqs?|frequently asked questions|methodology|table of contents|on this page|related tools|related guides|try(\s|the|free))\b", re.I)
+        ban = re.compile(
+            r"^(key takeaways|takeaways|faqs?|frequently asked questions|methodology|table of contents|on this page|related tools|related guides|try(\s|the|free))\b",
+            re.I,
+        )
         bad = []
         for s, v in _blog_posts().items():
             for h in re.findall(r"<h2[^>]*>(.*?)</h2>", str(v.get("body_html", "")), re.S):
@@ -239,7 +260,7 @@ class TestBlogContentGuards:
         # One link is the norm; comparison answers (e.g. SIP vs FD) may link both tools.
         bad = []
         for s, v in _blog_posts().items():
-            for f in (v.get("faqs") or []):
+            for f in v.get("faqs") or []:
                 if len(re.findall(r'href="/tool/', str(f.get("a", "")))) > 2:
                     bad.append(f"{s}::{f.get('q', '')[:50]}")
         assert not bad, f"multi-link answers: {bad[:8]}"

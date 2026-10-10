@@ -80,11 +80,7 @@ class TestToolKeywords:
         assert not bad, f"category-stuffed keywords: {bad[:10]}"
 
     def test_no_todo_placeholders(self) -> None:
-        bad = [
-            slug
-            for slug, info in _tools().items()
-            if "TODO" in str(info.get("howto_calculate", ""))
-        ]
+        bad = [slug for slug, info in _tools().items() if "TODO" in str(info.get("howto_calculate", ""))]
         assert not bad, f"howto_calculate TODO placeholders: {bad[:10]}"
 
     def test_meta_title_length(self) -> None:
@@ -96,11 +92,7 @@ class TestToolKeywords:
         assert not bad, f"meta_title >60 chars (SERP truncate): {bad}"
 
     def test_tool_faq_cap(self) -> None:
-        bad = {
-            s: len(v.get("faqs") or [])
-            for s, v in _tools().items()
-            if len(v.get("faqs") or []) > 10
-        }
+        bad = {s: len(v.get("faqs") or []) for s, v in _tools().items() if len(v.get("faqs") or []) > 10}
         assert not bad, f"tool FAQ cap breached: {bad}"
 
 

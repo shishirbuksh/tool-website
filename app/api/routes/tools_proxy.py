@@ -92,4 +92,3 @@ async def proxy_request(req: ProxyRequest) -> ProxyResponse:
     except Exception as e:
         logger.exception("Proxy request failed for %s", req.url)
         raise HTTPException(status_code=502, detail="Proxy request execution failed") from e
-

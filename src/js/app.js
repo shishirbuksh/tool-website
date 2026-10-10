@@ -29,12 +29,13 @@ function oS(){
   dia.showModal();
   if(si)si.focus();
   if(!toolCache){
-    fetch('/api/tools/catalog?lang='+encodeURIComponent(document.documentElement.lang||'en')).then(function(r){return r.json()}).then(function(d){toolCache=d;filterTools()}).catch(function(){if(sr)_msg('Could not load tools. Try again later.')})
+    fetch('/api/tools/catalog?lang='+encodeURIComponent(document.documentElement.lang||'en')).then(function(r){if(!r.ok)throw new Error('catalog '+r.status);return r.json()}).then(function(d){toolCache=Array.isArray(d)?d:(d&&Array.isArray(d.tools)?d.tools:[]);filterTools()}).catch(function(){toolCache=[];if(sr)_msg('Could not load tools. Try again later.')})
   }
 }
-function filterTools(){if(!si||!sr)return;var q=si.value.trim().toLowerCase();if(!toolCache||!q){_msg(q?'No results found':'Start typing to find tools');return}
-var m=toolCache.filter(function(t){return t.name.toLowerCase().indexOf(q)>-1||(t.desc&&t.desc.toLowerCase().indexOf(q)>-1)})
+function filterTools(){if(!si||!sr)return;var q=si.value.trim().toLowerCase();if(!Array.isArray(toolCache)){_msg('Could not load tools. Try again later.');return}if(!q){_msg('Start typing to find tools');return}
+var m=toolCache.filter(function(t){var n=((t&&t.name)||'').toLowerCase();var ds=((t&&t.desc)||'').toLowerCase();return n.indexOf(q)>-1||ds.indexOf(q)>-1})
 _results(m)}
+if(si){si.addEventListener('input',filterTools)}
 function cS(){if(dia)dia.close();document.querySelectorAll('[id^=searchToggle]').forEach(function(b){b.setAttribute('aria-expanded','false')})}
 document.querySelectorAll('[id^=searchToggle]').forEach(function(b){b.setAttribute('aria-expanded','false');b.addEventListener('click',function(){oS();b.setAttribute('aria-expanded','true')})})
 var hsi=document.getElementById('heroSearchInput');function openFromHero(){if(dia&&dia.open)return;var v=hsi?hsi.value:'';oS();if(si&&v){si.value=v;filterTools()}if(hsi){hsi.setAttribute('aria-expanded','true');try{hsi.blur()}catch(e){}}}if(hsi){hsi.setAttribute('aria-haspopup','dialog');hsi.setAttribute('aria-expanded','false');hsi.addEventListener('click',openFromHero);hsi.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();openFromHero()}})}

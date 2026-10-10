@@ -16,12 +16,12 @@ router = APIRouter(tags=["health"])
 logger = get_logger(__name__)
 
 
-@router.get("/healthz", include_in_schema=False)
+@router.api_route("/healthz", methods=["GET", "HEAD"], include_in_schema=False)
 async def liveness() -> JSONResponse:
     return JSONResponse(content={"status": "ok"})
 
 
-@router.get("/readyz", include_in_schema=False)
+@router.api_route("/readyz", methods=["GET", "HEAD"], include_in_schema=False)
 async def readiness() -> JSONResponse:
     try:
         if not os.path.exists(settings.templates_dir):
@@ -67,7 +67,7 @@ async def readiness() -> JSONResponse:
         )
 
 
-@router.get("/versionz", include_in_schema=False)
+@router.api_route("/versionz", methods=["GET", "HEAD"], include_in_schema=False)
 async def version() -> JSONResponse:
     return JSONResponse(
         content={
@@ -77,7 +77,7 @@ async def version() -> JSONResponse:
     )
 
 
-@router.get("/metrics", include_in_schema=False)
+@router.api_route("/metrics", methods=["GET", "HEAD"], include_in_schema=False)
 async def metrics(request: Request) -> Response:
     require_internal(request)
     try:
@@ -85,4 +85,3 @@ async def metrics(request: Request) -> Response:
     except Exception as e:
         logger.exception("Metrics generation failed")
         raise HTTPException(status_code=500, detail="Failed to generate metrics") from e
-

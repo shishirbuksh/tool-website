@@ -47,12 +47,20 @@ ignore = ["E501", "EM101", "G004"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["SIM", "T20"]
+# CLI utility scripts print to stdout/stderr by design (dry-run, progress, errors).
+"scripts/*" = ["T20"]
+"check.py" = ["T20"]
+"content_rewrite.py" = ["T20"]
+"fix_*.py" = ["T20"]
 
 [tool.ruff.format]
 quote-style = "double"
 
 [tool.mypy]
-python_version = "3.11"
+# 3.12 target: numpy 2.4+ stubs use PEP 695 `type` statement syntax which mypy
+# cannot parse with python_version=3.11. Runtime still supports 3.11+ (we write
+# 3.11-compatible code; do NOT use 3.12-only runtime syntax).
+python_version = "3.12"
 strict = true
 ignore_missing_imports = true
 # ROUND-2: strict already implies disallow_untyped_defs; keep explicit true for gate clarity.
@@ -61,8 +69,15 @@ warn_unused_ignores = true
 exclude = ["venv/", ".git/", "node_modules/"]
 
 [[tool.mypy.overrides]]
-module = ["yfinance", "prophet", "rembg", "cv2"]
+module = ["yfinance", "prophet", "rembg", "cv2", "yaml"]
 ignore_missing_imports = true
+
+# numpy 2.4+ stubs use Python 3.12 `type` statement syntax which mypy with
+# python_version=3.11 cannot parse (local py3.14 env). Ignore stub syntax errors;
+# our code does not rely on numpy type precision.
+[[tool.mypy.overrides]]
+module = ["numpy.*"]
+ignore_errors = true
 
 [tool.coverage.run]
 source = ["app"]

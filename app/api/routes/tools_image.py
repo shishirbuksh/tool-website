@@ -27,6 +27,7 @@ _BG_COLOR_RE = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
 _image_semaphores: dict[int, asyncio.Semaphore] = {}
 _image_sem_lock = __import__("threading").Lock()
 
+
 def _get_semaphore() -> asyncio.Semaphore:
     loop_id = id(asyncio.get_running_loop())
     with _image_sem_lock:
@@ -38,6 +39,7 @@ def _get_semaphore() -> asyncio.Semaphore:
                 _image_semaphores.pop(next(iter(_image_semaphores)), None)
         return sem
 
+
 def _get_loop() -> asyncio.AbstractEventLoop:
     return asyncio.get_running_loop()
 
@@ -46,7 +48,9 @@ def _validate_bg_color(bg_color: str) -> str:
     if not bg_color or bg_color.strip() in ("", "transparent"):
         return bg_color
     if not _BG_COLOR_RE.match(bg_color.strip()):
-        raise HTTPException(status_code=400, detail=f"Invalid bg_color '{bg_color}'. Use empty or hex like #fff / #ffffff.")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid bg_color '{bg_color}'. Use empty or hex like #fff / #ffffff."
+        )
     return bg_color
 
 
@@ -58,6 +62,7 @@ def _verify_image_magic(data: bytes) -> None:
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid or corrupt image data") from None
     # NOTE: dimension check enforced in service via MAX_IMAGE_PIXELS / thumbnail caps.
+
 
 def _check_upload(upload: UploadFile) -> int:
     if not upload.content_type or upload.content_type not in ALLOWED_IMAGE_MIMES:
@@ -87,7 +92,9 @@ async def remove_background(
     loop = _get_loop()
     try:
         async with _get_semaphore():
-            result = await loop.run_in_executor(_ml_executor, image_service.remove_background, image_data, bg_color, smooth_edges)
+            result = await loop.run_in_executor(
+                _ml_executor, image_service.remove_background, image_data, bg_color, smooth_edges
+            )
         return Response(content=result, media_type="image/png")
     except HTTPException:
         raise
@@ -114,11 +121,12 @@ async def remove_watermark(
     loop = _get_loop()
     try:
         async with _get_semaphore():
-            result = await loop.run_in_executor(_ml_executor, image_service.remove_watermark, image_data, mask_data, algorithm)
+            result = await loop.run_in_executor(
+                _ml_executor, image_service.remove_watermark, image_data, mask_data, algorithm
+            )
         return Response(content=result, media_type="image/png")
     except HTTPException:
         raise
     except Exception as e:
         logger.exception("Failed to remove watermark")
         raise HTTPException(status_code=500, detail="Failed to remove watermark") from e
-

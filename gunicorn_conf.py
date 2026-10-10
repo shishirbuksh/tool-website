@@ -10,6 +10,7 @@ GRACEFUL_TIMEOUT should be close to TIMEOUT (e.g. 300 vs 320) so
 in-flight rembg/prophet requests finish on graceful reload instead
 of being SIGKILLed early (110s would cut 320s tasks short).
 """
+
 import logging
 import multiprocessing
 import os
@@ -20,12 +21,25 @@ host: str = os.getenv("HOST", "127.0.0.1")
 port: str = os.getenv("PORT", "8090")
 bind: str = f"{host}:{port}"
 
+
+def _safe_int(name: str, default: int) -> int:
+    """Parse int env without crashing master on empty/garbage values."""
+    try:
+        raw = os.getenv(name, "")
+        if raw is None or str(raw).strip() == "":
+            return default
+        return int(float(str(raw).strip()))
+    except (ValueError, TypeError):
+        log.warning("Invalid %s=%r, using default %d", name, os.getenv(name), default)
+        return default
+
+
 cores: int = multiprocessing.cpu_count()
-workers_per_core: float = float(os.getenv("WORKERS_PER_CORE", "1"))
+workers_per_core: float = float(os.getenv("WORKERS_PER_CORE", "1") or 1)
 default_web_concurrency: float = workers_per_core * cores + 1
 # WORKERS=0 (or any value <= 0) means "auto": cores + 1. This matches the
 # .env.example convention (WORKERS=0 = auto) instead of clamping to 2.
-_requested_workers: int = int(float(os.getenv("WORKERS", str(default_web_concurrency))))
+_requested_workers: int = _safe_int("WORKERS", int(default_web_concurrency))
 if _requested_workers <= 0:
     web_concurrency: int = int(default_web_concurrency)
 else:
@@ -43,13 +57,16 @@ loglevel: str = os.getenv("LOG_LEVEL", "info").lower()
 accesslog: str = "-"
 errorlog: str = "-"
 
-timeout: int = int(os.getenv("TIMEOUT", "320"))  # MUST stay > JobService task_timeout (90s). 320s allows rembg/prophet cold starts.
-keepalive: int = int(os.getenv("KEEP_ALIVE", "5"))
+timeout: int = _safe_int(
+    "TIMEOUT", 320
+)  # MUST stay > JobService task_timeout (90s). 320s allows rembg/prophet cold starts.
+keepalive: int = _safe_int("KEEP_ALIVE", 5)
 # Keep GRACEFUL_TIMEOUT close to TIMEOUT (300 vs 320) so graceful reloads
 # (SIGTERM/HUP) let in-flight requests finish; a small value (e.g. 110) would
 # kill long ML tasks early and cause 502s on deploy.
-graceful_timeout: int = int(os.getenv("GRACEFUL_TIMEOUT", "300"))
-worker_tmp_dir: str = "/dev/shm"
+graceful_timeout: int = _safe_int("GRACEFUL_TIMEOUT", 300)
+# /dev/shm is tiny (64M) in Docker — fall back to /tmp if missing/small.
+worker_tmp_dir: str = "/dev/shm" if os.path.isdir("/dev/shm") else "/tmp"
 limit_request_line: int = 8190
 limit_request_fields: int = 100
 

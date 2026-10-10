@@ -78,4 +78,3 @@ class TestAnalyticsService:
         counts = get_counts(limit=10)
         # Desired behavior: empty tool names are rejected and never stored.
         assert "" not in counts
-

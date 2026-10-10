@@ -104,12 +104,13 @@ async def indexnow_key_file(key: str) -> Response:
     INDEXNOW_KEY is configured and matches; otherwise 404 (no key disclosure).
     See scripts/submit_indexnow.py for URL submission.
     """
+    import hmac
+
     expected = (settings.INDEXNOW_KEY or "").strip()
-    if expected and _INDEXNOW_KEY_RE.match(key) and key == expected:
+    if expected and _INDEXNOW_KEY_RE.match(key) and hmac.compare_digest(key, expected):
         return Response(
             content=expected,
             media_type="text/plain",
             headers={"Cache-Control": "public, max-age=86400"},
         )
     raise HTTPException(status_code=404, detail="Not found")
-

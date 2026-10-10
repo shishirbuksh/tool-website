@@ -25,6 +25,7 @@ _prophet_semaphores: dict[int, asyncio.Semaphore] = {}
 _prophet_sem_lock = __import__("threading").Lock()
 _ml_executor = concurrent.futures.ThreadPoolExecutor(max_workers=10, thread_name_prefix="ml_worker")
 
+
 def _get_prophet_semaphore() -> asyncio.Semaphore:
     loop_id = id(asyncio.get_running_loop())
     with _prophet_sem_lock:
@@ -53,10 +54,6 @@ class CryptoService:
                 raise ServiceError(msg) from e
         return self._pd
 
-
-
-
-
     def _get_prophet(self) -> Any | None:
         """Lazy import Prophet; return None if not installed."""
         try:
@@ -72,9 +69,7 @@ class CryptoService:
         sem = _get_prophet_semaphore()
         async with sem:
             try:
-                return await asyncio.wait_for(
-                    loop.run_in_executor(_ml_executor, func), timeout=90
-                )
+                return await asyncio.wait_for(loop.run_in_executor(_ml_executor, func), timeout=90)
             except TimeoutError:
                 logger.warning("Prophet model timed out after 90s — degrading")
                 return None
@@ -121,18 +116,22 @@ class CryptoService:
             import datetime
 
             import requests
+
             pd = self._get_pd()
 
             # 1. Try CoinGecko (Never blocks datacenters)
             coin_map = {"BTC-USD": "bitcoin", "ETH-USD": "ethereum", "SOL-USD": "solana"}
             if symbol in coin_map:
                 try:
-                    r = requests.get(f"https://api.coingecko.com/api/v3/coins/{coin_map[symbol]}/market_chart?vs_currency=usd&days=365&interval=daily", timeout=10)
+                    r = requests.get(
+                        f"https://api.coingecko.com/api/v3/coins/{coin_map[symbol]}/market_chart?vs_currency=usd&days=365&interval=daily",
+                        timeout=10,
+                    )
                     if r.status_code == 200:
                         data = r.json()
                         prices = data.get("prices", [])
                         if prices:
-                            dates = [datetime.datetime.fromtimestamp(x[0]/1000, tz=datetime.UTC) for x in prices]
+                            dates = [datetime.datetime.fromtimestamp(x[0] / 1000, tz=datetime.UTC) for x in prices]
                             closes = [float(x[1]) for x in prices]
                             return pd.DataFrame({"Close": closes}, index=pd.DatetimeIndex(dates))
                 except Exception:
@@ -142,7 +141,7 @@ class CryptoService:
             binance_sym = symbol.replace("-USD", "USDT")
             urls = [
                 f"https://api.binance.com/api/v3/klines?symbol={binance_sym}&interval=1d&limit=365",
-                f"https://api.binance.us/api/v3/klines?symbol={binance_sym}&interval=1d&limit=365"
+                f"https://api.binance.us/api/v3/klines?symbol={binance_sym}&interval=1d&limit=365",
             ]
 
             last_error = ""
@@ -152,7 +151,7 @@ class CryptoService:
                     if r.status_code == 200:
                         data = r.json()
                         if data:
-                            dates = [datetime.datetime.fromtimestamp(x[0]/1000, tz=datetime.UTC) for x in data]
+                            dates = [datetime.datetime.fromtimestamp(x[0] / 1000, tz=datetime.UTC) for x in data]
                             closes = [float(x[4]) for x in data]
                             return pd.DataFrame({"Close": closes}, index=pd.DatetimeIndex(dates))
                 except Exception as e:
@@ -160,6 +159,7 @@ class CryptoService:
 
             msg = f"Symbol '{symbol}' not found or blocked by exchanges. Details: {last_error}"
             raise ServiceError(msg)
+
         try:
             df = await asyncio.wait_for(loop.run_in_executor(_ml_executor, _download), timeout=30)
         except TimeoutError:
@@ -204,6 +204,7 @@ class CryptoService:
             # PURE PYTHON FALLBACK: No Rust/C++ required!
             import math
             import random
+
             prices = close_prices.tolist()
             n = len(prices)
             if n < lookback:
@@ -226,7 +227,10 @@ class CryptoService:
             lr = 0.01
             for _ in range(min(10, rust_epochs)):
                 for i in range(len(x_train)):
-                    hidden = [max(0.0, sum(w1[j][k] * x_train[i][k] for k in range(lookback)) + b1[j]) for j in range(hidden_size)]
+                    hidden = [
+                        max(0.0, sum(w1[j][k] * x_train[i][k] for k in range(lookback)) + b1[j])
+                        for j in range(hidden_size)
+                    ]
                     out = sum(w2[j] * hidden[j] for j in range(hidden_size)) + b2
                     out = 1.0 / (1.0 + math.exp(max(-50, min(50, -out))))
                     err = out - y_train[i]
@@ -245,7 +249,10 @@ class CryptoService:
             clamp_hi = p_max * 10.0 if p_max > 0 else 1000000.0
 
             for _ in range(future_days):
-                hidden = [max(0.0, sum(w1[j][k] * current_seq[k] for k in range(lookback)) + b1[j]) for j in range(hidden_size)]
+                hidden = [
+                    max(0.0, sum(w1[j][k] * current_seq[k] for k in range(lookback)) + b1[j])
+                    for j in range(hidden_size)
+                ]
                 out = sum(w2[j] * hidden[j] for j in range(hidden_size)) + b2
                 out = 1.0 / (1.0 + math.exp(max(-50, min(50, -out))))
                 res = out * (p_max - p_min) + p_min
@@ -254,7 +261,6 @@ class CryptoService:
                 current_seq.append(out)
 
             return predictions
-
 
         # Belt-and-braces overall timeout: components are individually bounded
         # (prophet 90s + download 30s), but a stuck executor thread must never
@@ -270,14 +276,31 @@ class CryptoService:
         except TimeoutError:
             raise ServiceError("Model inference timed out after 150 seconds") from None
 
-
         last_date = df.index[-1]
         future_dates = [(last_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, future_days + 1)]
 
+        # Degraded engines return None — normalize to per-date None so zip(strict) never 500s.
+        if not isinstance(prophet_preds, list):
+            prophet_preds = [None] * len(future_dates)
+        if not isinstance(rust_preds, list):
+            rust_preds = [None] * len(future_dates)
+        # Truncate/pad to future_dates length in case an engine returned short list.
+        prophet_preds = list(prophet_preds[: len(future_dates)]) + [None] * max(
+            0, len(future_dates) - len(prophet_preds)
+        )
+        rust_preds = list(rust_preds[: len(future_dates)]) + [None] * max(0, len(future_dates) - len(rust_preds))
+
         if include_ta:
             result = await loop.run_in_executor(
-                None, self._build_trend_result,
-                symbol, close_prices, timestamps, future_dates, prophet_preds, rust_preds, df,
+                None,
+                self._build_trend_result,
+                symbol,
+                close_prices,
+                timestamps,
+                future_dates,
+                prophet_preds,
+                rust_preds,
+                df,
             )
             return result
 
@@ -364,7 +387,11 @@ class CryptoService:
         ]
 
         future_data = []
-        for d, p, r in zip(future_dates, prophet_preds, rust_preds, strict=True):
+        _pp = prophet_preds if isinstance(prophet_preds, list) else [None] * len(future_dates)
+        _rp = rust_preds if isinstance(rust_preds, list) else [None] * len(future_dates)
+        _pp = list(_pp[: len(future_dates)]) + [None] * max(0, len(future_dates) - len(_pp))
+        _rp = list(_rp[: len(future_dates)]) + [None] * max(0, len(future_dates) - len(_rp))
+        for d, p, r in zip(future_dates, _pp, _rp, strict=True):
             entry: dict[str, Any] = {"date": d}
             if p is not None:
                 with contextlib.suppress(TypeError, ValueError):
@@ -382,7 +409,6 @@ class CryptoService:
             proj_rs_price = float(proj_raw) if proj_raw is not None else None
         except (TypeError, ValueError):
             proj_rs_price = None
-
 
         score = 0
         if curr_rsi < 40:

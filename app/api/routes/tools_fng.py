@@ -87,4 +87,3 @@ async def fear_greed_index(limit: int = 31) -> dict[str, Any]:
         except Exception as e:
             logger.warning("fng fetch failed", exc_info=e)
             raise HTTPException(status_code=502, detail="Upstream Fear & Greed service unavailable") from e
-

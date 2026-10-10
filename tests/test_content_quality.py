@@ -95,8 +95,8 @@ class TestContentQuality:
 
     def test_no_orphans(self):
         data = _load()
-        indeg: dict[str, int] = {s: 0 for s in data}
-        for slug, info in data.items():
+        indeg: dict[str, int] = dict.fromkeys(data, 0)
+        for _slug, info in data.items():
             for rel in info.get("related_slugs") or []:
                 if rel in indeg:
                     indeg[rel] += 1

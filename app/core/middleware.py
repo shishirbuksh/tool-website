@@ -76,9 +76,7 @@ class OriginCheckMiddleware(BaseHTTPMiddleware):
 
     def _get_allowed(self) -> set[str]:
         if self._allowed is None:
-            allowed = settings.allowed_hosts_list + [
-                url.hostname for url in map(URL, settings.cors_origins_list)
-            ]
+            allowed = settings.allowed_hosts_list + [url.hostname for url in map(URL, settings.cors_origins_list)]
             self._allowed = {h.lower() for h in allowed if h}
         return self._allowed
 
@@ -95,9 +93,9 @@ class OriginCheckMiddleware(BaseHTTPMiddleware):
                     )
             else:
                 # No Origin: check Referer, then Fetch Metadata if present.
-                # Allow fully header-less clients (curl, TestClient, server-to-server)
-                # to preserve API usability; strict mode would break legit uses.
-                # TODO(strict): add REQUIRE_FETCH_METADATA=1 env to 403 when all absent.
+                # Fully header-less clients (curl, TestClient, server-to-server) are
+                # allowed by default to preserve API usability; set
+                # STRICT_ORIGIN_CHECK=1 to 403 them (breaks legit non-browser uses).
                 referer = request.headers.get("Referer")
                 if referer:
                     referer_host = (urlparse(referer).hostname or "").lower()
@@ -110,6 +108,12 @@ class OriginCheckMiddleware(BaseHTTPMiddleware):
                 else:
                     fetch_site = (request.headers.get("Sec-Fetch-Site") or "").lower()
                     if fetch_site and fetch_site not in ("same-origin", "same-site", "none"):
+                        return Response(
+                            content='{"detail":"Cross-origin request blocked"}',
+                            status_code=403,
+                            media_type="application/json",
+                        )
+                    if not fetch_site and settings.STRICT_ORIGIN_CHECK:
                         return Response(
                             content='{"detail":"Cross-origin request blocked"}',
                             status_code=403,
@@ -174,6 +178,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def _get_redis(self):
         try:
             from app.core.cache import _get_redis as _redis_conn  # noqa: PLC0415
+
             return _redis_conn()
         except Exception:
             return None
@@ -195,8 +200,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 return xff.split(",")[-1].strip()
         return direct_ip or "unknown"
 
-    def _is_rate_limited_redis(self, redis, key: str, now: float, limit: int | None = None) -> bool:
-        """Fixed-window check via Redis INCR. O(1) memory per IP, immune to DDoS RAM exhaustion."""
+    def _is_rate_limited_redis(self, redis, key: str, now: float, limit: int | None = None) -> bool | None:
+        """Fixed-window check via Redis INCR. O(1) memory per IP, immune to DDoS RAM exhaustion.
+        Returns None on Redis error so caller can fall back to memory (fail-closed-ish, not open)."""
         check = limit if limit is not None else self.requests_per_minute
         try:
             window_key = f"{key}:{int(now // 60)}"
@@ -213,7 +219,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 _mark_redis_unavailable(exc)
             except Exception:
                 pass
-            return False  # fail open on Redis errors — allow request rather than block all traffic
+            return None  # signal error — caller falls back to memory instead of fail-open
 
     def _is_rate_limited_memory(self, client_ip: str, now: float, limit: int | None = None) -> bool:
         """Sliding-window check against in-process dict."""
@@ -249,6 +255,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     )
     # Heavy HTML pages (Jinja render) — high but bounded limit to stop GET-flood DDoS
     # while allowing NATed offices. 200/min vs 60/min for writes.
+    # NOTE: locale prefixes use trailing slash + exact match to avoid overmatch
+    # ("/hi" must NOT match "/history", "/fr" must NOT match "/from").
     _HEAVY_GET_PREFIXES = (
         "/tool/",
         "/blog",
@@ -263,11 +271,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/hi/",
         "/es/",
         "/fr/",
-        "/hi",
-        "/es",
-        "/fr",
     )
+    _HEAVY_GET_EXACT = frozenset({"/hi", "/es", "/fr"})
     _HEAVY_GET_LIMIT = 200
+    # Light GET (sitemap, robots, catalog, health, static passthrough) — bounded
+    # to prevent CPU-amplification floods (YAML scans per sitemap hit). 200/min.
+    _LIGHT_GET_LIMIT = 200
+
+    @classmethod
+    def _is_heavy_get(cls, path: str) -> bool:
+        if path == "/":
+            return True
+        if path in cls._HEAVY_GET_EXACT:
+            return True
+        return path.startswith(cls._HEAVY_GET_PREFIXES)
 
     async def dispatch(self, request: Request, call_next) -> Response:
         path = request.url.path
@@ -275,20 +292,30 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.method in ("GET", "HEAD", "OPTIONS"):
             if path.startswith(self._EXPENSIVE_GET_PREFIXES):
                 pass  # limit stays 60
-            elif path == "/" or path.startswith(self._HEAVY_GET_PREFIXES):
+            elif self._is_heavy_get(path):
                 limit = self._HEAVY_GET_LIMIT
             else:
-                return await call_next(request)
+                # Previously unlimited — now bounded to stop sitemap/catalog enumeration floods.
+                limit = self._LIGHT_GET_LIMIT
 
         client_ip = self._resolve_ip(request)
         now = time.time()
         redis = self._get_redis()
 
+        blocked: bool = False
         if redis:
             key = f"ratelimit:{client_ip}:{limit}"
-            blocked = await asyncio.get_running_loop().run_in_executor(
+            res = await asyncio.get_running_loop().run_in_executor(
                 None, self._is_rate_limited_redis, redis, key, now, limit
             )
+            if res is None:
+                # Redis error — fall back to memory instead of fail-open.
+                if now - self._last_window_cleanup > 300:
+                    self._cleanup_windows()
+                    self._last_window_cleanup = now
+                blocked = self._is_rate_limited_memory(client_ip, now, limit)
+            else:
+                blocked = res
         else:
             if now - self._last_window_cleanup > 300:
                 self._cleanup_windows()
@@ -328,19 +355,23 @@ class MaxBodySizeMiddleware:
                 cl = int(cl_header)
                 if cl > self.max_size:
                     body = f'{{"detail":"Request body exceeds {self.max_size // (1024 * 1024)}MB limit"}}'
-                    await send({
-                        "type": "http.response.start",
-                        "status": 413,
-                        "headers": [(b"content-type", b"application/json")],
-                    })
+                    await send(
+                        {
+                            "type": "http.response.start",
+                            "status": 413,
+                            "headers": [(b"content-type", b"application/json")],
+                        }
+                    )
                     await send({"type": "http.response.body", "body": body.encode()})
                     return
             except (ValueError, TypeError):
-                await send({
-                    "type": "http.response.start",
-                    "status": 400,
-                    "headers": [(b"content-type", b"application/json")],
-                })
+                await send(
+                    {
+                        "type": "http.response.start",
+                        "status": 400,
+                        "headers": [(b"content-type", b"application/json")],
+                    }
+                )
                 await send({"type": "http.response.body", "body": b'{"detail":"Invalid Content-Length header"}'})
                 return
 
@@ -359,15 +390,19 @@ class MaxBodySizeMiddleware:
                     if body_total > self.max_size:
                         _overflow = True
                         if not _response_started:
-                            await send({
-                                "type": "http.response.start",
-                                "status": 413,
-                                "headers": [(b"content-type", b"application/json")],
-                            })
-                            await send({
-                                "type": "http.response.body",
-                                "body": b'{"detail":"Request body exceeds size limit"}',
-                            })
+                            await send(
+                                {
+                                    "type": "http.response.start",
+                                    "status": 413,
+                                    "headers": [(b"content-type", b"application/json")],
+                                }
+                            )
+                            await send(
+                                {
+                                    "type": "http.response.body",
+                                    "body": b'{"detail":"Request body exceeds size limit"}',
+                                }
+                            )
                             _response_started = True
                         return {"type": "http.disconnect"}
                 return msg
@@ -401,9 +436,7 @@ class CleanQueryMiddleware(BaseHTTPMiddleware):
             junk = {
                 k
                 for k in params
-                if k in self._JUNK_EXACT
-                or k.lower() == "pagespeed"
-                or k.startswith(self._JUNK_PREFIXES)
+                if k in self._JUNK_EXACT or k.lower() == "pagespeed" or k.startswith(self._JUNK_PREFIXES)
             }
             if junk:
                 clean = {k: v for k, v in params.items() if k not in junk}

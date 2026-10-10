@@ -5,7 +5,7 @@ from app.core.sanitize import enhance_tables, sanitize_html
 
 class TestSanitize:
     def test_script_stripped(self):
-        out = str(sanitize_html('<script>alert(1)</script><p>hi</p>'))
+        out = str(sanitize_html("<script>alert(1)</script><p>hi</p>"))
         assert "<script" not in out
         assert "hi" in out
 
@@ -42,12 +42,22 @@ class TestSanitize:
 
 class TestArticleTables:
     def test_caption_and_scope_survive_sanitize(self):
-        out = str(sanitize_html("<table><caption>Table — Demo</caption><thead><tr><th scope=\"col\">A</th></tr></thead><tbody><tr><td>1</td></tr></tbody></table>"))
+        out = str(
+            sanitize_html(
+                '<table><caption>Table — Demo</caption><thead><tr><th scope="col">A</th></tr></thead><tbody><tr><td>1</td></tr></tbody></table>'
+            )
+        )
         assert "<caption>" in out
         assert 'scope="col"' in out
 
     def test_enhance_tables_adds_scope_and_wrapper(self):
-        out = str(sanitize_html(enhance_tables("<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>")))
+        out = str(
+            sanitize_html(
+                enhance_tables(
+                    "<table><thead><tr><th>A</th><th>B</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>"
+                )
+            )
+        )
         assert out.count('scope="col"') == 2
         assert 'class="table-scroll"' in out
         assert 'role="region"' in out

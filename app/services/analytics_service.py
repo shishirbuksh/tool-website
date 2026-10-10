@@ -63,10 +63,7 @@ def _writer_worker():
 
         if batch:
             try:
-                conn.executemany(
-                    "INSERT INTO events_v2 (name, category, ts) VALUES (?, ?, ?)",
-                    batch
-                )
+                conn.executemany("INSERT INTO events_v2 (name, category, ts) VALUES (?, ?, ?)", batch)
                 conn.commit()
             except Exception:
                 logger.exception("Failed to bulk insert analytics batch")
@@ -109,7 +106,7 @@ def _init_pool() -> None:
     init_conn = sqlite3.connect(DB_PATH, timeout=10.0)
     init_conn.execute("PRAGMA journal_mode=WAL;")
     init_conn.execute("PRAGMA auto_vacuum = INCREMENTAL;")
-    init_conn.execute("PRAGMA mmap_size = 268435456;") # 256MB mmap
+    init_conn.execute("PRAGMA mmap_size = 268435456;")  # 256MB mmap
     init_conn.execute(
         "CREATE TABLE IF NOT EXISTS events_v2 ("
         "  id INTEGER PRIMARY KEY,"
@@ -181,7 +178,7 @@ def track(name: str, category: str = "page_view") -> bool:
 
     # Initialize pool & writer if not done
     if _conn_pool is None:
-         with _pool_lock:
+        with _pool_lock:
             if _conn_pool is None:
                 _init_pool()
 

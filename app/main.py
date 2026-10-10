@@ -133,7 +133,9 @@ app.add_middleware(
     max_age=600,
 )
 app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(MaxBodySizeMiddleware, max_size=max(settings.IMAGE_MAX_SIZE, settings.PDF_MAX_SIZE))
+# Watermark takes 2xIMAGE_MAX (image+mask) + multipart overhead — allow 2x+1MB
+# so legit 10+10MB requests don't 413 at the global gate (route still checks each file).
+app.add_middleware(MaxBodySizeMiddleware, max_size=2 * settings.IMAGE_MAX_SIZE + 1024 * 1024)
 app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
 # CleanQuery just inside TrustedHost so junk params are stripped before redirects.
 app.add_middleware(CleanQueryMiddleware)
@@ -234,13 +236,15 @@ async def ads_txt():
 
 @app.get("/service-worker", include_in_schema=False)
 async def service_worker():
+    sw_path = os.path.join(settings.static_dir, "sw.js")
+    if not os.path.isfile(sw_path):
+        from fastapi import HTTPException as _HTTPException
+
+        raise _HTTPException(status_code=404, detail="Not found")
     return FileResponse(
-        os.path.join(settings.static_dir, "sw.js"),
+        sw_path,
         media_type="application/javascript",
-        headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Service-Worker-Allowed": "/"
-        }
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Service-Worker-Allowed": "/"},
     )
 
 

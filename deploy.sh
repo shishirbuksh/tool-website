@@ -37,7 +37,18 @@ ensure_system_deps() {
     if [ -n "$missing" ]; then
         log_info "Installing missing system deps: $missing"
         sudo apt-get update -qq
-        sudo apt-get install -y -qq python3 python3-pip python3-venv libgomp1 libglib2.0-0 curl nodejs npm
+        sudo apt-get install -y -qq python3 python3-pip python3-venv libgomp1 libglib2.0-0 curl
+        # Ubuntu distro nodejs is too old (12/16) — esbuild needs >=18. Use NodeSource 20 LTS.
+        if ! command -v node >/dev/null 2>&1 || [ "$(node -p 'process.versions.node.split(\".\")[0]' 2>/dev/null || echo 0)" -lt 18 ]; then
+            log_info "Installing Node.js 20 LTS via NodeSource..."
+            curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+            sudo apt-get install -y -qq nodejs
+        fi
+        if ! command -v node >/dev/null 2>&1; then
+            log_error "Node.js install failed — frontend compress will be skipped"
+        else
+            log_info "Node $(node --version) ready"
+        fi
     else
         # Just to be safe, ensure these libraries exist for OpenCV/onnxruntime
         sudo apt-get install -y -qq libgomp1 libglib2.0-0 >/dev/null 2>&1 || true
@@ -66,6 +77,7 @@ fix_service_paths() {
 # Pinned heavy ML deps — keep in sync with requirements.txt comments.
 HEAVY_REMBG="rembg[cpu]==2.2.1"
 HEAVY_CV2="opencv-python-headless==4.10.0.84"
+HEAVY_PROPHET="prophet==1.1.7"
 
 install_python() {
     log_info "Installing Python core dependencies..."
@@ -81,6 +93,12 @@ install_python() {
     if ! python3 -c "import cv2" 2>/dev/null; then
         log_info "Installing OpenCV ($HEAVY_CV2)..."
         pip install -q --no-cache-dir "$HEAVY_CV2"
+    fi
+
+    # Install prophet for crypto forecasting (optional, CPU-heavy)
+    if ! python3 -c "import prophet" 2>/dev/null; then
+        log_info "Installing heavy optional dependency: $HEAVY_PROPHET"
+        pip install -q --no-cache-dir "$HEAVY_PROPHET" || log_warn "prophet install failed — crypto endpoints will use missing-deps path"
     fi
 
 
@@ -104,10 +122,16 @@ build_rust() {
 
 build_frontend() {
     log_info "Frontend build skipped (Tailwind is pre-compiled and tracked in Git to save VPS memory)"
-    # Clean up stale compressed files so NGINX doesn't serve old CSS
+    # Clean up stale compressed files so Caddy doesn't serve old CSS/JS
     rm -f "$APP_DIR"/static/css/*.gz "$APP_DIR"/static/css/*.br
     rm -f "$APP_DIR"/static/js/*.gz "$APP_DIR"/static/js/*.br
     rm -f "$APP_DIR"/static/*.gz "$APP_DIR"/static/*.br
+    # Regenerate precompressed .gz/.br so Caddy precompressed works (else on-the-fly CPU)
+    if command -v node >/dev/null 2>&1 && [ -f "$APP_DIR/scripts/compress.js" ]; then
+        node "$APP_DIR/scripts/compress.js" || log_warn "compress.js failed — Caddy will compress on the fly"
+    else
+        log_warn "node/compress.js missing — skipped precompression (Caddy will compress on the fly)"
+    fi
 }
 
 backup_current() {
@@ -126,8 +150,12 @@ backup_current() {
              --exclude='var/' --exclude='.u2net/' \
              "$APP_DIR/" "$BACKUP_DIR/"
     # Backup SQLite separately (consistent snapshot)
-    if [ -f "$APP_DIR/var/data/analytics.db" ] && command -v sqlite3 >/dev/null 2>&1; then
-        sqlite3 "$APP_DIR/var/data/analytics.db" ".backup '$BACKUP_DIR/analytics.db.bak'" 2>/dev/null || true
+    if [ -f "$APP_DIR/var/data/analytics.db" ]; then
+        if command -v sqlite3 >/dev/null 2>&1; then
+            sqlite3 "$APP_DIR/var/data/analytics.db" ".backup '$BACKUP_DIR/analytics.db.bak'" 2>/dev/null || log_warn "sqlite backup failed — rollback will keep current DB"
+        else
+            log_warn "sqlite3 missing — skipping analytics.db snapshot (code/DB may skew on rollback); install sqlite3"
+        fi
     fi
 }
 
@@ -208,7 +236,7 @@ health_check() {
             done
             if [ "$ok" -eq 3 ]; then
                 # Confirm deployed version is serving (catches HUP/.env staleness).
-                served="$(curl -sf --max-time 5 "http://$dial_host:$port/versionz" 2>/dev/null | grep -o '"version":"[^"]*"' || true)"
+                served="$(curl -sf --max-time 5 "http://$dial_host:$port/versionz" 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin).get('version',''))" 2>/dev/null || true)"
                 log_info "Application is healthy! ✓ (healthz + 3x readyz ${served})"
                 # Via Caddy: ensures reverse_proxy + TLS path works, not just gunicorn.
                 # Non-fatal if Caddy isn't running locally (e.g. dev), fatal in prod setup.
@@ -333,7 +361,7 @@ setup_permissions() {
 cleanup_backup() {
     if [ -d "$BACKUP_DIR" ]; then
         log_warn "Deploy failed — rolling back..."
-        rsync -a --delete --exclude='venv' --exclude='node_modules' --exclude='var/' --exclude='.u2net/' "$BACKUP_DIR/" "$APP_DIR/"
+        rsync -a --delete --exclude='venv' --exclude='node_modules' --exclude='.git' --exclude='var/' --exclude='.u2net/' --exclude='rust_predictor/target' --exclude='__pycache__' --exclude='*.pyc' --exclude='.pytest_cache' --exclude='.ruff_cache' "$BACKUP_DIR/" "$APP_DIR/"
         # Restore consistent SQLite snapshot taken before pull (code+DB stay in sync).
         if [ -f "$BACKUP_DIR/analytics.db.bak" ]; then
             mkdir -p "$APP_DIR/var/data"

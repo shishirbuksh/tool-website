@@ -70,6 +70,7 @@ def _get_redis():
             import redis as redis_module
 
             from app.core.config import settings
+
             redis_url = settings.REDIS_URL or "redis://localhost:6379/0"
             client = redis_module.from_url(redis_url, socket_timeout=2.0, decode_responses=True)
             client.ping()
@@ -172,7 +173,7 @@ def _wrap_for_storage(value: Any) -> str:
 
 def _unwrap_stored(payload: str) -> Any:
     if payload.startswith(_STR_MARKER):
-        raw = payload[len(_STR_MARKER):]
+        raw = payload[len(_STR_MARKER) :]
         if raw.startswith("bytes:"):
             try:
                 return bytes.fromhex(raw[6:])

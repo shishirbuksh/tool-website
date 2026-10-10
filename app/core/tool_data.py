@@ -28,10 +28,14 @@ class ToolDataLoader:
             path = os.path.join(settings.base_dir, "data", "tools.yaml")
             try:
                 with open(path, "rb") as f:
-                    cls._data = yaml.safe_load(f)["tools"]
+                    loaded = yaml.safe_load(f)
             except FileNotFoundError as e:
                 msg = f"Tool data file not found: {path}"
                 raise FileNotFoundError(msg) from e
+            if not isinstance(loaded, dict) or not isinstance(loaded.get("tools"), dict):
+                msg = f"Tool data malformed (missing 'tools' dict): {path}"
+                raise ValueError(msg)
+            cls._data = loaded["tools"]
             cls._cache_ts = now
             return cls._data
 
@@ -55,11 +59,13 @@ class ToolDataLoader:
             cat = info["category"]
             if cat not in cats:
                 cats[cat] = []
-            cats[cat].append({
-                "name": info["name"],
-                "url": f"/tool/{slug}",
-                "desc": info["description"],
-            })
+            cats[cat].append(
+                {
+                    "name": info["name"],
+                    "url": f"/tool/{slug}",
+                    "desc": info["description"],
+                }
+            )
         for cat in cats:
             cats[cat].sort(key=lambda x: x["name"])
         return dict(sorted(cats.items()))

@@ -67,6 +67,11 @@ class Settings(BaseSettings):
         default="",
         description="IndexNow key (Bing/Yandex instant indexing); served at /<KEY>.txt, used by scripts/submit_indexnow.py",
     )
+    STRICT_ORIGIN_CHECK: bool = Field(
+        default=False,
+        description="When true, header-less cross-origin writes (no Origin/Referer/Sec-Fetch-Site) are 403'd. "
+        "Keep false if non-browser clients (curl, server-to-server) use the write APIs.",
+    )
 
     SUPPORTED_LOCALES: tuple[str, ...] = ("en", "hi", "es", "fr")
     DEFAULT_LOCALE: str = "en"
@@ -143,8 +148,7 @@ class Settings(BaseSettings):
     def _fail_fast_on_prod_hosts(self):
         if self.is_prod and not (self.ALLOWED_HOSTS or "").strip():
             raise ValueError(
-                "ALLOWED_HOSTS must be set when ENV==prod. "
-                "Example: ALLOWED_HOSTS=storybrainai.com,www.storybrainai.com"
+                "ALLOWED_HOSTS must be set when ENV==prod. Example: ALLOWED_HOSTS=storybrainai.com,www.storybrainai.com"
             )
         return self
 

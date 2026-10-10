@@ -71,14 +71,15 @@ class CatalogService:
         for slug, info in data.items():
             over = ((info.get("i18n") or {}).get(loc) or {}) if isinstance(info, dict) else {}
             cat = info.get("category", "")
-            cats.setdefault(cat, []).append({
-                "name": over.get("name") or info.get("name", ""),
-                "url": localize_path(f"/tool/{slug}", loc),
-                "desc": over.get("description") or info.get("description", ""),
-            })
+            cats.setdefault(cat, []).append(
+                {
+                    "name": over.get("name") or info.get("name", ""),
+                    "url": localize_path(f"/tool/{slug}", loc),
+                    "desc": over.get("description") or info.get("description", ""),
+                }
+            )
         for cat in cats:
             cats[cat].sort(key=lambda x: x["name"])
         payload = (dict(sorted(cats.items())), self.get_categorized_tools()[1])
         _LOCALE_CACHE[loc] = (now, payload)
         return payload
-

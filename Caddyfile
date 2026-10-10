@@ -27,6 +27,8 @@
 }
 
 {$CADDY_DOMAIN:storybrainai.com}, www.{$CADDY_DOMAIN:storybrainai.com} {
+    # NOTE: CADDY_DOMAIN must be apex (storybrainai.com, NOT www.storybrainai.com)
+    # or the second site address becomes www.www.*. Keep apex-only.
     @nonwww {
         not host www.{$CADDY_DOMAIN:storybrainai.com}
     }
@@ -80,6 +82,9 @@
         header Cache-Control "public, max-age=86400"
     }
     # Non-hashed entry points — must revalidate (see TODO above, matches app/main.py:185).
+    # NOTE: tools.js/tools.utils.js/fonts.css/vendor/qrcode are also non-hashed
+    # (scripts/build.js has no [hash]) so they MUST NOT use immutable — else
+    # browsers pin stale code for 1y. Only hashed/long-lived images use immutable below.
     handle /static/js/app.js {
         uri strip_prefix /static
         root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
@@ -88,7 +93,55 @@
         }
         header Cache-Control "public, max-age=3600, must-revalidate"
     }
+    handle /static/js/tools.js {
+        uri strip_prefix /static
+        root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
+        file_server {
+            precompressed br gzip
+        }
+        header Cache-Control "public, max-age=3600, must-revalidate"
+    }
+    handle /static/js/tools.utils.js {
+        uri strip_prefix /static
+        root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
+        file_server {
+            precompressed br gzip
+        }
+        header Cache-Control "public, max-age=3600, must-revalidate"
+    }
     handle /static/css/app.css {
+        uri strip_prefix /static
+        root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
+        file_server {
+            precompressed br gzip
+        }
+        header Cache-Control "public, max-age=3600, must-revalidate"
+    }
+    handle /static/css/fonts.css {
+        uri strip_prefix /static
+        root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
+        file_server {
+            precompressed br gzip
+        }
+        header Cache-Control "public, max-age=3600, must-revalidate"
+    }
+    handle /static/js/vendor/* {
+        uri strip_prefix /static
+        root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
+        file_server {
+            precompressed br gzip
+        }
+        header Cache-Control "public, max-age=3600, must-revalidate"
+    }
+    handle /static/js/qrcode.min.js {
+        uri strip_prefix /static
+        root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
+        file_server {
+            precompressed br gzip
+        }
+        header Cache-Control "public, max-age=3600, must-revalidate"
+    }
+    handle /static/js/jsqr.min.js {
         uri strip_prefix /static
         root * {$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}
         file_server {

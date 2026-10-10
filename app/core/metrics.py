@@ -13,9 +13,7 @@ logger = get_logger(__name__)
 _PATH_CARDINALITY_WARNED: set[str] = set()
 _CARDINALITY_CAP_WARNED = False
 
-_UUID_RE = re.compile(
-    r"/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?=/|$)"
-)
+_UUID_RE = re.compile(r"/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(?=/|$)")
 _NUMERIC_RE = re.compile(r"/\d+(?=/|$)")
 _TOOL_SLUG_RE = re.compile(r"^/tool/[^/]+")
 _PAGE_RE = re.compile(r"^/(about|contact|privacy|terms|disclaimer)/?$")
@@ -40,6 +38,7 @@ def _normalize_path(path: str) -> str:
     path = _UUID_RE.sub("/{id}", path)
     path = _NUMERIC_RE.sub("/{id}", path)
     return path
+
 
 def _safe_path_label(request, max_labels: int = 100) -> str:
     """Return the route pattern path to bound Prometheus label cardinality.
@@ -68,6 +67,7 @@ def _safe_path_label(request, max_labels: int = 100) -> str:
                 path,
             )
     return path
+
 
 request_count = Counter(
     "http_requests_total",
