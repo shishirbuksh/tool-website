@@ -57,7 +57,6 @@ class SitemapService:
             return files
         return []
 
-
     def _get_lastmod(self, filepath: str) -> str | None:
         try:
             return datetime.fromtimestamp(os.path.getmtime(filepath), tz=UTC).strftime("%Y-%m-%d")
@@ -78,7 +77,7 @@ class SitemapService:
         index_path = os.path.join(self.settings.templates_dir, "index.html")
         pages.append({"loc": "/", "priority": "1.0", "changefreq": "weekly", "filepath": index_path})
         sitemap_path = os.path.join(self.settings.templates_dir, "pages", "sitemap.html")
-        pages.append({"loc": "/sitemap", "priority": "0.5", "changefreq": "monthly", "filepath": sitemap_path})
+        pages.append({"loc": "/sitemap", "priority": "0.5", "changefreq": "monthly", "filepath": sitemap_path, "no_localize": True})
 
         hub_pages = list(self.settings.HUB_CATEGORIES.keys())
         hub_filepath = os.path.join(self.settings.templates_dir, "hub.html")
@@ -102,13 +101,15 @@ class SitemapService:
                 priority = ToolDataLoader.get_priority(slug)
                 info = ToolDataLoader.get(slug)
                 yaml_date = info.get("date_modified") if info else None
-                pages.append({
-                    "loc": f"/tool/{slug}",
-                    "priority": str(priority),
-                    "changefreq": self._get_changefreq(f"/tool/{slug}"),
-                    "filepath": os.path.join(tools_dir, fname),
-                    "yaml_date": yaml_date,
-                })
+                pages.append(
+                    {
+                        "loc": f"/tool/{slug}",
+                        "priority": str(priority),
+                        "changefreq": self._get_changefreq(f"/tool/{slug}"),
+                        "filepath": os.path.join(tools_dir, fname),
+                        "yaml_date": yaml_date,
+                    }
+                )
 
         pages_dir = os.path.join(self.settings.templates_dir, "pages")
         skip_pages = {"sitemap", "404", "offline", "500"}
@@ -118,48 +119,59 @@ class SitemapService:
                     slug = f[:-5]
                     if slug not in skip_pages:
                         if slug == "tools":
-                            pages.append({
-                                "loc": f"/{slug}",
-                                "priority": "0.8",
-                                "changefreq": "weekly",
-                                "filepath": os.path.join(pages_dir, f),
-                            })
+                            pages.append(
+                                {
+                                    "loc": f"/{slug}",
+                                    "priority": "0.8",
+                                    "changefreq": "weekly",
+                                    "filepath": os.path.join(pages_dir, f),
+                                }
+                            )
                         else:
-                            pages.append({
-                                "loc": f"/{slug}",
-                                "priority": "0.4",
-                                "changefreq": "monthly",
-                                "filepath": os.path.join(pages_dir, f),
-                            })
+                            pages.append(
+                                {
+                                    "loc": f"/{slug}",
+                                    "priority": "0.4",
+                                    "changefreq": "monthly",
+                                    "filepath": os.path.join(pages_dir, f),
+                                }
+                            )
 
         try:
             from app.services.blog_service import BlogService  # noqa: PLC0415
 
             blog_svc = BlogService(self.settings)
             blog_tpl_dir = os.path.join(self.settings.templates_dir, "blog")
-            pages.append({
-                "loc": "/blog",
-                "priority": "0.8",
-                "changefreq": "weekly",
-                "filepath": os.path.join(blog_tpl_dir, "index.html"),
-            })
-            for pillar in blog_svc.get_pillars():
-                pages.append({
-                    "loc": f"/blog/{pillar}",
-                    "priority": "0.6",
+            pages.append(
+                {
+                    "loc": "/blog",
+                    "priority": "0.8",
                     "changefreq": "weekly",
-                    "filepath": os.path.join(blog_tpl_dir, "pillar.html"),
-                })
+                    "filepath": os.path.join(blog_tpl_dir, "index.html"),
+                }
+            )
+            for pillar in blog_svc.get_pillars():
+                pages.append(
+                    {
+                        "loc": f"/blog/{pillar}",
+                        "priority": "0.6",
+                        "changefreq": "weekly",
+                        "filepath": os.path.join(blog_tpl_dir, "pillar.html"),
+                    }
+                )
             for post in blog_svc.get_all():
-                pages.append({
-                    "loc": f"/blog/{post.pillar}/{post.slug}",
-                    "priority": "0.5",
-                    "changefreq": self._get_changefreq(f"/blog/{post.pillar}/{post.slug}"),
-                    "filepath": os.path.join(blog_tpl_dir, "post.html"),
-                    "yaml_date": post.date_modified or None,
-                })
+                pages.append(
+                    {
+                        "loc": f"/blog/{post.pillar}/{post.slug}",
+                        "priority": "0.5",
+                        "changefreq": self._get_changefreq(f"/blog/{post.pillar}/{post.slug}"),
+                        "filepath": os.path.join(blog_tpl_dir, "post.html"),
+                        "yaml_date": post.date_modified or None,
+                    }
+                )
         except Exception:
             from app.core.log import get_logger
+
             logger = get_logger(__name__)
             logger.exception("Failed to build sitemap blog entries")
         return pages
@@ -173,7 +185,9 @@ class SitemapService:
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
         ]
         for page in pages:
-            loc_path = localize_path(page["loc"], locale)
+            if page.get("no_localize") and locale != "en":
+                continue
+            loc_path = localize_path(page["loc"], locale) if not page.get("no_localize") else page["loc"]
             loc_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{loc_path}")
             lines.append("  <url>")
             lines.append(f"    <loc>{loc_url}</loc>")
@@ -196,11 +210,12 @@ class SitemapService:
             # hreflang alternates for every supported locale (+ x-default -> en).
             # Placed after priority so legacy loc/lastmod/changefreq/priority
             # adjacency regexes in tests keep passing; order is irrelevant to crawlers.
-            for alt in SUPPORTED_LOCALES:
-                alt_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{localize_path(page['loc'], alt)}")
-                lines.append(f'    <xhtml:link rel="alternate" hreflang="{alt}" href="{alt_url}" />')
-            default_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{localize_path(page['loc'], 'en')}")
-            lines.append(f'    <xhtml:link rel="alternate" hreflang="x-default" href="{default_url}" />')
+            if not page.get("no_localize"):
+                for alt in SUPPORTED_LOCALES:
+                    alt_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{localize_path(page['loc'], alt)}")
+                    lines.append(f'    <xhtml:link rel="alternate" hreflang="{alt}" href="{alt_url}" />')
+                default_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{localize_path(page['loc'], 'en')}")
+                lines.append(f'    <xhtml:link rel="alternate" hreflang="x-default" href="{default_url}" />')
 
             lines.append("  </url>")
         lines.append("</urlset>")
@@ -246,7 +261,7 @@ class SitemapService:
             if cached:
                 return cached
 
-            site_url = self.settings.SITE_URL.rstrip('/')
+            site_url = self.settings.SITE_URL.rstrip("/")
             content = (
                 f"User-agent: *\n"
                 f"Allow: /sitemap.xml\n"
@@ -306,7 +321,7 @@ class SitemapService:
                     desc = info.get("description", "").strip()
                     link = f"{self.settings.SITE_URL.rstrip('/')}/tool/{slug}"
                     if desc:
-                        desc = desc.replace('\n', ' ')
+                        desc = desc.replace("\n", " ")
                         tool_lines.append(f"- [{name}]({link}): {desc}")
                     else:
                         tool_lines.append(f"- [{name}]({link})")
@@ -335,6 +350,7 @@ class SitemapService:
                     lines.append(f"- [{post.title}]({site_base}/blog/{post.pillar}/{post.slug})")
             except Exception:
                 from app.core.log import get_logger
+
                 logger = get_logger(__name__)
                 logger.exception("Failed to build llms.txt guides section")
 
