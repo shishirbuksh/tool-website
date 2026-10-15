@@ -53,6 +53,28 @@ ensure_system_deps() {
         # Just to be safe, ensure these libraries exist for OpenCV/onnxruntime
         sudo apt-get install -y -qq libgomp1 libglib2.0-0 >/dev/null 2>&1 || true
     fi
+
+    # Low-RAM VPS protection: ensure at least 1-2GB swap exists so Linux kernel doesn't OOM kill workers
+    if [ -f /proc/meminfo ]; then
+        local mem_kb=$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
+        local swap_kb=$(awk '/SwapTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
+        if [ "$mem_kb" -gt 0 ] && [ "$mem_kb" -le 1572864 ] && [ "$swap_kb" -lt 524288 ]; then
+            if [ ! -f /swapfile ] && command -v swapon >/dev/null 2>&1; then
+                log_info "Detected low RAM (${mem_kb}kB) and insufficient swap (${swap_kb}kB). Creating 2GB swapfile..."
+                sudo fallocate -l 2G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=2048 2>/dev/null || true
+                if [ -f /swapfile ]; then
+                    sudo chmod 600 /swapfile
+                    sudo mkswap /swapfile >/dev/null 2>&1 || true
+                    sudo swapon /swapfile >/dev/null 2>&1 || true
+                    if ! grep -q '/swapfile' /etc/fstab 2>/dev/null; then
+                        echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab >/dev/null 2>&1 || true
+                    fi
+                    log_info "2GB swapfile activated successfully."
+                fi
+            fi
+        fi
+    fi
+
     # Firewall: gunicorn binds 127.0.0.1 — deny direct 8090, allow web only.
     if command -v ufw >/dev/null 2>&1; then
         sudo ufw deny 8090/tcp >/dev/null 2>&1 || true
@@ -83,35 +105,48 @@ install_python() {
     log_info "Installing Python core dependencies..."
     pip install -q --no-cache-dir -r "$APP_DIR/requirements.txt"
     
-    # Install heavy optional dependencies (pinned for reproducibility)
-    if ! python3 -c "import rembg" 2>/dev/null; then
-        log_info "Installing heavy optional dependency: $HEAVY_REMBG"
-        pip install -q --no-cache-dir "$HEAVY_REMBG"
+    # Check total system memory to avoid OOM killer on low-RAM VPS (<= 1.5GB)
+    local total_mem_kb=0
+    if [ -f /proc/meminfo ]; then
+        total_mem_kb=$(awk '/MemTotal/ {print $2}' /proc/meminfo 2>/dev/null || echo 0)
     fi
+    local total_mem_mb=$((total_mem_kb / 1024))
+    local allow_heavy="${INSTALL_HEAVY_ML:-false}"
 
-    # Install opencv for watermark remover
-    if ! python3 -c "import cv2" 2>/dev/null; then
-        log_info "Installing OpenCV ($HEAVY_CV2)..."
-        pip install -q --no-cache-dir "$HEAVY_CV2"
-    fi
-
-    # Install prophet for crypto forecasting (optional, CPU-heavy)
-    if ! python3 -c "import prophet" 2>/dev/null; then
-        log_info "Installing heavy optional dependency: $HEAVY_PROPHET"
-        pip install -q --no-cache-dir "$HEAVY_PROPHET" || log_warn "prophet install failed — crypto endpoints will use missing-deps path"
-    fi
-
-
-    # Pre-download rembg models using curl to avoid ONNX RAM spike
-    if python3 -c "import rembg" 2>/dev/null; then
-        log_info "Pre-downloading rembg models via curl to save RAM..."
-        export U2NET_HOME="$APP_DIR/.u2net"
-        mkdir -p "$U2NET_HOME"
-        if [ ! -f "$U2NET_HOME/u2net.onnx" ]; then
-            curl -L -s -o "$U2NET_HOME/u2net.onnx" "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx" || true
+    if [ "$total_mem_mb" -gt 0 ] && [ "$total_mem_mb" -le 1536 ] && [ "$allow_heavy" != "true" ]; then
+        log_warn "VPS has <= 1.5GB RAM (${total_mem_mb}MB detected). Skipping heavy ML deps (rembg, opencv, prophet) to protect 1GB VPS from OOM crashes."
+        log_warn "Background remover / watermark remover / crypto prophet will run in fallback mode."
+        log_warn "To force install (if 2GB+ swap is enabled), deploy with: INSTALL_HEAVY_ML=true sudo bash deploy.sh"
+    else
+        # Install heavy optional dependencies (pinned for reproducibility)
+        if ! python3 -c "import rembg" 2>/dev/null; then
+            log_info "Installing heavy optional dependency: $HEAVY_REMBG"
+            pip install -q --no-cache-dir "$HEAVY_REMBG" || log_warn "rembg install failed — falling back to pure Python"
         fi
-        if [ ! -f "$U2NET_HOME/u2netp.onnx" ]; then
-            curl -L -s -o "$U2NET_HOME/u2netp.onnx" "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx" || true
+
+        # Install opencv for watermark remover
+        if ! python3 -c "import cv2" 2>/dev/null; then
+            log_info "Installing OpenCV ($HEAVY_CV2)..."
+            pip install -q --no-cache-dir "$HEAVY_CV2" || log_warn "OpenCV install failed — falling back to pure Python"
+        fi
+
+        # Install prophet for crypto forecasting (optional, CPU-heavy)
+        if ! python3 -c "import prophet" 2>/dev/null; then
+            log_info "Installing heavy optional dependency: $HEAVY_PROPHET"
+            pip install -q --no-cache-dir "$HEAVY_PROPHET" || log_warn "prophet install failed — crypto endpoints will use missing-deps path"
+        fi
+
+        # Pre-download rembg models using curl to avoid ONNX RAM spike
+        if python3 -c "import rembg" 2>/dev/null; then
+            log_info "Pre-downloading rembg models via curl to save RAM..."
+            export U2NET_HOME="$APP_DIR/.u2net"
+            mkdir -p "$U2NET_HOME"
+            if [ ! -f "$U2NET_HOME/u2net.onnx" ]; then
+                curl -L -s -o "$U2NET_HOME/u2net.onnx" "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2net.onnx" || true
+            fi
+            if [ ! -f "$U2NET_HOME/u2netp.onnx" ]; then
+                curl -L -s -o "$U2NET_HOME/u2netp.onnx" "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx" || true
+            fi
         fi
     fi
 }
