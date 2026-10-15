@@ -45,8 +45,6 @@ from app.services.seo_service import SeoService
 
 logger = get_logger(__name__)
 
-CONTACT_RECIPIENT = settings.CONTACT_EMAIL or os.getenv("CONTACT_EMAIL", "")
-
 __all__ = ["router"]
 
 
@@ -64,10 +62,25 @@ class ContactForm(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     email: _EmailType = Field(..., max_length=254)  # type: ignore[valid-type]
     message: str = Field(..., min_length=1, max_length=5000)
+    # Honeypot (must stay empty; bots fill it). Optional for backwards compat.
+    # Accepts both `website` (API) and `honeypot` (legacy template id).
+    website: str = Field(default="", max_length=200)
+    honeypot: str = Field(default="", max_length=200)
 
 
 class ContactResponse(BaseModel):
     status: str = Field(default="ok", description="Status of contact form submission")
+
+
+def _get_contact_recipient() -> str:
+    """Read CONTACT_EMAIL at request time (not import time) so .env reloads work."""
+    try:
+        val = (settings.CONTACT_EMAIL or "").strip()
+        if val:
+            return val
+    except Exception:
+        pass
+    return os.getenv("CONTACT_EMAIL", "").strip()
 
 
 _CONTACT_MAX_BYTES = 32_000
@@ -115,7 +128,7 @@ def _get_cached_page_names() -> list[str]:
         return _pages_dir_cache
     pages_dir = os.path.join(settings.templates_dir, "pages")
     if os.path.exists(pages_dir):
-        _pages_dir_cache = [f[:-5] for f in os.listdir(pages_dir) if f.endswith(".html")]
+        _pages_dir_cache = [f[:-5] for f in os.listdir(pages_dir) if f.endswith(".html") and f[:-5] not in {"404", "500", "offline"}]
     else:
         _pages_dir_cache = []
     _pages_dir_cache_ts = now
@@ -154,7 +167,7 @@ async def home_localized(request: Request) -> HTMLResponse:
     loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":
         raise HTTPException(status_code=404, detail="Not found")
-    categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools)
+    categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools_localized, loc)
     recent_posts, popular_posts, pillars = await asyncio.gather(
         asyncio.to_thread(blog_service.get_recent, 3, loc),
         asyncio.to_thread(blog_service.get_popular, 3, loc),
@@ -194,7 +207,7 @@ async def tools_page_localized(request: Request) -> HTMLResponse:
     loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":
         raise HTTPException(status_code=404, detail="Not found")
-    categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools)
+    categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools_localized, loc)
     ctx = {"categories": categories, "static_pages": static_pages}
     ctx.update(_i18n_context("/tools", loc))
     resp = templates.TemplateResponse(request=request, name="pages/tools.html", context=ctx)
@@ -271,7 +284,7 @@ async def service_worker() -> FileResponse:
 
 @router.post("/api/contact", response_model=ContactResponse)
 async def contact_submission(request: Request) -> ContactResponse:
-    # TODO: add honeypot field + Turnstile/CAPTCHA verification to block contact spam bots.
+    # Honeypot enforced server-side (client field is hidden via CSS).
     # Size check via Content-Length to reject oversized payloads early.
     # NOTE: Content-Length can be missing (chunked) — enforce again after parsing.
     content_length = request.headers.get("content-length")
@@ -296,6 +309,10 @@ async def contact_submission(request: Request) -> ContactResponse:
         raise HTTPException(status_code=422, detail=e.errors()) from None
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid request body") from None
+    # Honeypot: silently accept but drop (don't reveal to bots).
+    if ((form.website or "").strip() or (form.honeypot or "").strip()):
+        logger.warning("Contact honeypot tripped — dropping spam")
+        return ContactResponse(status="ok")
     if not form.name.strip() or not str(form.email).strip() or not form.message.strip():
         raise HTTPException(status_code=400, detail="All fields are required")
 
@@ -325,11 +342,17 @@ async def contact_submission(request: Request) -> ContactResponse:
                 if not window or window[-1] < cutoff:
                     _CONTACT_EMAIL_WINDOWS.pop(key, None)
 
-    if not CONTACT_RECIPIENT:
-        logger.warning("Contact form received but CONTACT_EMAIL not configured — queued without email")
+    contact_recipient = _get_contact_recipient()
+    if not contact_recipient:
+        # Fail visible in prod (never claim success on dropped mail).
+        # Dev/test passthrough keeps local dev + CI green without SMTP.
+        if settings.is_prod:
+            logger.error("Contact form dropped: CONTACT_EMAIL not configured in prod")
+            raise HTTPException(status_code=503, detail="Contact is temporarily unavailable. Please email hello@storybrainai.com directly.")
+        logger.warning("Contact form received but CONTACT_EMAIL not configured — queued without email (dev only)")
         return ContactResponse(status="ok")
 
-    if CONTACT_RECIPIENT:
+    if contact_recipient:
         try:
             import smtplib
             from email.message import EmailMessage
@@ -338,8 +361,8 @@ async def contact_submission(request: Request) -> ContactResponse:
             msg.set_content(f"Name: {safe_name}\nEmail: {safe_email}\n\nMessage:\n{form.message}")
             msg["Subject"] = f"Contact form: {safe_name}"
             # Fixed From to avoid SPF spoofing; user address goes in Reply-To.
-            msg["From"] = CONTACT_RECIPIENT or "noreply@localhost"
-            msg["To"] = CONTACT_RECIPIENT
+            msg["From"] = contact_recipient or "noreply@localhost"
+            msg["To"] = contact_recipient
             msg["Reply-To"] = safe_email
             smtp_host = settings.SMTP_HOST or os.getenv("SMTP_HOST", "localhost")
             smtp_port = int(settings.SMTP_PORT or os.getenv("SMTP_PORT", "25"))
@@ -395,16 +418,64 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
     valid_tools = catalog_service.get_valid_tools()
     if tool_name not in valid_tools:
         raise HTTPException(status_code=404, detail="Tool not found")
-    categories, _ = catalog_service.get_categorized_tools()
+    if loc == "en":
+        categories, _ = catalog_service.get_categorized_tools()
+    else:
+        categories, _ = catalog_service.get_categorized_tools_localized(loc)
     seo_data = seo_service.get_seo(tool_name, locale=loc)
     template_name = f"tools/{tool_name.replace('-', '_')}.html"
     bare_path = f"/tool/{tool_name}"
+    # Fallback-EN locale pages (no real translation) get noindex until translated
+    # to avoid AdSense doorway / duplicate-content flags. Users can still use them.
+    is_fallback = False
+    if loc != "en":
+        try:
+            from app.core import tool_data
+
+            _raw = tool_data.ToolDataLoader.get(tool_name) or {}
+            _over = ((_raw.get("i18n") or {}).get(loc) or {}) if isinstance(_raw, dict) else {}
+            # Unified predicate with sitemap (name|description|meta_title).
+            is_fallback = not (
+                isinstance(_over, dict) and (_over.get("name") or _over.get("description") or _over.get("meta_title"))
+            )
+        except Exception:
+            is_fallback = True
     ctx = {
         "tool_name": seo_data.name,
         "categories": categories,
         "seo_data": seo_data,
+        "robots_noindex_fallback": is_fallback,
     }
     ctx.update(_i18n_context(bare_path, loc))
+    # Filter hreflangs to only translated locales for tool pages (unified predicate).
+    try:
+        from app.core import tool_data as tool_data_mod
+        from app.core.i18n import SUPPORTED_LOCALES as _SUPP
+
+        _raw2 = tool_data_mod.ToolDataLoader.get(tool_name) or {}
+        _i18n2 = (_raw2.get("i18n") or {}) if isinstance(_raw2, dict) else {}
+
+        def _has(lc: str) -> bool:
+            if lc == "en":
+                return True
+            o = _i18n2.get(lc) if isinstance(_i18n2, dict) else None
+            return isinstance(o, dict) and bool(o.get("name") or o.get("description") or o.get("meta_title"))
+
+        _avail = [lc for lc in _SUPP if _has(lc)]
+        base = settings.SITE_URL.rstrip("/")
+        ctx["hreflangs"] = [
+            {"hreflang": lc, "href": base + localize_path(bare_path, lc)} for lc in _avail
+        ] + [{"hreflang": "x-default", "href": base + localize_path(bare_path, "en")}]
+    except Exception:
+        # Fail closed: EN-only hreflang so we never advertise untranslated copies.
+        try:
+            base = settings.SITE_URL.rstrip("/")
+            ctx["hreflangs"] = [
+                {"hreflang": "en", "href": base + localize_path(bare_path, "en")},
+                {"hreflang": "x-default", "href": base + localize_path(bare_path, "en")},
+            ]
+        except Exception:
+            pass
     try:
         resp = templates.TemplateResponse(request=request, name=template_name, context=ctx)
     except TemplateNotFound:
@@ -415,6 +486,9 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
     if "Accept-Language" not in vary:
         resp.headers["Vary"] = (vary + ", Accept-Language").strip(", ").strip()
     resp.headers["Content-Language"] = loc
+    if is_fallback:
+        # Tell crawlers (incl. AdSense reviewer bot) not to index EN-fallback copies.
+        resp.headers["X-Robots-Tag"] = "noindex, nofollow"
     return resp
 
 
@@ -448,7 +522,7 @@ async def get_page_localized(request: Request, page_name: str) -> HTMLResponse:
         return RedirectResponse(url=f"/{loc}/productivity-tools", status_code=301)
     if page_name in settings.HUB_CATEGORIES:
         category_name, seo_title = settings.HUB_CATEGORIES[page_name]
-        categories, static_pages = catalog_service.get_categorized_tools()
+        categories, static_pages = catalog_service.get_categorized_tools_localized(loc)
         hub_tools = categories.get(category_name, [])
         ctx = {
             "hub_name": page_name,
@@ -465,16 +539,29 @@ async def get_page_localized(request: Request, page_name: str) -> HTMLResponse:
         resp.headers["Content-Language"] = loc
         return resp
     if page_name in _get_cached_page_names():
-        categories, static_pages = catalog_service.get_categorized_tools()
+        categories, static_pages = catalog_service.get_categorized_tools_localized(loc)
+        # Zero-translation legal pages serve identical EN body: noindex until translated.
+        _en_only_statics = {"about", "contact", "privacy", "terms", "disclaimer"}
+        _is_static_fallback = page_name in _en_only_statics
         ctx = {
             "title": page_name.replace("-", " ").title(),
             "categories": categories,
             "static_pages": static_pages,
+            "robots_noindex_fallback": _is_static_fallback,
         }
         ctx.update(_i18n_context(f"/{page_name}", loc))
+        if _is_static_fallback:
+            base = settings.SITE_URL.rstrip("/")
+            bare = f"/{page_name}"
+            ctx["hreflangs"] = [
+                {"hreflang": "en", "href": base + localize_path(bare, "en")},
+                {"hreflang": "x-default", "href": base + localize_path(bare, "en")},
+            ]
         resp = templates.TemplateResponse(request=request, name=f"pages/{page_name}.html", context=ctx)
         resp.headers.update(_PAGE_CACHE_HEADERS)
         resp.headers["Content-Language"] = loc
+        if _is_static_fallback:
+            resp.headers["X-Robots-Tag"] = "noindex, nofollow"
         return resp
     raise HTTPException(status_code=404, detail="Page not found")
 
@@ -483,7 +570,7 @@ async def get_page_localized(request: Request, page_name: str) -> HTMLResponse:
 async def get_page(request: Request, page_name: str) -> HTMLResponse:
     if ".." in page_name or "/" in page_name or "\\" in page_name:
         raise HTTPException(status_code=404, detail="Not found")
-    if page_name in ("sw.js", "favicon.ico"):
+    if page_name in ("sw.js", "favicon.ico", "404", "500", "offline"):
         raise HTTPException(status_code=404, detail="Not found")
 
     # Legacy hub alias: /pdf-tools -> /productivity-tools (301, preserves SEO equity).
@@ -521,6 +608,14 @@ async def get_page(request: Request, page_name: str) -> HTMLResponse:
                 "static_pages": static_pages,
             }
             ctx.update(_i18n_context(f"/{page_name}", "en"))
+            _en_only_statics = {"about", "contact", "privacy", "terms", "disclaimer"}
+            if page_name in _en_only_statics:
+                base = settings.SITE_URL.rstrip("/")
+                bare = f"/{page_name}"
+                ctx["hreflangs"] = [
+                    {"hreflang": "en", "href": base + localize_path(bare, "en")},
+                    {"hreflang": "x-default", "href": base + localize_path(bare, "en")},
+                ]
             resp = templates.TemplateResponse(request=request, name=f"pages/{page_name}.html", context=ctx)
             resp.headers.update(_PAGE_CACHE_HEADERS)
             return resp

@@ -1,6 +1,7 @@
 """HTTP proxy service with DNS-level private-IP blocking, request/response size caps, and header sanitization."""
 
 import asyncio
+import concurrent.futures
 import contextlib
 import ipaddress
 import socket
@@ -13,6 +14,7 @@ import requests
 
 from app.core.config import Settings
 
+_proxy_executor = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="proxy_io")
 _original_getaddrinfo = socket.getaddrinfo
 _dns_local = threading.local()
 
@@ -63,10 +65,13 @@ class ProxyService:
         self._lock = threading.Lock()
 
     def _is_blocked_ip(self, ip_obj: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
-        # Covers private/loopback/link-local + multicast/reserved/unspecified.
-        # is_reserved/is_multicast also catches 0.0.0.0-adjacent and documentation ranges;
-        # keep explicit 0.0.0.0 check for clarity (also matched by is_unspecified).
-        if str(ip_obj) == "0.0.0.0" or str(ip_obj) == "::":
+        # Defense-in-depth: unwrap IPv4-mapped IPv6 (e.g. ::ffff:127.0.0.1, ::ffff:169.254.169.254)
+        if isinstance(ip_obj, ipaddress.IPv6Address) and getattr(ip_obj, "ipv4_mapped", None) is not None:
+            ip_obj = ip_obj.ipv4_mapped
+        # Covers private/loopback/link-local + multicast/reserved/unspecified + CGNAT.
+        if str(ip_obj) in ("0.0.0.0", "::"):
+            return True
+        if isinstance(ip_obj, ipaddress.IPv4Address) and ip_obj in ipaddress.ip_network("100.64.0.0/10"):
             return True
         return (
             ip_obj.is_private
@@ -196,7 +201,7 @@ class ProxyService:
             def _resolve(cur=cur_host):
                 return self._resolve_cached(cur)
 
-            ip = await loop.run_in_executor(None, _resolve)
+            ip = await loop.run_in_executor(_proxy_executor, _resolve)
             if ip is None:
                 raise ValidationException("Access to internal networks is forbidden.")
             # Validate port AFTER SSRF check so private-IP probes report
@@ -275,7 +280,7 @@ class ProxyService:
                     _dns_local.forced_ip = None
 
             try:
-                response = await loop.run_in_executor(None, _make_request)
+                response = await loop.run_in_executor(_proxy_executor, _make_request)
             except ValidationException:
                 raise
             except requests.exceptions.Timeout:

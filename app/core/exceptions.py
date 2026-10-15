@@ -50,6 +50,11 @@ class ServiceError(AppException):
 
 
 def _should_render_html(request) -> bool:
+    try:
+        if getattr(request, "url", None) and getattr(request.url, "path", "").startswith("/api/"):
+            return False
+    except Exception:
+        pass
     accept = request.headers.get("accept", "")
     return "text/html" in accept
 

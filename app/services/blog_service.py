@@ -1,6 +1,7 @@
 """Blog engine service: loads data/blog.yaml with TTL caching (mirrors SeoService/ToolDataLoader)."""
 
 import os
+import threading
 import time
 from typing import Any
 
@@ -69,6 +70,9 @@ _PLACEHOLDER_YAML = """posts:
     related_posts: []
 """
 
+_RAW_BLOG_CACHE: tuple[float, dict[str, Any]] | None = None
+_RAW_BLOG_LOCK = threading.Lock()
+
 
 class BlogService:
     CACHE_TTL = 300
@@ -100,15 +104,25 @@ class BlogService:
     def _is_cache_valid(self) -> bool:
         return self._cache is not None and (time.time() - self._cache[0]) < self.CACHE_TTL
 
+
     def _load_raw(self) -> dict[str, Any]:
-        path = self._ensure_blog_yaml()
-        try:
-            with open(path, "rb") as f:
-                data = yaml.safe_load(f) or {}
-        except FileNotFoundError:
-            return {}
-        posts = data.get("posts", {})
-        return posts if isinstance(posts, dict) else {}
+        global _RAW_BLOG_CACHE
+        now = time.time()
+        if _RAW_BLOG_CACHE is not None and (now - _RAW_BLOG_CACHE[0]) < self.CACHE_TTL:
+            return _RAW_BLOG_CACHE[1]
+        with _RAW_BLOG_LOCK:
+            if _RAW_BLOG_CACHE is not None and (now - _RAW_BLOG_CACHE[0]) < self.CACHE_TTL:
+                return _RAW_BLOG_CACHE[1]
+            path = self._ensure_blog_yaml()
+            try:
+                with open(path, "rb") as f:
+                    data = yaml.safe_load(f) or {}
+            except FileNotFoundError:
+                return {}
+            posts = data.get("posts", {})
+            result = posts if isinstance(posts, dict) else {}
+            _RAW_BLOG_CACHE = (time.time(), result)
+            return result
 
     def _localized_raw(self, raw: dict[str, Any], locale: str) -> dict[str, Any]:
         if locale == "en":

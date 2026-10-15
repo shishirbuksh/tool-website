@@ -120,12 +120,10 @@ def _localized_resp(resp, locale: str):
 @router.api_route("/blog", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def blog_index(request: Request) -> HTMLResponse:
     categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools)
-    pillars, posts, recent, popular = await asyncio.gather(
-        asyncio.to_thread(blog_service.get_pillars),
-        asyncio.to_thread(blog_service.get_all),
-        asyncio.to_thread(blog_service.get_recent, 6),
-        asyncio.to_thread(blog_service.get_popular, 3),
-    )
+    posts = await asyncio.to_thread(blog_service.get_all)
+    pillars = sorted({p.pillar for p in posts if p.pillar})
+    recent = posts[:6]
+    popular = await asyncio.to_thread(blog_service.get_popular, 3)
     # Pillar counts for topic chips (single pass, no extra scans).
     pillar_counts: dict[str, int] = {}
     for p in posts:
@@ -167,13 +165,11 @@ async def blog_index_localized(request: Request) -> HTMLResponse:
     loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":
         raise HTTPException(status_code=404, detail="Not found")
-    categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools)
-    pillars, posts, recent, popular = await asyncio.gather(
-        asyncio.to_thread(blog_service.get_pillars),
-        asyncio.to_thread(blog_service.get_all, loc),
-        asyncio.to_thread(blog_service.get_recent, 6, loc),
-        asyncio.to_thread(blog_service.get_popular, 3, loc),
-    )
+    categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools_localized, loc)
+    posts = await asyncio.to_thread(blog_service.get_all, loc)
+    pillars = sorted({p.pillar for p in posts if p.pillar})
+    recent = posts[:6]
+    popular = await asyncio.to_thread(blog_service.get_popular, 3, loc)
     pillar_counts: dict[str, int] = {}
     for p in posts:
         pillar_counts[p.pillar] = pillar_counts.get(p.pillar, 0) + 1
@@ -253,7 +249,7 @@ async def blog_pillar_localized(request: Request, pillar: str) -> HTMLResponse:
     posts, pillars, cat_static = await asyncio.gather(
         asyncio.to_thread(blog_service.get_by_pillar, pillar, loc),
         asyncio.to_thread(blog_service.get_pillars),
-        asyncio.to_thread(catalog_service.get_categorized_tools),
+        asyncio.to_thread(catalog_service.get_categorized_tools_localized, loc),
     )
     if not posts and pillar not in pillars:
         raise HTTPException(status_code=404, detail="Pillar not found")
@@ -288,7 +284,7 @@ async def _render_blog_post(request: Request, pillar: str, cluster: str, locale:
     _assert_safe(cluster)
     post, cat_static, pillars = await asyncio.gather(
         asyncio.to_thread(blog_service.get, cluster, loc),
-        asyncio.to_thread(catalog_service.get_categorized_tools),
+        asyncio.to_thread(catalog_service.get_categorized_tools_localized, loc),
         asyncio.to_thread(blog_service.get_pillars),
     )
     if post is None or post.pillar != pillar:
@@ -298,12 +294,14 @@ async def _render_blog_post(request: Request, pillar: str, cluster: str, locale:
     related = await asyncio.to_thread(_related_for_post, post, sibling_posts, loc)
     prev_post, next_post = _prev_next(sibling_posts, post.slug)
     # Slug → display name for related-tool cards (single pass over catalog).
+    # Handles both EN (/tool/slug) and localized (/hi/tool/slug) URLs.
     tool_names: dict[str, str] = {}
     for tools in categories.values():
         for t in tools:
             url = str(t.get("url", ""))
-            if url.startswith("/tool/"):
-                tool_names[url[6:]] = str(t.get("name", ""))
+            slug = url.split("/tool/")[-1] if "/tool/" in url else ""
+            if slug and "/" not in slug:
+                tool_names[slug] = str(t.get("name", ""))
     ctx = {
         "title": post.title,
         "pillar": pillar,
@@ -317,14 +315,63 @@ async def _render_blog_post(request: Request, pillar: str, cluster: str, locale:
         "static_pages": static_pages,
     }
     ctx.update(_i18n_ctx(f"/blog/{pillar}/{cluster}", loc))
+    # Fallback-EN locale blog posts: noindex until translated (same doorway fix as tools).
+    # Strict: require description, body_html, or meta_title.
+    is_fallback = False
+    try:
+        _raw = blog_service._load_raw().get(cluster) or {}
+        from app.core.i18n import SUPPORTED_LOCALES as _SUPP2
+
+        _i18n_all = (_raw.get("i18n") or {}) if isinstance(_raw, dict) else {}
+
+        def _bhas(lc: str) -> bool:
+            if lc == "en":
+                return True
+            o = _i18n_all.get(lc) if isinstance(_i18n_all, dict) else None
+            return isinstance(o, dict) and bool(
+                o.get("description") or o.get("body_html") or o.get("meta_title")
+            )
+
+        _bavail = [lc for lc in _SUPP2 if _bhas(lc)]
+        base = settings.SITE_URL.rstrip("/")
+        bare = f"/blog/{pillar}/{cluster}"
+
+        if loc != "en":
+            is_fallback = not _bhas(loc)
+            if is_fallback:
+                ctx["robots_noindex_fallback"] = True
+                ctx["hreflangs"] = []
+            else:
+                ctx["hreflangs"] = [
+                    {"hreflang": lc, "href": base + localize_path(bare, lc)} for lc in _bavail
+                ] + [{"hreflang": "x-default", "href": base + localize_path(bare, "en")}]
+        else:
+            ctx["hreflangs"] = [
+                {"hreflang": lc, "href": base + localize_path(bare, lc)} for lc in _bavail
+            ] + [{"hreflang": "x-default", "href": base + localize_path(bare, "en")}]
+    except Exception:
+        # Fail closed like tools: noindex on error.
+        if loc != "en":
+            is_fallback = True
+            ctx["robots_noindex_fallback"] = True
+            ctx["hreflangs"] = []
     resp = templates.TemplateResponse(request=request, name="blog/post.html", context=ctx)
     resp.headers.update(_POST_CACHE_HEADERS)
     etag = _post_etag(pillar, post.slug, (post.date_modified or "") + loc)
     resp.headers["ETag"] = etag
     if _not_modified(request, etag):
-        # 304 must have an empty body (raising HTTPException renders JSON).
-        return Response(status_code=304, headers={"ETag": etag, **_POST_CACHE_HEADERS})
-    return _localized_resp(resp, loc) if loc != "en" else resp
+        # 304 must have an empty body; preserve noindex signal (E2-1).
+        _h304: dict[str, str] = {"ETag": etag, **_POST_CACHE_HEADERS}
+        if is_fallback:
+            _h304["X-Robots-Tag"] = "noindex, nofollow"
+        if loc != "en":
+            _h304["Content-Language"] = loc
+        return Response(status_code=304, headers=_h304)
+    if loc != "en":
+        resp = _localized_resp(resp, loc)
+    if is_fallback:
+        resp.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return resp
 
 
 @router.api_route("/blog/{pillar}/{cluster}", methods=["GET", "HEAD"], response_class=HTMLResponse)

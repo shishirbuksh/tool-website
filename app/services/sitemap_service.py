@@ -176,8 +176,93 @@ class SitemapService:
             logger.exception("Failed to build sitemap blog entries")
         return pages
 
+    def _tool_has_locale(self, slug: str, locale: str) -> bool:
+        """True if tool has a real i18n override for locale (not EN fallback)."""
+        if locale == "en":
+            return True
+        try:
+            info = ToolDataLoader.get(slug)
+        except Exception:
+            return False
+        if not isinstance(info, dict):
+            return False
+        i18n = info.get("i18n") or {}
+        over = i18n.get(locale) if isinstance(i18n, dict) else None
+        if not isinstance(over, dict) or not over:
+            return False
+        # Require at least a translated name/description to count as translated.
+        return bool(over.get("name") or over.get("description") or over.get("meta_title"))
+
+    def _get_blog_raw_cached(self) -> dict:
+        now = time.time()
+        cached = getattr(self, "_blog_raw_cache", None)
+        if cached and now - cached[0] < self._cache_ttl:
+            return cached[1]
+        try:
+            from app.services.blog_service import BlogService  # noqa: PLC0415
+
+            raw = BlogService(self.settings)._load_raw()
+        except Exception:
+            raw = {}
+        self._blog_raw_cache = (now, raw if isinstance(raw, dict) else {})
+        return self._blog_raw_cache[1]
+
+    def _blog_has_locale(self, slug: str, locale: str) -> bool:
+        """True if blog post has a real i18n override for locale (strict: body/desc/title)."""
+        if locale == "en":
+            return True
+        try:
+            raw = self._get_blog_raw_cached().get(slug)
+        except Exception:
+            return False
+        if not isinstance(raw, dict):
+            return False
+        i18n = raw.get("i18n") or {}
+        over = i18n.get(locale) if isinstance(i18n, dict) else None
+        return isinstance(over, dict) and bool(
+            over.get("description") or over.get("body_html") or over.get("meta_title")
+        )
+
+    # Zero-translation legal/static pages: EN-only (identical EN body behind /hi/ is doorway).
+    _LOCALE_STATIC_EN_ONLY = frozenset({"/about", "/contact", "/privacy", "/terms", "/disclaimer"})
+
+    def _available_locales(self, loc_path: str) -> list[str]:
+        """Locales with real translated content for a given bare path."""
+        from app.core.i18n import SUPPORTED_LOCALES  # noqa: PLC0415
+
+        # Memoize per bare path with TTL (same as blog raw cache) + lock-safe replace.
+        now = time.time()
+        memo_ts: float = getattr(self, "_avail_memo_ts", 0.0)
+        memo: dict[str, list[str]] = getattr(self, "_avail_memo", {})
+        if memo and now - memo_ts < self._cache_ttl and loc_path in memo:
+            return memo[loc_path]
+        if memo and now - memo_ts >= self._cache_ttl:
+            memo = {}
+        # Tool pages and blog posts: only list locales with real translations.
+        # Legal/static pages with zero i18n stay EN-only.
+        # Hubs/home/tools/blog-index stay global (chrome translated + localized catalog).
+        if loc_path in self._LOCALE_STATIC_EN_ONLY:
+            result = ["en"]
+        elif loc_path.startswith("/tool/"):
+            slug = loc_path[len("/tool/"):].split("/")[0]
+            result = [lc for lc in SUPPORTED_LOCALES if self._tool_has_locale(slug, lc)]
+        elif loc_path.startswith("/blog/"):
+            parts = loc_path.strip("/").split("/")
+            # /blog/<pillar>/<slug> -> post; /blog and /blog/<pillar> stay global.
+            if len(parts) == 3:
+                slug = parts[2]
+                result = [lc for lc in SUPPORTED_LOCALES if self._blog_has_locale(slug, lc)]
+            else:
+                result = list(SUPPORTED_LOCALES)
+        else:
+            result = list(SUPPORTED_LOCALES)
+        memo[loc_path] = result
+        self._avail_memo = memo
+        self._avail_memo_ts = now
+        return result
+
     def _render_urlset(self, pages: list[dict], locale: str = "en") -> str:
-        from app.core.i18n import SUPPORTED_LOCALES, localize_path  # noqa: PLC0415
+        from app.core.i18n import localize_path  # noqa: PLC0415
 
         lines = [
             '<?xml version="1.0" encoding="UTF-8"?>',
@@ -187,7 +272,14 @@ class SitemapService:
         for page in pages:
             if page.get("no_localize") and locale != "en":
                 continue
-            loc_path = localize_path(page["loc"], locale) if not page.get("no_localize") else page["loc"]
+            bare = page["loc"]
+            # Locale sitemaps: skip fallback-EN tool/blog URLs (doorway risk).
+            # EN sitemap keeps everything; locale sitemaps only list translated pages.
+            if locale != "en":
+                avail = self._available_locales(bare)
+                if locale not in avail:
+                    continue
+            loc_path = localize_path(bare, locale) if not page.get("no_localize") else bare
             loc_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{loc_path}")
             lines.append("  <url>")
             lines.append(f"    <loc>{loc_url}</loc>")
@@ -207,14 +299,15 @@ class SitemapService:
 
             lines.append(f"    <changefreq>{page['changefreq']}</changefreq>")
             lines.append(f"    <priority>{page['priority']}</priority>")
-            # hreflang alternates for every supported locale (+ x-default -> en).
-            # Placed after priority so legacy loc/lastmod/changefreq/priority
-            # adjacency regexes in tests keep passing; order is irrelevant to crawlers.
+            # hreflang alternates only for locales with real translations
+            # (+ x-default -> en). Placed after priority so legacy
+            # loc/lastmod/changefreq/priority adjacency regexes keep passing.
             if not page.get("no_localize"):
-                for alt in SUPPORTED_LOCALES:
-                    alt_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{localize_path(page['loc'], alt)}")
+                avail = self._available_locales(bare)
+                for alt in avail:
+                    alt_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{localize_path(bare, alt)}")
                     lines.append(f'    <xhtml:link rel="alternate" hreflang="{alt}" href="{alt_url}" />')
-                default_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{localize_path(page['loc'], 'en')}")
+                default_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{localize_path(bare, 'en')}")
                 lines.append(f'    <xhtml:link rel="alternate" hreflang="x-default" href="{default_url}" />')
 
             lines.append("  </url>")
@@ -236,8 +329,15 @@ class SitemapService:
         from app.core.i18n import normalize_locale  # noqa: PLC0415
 
         loc = normalize_locale(locale)
-        pages = self._collect_pages()
-        return self._render_urlset(pages, locale=loc)
+        cache_attr = f"_sitemap_cache_{loc}"
+        with self._lock:
+            cached = self._from_cache(getattr(self, cache_attr, None))
+            if cached:
+                return cached
+            pages = self._collect_pages()
+            xml_content = self._render_urlset(pages, locale=loc)
+            setattr(self, cache_attr, (time.time(), xml_content))
+            return xml_content
 
     def build_sitemap_index(self) -> str:
         from app.core.i18n import SUPPORTED_LOCALES  # noqa: PLC0415
@@ -270,6 +370,10 @@ class SitemapService:
                 f"Allow: /sitemap-fr.xml\n"
                 f"Disallow: /api/\n"
                 f"Disallow: /offline\n"
+                f"Allow: /blog?page=*\n"
+                f"Allow: /hi/blog?page=*\n"
+                f"Allow: /es/blog?page=*\n"
+                f"Allow: /fr/blog?page=*\n"
                 f"Disallow: /*?*\n"
                 f"Disallow: /pdf-tools\n"
                 f"\n"

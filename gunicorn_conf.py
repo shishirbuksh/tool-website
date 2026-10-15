@@ -44,14 +44,16 @@ if _requested_workers <= 0:
     web_concurrency: int = int(default_web_concurrency)
 else:
     web_concurrency = _requested_workers
-# Floor at 2: avoids single-worker fate-sharing (one slow ML task blocks all).
-# OOM NOTE: each UvicornWorker holds torch/ML models in RAM — on small VPS
-# (<=2GB) lower WORKERS or raise swap; floor of 2 can OOM with rembg loaded.
-workers: int = max(int(web_concurrency), 2)
+# If WORKERS is explicitly configured (e.g. WORKERS=1 on a 1GB VPS), honor it.
+# When auto (WORKERS=0), floor at 2 workers for redundancy.
+if _requested_workers > 0:
+    workers: int = _requested_workers
+else:
+    workers: int = max(int(web_concurrency), 2)
 
 worker_class: str = "uvicorn.workers.UvicornWorker"
-max_requests: int = 10000
-max_requests_jitter: int = 1000
+max_requests: int = 1000
+max_requests_jitter: int = 200
 loglevel: str = os.getenv("LOG_LEVEL", "info").lower()
 
 accesslog: str = "-"

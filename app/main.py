@@ -58,14 +58,21 @@ async def lifespan(app: FastAPI):
         _startup_logger.info("ToolDataLoader warmed")
     except Exception:
         _startup_logger.exception("ToolDataLoader warmup failed")
-    # Lazily pre-import heavy optional deps so first request doesn't pay
-    # cold-start cost (and logs clearly when missing).
-    for _mod in ("rembg", "cv2", "prophet"):
-        try:
-            __import__(_mod)
-            _startup_logger.info("Pre-imported optional dep: %s", _mod)
-        except Exception:
-            _startup_logger.warning("Optional dep %s not available at startup", _mod)
+    try:
+        from app.services.blog_service import BlogService  # noqa: PLC0415
+
+        BlogService(settings).get_all()
+        _startup_logger.info("BlogService warmed")
+    except Exception:
+        _startup_logger.exception("BlogService warmup failed")
+    # Lazily pre-import heavy optional deps only when explicitly enabled (prevents OOM on 1GB VPS).
+    if os.getenv("PRELOAD_ML", "false").lower() in ("true", "1", "yes"):
+        for _mod in ("rembg", "cv2", "prophet"):
+            try:
+                __import__(_mod)
+                _startup_logger.info("Pre-imported optional dep: %s", _mod)
+            except Exception:
+                _startup_logger.warning("Optional dep %s not available at startup", _mod)
     try:
         import app.services.analytics_service as analytics_svc  # noqa: PLC0415
 
@@ -117,6 +124,14 @@ app.add_middleware(RequestIDMiddleware)
 # ROUND-2 perf: GZip for dynamic responses only; Caddy serves precompressed
 # static (.br/.gz from scripts/compress.js) directly — no app code needed.
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Watermark takes 2xIMAGE_MAX (image+mask) + multipart overhead — allow 2x+1MB
+# so legit 10+10MB requests don't 413 at the global gate (route still checks each file).
+app.add_middleware(MaxBodySizeMiddleware, max_size=2 * settings.IMAGE_MAX_SIZE + 1024 * 1024)
+app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
+
+# CORS and SecurityHeaders outer to RateLimit/MaxBodySize so 413/429 responses
+# retain full security headers and valid CORS headers for client fetch calls.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -133,10 +148,7 @@ app.add_middleware(
     max_age=600,
 )
 app.add_middleware(SecurityHeadersMiddleware)
-# Watermark takes 2xIMAGE_MAX (image+mask) + multipart overhead — allow 2x+1MB
-# so legit 10+10MB requests don't 413 at the global gate (route still checks each file).
-app.add_middleware(MaxBodySizeMiddleware, max_size=2 * settings.IMAGE_MAX_SIZE + 1024 * 1024)
-app.add_middleware(RateLimitMiddleware, requests_per_minute=60)
+
 # CleanQuery just inside TrustedHost so junk params are stripped before redirects.
 app.add_middleware(CleanQueryMiddleware)
 # TrustedHost outermost (added last) so Host validation runs first.
@@ -236,15 +248,24 @@ async def ads_txt():
 
 @app.get("/service-worker", include_in_schema=False)
 async def service_worker():
+    # Legacy path kept for old registrations: permanent redirect to canonical /sw.js.
+    from fastapi.responses import RedirectResponse as _Redirect
+
+    return _Redirect(url="/sw.js", status_code=301)
+
+
+@app.get("/sw.js", include_in_schema=False)
+async def service_worker_file():
     sw_path = os.path.join(settings.static_dir, "sw.js")
     if not os.path.isfile(sw_path):
-        from fastapi import HTTPException as _HTTPException
-
-        raise _HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail="sw.js not found")
     return FileResponse(
         sw_path,
         media_type="application/javascript",
-        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Service-Worker-Allowed": "/"},
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Service-Worker-Allowed": "/",
+        },
     )
 
 

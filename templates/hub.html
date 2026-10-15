@@ -9,10 +9,10 @@
 
 {% block head %}
 <script type="application/ld+json" nonce="{{ nonce }}">
-{"@context":"https://schema.org","@type":"CollectionPage","name":"{{ seo_title or category_name }}","description":"Free {{ category_name | lower }} — browse all {{ tools | length }} online tools.","url":"https://www.storybrainai.com/{{ hub_name }}"}
+{"@context":"https://schema.org","@type":"CollectionPage","name":"{{ seo_title or category_name }}","description":"Free {{ category_name | lower }} — browse all {{ tools | length }} online tools.","url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}"}
 </script>
 <script type="application/ld+json" nonce="{{ nonce }}">
-{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://www.storybrainai.com/"},{"@type":"ListItem","position":2,"name":"Tools","item":"https://www.storybrainai.com/tools"},{"@type":"ListItem","position":3,"name":{{ category_name | tojson }},"item":"https://www.storybrainai.com/{{ hub_name }}"}]}
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/"},{"@type":"ListItem","position":2,"name":"Tools","item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/tools"},{"@type":"ListItem","position":3,"name":{{ category_name | tojson }},"item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}"}]}
 </script>
 <script type="application/ld+json" nonce="{{ nonce }}">
 {"@context":"https://schema.org","@type":"ItemList","name":{{ (category_name + " — free tools") | tojson }},"numberOfItems":{{ tools | length }},"itemListElement":[{% for tool in tools %}{"@type":"ListItem","position":{{ loop.index }},"name":{{ tool.name | tojson }},"url":"https://www.storybrainai.com{{ tool.url }}","description":{{ tool.desc | truncate(160) | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]}
@@ -61,6 +61,46 @@
     {% for tool in tools %}
     {{ tool_card(tool.name, tool.url, "box", "var(--color-primary)", tool.desc, "", false, "") }}
     {% endfor %}
+  </div>
+
+  {# AdSense value-add: unique editorial per hub so category pages are not thin card walls. #}
+  <div class="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 rounded-2xl border border-base-content/10 bg-base-content/[0.02] p-6 sm:p-8">
+      {% if hub_name == "ai-tools" %}
+      <h2 class="text-xl font-bold mb-3">AI &amp; Crypto tools — estimators, not advisers</h2>
+      <p class="text-sm leading-relaxed text-base-content/70 mb-3">This hub groups price, trend, portfolio, tax and risk estimators that run on public market math in your browser. Each tool states its inputs and limits up front: moving averages and volatility bands describe past price action, they do not predict future returns. Use DCA and portfolio views to compare allocations side by side, then verify tax figures with a qualified professional before filing.</p>
+      <p class="text-sm leading-relaxed text-base-content/70">Start with Crypto Price Prediction for scenario bands, Crypto Trend Analyzer for momentum context, and Crypto Tax Calculator for gain estimates. All three link to step-by-step blog guides with methodology and update dates.</p>
+      {% elif hub_name == "calculators" %}
+      <h2 class="text-xl font-bold mb-3">Calculators — check the math before you sign</h2>
+      <p class="text-sm leading-relaxed text-base-content/70 mb-3">Finance calculators here show full amortization, fee and tax inputs — not just a monthly number. EMI, SIP, FD, GST and mortgage views expose formulas, prepayment effects and effective rates so you can reproduce every figure. Figures are educational estimates; confirm with your bank or adviser.</p>
+      <p class="text-sm leading-relaxed text-base-content/70">Compare EMI vs SIP vs FD with the dedicated guide, then re-run with your own rate, tenure and fees. Every result can be copied or exported for your records.</p>
+      {% elif hub_name == "image-tools" %}
+      <h2 class="text-xl font-bold mb-3">Image tools — private by design, no uploads</h2>
+      <p class="text-sm leading-relaxed text-base-content/70 mb-3">Background removal, compression, conversion, EXIF stripping and collage run with canvas and WebAssembly locally. Your photos never leave the device, which matters for ID scans, client work and family pictures. Each tool lists supported formats, size limits and quality trade-offs.</p>
+      <p class="text-sm leading-relaxed text-base-content/70">Use Image Compressor before upload to cut bandwidth, EXIF Remover before sharing publicly, and Photo Collage Maker for prints. See the image-processing blog pillar for format and privacy explainers.</p>
+      {% elif hub_name == "developer-tools" %}
+      <h2 class="text-xl font-bold mb-3">Developer &amp; SEO tools — validate before deploy</h2>
+      <p class="text-sm leading-relaxed text-base-content/70 mb-3">Schema, sitemap, robots, Open Graph, SERP and hash utilities generate standards-compliant output you can paste into production. Validators flag missing required fields, insecure URLs and truncation risks. Outputs stay in your browser; nothing is sent to our servers.</p>
+      <p class="text-sm leading-relaxed text-base-content/70">Generate, then test with Google Rich Results and official validators. The developer-SEO blog pillar documents each format with examples.</p>
+      {% elif hub_name == "business-tools" %}
+      <h2 class="text-xl font-bold mb-3">Business tools — invoices that reconcile</h2>
+      <p class="text-sm leading-relaxed text-base-content/70 mb-3">Invoice, quotation, purchase, sales, challan, receipt and GST helpers compute line totals, taxes and rounding consistently. Templates include GSTIN, HSN, payment terms and download-to-PDF so your books match your paperwork. Tax rules change — confirm rates for your state and period.</p>
+      <p class="text-sm leading-relaxed text-base-content/70">Create a quotation first, convert it to an invoice, then track with the expense and profit-margin calculators. Business-operations guides walk through each document type.</p>
+      {% else %}
+      <h2 class="text-xl font-bold mb-3">Productivity &amp; PDF tools — small files, fast flows</h2>
+      <p class="text-sm leading-relaxed text-base-content/70 mb-3">PDF merge, convert, task, note, habit, password and QR utilities handle everyday files without accounts or uploads. PDFs process client-side with explicit size limits; passwords generate with vetted entropy and never leave memory. Every tool documents its limits and offline behavior.</p>
+      <p class="text-sm leading-relaxed text-base-content/70">Merge PDFs for submissions, generate QR codes for payments, and track habits locally. Productivity guides show practical workflows for each tool.</p>
+      {% endif %}
+    </div>
+    <div class="rounded-2xl border border-base-content/10 bg-base-content/[0.02] p-6 sm:p-8">
+      <h2 class="text-lg font-bold mb-4">About this category</h2>
+      <ul class="space-y-3 text-sm text-base-content/70 leading-relaxed">
+        <li><strong class="text-base-content">{{ tools | length }} free tools</strong> — no signup, no download.</li>
+        <li><strong class="text-base-content">Private:</strong> most tools run entirely in your browser.</li>
+        <li><strong class="text-base-content">Maintained:</strong> pages show last-updated dates; report errors via <a href="/contact" class="link link-primary">contact</a>.</li>
+        <li><strong class="text-base-content">Learn:</strong> <a href="/blog" class="link link-primary">guides</a> explain methods, limits and verification steps.</li>
+      </ul>
+    </div>
   </div>
 </section>
 {% endblock %}

@@ -35,8 +35,6 @@ self.addEventListener('install', (event) => {
           console.warn('[sw] precache failed:', url, err);
         }))
       );
-    }).then(() => {
-      self.skipWaiting();
     })
   );
 });
