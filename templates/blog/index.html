@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% from "components/blog_macros.html" import blog_card %}
 
-{% block title %}Blog — {{ total_posts | default(posts | length) }} Free Guides & Tutorials{% if page is defined and page > 1 %} — Page {{ page }}{% endif %}{% endblock %}
+{% block title %}{{ blog_title | default('Blog', true) }} — {{ total_posts | default(posts | length) }} Free Guides & Tutorials{% if page is defined and page > 1 %} — Page {{ page }}{% endif %}{% endblock %}
 {% block meta_description %}Browse {{ total_posts | default(posts | length) }} practical StoryBrain AI guides and tutorials for free online tools, calculators, and utilities. New how-tos, no signup.{% endblock %}
 {% block meta_keywords %}blog, guides, tutorials, free tools guides, calculators guide, storybrain ai{% endblock %}
-{% block og_title %}Blog — Free Guides & Tutorials | StoryBrain AI{% endblock %}
+{% block og_title %}{{ blog_title | default('Blog', true) }} — Free Guides & Tutorials | StoryBrain AI{% endblock %}
 {% block og_description %}Step-by-step guides for every free StoryBrain AI tool — calculators, finance, AI, image, PDF and SEO.{% endblock %}
-{% block twitter_title %}Blog — Free Guides & Tutorials | StoryBrain AI{% endblock %}
+{% block twitter_title %}{{ blog_title | default('Blog', true) }} — Free Guides & Tutorials | StoryBrain AI{% endblock %}
 {% block twitter_description %}Practical how-tos for free online tools. Learn, then open the tool instantly.{% endblock %}
 
 {% block head %}
@@ -15,12 +15,12 @@
 </script>
 <script type="application/ld+json" nonce="{{ nonce }}">
 {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
-  {"@type":"ListItem","position":1,"name":"Home","item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/"},
-  {"@type":"ListItem","position":2,"name":"Blog","item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/blog"}
+  {"@type":"ListItem","position":1,"name":{{ tr('breadcrumb.home', locale | default('en', true)) | tojson }},"item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ localize_path('/', locale | default('en', true)) }}"},
+  {"@type":"ListItem","position":2,"name":{{ blog_title | default('Blog', true) | tojson }},"item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}"}
 ]}
 </script>
 <script type="application/ld+json" nonce="{{ nonce }}">
-{"@context":"https://schema.org","@type":"ItemList","name":"All Blog Guides — Page {{ page | default(1) }}","description":"StoryBrain AI guides, page {{ page | default(1) }} of {{ total_pages | default(1) }}","numberOfItems":{{ total_posts | default(posts | length) }},"itemListElement":[{% for post in posts %}{"@type":"ListItem","position":{{ (page | default(1) - 1) * (per_page | default(20)) + loop.index }},"name":{{ post.title | tojson }},"url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/blog/{{ post.pillar }}/{{ post.slug }}","description":{{ post.description | truncate(80) | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]}
+{"@context":"https://schema.org","@type":"ItemList","name":"All Blog Guides — Page {{ page | default(1) }}","description":"StoryBrain AI guides, page {{ page | default(1) }} of {{ total_pages | default(1) }}","numberOfItems":{{ total_posts | default(posts | length) }},"itemListElement":[{% for post in posts %}{"@type":"ListItem","position":{{ (page | default(1) - 1) * (per_page | default(20)) + loop.index }},"name":{{ post.title | tojson }},"url":{{ post.url | default((SITE_URL | default('https://www.storybrainai.com', true)) ~ '/blog/' ~ post.pillar ~ '/' ~ post.slug, true) | tojson }},"description":{{ post.description | truncate(80) | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]}
 </script>
 <script type="application/ld+json" nonce="{{ nonce }}">
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
@@ -34,9 +34,9 @@
 {% block breadcrumb %}
 <nav aria-label="Breadcrumb" class="container-site px-4 pb-3 pt-24 lg:pt-28">
   <ol class="flex flex-wrap items-center gap-1.5 text-sm text-base-content/45">
-    <li><a href="/" class="hover:text-primary transition-colors">Home</a></li>
+    <li><a href="{{ localize_path('/', locale | default('en', true)) }}" class="hover:text-primary transition-colors">{{ tr('breadcrumb.home', locale | default('en', true)) }}</a></li>
     <li aria-hidden="true"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg></li>
-    <li><span class="text-base-content font-medium" aria-current="page">Blog</span></li>
+    <li><span class="text-base-content font-medium" aria-current="page">{{ blog_title | default('Blog', true) }}</span></li>
   </ol>
 </nav>
 {% endblock %}
@@ -47,11 +47,11 @@
     <div class="redesign-mesh" aria-hidden="true"></div>
     <div class="relative z-10 px-6 py-10">
       <div class="eyebrow mb-4">{{ total_posts | default(posts | length) }} guides</div>
-      <h1 class="mb-4" style="font-size: clamp(34px, 5vw, 56px); font-weight: 800; letter-spacing: -0.035em; line-height: 1.05;">Blog — Free Guides & Tutorials</h1>
+      <h1 class="mb-4" style="font-size: clamp(34px, 5vw, 56px); font-weight: 800; letter-spacing: -0.035em; line-height: 1.05;">{{ blog_title | default('Blog', true) }} — Free Guides & Tutorials</h1>
       <p class="text-base-content/60 font-medium max-w-2xl mx-auto" style="font-size: 17px; line-height: 1.65;">{{ total_posts | default(posts | length) }} practical guides for our free online tools — calculators, finance, AI, image, PDF and SEO. Read the how-to, then open the tool instantly. No signup required.</p>
       <div class="flex flex-wrap gap-2 justify-center mt-6">
         {% for p in pillars %}
-        <a href="/blog/{{ p }}" class="btn glass btn-sm rounded-full px-4 min-target" title="{{ p | replace('-', ' ') | title }} guides ({{ pillar_counts.get(p, 0) }})">{{ p | replace("-", " ") | title }} ({{ pillar_counts.get(p, 0) }})</a>
+        <a href="{{ localize_path('/blog/' ~ p, locale | default('en', true)) }}" class="btn glass btn-sm rounded-full px-4 min-target" title="{{ pillar_labels.get(p, p | replace('-', ' ') | title) if pillar_labels is defined else (p | replace('-', ' ') | title) }} guides ({{ pillar_counts.get(p, 0) }})">{{ pillar_labels.get(p, p | replace('-', ' ') | title) if pillar_labels is defined else (p | replace('-', ' ') | title) }} ({{ pillar_counts.get(p, 0) }})</a>
         {% endfor %}
       </div>
     </div>
@@ -73,17 +73,17 @@
   {% if total_pages is defined and total_pages > 1 %}
   <nav class="flex items-center justify-center gap-2 mt-10" aria-label="Blog pages">
     {% if page > 1 %}
-    <a href="/blog?page={{ page - 1 }}" rel="prev" class="btn glass btn-sm rounded-full px-4 min-target" aria-label="Previous page">← Newer</a>
+    <a href="{{ localize_path('/blog', locale | default('en', true)) }}?page={{ page - 1 }}" rel="prev" class="btn glass btn-sm rounded-full px-4 min-target" aria-label="Previous page">← Newer</a>
     {% endif %}
     {% for p in range(1, total_pages + 1) %}
     {% if p == page %}
     <span class="btn btn-primary btn-sm rounded-full px-4 min-target" aria-current="page">{{ p }}</span>
     {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
-    <a href="/blog{% if p > 1 %}?page={{ p }}{% endif %}" class="btn glass btn-sm rounded-full px-4 min-target" aria-label="Page {{ p }}">{{ p }}</a>
+    <a href="{{ localize_path('/blog', locale | default('en', true)) }}{% if p > 1 %}?page={{ p }}{% endif %}" class="btn glass btn-sm rounded-full px-4 min-target" aria-label="Page {{ p }}">{{ p }}</a>
     {% endif %}
     {% endfor %}
     {% if page < total_pages %}
-    <a href="/blog?page={{ page + 1 }}" rel="next" class="btn glass btn-sm rounded-full px-4 min-target" aria-label="Next page">Older →</a>
+    <a href="{{ localize_path('/blog', locale | default('en', true)) }}?page={{ page + 1 }}" rel="next" class="btn glass btn-sm rounded-full px-4 min-target" aria-label="Next page">Older →</a>
     {% endif %}
   </nav>
   {% endif %}
@@ -91,15 +91,15 @@
     <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight text-center mb-6">Blog FAQs</h2>
     <details class="apple-glass rounded-2xl p-6 group">
       <summary class="font-bold cursor-pointer">How do I use a guide with its tool?</summary>
-      <p class="mt-3 text-base-content/70 leading-relaxed">Open any guide, follow the steps, then use its linked free tool — e.g. EMI guides link to <a href="/tool/emi-calculator" class="link link-primary">EMI Calculator</a>. No signup.</p>
+      <p class="mt-3 text-base-content/70 leading-relaxed">Open any guide, follow the steps, then use its linked free tool — e.g. EMI guides link to <a href="{{ localize_path('/tool/emi-calculator', locale | default('en', true)) }}" class="link link-primary">EMI Calculator</a>. No signup.</p>
     </details>
     <details class="apple-glass rounded-2xl p-6 group">
       <summary class="font-bold cursor-pointer">Are guides free?</summary>
-      <p class="mt-3 text-base-content/70 leading-relaxed">Yes. All {{ total_posts | default(posts | length) }} guides and every linked tool are free forever. Start with <a href="/tools" class="link link-primary">all tools</a> or <a href="/" class="link link-primary">home</a>.</p>
+      <p class="mt-3 text-base-content/70 leading-relaxed">Yes. All {{ total_posts | default(posts | length) }} guides and every linked tool are free forever. Start with <a href="{{ localize_path('/tools', locale | default('en', true)) }}" class="link link-primary">all tools</a> or <a href="{{ localize_path('/', locale | default('en', true)) }}" class="link link-primary">home</a>.</p>
     </details>
     <details class="apple-glass rounded-2xl p-6 group">
       <summary class="font-bold cursor-pointer">Is this financial advice?</summary>
-      <p class="mt-3 text-base-content/70 leading-relaxed">No — educational only. Verify with a qualified professional. See our <a href="/disclaimer" class="link link-primary">disclaimer</a>.</p>
+      <p class="mt-3 text-base-content/70 leading-relaxed">No — educational only. Verify with a qualified professional. See our <a href="{{ localize_path('/disclaimer', locale | default('en', true)) }}" class="link link-primary">disclaimer</a>.</p>
     </details>
   </div>
 </section>

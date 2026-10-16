@@ -32,7 +32,7 @@ setup-vps:
 
 test:
 	@echo "=== Running tests ==="
-	python -m pytest tests/ -v --tb=short --cov=app --cov-branch --cov-fail-under=80
+	ENV=test python -m pytest tests/ -v --tb=short --cov=app --cov-branch --cov-fail-under=80
 
 coverage:
 	@echo "=== Running tests with branch coverage ==="

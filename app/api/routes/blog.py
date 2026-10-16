@@ -19,6 +19,7 @@ from app.core.i18n import (
     localize_path,
     normalize_locale,
     og_locale_for,
+    pillar_label,
 )
 from app.core.i18n import (
     t as _tr,
@@ -74,14 +75,22 @@ def _post_etag(pillar: str, slug: str, date_modified: str | None) -> str:
     return '"' + hashlib.sha1(raw).hexdigest()[:32] + '"'
 
 
+def _normalize_etag(v: str) -> str:
+    v = v.strip()
+    if v.startswith(("W/", "w/")):
+        v = v[2:].strip()
+    return v.strip('"').strip("'")
+
+
 def _not_modified(request: Request, etag: str) -> bool:
     raw = request.headers.get("if-none-match", "")
     if not raw:
         return False
     # Handle W/"...", multiple values, and whitespace per RFC 7232.
-    candidates = [v.strip().strip("W").strip().strip('"').strip("'") for v in raw.split(",")]
-    clean = etag.strip().strip('"').strip("'")
+    candidates = {_normalize_etag(v) for v in raw.split(",") if v.strip()}
+    clean = _normalize_etag(etag)
     return clean in candidates or raw.strip() == etag
+
 
 
 _SLUG_RE = re.compile(r"^[a-z0-9-]{1,80}$")
@@ -97,14 +106,14 @@ def _assert_safe(value: str) -> str:
 
 def _i18n_ctx(bare_path: str, locale: str) -> dict:
     loc = normalize_locale(locale)
-    base = settings.SITE_URL.rstrip("/")
     return {
         "locale": loc,
         "html_lang": html_lang_for(loc),
         "og_locale": og_locale_for(loc),
         "hreflangs": hreflang_links(settings.SITE_URL, bare_path),
         "bare_path": bare_path,
-        "locale_urls": {code: base + localize_path(bare_path, code) for code in SUPPORTED_LOCALES},
+        # Relative so switchers stay same-origin on staging/dev.
+        "locale_urls": {code: localize_path(bare_path, code) for code in SUPPORTED_LOCALES},
     }
 
 
@@ -115,6 +124,13 @@ def _localized_resp(resp, locale: str):
         resp.headers["Vary"] = (vary + ", Accept-Language").strip(", ").strip() if vary else "Accept-Language"
     resp.headers["Content-Language"] = loc
     return resp
+
+
+def _page_canonical(bare_path: str, locale: str, page: int) -> str:
+    """Self-canonical for paginated listing: page 1 bare, page N with ?page=N."""
+    base = settings.SITE_URL.rstrip("/")
+    url = base + localize_path(bare_path, normalize_locale(locale))
+    return f"{url}?page={page}" if page > 1 else url
 
 
 @router.api_route("/blog", methods=["GET", "HEAD"], response_class=HTMLResponse)
@@ -128,18 +144,26 @@ async def blog_index(request: Request) -> HTMLResponse:
     pillar_counts: dict[str, int] = {}
     for p in posts:
         pillar_counts[p.pillar] = pillar_counts.get(p.pillar, 0) + 1
-    # Paginate the Latest grid (20/page) to bound DOM/TBT on low-end devices.
-    try:
-        page = int(request.query_params.get("page", "1"))
-    except (TypeError, ValueError):
+    page_param = request.query_params.get("page")
+    if page_param is not None:
+        try:
+            page = int(page_param)
+            if page < 1:
+                raise HTTPException(status_code=404, detail="Page not found")
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Invalid page number")
+    else:
         page = 1
     per_page = 20
     total_posts = len(posts)
     total_pages = max(1, (total_posts + per_page - 1) // per_page)
-    page = min(max(page, 1), total_pages)
+    if page > total_pages:
+        raise HTTPException(status_code=404, detail="Page not found")
     page_posts = posts[(page - 1) * per_page : page * per_page]
+
     ctx = {
         "title": "Blog",
+        "blog_title": _tr("blog.title", "en"),
         "categories": categories,
         "static_pages": static_pages,
         "pillars": pillars,
@@ -151,8 +175,10 @@ async def blog_index(request: Request) -> HTMLResponse:
         "recent_posts": recent,
         "popular_posts": popular,
         "pillar_counts": pillar_counts,
+        "pillar_labels": {p: pillar_label(p, "en") for p in pillars},
     }
     ctx.update(_i18n_ctx("/blog", "en"))
+    ctx["page_canonical"] = _page_canonical("/blog", "en", page)
     resp = templates.TemplateResponse(request=request, name="blog/index.html", context=ctx)
     resp.headers.update(_INDEX_CACHE_HEADERS)
     return resp
@@ -173,17 +199,26 @@ async def blog_index_localized(request: Request) -> HTMLResponse:
     pillar_counts: dict[str, int] = {}
     for p in posts:
         pillar_counts[p.pillar] = pillar_counts.get(p.pillar, 0) + 1
-    try:
-        page = int(request.query_params.get("page", "1"))
-    except (TypeError, ValueError):
+    page_param = request.query_params.get("page")
+    if page_param is not None:
+        try:
+            page = int(page_param)
+            if page < 1:
+                raise HTTPException(status_code=404, detail="Page not found")
+        except ValueError:
+            raise HTTPException(status_code=404, detail="Invalid page number")
+    else:
         page = 1
     per_page = 20
     total_posts = len(posts)
     total_pages = max(1, (total_posts + per_page - 1) // per_page)
-    page = min(max(page, 1), total_pages)
+    if page > total_pages:
+        raise HTTPException(status_code=404, detail="Page not found")
     page_posts = posts[(page - 1) * per_page : page * per_page]
+
     ctx = {
         "title": "Blog",
+        "blog_title": _tr("blog.title", loc),
         "categories": categories,
         "static_pages": static_pages,
         "pillars": pillars,
@@ -195,8 +230,10 @@ async def blog_index_localized(request: Request) -> HTMLResponse:
         "recent_posts": recent,
         "popular_posts": popular,
         "pillar_counts": pillar_counts,
+        "pillar_labels": {p: pillar_label(p, loc) for p in pillars},
     }
     ctx.update(_i18n_ctx("/blog", loc))
+    ctx["page_canonical"] = _page_canonical("/blog", loc, page)
     resp = templates.TemplateResponse(request=request, name="blog/index.html", context=ctx)
     resp.headers.update(_INDEX_CACHE_HEADERS)
     return _localized_resp(resp, loc)
@@ -225,6 +262,8 @@ async def blog_pillar(request: Request, pillar: str) -> HTMLResponse:
             break
     ctx = {
         "title": pillar.replace("-", " ").title(),
+        "plabel": pillar.replace("-", " ").title(),
+        "blog_title": _tr("blog.title", "en"),
         "pillar": pillar,
         "posts": posts,
         "pillars": pillars,
@@ -264,7 +303,9 @@ async def blog_pillar_localized(request: Request, pillar: str) -> HTMLResponse:
         if len(seen) >= 12:
             break
     ctx = {
-        "title": pillar.replace("-", " ").title(),
+        "title": pillar_label(pillar, loc),
+        "plabel": pillar_label(pillar, loc),
+        "blog_title": _tr("blog.title", loc),
         "pillar": pillar,
         "posts": posts,
         "pillars": pillars,
@@ -328,9 +369,7 @@ async def _render_blog_post(request: Request, pillar: str, cluster: str, locale:
             if lc == "en":
                 return True
             o = _i18n_all.get(lc) if isinstance(_i18n_all, dict) else None
-            return isinstance(o, dict) and bool(
-                o.get("description") or o.get("body_html") or o.get("meta_title")
-            )
+            return isinstance(o, dict) and bool(o.get("description") or o.get("body_html") or o.get("meta_title"))
 
         _bavail = [lc for lc in _SUPP2 if _bhas(lc)]
         base = settings.SITE_URL.rstrip("/")
@@ -342,13 +381,13 @@ async def _render_blog_post(request: Request, pillar: str, cluster: str, locale:
                 ctx["robots_noindex_fallback"] = True
                 ctx["hreflangs"] = []
             else:
-                ctx["hreflangs"] = [
-                    {"hreflang": lc, "href": base + localize_path(bare, lc)} for lc in _bavail
-                ] + [{"hreflang": "x-default", "href": base + localize_path(bare, "en")}]
+                ctx["hreflangs"] = [{"hreflang": lc, "href": base + localize_path(bare, lc)} for lc in _bavail] + [
+                    {"hreflang": "x-default", "href": base + localize_path(bare, "en")}
+                ]
         else:
-            ctx["hreflangs"] = [
-                {"hreflang": lc, "href": base + localize_path(bare, lc)} for lc in _bavail
-            ] + [{"hreflang": "x-default", "href": base + localize_path(bare, "en")}]
+            ctx["hreflangs"] = [{"hreflang": lc, "href": base + localize_path(bare, lc)} for lc in _bavail] + [
+                {"hreflang": "x-default", "href": base + localize_path(bare, "en")}
+            ]
     except Exception:
         # Fail closed like tools: noindex on error.
         if loc != "en":

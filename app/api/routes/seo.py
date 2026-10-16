@@ -47,16 +47,22 @@ async def sitemap_index() -> Response:
 
 @router.api_route("/sitemap-{locale}.xml", methods=["GET", "HEAD"], response_class=Response, include_in_schema=False)
 async def sitemap_locale(locale: str) -> Response:
+    from fastapi.responses import RedirectResponse  # noqa: PLC0415
+
     from app.core.i18n import is_supported_locale, normalize_locale  # noqa: PLC0415
 
-    if not is_supported_locale(locale) or normalize_locale(locale) == "en":
+    if not is_supported_locale(locale):
         raise HTTPException(status_code=404, detail="Not found")
+    if normalize_locale(locale) == "en":
+        # EN canonical lives at /sitemap.xml (e.g. /sitemap-en.xml requested).
+        return RedirectResponse(url="/sitemap.xml", status_code=301)
     try:
-        content = await asyncio.to_thread(sitemap_service.build_sitemap_xml_for_locale, normalize_locale(locale))
+        loc = normalize_locale(locale)
+        content = await asyncio.to_thread(sitemap_service.build_sitemap_xml_for_locale, loc)
         return Response(
             content=content,
             media_type="application/xml",
-            headers={"Cache-Control": "public, max-age=3600"},
+            headers={"Cache-Control": "public, max-age=3600", "Content-Language": loc},
         )
     except HTTPException:
         raise

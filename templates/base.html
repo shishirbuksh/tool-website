@@ -10,9 +10,9 @@
   <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" sizes="180x180">
   <link rel="mask-icon" href="/static/favicon.svg" color="#0ea5e9">
   {% if not robots_noindex_fallback %}
-  {% if hreflangs %}{% for alt in hreflangs %}<link rel="alternate" href="{{ alt.href }}" hreflang="{{ alt.hreflang }}">
-  {% endfor %}{% else %}<link rel="alternate" href="{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}" hreflang="en">
-  <link rel="alternate" href="{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}" hreflang="x-default">
+  {% if skip_hreflang %}{% elif hreflangs %}{% for alt in hreflangs %}<link rel="alternate" href="{{ alt.href }}" hreflang="{{ alt.hreflang }}">
+  {% endfor %}{% else %}{% set _en_path = localize_path(bare_path | default(request.url.path, true), 'en') %}<link rel="alternate" href="{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ _en_path }}" hreflang="en">
+  <link rel="alternate" href="{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ _en_path }}" hreflang="x-default">
   {% endif %}
   {% endif %}
   <meta name="mobile-web-app-capable" content="yes">
@@ -30,9 +30,9 @@
   <meta name="format-detection" content="telephone=no">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   {% block thumbnail_tag %}<meta name="thumbnail" content="{{ SITE_URL | default('https://www.storybrainai.com', true) }}/static/og-image.webp">{% endblock %}
-  <link rel="canonical" href="{% if seo_data %}{{ seo_data.url }}{% else %}{{ (locale_urls | default({}, true))[locale | default("en", true)] | default((SITE_URL | default("https://www.storybrainai.com", true)) ~ request.url.path, true) }}{% endif %}">
+  <link rel="canonical" href="{% if seo_data %}{{ seo_data.url }}{% elif page_canonical %}{{ page_canonical }}{% else %}{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ (locale_urls | default({}, true))[locale | default("en", true)] | default(request.url.path, true) }}{% endif %}">
 
-  {% block og_locale %}<meta property="og:locale" content="{{ og_locale | default('en_US', true) }}">{% if locale and locale != 'en' %}<meta property="og:locale:alternate" content="en_US">{% else %}<meta property="og:locale:alternate" content="hi_IN"><meta property="og:locale:alternate" content="es_ES"><meta property="og:locale:alternate" content="fr_FR">{% endif %}{% endblock %}
+  {% block og_locale %}<meta property="og:locale" content="{{ og_locale | default('en_US', true) }}">{% set _cur_og = og_locale | default('en_US', true) %}{% for _code in supported_locales | default(['en', 'hi', 'es', 'fr'], true) %}{% set _alt_og = (locale_meta | default({}, true))[_code]['og_locale'] | default({'en': 'en_US', 'hi': 'hi_IN', 'es': 'es_ES', 'fr': 'fr_FR'}[_code] | default('', true), true) %}{% if _alt_og and _alt_og != _cur_og %}<meta property="og:locale:alternate" content="{{ _alt_og }}">{% endif %}{% endfor %}{% endblock %}
   <meta property="og:type" content="{% block og_type %}website{% endblock %}">
   {% block og_url %}<meta property="og:url" content="{% if seo_data %}{{ seo_data.url }}{% else %}{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}{% endif %}">{% endblock %}
   <meta property="og:site_name" content="StoryBrain AI">
@@ -49,12 +49,12 @@
   <meta property="og:image:type" content="image/webp">
   <meta property="og:image:alt" content="StoryBrain AI — Free Online Tools">
   <meta property="og:image:secure_url" content="{{ SITE_URL | default('https://www.storybrainai.com', true) }}/static/og-image.webp">
-  {% endif %}
-  {# JPG fallback for crawlers without WebP support #}
+  {# JPG fallback for crawlers without WebP support only when no custom tool/post OG image #}
   <meta property="og:image" content="{{ SITE_URL | default('https://www.storybrainai.com', true) }}/static/og-image.jpg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:type" content="image/jpeg">{% endblock %}
+  <meta property="og:image:type" content="image/jpeg">
+  {% endif %}{% endblock %}
   {% block article_dates %}{% if seo_data and seo_data.date_modified %}{% if seo_data.date_published %}<meta property="article:published_time" content="{{ seo_data.date_published }}">{% else %}<meta property="article:published_time" content="{{ seo_data.date_modified }}">{% endif %}<meta property="article:modified_time" content="{{ seo_data.date_modified }}">{% endif %}{% endblock %}
   {% block twitter_tags %}<meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@storybrainai">
@@ -100,13 +100,13 @@
   {% if '/blog' not in request.url.path and not (hub_name is defined) %}
   <script type="application/ld+json" nonce="{{ nonce }}">
   {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
-    {"@type":"ListItem","position":1,"name":"Home","item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/"}
+    {"@type":"ListItem","position":1,"name":{{ tr('breadcrumb.home', locale | default('en', true)) | tojson }},"item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ localize_path('/', locale | default('en', true)) }}"}
     {% if '/tool/' in request.url.path %},{
-      "@type":"ListItem","position":2,"name":"Tools","item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/tools"
+      "@type":"ListItem","position":2,"name":{{ tr('breadcrumb.tools', locale | default('en', true)) | tojson }},"item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ localize_path('/tools', locale | default('en', true)) }}"
     },{
       "@type":"ListItem","position":3,"name":{{ tool_name|default(seo_data.name if seo_data else request.url.path.removeprefix('/tool/').strip('/').replace('-', ' ').title()) | tojson }},"item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}"
     }
-    {% elif request.url.path != '/' %},{
+    {% elif request.url.path not in ('/', '/hi/', '/es/', '/fr/') %},{
       "@type":"ListItem","position":2,"name":{{ title|default(request.url.path.strip('/').replace('-', ' ').title()) | tojson }},"item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}"
     }{% endif %}
   ]}
@@ -130,15 +130,16 @@
   {% if '/tool/' in request.url.path %}
   <nav aria-label="Breadcrumb" class="container-site px-4 pb-3 pt-24 lg:pt-28">
     <ol class="flex flex-wrap items-center gap-1.5 text-sm" style="color:color-mix(in oklab,var(--color-base-content) 65%,transparent)">
-      <li><a href="/" class="hover:text-primary transition-colors" style="color:var(--color-base-content)">Home</a></li>
+      <li><a href="{{ localize_path('/', locale | default('en', true)) }}" class="hover:text-primary transition-colors" style="color:var(--color-base-content)">{{ tr('breadcrumb.home', locale | default('en', true)) }}</a></li>
       <li aria-hidden="true"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg></li>
-      <li><a href="/tools" class="hover:text-primary transition-colors" style="color:var(--color-base-content)">Tools</a></li>
+      <li><a href="{{ localize_path('/tools', locale | default('en', true)) }}" class="hover:text-primary transition-colors" style="color:var(--color-base-content)">{{ tr('breadcrumb.tools', locale | default('en', true)) }}</a></li>
       <li aria-hidden="true"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg></li>
       <li><span class="text-base-content font-medium" aria-current="page">{{ tool_name }}</span></li>
     </ol>
   </nav>
   {% endif %}
   {% endblock %}
+
 
   {% from "components/tool_layout.html" import tool_seo_all %}
 
@@ -153,26 +154,26 @@
   {% include "components/footer.html" %}
 
   <nav class="bottom-nav lg:hidden" aria-label="Mobile navigation">
-    <a href="/" class="bottom-nav-item" aria-label="Home" {% if request.url.path == '/' %}aria-current="page"{% endif %}>
+    <a href="{{ localize_path('/', locale | default('en', true)) }}" class="bottom-nav-item" aria-label="Home" {% if request.url.path == '/' %}aria-current="page"{% endif %}>
       <svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span>{{ tr('nav.home', locale | default('en', true)) }}</span>
     </a>
-    <a href="/tools" class="bottom-nav-item" aria-label="All Tools">
+    <a href="{{ localize_path('/tools', locale | default('en', true)) }}" class="bottom-nav-item" aria-label="All Tools">
       <svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
       <span>{{ tr('nav.tools', locale | default('en', true)) }}</span>
     </a>
     <button type="button" class="bottom-nav-item" id="searchToggleMobileNav" aria-label="Search" aria-haspopup="dialog" aria-controls="searchDialog" aria-expanded="false">
       <svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      <span>Search</span>
+      <span>{{ tr('nav.search', locale | default('en', true)) }}</span>
     </button>
     <button type="button" class="bottom-nav-item theme-toggle" aria-label="Toggle theme">
       <svg aria-hidden="true" class="w-5 h-5 theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
       <svg aria-hidden="true" class="w-5 h-5 theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-      <span>Theme</span>
+      <span>{{ tr('nav.theme', locale | default('en', true)) }}</span>
     </button>
     <label for="mobileDrawer" class="bottom-nav-item" tabindex="0" aria-label="Menu" id="mobileMenuBottomNav">
       <svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
-      <span>Menu</span>
+      <span>{{ tr('nav.menu', locale | default('en', true)) }}</span>
     </label>
   </nav>
   <script nonce="{{ nonce }}">(function(){var m=document.getElementById("mobileMenuBottomNav");if(!m)return;m.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}});})();</script>
@@ -208,7 +209,7 @@
         <p class="font-black text-base-content mb-2 flex items-center gap-2">
           <span class="text-xl">🍪</span> {{ tr('cookie.title', locale | default('en', true)) }}
         </p>
-        <p>We use cookies to improve your experience and analyze traffic. <a href="/privacy" class="text-primary hover:underline font-bold transition-colors">Read our Privacy Policy</a></p>
+        <p>{{ tr('cookie.body', locale | default('en', true)) }} <a href="{{ localize_path('/privacy', locale | default('en', true)) }}" class="text-primary hover:underline font-bold transition-colors">{{ tr('cookie.privacy', locale | default('en', true)) }}</a></p>
       </div>
       <div class="flex gap-2 w-full mt-1">
         <button id="cookieReject" class="btn btn-ghost flex-1 text-xs md:text-sm h-11 min-h-[44px] rounded-xl font-bold">{{ tr('cookie.reject', locale | default('en', true)) }}</button>
@@ -352,7 +353,7 @@
   <label for="mobileDrawer" class="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm cursor-pointer z-[100] opacity-0 pointer-events-none peer-checked:opacity-100 peer-checked:pointer-events-auto transition-opacity duration-300" aria-label="Close menu"></label>
   
   <!-- Sidebar -->
-  <div id="mobileDrawerSidebar" role="dialog" aria-modal="true" aria-label="Mobile menu" class="lg:hidden fixed inset-y-0 right-0 z-[101] w-[80%] max-w-sm bg-base-100 shadow-2xl flex flex-col transition-transform duration-300 translate-x-full peer-checked:translate-x-0">
+  <div id="mobileDrawerSidebar" role="dialog" aria-modal="true" aria-label="Mobile menu" inert class="lg:hidden fixed inset-y-0 right-0 z-[101] w-[80%] max-w-sm bg-base-100 shadow-2xl flex flex-col transition-transform duration-300 translate-x-full peer-checked:translate-x-0">
     <div class="p-6 border-b border-base-content/10 flex justify-between items-center">
       <span class="font-bold tracking-tight text-[15px]">
         <span class="text-base-content">STORYBRAIN</span><span class="text-primary">AI</span>
@@ -362,11 +363,11 @@
       </label>
     </div>
     <div class="p-4 flex-1 overflow-y-auto flex flex-col gap-2">
-      <a href="/" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Home</a>
-      <a href="/tools" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg> All Tools</a>
-      <a href="/about" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg> About</a>
-      <a href="/contact" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Contact</a>
-      <div class="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-widest text-base-content/50">Language</div>
+      <a href="{{ localize_path('/', locale | default('en', true)) }}" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> {{ tr('nav.home', locale | default('en', true)) }}</a>
+      <a href="{{ localize_path('/tools', locale | default('en', true)) }}" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg> {{ tr('nav.all_tools', locale | default('en', true)) }}</a>
+      <a href="{{ localize_path('/about', locale | default('en', true)) }}" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg> {{ tr('nav.about', locale | default('en', true)) }}</a>
+      <a href="{{ localize_path('/contact', locale | default('en', true)) }}" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> {{ tr('nav.contact', locale | default('en', true)) }}</a>
+      <div class="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-widest text-base-content/50">{{ tr('nav.language', locale | default('en', true)) }}</div>
       <div class="flex flex-wrap gap-2 px-4 pb-4">
         {% for code in supported_locales | default(['en'], true) %}
         <a href="{{ (locale_urls | default({}, true))[code] | default('/', true) }}" class="px-3 py-2 rounded-xl text-sm font-medium {% if code == (locale | default('en', true)) %}bg-primary/15 text-primary{% else %}hover:bg-base-content/5 text-base-content/80{% endif %}" {% if code == (locale | default('en', true)) %}aria-current="page"{% endif %}>{{ (locale_meta | default({}, true))[code]['name'] | default(code, true) }}</a>
@@ -380,21 +381,28 @@
       var cb = document.getElementById('mobileDrawer');
       var sidebar = document.getElementById('mobileDrawerSidebar');
       if (cb && sidebar) {
-        cb.addEventListener('change', function() {
-          document.body.classList.toggle('overflow-hidden', cb.checked);
-          if (cb.checked) {
+        function updateDrawer() {
+          var isOpen = !!cb.checked;
+          document.body.classList.toggle('overflow-hidden', isOpen);
+          if (isOpen) {
+            sidebar.removeAttribute('inert');
             var firstAction = sidebar.querySelector('a, button');
             if (firstAction) firstAction.focus();
+          } else {
+            sidebar.setAttribute('inert', '');
           }
-        });
+        }
+        updateDrawer();
+        cb.addEventListener('change', updateDrawer);
         document.addEventListener('keydown', function(e) {
           if (e.key === 'Escape' && cb.checked) {
             cb.checked = false;
-            document.body.classList.remove('overflow-hidden');
+            updateDrawer();
           }
         });
       }
     })();
   </script>
+
 </body>
 </html>

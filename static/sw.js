@@ -146,6 +146,14 @@ async function fetchAndCache(request) {
     }
     return response;
   } catch (err) {
-    return caches.match(request);
+    const match = await caches.match(request);
+    if (match) return match;
+    try {
+      const u = new URL(request.url || request);
+      return await caches.match(u.pathname);
+    } catch (_) {
+      return undefined;
+    }
   }
 }
+

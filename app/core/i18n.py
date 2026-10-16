@@ -96,6 +96,19 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "breadcrumb.home": "Home",
         "breadcrumb.tools": "Tools",
         "footer.tagline": "Built for speed & privacy.",
+        "footer.popular": "Popular Tools",
+        "footer.categories": "Categories",
+        "footer.legal": "Legal",
+        "cookie.body": "We use cookies to improve your experience and analyze traffic.",
+        "cookie.privacy": "Read our Privacy Policy",
+        "blog.title": "Blog",
+        "nav.about": "About",
+        "nav.contact": "Contact",
+        "nav.search": "Search",
+        "nav.theme": "Theme",
+        "nav.menu": "Menu",
+        "nav.language": "Language",
+        "nav.categories": "Categories",
     },
     "hi": {
         "nav.home": "होम",
@@ -111,6 +124,19 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "breadcrumb.home": "होम",
         "breadcrumb.tools": "टूल्स",
         "footer.tagline": "गति और गोपनीयता के लिए निर्मित।",
+        "footer.popular": "लोकप्रिय टूल्स",
+        "footer.categories": "श्रेणियां",
+        "footer.legal": "कानूनी",
+        "cookie.body": "हम आपके अनुभव को बेहतर बनाने और ट्रैफ़िक का विश्लेषण करने के लिए कुकीज़ का उपयोग करते हैं।",
+        "cookie.privacy": "हमारी गोपनीयता नीति पढ़ें",
+        "blog.title": "ब्लॉग",
+        "nav.about": "हमारे बारे में",
+        "nav.contact": "संपर्क",
+        "nav.search": "खोजें",
+        "nav.theme": "थीम",
+        "nav.menu": "मेन्यू",
+        "nav.language": "भाषा",
+        "nav.categories": "श्रेणियां",
     },
     "es": {
         "nav.home": "Inicio",
@@ -126,6 +152,19 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "breadcrumb.home": "Inicio",
         "breadcrumb.tools": "Herramientas",
         "footer.tagline": "Creado para velocidad y privacidad.",
+        "footer.popular": "Herramientas populares",
+        "footer.categories": "Categorías",
+        "footer.legal": "Legal",
+        "cookie.body": "Usamos cookies para mejorar tu experiencia y analizar el tráfico.",
+        "cookie.privacy": "Lee nuestra política de privacidad",
+        "blog.title": "Blog",
+        "nav.about": "Acerca de",
+        "nav.contact": "Contacto",
+        "nav.search": "Buscar",
+        "nav.theme": "Tema",
+        "nav.menu": "Menú",
+        "nav.language": "Idioma",
+        "nav.categories": "Categorías",
     },
     "fr": {
         "nav.home": "Accueil",
@@ -141,6 +180,19 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "breadcrumb.home": "Accueil",
         "breadcrumb.tools": "Outils",
         "footer.tagline": "Conçu pour la vitesse et la confidentialité.",
+        "footer.popular": "Outils populaires",
+        "footer.categories": "Catégories",
+        "footer.legal": "Mentions légales",
+        "cookie.body": "Nous utilisons des cookies pour améliorer votre expérience et analyser le trafic.",
+        "cookie.privacy": "Lire notre politique de confidentialité",
+        "blog.title": "Blog",
+        "nav.about": "À propos",
+        "nav.contact": "Contact",
+        "nav.search": "Rechercher",
+        "nav.theme": "Thème",
+        "nav.menu": "Menu",
+        "nav.language": "Langue",
+        "nav.categories": "Catégories",
     },
 }
 
@@ -151,3 +203,114 @@ def t(key: str, locale: str) -> str:
     if key in table:
         return table[key]
     return UI_STRINGS["en"].get(key, key)
+
+
+# ---------------------------------------------------------------------------
+# Localized taxonomy labels (hub categories + blog pillars + hub SEO titles).
+# Lookup keys stay English everywhere (catalog keys, HUB_CATEGORIES, pillar
+# slugs); these are display-only. Unknown locale/slug falls back to EN.
+# ---------------------------------------------------------------------------
+CATEGORY_LABELS: dict[str, dict[str, str]] = {
+    "hi": {
+        "AI & Crypto": "AI और क्रिप्टो",
+        "Calculators": "कैलकुलेटर",
+        "Image Processing": "इमेज प्रोसेसिंग",
+        "Developer & SEO": "डेवलपर और SEO",
+        "Business & Operations": "बिज़नेस और ऑपरेशंस",
+        "Productivity & Utilities": "प्रोडक्टिविटी और यूटिलिटी",
+    },
+    "es": {
+        "AI & Crypto": "IA y Cripto",
+        "Calculators": "Calculadoras",
+        "Image Processing": "Procesamiento de imágenes",
+        "Developer & SEO": "Desarrollo y SEO",
+        "Business & Operations": "Negocios y Operaciones",
+        "Productivity & Utilities": "Productividad y Utilidades",
+    },
+    "fr": {
+        "AI & Crypto": "IA et Crypto",
+        "Calculators": "Calculatrices",
+        "Image Processing": "Traitement d'images",
+        "Developer & SEO": "Dev et SEO",
+        "Business & Operations": "Business et Opérations",
+        "Productivity & Utilities": "Productivité et Utilitaires",
+    },
+}
+
+PILLAR_LABELS: dict[str, dict[str, str]] = {
+    "hi": {
+        "calculators": "कैलकुलेटर",
+        "ai-crypto": "AI-क्रिप्टो",
+        "business-operations": "बिज़नेस संचालन",
+        "developer-seo": "डेवलपर SEO",
+        "image-processing": "इमेज प्रोसेसिंग",
+        "productivity-utilities": "उत्पादकता",
+    },
+    "es": {
+        "calculators": "Calculadoras",
+        "ai-crypto": "IA y Cripto",
+        "business-operations": "Operaciones de negocio",
+        "developer-seo": "Desarrollo y SEO",
+        "image-processing": "Procesamiento de imágenes",
+        "productivity-utilities": "Productividad",
+    },
+    "fr": {
+        "calculators": "Calculatrices",
+        "ai-crypto": "IA et Crypto",
+        "business-operations": "Opérations business",
+        "developer-seo": "Dev et SEO",
+        "image-processing": "Traitement d'images",
+        "productivity-utilities": "Productivité",
+    },
+}
+
+HUB_SEO_TITLES: dict[str, dict[str, str]] = {
+    "hi": {
+        "ai-tools": "AI और क्रिप्टो टूल्स — मुफ्त ऑनलाइन",
+        "calculators": "मुफ्त कैलकुलेटर — EMI, SIP, FD",
+        "image-tools": "मुफ्त इमेज टूल्स — ऑनलाइन",
+        "developer-tools": "डेवलपर और SEO टूल्स मुफ्त",
+        "business-tools": "बिज़नेस टूल्स — इनवॉइस, GST",
+        "productivity-tools": "PDF व उत्पादकता टूल्स मुफ्त",
+        "pdf-tools": "PDF व उत्पादकता टूल्स मुफ्त",
+    },
+    "es": {
+        "ai-tools": "Herramientas IA y Cripto gratis",
+        "calculators": "Calculadoras gratis — EMI, SIP",
+        "image-tools": "Herramientas de imagen gratis",
+        "developer-tools": "Herramientas SEO y dev gratis",
+        "business-tools": "Herramientas de negocio gratis",
+        "productivity-tools": "PDF y productividad gratis",
+        "pdf-tools": "PDF y productividad gratis",
+    },
+    "fr": {
+        "ai-tools": "Outils IA et Crypto gratuits",
+        "calculators": "Calculatrices gratuites en ligne",
+        "image-tools": "Outils image gratuits en ligne",
+        "developer-tools": "Outils dev et SEO gratuits",
+        "business-tools": "Outils business gratuits",
+        "productivity-tools": "PDF et productivité gratuits",
+        "pdf-tools": "PDF et productivité gratuits",
+    },
+}
+
+
+def category_label(name: str, locale: str) -> str:
+    loc = normalize_locale(locale)
+    if loc == DEFAULT_LOCALE:
+        return name
+    return CATEGORY_LABELS.get(loc, {}).get(name, name)
+
+
+def pillar_label(pillar: str, locale: str) -> str:
+    loc = normalize_locale(locale)
+    if loc == DEFAULT_LOCALE:
+        return pillar.replace("-", " ").title()
+    return PILLAR_LABELS.get(loc, {}).get(pillar, pillar.replace("-", " ").title())
+
+
+def hub_seo_title(hub: str, locale: str, fallback: str = "") -> str:
+    loc = normalize_locale(locale)
+    if loc == DEFAULT_LOCALE:
+        return fallback
+    return HUB_SEO_TITLES.get(loc, {}).get(hub, fallback)

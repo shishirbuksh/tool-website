@@ -15,8 +15,10 @@ from pydantic import BaseModel, Field, ValidationError
 from app.core.i18n import (
     LOCALE_META,
     SUPPORTED_LOCALES,
+    category_label,
     hreflang_links,
     html_lang_for,
+    hub_seo_title,
     is_supported_locale,
     localize_path,
     normalize_locale,
@@ -128,7 +130,9 @@ def _get_cached_page_names() -> list[str]:
         return _pages_dir_cache
     pages_dir = os.path.join(settings.templates_dir, "pages")
     if os.path.exists(pages_dir):
-        _pages_dir_cache = [f[:-5] for f in os.listdir(pages_dir) if f.endswith(".html") and f[:-5] not in {"404", "500", "offline"}]
+        _pages_dir_cache = [
+            f[:-5] for f in os.listdir(pages_dir) if f.endswith(".html") and f[:-5] not in {"404", "500", "offline"}
+        ]
     else:
         _pages_dir_cache = []
     _pages_dir_cache_ts = now
@@ -221,11 +225,21 @@ async def directory_redirect(request: Request) -> RedirectResponse:
     return RedirectResponse(url="/tools", status_code=301)
 
 
+@router.api_route("/hi/directory", methods=["GET", "HEAD"], response_class=RedirectResponse)
+@router.api_route("/es/directory", methods=["GET", "HEAD"], response_class=RedirectResponse)
+@router.api_route("/fr/directory", methods=["GET", "HEAD"], response_class=RedirectResponse)
+async def directory_redirect_localized(request: Request) -> RedirectResponse:
+    loc = normalize_locale(request.url.path.split("/")[1])
+    if not is_supported_locale(loc) or loc == "en":
+        raise HTTPException(status_code=404, detail="Not found")
+    return RedirectResponse(url=f"/{loc}/tools", status_code=301)
+
+
 @router.api_route("/offline", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def offline_page(request: Request) -> HTMLResponse:
     # Footer (included via base.html) iterates `categories` — pass it like every
     # other page route so /offline never 500s on UndefinedError.
-    categories, _ = catalog_service.get_categorized_tools()
+    categories, _ = await asyncio.to_thread(catalog_service.get_categorized_tools)
     ctx = {"categories": categories}
     ctx.update(_i18n_context("/offline", "en"))
     resp = templates.TemplateResponse(request=request, name="pages/offline.html", context=ctx)
@@ -233,19 +247,65 @@ async def offline_page(request: Request) -> HTMLResponse:
     return resp
 
 
+@router.api_route("/hi/offline", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/es/offline", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/fr/offline", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def offline_page_localized(request: Request) -> HTMLResponse:
+    loc = normalize_locale(request.url.path.split("/")[1])
+    if not is_supported_locale(loc) or loc == "en":
+        raise HTTPException(status_code=404, detail="Not found")
+    categories, _ = await asyncio.to_thread(catalog_service.get_categorized_tools_localized, loc)
+    ctx = {"categories": categories}
+    ctx.update(_i18n_context("/offline", loc))
+    resp = templates.TemplateResponse(request=request, name="pages/offline.html", context=ctx)
+    resp.headers.update(_PAGE_CACHE_HEADERS)
+    resp.headers["Content-Language"] = loc
+    return resp
+
+
 @router.api_route("/sitemap", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def html_sitemap(request: Request) -> HTMLResponse:
-    categories, static_pages = catalog_service.get_categorized_tools()
+    categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools)
+    pillars, blog_posts = await asyncio.gather(
+        asyncio.to_thread(blog_service.get_pillars),
+        asyncio.to_thread(blog_service.get_all),
+    )
     ctx = {
         "title": "HTML Sitemap — StoryBrain AI",
         "categories": categories,
         "static_pages": static_pages,
-        "pillars": blog_service.get_pillars(),
-        "blog_posts": blog_service.get_all(),
+        "pillars": pillars,
+        "blog_posts": blog_posts,
     }
     ctx.update(_i18n_context("/sitemap", "en"))
     resp = templates.TemplateResponse(request=request, name="pages/sitemap.html", context=ctx)
     resp.headers.update(_PAGE_CACHE_HEADERS)
+    return resp
+
+
+@router.api_route("/hi/sitemap", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/es/sitemap", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/fr/sitemap", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def html_sitemap_localized(request: Request) -> HTMLResponse:
+    loc = normalize_locale(request.url.path.split("/")[1])
+    if not is_supported_locale(loc) or loc == "en":
+        raise HTTPException(status_code=404, detail="Not found")
+    categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools_localized, loc)
+    pillars, blog_posts = await asyncio.gather(
+        asyncio.to_thread(blog_service.get_pillars),
+        asyncio.to_thread(blog_service.get_all, loc),
+    )
+    ctx = {
+        "title": "HTML Sitemap — StoryBrain AI",
+        "categories": categories,
+        "static_pages": static_pages,
+        "pillars": pillars,
+        "blog_posts": blog_posts,
+    }
+    ctx.update(_i18n_context("/sitemap", loc))
+    resp = templates.TemplateResponse(request=request, name="pages/sitemap.html", context=ctx)
+    resp.headers.update(_PAGE_CACHE_HEADERS)
+    resp.headers["Content-Language"] = loc
     return resp
 
 
@@ -254,7 +314,7 @@ async def tools_catalog(request: Request) -> Response:
     try:
         loc = normalize_locale(request.query_params.get("lang", "en"))
         if loc == "en" or not is_supported_locale(loc):
-            categories, static_pages = catalog_service.get_categorized_tools()
+            categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools)
         else:
             categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools_localized, loc)
         tools = []
@@ -269,17 +329,6 @@ async def tools_catalog(request: Request) -> Response:
         logger.exception("Failed to generate tools catalog")
         raise HTTPException(status_code=500, detail="Failed to generate catalog") from e
 
-
-@router.api_route("/sw.js", methods=["GET", "HEAD"], response_class=FileResponse, include_in_schema=False)
-async def service_worker() -> FileResponse:
-    headers = {
-        "Service-Worker-Allowed": "/",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-    }
-    sw_path = os.path.join(settings.static_dir, "sw.js")
-    if not os.path.isfile(sw_path):
-        raise HTTPException(status_code=404, detail="Not found")
-    return FileResponse(sw_path, headers=headers)
 
 
 @router.post("/api/contact", response_model=ContactResponse)
@@ -310,7 +359,7 @@ async def contact_submission(request: Request) -> ContactResponse:
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid request body") from None
     # Honeypot: silently accept but drop (don't reveal to bots).
-    if ((form.website or "").strip() or (form.honeypot or "").strip()):
+    if (form.website or "").strip() or (form.honeypot or "").strip():
         logger.warning("Contact honeypot tripped — dropping spam")
         return ContactResponse(status="ok")
     if not form.name.strip() or not str(form.email).strip() or not form.message.strip():
@@ -348,7 +397,10 @@ async def contact_submission(request: Request) -> ContactResponse:
         # Dev/test passthrough keeps local dev + CI green without SMTP.
         if settings.is_prod:
             logger.error("Contact form dropped: CONTACT_EMAIL not configured in prod")
-            raise HTTPException(status_code=503, detail="Contact is temporarily unavailable. Please email hello@storybrainai.com directly.")
+            raise HTTPException(
+                status_code=503,
+                detail="Contact is temporarily unavailable. Please email hello@storybrainai.com directly.",
+            )
         logger.warning("Contact form received but CONTACT_EMAIL not configured — queued without email (dev only)")
         return ContactResponse(status="ok")
 
@@ -398,14 +450,15 @@ async def contact_submission(request: Request) -> ContactResponse:
 
 def _i18n_context(bare_path: str, locale: str) -> dict:
     loc = normalize_locale(locale)
-    base = settings.SITE_URL.rstrip("/")
     return {
         "locale": loc,
         "html_lang": html_lang_for(loc),
         "og_locale": og_locale_for(loc),
         "hreflangs": hreflang_links(settings.SITE_URL, bare_path),
         "bare_path": bare_path,
-        "locale_urls": {code: base + localize_path(bare_path, code) for code in SUPPORTED_LOCALES},
+        # Relative so switchers stay same-origin on staging/dev; absolute
+        # hreflang/canonical/OG come from hreflangs/seo_data/page_canonical.
+        "locale_urls": {code: localize_path(bare_path, code) for code in SUPPORTED_LOCALES},
     }
 
 
@@ -419,9 +472,10 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
     if tool_name not in valid_tools:
         raise HTTPException(status_code=404, detail="Tool not found")
     if loc == "en":
-        categories, _ = catalog_service.get_categorized_tools()
+        categories, _ = await asyncio.to_thread(catalog_service.get_categorized_tools)
     else:
-        categories, _ = catalog_service.get_categorized_tools_localized(loc)
+        categories, _ = await asyncio.to_thread(catalog_service.get_categorized_tools_localized, loc)
+
     seo_data = seo_service.get_seo(tool_name, locale=loc)
     template_name = f"tools/{tool_name.replace('-', '_')}.html"
     bare_path = f"/tool/{tool_name}"
@@ -463,9 +517,9 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
 
         _avail = [lc for lc in _SUPP if _has(lc)]
         base = settings.SITE_URL.rstrip("/")
-        ctx["hreflangs"] = [
-            {"hreflang": lc, "href": base + localize_path(bare_path, lc)} for lc in _avail
-        ] + [{"hreflang": "x-default", "href": base + localize_path(bare_path, "en")}]
+        ctx["hreflangs"] = [{"hreflang": lc, "href": base + localize_path(bare_path, lc)} for lc in _avail] + [
+            {"hreflang": "x-default", "href": base + localize_path(bare_path, "en")}
+        ]
     except Exception:
         # Fail closed: EN-only hreflang so we never advertise untranslated copies.
         try:
@@ -526,9 +580,10 @@ async def get_page_localized(request: Request, page_name: str) -> HTMLResponse:
         hub_tools = categories.get(category_name, [])
         ctx = {
             "hub_name": page_name,
-            "category_name": category_name,
-            "seo_title": seo_title,
-            "title": seo_title or category_name,
+            # Lookup key stays English; display uses the localized label/title.
+            "category_name": category_label(category_name, loc),
+            "seo_title": hub_seo_title(page_name, loc, seo_title),
+            "title": hub_seo_title(page_name, loc, seo_title) or category_name,
             "tools": hub_tools,
             "categories": categories,
             "static_pages": static_pages,
@@ -579,7 +634,7 @@ async def get_page(request: Request, page_name: str) -> HTMLResponse:
 
     if page_name in settings.HUB_CATEGORIES:
         category_name, seo_title = settings.HUB_CATEGORIES[page_name]
-        categories, static_pages = catalog_service.get_categorized_tools()
+        categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools)
         hub_tools = categories.get(category_name, [])
         try:
             ctx = {
@@ -600,7 +655,8 @@ async def get_page(request: Request, page_name: str) -> HTMLResponse:
             raise HTTPException(status_code=500, detail="Failed to render hub page") from e
 
     if page_name in _get_cached_page_names():
-        categories, static_pages = catalog_service.get_categorized_tools()
+        categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools)
+
         try:
             ctx = {
                 "title": page_name.replace("-", " ").title(),

@@ -64,11 +64,42 @@ _ERROR_CACHE_CONTROL = {"Cache-Control": "no-cache, no-store, must-revalidate"}
 
 def _error_html_response(request, status_code: int, detail: str) -> HTMLResponse:
     safe_detail = html.escape(str(detail))
+    # Locale context so error pages under /hi|es|fr/ render correct <html lang>,
+    # og:locale and switcher links instead of defaulting to English.
+    err_locale = "en"
+    err_ctx: dict = {}
+    try:
+        from app.core.i18n import (  # noqa: PLC0415
+            SUPPORTED_LOCALES,
+            html_lang_for,
+            localize_path,
+            og_locale_for,
+            split_locale_path,
+        )
+
+        path = getattr(getattr(request, "url", None), "path", "/") or "/"
+        loc, bare = split_locale_path(path)
+        err_locale = loc
+        err_ctx = {
+            "locale": loc,
+            "html_lang": html_lang_for(loc),
+            "og_locale": og_locale_for(loc),
+            # Error pages are noindex: emit no hreflang cluster (skip flag).
+            "hreflangs": [],
+            "skip_hreflang": True,
+            "bare_path": bare,
+            "locale_urls": {code: localize_path(bare, code) for code in SUPPORTED_LOCALES},
+        }
+    except Exception:
+        logger.exception("Failed to build error page locale context")
+    err_headers = dict(_ERROR_CACHE_CONTROL)
+    err_headers["Content-Language"] = err_locale
+    err_headers["Vary"] = "Accept-Language"
     if _recursion_guard.get():
         return HTMLResponse(
             content=f"<html><body><h1>{status_code}</h1><p>{safe_detail}</p></body></html>",
             status_code=status_code,
-            headers=_ERROR_CACHE_CONTROL,
+            headers=err_headers,
         )
     token = _recursion_guard.set(True)
     try:
@@ -76,7 +107,7 @@ def _error_html_response(request, status_code: int, detail: str) -> HTMLResponse
             return HTMLResponse(
                 content=f"<html><body><h1>{status_code}</h1><p>{safe_detail}</p></body></html>",
                 status_code=status_code,
-                headers=_ERROR_CACHE_CONTROL,
+                headers=err_headers,
             )
         # Use a dedicated 500 template for server errors; 404 template otherwise.
         template_name = "pages/500.html" if status_code >= 500 else "pages/404.html"
@@ -84,9 +115,9 @@ def _error_html_response(request, status_code: int, detail: str) -> HTMLResponse
             return templates.TemplateResponse(
                 request=request,
                 name=template_name,
-                context={"status_code": status_code, "detail": detail},
+                context={"status_code": status_code, "detail": detail, **err_ctx},
                 status_code=status_code,
-                headers=_ERROR_CACHE_CONTROL,
+                headers=err_headers,
             )
         except Exception:
             logger.exception("Error template %s failed, using fallback", template_name)
@@ -97,9 +128,9 @@ def _error_html_response(request, status_code: int, detail: str) -> HTMLResponse
                     return templates.TemplateResponse(
                         request=request,
                         name=fallback,
-                        context={"status_code": status_code, "detail": detail},
+                        context={"status_code": status_code, "detail": detail, **err_ctx},
                         status_code=status_code,
-                        headers=_ERROR_CACHE_CONTROL,
+                        headers=err_headers,
                     )
                 except Exception:
                     logger.exception("Fallback error template failed")

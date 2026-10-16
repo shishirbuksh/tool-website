@@ -77,7 +77,15 @@ class SitemapService:
         index_path = os.path.join(self.settings.templates_dir, "index.html")
         pages.append({"loc": "/", "priority": "1.0", "changefreq": "weekly", "filepath": index_path})
         sitemap_path = os.path.join(self.settings.templates_dir, "pages", "sitemap.html")
-        pages.append({"loc": "/sitemap", "priority": "0.5", "changefreq": "monthly", "filepath": sitemap_path, "no_localize": True})
+        pages.append(
+            {
+                "loc": "/sitemap",
+                "priority": "0.5",
+                "changefreq": "monthly",
+                "filepath": sitemap_path,
+                "no_localize": True,
+            }
+        )
 
         hub_pages = list(self.settings.HUB_CATEGORIES.keys())
         hub_filepath = os.path.join(self.settings.templates_dir, "hub.html")
@@ -244,7 +252,7 @@ class SitemapService:
         if loc_path in self._LOCALE_STATIC_EN_ONLY:
             result = ["en"]
         elif loc_path.startswith("/tool/"):
-            slug = loc_path[len("/tool/"):].split("/")[0]
+            slug = loc_path[len("/tool/") :].split("/")[0]
             result = [lc for lc in SUPPORTED_LOCALES if self._tool_has_locale(slug, lc)]
         elif loc_path.startswith("/blog/"):
             parts = loc_path.strip("/").split("/")
@@ -289,11 +297,12 @@ class SitemapService:
             lastmod = None
             if yaml_date and self._is_valid_yaml_date(str(yaml_date)):
                 lastmod = str(yaml_date)
-            elif filepath and page.get("loc") in ("/", "/sitemap", "/tools"):
+            elif filepath and page.get("loc") in ("/", "/sitemap", "/tools", "/about", "/privacy", "/terms", "/disclaimer", "/contact"):
+                # Dedicated templates have their own mtime.
                 # Shared templates (hub.html, pillar.html, post.html, tool pages)
-                # share one mtime across hundreds of URLs — using it as lastmod
-                # fakes freshness on every deploy. Omit instead.
+                # share one mtime across hundreds of URLs — omit instead to avoid fake freshness.
                 lastmod = self._get_lastmod(filepath)
+
             if lastmod:
                 lines.append(f"    <lastmod>{escape(lastmod)}</lastmod>")
 
@@ -356,33 +365,42 @@ class SitemapService:
         return "\n".join(lines)
 
     def build_robots_txt(self) -> str:
+        from app.core.i18n import SUPPORTED_LOCALES  # noqa: PLC0415
+
         with self._lock:
             cached = self._from_cache(self._robots_cache)
             if cached:
                 return cached
 
             site_url = self.settings.SITE_URL.rstrip("/")
+            # Locale sitemap/blog lines generated from SUPPORTED_LOCALES so a
+            # new locale is picked up automatically (matches build_sitemap_index).
+            locale_allows = "".join(
+                f"Allow: /sitemap-{loc}.xml\nAllow: /{loc}/blog?page=*\n" for loc in SUPPORTED_LOCALES if loc != "en"
+            )
+            locale_sitemaps = "".join(
+                f"Sitemap: {site_url}/sitemap-{loc}.xml\n" for loc in SUPPORTED_LOCALES if loc != "en"
+            )
             content = (
                 f"User-agent: *\n"
                 f"Allow: /sitemap.xml\n"
-                f"Allow: /sitemap-hi.xml\n"
-                f"Allow: /sitemap-es.xml\n"
-                f"Allow: /sitemap-fr.xml\n"
+                f"{locale_allows}"
                 f"Disallow: /api/\n"
                 f"Disallow: /offline\n"
+                f"Disallow: /*/offline\n"
+                f"Disallow: /healthz\n"
+                f"Disallow: /readyz\n"
+                f"Disallow: /versionz\n"
+                f"Disallow: /metrics\n"
                 f"Allow: /blog?page=*\n"
-                f"Allow: /hi/blog?page=*\n"
-                f"Allow: /es/blog?page=*\n"
-                f"Allow: /fr/blog?page=*\n"
                 f"Disallow: /*?*\n"
                 f"Disallow: /pdf-tools\n"
                 f"\n"
                 f"Sitemap: {site_url}/sitemap.xml\n"
                 f"Sitemap: {site_url}/sitemap-index.xml\n"
-                f"Sitemap: {site_url}/sitemap-hi.xml\n"
-                f"Sitemap: {site_url}/sitemap-es.xml\n"
-                f"Sitemap: {site_url}/sitemap-fr.xml\n"
+                f"{locale_sitemaps}"
             )
+
             self._robots_cache = (time.time(), content)
             return content
 

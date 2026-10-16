@@ -70,8 +70,27 @@ _PLACEHOLDER_YAML = """posts:
     related_posts: []
 """
 
-_RAW_BLOG_CACHE: tuple[float, dict[str, Any]] | None = None
+_POST_OG_FILES: set[str] | None = None
 _RAW_BLOG_LOCK = threading.Lock()
+_RAW_BLOG_CACHE: tuple[float, dict[str, Any]] | None = None
+_PARSED_POSTS_LOCK = threading.Lock()
+_PARSED_POSTS_CACHE: dict[str, tuple[float, dict[str, BlogPost], list[BlogPost], list[BlogPost]]] = {}
+
+
+
+def _post_og_url(static_dir: str, slug: str) -> str:
+    """Per-post OG image (`static/og/p/<slug>.webp`, see scripts/generate_og.py).
+
+    Existence scanned once per process; missing file -> "" (caller keeps the
+    YAML image). Same image serves all locales (EN title art).
+    """
+    global _POST_OG_FILES
+    if _POST_OG_FILES is None:
+        try:
+            _POST_OG_FILES = set(os.listdir(os.path.join(static_dir, "og", "p")))
+        except OSError:
+            _POST_OG_FILES = set()
+    return f"/static/og/p/{slug}.webp" if f"{slug}.webp" in _POST_OG_FILES else ""
 
 
 class BlogService:
@@ -104,13 +123,13 @@ class BlogService:
     def _is_cache_valid(self) -> bool:
         return self._cache is not None and (time.time() - self._cache[0]) < self.CACHE_TTL
 
-
     def _load_raw(self) -> dict[str, Any]:
         global _RAW_BLOG_CACHE
         now = time.time()
         if _RAW_BLOG_CACHE is not None and (now - _RAW_BLOG_CACHE[0]) < self.CACHE_TTL:
             return _RAW_BLOG_CACHE[1]
         with _RAW_BLOG_LOCK:
+            now = time.time()
             if _RAW_BLOG_CACHE is not None and (now - _RAW_BLOG_CACHE[0]) < self.CACHE_TTL:
                 return _RAW_BLOG_CACHE[1]
             path = self._ensure_blog_yaml()
@@ -121,7 +140,7 @@ class BlogService:
                 return {}
             posts = data.get("posts", {})
             result = posts if isinstance(posts, dict) else {}
-            _RAW_BLOG_CACHE = (time.time(), result)
+            _RAW_BLOG_CACHE = (now, result)
             return result
 
     def _localized_raw(self, raw: dict[str, Any], locale: str) -> dict[str, Any]:
@@ -135,10 +154,18 @@ class BlogService:
         for k in ("title", "meta_title", "description", "keywords", "faqs", "howto_steps", "body_html"):
             if over.get(k) not in (None, "", []):
                 merged[k] = over[k]
+        # Per-locale translation date (optional): sitemap lastmod reflects the
+        # translation refresh, not the EN edit. date_published stays EN.
+        if isinstance(over.get("date_modified"), str) and over.get("date_modified"):
+            merged["date_modified"] = over["date_modified"]
         return merged
 
     def _from_raw(self, slug: str, raw: dict[str, Any], locale: str = "en") -> BlogPost:
         raw = self._localized_raw(raw, locale)
+        try:
+            static_dir = self.settings.static_dir
+        except Exception:
+            static_dir = ""
         return BlogPost(
             slug=slug,
             pillar=str(raw.get("pillar", "")),
@@ -148,7 +175,7 @@ class BlogService:
             keywords=list(raw.get("keywords", []) or []),
             date_published=str(raw.get("date_published", "") or ""),
             date_modified=str(raw.get("date_modified", "") or ""),
-            image=str(raw.get("image", "") or ""),
+            image=_post_og_url(static_dir, slug) or str(raw.get("image", "") or ""),
             faqs=list(raw.get("faqs", []) or []),
             howto_steps=list(raw.get("howto_steps", []) or []),
             body_html=str(raw.get("body_html", "") or ""),
@@ -157,43 +184,61 @@ class BlogService:
             locale=locale,
         )
 
-    def _get_post_map(self, locale: str = "en") -> dict[str, BlogPost]:
+    def _get_parsed_bundle(self, locale: str = "en") -> tuple[dict[str, BlogPost], list[BlogPost], list[BlogPost]]:
         from app.core.i18n import normalize_locale as _norm  # noqa: PLC0415
 
         loc = _norm(locale)
-        # Single-locale cache kept for backward compat; per-locale maps stored
-        # in _cache_loc dict to avoid cross-locale collisions.
-        cache_loc: dict[str, tuple[float, dict[str, BlogPost]]] = getattr(self, "_cache_loc", {})
-        entry = cache_loc.get(loc)
-        if entry and (time.time() - entry[0]) < self.CACHE_TTL:
-            return entry[1]
-        # Also honour legacy _cache for en so old tests keep passing.
-        if loc == "en" and self._is_cache_valid():
-            assert self._cache is not None
-            return self._cache[1]
-        raw = self._load_raw()
-        result: dict[str, BlogPost] = {}
-        for slug, info in raw.items():
-            if isinstance(info, dict):
-                result[str(slug)] = self._from_raw(str(slug), info, locale=loc)
-        cache_loc[loc] = (time.time(), result)
-        self._cache_loc = cache_loc  # type: ignore[attr-defined]
-        if loc == "en":
-            self._cache = (time.time(), result)
-        return result
+        now = time.time()
+        cached = _PARSED_POSTS_CACHE.get(loc)
+        if cached and (now - cached[0]) < self.CACHE_TTL:
+            return cached[1], cached[2], cached[3]
+
+        with _PARSED_POSTS_LOCK:
+            now = time.time()
+            cached = _PARSED_POSTS_CACHE.get(loc)
+            if cached and (now - cached[0]) < self.CACHE_TTL:
+                return cached[1], cached[2], cached[3]
+
+            raw = self._load_raw()
+            post_map: dict[str, BlogPost] = {}
+            for slug, info in raw.items():
+                if isinstance(info, dict):
+                    post_map[str(slug)] = self._from_raw(str(slug), info, locale=loc)
+
+            # Pre-sort all posts by newest published date
+            all_posts = list(post_map.values())
+            all_posts.sort(key=lambda p: (p.date_published or "", p.slug), reverse=True)
+
+            # Pre-sort popular posts
+            def _score(p: BlogPost) -> tuple[int, str, str]:
+                return (
+                    3 * len(p.tools) + len(p.faqs) + len(p.body_html) // 2000,
+                    p.date_published or "",
+                    p.slug,
+                )
+
+            popular_posts = list(post_map.values())
+            popular_posts.sort(key=_score, reverse=True)
+
+            _PARSED_POSTS_CACHE[loc] = (now, post_map, all_posts, popular_posts)
+            if loc == "en":
+                self._cache = (now, post_map)
+            return post_map, all_posts, popular_posts
+
+    def _get_post_map(self, locale: str = "en") -> dict[str, BlogPost]:
+        post_map, _, _ = self._get_parsed_bundle(locale)
+        return post_map
 
     def get_all(self, locale: str = "en") -> list[BlogPost]:
-        posts = list(self._get_post_map(locale).values())
-        posts.sort(key=lambda p: (p.date_published or "", p.slug), reverse=True)
-        return posts
+        _, all_posts, _ = self._get_parsed_bundle(locale)
+        return list(all_posts)
 
     def get(self, slug: str, locale: str = "en") -> BlogPost | None:
         return self._get_post_map(locale).get(slug)
 
     def get_by_pillar(self, pillar: str, locale: str = "en") -> list[BlogPost]:
-        posts = [p for p in self._get_post_map(locale).values() if p.pillar == pillar]
-        posts.sort(key=lambda p: (p.date_published or "", p.slug), reverse=True)
-        return posts
+        all_posts = self.get_all(locale)
+        return [p for p in all_posts if p.pillar == pillar]
 
     def get_pillars(self) -> list[str]:
         pillars = sorted({p.pillar for p in self._get_post_map().values() if p.pillar})
@@ -210,17 +255,9 @@ class BlogService:
         tools + most FAQs + longest body rank highest (most useful guides).
         Tiebreak by newest date_published. Deterministic, no analytics needed.
         """
-        posts = list(self._get_post_map(locale).values())
+        _, _, popular = self._get_parsed_bundle(locale)
+        return popular[: max(0, limit)]
 
-        def _score(p: BlogPost) -> tuple[int, str, str]:
-            return (
-                3 * len(p.tools) + len(p.faqs) + len(p.body_html) // 2000,
-                p.date_published or "",
-                p.slug,
-            )
-
-        posts.sort(key=_score, reverse=True)
-        return posts[: max(0, limit)]
 
 
 BlogEngineService = BlogService

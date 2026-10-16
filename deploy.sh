@@ -37,7 +37,7 @@ ensure_system_deps() {
     if [ -n "$missing" ]; then
         log_info "Installing missing system deps: $missing"
         sudo apt-get update -qq
-        sudo apt-get install -y -qq python3 python3-pip python3-venv libgomp1 libglib2.0-0 curl
+        sudo apt-get install -y -qq python3 python3-pip python3-venv libgomp1 libglib2.0-0 curl sqlite3
         # Ubuntu distro nodejs is too old (12/16) — esbuild needs >=18. Use NodeSource 20 LTS.
         if ! command -v node >/dev/null 2>&1 || [ "$(node -p 'process.versions.node.split(\".\")[0]' 2>/dev/null || echo 0)" -lt 18 ]; then
             log_info "Installing Node.js 20 LTS via NodeSource..."
@@ -192,6 +192,7 @@ backup_current() {
             log_warn "sqlite3 missing — skipping analytics.db snapshot (code/DB may skew on rollback); install sqlite3"
         fi
     fi
+    touch "$BACKUP_DIR/.backup_complete"
 }
 
 pull_latest() {
@@ -227,17 +228,25 @@ restart_service() {
         # for manual zero-downtime reloads when only request handling needs a nudge.
         sudo systemctl restart "$APP_NAME"
         log_info "Service restarted."
-        # Install + reload Caddy from the repo file (validates what actually runs).
+        # Install + reload Caddy from the repo file with variable substitution.
         if [ -f "$APP_DIR/Caddyfile" ] && command -v caddy >/dev/null 2>&1; then
-            if caddy validate --config "$APP_DIR/Caddyfile" --adapter caddyfile 2>/dev/null; then
+            local caddy_domain="${CADDY_DOMAIN:-storybrainai.com}"
+            local caddy_static="${CADDY_STATIC_ROOT:-$APP_DIR/static}"
+            local tmp_caddy
+            tmp_caddy="$(mktemp /tmp/Caddyfile.XXXXXX)"
+            sed -e "s|{\$CADDY_STATIC_ROOT:/opt/storybrain-ai/static}|$caddy_static|g" \
+                -e "s|{\$CADDY_DOMAIN:storybrainai.com}|$caddy_domain|g" \
+                "$APP_DIR/Caddyfile" > "$tmp_caddy"
+            if caddy validate --config "$tmp_caddy" --adapter caddyfile 2>/dev/null; then
                 if [ -d /etc/caddy ]; then
-                    sudo cp "$APP_DIR/Caddyfile" /etc/caddy/Caddyfile
+                    sudo cp "$tmp_caddy" /etc/caddy/Caddyfile
                 fi
                 sudo systemctl enable caddy 2>/dev/null || true
                 sudo systemctl reload caddy 2>/dev/null || log_warn "Caddy reload skipped"
             else
                 log_error "Caddyfile validation failed — NOT reloading Caddy"
             fi
+            rm -f "$tmp_caddy"
         fi
     else
         log_info "No systemd service found — starting gunicorn directly..."
@@ -394,8 +403,8 @@ setup_permissions() {
 
 
 cleanup_backup() {
-    if [ -d "$BACKUP_DIR" ]; then
-        log_warn "Deploy failed — rolling back..."
+    if [ -d "$BACKUP_DIR" ] && [ -f "$BACKUP_DIR/.backup_complete" ]; then
+        log_warn "Deploy failed — rolling back to snapshot..."
         rsync -a --delete --exclude='venv' --exclude='node_modules' --exclude='.git' --exclude='var/' --exclude='.u2net/' --exclude='rust_predictor/target' --exclude='__pycache__' --exclude='*.pyc' --exclude='.pytest_cache' --exclude='.ruff_cache' "$BACKUP_DIR/" "$APP_DIR/"
         # Restore consistent SQLite snapshot taken before pull (code+DB stay in sync).
         if [ -f "$BACKUP_DIR/analytics.db.bak" ]; then
@@ -403,13 +412,15 @@ cleanup_backup() {
             cp "$BACKUP_DIR/analytics.db.bak" "$APP_DIR/var/data/analytics.db" 2>/dev/null || true
             rm -f "$APP_DIR/var/data/analytics.db-wal" "$APP_DIR/var/data/analytics.db-shm" 2>/dev/null || true
         fi
-        rm -rf "$BACKUP_DIR"
-        log_info "Rollback files restored — restarting service..."
+        setup_permissions
+        log_info "Rollback files restored and permissions fixed — restarting service..."
         if command -v systemctl >/dev/null 2>&1 && [ -f "/etc/systemd/system/$APP_NAME.service" ]; then
             sudo systemctl daemon-reload 2>/dev/null || true
             sudo systemctl restart "$APP_NAME" 2>/dev/null || true
         fi
         log_info "Rollback complete."
+    elif [ -d "$BACKUP_DIR" ]; then
+        log_warn "Backup was incomplete at failure time — skipping delete-rollback to avoid data loss."
     fi
 }
 

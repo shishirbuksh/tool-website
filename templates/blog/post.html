@@ -23,20 +23,20 @@
 {% block twitter_title %}{{ post.meta_title or post.title }}{% endblock %}
 {% block twitter_description %}{{ post.description }}{% endblock %}
 {% block article_dates %}{% if post.date_published %}<meta property="article:published_time" content="{{ post.date_published }}">{% endif %}{% if post.date_modified %}<meta property="article:modified_time" content="{{ post.date_modified }}">{% endif %}{% endblock %}
-{% block og_locale %}<meta property="og:locale" content="{{ og_locale | default('en_US', true) }}">{% if locale and locale != 'en' %}<meta property="og:locale:alternate" content="en_US">{% else %}<meta property="og:locale:alternate" content="hi_IN"><meta property="og:locale:alternate" content="es_ES"><meta property="og:locale:alternate" content="fr_FR">{% endif %}{% endblock %}
+{# og:locale handled by base.html (full alternate loop over supported_locales) #}
 
 {% block head %}
-{{ blog_schema(post, SITE_URL | default('https://www.storybrainai.com', true)) }}
+{{ blog_schema(post, SITE_URL | default('https://www.storybrainai.com', true), locale | default('en', true)) }}
 {% endblock %}
 
 {% block breadcrumb %}
 <nav aria-label="Breadcrumb" class="container-site px-4 pb-3 pt-24 lg:pt-28">
   <ol class="flex flex-wrap items-center gap-1.5 text-sm text-base-content/45">
-    <li><a href="/" class="hover:text-primary transition-colors">Home</a></li>
+    <li><a href="{{ localize_path('/', locale | default('en', true)) }}" class="hover:text-primary transition-colors">Home</a></li>
     <li aria-hidden="true"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg></li>
-    <li><a href="/blog" class="hover:text-primary transition-colors">Blog</a></li>
+    <li><a href="{{ localize_path('/blog', locale | default('en', true)) }}" class="hover:text-primary transition-colors">Blog</a></li>
     <li aria-hidden="true"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg></li>
-    <li><a href="/blog/{{ post.pillar }}" class="hover:text-primary transition-colors">{{ post.pillar | replace("-", " ") | title }}</a></li>
+    <li><a href="{{ localize_path('/blog/' ~ post.pillar, locale | default('en', true)) }}" class="hover:text-primary transition-colors">{{ post.pillar | replace("-", " ") | title }}</a></li>
     <li aria-hidden="true"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg></li>
     <li><span class="text-base-content font-medium" aria-current="page">{{ post.title }}</span></li>
   </ol>
@@ -64,33 +64,34 @@
   <div class="fixed top-0 left-0 right-0 h-1 z-[60] bg-transparent" aria-hidden="true">
     <div id="readingProgress" class="h-full w-0 bg-gradient-to-r from-primary via-secondary to-accent"></div>
   </div>
-  <article class="max-w-3xl mx-auto px-4 sm:px-6 relative z-10" itemscope itemtype="https://schema.org/Article">
+  <article class="max-w-3xl mx-auto px-4 sm:px-6 relative z-10">
     <header class="mb-8">
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-base-content/10 bg-base-content/5 text-xs font-medium text-base-content/70 mb-6">
         <a href="/blog" class="hover:text-primary">Blog</a>
         <span aria-hidden="true">/</span>
         <a href="/blog/{{ post.pillar }}" class="hover:text-primary">{{ post.pillar | replace("-", " ") | title }}</a>
       </div>
-      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-[-0.03em] text-base-content mb-4 leading-[1.1]" itemprop="headline">{{ post.title }}</h1>
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-[-0.03em] text-base-content mb-4 leading-[1.1]">{{ post.title }}</h1>
       <p class="text-lg text-base-content/60 leading-relaxed">{{ post.description }}</p>
       <div class="flex flex-wrap items-center gap-y-2 gap-x-4 text-xs text-base-content/50 border-b border-base-content/10 pb-6 mt-6">
-        {% if post.date_published %}<span>Published: <span class="text-base-content/70 font-medium"><time datetime="{{ post.date_published }}" itemprop="datePublished">{{ post.date_published }}</time></span></span><span aria-hidden="true">•</span>{% endif %}
-        {% if post.date_modified %}<span>Updated: <span class="text-base-content/70 font-medium"><time datetime="{{ post.date_modified }}" itemprop="dateModified">{{ post.date_modified }}</time></span></span><span aria-hidden="true">•</span>{% endif %}
+        {% if post.date_published %}<span>Published: <span class="text-base-content/70 font-medium"><time datetime="{{ post.date_published }}">{{ post.date_published }}</time></span></span><span aria-hidden="true">•</span>{% endif %}
+        {% if post.date_modified %}<span>Updated: <span class="text-base-content/70 font-medium"><time datetime="{{ post.date_modified }}">{{ post.date_modified }}</time></span></span><span aria-hidden="true">•</span>{% endif %}
         <span>{{ ((post.body_html | striptags | length) // 1500 + 1) }} min read</span>
       </div>
+
       <div class="flex flex-wrap items-center gap-3 mt-6">
         <div class="flex items-center gap-3" aria-label="About the author">
           <div class="w-10 h-10 rounded-full bg-primary/15 text-primary flex items-center justify-center font-black" aria-hidden="true">S</div>
           <div class="text-xs leading-tight">
-            <p class="font-bold text-base-content">StoryBrain AI Team <a href="/about" class="link link-primary font-medium">About</a></p>
+            <p class="font-bold text-base-content">StoryBrain AI Team <a href="{{ localize_path('/about', locale | default('en', true)) }}" class="link link-primary font-medium">About</a></p>
             <p class="text-base-content/50">Tool builders · Educational content, not professional advice</p>
           </div>
         </div>
         <div class="ml-auto flex items-center gap-2" aria-label="Share this guide">
           <span class="text-[11px] font-bold uppercase tracking-widest text-base-content/40">Share</span>
-          <a href="https://twitter.com/intent/tweet?text={{ post.title | urlencode }}&url={{ (SITE_URL | default('https://www.storybrainai.com', true)) }}/blog/{{ post.pillar }}/{{ post.slug }}" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-ghost btn-sm btn-square rounded-xl min-target" aria-label="Share on X" title="Share on X">𝕏</a>
-          <a href="https://www.facebook.com/sharer/sharer.php?u={{ (SITE_URL | default('https://www.storybrainai.com', true)) }}/blog/{{ post.pillar }}/{{ post.slug }}" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-ghost btn-sm btn-square rounded-xl min-target" aria-label="Share on Facebook" title="Share on Facebook">f</a>
-          <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ (SITE_URL | default('https://www.storybrainai.com', true)) }}/blog/{{ post.pillar }}/{{ post.slug }}" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-ghost btn-sm btn-square rounded-xl min-target" aria-label="Share on LinkedIn" title="Share on LinkedIn">in</a>
+          <a href="https://twitter.com/intent/tweet?text={{ post.title | urlencode }}&url={{ post.url | default((SITE_URL | default('https://www.storybrainai.com', true)) ~ '/blog/' ~ post.pillar ~ '/' ~ post.slug, true) }}" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-ghost btn-sm btn-square rounded-xl min-target" aria-label="Share on X" title="Share on X">𝕏</a>
+          <a href="https://www.facebook.com/sharer/sharer.php?u={{ post.url | default((SITE_URL | default('https://www.storybrainai.com', true)) ~ '/blog/' ~ post.pillar ~ '/' ~ post.slug, true) }}" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-ghost btn-sm btn-square rounded-xl min-target" aria-label="Share on Facebook" title="Share on Facebook">f</a>
+          <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ post.url | default((SITE_URL | default('https://www.storybrainai.com', true)) ~ '/blog/' ~ post.pillar ~ '/' ~ post.slug, true) }}" target="_blank" rel="noopener noreferrer nofollow" class="btn btn-ghost btn-sm btn-square rounded-xl min-target" aria-label="Share on LinkedIn" title="Share on LinkedIn">in</a>
           <button type="button" id="copyLinkBtn" class="btn btn-ghost btn-sm rounded-xl min-target" aria-label="Copy link">Copy link</button>
         </div>
       </div>
@@ -106,8 +107,8 @@
         <span>Key Takeaways</span>
       </div>
       <ul class="list-disc pl-5 space-y-2 text-sm text-base-content/70 leading-relaxed">
-        {% if post.tools %}<li>Try it now: {% for slug in post.tools[:3] %}<a href="/tool/{{ slug }}" class="link link-primary">{{ (tool_names.get(slug) if tool_names else None) or (slug | replace('-', ' ') | title) }}</a>{% if not loop.last %}, {% endif %}{% endfor %} — free, no signup.</li>{% endif %}
-        <li>Educational only — math last checked in our free tools on <time datetime="{{ post.date_modified }}">{{ post.date_modified }}</time>. Tax and legal points change; verify with a qualified professional (see <a href="#methodology" class="link link-primary">Methodology</a> and <a href="/disclaimer#financial-crypto" class="link link-primary">Disclaimer</a>).</li>
+        {% if post.tools %}<li>Try it now: {% for slug in post.tools[:3] %}<a href="{{ localize_path('/tool/' ~ slug, locale | default('en', true)) }}" class="link link-primary">{{ (tool_names.get(slug) if tool_names else None) or (slug | replace('-', ' ') | title) }}</a>{% if not loop.last %}, {% endif %}{% endfor %} — free, no signup.</li>{% endif %}
+        <li>Educational only — math last checked in our free tools on <time datetime="{{ post.date_modified }}">{{ post.date_modified }}</time>. Tax and legal points change; verify with a qualified professional (see <a href="#methodology" class="link link-primary">Methodology</a> and <a href="{{ localize_path('/disclaimer', locale | default('en', true)) }}#financial-crypto" class="link link-primary">Disclaimer</a>).</li>
       </ul>
     </div>
 
@@ -137,7 +138,7 @@
       <p class="text-sm text-base-content/55 mb-6">Open the free tool behind this guide — no signup.</p>
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {% for slug in post.tools %}
-        <a href="/tool/{{ slug }}" class="glass-card glass-border-gradient p-4 h-full card-focus-ring group" title="Open {{ (tool_names.get(slug) if tool_names else None) or (slug | replace('-', ' ') | title) }} free tool" aria-label="Open {{ (tool_names.get(slug) if tool_names else None) or (slug | replace('-', ' ') | title) }}"><span class="text-sm font-semibold group-hover:text-primary transition-colors">{{ (tool_names.get(slug) if tool_names else None) or (slug | replace('-', ' ') | title) }}</span><span class="block mt-1 text-xs text-primary/80 font-bold uppercase tracking-widest">Use free →</span></a>
+        <a href="{{ localize_path('/tool/' ~ slug, locale | default('en', true)) }}" class="glass-card glass-border-gradient p-4 h-full card-focus-ring group" title="Open {{ (tool_names.get(slug) if tool_names else None) or (slug | replace('-', ' ') | title) }} free tool" aria-label="Open {{ (tool_names.get(slug) if tool_names else None) or (slug | replace('-', ' ') | title) }}"><span class="text-sm font-semibold group-hover:text-primary transition-colors">{{ (tool_names.get(slug) if tool_names else None) or (slug | replace('-', ' ') | title) }}</span><span class="block mt-1 text-xs text-primary/80 font-bold uppercase tracking-widest">Use free →</span></a>
         {% endfor %}
       </div>
     </div>
@@ -156,18 +157,18 @@
 
     <footer class="mt-10 pt-8 border-t border-base-300/15 text-sm text-base-content/60 leading-relaxed" id="methodology">
       <h2 class="text-lg font-bold text-base-content mb-2">Methodology</h2>
-      <p>Guides are written from our free browser-based tools; math last checked on {{ post.date_modified or post.date_published or today() }}. Tax and legal points were checked against linked official sources on that date and may change. Calculations run client-side; figures are estimates for education only, not professional advice. Report errors via <a href="/contact" class="link link-primary">contact</a>.</p>
+      <p>Guides are written from our free browser-based tools; math last checked on {{ post.date_modified or post.date_published or today() }}. Tax and legal points were checked against linked official sources on that date and may change. Calculations run client-side; figures are estimates for education only, not professional advice. Report errors via <a href="{{ localize_path('/contact', locale | default('en', true)) }}" class="link link-primary">contact</a>.</p>
     </footer>
 
     <nav class="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4" aria-label="More guides">
       {% if prev_post %}
-      <a href="/blog/{{ prev_post.pillar }}/{{ prev_post.slug }}" class="apple-glass rounded-2xl p-5 hover:bg-base-content/5 transition-colors" title="Previous: {{ prev_post.title }}" aria-label="Previous guide: {{ prev_post.title }}">
+      <a href="{{ localize_path('/blog/' ~ prev_post.pillar ~ '/' ~ prev_post.slug, locale | default('en', true)) }}" class="apple-glass rounded-2xl p-5 hover:bg-base-content/5 transition-colors" title="Previous: {{ prev_post.title }}" aria-label="Previous guide: {{ prev_post.title }}">
         <span class="text-[11px] font-bold uppercase tracking-widest text-base-content/40">← Previous</span>
         <span class="block font-bold mt-1">{{ prev_post.title | truncate(70) }}</span>
       </a>
       {% endif %}
       {% if next_post %}
-      <a href="/blog/{{ next_post.pillar }}/{{ next_post.slug }}" class="apple-glass rounded-2xl p-5 hover:bg-base-content/5 transition-colors sm:text-right {% if not prev_post %}sm:col-start-2{% endif %}" title="Next: {{ next_post.title }}" aria-label="Next guide: {{ next_post.title }}">
+      <a href="{{ localize_path('/blog/' ~ next_post.pillar ~ '/' ~ next_post.slug, locale | default('en', true)) }}" class="apple-glass rounded-2xl p-5 hover:bg-base-content/5 transition-colors sm:text-right {% if not prev_post %}sm:col-start-2{% endif %}" title="Next: {{ next_post.title }}" aria-label="Next guide: {{ next_post.title }}">
         <span class="text-[11px] font-bold uppercase tracking-widest text-base-content/40">Next →</span>
         <span class="block font-bold mt-1">{{ next_post.title | truncate(70) }}</span>
       </a>

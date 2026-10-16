@@ -42,8 +42,11 @@ def sitemap_urls_for(host: str, *, include_all: bool, locales: list[str]) -> lis
     urls: list[str] = []
     if include_all:
         urls.append(f"https://{host}/sitemap.xml")
+    seen: set[str] = set()
     for loc in locales:
-        if loc in I18N_LOCALES:
+        loc = (loc or "").strip().lower()
+        if loc in I18N_LOCALES and loc not in seen:
+            seen.add(loc)
             urls.append(f"https://{host}/sitemap-{loc}.xml")
     return urls
 

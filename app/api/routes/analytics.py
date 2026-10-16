@@ -2,7 +2,7 @@
 
 import re
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
@@ -30,7 +30,8 @@ class TrackResponse(BaseModel):
 
 
 @router.post("/api/track", response_model=TrackResponse, status_code=200)
-async def api_track(payload: TrackPayload) -> TrackResponse:
+async def api_track(payload: TrackPayload, response: Response) -> TrackResponse:
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     # TODO: per-IP daily cap via CacheService (e.g. track:<ip>:<day> counter, 1000/day).
     # Kill-switch: disable tracking without deploy when TRACK_ENABLED=false.
     if not settings.TRACK_ENABLED:
@@ -58,9 +59,12 @@ async def api_track(payload: TrackPayload) -> TrackResponse:
 @router.get("/api/analytics/top", response_model=dict[str, int])
 async def api_analytics_top(
     request: Request,
+    response: Response,
     limit: int = Query(default=50, ge=1, le=1000),
 ) -> dict[str, int]:
+    response.headers["Cache-Control"] = "private, no-cache, no-store, must-revalidate"
     require_internal(request)
+
     try:
         return await async_get_counts(limit=limit)
     except Exception as e:

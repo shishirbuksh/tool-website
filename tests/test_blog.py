@@ -72,9 +72,23 @@ class TestBlogPages:
         etag = resp.headers["etag"]
         resp2 = client.get("/blog/calculators/emi-calculator-guide", headers={"if-none-match": etag})
         assert resp2.status_code == 304
+        # Weak ETag format (W/"...") -> 304
+        resp3 = client.get("/blog/calculators/emi-calculator-guide", headers={"if-none-match": f"W/{etag}"})
+        assert resp3.status_code == 304
+
+    def test_blog_pagination_bounds(self):
+        resp = client.get("/blog?page=99999")
+        assert resp.status_code == 404
+        resp = client.get("/blog?page=0")
+        assert resp.status_code == 404
+        resp = client.get("/blog?page=invalid")
+        assert resp.status_code == 404
+        resp = client.get("/blog?page=1")
+        assert resp.status_code == 200
 
 
 class TestBlogContentGuards:
+
     def test_blog_keywords_capped_12(self):
         bad = {s: len(v.get("keywords") or []) for s, v in _blog_posts().items() if len(v.get("keywords") or []) > 12}
         assert not bad, f"keyword cap breached: {bad}"

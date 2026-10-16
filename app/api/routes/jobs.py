@@ -1,6 +1,6 @@
 """Async job status API: poll job results by ID."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 
 from app.core.log import get_logger
 from app.models.job import JobResponse
@@ -13,7 +13,9 @@ logger = get_logger(__name__)
 
 
 @router.get("/jobs/{job_id}", response_model=JobResponse)
-async def get_job_status(job_id: str) -> JobResponse:
+async def get_job_status(job_id: str, response: Response) -> JobResponse:
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
     if not job_id or not job_id.strip():
         raise HTTPException(status_code=400, detail="Invalid job ID")
     try:
@@ -25,3 +27,4 @@ async def get_job_status(job_id: str) -> JobResponse:
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
+

@@ -52,13 +52,13 @@
   /* ── Render suggestions dropdown ── */
   function renderSuggestions(query) {
     if (!suggestions || !searchInput) return;
-    const q = (query || '').trim().toLowerCase();
+    const q = normTx(query || '');
     const recent = getRecentSearches();
     let items = [];
 
     if (q.length > 0) {
       const allNames = getAllToolNames();
-      const matches = allNames.filter(n => n.toLowerCase().includes(q)).slice(0, 8);
+      const matches = allNames.filter(n => normTx(n).includes(q)).slice(0, 8);
       items = matches.map(n => ({ label: n, type: 'match' }));
       if (items.length === 0) {
         items = [{ label: 'No matching tools', type: 'empty' }];
@@ -170,8 +170,15 @@
   }
 
   /* ── Filter tools ── */
+  function normTx(s) {
+    s = String(s == null ? '' : s);
+    try { s = s.normalize('NFC'); } catch (e) {}
+    s = s.toLowerCase();
+    try { s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) {}
+    return s;
+  }
   function filterTools() {
-    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+    const query = searchInput ? normTx(searchInput.value.trim()) : '';
     const activeBtn = document.querySelector('.category-card.active');
     const activeFilter = activeBtn ? activeBtn.getAttribute('data-filter') : 'all';
     let anyVisible = false;
@@ -185,8 +192,8 @@
       cards.forEach(function (card) {
         const nameEl = card.querySelector('.tool-card-name');
         const descEl = card.querySelector('.tool-card-desc');
-        const name = nameEl ? nameEl.textContent.toLowerCase() : '';
-        const desc = descEl ? descEl.textContent.toLowerCase() : '';
+        const name = nameEl ? normTx(nameEl.textContent) : '';
+        const desc = descEl ? normTx(descEl.textContent) : '';
         const match = name.includes(query) || desc.includes(query);
         card.style.display = match ? '' : 'none';
         if (match) hasVisible = true;
@@ -212,7 +219,7 @@
   /* ── Event handlers ── */
   if (searchInput) {
     searchInput.addEventListener('input', window.sbr.debounce(function () {
-      const q = searchInput.value.trim().toLowerCase();
+      const q = normTx(searchInput.value.trim());
       filterTools();
       renderSuggestions(q);
     }, 150));
@@ -256,7 +263,7 @@
   document.addEventListener('keydown', function (e) {
     if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
     // Never steal '/' while the global search dialog is open (app.js owns it there),
-    // or while typing in any editable field (incl. heroSearchInput).
+    // or while typing in any editable field.
     const dia = document.getElementById('searchDialog');
     if (dia && dia.open) return;
     if (_isEditable(document.activeElement)) return;

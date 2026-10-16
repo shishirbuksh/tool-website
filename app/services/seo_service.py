@@ -1,5 +1,6 @@
 """SEO metadata service: builds ToolSEO objects from YAML data with category-based defaults."""
 
+import os
 import time
 from typing import Any
 
@@ -76,6 +77,23 @@ _CATEGORY_IMAGE: dict[str, str] = {
     "Productivity & Utilities": "/static/og-productivity-tools.webp",
 }
 
+_TOOL_OG_FILES: set[str] | None = None
+
+
+def _tool_og_url(static_dir: str, slug: str) -> str:
+    """Per-tool OG image (`static/og/t/<slug>.webp`, see scripts/generate_og.py).
+
+    Existence scanned once per process; missing file -> "" (caller falls back
+    to the category image). Same image serves all locales (EN title art).
+    """
+    global _TOOL_OG_FILES
+    if _TOOL_OG_FILES is None:
+        try:
+            _TOOL_OG_FILES = set(os.listdir(os.path.join(static_dir, "og", "t")))
+        except OSError:
+            _TOOL_OG_FILES = set()
+    return f"/static/og/t/{slug}.webp" if f"{slug}.webp" in _TOOL_OG_FILES else ""
+
 
 class SeoService:
     def __init__(self, settings: Settings) -> None:
@@ -119,6 +137,9 @@ class SeoService:
             "howto_calculate",
             "about_title",
             "about_body",
+            # Per-locale translation date (optional): lets sitemap lastmod and
+            # article:modified_time reflect the translation, not the EN edit.
+            "date_modified",
         ):
             if over.get(k) not in (None, "", []):
                 merged[k] = over[k]
@@ -135,8 +156,11 @@ class SeoService:
         for s in related_slugs:
             tool_info = all_tools.get(s) if all_tools else None
             if isinstance(tool_info, dict):
-                t_name = tool_info.get("name") or s.replace("-", " ").title()
-                t_desc = tool_info.get("description", "")
+                # Localize related-card name/desc so HI pages show HI cards
+                # (falls back to EN when the related tool has no override).
+                loc_info = self._localized_raw(tool_info, locale)
+                t_name = loc_info.get("name") or s.replace("-", " ").title()
+                t_desc = loc_info.get("description", "")
             else:
                 t_name = s.replace("-", " ").title()
                 t_desc = ""
@@ -164,6 +188,10 @@ class SeoService:
             meta_title = raw_meta_title
         # Unify app_category mapping via _CATEGORY_APP unless explicitly set.
         app_category = raw.get("app_category") or _CATEGORY_APP.get(cat, "UtilitiesApplication")
+        try:
+            static_dir = self.settings.static_dir
+        except Exception:
+            static_dir = ""
         return ToolSEO(
             slug=slug,
             name=name,
@@ -173,7 +201,7 @@ class SeoService:
             keywords=raw.get("keywords", []),
             app_category=app_category,
             app_sub_category=raw.get("app_sub_category", ""),
-            image_url=raw.get("image_url") or _CATEGORY_IMAGE.get(cat, ""),
+            image_url=raw.get("image_url") or _tool_og_url(static_dir, slug) or _CATEGORY_IMAGE.get(cat, ""),
             faqs=raw.get("faqs", []),
             howto_steps=raw.get("howto_steps", []),
             howto_calculate=raw.get("howto_calculate", ""),
