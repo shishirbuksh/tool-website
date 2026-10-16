@@ -187,6 +187,7 @@ async def blog_index(request: Request) -> HTMLResponse:
 @router.api_route("/hi/blog", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/es/blog", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/fr/blog", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/de/blog", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def blog_index_localized(request: Request) -> HTMLResponse:
     loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":
@@ -280,6 +281,7 @@ async def blog_pillar(request: Request, pillar: str) -> HTMLResponse:
 @router.api_route("/hi/blog/{pillar}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/es/blog/{pillar}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/fr/blog/{pillar}", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/de/blog/{pillar}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def blog_pillar_localized(request: Request, pillar: str) -> HTMLResponse:
     loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":
@@ -421,6 +423,7 @@ async def blog_post(request: Request, pillar: str, cluster: str) -> HTMLResponse
 @router.api_route("/hi/blog/{pillar}/{cluster}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/es/blog/{pillar}/{cluster}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/fr/blog/{pillar}/{cluster}", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/de/blog/{pillar}/{cluster}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def blog_post_localized(request: Request, pillar: str, cluster: str) -> HTMLResponse:
     loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":

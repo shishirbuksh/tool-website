@@ -7,7 +7,7 @@ class TestI18nCore:
     def test_supported_locales(self):
         from app.core.i18n import SUPPORTED_LOCALES, hreflang_links, localize_path, normalize_locale
 
-        assert set(SUPPORTED_LOCALES) == {"en", "hi", "es", "fr"}
+        assert set(SUPPORTED_LOCALES) == {"en", "hi", "es", "fr", "de"}
         assert normalize_locale("HI") == "hi"
         assert normalize_locale("xx") == "en"
         assert localize_path("/tool/emi-calculator", "hi") == "/hi/tool/emi-calculator"
@@ -15,14 +15,14 @@ class TestI18nCore:
         assert localize_path("/hi/tool/x", "es") == "/es/tool/x"
         links = hreflang_links("https://www.storybrainai.com", "/tool/emi-calculator")
         codes = {link["hreflang"] for link in links}
-        assert {"en", "hi", "es", "fr", "x-default"} <= codes
+        assert {"en", "hi", "es", "fr", "de", "x-default"} <= codes
 
     def test_ui_strings_complete(self):
         from app.core.i18n import UI_STRINGS, t
 
         keys = set(UI_STRINGS["en"].keys())
         assert len(keys) >= 10
-        for loc in ("hi", "es", "fr"):
+        for loc in ("hi", "es", "fr", "de"):
             missing = keys - set(UI_STRINGS[loc].keys())
             assert not missing, f"{loc} missing {missing}"
             for k in keys:
@@ -30,7 +30,7 @@ class TestI18nCore:
         assert t("nav.home", "hi") != t("nav.home", "en")
         # New chrome keys present everywhere (blog.title is "Blog" in es/fr by design)
         for k in ("blog.title", "nav.about", "nav.contact", "nav.search", "nav.theme", "nav.menu", "nav.language"):
-            assert all(k in UI_STRINGS[loc] for loc in ("en", "hi", "es", "fr")), k
+            assert all(k in UI_STRINGS[loc] for loc in ("en", "hi", "es", "fr", "de")), k
 
     def test_i18n_helpers_edge(self):
         from app.core.i18n import (
@@ -78,7 +78,7 @@ class TestI18nSeo:
         svc = SeoService(settings)
         for slug in ("gst-calculator", "sip-calculator", "paraphrasing-tool"):
             en = svc.get_seo(slug, locale="en")
-            for loc in ("hi", "es", "fr"):
+            for loc in ("hi", "es", "fr", "de"):
                 over = svc.get_seo(slug, locale=loc)
                 assert over.locale == loc, (slug, loc)
                 assert over.name != en.name, (slug, loc)
@@ -94,7 +94,7 @@ class TestI18nSeo:
 
         svc = SeoService(settings)
         en = svc.get_seo("emi-calculator", locale="en")
-        for loc, tail in (("es", "/es/tool/emi-calculator"), ("fr", "/fr/tool/emi-calculator")):
+        for loc, tail in (("es", "/es/tool/emi-calculator"), ("fr", "/fr/tool/emi-calculator"), ("de", "/de/tool/emi-calculator")):
             over = svc.get_seo("emi-calculator", locale=loc)
             assert over.locale == loc
             assert over.name != en.name
@@ -184,7 +184,7 @@ class TestI18nSeo:
         checked = 0
         pilot_slugs = set()
         for slug, info in all_tools.items():
-            for loc in ("hi", "es", "fr"):
+            for loc in ("hi", "es", "fr", "de"):
                 over = (info.get("i18n") or {}).get(loc) or {}
                 if not over:
                     continue
@@ -195,49 +195,75 @@ class TestI18nSeo:
                 assert over.get("description") and 120 <= len(over["description"]) <= 200, f"{slug}/{loc} desc"
                 assert len(over.get("keywords", [])) <= 8, f"{slug}/{loc} kws"
                 assert len(over.get("faqs", [])) >= 3, f"{slug}/{loc} faqs"
-        # Dynamic floor: every hi pilot x 3 locales (no hardcoded 58).
-        assert checked >= len(pilot_slugs) * 3, f"expected {len(pilot_slugs)} x 3, got {checked}"
+        # Dynamic floor: every hi pilot x 4 locales (no hardcoded count).
+        assert checked >= len(pilot_slugs) * 4, f"expected {len(pilot_slugs)} x 4, got {checked}"
         assert pilot_slugs, "no hi pilots found"
 
     def test_pilot_locales_symmetric(self, settings):
-        """Every tool with a hi override must have es+fr too (no half-translated set)."""
+        """All non-EN locales travel together: any override implies the full set."""
+        from app.core.tool_data import ToolDataLoader
+
+        FULL = {"hi", "es", "fr", "de"}
+        all_tools = ToolDataLoader.get_all()
+        bad = [
+            slug
+            for slug, info in all_tools.items()
+            if set((info.get("i18n") or {})) & FULL not in (set(), FULL)
+        ]
+        assert not bad, f"asymmetric pilots: {bad[:10]}"
+
+    def test_de_locale_symmetric(self, settings):
+        """Every tool with a de override must have hi+es+fr too (de is a subset)."""
         from app.core.tool_data import ToolDataLoader
 
         all_tools = ToolDataLoader.get_all()
         bad = [
             slug
             for slug, info in all_tools.items()
-            if (info.get("i18n") or {}).get("hi")
-            and not ((info.get("i18n") or {}).get("es") and (info.get("i18n") or {}).get("fr"))
+            if (info.get("i18n") or {}).get("de")
+            and not all((info.get("i18n") or {}).get(loc) for loc in ("hi", "es", "fr"))
         ]
-        assert not bad, f"asymmetric pilots: {bad[:10]}"
+        assert not bad, f"de without full cluster: {bad[:10]}"
+        assert any((info.get("i18n") or {}).get("de") for info in all_tools.values()), "no de tools found"
 
     def test_tool_fallback_en(self, settings):
         from fastapi.testclient import TestClient
 
         from app.services.seo_service import SeoService
 
-        # task-manager is a true non-pilot (no i18n overrides at all)
+        # Full coverage (2026-10-16): all 117 tools now have hi/es/fr overrides.
+        # Fallback service logic is verified via unknown slug; HTTP fallback
+        # via EN-only static page (/hi/contact) which stays noindex by design.
         svc2 = SeoService(settings)
-        hi = svc2.get_seo("task-manager", locale="hi")
-        en = svc2.get_seo("task-manager", locale="en")
-        # non-pilot falls back to EN content but keeps locale + localized URL
+        hi = svc2.get_seo("zz-fallback-probe-unknown", locale="hi")
+        en = svc2.get_seo("zz-fallback-probe-unknown", locale="en")
+        # unknown slug falls back to EN default content but keeps locale URL
         assert hi.locale == "hi"
-        assert hi.url.endswith("/hi/tool/task-manager")
+        assert hi.url.endswith("/hi/tool/zz-fallback-probe-unknown")
         assert hi.name == en.name
         assert hi.description == en.description
-        # HTTP: fallback is noindex + filtered hreflang (EN + x-default only)
+        de = svc2.get_seo("zz-fallback-probe-unknown", locale="de")
+        assert de.locale == "de"
+        assert de.url.endswith("/de/tool/zz-fallback-probe-unknown")
+        assert de.name == en.name
+        assert de.description == en.description
+        # Translated tool is indexed with full hreflang cluster (no fallback)
+        hi_tm = svc2.get_seo("task-manager", locale="hi")
+        en_tm = svc2.get_seo("task-manager", locale="en")
+        assert hi_tm.name != en_tm.name
         from app.main import app
 
         c = TestClient(app, base_url="http://127.0.0.1")
         r = c.get("/hi/tool/task-manager")
         assert r.status_code == 200
         assert r.headers.get("Content-Language") == "hi"
-        assert r.headers.get("X-Robots-Tag") == "noindex, nofollow"
-        # Fallback emits zero hreflang (suppressed with noindex by design)
-        assert 'hreflang="hi"' not in r.text
-        assert 'hreflang="en"' not in r.text
-        assert 'hreflang="x-default"' not in r.text
+        assert "X-Robots-Tag" not in r.headers
+        assert 'hreflang="hi"' in r.text
+        assert 'hreflang="x-default"' in r.text
+        # Static EN-only page still falls back (noindex + filtered hreflang)
+        rs = c.get("/hi/contact")
+        assert rs.status_code == 200
+        assert rs.headers.get("X-Robots-Tag") == "noindex, nofollow"
 
     def test_blog_hi_override(self, settings):
         from app.services.blog_service import BlogService
@@ -256,7 +282,7 @@ class TestI18nSeo:
         svc = BlogService(settings)
         en = svc.get("emi-calculator-guide", locale="en")
         assert en is not None
-        for loc in ("es", "fr"):
+        for loc in ("es", "fr", "de"):
             over = svc.get("emi-calculator-guide", locale=loc)
             assert over is not None
             assert over.locale == loc
@@ -278,7 +304,7 @@ class TestI18nSeo:
             for k in info.get("keywords", []) or []:
                 en_norms.add(norm(str(k)))
         for slug, info in all_tools.items():
-            for loc in ("hi", "es", "fr"):
+            for loc in ("hi", "es", "fr", "de"):
                 over = (info.get("i18n") or {}).get(loc) or {}
                 for k in over.get("keywords", []) or []:
                     n = norm(str(k))
@@ -295,7 +321,7 @@ class TestI18nSeo:
         all_tools = ToolDataLoader.get_all()
         with open("data/blog.yaml", encoding="utf-8") as f:
             posts = yaml.safe_load(f)["posts"]
-        for loc in ("hi", "es", "fr"):
+        for loc in ("hi", "es", "fr", "de"):
             seen: dict[str, str] = {}
             for slug, info in all_tools.items():
                 over = (info.get("i18n") or {}).get(loc) or {}
@@ -320,7 +346,7 @@ class TestI18nSeo:
             posts = yaml.safe_load(f)["posts"]
         checked = 0
         for slug, info in posts.items():
-            for loc in ("hi", "es", "fr"):
+            for loc in ("hi", "es", "fr", "de"):
                 over = (info.get("i18n") or {}).get(loc) or {}
                 if not over:
                     continue
@@ -332,8 +358,53 @@ class TestI18nSeo:
                 assert "<table" not in body.lower(), f"{slug}/{loc} table in body"
                 assert 3 <= len(over.get("faqs", [])) <= 10, f"{slug}/{loc} faqs"
                 assert all(re.search(r"\w", str(f.get("q", ""))) for f in over.get("faqs", [])), f"{slug}/{loc} empty q"
-        expected = sum(1 for _s, _i in posts.items() for _l in ("hi", "es", "fr") if (_i.get("i18n") or {}).get(_l))
+        expected = sum(1 for _s, _i in posts.items() for _l in ("hi", "es", "fr", "de") if (_i.get("i18n") or {}).get(_l))
         assert checked == expected and checked >= 15, f"expected {expected}, got {checked}"
+
+
+class TestLocaleContentQuality:
+    """Per-locale mirrors of EN content gates (banned boilerplate, non-empty depth)."""
+
+    BANNED = [
+        "standard mathematical formulas",
+        "click calculate",
+        "completely free to use",
+    ]
+
+    def _overrides(self):
+        from app.core.tool_data import ToolDataLoader
+
+        return ToolDataLoader.get_all()
+
+    def test_no_banned_boilerplate_any_locale(self):
+        hits = []
+        for slug, info in self._overrides().items():
+            for loc in ("hi", "es", "fr", "de"):
+                over = (info.get("i18n") or {}).get(loc) or {}
+                if not over:
+                    continue
+                blob = " ".join(
+                    [
+                        str(over.get("description", "")),
+                        str(over.get("howto_calculate", "")),
+                        " ".join(str(f.get("a", f.get("answer", ""))) for f in (over.get("faqs") or [])),
+                    ]
+                ).lower()
+                for phrase in self.BANNED:
+                    if phrase in blob:
+                        hits.append(f"{slug}/{loc}: {phrase}")
+        assert not hits, f"Boilerplate banned phrases in locale copy: {hits[:15]}"
+
+    def test_locale_about_and_answers_present(self):
+        for slug, info in self._overrides().items():
+            for loc in ("hi", "es", "fr", "de"):
+                over = (info.get("i18n") or {}).get(loc) or {}
+                if not over:
+                    continue
+                assert str(over.get("about_body", "")).strip(), f"{slug}/{loc} empty about"
+                for faq in over.get("faqs", []) or []:
+                    assert str(faq.get("q", faq.get("question", ""))).strip(), f"{slug}/{loc} empty q"
+                    assert str(faq.get("a", faq.get("answer", ""))).strip(), f"{slug}/{loc} empty a"
 
 
 class TestI18nRoutes:
@@ -348,7 +419,7 @@ class TestI18nRoutes:
         assert 'hreflang="hi"' in r.text
         assert 'hreflang="x-default"' in r.text
         # Translated tool carries the full cluster + self markers, no noindex
-        for code in ("en", "hi", "es", "fr"):
+        for code in ("en", "hi", "es", "fr", "de"):
             assert f'hreflang="{code}"' in r.text, code
         assert '<html lang="hi"' in r.text
         assert "Vary" in r.headers and "Accept-Language" in r.headers["Vary"]
@@ -383,7 +454,7 @@ class TestI18nRoutes:
         assert r.status_code == 308, r.status_code
         assert r.headers["location"].endswith("/hi/tool/emi-calculator")
         # Bare locale homes render
-        for loc in ("hi", "es", "fr"):
+        for loc in ("hi", "es", "fr", "de"):
             rb = c.get(f"/{loc}")
             assert rb.status_code == 200, loc
             assert rb.headers.get("Content-Language") == loc
@@ -396,7 +467,7 @@ class TestI18nRoutes:
         from app.main import app
 
         c = TestClient(app, base_url="http://127.0.0.1")
-        for loc in ("hi", "es", "fr"):
+        for loc in ("hi", "es", "fr", "de"):
             d = c.get(f"/{loc}/directory", follow_redirects=False)
             assert d.status_code == 301, (loc, d.status_code)
             assert d.headers["location"] == f"/{loc}/tools"
@@ -420,7 +491,7 @@ class TestI18nRoutes:
         from app.main import app
 
         c = TestClient(app, base_url="http://127.0.0.1")
-        for loc, og in (("es", "es_ES"), ("fr", "fr_FR")):
+        for loc, og in (("es", "es_ES"), ("fr", "fr_FR"), ("de", "de_DE")):
             r = c.get(f"/{loc}/tool/emi-calculator")
             assert r.status_code == 200, (loc, r.status_code)
             assert r.headers.get("Content-Language") == loc
@@ -432,6 +503,22 @@ class TestI18nRoutes:
             rh = c.get(f"/{loc}/")
             assert rh.status_code == 200, (loc, rh.status_code)
             assert rh.headers.get("Content-Language") == loc
+
+    def test_tool_de_renders(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        r = c.get("/de/tool/emi-calculator")
+        assert r.status_code == 200, r.status_code
+        assert r.headers.get("Content-Language") == "de"
+        assert 'hreflang="de"' in r.text
+        assert 'hreflang="x-default"' in r.text
+        assert '<html lang="de"' in r.text
+        assert "de_DE" in r.text
+        assert "X-Robots-Tag" not in r.headers
+        rh = c.get("/de/")
+        assert rh.status_code == 200, rh.status_code
+        assert rh.headers.get("Content-Language") == "de"
 
     def test_home_hi_renders(self):
         from app.main import app
@@ -449,7 +536,7 @@ class TestI18nRoutes:
         assert r.status_code == 200
         assert "/hi/tool/" in r.text
         assert "xhtml:link" in r.text
-        for loc in ("es", "fr"):
+        for loc in ("es", "fr", "de"):
             rl = c.get(f"/sitemap-{loc}.xml")
             assert rl.status_code == 200, loc
             assert f"/{loc}/tool/" in rl.text
@@ -459,6 +546,7 @@ class TestI18nRoutes:
         assert "sitemap-hi.xml" in r2.text
         assert "sitemap-es.xml" in r2.text
         assert "sitemap-fr.xml" in r2.text
+        assert "sitemap-de.xml" in r2.text
         r3 = c.get("/sitemap.xml")
         assert r3.status_code == 200
         assert "xhtml:link" in r3.text  # EN now carries hreflang too
@@ -466,13 +554,14 @@ class TestI18nRoutes:
         assert "sitemap-hi.xml" in r4.text
         assert "sitemap-es.xml" in r4.text
         assert "sitemap-fr.xml" in r4.text
+        assert "sitemap-de.xml" in r4.text
         # EN sitemap alias redirects; unknown locale 404s
         re_ = c.get("/sitemap-en.xml", follow_redirects=False)
         assert re_.status_code == 301, re_.status_code
         assert re_.headers["location"] == "/sitemap.xml"
         assert c.get("/sitemap-xx.xml").status_code == 404
-        # Fallback (untranslated) tools excluded from locale sitemaps
-        assert "/hi/tool/task-manager" not in r.text
+        # Full coverage: all translated tools included in locale sitemaps
+        assert "/hi/tool/task-manager" in r.text
         assert "/hi/tool/emi-calculator" in r.text
         assert r.headers.get("Content-Language") == "hi"
 
@@ -489,13 +578,13 @@ class TestI18nRoutes:
         ):
             r = c.get(path)
             assert r.status_code == 200, path
-            for code in ("hi", "es", "fr"):
+            for code in ("hi", "es", "fr", "de"):
                 assert f"/{code}{suffix}" in r.text, (path, code)
             assert 'aria-current="page"' in r.text
         # Home switcher keeps all locales reachable
         rh = c.get("/hi/")
         assert rh.status_code == 200
-        for code in ("hi", "es", "fr"):
+        for code in ("hi", "es", "fr", "de"):
             assert f"/{code}/" in rh.text, code
 
     def test_catalog_locale(self):
@@ -511,14 +600,17 @@ class TestI18nRoutes:
         hi_items = {t["url"]: t for t in hi.json()}
         assert "/tool/emi-calculator" in en_items
         assert "/hi/tool/emi-calculator" in hi_items
-        # Pilot tool translated; non-pilot falls back to EN name with localized URL
+        # Full coverage: all tools translated (no EN fallback names remain)
         assert hi_items["/hi/tool/emi-calculator"]["name"] != en_items["/tool/emi-calculator"]["name"]
-        assert hi_items["/hi/tool/task-manager"]["name"] == en_items["/tool/task-manager"]["name"]
+        assert hi_items["/hi/tool/task-manager"]["name"] != en_items["/tool/task-manager"]["name"]
         es = c.get("/api/tools/catalog?lang=es")
         assert any(t["url"].startswith("/es/tool/") for t in es.json())
         fr = c.get("/api/tools/catalog?lang=fr")
         assert any(t["url"].startswith("/fr/tool/") for t in fr.json())
         assert fr.headers.get("Content-Language") == "fr"
+        de = c.get("/api/tools/catalog?lang=de")
+        assert any(t["url"].startswith("/de/tool/") for t in de.json())
+        assert de.headers.get("Content-Language") == "de"
         # Uppercase lang normalizes; missing lang defaults to EN
         hi_upper = c.get("/api/tools/catalog?lang=HI")
         assert hi_upper.headers.get("Content-Language") == "hi"
@@ -539,7 +631,7 @@ class TestI18nRoutes:
         assert r2.status_code == 200
         assert 'hreflang="es"' in r2.text
         # Localized utility pages render with locale context
-        for loc in ("hi", "es", "fr"):
+        for loc in ("hi", "es", "fr", "de"):
             ro = c.get(f"/{loc}/offline")
             assert ro.status_code == 200, loc
             assert ro.headers.get("Content-Language") == loc
@@ -564,25 +656,38 @@ class TestI18nRoutes:
         r_same = c.get("/hi/blog/calculators/emi-calculator-guide", headers={"If-None-Match": etag_hi})
         assert r_same.status_code == 304, r_same.status_code
         assert r_same.headers.get("Content-Language") == "hi"
+        # de ETag is scoped too: differs from en/hi, 304s same-locale only
+        de = c.get("/de/blog/calculators/emi-calculator-guide")
+        assert de.status_code == 200
+        etag_de = de.headers.get("ETag", "")
+        assert etag_de and etag_de != etag_en and etag_de != etag_hi
+        r_cross_de = c.get("/de/blog/calculators/emi-calculator-guide", headers={"If-None-Match": etag_en})
+        assert r_cross_de.status_code == 200, r_cross_de.status_code
+        r_same_de = c.get("/de/blog/calculators/emi-calculator-guide", headers={"If-None-Match": etag_de})
+        assert r_same_de.status_code == 304, r_same_de.status_code
+        assert r_same_de.headers.get("Content-Language") == "de"
 
     def test_blog_fallback_locale_noindex(self):
-        """Untranslated post under /hi/ is usable but noindex with empty hreflang."""
+        """Full coverage: translated post is indexed; static fallback stays noindex."""
         from app.main import app
 
         c = TestClient(app, base_url="http://127.0.0.1")
-        # dark-mode-favicon-svg-guide has no hi override
+        # dark-mode-favicon-svg-guide now HAS hi override -> indexed with hreflang
         r = c.get("/hi/blog/developer-seo/dark-mode-favicon-svg-guide")
         assert r.status_code == 200, r.status_code
         assert r.headers.get("Content-Language") == "hi"
-        assert r.headers.get("X-Robots-Tag") == "noindex, nofollow"
-        assert 'hreflang="hi"' not in r.text
+        assert "X-Robots-Tag" not in r.headers
+        assert 'hreflang="hi"' in r.text
+        # EN-only static page still exercises fallback noindex path
+        rs = c.get("/hi/contact")
+        assert rs.headers.get("X-Robots-Tag") == "noindex, nofollow"
 
     def test_blog_index_localized(self):
         """Regression: /hi|es|fr/blog must render (prod 404 report, 2026-10-10)."""
         from app.main import app
 
         c = TestClient(app, base_url="http://127.0.0.1")
-        for loc in ("hi", "es", "fr"):
+        for loc in ("hi", "es", "fr", "de"):
             r = c.get(f"/{loc}/blog")
             assert r.status_code == 200, loc
             assert "text/html" in r.headers.get("content-type", "")
@@ -593,7 +698,7 @@ class TestI18nRoutes:
         from app.main import app
 
         c = TestClient(app, base_url="http://127.0.0.1")
-        for loc in ("hi", "es", "fr"):
+        for loc in ("hi", "es", "fr", "de"):
             r = c.get(f"/{loc}/blog/calculators")
             assert r.status_code == 200, loc
             assert r.headers.get("Content-Language") == loc
@@ -611,6 +716,9 @@ class TestIndexNowLocales:
             "https://www.storybrainai.com/sitemap-hi.xml",
             "https://www.storybrainai.com/sitemap-es.xml",
         ]
+        assert sitemap_urls_for("www.storybrainai.com", include_all=False, locales=["de"]) == [
+            "https://www.storybrainai.com/sitemap-de.xml",
+        ]
         # Unknown locales ignored
         assert sitemap_urls_for("www.storybrainai.com", include_all=False, locales=["xx"]) == []
 
@@ -623,6 +731,10 @@ class TestIndexNowLocales:
             "https://www.storybrainai.com/sitemap-hi.xml",
             "https://www.storybrainai.com/sitemap-es.xml",
         ]
+        urls_de = sitemap_urls_for("www.storybrainai.com", include_all=False, locales=["DE", "de", "xx", "de"])
+        assert urls_de == [
+            "https://www.storybrainai.com/sitemap-de.xml",
+        ]
 
     def test_contact_from_locale_page(self):
         """Contact POST with locale Referer passes origin check; page is noindexed."""
@@ -633,6 +745,10 @@ class TestIndexNowLocales:
         assert page.status_code == 200
         assert page.headers.get("Content-Language") == "hi"
         assert page.headers.get("X-Robots-Tag") == "noindex, nofollow"
+        page_de = c.get("/de/contact")
+        assert page_de.status_code == 200
+        assert page_de.headers.get("Content-Language") == "de"
+        assert page_de.headers.get("X-Robots-Tag") == "noindex, nofollow"
         r = c.post(
             "/api/contact",
             json={"name": "Asha", "email": "asha@example.com", "message": "Namaste from Hindi page"},

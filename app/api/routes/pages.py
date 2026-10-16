@@ -164,9 +164,11 @@ async def home(request: Request) -> HTMLResponse:
 @router.api_route("/hi/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/es/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/fr/", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/de/", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/hi", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/es", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/fr", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/de", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def home_localized(request: Request) -> HTMLResponse:
     loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":
@@ -207,6 +209,7 @@ async def tools_page(request: Request) -> HTMLResponse:
 @router.api_route("/hi/tools", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/es/tools", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/fr/tools", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/de/tools", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def tools_page_localized(request: Request) -> HTMLResponse:
     loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":
@@ -228,6 +231,7 @@ async def directory_redirect(request: Request) -> RedirectResponse:
 @router.api_route("/hi/directory", methods=["GET", "HEAD"], response_class=RedirectResponse)
 @router.api_route("/es/directory", methods=["GET", "HEAD"], response_class=RedirectResponse)
 @router.api_route("/fr/directory", methods=["GET", "HEAD"], response_class=RedirectResponse)
+@router.api_route("/de/directory", methods=["GET", "HEAD"], response_class=RedirectResponse)
 async def directory_redirect_localized(request: Request) -> RedirectResponse:
     loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":
@@ -250,6 +254,7 @@ async def offline_page(request: Request) -> HTMLResponse:
 @router.api_route("/hi/offline", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/es/offline", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/fr/offline", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/de/offline", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def offline_page_localized(request: Request) -> HTMLResponse:
     loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":
@@ -286,6 +291,7 @@ async def html_sitemap(request: Request) -> HTMLResponse:
 @router.api_route("/hi/sitemap", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/es/sitemap", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/fr/sitemap", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/de/sitemap", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def html_sitemap_localized(request: Request) -> HTMLResponse:
     loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":
@@ -554,6 +560,7 @@ async def get_tool(request: Request, tool_name: str):
 @router.api_route("/hi/tool/{tool_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/es/tool/{tool_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/fr/tool/{tool_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/de/tool/{tool_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def get_tool_localized(request: Request, tool_name: str):
     loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":
@@ -564,6 +571,7 @@ async def get_tool_localized(request: Request, tool_name: str):
 @router.api_route("/hi/{page_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/es/{page_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 @router.api_route("/fr/{page_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@router.api_route("/de/{page_name}", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def get_page_localized(request: Request, page_name: str) -> HTMLResponse:
     loc = normalize_locale(request.url.path.split("/")[1])
     if not is_supported_locale(loc) or loc == "en":

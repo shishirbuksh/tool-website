@@ -73,7 +73,7 @@ class Settings(BaseSettings):
         "Keep false if non-browser clients (curl, server-to-server) use the write APIs.",
     )
 
-    SUPPORTED_LOCALES: tuple[str, ...] = ("en", "hi", "es", "fr")
+    SUPPORTED_LOCALES: tuple[str, ...] = ("en", "hi", "es", "fr", "de")
     DEFAULT_LOCALE: str = "en"
 
     HUB_CATEGORIES: dict[str, tuple[str, str]] = {

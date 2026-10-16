@@ -271,8 +271,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/hi/",
         "/es/",
         "/fr/",
+        "/de/",
     )
-    _HEAVY_GET_EXACT = frozenset({"/hi", "/es", "/fr"})
+    _HEAVY_GET_EXACT = frozenset({"/hi", "/es", "/fr", "/de"})
     _HEAVY_GET_LIMIT = 200
     # Light GET (sitemap, robots, catalog, health, static passthrough) — bounded
     # to prevent CPU-amplification floods (YAML scans per sitemap hit). 200/min.

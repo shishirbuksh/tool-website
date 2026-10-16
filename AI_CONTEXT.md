@@ -10,7 +10,7 @@
 
 ## Catalog
 - 117 free online tools (slugs defined in `data/tools.yaml`)
-- i18n: HI/ES/FR via subdirectories (`/hi/ /es/ /fr/`, English slugs kept); per-locale `i18n:` overrides in `data/tools.yaml` / `data/blog.yaml` (pilot: 10 tools + 5 posts/locale); helpers in `app/core/i18n.py`; locale routes in `pages.py`/`blog.py`/`seo.py`; sitemaps `/sitemap.xml + -hi/-es/-fr.xml + -index.xml` with hreflang
+- i18n: HI/ES/FR/DE via subdirectories (`/hi/ /es/ /fr/ /de/`, English slugs kept); per-locale `i18n:` overrides in `data/tools.yaml` / `data/blog.yaml` (full: 117 tools + 99 posts/locale x4, 100% long-tail tool keywords + per-tool question keywords; EN-only legal pages fallback noindex); helpers in `app/core/i18n.py`; locale routes in `pages.py`/`blog.py`/`seo.py`; sitemaps `/sitemap.xml + -hi/-es/-fr/-de.xml + -index.xml` with hreflang; shared audit JS `window.sbr.audit` (density 0.5-2.5%, LSI + long-tail, thesaurus-backed) wired into all 4 SEO tools (`keyword-data-analyzer`, `seo-writing-assistant`, `word-counter`, `page-grader`)
 
 ## Project Structure
 - app/api → API routes

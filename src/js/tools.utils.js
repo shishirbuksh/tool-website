@@ -194,4 +194,111 @@
     btn.disabled = false;
     delete btn.dataset.loadingActive;
   };
+
+  /* ── Unified SEO audit helpers (single source: density 0.5–2.5%, LSI + long-tail) ──
+     Unifies page-grader (1–3%) vs seo-writing-assistant (0.5–2.5%) conflict.
+     Canonical ideal: 0.5–2.5% primary, entity 4–7/para. Used by
+     keyword-data-analyzer, seo-writing-assistant, word-counter, page-grader. */
+  window.sbr.audit = (function () {
+    var IDEAL_MIN = 0.5, IDEAL_MAX = 2.5;
+    function words(text) {
+      var m = String(text || '').toLowerCase().match(/[a-z0-9\u00C0-\u024F\u1E00-\u1EFF\u0900-\u097F']+/g);
+      return m || [];
+    }
+    function keywordDensity(text, keyword) {
+      var toks = words(text);
+      if (!toks.length || !keyword) return { count: 0, total: toks.length, density: 0 };
+      var kw = String(keyword).toLowerCase().trim().split(/\s+/);
+      var count = 0;
+      for (var i = 0; i <= toks.length - kw.length; i++) {
+        var hit = true;
+        for (var j = 0; j < kw.length; j++) {
+          if (toks[i + j] !== kw[j]) { hit = false; break; }
+        }
+        if (hit) count++;
+      }
+      return { count: count, total: toks.length, density: toks.length ? (count * kw.length / toks.length * 100) : 0 };
+    }
+    function densityStatus(d) {
+      if (d < IDEAL_MIN) return { level: 'low', msg: 'Below 0.5% — add 1–2 natural mentions.' };
+      if (d <= IDEAL_MAX) return { level: 'optimal', msg: 'Optimal 0.5–2.5%.' };
+      if (d <= 3.5) return { level: 'high', msg: 'Above 2.5% — dilute with synonyms.' };
+      return { level: 'stuffed', msg: 'Stuffing risk >3.5% — rewrite with entities.' };
+    }
+    function longTailExpand(seed) {
+      seed = String(seed || '').trim().replace(/\s+/g, ' ');
+      if (!seed) return [];
+      return [
+        'how to ' + seed + ' online free',
+        'best ' + seed + ' guide 2026',
+        seed + ' vs alternative comparison',
+        seed + ' for beginners step by step',
+        'free ' + seed + ' tool no signup',
+        seed + ' india price calculator hindi',
+        'what is ' + seed + ' and how it works',
+        seed + ' common mistakes to avoid'
+      ];
+    }
+    /* Lazy bridge to /static/data/thesaurus.json ({word: {mode: [syns]}} or
+       {word: [syns]}). Fire-and-forget: sync fallback above keeps tools
+       working offline; later calls pick up real synonyms once loaded. */
+    function loadThesaurus() {
+      if (window.__THESAURUS || window.__THESAURUS_LOADING) return;
+      window.__THESAURUS_LOADING = true;
+      try {
+        fetch('/static/data/thesaurus.json', { credentials: 'same-origin' }).then(function (r) {
+          if (!r.ok) throw new Error('thesaurus ' + r.status);
+          return r.json();
+        }).then(function (d) {
+          var flat = {};
+          Object.keys(d || {}).forEach(function (k) {
+            var v = d[k];
+            var arr = Array.isArray(v) ? v : Object.keys(v || {}).reduce(function (a, m) {
+              return a.concat(v[m]);
+            }, []);
+            flat[String(k).toLowerCase()] = arr;
+          });
+          window.__THESAURUS = flat;
+        }).catch(function () {
+          window.__THESAURUS = {};
+        });
+      } catch (e) {
+        window.__THESAURUS = {};
+      }
+    }
+    window.sbr.loadThesaurus = loadThesaurus;
+    function lsiSuggest(seed) {
+      seed = String(seed || '').trim().toLowerCase();
+      if (!seed) return [];
+      loadThesaurus();
+      var base = seed.split(/\s+/).slice(0, 3).join(' ');
+      var out = ['guide', 'calculator', 'tool', 'free', 'online', '2026', 'how it works', 'examples', 'formula', 'comparison'];
+      var res = [];
+      for (var i = 0; i < out.length; i++) {
+        var c = (base + ' ' + out[i]).trim();
+        if (c !== seed) res.push(c);
+      }
+      try {
+        var entry = window.__THESAURUS && window.__THESAURUS[seed];
+        var syns = Array.isArray(entry) ? entry : (entry ? Object.keys(entry).reduce(function (a, m) {
+          return a.concat(entry[m]);
+        }, []) : []);
+        if (syns.length) {
+          res = syns.slice(0, 8).concat(res).slice(0, 10);
+        }
+      } catch (e) {}
+      return res.slice(0, 10);
+    }
+    function auditText(text, keywords) {
+      var rows = [];
+      (keywords || []).forEach(function (kw) {
+        if (!kw) return;
+        var r = keywordDensity(text, kw);
+        var st = densityStatus(r.density);
+        rows.push({ keyword: kw, count: r.count, total: r.total, density: Math.round(r.density * 100) / 100, status: st.level, message: st.msg });
+      });
+      return rows;
+    }
+    return { IDEAL_MIN: IDEAL_MIN, IDEAL_MAX: IDEAL_MAX, words: words, keywordDensity: keywordDensity, densityStatus: densityStatus, longTailExpand: longTailExpand, lsiSuggest: lsiSuggest, auditText: auditText };
+  })();
 })();

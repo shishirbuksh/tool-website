@@ -2,14 +2,14 @@
 
 Subdirectory strategy (SEO equity preserving):
   en (default, no prefix): /tool/emi-calculator, /blog/calculators/emi-guide
-  hi/es/fr (prefixed):     /hi/tool/emi-calculator, /es/tool/..., /fr/tool/...
+  hi/es/fr/de (prefixed):  /hi/tool/emi-calculator, /es/tool/..., /fr/tool/..., /de/tool/...
 
 Slugs stay English (no translated slugs in v1) to avoid 301 equity loss.
 """
 
 from __future__ import annotations
 
-SUPPORTED_LOCALES: tuple[str, ...] = ("en", "hi", "es", "fr")
+SUPPORTED_LOCALES: tuple[str, ...] = ("en", "hi", "es", "fr", "de")
 DEFAULT_LOCALE = "en"
 
 LOCALE_META: dict[str, dict[str, str]] = {
@@ -17,6 +17,7 @@ LOCALE_META: dict[str, dict[str, str]] = {
     "hi": {"og_locale": "hi_IN", "name": "हिन्दी", "html_lang": "hi"},
     "es": {"og_locale": "es_ES", "name": "Español", "html_lang": "es"},
     "fr": {"og_locale": "fr_FR", "name": "Français", "html_lang": "fr"},
+    "de": {"og_locale": "de_DE", "name": "Deutsch", "html_lang": "de"},
 }
 
 _LOCALE_SET = set(SUPPORTED_LOCALES)
@@ -78,8 +79,8 @@ def html_lang_for(locale: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# UI chrome strings (human-reviewed v1). Tool bodies stay EN except HI pilot
-# tools whose YAML carries i18n.* overrides. Extend per locale over time.
+# UI chrome strings (human-reviewed v1). Tool bodies stay EN except locales
+# whose YAML carries i18n.* overrides. Extend per locale over time.
 # ---------------------------------------------------------------------------
 UI_STRINGS: dict[str, dict[str, str]] = {
     "en": {
@@ -194,6 +195,34 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "nav.language": "Langue",
         "nav.categories": "Catégories",
     },
+    "de": {
+        "nav.home": "Startseite",
+        "nav.tools": "Tools",
+        "nav.blog": "Blog",
+        "nav.all_tools": "Alle Tools",
+        "search.title": "Tools suchen",
+        "search.placeholder": "117+ Tools suchen...",
+        "search.empty": "Tippen Sie, um Tools zu finden",
+        "cookie.title": "Datenschutz & Cookies",
+        "cookie.accept": "Alle akzeptieren",
+        "cookie.reject": "Ablehnen",
+        "breadcrumb.home": "Startseite",
+        "breadcrumb.tools": "Tools",
+        "footer.tagline": "Für Speed & Privatsphäre gebaut.",
+        "footer.popular": "Beliebte Tools",
+        "footer.categories": "Kategorien",
+        "footer.legal": "Rechtliches",
+        "cookie.body": "Wir verwenden Cookies, um Ihr Erlebnis zu verbessern und Traffic zu analysieren.",
+        "cookie.privacy": "Datenschutzerklärung lesen",
+        "blog.title": "Blog",
+        "nav.about": "Über uns",
+        "nav.contact": "Kontakt",
+        "nav.search": "Suchen",
+        "nav.theme": "Theme",
+        "nav.menu": "Menü",
+        "nav.language": "Sprache",
+        "nav.categories": "Kategorien",
+    },
 }
 
 
@@ -235,6 +264,14 @@ CATEGORY_LABELS: dict[str, dict[str, str]] = {
         "Business & Operations": "Business et Opérations",
         "Productivity & Utilities": "Productivité et Utilitaires",
     },
+    "de": {
+        "AI & Crypto": "KI & Krypto",
+        "Calculators": "Rechner",
+        "Image Processing": "Bildbearbeitung",
+        "Developer & SEO": "Dev & SEO",
+        "Business & Operations": "Business & Betrieb",
+        "Productivity & Utilities": "Produktivität & Tools",
+    },
 }
 
 PILLAR_LABELS: dict[str, dict[str, str]] = {
@@ -261,6 +298,14 @@ PILLAR_LABELS: dict[str, dict[str, str]] = {
         "developer-seo": "Dev et SEO",
         "image-processing": "Traitement d'images",
         "productivity-utilities": "Productivité",
+    },
+    "de": {
+        "calculators": "Rechner",
+        "ai-crypto": "KI-Krypto",
+        "business-operations": "Business-Betrieb",
+        "developer-seo": "Dev-SEO",
+        "image-processing": "Bildbearbeitung",
+        "productivity-utilities": "Produktivität",
     },
 }
 
@@ -291,6 +336,15 @@ HUB_SEO_TITLES: dict[str, dict[str, str]] = {
         "business-tools": "Outils business gratuits",
         "productivity-tools": "PDF et productivité gratuits",
         "pdf-tools": "PDF et productivité gratuits",
+    },
+    "de": {
+        "ai-tools": "KI- und Krypto-Tools – kostenlos online",
+        "calculators": "Kostenlose Rechner – EMI, SIP, FD",
+        "image-tools": "Kostenlose Bild-Tools – online",
+        "developer-tools": "Dev- und SEO-Tools kostenlos",
+        "business-tools": "Business-Tools – Rechnung, GST",
+        "productivity-tools": "PDF- & Produktivitäts-Tools gratis",
+        "pdf-tools": "PDF- & Produktivitäts-Tools gratis",
     },
 }
 

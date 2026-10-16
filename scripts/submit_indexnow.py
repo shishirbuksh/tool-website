@@ -34,7 +34,7 @@ LOC_RE = re.compile(r"<loc>\s*([^<\s]+)\s*</loc>")
 KEY_RE = re.compile(r"^[0-9a-fA-F]{8,128}$")
 CHUNK = 10_000
 # Subdirectory locales (must match app/core/i18n.py SUPPORTED_LOCALES minus "en").
-I18N_LOCALES = ("hi", "es", "fr")
+I18N_LOCALES = ("hi", "es", "fr", "de")
 
 
 def sitemap_urls_for(host: str, *, include_all: bool, locales: list[str]) -> list[str]:
@@ -108,9 +108,9 @@ def main(argv: list[str] | None = None) -> int:
         action="append",
         dest="locales",
         default=[],
-        help="Also submit a locale sitemap (hi/es/fr; repeatable)",
+        help="Also submit a locale sitemap (hi/es/fr/de; repeatable)",
     )
-    ap.add_argument("--all-locales", action="store_true", help="Submit all locale sitemaps (sitemap-hi/es/fr.xml) too")
+    ap.add_argument("--all-locales", action="store_true", help="Submit all locale sitemaps (sitemap-hi/es/fr/de.xml) too")
     ap.add_argument("--timeout", type=int, default=30)
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
