@@ -14,6 +14,7 @@
   const $$ = (s, p) => [...(p || document).querySelectorAll(s)];
 
   const searchInput = $('#toolSearchInput');
+  const searchClearBtn = $('#toolSearchClear');
   const suggestions = $('#searchSuggestions');
   const suggestionHeader = $('#suggestionHeader');
   const skeletonGrid = $('#skeletonGrid');
@@ -49,7 +50,7 @@
     return toolsCache;
   }
 
-  /* ── Recent searches (localStorage via safe store wrapper) ── */
+  /* ── Recent searches ── */
   function getRecentSearches() {
     try { return JSON.parse(store.get(STORAGE_KEY) || '[]').slice(0, MAX_RECENT); }
     catch { return []; }
@@ -65,6 +66,14 @@
   function clearRecentSearches() {
     store.del(STORAGE_KEY);
     renderSuggestions(searchInput ? searchInput.value.trim() : '');
+  }
+
+  /* ── Search Clear Button State ("✕") ── */
+  function updateClearButtonState() {
+    if (!searchClearBtn || !searchInput) return;
+    const hasValue = searchInput.value.length > 0;
+    searchClearBtn.classList.toggle('hidden', !hasValue);
+    searchClearBtn.classList.toggle('flex', hasValue);
   }
 
   /* ── Render suggestions dropdown ── */
@@ -89,7 +98,6 @@
         });
         items.push({ label: 'Clear recent searches', url: '', type: 'clear' });
       } else {
-        // High-intent top tools
         const popularSlugs = ['crypto-price-prediction', 'emi-calculator', 'sip-calculator', 'pdf-converter', 'image-background-remover', 'qr-generator'];
         const popular = allTools.filter(t => popularSlugs.some(slug => t.url && t.url.includes(slug))).slice(0, 6);
         const fallback = popular.length > 0 ? popular : allTools.slice(0, 6);
@@ -152,11 +160,9 @@
         el.appendChild(arrow);
       }
 
-      // Pointerdown avoids the blur race condition on mobile touch devices
       el.addEventListener('pointerdown', function (e) {
         if (item.url) {
           addRecentSearch(item.label);
-          // Let default link navigation happen
           return;
         }
         e.preventDefault();
@@ -189,6 +195,7 @@
     if (searchInput) {
       searchInput.value = item.label;
       addRecentSearch(item.label);
+      updateClearButtonState();
     }
     closeSuggestions();
     filterTools();
@@ -234,13 +241,12 @@
     let activeFilter = activeBtn ? activeBtn.getAttribute('data-filter') : 'all';
     let anyVisible = false;
 
-    // Cross-category search convenience: if user is typing a query, search everywhere
+    // Cross-category search convenience
     if (query.length > 0 && activeFilter !== 'all') {
       const currentCatMatches = getCachedTools().some(t => {
         const cat = t.card.closest('.category-section')?.getAttribute('data-category');
         return cat === activeFilter && (t.nameNorm.includes(query) || t.descNorm.includes(query));
       });
-      // If no matches in active category, automatically search across all categories
       if (!currentCatMatches) {
         activeFilter = 'all';
       }
@@ -278,9 +284,10 @@
   if (searchInput) {
     searchInput.addEventListener('input', window.sbr.debounce(function () {
       const q = normTx(searchInput.value.trim());
+      updateClearButtonState();
       filterTools();
       renderSuggestions(q);
-    }, 120));
+    }, 60));
 
     searchInput.addEventListener('focus', function () {
       renderSuggestions(this.value.trim());
@@ -307,7 +314,6 @@
           e.preventDefault();
           selectSuggestion(currentFocusIdx);
         } else {
-          // Direct Enter navigation to top match
           const q = normTx(searchInput.value.trim());
           if (q) {
             const allTools = getCachedTools();
@@ -325,12 +331,41 @@
     });
   }
 
-  // Quick Action Launch Pills (Search and Launch)
+  // Clear button ("✕") listener
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (!searchInput) return;
+      searchInput.value = '';
+      updateClearButtonState();
+      filterTools();
+      closeSuggestions();
+      searchInput.focus();
+    });
+  }
+
+  // Touch-Scroll Keyboard Dismissal
+  let touchStartY = 0;
+  window.addEventListener('touchstart', function (e) {
+    if (e.touches && e.touches[0]) touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', function (e) {
+    if (!e.touches || !e.touches[0] || !searchInput) return;
+    const currentY = e.touches[0].clientY;
+    const diffY = Math.abs(currentY - touchStartY);
+    if (diffY > 15 && document.activeElement === searchInput) {
+      searchInput.blur();
+    }
+  }, { passive: true });
+
+  // Quick Action Launch Pills
   $$('[data-quick-search]').forEach(pill => {
-    pill.addEventListener('click', function(e) {
+    pill.addEventListener('click', function (e) {
       const query = this.getAttribute('data-quick-search');
       if (searchInput) {
         searchInput.value = query;
+        updateClearButtonState();
         filterTools();
         searchInput.focus();
         const toolsSection = document.getElementById('tools');
@@ -341,46 +376,11 @@
     });
   });
 
-  // View toggle (Grid View vs A-Z Table View)
-  const viewToggleGrid = $('#viewToggleGrid');
-  const viewToggleTable = $('#viewToggleTable');
-  const viewGridContainer = $('#toolsGrid');
-  const viewTableContainer = $('#complete-list');
-
-  function setDirectoryView(view) {
-    if (!viewGridContainer || !viewTableContainer) return;
-    if (view === 'table') {
-      viewGridContainer.classList.add('hidden');
-      viewTableContainer.classList.remove('hidden');
-      if (viewToggleTable) {
-        viewToggleTable.classList.add('bg-base-content', 'text-base-100');
-        viewToggleTable.classList.remove('text-base-content/60');
-      }
-      if (viewToggleGrid) {
-        viewToggleGrid.classList.remove('bg-base-content', 'text-base-100');
-        viewToggleGrid.classList.add('text-base-content/60');
-      }
-    } else {
-      viewGridContainer.classList.remove('hidden');
-      viewTableContainer.classList.add('hidden');
-      if (viewToggleGrid) {
-        viewToggleGrid.classList.add('bg-base-content', 'text-base-100');
-        viewToggleGrid.classList.remove('text-base-content/60');
-      }
-      if (viewToggleTable) {
-        viewToggleTable.classList.remove('bg-base-content', 'text-base-100');
-        viewToggleTable.classList.add('text-base-content/60');
-      }
-    }
-  }
-
-  if (viewToggleGrid) viewToggleGrid.addEventListener('click', () => setDirectoryView('grid'));
-  if (viewToggleTable) viewToggleTable.addEventListener('click', () => setDirectoryView('table'));
-
-  // Category Tab Switching
+  // Category Tab Switching (Hybrid <a href> and <button>)
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('.category-card');
     if (!btn) return;
+    e.preventDefault(); // Intercept link click for smooth in-page filter
     const filter = btn.getAttribute('data-filter');
 
     categoryBtns().forEach(b => {
@@ -403,46 +403,36 @@
     const bCount = btn.querySelector('.category-card-count');
     if (bCount) { bCount.classList.add('bg-base-100/20', 'text-base-100'); bCount.classList.remove('bg-base-content/10', 'text-base-content/60'); }
 
-    // Smooth scroll the selected tab to center on mobile
+    // Auto-scroll selected tab to center on mobile
     btn.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
-
-    // Update contextual category banner if present
-    const catBanners = $$('.category-context-banner');
-    catBanners.forEach(banner => {
-      const bCat = banner.getAttribute('data-category');
-      banner.style.display = (filter === 'all' || filter === bCat) ? '' : 'none';
-    });
 
     filterTools();
   });
 
-  // Category tab keyboard arrow navigation
-  const tablist = document.getElementById('categoryTablist');
-  if (tablist) {
-    tablist.addEventListener('keydown', function (e) {
-      const tabs = categoryBtns();
-      const current = document.activeElement;
-      const idx = tabs.indexOf(current);
-      if (idx === -1) return;
+  // Mobile navbar & bottom nav search click redirection to in-page search
+  const mobileNavSearch = $('#searchToggleMobileNav');
+  const mobileHeaderSearch = $('#searchToggleMobile');
 
-      let next = -1;
-      if (e.key === 'ArrowRight') next = idx < tabs.length - 1 ? idx + 1 : 0;
-      else if (e.key === 'ArrowLeft') next = idx > 0 ? idx - 1 : tabs.length - 1;
-      else if (e.key === 'Home') next = 0;
-      else if (e.key === 'End') next = tabs.length - 1;
-
-      if (next >= 0) {
-        e.preventDefault();
-        tabs[next].focus();
-        tabs[next].click();
-      }
-    });
+  function focusInPageSearch(e) {
+    if (!searchInput) return;
+    e.preventDefault();
+    e.stopPropagation();
+    searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => {
+      searchInput.focus({ preventScroll: true });
+    }, 200);
   }
+
+  if (mobileNavSearch) mobileNavSearch.addEventListener('click', focusInPageSearch);
+  if (mobileHeaderSearch) mobileHeaderSearch.addEventListener('click', focusInPageSearch);
 
   // Clear filters button in empty state
   if (clearBtn) {
     clearBtn.addEventListener('click', function () {
-      if (searchInput) searchInput.value = '';
+      if (searchInput) {
+        searchInput.value = '';
+        updateClearButtonState();
+      }
       const allTab = document.querySelector('.category-card[data-filter="all"]');
       if (allTab) allTab.click();
       else filterTools();
@@ -452,6 +442,7 @@
   // Initialize tool cache on DOMContentLoaded
   document.addEventListener('DOMContentLoaded', function () {
     getCachedTools();
+    updateClearButtonState();
   });
 
 })();
