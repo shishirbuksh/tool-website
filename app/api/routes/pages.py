@@ -107,6 +107,7 @@ templates.env.globals["hreflang_links"] = hreflang_links
 templates.env.globals["html_lang_for"] = html_lang_for
 templates.env.globals["og_locale_for"] = og_locale_for
 templates.env.globals["tr"] = tr
+templates.env.globals["t"] = tr
 templates.env.globals["normalize_locale"] = normalize_locale
 templates.env.globals["supported_locales"] = SUPPORTED_LOCALES
 templates.env.globals["locale_meta"] = LOCALE_META

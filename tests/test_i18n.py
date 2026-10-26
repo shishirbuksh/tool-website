@@ -1194,4 +1194,54 @@ class TestMultilingualArchitectureEnhancements:
         assert "Calculateur de pourcentage" in r_fr.text
         assert "Variation" in r_fr.text
         assert "Formule" in r_fr.text
+    def test_crypto_tax_calculator_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi Crypto Tax Calculator UI
+        r_hi = c.get("/hi/tool/crypto-tax-calculator")
+        assert r_hi.status_code == 200
+        assert "टैक्स विवरण" in r_hi.text
+        assert "लागत आधार" in r_hi.text
+        assert "बिक्री राशि" in r_hi.text
+        assert "टैक्स सारांश" in r_hi.text
+
+        # Spanish Crypto Tax Calculator UI
+        r_es = c.get("/es/tool/crypto-tax-calculator")
+        assert r_es.status_code == 200
+        assert "Detalles fiscales" in r_es.text
+        assert "Resumen fiscal" in r_es.text
+        assert "Desglose fiscal" in r_es.text
+
+        # German Crypto Tax Calculator UI
+        r_de = c.get("/de/tool/crypto-tax-calculator")
+        assert r_de.status_code == 200
+        assert "Steuerdetails" in r_de.text
+        assert "Anschaffungskosten" in r_de.text
+        assert "Steuerübersicht" in r_de.text
+
+    def test_scientific_calculator_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi Scientific Calculator UI
+        r_hi = c.get("/hi/tool/scientific-calculator")
+        assert r_hi.status_code == 200
+        assert "समीकरण सॉल्वर" in r_hi.text
+        assert "द्विघात" in r_hi.text
+        assert "प्लॉट करें" in r_hi.text
+
+        # Spanish Scientific Calculator UI
+        r_es = c.get("/es/tool/scientific-calculator")
+        assert r_es.status_code == 200
+        assert "Ecuaciones" in r_es.text
+        assert "Cuadrática" in r_es.text
+        assert "Graficar" in r_es.text
+
+        # French Scientific Calculator UI
+        r_fr = c.get("/fr/tool/scientific-calculator")
+        assert r_fr.status_code == 200
+        assert "Solveur" in r_fr.text
+        assert "Quadratique" in r_fr.text
+        assert "Tracer" in r_fr.text
 
