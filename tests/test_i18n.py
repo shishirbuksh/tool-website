@@ -949,3 +949,101 @@ class TestMultilingualArchitectureEnhancements:
         assert "Contadores en vivo" in r_es.text
         assert "Palabras" in r_es.text
         assert "Caracteres" in r_es.text
+
+    def test_unit_converter_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi Unit Converter UI
+        r_hi = c.get("/hi/tool/unit-converter")
+        assert r_hi.status_code == 200
+        assert "से" in r_hi.text
+        assert "तक" in r_hi.text
+        assert "मान" in r_hi.text
+        assert "बदलें" in r_hi.text
+
+        # Spanish Unit Converter UI
+        r_es = c.get("/es/tool/unit-converter")
+        assert r_es.status_code == 200
+        assert "De" in r_es.text
+        assert "A" in r_es.text
+        assert "Intercambiar" in r_es.text
+
+    def test_invoice_generator_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi Invoice UI
+        r_hi = c.get("/hi/tool/invoice-generator")
+        assert r_hi.status_code == 200
+        assert "कंपनी का नाम" in r_hi.text
+        assert 'value="₹" selected' in r_hi.text
+
+        # Spanish Invoice UI
+        r_es = c.get("/es/tool/invoice-generator")
+        assert r_es.status_code == 200
+        assert "Nombre de la empresa" in r_es.text
+        assert 'value="€" selected' in r_es.text
+
+        # English Invoice UI
+        r_en = c.get("/tool/invoice-generator")
+        assert r_en.status_code == 200
+        assert 'value="$" selected' in r_en.text
+    def test_image_compressor_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi Image Compressor UI
+        r_hi = c.get("/hi/tool/image-compressor")
+        assert r_hi.status_code == 200
+        assert "इमेज यहाँ ड्रॉप करें या क्लिक करें" in r_hi.text
+        assert "क्वालिटी" in r_hi.text
+        assert "कंप्रेस करें" in r_hi.text
+        assert "आमने-सामने" in r_hi.text
+        assert "तुलना स्लाइडर" in r_hi.text
+
+        # Spanish Image Compressor UI
+        r_es = c.get("/es/tool/image-compressor")
+        assert r_es.status_code == 200
+        assert "Arrastra la imagen aquí o haz clic" in r_es.text
+        assert "Calidad" in r_es.text
+        assert "COMPRIMIR" in r_es.text
+        assert "Lado a lado" in r_es.text
+
+        # German Image Compressor UI
+        r_de = c.get("/de/tool/image-compressor")
+        assert r_de.status_code == 200
+        assert "Bild hier ablegen oder klicken" in r_de.text
+        assert "Qualität" in r_de.text
+        assert "KOMPRIMIEREN" in r_de.text
+        assert "Nebeneinander" in r_de.text
+
+    def test_meta_tag_generator_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi Meta Tag Generator UI
+        r_hi = c.get("/hi/tool/meta-tag-generator")
+        assert r_hi.status_code == 200
+        assert "पेज विवरण" in r_hi.text
+        assert "पेज शीर्षक (Title)" in r_hi.text
+        assert "मेटा विवरण (Description)" in r_hi.text
+        assert "जेनरेट किए गए मेटा टैग्स" in r_hi.text
+        assert "कॉपी करें" in r_hi.text
+
+        # French Meta Tag Generator UI
+        r_fr = c.get("/fr/tool/meta-tag-generator")
+        assert r_fr.status_code == 200
+        assert "Détails de la page" in r_fr.text
+        assert "Titre de la page" in r_fr.text
+        assert "Balises meta générées" in r_fr.text
+        assert "Copier" in r_fr.text
+
+        # German Meta Tag Generator UI
+        r_de = c.get("/de/tool/meta-tag-generator")
+        assert r_de.status_code == 200
+        assert "Seitendetails" in r_de.text
+        assert "Seitentitel" in r_de.text
+        assert "Generierte Meta-Tags" in r_de.text
+        assert "Kopieren" in r_de.text
+
