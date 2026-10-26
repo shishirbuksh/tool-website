@@ -1046,4 +1046,53 @@ class TestMultilingualArchitectureEnhancements:
         assert "Seitentitel" in r_de.text
         assert "Generierte Meta-Tags" in r_de.text
         assert "Kopieren" in r_de.text
+    def test_pdf_merger_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi PDF Merger UI
+        r_hi = c.get("/hi/tool/pdf-merger")
+        assert r_hi.status_code == 200
+        assert "मर्ज करने के लिए एकाधिक PDF फाइलें चुनें" in r_hi.text
+        assert "PDF मर्ज करें" in r_hi.text
+        assert "सभी हटाएं" in r_hi.text
+
+        # Spanish PDF Merger UI
+        r_es = c.get("/es/tool/pdf-merger")
+        assert r_es.status_code == 200
+        assert "Selecciona varios archivos PDF para combinar" in r_es.text
+        assert "Combinar PDFs" in r_es.text
+        assert "Borrar todo" in r_es.text
+
+        # German PDF Merger UI
+        r_de = c.get("/de/tool/pdf-merger")
+        assert r_de.status_code == 200
+        assert "Mehrere PDF-Dateien zum Zusammenfügen auswählen" in r_de.text
+        assert "PDFs zusammenfügen" in r_de.text
+        assert "Alles löschen" in r_de.text
+
+    def test_image_converter_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi Image Converter UI
+        r_hi = c.get("/hi/tool/image-converter")
+        assert r_hi.status_code == 200
+        assert "इमेज यहाँ ड्रॉप करें या क्लिक करें" in r_hi.text
+        assert "इसमें बदलें" in r_hi.text
+        assert "कन्वर्ट करें" in r_hi.text
+
+        # Spanish Image Converter UI
+        r_es = c.get("/es/tool/image-converter")
+        assert r_es.status_code == 200
+        assert "Arrastra la imagen aquí o haz clic" in r_es.text
+        assert "Convertir a" in r_es.text
+        assert "CONVERTIR" in r_es.text
+
+        # French Image Converter UI
+        r_fr = c.get("/fr/tool/image-converter")
+        assert r_fr.status_code == 200
+        assert "Déposez" in r_fr.text and "ici ou cliquez" in r_fr.text
+        assert "Convertir en" in r_fr.text
+        assert "CONVERTIR" in r_fr.text
 
