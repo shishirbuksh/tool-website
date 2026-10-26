@@ -249,6 +249,36 @@
       });
       if (!currentCatMatches) {
         activeFilter = 'all';
+        const allTab = document.querySelector('.category-card[data-filter="all"]');
+        if (allTab && activeBtn && allTab !== activeBtn) {
+          activeBtn.classList.remove('active', 'bg-base-content', 'text-base-100', 'border-base-content', 'shadow-md');
+          activeBtn.classList.add('bg-base-100/80', 'border-base-content/10');
+          activeBtn.setAttribute('aria-selected', 'false');
+          allTab.classList.add('active', 'bg-base-content', 'text-base-100', 'border-base-content', 'shadow-md');
+          allTab.classList.remove('bg-base-100/80', 'border-base-content/10');
+          allTab.setAttribute('aria-selected', 'true');
+        }
+      }
+    }
+
+    // Update active category feedback banner
+    const catBanner = $('#categoryActiveBanner');
+    if (catBanner) {
+      if (activeFilter !== 'all' && activeBtn && query === '') {
+        const catName = activeBtn.querySelector('.category-card-name')?.textContent || '';
+        const catCount = activeBtn.querySelector('.category-card-count')?.textContent || '';
+        const catIconSvg = activeBtn.querySelector('.category-card-icon')?.innerHTML || '';
+        const bannerTitle = $('#activeBannerTitle');
+        const bannerCount = $('#activeBannerCount');
+        const bannerIcon = $('#activeBannerIcon');
+        if (bannerTitle) bannerTitle.textContent = catName;
+        if (bannerCount) bannerCount.textContent = `(${catCount} Tools)`;
+        if (bannerIcon) bannerIcon.innerHTML = catIconSvg;
+        catBanner.classList.remove('hidden');
+        catBanner.classList.add('flex');
+      } else {
+        catBanner.classList.add('hidden');
+        catBanner.classList.remove('flex');
       }
     }
 
@@ -406,8 +436,26 @@
     // Auto-scroll selected tab to center on mobile
     btn.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
 
+    // Scroll stabilization: if scrolled far past the category dock, anchor back smoothly
+    const toolsNav = document.getElementById('tools');
+    if (toolsNav) {
+      const rect = toolsNav.getBoundingClientRect();
+      if (rect.top < -50) {
+        toolsNav.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
     filterTools();
   });
+
+  // Reset category filter banner button
+  const resetBannerBtn = document.getElementById('resetCategoryFilter');
+  if (resetBannerBtn) {
+    resetBannerBtn.addEventListener('click', function () {
+      const allTab = document.querySelector('.category-card[data-filter="all"]');
+      if (allTab) allTab.click();
+    });
+  }
 
   // Mobile navbar & bottom nav search click redirection to in-page search
   const mobileNavSearch = $('#searchToggleMobileNav');
