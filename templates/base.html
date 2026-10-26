@@ -265,6 +265,42 @@
       which are injected only after consent via allowlisted googletagmanager /
       googlesyndication origins).
   #}
+  {# Client-side i18n micro-runtime and Intl currency/number formatters #}
+  <script nonce="{{ nonce }}">
+    window.sbr = window.sbr || {};
+    window.sbr.locale = {{ (locale | default('en', true)) | tojson }};
+    window.sbr.currency = {{ ('INR' if (locale | default('en', true)) == 'hi' else ('EUR' if (locale | default('en', true)) in ['es', 'fr', 'de'] else 'USD')) | tojson }};
+    window.sbr.currencySymbol = {{ ('₹' if (locale | default('en', true)) == 'hi' else ('€' if (locale | default('en', true)) in ['es', 'fr', 'de'] else '$')) | tojson }};
+    window.sbr.i18n = {
+      copy: {{ tr('btn.copy', locale | default('en', true)) | tojson }},
+      copied: {{ tr('btn.copied', locale | default('en', true)) | tojson }},
+      calculate: {{ tr('btn.calculate', locale | default('en', true)) | tojson }},
+      reset: {{ tr('btn.reset', locale | default('en', true)) | tojson }},
+      download: {{ tr('btn.download', locale | default('en', true)) | tojson }},
+      invalidInput: {{ tr('error.invalid_input', locale | default('en', true)) | tojson }}
+    };
+    window.sbr.t = function(k){ return (window.sbr.i18n && window.sbr.i18n[k]) || k; };
+    window.sbr.formatCurrency = function(val, maxFrac){
+      var frac = (typeof maxFrac === 'number') ? maxFrac : 0;
+      var m = {'hi':'en-IN','es':'es-ES','fr':'fr-FR','de':'de-DE','en':'en-US'};
+      var target = m[window.sbr.locale] || 'en-US';
+      try {
+        return new Intl.NumberFormat(target, {style:'currency', currency: window.sbr.currency, maximumFractionDigits: frac}).format(val);
+      } catch(e) {
+        return window.sbr.currencySymbol + val;
+      }
+    };
+    window.sbr.formatNumber = function(val, maxFrac){
+      var frac = (typeof maxFrac === 'number') ? maxFrac : 2;
+      var m = {'hi':'en-IN','es':'es-ES','fr':'fr-FR','de':'de-DE','en':'en-US'};
+      var target = m[window.sbr.locale] || 'en-US';
+      try {
+        return new Intl.NumberFormat(target, {maximumFractionDigits: frac}).format(val);
+      } catch(e) {
+        return String(val);
+      }
+    };
+  </script>
   <script nonce="{{ nonce }}" data-pagespeed-no-transform src="/static/js/tools.utils.js?v={{ app_version }}" defer></script>
   <script nonce="{{ nonce }}" data-pagespeed-no-transform src="/static/js/app.js?v={{ app_version }}" defer></script>
   {% block scripts %}{% endblock %}

@@ -755,3 +755,197 @@ class TestIndexNowLocales:
             headers={"Origin": "http://127.0.0.1", "Referer": "http://127.0.0.1/hi/contact"},
         )
         assert r.status_code == 200, r.text
+
+
+class TestMultilingualArchitectureEnhancements:
+    def test_schema_and_headings_localized(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi tool verification
+        r_hi = c.get("/hi/tool/emi-calculator")
+        assert r_hi.status_code == 200
+        assert '"inLanguage": "hi"' in r_hi.text
+        assert "अक्सर पूछे जाने वाले प्रश्न (FAQ)" in r_hi.text
+        assert "उपयोग कैसे करें" in r_hi.text
+        assert '"priceCurrency": "INR"' in r_hi.text
+        assert 'window.sbr.currency = "INR"' in r_hi.text or "window.sbr.currency = 'INR'" in r_hi.text
+
+        # Spanish tool verification
+        r_es = c.get("/es/tool/emi-calculator")
+        assert r_es.status_code == 200
+        assert '"inLanguage": "es"' in r_es.text
+        assert "Preguntas frecuentes" in r_es.text
+        assert "Cómo usar" in r_es.text
+        assert '"priceCurrency": "EUR"' in r_es.text
+        assert 'window.sbr.currency = "EUR"' in r_es.text or "window.sbr.currency = 'EUR'" in r_es.text
+
+        # German tool verification
+        r_de = c.get("/de/tool/emi-calculator")
+        assert r_de.status_code == 200
+        assert '"inLanguage": "de"' in r_de.text
+        assert "Häufig gestellte Fragen" in r_de.text
+        assert "Anleitung zur Nutzung" in r_de.text
+        assert '"priceCurrency": "EUR"' in r_de.text
+
+    def test_hub_page_localized_structure(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi hub
+        r_hi = c.get("/hi/calculators")
+        assert r_hi.status_code == 200
+        assert "मुफ्त टूल्स" in r_hi.text
+        assert '"inLanguage": "hi"' in r_hi.text
+
+        # Spanish hub
+        r_es = c.get("/es/calculators")
+        assert r_es.status_code == 200
+        assert "herramientas gratis" in r_es.text
+        assert '"inLanguage": "es"' in r_es.text
+
+    def test_sip_calculator_localized_currency(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        r_hi = c.get("/hi/tool/sip-calculator")
+        assert r_hi.status_code == 200
+        assert 'value="INR" selected' in r_hi.text
+
+        r_es = c.get("/es/tool/sip-calculator")
+        assert r_es.status_code == 200
+        assert 'value="EUR" selected' in r_es.text
+
+        r_en = c.get("/tool/sip-calculator")
+        assert r_en.status_code == 200
+        assert 'value="USD" selected' in r_en.text
+
+    def test_gst_calculator_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi GST UI
+        r_hi = c.get("/hi/tool/gst-calculator")
+        assert r_hi.status_code == 200
+        assert "राशि (₹)" in r_hi.text
+        assert "मूल राशि" in r_hi.text
+        assert "कुल देय राशि" in r_hi.text
+        assert '"inLanguage": "hi"' in r_hi.text
+
+        # Spanish GST UI
+        r_es = c.get("/es/tool/gst-calculator")
+        assert r_es.status_code == 200
+        assert "Importe (€)" in r_es.text
+        assert "Base imponible" in r_es.text
+        assert "Importe total" in r_es.text
+        assert '"inLanguage": "es"' in r_es.text
+
+        # German GST UI
+        r_de = c.get("/de/tool/gst-calculator")
+        assert r_de.status_code == 200
+        assert "Betrag (€)" in r_de.text
+        assert "Nettobetrag" in r_de.text
+        assert "Gesamtbetrag" in r_de.text
+        assert '"inLanguage": "de"' in r_de.text
+
+    def test_mortgage_overpayment_localized_currency(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        r_hi = c.get("/hi/tool/mortgage-overpayment-calculator")
+        assert r_hi.status_code == 200
+        assert 'value="INR" selected' in r_hi.text
+
+        r_es = c.get("/es/tool/mortgage-overpayment-calculator")
+        assert r_es.status_code == 200
+        assert 'value="EUR" selected' in r_es.text
+
+        r_en = c.get("/tool/mortgage-overpayment-calculator")
+        assert r_en.status_code == 200
+        assert 'value="USD" selected' in r_en.text
+
+    def test_fd_calculator_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi FD UI
+        r_hi = c.get("/hi/tool/fd-calculator")
+        assert r_hi.status_code == 200
+        assert "मूलधन राशि (₹)" in r_hi.text
+        assert "वार्षिक ब्याज दर (%)" in r_hi.text
+        assert "अवलोकन" in r_hi.text
+        assert "परिपक्वता मूल्य" in r_hi.text
+
+        # Spanish FD UI
+        r_es = c.get("/es/tool/fd-calculator")
+        assert r_es.status_code == 200
+        assert "Capital inicial (€)" in r_es.text
+        assert "Resumen" in r_es.text
+        assert "Valor final" in r_es.text
+
+        # German FD UI
+        r_de = c.get("/de/tool/fd-calculator")
+        assert r_de.status_code == 200
+        assert "Anlagebetrag (€)" in r_de.text
+        assert "Übersicht" in r_de.text
+        assert "Endkapital" in r_de.text
+
+    def test_json_formatter_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi JSON UI
+        r_hi = c.get("/hi/tool/json-formatter-validator")
+        assert r_hi.status_code == 200
+        assert "विकल्प" in r_hi.text
+        assert "फॉर्मेट" in r_hi.text
+        assert "वैलिडेट" in r_hi.text
+        assert "परिणाम" in r_hi.text
+
+        # Spanish JSON UI
+        r_es = c.get("/es/tool/json-formatter-validator")
+        assert r_es.status_code == 200
+        assert "Opciones" in r_es.text
+        assert "Formatear" in r_es.text
+        assert "Validar" in r_es.text
+        assert "Resultado" in r_es.text
+
+    def test_password_generator_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi Password UI
+        r_hi = c.get("/hi/tool/password-generator")
+        assert r_hi.status_code == 200
+        assert "लंबाई:" in r_hi.text
+        assert "बड़े अक्षर (A-Z)" in r_hi.text
+        assert "पासवर्ड बनाएं" in r_hi.text
+        assert "पासवर्ड" in r_hi.text
+
+        # Spanish Password UI
+        r_es = c.get("/es/tool/password-generator")
+        assert r_es.status_code == 200
+        assert "Longitud:" in r_es.text
+        assert "Mayúsculas (A-Z)" in r_es.text
+        assert "Generar" in r_es.text
+        assert "Contraseñas" in r_es.text
+
+    def test_word_counter_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi Word Counter UI
+        r_hi = c.get("/hi/tool/word-counter")
+        assert r_hi.status_code == 200
+        assert "आपका टेक्स्ट" in r_hi.text
+        assert "लाइव गणना" in r_hi.text
+        assert "शब्द" in r_hi.text
+        assert "वर्ण (अक्षर)" in r_hi.text
+
+        # Spanish Word Counter UI
+        r_es = c.get("/es/tool/word-counter")
+        assert r_es.status_code == 200
+        assert "Tu texto" in r_es.text
+        assert "Contadores en vivo" in r_es.text
+        assert "Palabras" in r_es.text
+        assert "Caracteres" in r_es.text

@@ -1,6 +1,6 @@
-{% macro tool_seo_faq(faqs) %}
+{% macro tool_seo_faq(faqs, loc='en') %}
 <div class="mt-10 pt-8 border-t border-base-300/15 reveal">
-  <h2 class="text-2xl md:text-3xl font-bold mb-6">Frequently Asked Questions</h2>
+  <h2 class="text-2xl md:text-3xl font-bold mb-6">{{ tr('tool.faq_title', loc) }}</h2>
   <div class="space-y-3">
     {% for item in faqs %}
     <details class="glass-card glass-border-gradient rounded-xl card-focus-ring" {% if loop.first %}open{% endif %}>
@@ -12,9 +12,9 @@
 </div>
 {% endmacro %}
 
-{% macro tool_seo_howto(steps) %}
+{% macro tool_seo_howto(steps, loc='en') %}
 <div class="mt-10 pt-8 border-t border-base-300/15 reveal">
-  <h2 class="text-2xl md:text-3xl font-bold mb-6">How to Use</h2>
+  <h2 class="text-2xl md:text-3xl font-bold mb-6">{{ tr('tool.howto_title', loc) }}</h2>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     {% for step in steps %}
     <div class="glass-card glass-border-gradient rounded-xl p-5 card-focus-ring">
@@ -27,10 +27,10 @@
 </div>
 {% endmacro %}
 
-{% macro tool_seo_howtocalculate(body) %}
+{% macro tool_seo_howtocalculate(body, loc='en') %}
 {% if body %}
 <div class="mt-10 pt-8 border-t border-base-300/15 reveal">
-  <h2 class="text-2xl md:text-3xl font-bold mb-6">How to Calculate</h2>
+  <h2 class="text-2xl md:text-3xl font-bold mb-6">{{ tr('tool.howtocalculate_title', loc) }}</h2>
   <div class="text-base-content/55 text-base leading-relaxed space-y-4">{{ body | sanitize }}</div>
 </div>
 {% endif %}
@@ -43,10 +43,10 @@
 </div>
 {% endmacro %}
 
-{% macro tool_seo_related(tools) %}
+{% macro tool_seo_related(tools, loc='en') %}
 {% if tools %}
 <div class="mt-10 pt-8 border-t border-base-300/15 reveal">
-  <h2 class="text-2xl md:text-3xl font-bold mb-6">Related Tools</h2>
+  <h2 class="text-2xl md:text-3xl font-bold mb-6">{{ tr('tool.related_title', loc) }}</h2>
   <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
     {% for t in tools %}
     <a href="{{ t.url }}" title="{% if t.desc %}{{ t.desc }}{% else %}Go to {{ t.name }}{% endif %}" class="glass-card glass-border-gradient p-3 group h-full card-focus-ring">
@@ -60,7 +60,8 @@
 {% endif %}
 {% endmacro %}
 
-{% macro tool_seo_schema(seo) %}
+{% macro tool_seo_schema(seo, loc='en') %}
+{% set target_loc = loc or (seo.locale if seo else 'en') or 'en' %}
 <script type="application/ld+json" nonce="{{ nonce }}">
 {
   "@context": "https://schema.org",
@@ -69,6 +70,7 @@
       "@type": "SoftwareApplication",
       "name": {{ seo.name | default('StoryBrain AI Tool', true) | tojson }},
       {% if seo.url %}"url": {{ seo.url | tojson }},{% endif %}
+      "inLanguage": {{ target_loc | tojson }},
       "author": {"@type": "Organization", "name": "StoryBrain AI", "url": "https://www.storybrainai.com"},
       "applicationCategory": {{ seo.app_category | default('UtilitiesApplication', true) | tojson }},
       {% if seo.app_sub_category %}"applicationSubCategory": {{ seo.app_sub_category | tojson }},{% endif %}
@@ -77,11 +79,12 @@
       {% set dmod = seo.date_modified | default('', true) %}
       {% if dmod %}"datePublished": "{{ dmod }}",{% endif %}
       {% if dmod %}"dateModified": "{{ dmod }}",{% endif %}
-      "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+      "offers": {"@type": "Offer", "price": "0", "priceCurrency": {{ ('INR' if target_loc == 'hi' else ('EUR' if target_loc in ['es', 'fr', 'de'] else 'USD')) | tojson }}},
       "description": {{ seo.description | default('Free online tool', true) | tojson }}
     }
     {% if seo.faqs %},{
       "@type": "FAQPage",
+      "inLanguage": {{ target_loc | tojson }},
       "mainEntity": [
         {% for item in seo.faqs %}{
           "@type": "Question",
@@ -93,7 +96,8 @@
     }{% endif %}
     {% if seo.howto_steps %},{
       "@type": "HowTo",
-      "name": {{ ("How to Use " ~ (seo.name | default("this tool", true))) | tojson }},
+      "inLanguage": {{ target_loc | tojson }},
+      "name": {{ ((tr('schema.howto_prefix', target_loc)) ~ (seo.name | default("this tool", true))) | tojson }},
       "step": [
         {% for step in seo.howto_steps %}{
           "@type": "HowToStep",
@@ -111,14 +115,15 @@
 
 {% macro tool_seo_all(seo) %}
 {% if seo %}
-  {% if seo.faqs %}{{ tool_seo_faq(seo.faqs) }}{% endif %}
-  {% if seo.howto_steps %}{{ tool_seo_howto(seo.howto_steps) }}{% endif %}
-  {% if seo.howto_calculate %}{{ tool_seo_howtocalculate(seo.howto_calculate) }}{% endif %}
+  {% set loc = (seo.locale if seo else 'en') or 'en' %}
+  {% if seo.faqs %}{{ tool_seo_faq(seo.faqs, loc) }}{% endif %}
+  {% if seo.howto_steps %}{{ tool_seo_howto(seo.howto_steps, loc) }}{% endif %}
+  {% if seo.howto_calculate %}{{ tool_seo_howtocalculate(seo.howto_calculate, loc) }}{% endif %}
   {% if seo.about_title %}{{ tool_seo_about(seo.about_title, seo.about_body) }}{% endif %}
-  {% if seo.related %}{{ tool_seo_related(seo.related) }}{% endif %}
+  {% if seo.related %}{{ tool_seo_related(seo.related, loc) }}{% endif %}
   <div class="mt-10 pt-8 border-t border-base-300/15 reveal text-sm text-base-content/60 leading-relaxed">
     <h2 class="text-lg font-bold text-base-content mb-2">Methodology &amp; feedback</h2>
-    <p>Figures run locally in your browser from the values you enter{% if seo.date_modified %} (page updated <time datetime="{{ seo.date_modified }}">{{ seo.date_modified }}</time>){% endif %}. Estimates are educational only — verify finance, tax and health decisions with a qualified professional (see <a href="/disclaimer" class="link link-primary">Disclaimer</a>). Spotted an error? <a href="/contact" class="link link-primary">Report it via contact</a> and we correct with a new update date.</p>
+    <p>Figures run locally in your browser from the values you enter{% if seo.date_modified %} (page updated <time datetime="{{ seo.date_modified }}">{{ seo.date_modified }}</time>){% endif %}. Estimates are educational only — verify finance, tax and health decisions with a qualified professional (see <a href="{{ localize_path('/disclaimer', loc) }}" class="link link-primary">Disclaimer</a>). Spotted an error? <a href="{{ localize_path('/contact', loc) }}" class="link link-primary">Report it via contact</a> and we correct with a new update date.</p>
     <div class="mt-4 flex flex-wrap items-center gap-3" data-helpful-box data-tool="{{ seo.slug }}">
       <span class="font-semibold text-base-content/70">Was this tool helpful?</span>
       <button type="button" class="btn btn-sm btn-outline rounded-xl min-target" data-helpful="yes" aria-label="Yes, this tool was helpful">Yes</button>
@@ -129,6 +134,6 @@
   <script nonce="{{ nonce }}">(function(){var box=document.currentScript&&document.currentScript.previousElementSibling;function findBox(){var els=document.querySelectorAll('[data-helpful-box]');return els.length?els[els.length-1]:null;}var b=findBox();if(!b)return;var slug=b.getAttribute('data-tool')||location.pathname;var done=false;try{done=localStorage.getItem('sb_helpful_'+slug)==='1';}catch(e){}if(done){var t=b.querySelector('[data-helpful-thanks]');if(t)t.hidden=false;}b.addEventListener('click',function(e){var btn=e.target&&e.target.closest?e.target.closest('[data-helpful]'):null;if(!btn||done)return;var v=btn.getAttribute('data-helpful');try{var payload=JSON.stringify({name:slug+':helpful-'+v,category:v==='yes'?'helpful_yes':'helpful_no'});if(navigator.sendBeacon)navigator.sendBeacon('/api/track',new Blob([payload],{type:'application/json'}));else fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:payload,keepalive:true});}catch(err){}done=true;try{localStorage.setItem('sb_helpful_'+slug,'1');}catch(e2){}var th=b.querySelector('[data-helpful-thanks]');if(th)th.hidden=false;});})();</script>
   {# Reserved Auto Ads slot below content (never between input and result). Collapses when ads blocked. #}
   <div class="ad-slot" aria-hidden="true"></div>
-  {{ tool_seo_schema(seo) }}
+  {{ tool_seo_schema(seo, loc) }}
 {% endif %}
 {% endmacro %}

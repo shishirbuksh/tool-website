@@ -16,24 +16,25 @@
 </style>
 {% endblock %}
 {% block content %}
-{{ tool_hero_section("home", "Mortgage Calculator", "OVERPAYMENT", "CALCULATOR", "See exactly how much interest you save and how early you become debt-free. Compare scenarios, view your full amortization schedule, and find the best overpayment strategy.") }}
+{% set def_sym = "₹" if locale == "hi" else ("€" if locale in ("es", "fr", "de") else "$") %}
+{{ tool_hero_section("home", tr("nav.tools", locale) if tr("nav.tools", locale) != "nav.tools" else "Mortgage Calculator", "OVERPAYMENT", "CALCULATOR", seo.description if seo else "See exactly how much interest you save and how early you become debt-free. Compare scenarios, view your full amortization schedule, and find the best overpayment strategy.") }}
 
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 reveal" style="animation-delay:0.15s">
 
   <!-- ─── LEFT COLUMN: INPUTS ─── -->
   <div class="lg:col-span-5">
     <div class="card-premium p-6 md:p-8">
-      <h2 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Your Mortgage</h2>
+      <h2 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} {{ seo.name if seo and seo.name else "Your Mortgage" }}</h2>
 
       <!-- Currency selector -->
       <div class="mb-5 pb-5 border-b border-base-content/10">
         <label class="label-cinematic font-semibold" for="currencySelect">Currency</label>
         <select aria-label="Select currency" id="currencySelect" class="input input-visible w-full mt-1 rounded-xl">
-          <option value="USD">🇺🇸 USD — US Dollar</option>
-          <option value="EUR">🇪🇺 EUR — Euro</option>
+          <option value="USD" {% if locale not in ('hi', 'es', 'fr', 'de') %}selected{% endif %}>🇺🇸 USD — US Dollar</option>
+          <option value="EUR" {% if locale in ('es', 'fr', 'de') %}selected{% endif %}>🇪🇺 EUR — Euro</option>
           <option value="GBP">🇬🇧 GBP — British Pound</option>
           <option value="JPY">🇯🇵 JPY — Japanese Yen</option>
-          <option value="INR">🇮🇳 INR — Indian Rupee</option>
+          <option value="INR" {% if locale == 'hi' %}selected{% endif %}>🇮🇳 INR — Indian Rupee</option>
           <option value="CAD">🇨🇦 CAD — Canadian Dollar</option>
           <option value="AUD">🇦🇺 AUD — Australian Dollar</option>
           <option value="CHF">🇨🇭 CHF — Swiss Franc</option>
@@ -52,7 +53,7 @@
         <div>
           <label class="label-cinematic font-semibold" for="loanBalance">Loan Balance</label>
           <div class="relative mt-1">
-            <span id="symLoan" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">$</span>
+            <span id="symLoan" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">{{ def_sym }}</span>
             <input aria-label="Loan balance" type="number" id="loanBalance" class="input input-visible w-full pl-8 rounded-xl" value="250000" min="0" step="1000">
           </div>
         </div>
@@ -71,7 +72,7 @@
           <div>
             <label class="label-cinematic font-semibold" for="extraPayment">Extra Payment</label>
             <div class="relative mt-1">
-              <span id="symExtra" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">$</span>
+              <span id="symExtra" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">{{ def_sym }}</span>
               <input aria-label="Extra monthly payment" type="number" id="extraPayment" class="input input-visible w-full pl-8 rounded-xl" value="200" min="0" step="50">
             </div>
           </div>
@@ -88,12 +89,12 @@
           <div>
             <label class="label-cinematic font-semibold" for="lumpSum">Lump Sum (one-time)</label>
             <div class="relative mt-1">
-              <span id="symLump" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">$</span>
+              <span id="symLump" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">{{ def_sym }}</span>
               <input aria-label="One time lump sum payment" type="number" id="lumpSum" class="input input-visible w-full pl-8 rounded-xl" value="0" min="0" step="1000">
             </div>
           </div>
         </div>
-        <button type="button" id="mortCalcBtn" class="btn w-full py-3.5 font-bold tracking-widest uppercase text-sm rounded-xl mt-2 text-white border-none" style="background:linear-gradient(135deg,var(--color-primary),var(--color-secondary));box-shadow:0 4px 15px color-mix(in oklab,var(--color-primary) 40%,transparent);transition:transform 0.15s,box-shadow 0.15s">>{{ lucide_icon("calculator","w-5 h-5", 20) | safe }} CALCULATE</button>
+        <button type="button" id="mortCalcBtn" class="btn w-full py-3.5 font-bold tracking-widest uppercase text-sm rounded-xl mt-2 text-white border-none" style="background:linear-gradient(135deg,var(--color-primary),var(--color-secondary));box-shadow:0 4px 15px color-mix(in oklab,var(--color-primary) 40%,transparent);transition:transform 0.15s,box-shadow 0.15s">>{{ lucide_icon("calculator","w-5 h-5", 20) | safe }} {{ tr("btn.calculate", locale) | upper }}</button>
       </div>
 
       <!-- ─── SCENARIO QUICK PICKS ─── -->
@@ -208,7 +209,7 @@
 <script nonce="{{ nonce }}">
 (function(){'use strict';
 var activeScenario=null;
-var currentCurrency='USD';
+var currentCurrency = {{ ('INR' if locale == 'hi' else ('EUR' if locale in ('es', 'fr', 'de') else 'USD')) | tojson }};
 
 var currencies={
   USD:{sym:'$',loc:'en-US',scAmt:200},
@@ -355,7 +356,12 @@ function render(){
 }
 
 document.addEventListener('DOMContentLoaded',function(){
-  render();
+  var initCurr = document.getElementById('currencySelect').value;
+  if(initCurr && initCurr !== 'USD'){
+    setCurrency(initCurr);
+  } else {
+    render();
+  }
   document.getElementById('mortCalcBtn').addEventListener('click',render);
   document.querySelectorAll('#loanBalance,#interestRate,#loanTerm,#extraPayment,#extraFreq,#lumpSum').forEach(function(el){
     el.addEventListener('input',render);

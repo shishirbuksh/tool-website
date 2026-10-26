@@ -77,25 +77,26 @@
 .gc-inv-preview .ip-num{font-size:8px;opacity:.4;margin-bottom:4px}
 </style>
 {% endblock %}
+{% set cur_sym = '₹' if locale == 'hi' else ('€' if locale in ('es', 'fr', 'de') else '$') %}
 {% block content %}
-{{ tool_hero_section("receipt","Calculator","GST","CALCULATOR","Calculate GST with all slabs, currency conversion, slab info, invoice preview & ITC check.") }}
+{{ tool_hero_section("receipt", tr("nav.tools", locale) if tr("nav.tools", locale) != "nav.tools" else "Calculator", "GST", "CALCULATOR", seo.description if seo else "Calculate GST with all slabs, currency conversion, slab info, invoice preview & ITC check.") }}
 <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="gc-card">
-      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("calculator","w-4 h-4",16) | safe }} GST Calculator</h2>
-      <div class="mb-3"><label class="gc-label" for="gcAmount">Amount (₹)</label><input type="text" id="gcAmount" class="gc-input" value="1000" inputmode="decimal" autocomplete="off"></div>
-      <div class="mb-3"><span class="gc-label">Mode</span><div class="gc-mode" id="gcMode" role="radiogroup" aria-label="GST calculation mode"><button type="button" class="on" data-mode="exclusive" role="radio" aria-checked="true">Exclusive +</button><button type="button" data-mode="inclusive" role="radio" aria-checked="false">Inclusive −</button></div></div>
-      <div class="mb-3"><span class="gc-label">GST Slab</span><div class="gc-slab-grid" id="gcSlabs"><button type="button" data-rate="0" class="">0%</button><button type="button" data-rate="3" class="">3%</button><button type="button" data-rate="5" class="">5%</button><button type="button" data-rate="12" class="">12%</button><button type="button" data-rate="18" class="on">18%</button><button type="button" data-rate="28" class="">28%</button><button type="button" class="custom" data-rate="custom">Custom</button></div></div>
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("calculator","w-4 h-4",16) | safe }} {{ seo.name if seo and seo.name else "GST Calculator" }}</h2>
+      <div class="mb-3"><label class="gc-label" for="gcAmount">{{ tr("tool.gst.amount_label", locale) }} ({{ cur_sym }})</label><input type="text" id="gcAmount" class="gc-input" value="1000" inputmode="decimal" autocomplete="off"></div>
+      <div class="mb-3"><span class="gc-label">{{ tr("tool.gst.mode", locale) }}</span><div class="gc-mode" id="gcMode" role="radiogroup" aria-label="GST calculation mode"><button type="button" class="on" data-mode="exclusive" role="radio" aria-checked="true">{{ tr("tool.gst.exclusive", locale) }}</button><button type="button" data-mode="inclusive" role="radio" aria-checked="false">{{ tr("tool.gst.inclusive", locale) }}</button></div></div>
+      <div class="mb-3"><span class="gc-label">{{ tr("tool.gst.slab", locale) }}</span><div class="gc-slab-grid" id="gcSlabs"><button type="button" data-rate="0" class="">0%</button><button type="button" data-rate="3" class="">3%</button><button type="button" data-rate="5" class="">5%</button><button type="button" data-rate="12" class="">12%</button><button type="button" data-rate="18" class="on">18%</button><button type="button" data-rate="28" class="">28%</button><button type="button" class="custom" data-rate="custom">Custom</button></div></div>
       <div id="gcSlabInfo" class="mb-3" style="display:none;font-size:9px;font-weight:600;opacity:.55;padding:6px 10px;background:var(--color-base-100);border-radius:.65rem;border:1px solid var(--color-base-300);line-height:1.5"></div>
-      <div id="gcCustomWrap" class="mb-3" hidden><label class="gc-label" for="gcCustomRate">Custom Rate (%)</label><input type="number" id="gcCustomRate" class="gc-input" value="" placeholder="Enter rate" step="0.1" min="0"></div>
-      <div class="mb-3"><label class="gc-label">Transaction Type</label><div class="gc-mode" id="gcTrans" role="radiogroup" aria-label="Transaction type"><button type="button" class="on" data-trans="intra" role="radio" aria-checked="true">Intra-state CGST+SGST</button><button type="button" data-trans="inter" role="radio" aria-checked="false">Inter-state IGST</button></div></div>
+      <div id="gcCustomWrap" class="mb-3" hidden><label class="gc-label" for="gcCustomRate">{{ tr("tool.gst.custom_rate", locale) }}</label><input type="number" id="gcCustomRate" class="gc-input" value="" placeholder="{{ tr('tool.gst.custom_placeholder', locale) }}" step="0.1" min="0"></div>
+      <div class="mb-3"><label class="gc-label">{{ tr("tool.gst.trans_type", locale) }}</label><div class="gc-mode" id="gcTrans" role="radiogroup" aria-label="Transaction type"><button type="button" class="on" data-trans="intra" role="radio" aria-checked="true">{{ tr("tool.gst.trans_intra", locale) }}</button><button type="button" data-trans="inter" role="radio" aria-checked="false">{{ tr("tool.gst.trans_inter", locale) }}</button></div></div>
       {% include "components/ymyl_disclaimer.html" %}
-      <div class="gc-result-grid mb-3" id="gcResults"><div class="gc-result-card"><div class="rcl">Base Amount</div><div class="rcv" id="gcBase">₹1,000.00</div></div><div class="gc-result-card"><div class="rcl">Total GST</div><div class="rcv gst" id="gcGst">₹180.00</div></div><div class="gc-result-card" style="grid-column:1/-1"><div class="rcl">Total Amount</div><div class="rcv" id="gcTotal" style="font-size:24px">₹1,180.00</div></div><div class="gc-result-card" id="gcCgst"><div class="rcl">CGST (9%)</div><div class="rcv" id="gcCgstVal">₹90.00</div></div><div class="gc-result-card" id="gcSgst"><div class="rcl">SGST (9%)</div><div class="rcv" id="gcSgstVal">₹90.00</div></div><div class="gc-result-card" id="gcIgst" hidden><div class="rcl">IGST (18%)</div><div class="rcv" id="gcIgstVal">₹180.00</div></div></div>
+      <div class="gc-result-grid mb-3" id="gcResults"><div class="gc-result-card"><div class="rcl">{{ tr("tool.gst.base_amount", locale) }}</div><div class="rcv" id="gcBase">{{ cur_sym }}1,000.00</div></div><div class="gc-result-card"><div class="rcl">{{ tr("tool.gst.total_gst", locale) }}</div><div class="rcv gst" id="gcGst">{{ cur_sym }}180.00</div></div><div class="gc-result-card" style="grid-column:1/-1"><div class="rcl">{{ tr("tool.gst.total_amount", locale) }}</div><div class="rcv" id="gcTotal" style="font-size:24px">{{ cur_sym }}1,180.00</div></div><div class="gc-result-card" id="gcCgst"><div class="rcl">CGST (9%)</div><div class="rcv" id="gcCgstVal">{{ cur_sym }}90.00</div></div><div class="gc-result-card" id="gcSgst"><div class="rcl">SGST (9%)</div><div class="rcv" id="gcSgstVal">{{ cur_sym }}90.00</div></div><div class="gc-result-card" id="gcIgst" hidden><div class="rcl">IGST (18%)</div><div class="rcv" id="gcIgstVal">{{ cur_sym }}180.00</div></div></div>
       <div class="gc-words" id="gcWords">One Thousand One Hundred and Eighty Rupees Only.</div>
       <div class="gc-cur mt-3" id="gcCurrency"></div>
       <div class="flex items-center gap-2 mt-3">
-        <button type="button" id="gcBatchTog" class="gc-toggle" aria-expanded="false" aria-controls="gcBatchWrap">{{ lucide_icon("grid","w-3 h-3",12) | safe }} All Slabs</button>
-        <button type="button" id="gcCopyBtn" class="gc-sec" aria-label="Copy result">{{ lucide_icon("copy","w-3 h-3",12) | safe }} Copy</button>
+        <button type="button" id="gcBatchTog" class="gc-toggle" aria-expanded="false" aria-controls="gcBatchWrap">{{ lucide_icon("grid","w-3 h-3",12) | safe }} {{ tr("tool.gst.all_slabs", locale) }}</button>
+        <button type="button" id="gcCopyBtn" class="gc-sec" aria-label="Copy result">{{ lucide_icon("copy","w-3 h-3",12) | safe }} {{ tr("btn.copy", locale) }}</button>
         <button type="button" id="gcDlBtn" class="gc-sec" aria-label="Download as text">{{ lucide_icon("download","w-3 h-3",12) | safe }} .txt</button>
       </div>
       <div id="gcBatchWrap" hidden class="mt-3"><div class="gc-batch" id="gcBatch"></div></div>
@@ -159,8 +160,8 @@ var toastEl=el('gcToast');
 
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show')},2200)}
-function fmt(n){if(n===null||n===undefined||isNaN(n))return'₹0.00';return'₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
-function fmtN(n){if(isNaN(n))return'0.00';return Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmt(n){if(window.sbr&&window.sbr.formatCurrency){return window.sbr.formatCurrency(n, 2);}if(n===null||n===undefined||isNaN(n))return'₹0.00';return'₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtN(n){if(window.sbr&&window.sbr.formatNumber){return window.sbr.formatNumber(n, 2);}if(isNaN(n))return'0.00';return Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtFx(n){if(isNaN(n))return'0.00';return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
 
 function inWords(n){
