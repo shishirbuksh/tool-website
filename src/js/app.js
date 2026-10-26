@@ -40,7 +40,31 @@ if(si){si.addEventListener('input',filterTools)}
 function cS(){if(dia)dia.close();document.querySelectorAll('[id^=searchToggle]').forEach(function(b){b.setAttribute('aria-expanded','false')})}
 document.querySelectorAll('[id^=searchToggle]').forEach(function(b){b.setAttribute('aria-expanded','false');b.addEventListener('click',function(){oS();b.setAttribute('aria-expanded','true')})})
 function _isEditable(el){if(!el||!el.tagName)return false;var t=el.tagName.toLowerCase();return t==='input'||t==='textarea'||t==='select'||el.isContentEditable===true}
-document.addEventListener('keydown',function(e){if(e.key!=='/'||e.ctrlKey||e.metaKey||e.altKey)return;if(dia&&dia.open)return;if(_isEditable(document.activeElement))return;if(document.getElementById('toolSearchInput'))return;e.preventDefault();oS()})
+document.addEventListener('keydown',function(e){
+  if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){
+    e.preventDefault();
+    var tsi=document.getElementById('toolSearchInput');
+    if(tsi){
+      tsi.focus();
+      tsi.scrollIntoView({block:'center',behavior:'smooth'});
+    } else {
+      oS();
+    }
+    return;
+  }
+  if(e.key!=='/'||e.ctrlKey||e.metaKey||e.altKey)return;
+  if(dia&&dia.open)return;
+  if(_isEditable(document.activeElement))return;
+  var tsi2=document.getElementById('toolSearchInput');
+  if(tsi2){
+    e.preventDefault();
+    tsi2.focus();
+    tsi2.scrollIntoView({block:'center',behavior:'smooth'});
+    return;
+  }
+  e.preventDefault();
+  oS();
+})
 var sc=document.getElementById('searchClose');if(sc)sc.addEventListener('click',cS)
 if(dia){dia.addEventListener('click',function(e){if(e.target===dia)cS()});dia.addEventListener('keydown',function(e){if(e.key==='Escape')cS()});dia.addEventListener('close',function(){document.querySelectorAll('[id^=searchToggle]').forEach(function(b){b.setAttribute('aria-expanded','false')})})}
 if('serviceWorker'in navigator){var swRefreshing=false;navigator.serviceWorker.register('/sw.js',{scope:'/'}).then(function(reg){reg.addEventListener('updatefound',function(){var w=reg.installing;if(w){w.addEventListener('statechange',function(){if(w.state==='installed'&&navigator.serviceWorker.controller){var msg=document.createElement('div');msg.className='fixed bottom-4 right-4 z-50 glass-strong rounded-xl shadow-2xl border border-primary/20 animate-fade-in';msg.setAttribute('role','alert');var btn=document.createElement('button');btn.className='flex items-center gap-2 px-4 py-3 text-sm font-bold cursor-pointer focus-visible:outline-2 focus-visible:outline-primary rounded-xl';btn.innerHTML='New version available! <span class="text-primary ml-1">Refresh</span>';btn.addEventListener('click',function(){w.postMessage({action:'skipWaiting'});});btn.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();w.postMessage({action:'skipWaiting'})}});msg.appendChild(btn);document.body.appendChild(msg);btn.focus();}});}});}).catch(function(){})}navigator.serviceWorker.addEventListener('controllerchange',function(){if(swRefreshing)return;swRefreshing=true;window.location.reload();})
