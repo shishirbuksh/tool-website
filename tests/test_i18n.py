@@ -1144,4 +1144,54 @@ class TestMultilingualArchitectureEnhancements:
         assert "Expression régulière" in r_fr.text
         assert "Drapeaux" in r_fr.text
         assert "Chaîne de test" in r_fr.text
+    def test_qr_generator_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi QR Generator UI
+        r_hi = c.get("/hi/tool/qr-generator")
+        assert r_hi.status_code == 200
+        assert "कंटेंट का प्रकार" in r_hi.text
+        assert "QR कोड बनाएं" in r_hi.text
+        assert "PNG कॉपी करें" in r_hi.text
+
+        # Spanish QR Generator UI
+        r_es = c.get("/es/tool/qr-generator")
+        assert r_es.status_code == 200
+        assert "Tipo de contenido" in r_es.text
+        assert "Generar código QR" in r_es.text
+        assert "Copiar PNG" in r_es.text
+
+        # German QR Generator UI
+        r_de = c.get("/de/tool/qr-generator")
+        assert r_de.status_code == 200
+        assert "Inhaltstyp" in r_de.text
+        assert "QR-Code generieren" in r_de.text
+        assert "PNG kopieren" in r_de.text
+
+    def test_percentage_calculator_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi Percentage Calculator UI
+        r_hi = c.get("/hi/tool/percentage-calculator")
+        assert r_hi.status_code == 200
+        assert "प्रतिशत कैलकुलेटर" in r_hi.text
+        assert "अनुपात (Ratio)" in r_hi.text
+        assert "मान (Value)" in r_hi.text
+        assert "बदलाव (Change)" in r_hi.text
+
+        # Spanish Percentage Calculator UI
+        r_es = c.get("/es/tool/percentage-calculator")
+        assert r_es.status_code == 200
+        assert "Calculadora de porcentajes" in r_es.text
+        assert "Proporción" in r_es.text
+        assert "Diferencia" in r_es.text
+
+        # French Percentage Calculator UI
+        r_fr = c.get("/fr/tool/percentage-calculator")
+        assert r_fr.status_code == 200
+        assert "Calculateur de pourcentage" in r_fr.text
+        assert "Variation" in r_fr.text
+        assert "Formule" in r_fr.text
 
