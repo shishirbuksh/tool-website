@@ -1095,4 +1095,53 @@ class TestMultilingualArchitectureEnhancements:
         assert "Déposez" in r_fr.text and "ici ou cliquez" in r_fr.text
         assert "Convertir en" in r_fr.text
         assert "CONVERTIR" in r_fr.text
+    def test_image_background_remover_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi Image Background Remover UI
+        r_hi = c.get("/hi/tool/image-background-remover")
+        assert r_hi.status_code == 200
+        assert "इमेज अपलोड करें" in r_hi.text
+        assert "बैकग्राउंड का रंग" in r_hi.text
+        assert "किनारे चिकने करें" in r_hi.text
+
+        # Spanish Image Background Remover UI
+        r_es = c.get("/es/tool/image-background-remover")
+        assert r_es.status_code == 200
+        assert "Subir imagen" in r_es.text
+        assert "Color de fondo" in r_es.text
+        assert "Suavizar bordes" in r_es.text
+
+        # German Image Background Remover UI
+        r_de = c.get("/de/tool/image-background-remover")
+        assert r_de.status_code == 200
+        assert "Bild hochladen" in r_de.text
+        assert "Hintergrundfarbe" in r_de.text
+        assert "Kanten glätten" in r_de.text
+
+    def test_regex_tester_localized_ui(self):
+        from app.main import app
+
+        c = TestClient(app, base_url="http://127.0.0.1")
+        # Hindi Regex Tester UI
+        r_hi = c.get("/hi/tool/regex-tester")
+        assert r_hi.status_code == 200
+        assert "रेगुलर एक्सप्रेशन (Regex)" in r_hi.text
+        assert "फ़्लैग्स (Flags)" in r_hi.text
+        assert "टेस्ट स्ट्रिंग" in r_hi.text
+
+        # Spanish Regex Tester UI
+        r_es = c.get("/es/tool/regex-tester")
+        assert r_es.status_code == 200
+        assert "Expresión regular" in r_es.text
+        assert "Modificadores" in r_es.text
+        assert "Cadena de prueba" in r_es.text
+
+        # French Regex Tester UI
+        r_fr = c.get("/fr/tool/regex-tester")
+        assert r_fr.status_code == 200
+        assert "Expression régulière" in r_fr.text
+        assert "Drapeaux" in r_fr.text
+        assert "Chaîne de test" in r_fr.text
 
