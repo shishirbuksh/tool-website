@@ -1,9 +1,9 @@
-// StoryBrain AI Service Worker v38 (keep in sync with CACHE_NAME / STATIC_CACHE below)
+// StoryBrain AI Service Worker v39 (keep in sync with CACHE_NAME / STATIC_CACHE below)
 // CACHE version: bump v38 -> v39 on breaking shell changes.
 // TODO: inject app_version at build time (e.g. __APP_VERSION__) so SW cache
 // busts automatically with each deploy instead of manual version bumps.
-const CACHE_NAME = 'storybrain-v38';
-const STATIC_CACHE = 'storybrain-static-v38';
+const CACHE_NAME = 'storybrain-v39';
+const STATIC_CACHE = 'storybrain-static-v39';
 const PAGE_CACHE_MAX_ENTRIES = 50;
 
 // Assets to pre-cache on install (app-shell only; OG/screenshots lazy via runtime cache)
@@ -19,6 +19,10 @@ const PRECACHE_URLS = [
   '/static/icon-512.png',
   '/static/manifest.json',
   '/offline',
+  '/hi/offline',
+  '/es/offline',
+  '/fr/offline',
+  '/de/offline',
   '/static/js/app.js',
   '/static/js/tools.utils.js',
   '/static/js/tools.js',
@@ -117,7 +121,10 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => {
         return caches.match(request).then((cached) => {
-          return cached || caches.match('/offline');
+          if (cached) return cached;
+          const locMatch = url.pathname.match(/^\/(hi|es|fr|de)\//);
+          const offlinePath = locMatch ? `/${locMatch[1]}/offline` : '/offline';
+          return caches.match(offlinePath).then((locCached) => locCached || caches.match('/offline'));
         });
       })
   );
