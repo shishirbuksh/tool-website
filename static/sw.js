@@ -1,9 +1,9 @@
-// StoryBrain AI Service Worker v39 (keep in sync with CACHE_NAME / STATIC_CACHE below)
-// CACHE version: bump v38 -> v39 on breaking shell changes.
+// StoryBrain AI Service Worker v40 (keep in sync with CACHE_NAME / STATIC_CACHE below)
+// CACHE version: bump v39 -> v40 on breaking shell changes.
 // TODO: inject app_version at build time (e.g. __APP_VERSION__) so SW cache
 // busts automatically with each deploy instead of manual version bumps.
-const CACHE_NAME = 'storybrain-v39';
-const STATIC_CACHE = 'storybrain-static-v39';
+const CACHE_NAME = 'storybrain-v40';
+const STATIC_CACHE = 'storybrain-static-v40';
 const PAGE_CACHE_MAX_ENTRIES = 50;
 
 // Assets to pre-cache on install (app-shell only; OG/screenshots lazy via runtime cache)
