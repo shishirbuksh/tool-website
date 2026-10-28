@@ -154,6 +154,27 @@
 {# NOTE: this macro intentionally opens <div class="max-w-5xl ..."> and leaves it
    unclosed — every caller MUST close it with {{ tool_section_end() }} after its
    page content, otherwise layout markup breaks. #}
+{# Localized pages must not render the English literal H1 baked into each of the
+   117 tool templates. Prefer the localized SEO name/description; quarantine
+   rules decide separately whether the URL may be indexed. #}
+{% set _hero_locale = locale | default('en', true) %}
+{% set _hero_seo = seo_data if seo_data is defined else none %}
+{% if _hero_locale != 'en' and _hero_seo and _hero_seo.name %}
+  {% set _hero_name = _hero_seo.name | string %}
+  {% set _hero_words = _hero_name.split(' ') %}
+  {% if _hero_words | length > 1 %}
+    {% set _hero_title = _hero_words[:-1] | join(' ') %}
+    {% set _hero_gradient = _hero_words[-1] %}
+  {% else %}
+    {% set _hero_title = _hero_name %}
+    {% set _hero_gradient = '' %}
+  {% endif %}
+  {% set _hero_subtitle = _hero_seo.description or subtitle %}
+{% else %}
+  {% set _hero_title = title %}
+  {% set _hero_gradient = gradient_word %}
+  {% set _hero_subtitle = subtitle %}
+{% endif %}
 <div class="mb-8 reveal">{{ tool_back_link() }}</div>
 <div class="max-w-5xl mx-auto w-full">
   <div class="text-center mb-10 reveal apple-glass rounded-2xl md:rounded-3xl relative overflow-hidden shadow-sm border border-base-content/10" style="padding: 48px 32px;">
@@ -162,9 +183,9 @@
         {{ lucide_icon(badge_icon,"w-4 h-4", 16) | safe }} {{ badge_text }}
       </div>
       <h1 class="mb-4" style="font-size: clamp(36px, 5vw, 60px); font-weight: 800; letter-spacing: -0.035em; line-height: 1.04;">
-        <span class="text-base-content">{{ title }}</span> <span class="gradient-text italic">{{ gradient_word }}</span>
+        <span class="text-base-content">{{ _hero_title }}</span>{% if _hero_gradient %} <span class="gradient-text italic">{{ _hero_gradient }}</span>{% endif %}
       </h1>
-      <p class="text-base-content/60 font-medium max-w-2xl mx-auto" style="font-size: 17px; line-height: 1.65;">{{ subtitle }}</p>
+      <p class="text-base-content/60 font-medium max-w-2xl mx-auto" style="font-size: 17px; line-height: 1.65;">{{ _hero_subtitle }}</p>
       <div class="trust-row mt-6 justify-center" aria-label="Trust signals">
         <span class="trust-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>{{ tr('tool.trust_private', locale | default('en', true)) }}</span>
         <span class="trust-dot" aria-hidden="true"></span>

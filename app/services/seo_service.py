@@ -126,6 +126,9 @@ class SeoService:
         over = i18n.get(locale) if isinstance(i18n, dict) else None
         if not isinstance(over, dict):
             return raw
+        from app.core.content_sanitize import clean_localized_value  # noqa: PLC0415
+
+        over = clean_localized_value(over)
         merged = dict(raw)
         for k in (
             "name",

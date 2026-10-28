@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.i18n import (
     LOCALE_META,
     SUPPORTED_LOCALES,
+    category_label,
     hreflang_links,
     html_lang_for,
     is_supported_locale,
@@ -25,6 +26,7 @@ from app.core.i18n import (
     t as _tr,
 )
 from app.core.icons import lucide_icon
+from app.core.locale_policy import indexable_locales_for_path, is_path_indexable, is_surface_indexable
 from app.core.log import get_logger
 from app.core.sanitize import enhance_tables, sanitize_html
 from app.services.blog_service import BlogService
@@ -49,6 +51,7 @@ templates.env.globals["hreflang_links"] = hreflang_links
 templates.env.globals["html_lang_for"] = html_lang_for
 templates.env.globals["og_locale_for"] = og_locale_for
 templates.env.globals["tr"] = _tr
+templates.env.globals["category_label"] = category_label
 templates.env.globals["normalize_locale"] = normalize_locale
 templates.env.globals["supported_locales"] = SUPPORTED_LOCALES
 templates.env.globals["locale_meta"] = LOCALE_META
@@ -110,11 +113,22 @@ def _i18n_ctx(bare_path: str, locale: str) -> dict:
         "locale": loc,
         "html_lang": html_lang_for(loc),
         "og_locale": og_locale_for(loc),
-        "hreflangs": hreflang_links(settings.SITE_URL, bare_path),
+        "hreflangs": hreflang_links(
+            settings.SITE_URL, bare_path, locales=indexable_locales_for_path(bare_path)
+        ),
         "bare_path": bare_path,
         # Relative so switchers stay same-origin on staging/dev.
         "locale_urls": {code: localize_path(bare_path, code) for code in SUPPORTED_LOCALES},
+        "robots_noindex": False,
     }
+
+
+def _quarantine(ctx: dict, noindex: bool) -> dict:
+    """Apply the locale quarantine to a blog template context."""
+    ctx["robots_noindex"] = noindex
+    if noindex:
+        ctx["hreflangs"] = []
+    return ctx
 
 
 def _localized_resp(resp, locale: str):
@@ -150,8 +164,8 @@ async def blog_index(request: Request) -> HTMLResponse:
             page = int(page_param)
             if page < 1:
                 raise HTTPException(status_code=404, detail="Page not found")
-        except ValueError:
-            raise HTTPException(status_code=404, detail="Invalid page number")
+        except ValueError as err:
+            raise HTTPException(status_code=404, detail="Invalid page number") from err
     else:
         page = 1
     per_page = 20
@@ -206,8 +220,8 @@ async def blog_index_localized(request: Request) -> HTMLResponse:
             page = int(page_param)
             if page < 1:
                 raise HTTPException(status_code=404, detail="Page not found")
-        except ValueError:
-            raise HTTPException(status_code=404, detail="Invalid page number")
+        except ValueError as err:
+            raise HTTPException(status_code=404, detail="Invalid page number") from err
     else:
         page = 1
     per_page = 20
@@ -234,9 +248,12 @@ async def blog_index_localized(request: Request) -> HTMLResponse:
         "pillar_labels": {p: pillar_label(p, loc) for p in pillars},
     }
     ctx.update(_i18n_ctx("/blog", loc))
+    _quarantine(ctx, not is_surface_indexable(loc, "blog"))
     ctx["page_canonical"] = _page_canonical("/blog", loc, page)
     resp = templates.TemplateResponse(request=request, name="blog/index.html", context=ctx)
     resp.headers.update(_INDEX_CACHE_HEADERS)
+    if ctx["robots_noindex"]:
+        resp.headers["X-Robots-Tag"] = "noindex, follow"
     return _localized_resp(resp, loc)
 
 
@@ -316,8 +333,11 @@ async def blog_pillar_localized(request: Request, pillar: str) -> HTMLResponse:
         "static_pages": static_pages,
     }
     ctx.update(_i18n_ctx(f"/blog/{pillar}", loc))
+    _quarantine(ctx, not is_surface_indexable(loc, "blog_pillars"))
     resp = templates.TemplateResponse(request=request, name="blog/pillar.html", context=ctx)
     resp.headers.update(_PAGE_CACHE_HEADERS)
+    if ctx["robots_noindex"]:
+        resp.headers["X-Robots-Tag"] = "noindex, follow"
     return _localized_resp(resp, loc)
 
 
@@ -357,45 +377,10 @@ async def _render_blog_post(request: Request, pillar: str, cluster: str, locale:
         "categories": categories,
         "static_pages": static_pages,
     }
-    ctx.update(_i18n_ctx(f"/blog/{pillar}/{cluster}", loc))
-    # Fallback-EN locale blog posts: noindex until translated (same doorway fix as tools).
-    # Strict: require description, body_html, or meta_title.
-    is_fallback = False
-    try:
-        _raw = blog_service._load_raw().get(cluster) or {}
-        from app.core.i18n import SUPPORTED_LOCALES as _SUPP2
-
-        _i18n_all = (_raw.get("i18n") or {}) if isinstance(_raw, dict) else {}
-
-        def _bhas(lc: str) -> bool:
-            if lc == "en":
-                return True
-            o = _i18n_all.get(lc) if isinstance(_i18n_all, dict) else None
-            return isinstance(o, dict) and bool(o.get("description") or o.get("body_html") or o.get("meta_title"))
-
-        _bavail = [lc for lc in _SUPP2 if _bhas(lc)]
-        base = settings.SITE_URL.rstrip("/")
-        bare = f"/blog/{pillar}/{cluster}"
-
-        if loc != "en":
-            is_fallback = not _bhas(loc)
-            if is_fallback:
-                ctx["robots_noindex_fallback"] = True
-                ctx["hreflangs"] = []
-            else:
-                ctx["hreflangs"] = [{"hreflang": lc, "href": base + localize_path(bare, lc)} for lc in _bavail] + [
-                    {"hreflang": "x-default", "href": base + localize_path(bare, "en")}
-                ]
-        else:
-            ctx["hreflangs"] = [{"hreflang": lc, "href": base + localize_path(bare, lc)} for lc in _bavail] + [
-                {"hreflang": "x-default", "href": base + localize_path(bare, "en")}
-            ]
-    except Exception:
-        # Fail closed like tools: noindex on error.
-        if loc != "en":
-            is_fallback = True
-            ctx["robots_noindex_fallback"] = True
-            ctx["hreflangs"] = []
+    bare = f"/blog/{pillar}/{cluster}"
+    ctx.update(_i18n_ctx(bare, loc))
+    noindex = loc != "en" and not is_path_indexable(loc, bare)
+    _quarantine(ctx, noindex)
     resp = templates.TemplateResponse(request=request, name="blog/post.html", context=ctx)
     resp.headers.update(_POST_CACHE_HEADERS)
     etag = _post_etag(pillar, post.slug, (post.date_modified or "") + loc)
@@ -403,15 +388,15 @@ async def _render_blog_post(request: Request, pillar: str, cluster: str, locale:
     if _not_modified(request, etag):
         # 304 must have an empty body; preserve noindex signal (E2-1).
         _h304: dict[str, str] = {"ETag": etag, **_POST_CACHE_HEADERS}
-        if is_fallback:
-            _h304["X-Robots-Tag"] = "noindex, nofollow"
+        if noindex:
+            _h304["X-Robots-Tag"] = "noindex, follow"
         if loc != "en":
             _h304["Content-Language"] = loc
         return Response(status_code=304, headers=_h304)
     if loc != "en":
         resp = _localized_resp(resp, loc)
-    if is_fallback:
-        resp.headers["X-Robots-Tag"] = "noindex, nofollow"
+    if noindex:
+        resp.headers["X-Robots-Tag"] = "noindex, follow"
     return resp
 
 

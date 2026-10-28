@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section, tool_section_end%}
+{% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
 {% block head %}
 <style>
 .em-card{background:var(--color-base-200);border-radius:1.25rem;padding:1.5rem;border:1px solid var(--color-base-300)}
@@ -48,100 +48,175 @@
 </style>
 {% endblock %}
 {% block content %}
-{% set cur_sym = '₹' if (locale | default('en', true)) == 'hi' else ('€' if (locale | default('en', true)) in ['es', 'fr', 'de'] else '$') %}
-{{ tool_hero_section("banknote","Calculators","EMI","CALCULATOR","Compare loans, check affordability, view monthly or yearly amortization, and explore rate-tenure trade-offs.") }}
+{% set loc = locale | default('en', true) %}
+{% set cur_sym = '₹' if loc == 'hi' else ('€' if loc in ['es', 'fr', 'de'] else '$') %}
+{% set zero = ('0 ' ~ cur_sym) if loc in ['es', 'fr', 'de'] else (cur_sym ~ '0') %}
+{% set zero_mo = '0 ' ~ tr('tool.common.month_short', loc) %}
+{% if loc == 'de' %}
+  {% set d_amount, d_rate, d_tenure, d_extra, d_income = '20000', '5.9', '5', '100', '3200' %}
+  {% set d_c_amount, d_c_rate, d_c_tenure = '15000', '5.5', '5' %}
+{% elif loc == 'es' %}
+  {% set d_amount, d_rate, d_tenure, d_extra, d_income = '15000', '7.5', '5', '100', '2400' %}
+  {% set d_c_amount, d_c_rate, d_c_tenure = '12000', '6.5', '5' %}
+{% elif loc == 'fr' %}
+  {% set d_amount, d_rate, d_tenure, d_extra, d_income = '20000', '4.5', '5', '100', '2800' %}
+  {% set d_c_amount, d_c_rate, d_c_tenure = '15000', '4.0', '5' %}
+{% else %}
+  {% set d_amount, d_rate, d_tenure, d_extra, d_income = '500000', '8.5', '5', '200', '8000' %}
+  {% set d_c_amount, d_c_rate, d_c_tenure = '500000', '7.5', '5' %}
+{% endif %}
+{{ tool_hero_section("banknote", tr('tool.emi.badge', loc), "EMI", "CALCULATOR", "Compare loans, check affordability, view monthly or yearly amortization, and explore rate-tenure trade-offs.") }}
 <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="em-card">
-      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("wallet","w-4 h-4",16) | safe }} {{ tr('tool.emi.loan_details', locale | default('en', true)) }}</h2>
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("wallet","w-4 h-4",16) | safe }} {{ tr('tool.emi.loan_details', loc) }}</h2>
       <div class="flex flex-col gap-3">
-        <div><label class="em-label" for="emAmount">{{ tr('tool.emi.amount_label', locale | default('en', true)) }} ({{ cur_sym }})</label><input type="text" id="emAmount" class="em-input" value="500000" inputmode="numeric" aria-label="Loan amount"></div>
-        <div><label class="em-label" for="emRate">{{ tr('tool.emi.rate_label', locale | default('en', true)) }}</label><input type="text" id="emRate" class="em-input" value="8.5" inputmode="decimal" aria-label="Annual interest rate"></div>
-        <div><label class="em-label" for="emTenure">{{ tr('tool.emi.tenure_label', locale | default('en', true)) }}</label><input type="text" id="emTenure" class="em-input" value="5" inputmode="numeric" aria-label="Loan tenure in years"></div>
+        <div><label class="em-label" for="emAmount">{{ tr('tool.emi.amount_label', loc) }} ({{ cur_sym }})</label><input type="text" id="emAmount" class="em-input" value="{{ d_amount }}" inputmode="decimal" aria-label="{{ tr('tool.emi.amount_label', loc) }}"></div>
+        <div><label class="em-label" for="emRate">{{ tr('tool.emi.rate_label', loc) }}</label><input type="text" id="emRate" class="em-input" value="{{ d_rate }}" inputmode="decimal" aria-label="{{ tr('tool.emi.rate_label', loc) }}"></div>
+        <div><label class="em-label" for="emTenure">{{ tr('tool.emi.tenure_label', loc) }}</label><input type="text" id="emTenure" class="em-input" value="{{ d_tenure }}" inputmode="numeric" aria-label="{{ tr('tool.emi.tenure_label', loc) }}"></div>
       </div>
       <div class="flex gap-2 mt-3">
-        <button type="button" id="emCalcBtn" class="em-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} {{ tr('btn.calculate', locale | default('en', true)) }}</button>
-        <button type="button" id="emCopyBtn" class="em-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
-        <button type="button" id="emDlBtn" class="em-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="emCalcBtn" class="em-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} {{ tr('btn.calculate', loc) }}</button>
+        <button type="button" id="emCopyBtn" class="em-sec" aria-label="{{ tr('tool.common.copy_results', loc) }}">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="emDlBtn" class="em-sec" aria-label="{{ tr('tool.common.download_report', loc) }}">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
       </div>
     </div>
     <div class="em-card mt-4">
-      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("zap","w-3 h-3",12) | safe }} What-If</h2>
-      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">Test different loan scenarios</p>
-      <div class="em-whatif" id="emWhatIf"><button type="button" class="on" data-wi="current">Current</button><button type="button" data-wi="higher-rate">+2% Rate</button><button type="button" data-wi="longer-term">+5 Years</button><button type="button" data-wi="double-loan">x2 Loan</button><button type="button" data-wi="lower-rate">-2% Rate</button><button type="button" data-wi="best-case">Best Case</button></div>
+      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("zap","w-3 h-3",12) | safe }} {{ tr('tool.emi.whatif_title', loc) }}</h2>
+      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">{{ tr('tool.emi.whatif_desc', loc) }}</p>
+      <div class="em-whatif" id="emWhatIf"><button type="button" class="on" data-wi="current">{{ tr('tool.common.current', loc) }}</button><button type="button" data-wi="higher-rate">{{ tr('tool.emi.whatif_higher_rate', loc) }}</button><button type="button" data-wi="longer-term">{{ tr('tool.emi.whatif_longer_term', loc) }}</button><button type="button" data-wi="double-loan">{{ tr('tool.emi.whatif_double_loan', loc) }}</button><button type="button" data-wi="lower-rate">{{ tr('tool.emi.whatif_lower_rate', loc) }}</button><button type="button" data-wi="best-case">{{ tr('tool.emi.whatif_best_case', loc) }}</button></div>
     </div>
     <div class="em-card mt-4">
-      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("trending-up","w-4 h-4",16) | safe }} {{ tr('tool.emi.prepayment_title', locale | default('en', true)) }}</h2>
-      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">See savings from extra monthly payments</p>
+      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("trending-up","w-4 h-4",16) | safe }} {{ tr('tool.emi.prepayment_title', loc) }}</h2>
+      <p class="text-[8px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">{{ tr('tool.emi.prepayment_desc', loc) }}</p>
       <div class="flex flex-col gap-2">
-        <div><label class="em-label" for="emExtra">{{ tr('tool.emi.extra_payment', locale | default('en', true)) }} ({{ cur_sym }})</label><input type="text" id="emExtra" class="em-input" value="200" inputmode="numeric" aria-label="Extra monthly payment"></div>
+        <div><label class="em-label" for="emExtra">{{ tr('tool.emi.extra_payment', loc) }} ({{ cur_sym }})</label><input type="text" id="emExtra" class="em-input" value="{{ d_extra }}" inputmode="decimal" aria-label="{{ tr('tool.emi.extra_payment', loc) }}"></div>
       </div>
       <div class="em-grid mt-2">
-        <div class="em-result" style="padding:8px"><div class="iv" id="emSavedInt" style="font-size:14px">$0</div><div class="il">{{ tr('tool.emi.interest_saved', locale | default('en', true)) }}</div></div>
-        <div class="em-result" style="padding:8px"><div class="iv" id="emReducedMonths" style="font-size:14px">0 mo</div><div class="il">{{ tr('tool.emi.time_reduced', locale | default('en', true)) }}</div></div>
+        <div class="em-result" style="padding:8px"><div class="iv" id="emSavedInt" style="font-size:14px">{{ zero }}</div><div class="il">{{ tr('tool.emi.interest_saved', loc) }}</div></div>
+        <div class="em-result" style="padding:8px"><div class="iv" id="emReducedMonths" style="font-size:14px">{{ zero_mo }}</div><div class="il">{{ tr('tool.emi.time_reduced', loc) }}</div></div>
       </div>
     </div>
     <div class="em-card mt-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
-        <div class="flex items-center gap-2"><button type="button" id="emHiToggle" class="em-toggle" aria-expanded="false" aria-controls="emHiWrap">History <span id="emHiCount"></span></button><button type="button" id="emHiClear" class="em-sec" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} {{ tr('tool.emi.history_title', loc) }}</h2>
+        <div class="flex items-center gap-2"><button type="button" id="emHiToggle" class="em-toggle" aria-expanded="false" aria-controls="emHiWrap" aria-label="{{ tr('tool.emi.history_title', loc) }}">{{ tr('tool.emi.history_title', loc) }} <span id="emHiCount"></span></button><button type="button" id="emHiClear" class="em-sec" hidden aria-label="{{ tr('tool.common.delete', loc) }}">{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
       </div>
       <div id="emHiWrap" hidden class="mt-2"><div id="emHiList" class="em-hist"></div></div>
     </div>
   </div>
   <div class="lg:w-7/12">
     <div class="em-card">
-      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} {{ tr('tool.emi.summary_title', locale | default('en', true)) }}</h2>
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} {{ tr('tool.emi.summary_title', loc) }}</h2>
       {% include "components/ymyl_disclaimer.html" %}
       <div class="em-grid" id="emResults">
-        <div class="em-result full"><div class="iv" id="emMonthly" style="color:var(--color-primary)">$0</div><div class="il">{{ tr('tool.emi.monthly_emi', locale | default('en', true)) }}</div></div>
-        <div class="em-result"><div class="iv" id="emTotalPay">$0</div><div class="il">{{ tr('tool.emi.total_payment', locale | default('en', true)) }}</div></div>
-        <div class="em-result"><div class="iv" id="emTotalInt" style="color:var(--color-warning)">$0</div><div class="il">{{ tr('tool.emi.total_interest', locale | default('en', true)) }}</div></div>
-        <div class="em-result"><div class="iv" id="emMonths">0</div><div class="il">{{ tr('tool.emi.total_months', locale | default('en', true)) }}</div></div>
+        <div class="em-result full"><div class="iv" id="emMonthly" style="color:var(--color-primary)">{{ zero }}</div><div class="il">{{ tr('tool.emi.monthly_emi', loc) }}</div></div>
+        <div class="em-result"><div class="iv" id="emTotalPay">{{ zero }}</div><div class="il">{{ tr('tool.emi.total_payment', loc) }}</div></div>
+        <div class="em-result"><div class="iv" id="emTotalInt" style="color:var(--color-warning)">{{ zero }}</div><div class="il">{{ tr('tool.emi.total_interest', loc) }}</div></div>
+        <div class="em-result"><div class="iv" id="emMonths">0</div><div class="il">{{ tr('tool.emi.total_months', loc) }}</div></div>
       </div>
-      <div><label class="em-label mt-2" for="emIncome">{{ tr('tool.emi.income_label', locale | default('en', true)) }} ({{ cur_sym }})</label><input type="text" id="emIncome" class="em-input" value="8000" inputmode="numeric" aria-label="Monthly income"></div>
-      <div class="em-inline mt-1 justify-center"><span class="il">EMI / Income:</span><span class="iv" id="emIncomeRatio" style="font-size:13px;font-weight:900">—</span></div>
+      <div><label class="em-label mt-2" for="emIncome">{{ tr('tool.emi.income_label', loc) }} ({{ cur_sym }})</label><input type="text" id="emIncome" class="em-input" value="{{ d_income }}" inputmode="decimal" aria-label="{{ tr('tool.emi.income_label', loc) }}"></div>
+      <div class="em-inline mt-1 justify-center"><span class="il">{{ tr('tool.emi.income_ratio', loc) }}</span><span class="iv" id="emIncomeRatio" style="font-size:13px;font-weight:900">—</span></div>
       <div id="emRatioBar" class="em-inline mt-2 justify-center" style="gap:2px"></div>
       <p class="text-[7px] font-bold opacity-25 uppercase tracking-wider text-center mt-1" id="emRatioLabel"></p>
     </div>
     <div class="em-card mt-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("arrow-left-right","w-4 h-4",16) | safe }} Loan Comparison</h2>
-        <button type="button" id="emCompTog" class="em-toggle on" aria-expanded="true" aria-controls="emCompWrap">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("arrow-left-right","w-4 h-4",16) | safe }} {{ tr('tool.emi.loan_comparison', loc) }}</h2>
+        <button type="button" id="emCompTog" class="em-toggle on" aria-expanded="true" aria-controls="emCompWrap" aria-label="{{ tr('tool.emi.loan_comparison', loc) }}">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
       </div>
       <div id="emCompWrap">
         <div class="flex gap-2 mt-2">
-          <div class="flex-1"><label class="em-label" for="emCAmt">Amount B ($)</label><input type="text" id="emCAmt" class="em-input" value="500000" inputmode="numeric"></div>
-          <div class="flex-1"><label class="em-label" for="emCRate">Rate B (%)</label><input type="text" id="emCRate" class="em-input" value="7.5" inputmode="decimal"></div>
-          <div class="flex-1"><label class="em-label" for="emCTenure">Tenure B (yr)</label><input type="text" id="emCTenure" class="em-input" value="5" inputmode="numeric"></div>
+          <div class="flex-1"><label class="em-label" for="emCAmt">{{ tr('tool.emi.amount_b', loc) }} ({{ cur_sym }})</label><input type="text" id="emCAmt" class="em-input" value="{{ d_c_amount }}" inputmode="decimal" aria-label="{{ tr('tool.emi.amount_b', loc) }}"></div>
+          <div class="flex-1"><label class="em-label" for="emCRate">{{ tr('tool.emi.rate_b', loc) }}</label><input type="text" id="emCRate" class="em-input" value="{{ d_c_rate }}" inputmode="decimal" aria-label="{{ tr('tool.emi.rate_b', loc) }}"></div>
+          <div class="flex-1"><label class="em-label" for="emCTenure">{{ tr('tool.emi.tenure_b', loc) }}</label><input type="text" id="emCTenure" class="em-input" value="{{ d_c_tenure }}" inputmode="numeric" aria-label="{{ tr('tool.emi.tenure_b', loc) }}"></div>
         </div>
         <div class="em-grid mt-2">
-          <div class="em-result" style="padding:8px"><div class="iv" id="emCEmi" style="font-size:14px">$0</div><div class="il">EMI B</div></div>
-          <div class="em-result" style="padding:8px"><div class="iv" id="emCInt" style="font-size:14px">$0</div><div class="il">Interest B</div></div>
-          <div class="em-result" style="padding:8px"><div class="iv" id="emCDiff" style="font-size:14px">$0</div><div class="il">vs Your EMI</div></div>
-          <div class="em-result" style="padding:8px"><div class="iv" id="emCSave" style="font-size:14px">$0</div><div class="il">Interest Saved</div></div>
+          <div class="em-result" style="padding:8px"><div class="iv" id="emCEmi" style="font-size:14px">{{ zero }}</div><div class="il">{{ tr('tool.emi.emi_b', loc) }}</div></div>
+          <div class="em-result" style="padding:8px"><div class="iv" id="emCInt" style="font-size:14px">{{ zero }}</div><div class="il">{{ tr('tool.emi.interest_b', loc) }}</div></div>
+          <div class="em-result" style="padding:8px"><div class="iv" id="emCDiff" style="font-size:14px">{{ zero }}</div><div class="il">{{ tr('tool.emi.vs_your_emi', loc) }}</div></div>
+          <div class="em-result" style="padding:8px"><div class="iv" id="emCSave" style="font-size:14px">{{ zero }}</div><div class="il">{{ tr('tool.emi.interest_saved', loc) }}</div></div>
         </div>
       </div>
     </div>
     <div class="em-card mt-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("calendar","w-4 h-4",16) | safe }} Amortization</h2>
-        <div class="flex items-center gap-2"><button type="button" id="emAmoView" class="em-toggle on" aria-expanded="true" aria-label="Toggle monthly view">Monthly</button><button type="button" id="emAmoTog" class="em-toggle on" aria-expanded="true" aria-controls="emAmoWrap">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button></div>
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("calendar","w-4 h-4",16) | safe }} {{ tr('tool.emi.amortization', loc) }}</h2>
+        <div class="flex items-center gap-2"><button type="button" id="emAmoView" class="em-toggle on" aria-label="{{ tr('tool.common.monthly', loc) }}">{{ tr('tool.common.monthly', loc) }}</button><button type="button" id="emAmoTog" class="em-toggle on" aria-expanded="true" aria-controls="emAmoWrap" aria-label="{{ tr('tool.emi.amortization', loc) }}">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button></div>
       </div>
-      <div id="emAmoWrap"><div class="em-table-wrap mt-2"><table class="em-table"><thead><tr><th id="emAmoHCol">Year</th><th>EMI Paid</th><th>Principal</th><th>Interest</th><th>Balance</th></tr></thead><tbody id="emAmoBody"></tbody></table></div></div>
+      <div id="emAmoWrap"><div class="em-table-wrap mt-2"><table class="em-table"><thead><tr><th id="emAmoHCol">{{ tr('tool.common.year', loc) }}</th><th>{{ tr('tool.emi.emi_paid', loc) }}</th><th>{{ tr('tool.common.principal', loc) }}</th><th>{{ tr('tool.common.interest', loc) }}</th><th>{{ tr('tool.common.balance', loc) }}</th></tr></thead><tbody id="emAmoBody"></tbody></table></div></div>
     </div>
     <div class="em-card mt-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("grid","w-4 h-4",16) | safe }} Rate vs Tenure</h2>
-        <button type="button" id="emMatTog" class="em-toggle on" aria-expanded="true" aria-controls="emMatWrap">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("grid","w-4 h-4",16) | safe }} {{ tr('tool.emi.rate_vs_tenure', loc) }}</h2>
+        <button type="button" id="emMatTog" class="em-toggle on" aria-expanded="true" aria-controls="emMatWrap" aria-label="{{ tr('tool.emi.rate_vs_tenure', loc) }}">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
       </div>
-      <div id="emMatWrap"><p class="text-[7px] font-bold opacity-25 uppercase tracking-wider mt-1 mb-2">EMI at different rate & tenure combos</p><div class="em-table-wrap"><table class="em-table em-matrix" id="emMatrix"><thead id="emMatHead"></thead><tbody id="emMatBody"></tbody></table></div></div>
+      <div id="emMatWrap"><p class="text-[7px] font-bold opacity-25 uppercase tracking-wider mt-1 mb-2">{{ tr('tool.emi.rate_tenure_hint', loc) }}</p><div class="em-table-wrap"><table class="em-table em-matrix" id="emMatrix"><thead id="emMatHead"></thead><tbody id="emMatBody"></tbody></table></div></div>
     </div>
   </div>
 </div>
 <div id="emToast" class="em-toast" role="status" aria-live="polite"></div>
 <script nonce="{{ nonce }}">
 (function(){'use strict';
+var T = {{ {
+  'copied': tr('tool.common.copied', loc),
+  'copy_failed': tr('tool.common.copy_failed', loc),
+  'downloaded': tr('tool.common.downloaded', loc),
+  'history_empty': tr('tool.emi.history_empty', loc),
+  'history_cleared': tr('tool.emi.history_cleared', loc),
+  'delete': tr('tool.emi.delete', loc),
+  'no_data': tr('tool.common.no_data', loc),
+  'month': tr('tool.common.month', loc),
+  'year': tr('tool.common.year', loc),
+  'months_short': tr('tool.common.month_short', loc),
+  'per_month': tr('tool.common.per_month', loc),
+  'monthly': tr('tool.common.monthly', loc),
+  'yearly': tr('tool.common.yearly', loc),
+  'principal_pct': tr('tool.emi.principal_pct', loc),
+  'interest_pct': tr('tool.emi.interest_pct', loc),
+  'rate_down_tenure': tr('tool.emi.rate_down_tenure', loc),
+  'yr': tr('tool.emi.yr', loc),
+  'report_title': tr('tool.emi.report_title', loc),
+  'scenario': tr('tool.common.scenario', loc),
+  'loan_amount': tr('tool.emi.amount_label', loc),
+  'rate': tr('tool.common.rate', loc),
+  'tenure': tr('tool.common.term', loc),
+  'years': tr('tool.common.years', loc),
+  'monthly_emi': tr('tool.emi.monthly_emi', loc),
+  'total_payment': tr('tool.emi.total_payment', loc),
+  'total_interest': tr('tool.emi.total_interest', loc),
+  'total_months': tr('tool.emi.total_months', loc),
+  'report_ratio': tr('tool.emi.report_ratio', loc),
+  'prepayment': tr('tool.emi.prepayment_title', loc),
+  'extra': tr('tool.common.extra', loc),
+  'saved': tr('tool.common.saved', loc),
+  'reduced': tr('tool.common.reduced', loc),
+  'loan_b': tr('tool.emi.report_loan_b', loc),
+  'amount': tr('tool.common.amount', loc),
+  'emi_b': tr('tool.emi.emi_b', loc),
+  'interest_b': tr('tool.emi.interest_b', loc),
+  'amortization': tr('tool.emi.report_amortization', loc),
+  'paid': tr('tool.emi.report_paid', loc),
+  'prin': tr('tool.emi.report_prin', loc),
+  'int': tr('tool.emi.report_int', loc),
+  'bal': tr('tool.emi.report_bal', loc)
+} | tojson }};
+var WI_LABELS = {{ {
+  'current': tr('tool.common.current', loc),
+  'higher-rate': tr('tool.emi.whatif_higher_rate', loc),
+  'longer-term': tr('tool.emi.whatif_longer_term', loc),
+  'double-loan': tr('tool.emi.whatif_double_loan', loc),
+  'lower-rate': tr('tool.emi.whatif_lower_rate', loc),
+  'best-case': tr('tool.emi.whatif_best_case', loc)
+} | tojson }};
+var D = {{ {
+  'amount': d_amount, 'rate': d_rate, 'tenure': d_tenure, 'extra': d_extra, 'income': d_income,
+  'c_amount': d_c_amount, 'c_rate': d_c_rate, 'c_tenure': d_c_tenure
+} | tojson }};
+var INTL_LOCALE = {{ {'hi':'en-IN','es':'es-ES','fr':'fr-FR','de':'de-DE','en':'en-US'}[loc] | tojson }};
+var FALLBACK_SYM = {{ cur_sym | tojson }};
+var ZERO = {{ zero | tojson }};
+var ZERO_MO = {{ zero_mo | tojson }};
 var wi='current',amoTable=true,amoMonthly=false,compOn=true,matOn=true;
 var history=[];try{var h=JSON.parse(localStorage.getItem('sb_em')||'[]');if(Array.isArray(h))history=h}catch(e){}
 var saved=null;try{var s=JSON.parse(localStorage.getItem('sb_em_i')||'null');if(s&&typeof s==='object')saved=s}catch(e){}
@@ -164,9 +239,29 @@ var toastEl=el('emToast'),tt;
 var amoData=[],emiValue=0,totalMonths=0;
 
 function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show')},2200)}
-function v(e){var n=parseFloat(e.value.replace(/,/g,''));return isNaN(n)?0:n}
-function fmtCurrency(n){if(window.sbr&&window.sbr.formatCurrency)return window.sbr.formatCurrency(n||0,0);if(isNaN(n)||n===0)return'$0';return'$'+Math.round(n).toLocaleString('en-US')}
+function pick(v,fallback){return (v===undefined||v===null||v==='')?fallback:v}
+function v(e){
+  var s=String(e.value||'').trim().replace(/[^\d.,-]/g,'');
+  if(!s)return 0;
+  var lc=s.lastIndexOf(','),ld=s.lastIndexOf('.');
+  if(lc>ld){s=s.replace(/\./g,'').replace(',','.')}else{s=s.replace(/,/g,'')}
+  var n=parseFloat(s);return isNaN(n)?0:n;
+}
+function fmtCurrency(n){if(window.sbr&&window.sbr.formatCurrency)return window.sbr.formatCurrency(n||0,0);if(isNaN(n)||n===0)return ZERO;return FALLBACK_SYM+Math.round(n).toLocaleString(INTL_LOCALE)}
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function wiLabel(){return WI_LABELS[wi]||wi}
+function relTime(ts){
+  var diff=Math.round((Date.now()-ts)/1000);
+  try{
+    var rtf=new Intl.RelativeTimeFormat(INTL_LOCALE,{numeric:'auto',style:'narrow'});
+    if(diff<60)return rtf.format(0,'second');
+    if(diff<3600)return rtf.format(-Math.floor(diff/60),'minute');
+    if(diff<86400)return rtf.format(-Math.floor(diff/3600),'hour');
+    return rtf.format(-Math.floor(diff/86400),'day');
+  }catch(e){
+    return diff<60?'0m':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
+  }
+}
 
 function applyWI(){
 var p=v(amount),r=v(rate),t=v(tenure);
@@ -188,7 +283,7 @@ for(var m=1;m<=monthsN;m++){
 var intP=bal*mr;var prinP=emi-intP;bal-=prinP;if(bal<0)bal=0;
 yEmi+=emi;yPrin+=prinP;yInt+=intP;
 if(amoMonthly?(m===monthsN):(m%12===0||m===monthsN)){
-data.push({l:amoMonthly?'Month '+m:'Year '+Math.ceil(m/12),emi:yEmi,prin:yPrin,int:yInt,bal:bal});
+data.push({l:amoMonthly?T.month+' '+m:T.year+' '+Math.ceil(m/12),emi:yEmi,prin:yPrin,int:yInt,bal:bal});
 yEmi=0;yPrin=0;yInt=0;
 }}
 return{emi:emi,data:data};
@@ -218,16 +313,16 @@ while(pBal>0&&pMn<mn*2){pMn++;var pInt2=pBal*pMr;var pPrin=pe-pInt2;if(pPrin>pBa
 var prepayInt=pe*pMn-p;
 if(pMn<mn){savedAmt=fullInt2-prepayInt;reduced=mn-pMn}else{savedAmt=0;reduced=0}}
 savedInt.textContent=fmtCurrency(savedAmt);savedInt.style.color=savedAmt>0?'var(--color-success)':'var(--color-base-content)';
-reducedMonths.textContent=reduced>0?reduced+' mo':'0 mo';reducedMonths.style.color=reduced>0?'var(--color-success)':'var(--color-base-content)';
+reducedMonths.textContent=reduced>0?reduced+' '+T.months_short:ZERO_MO;reducedMonths.style.color=reduced>0?'var(--color-success)':'var(--color-base-content)';
 
 renderRatio(p,interestTotal);renderAmo();renderComparison();renderMatrix(p);saveInputs();
 }
 
 function resetDisplay(){
-monthly.textContent='$0';totalPay.textContent='$0';totalInt.textContent='$0';months.textContent='0';
-savedInt.textContent='$0';reducedMonths.textContent='0 mo';incomeRatio.textContent='—';
+monthly.textContent=ZERO;totalPay.textContent=ZERO;totalInt.textContent=ZERO;months.textContent='0';
+savedInt.textContent=ZERO;reducedMonths.textContent=ZERO_MO;incomeRatio.textContent='—';
 ratioBar.innerHTML='';ratioLabel.textContent='';amoBody.innerHTML='';
-cEmi.textContent='$0';cInt.textContent='$0';cDiff.textContent='$0';cSave.textContent='$0';
+cEmi.textContent=ZERO;cInt.textContent=ZERO;cDiff.textContent=ZERO;cSave.textContent=ZERO;
 matHead.innerHTML='';matBody.innerHTML='';
 }
 
@@ -236,14 +331,14 @@ var total=prinAmt+intAmt;
 if(total<=0){ratioBar.innerHTML='';ratioLabel.textContent='';return}
 var ppct=((prinAmt/total)*100).toFixed(1);var ipct=((intAmt/total)*100).toFixed(1);
 ratioBar.innerHTML='<span style="display:inline-block;height:16px;border-radius:4px;background:color-mix(in oklab,var(--color-primary) 50%,transparent);width:'+ppct+'%;min-width:4px"></span><span style="display:inline-block;height:16px;border-radius:4px;background:color-mix(in oklab,var(--color-warning) 50%,transparent);width:'+ipct+'%;min-width:4px"></span>';
-ratioLabel.textContent='Principal: '+ppct+'%   Interest: '+ipct+'%';
+ratioLabel.textContent=T.principal_pct+' '+ppct+'%   '+T.interest_pct+' '+ipct+'%';
 }
 
 function renderAmo(){
-amoHCol.textContent=amoMonthly?'Month':'Year';
+amoHCol.textContent=amoMonthly?T.month:T.year;
 var h='';
 amoData.forEach(function(r){h+='<tr><td>'+r.l+'</td><td>'+fmtCurrency(r.emi)+'</td><td>'+fmtCurrency(r.prin)+'</td><td style="color:var(--color-warning)">'+fmtCurrency(r.int)+'</td><td style="font-weight:900">'+fmtCurrency(r.bal)+'</td></tr>'});
-amoBody.innerHTML=h||'<tr><td colspan="5" style="text-align:center;opacity:.3;padding:20px">No data</td></tr>';
+amoBody.innerHTML=h||'<tr><td colspan="5" style="text-align:center;opacity:.3;padding:20px">'+T.no_data+'</td></tr>';
 }
 
 function renderComparison(){
@@ -252,14 +347,14 @@ if(mn2>0&&p2>0){var res2=calcEMI(p2,r2,mn2);var total2=res2.emi*mn2;var int2=tot
 cEmi.textContent=fmtCurrency(res2.emi);cInt.textContent=fmtCurrency(int2);
 var diff=emiValue-res2.emi;cDiff.textContent=fmtCurrency(diff);cDiff.style.color=diff>=0?'var(--color-success)':'var(--color-error)';
 var d2=v(amount)*1;var sv=calcEMI(d2,r2,mn2).emi*mn2-d2;var sv2=calcEMI(d2,v(rate),Math.round(v(tenure)*12)).emi*Math.round(v(tenure)*12)-d2;
-var saved=sv2-sv;cSave.textContent=saved>0?fmtCurrency(saved):'$0';cSave.style.color=saved>0?'var(--color-success)':'var(--color-base-content)';
-}else{cEmi.textContent='$0';cInt.textContent='$0';cDiff.textContent='$0';cSave.textContent='$0'}
+var saved=sv2-sv;cSave.textContent=saved>0?fmtCurrency(saved):ZERO;cSave.style.color=saved>0?'var(--color-success)':'var(--color-base-content)';
+}else{cEmi.textContent=ZERO;cInt.textContent=ZERO;cDiff.textContent=ZERO;cSave.textContent=ZERO}
 }
 
 function renderMatrix(p){
 var rates=[6,8.5,11,14];var tenures=[3,5,7,10];
-var h='<tr><th style="text-align:left">Rate ↓ Tenure →</th>';
-tenures.forEach(function(t){h+='<th>'+t+'yr</th>'});
+var h='<tr><th style="text-align:left">'+T.rate_down_tenure+'</th>';
+tenures.forEach(function(t){h+='<th>'+t+' '+T.yr+'</th>'});
 h+='</tr>';matHead.innerHTML=h;
 var h2='';
 rates.forEach(function(rt){
@@ -280,7 +375,7 @@ try{localStorage.setItem('sb_em_i',JSON.stringify(obj))}catch(e){}
 }
 
 function saveHistory(){
-var label=fmtCurrency(emiValue)+'/mo · '+totalMonths+' mo';
+var label=fmtCurrency(emiValue)+T.per_month+' · '+totalMonths+' '+T.months_short;
 history.unshift({a:v(amount),r:v(rate),t:v(tenure),e:v(extra),wi:wi,ic:v(income),ca:v(cAmt),cr:v(cRate),ct:v(cTenure),label:label,ts:Date.now()});
 if(history.length>30)history.pop();
 try{localStorage.setItem('sb_em',JSON.stringify(history))}catch(e){}renderHistory();
@@ -288,30 +383,29 @@ try{localStorage.setItem('sb_em',JSON.stringify(history))}catch(e){}renderHistor
 
 function renderHistory(){
 hiCount.textContent=history.length?'('+history.length+')':'';hiClear.hidden=!history.length;
-if(!history.length){hiList.innerHTML='<div class="em-empty">No calculations yet</div>';return}
+if(!history.length){hiList.innerHTML='<div class="em-empty">'+T.history_empty+'</div>';return}
 var h='';history.forEach(function(item,i){
-var d2=new Date(item.ts);var diff=Math.round((Date.now()-d2)/1000);
-var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
-h+='<div class="em-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
+h+='<div class="em-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label)+'</span><span class="meta">'+relTime(item.ts)+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="'+T.delete+'">✕</button></div>';
 });hiList.innerHTML=h;
 }
 
-function copyAll(){
+function reportText(){
 var d=applyWI();
-var txt='EMI Report\nScenario: '+wi.replace(/-/g,' ')+'\nLoan Amount: '+fmtCurrency(d.p)+'\nRate: '+d.r+'%\nTenure: '+d.t+' years\n\nMonthly EMI: '+monthly.textContent+'\nTotal Payment: '+totalPay.textContent+'\nTotal Interest: '+totalInt.textContent+'\nTotal Months: '+months.textContent+'\nEMI/Income Ratio: '+incomeRatio.textContent+'\n\nPrepayment: Extra '+fmtCurrency(v(extra))+', Saved '+savedInt.textContent+', Reduced '+reducedMonths.textContent;
-txt+='\n\nLoan B: Amount '+fmtCurrency(v(cAmt))+', Rate '+v(cRate)+'%, Tenure '+v(cTenure)+'yr\nEMI B: '+cEmi.textContent+', Interest B: '+cInt.textContent;
-txt+='\n\nAmortization:\n';
-amoData.forEach(function(r){txt+=r.l+': Paid '+fmtCurrency(r.emi)+' | Prin '+fmtCurrency(r.prin)+' | Int '+fmtCurrency(r.int)+' | Bal '+fmtCurrency(r.bal)+'\n'});
-navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')});
+var txt=T.report_title+'\n'+T.scenario+': '+wiLabel()+'\n'+T.loan_amount+': '+fmtCurrency(d.p)+'\n'+T.rate+': '+d.r+'%\n'+T.tenure+': '+d.t+' '+T.years+'\n\n'+T.monthly_emi+': '+monthly.textContent+'\n'+T.total_payment+': '+totalPay.textContent+'\n'+T.total_interest+': '+totalInt.textContent+'\n'+T.total_months+': '+months.textContent+'\n'+T.report_ratio+': '+incomeRatio.textContent+'\n\n'+T.prepayment+': '+T.extra+' '+fmtCurrency(v(extra))+', '+T.saved+' '+savedInt.textContent+', '+T.reduced+' '+reducedMonths.textContent;
+txt+='\n\n'+T.loan_b+': '+T.amount+' '+fmtCurrency(v(cAmt))+', '+T.rate+' '+v(cRate)+'%, '+T.tenure+' '+v(cTenure)+' '+T.years+'\n'+T.emi_b+': '+cEmi.textContent+', '+T.interest_b+': '+cInt.textContent;
+txt+='\n\n'+T.amortization+':\n';
+amoData.forEach(function(r){txt+=r.l+': '+T.paid+' '+fmtCurrency(r.emi)+' | '+T.prin+' '+fmtCurrency(r.prin)+' | '+T.int+' '+fmtCurrency(r.int)+' | '+T.bal+' '+fmtCurrency(r.bal)+'\n'});
+return txt;
+}
+
+function copyAll(){
+var txt=reportText();
+navigator.clipboard.writeText(txt).then(function(){toast(T.copied)}).catch(function(){toast(T.copy_failed)});
 }
 
 function dlReport(){
-var d=applyWI();
-var txt='=== EMI Report ===\nDate: '+new Date().toISOString().slice(0,10)+'\nScenario: '+wi.replace(/-/g,' ')+'\n\nLoan Amount: '+fmtCurrency(d.p)+'\nRate: '+d.r+'%\nTenure: '+d.t+' years\n\nMonthly EMI: '+monthly.textContent+'\nTotal Payment: '+totalPay.textContent+'\nTotal Interest: '+totalInt.textContent+'\nTotal Months: '+months.textContent+'\nEMI/Income Ratio: '+incomeRatio.textContent+'\n\nPrepayment: Extra '+fmtCurrency(v(extra))+', Saved '+savedInt.textContent+', Reduced '+reducedMonths.textContent;
-txt+='\n\nLoan B: Amount '+fmtCurrency(v(cAmt))+', Rate '+v(cRate)+'%, Tenure '+v(cTenure)+'yr\nEMI B: '+cEmi.textContent+', Interest B: '+cInt.textContent;
-txt+='\n\nAmortization:\n';
-amoData.forEach(function(r){txt+=r.l+': Paid '+fmtCurrency(r.emi)+' | Prin '+fmtCurrency(r.prin)+' | Int '+fmtCurrency(r.int)+' | Bal '+fmtCurrency(r.bal)+'\n'});
-var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='emi-report-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded');
+var txt='=== '+T.report_title+' ===\n'+new Date().toISOString().slice(0,10)+'\n'+reportText();
+var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='emi-report-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast(T.downloaded);
 }
 
 whatifEl.addEventListener('click',function(e){
@@ -325,25 +419,25 @@ copyBtn.addEventListener('click',copyAll);
 dlBtn.addEventListener('click',dlReport);
 
 hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
-hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_em',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});
+hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_em',JSON.stringify(history))}catch(e){}renderHistory();toast(T.history_cleared)});
 hiList.addEventListener('click',function(e){
 var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_em',JSON.stringify(history))}catch(e){}renderHistory();return}
 var item=e.target.closest('.em-hist-item');if(!item)return;
 var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
-amount.value=h.a;rate.value=h.r;tenure.value=h.t;extra.value=h.e||0;income.value=h.ic||0;
-cAmt.value=h.ca||500000;cRate.value=h.cr||7.5;cTenure.value=h.ct||5;
+amount.value=pick(h.a,D.amount);rate.value=pick(h.r,D.rate);tenure.value=pick(h.t,D.tenure);extra.value=pick(h.e,D.extra);income.value=pick(h.ic,D.income);
+cAmt.value=pick(h.ca,D.c_amount);cRate.value=pick(h.cr,D.c_rate);cTenure.value=pick(h.ct,D.c_tenure);
 wi=h.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
 history.splice(idx,1);try{localStorage.setItem('sb_em',JSON.stringify(history))}catch(e){}renderHistory();calc();
 });
 
 amoTog.addEventListener('click',function(){amoTable=amoTog.getAttribute('aria-expanded')==='true'?false:true;amoTog.setAttribute('aria-expanded',amoTable);amoWrap.hidden=!amoTable;amoTog.classList.toggle('on')});
-amoView.addEventListener('click',function(){amoMonthly=amoView.getAttribute('aria-expanded')==='true'?false:true;amoView.setAttribute('aria-expanded',amoMonthly);amoView.classList.toggle('on');amoView.textContent=amoMonthly?'Yearly':'Monthly';if(amoTable)calc()});
+amoView.addEventListener('click',function(){amoMonthly=!amoMonthly;amoView.textContent=amoMonthly?T.yearly:T.monthly;amoView.setAttribute('aria-label',amoMonthly?T.yearly:T.monthly);amoView.classList.toggle('on',amoMonthly);if(amoTable)calc()});
 compTog.addEventListener('click',function(){compOn=compTog.getAttribute('aria-expanded')==='true'?false:true;compTog.setAttribute('aria-expanded',compOn);compWrap.hidden=!compOn;compTog.classList.toggle('on')});
 matTog.addEventListener('click',function(){matOn=matTog.getAttribute('aria-expanded')==='true'?false:true;matTog.setAttribute('aria-expanded',matOn);matWrap.hidden=!matOn;matTog.classList.toggle('on')});
 
 [amount,rate,tenure,extra,income,cAmt,cRate,cTenure].forEach(function(el){el.addEventListener('input',calc)});
 
-if(saved){amount.value=saved.a||500000;rate.value=saved.r||8.5;tenure.value=saved.t||5;extra.value=saved.e||200;income.value=saved.ic||0;cAmt.value=saved.ca||500000;cRate.value=saved.cr||7.5;cTenure.value=saved.ct||5;wi=saved.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)})}
+if(saved){amount.value=pick(saved.a,D.amount);rate.value=pick(saved.r,D.rate);tenure.value=pick(saved.t,D.tenure);extra.value=pick(saved.e,D.extra);income.value=pick(saved.ic,D.income);cAmt.value=pick(saved.ca,D.c_amount);cRate.value=pick(saved.cr,D.c_rate);cTenure.value=pick(saved.ct,D.c_tenure);wi=saved.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)})}
 calc();
 })();
 </script>

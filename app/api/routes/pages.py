@@ -7,7 +7,7 @@ import time
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from jinja2.exceptions import TemplateNotFound
 from pydantic import BaseModel, Field, ValidationError
@@ -27,6 +27,7 @@ from app.core.i18n import (
 from app.core.i18n import (
     t as tr,
 )
+from app.core.locale_policy import indexable_locales_for_path, is_path_indexable, is_surface_indexable
 from app.core.sanitize import sanitize_html
 
 try:
@@ -108,6 +109,7 @@ templates.env.globals["html_lang_for"] = html_lang_for
 templates.env.globals["og_locale_for"] = og_locale_for
 templates.env.globals["tr"] = tr
 templates.env.globals["t"] = tr
+templates.env.globals["category_label"] = category_label
 templates.env.globals["normalize_locale"] = normalize_locale
 templates.env.globals["supported_locales"] = SUPPORTED_LOCALES
 templates.env.globals["locale_meta"] = LOCALE_META
@@ -188,12 +190,15 @@ async def home_localized(request: Request) -> HTMLResponse:
         "pillars": pillars,
     }
     ctx.update(_i18n_context("/", loc))
+    _quarantine(ctx, not is_surface_indexable(loc, "home"))
     resp = templates.TemplateResponse(request=request, name="index.html", context=ctx)
     resp.headers.update(_PAGE_CACHE_HEADERS)
     vary = resp.headers.get("Vary", "")
     if "Accept-Language" not in vary:
         resp.headers["Vary"] = (vary + ", Accept-Language").strip(", ").strip()
     resp.headers["Content-Language"] = loc
+    if ctx["robots_noindex"]:
+        resp.headers["X-Robots-Tag"] = "noindex, follow"
     return resp
 
 
@@ -218,9 +223,12 @@ async def tools_page_localized(request: Request) -> HTMLResponse:
     categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools_localized, loc)
     ctx = {"categories": categories, "static_pages": static_pages}
     ctx.update(_i18n_context("/tools", loc))
+    _quarantine(ctx, not is_surface_indexable(loc, "tools"))
     resp = templates.TemplateResponse(request=request, name="pages/tools.html", context=ctx)
     resp.headers.update(_PAGE_CACHE_HEADERS)
     resp.headers["Content-Language"] = loc
+    if ctx["robots_noindex"]:
+        resp.headers["X-Robots-Tag"] = "noindex, follow"
     return resp
 
 
@@ -247,8 +255,10 @@ async def offline_page(request: Request) -> HTMLResponse:
     categories, _ = await asyncio.to_thread(catalog_service.get_categorized_tools)
     ctx = {"categories": categories}
     ctx.update(_i18n_context("/offline", "en"))
+    _quarantine(ctx, True)
     resp = templates.TemplateResponse(request=request, name="pages/offline.html", context=ctx)
     resp.headers.update(_PAGE_CACHE_HEADERS)
+    resp.headers["X-Robots-Tag"] = "noindex, follow"
     return resp
 
 
@@ -263,9 +273,11 @@ async def offline_page_localized(request: Request) -> HTMLResponse:
     categories, _ = await asyncio.to_thread(catalog_service.get_categorized_tools_localized, loc)
     ctx = {"categories": categories}
     ctx.update(_i18n_context("/offline", loc))
+    _quarantine(ctx, True)
     resp = templates.TemplateResponse(request=request, name="pages/offline.html", context=ctx)
     resp.headers.update(_PAGE_CACHE_HEADERS)
     resp.headers["Content-Language"] = loc
+    resp.headers["X-Robots-Tag"] = "noindex, follow"
     return resp
 
 
@@ -310,9 +322,11 @@ async def html_sitemap_localized(request: Request) -> HTMLResponse:
         "blog_posts": blog_posts,
     }
     ctx.update(_i18n_context("/sitemap", loc))
+    _quarantine(ctx, True)
     resp = templates.TemplateResponse(request=request, name="pages/sitemap.html", context=ctx)
     resp.headers.update(_PAGE_CACHE_HEADERS)
     resp.headers["Content-Language"] = loc
+    resp.headers["X-Robots-Tag"] = "noindex, follow"
     return resp
 
 
@@ -455,18 +469,29 @@ async def contact_submission(request: Request) -> ContactResponse:
     return ContactResponse(status="ok")
 
 
-def _i18n_context(bare_path: str, locale: str) -> dict:
+def _i18n_context(bare_path: str, locale: str, hreflang_locales: list[str] | None = None) -> dict:
     loc = normalize_locale(locale)
+    avail = hreflang_locales if hreflang_locales is not None else indexable_locales_for_path(bare_path)
     return {
         "locale": loc,
         "html_lang": html_lang_for(loc),
         "og_locale": og_locale_for(loc),
-        "hreflangs": hreflang_links(settings.SITE_URL, bare_path),
+        "hreflangs": hreflang_links(settings.SITE_URL, bare_path, locales=avail),
         "bare_path": bare_path,
         # Relative so switchers stay same-origin on staging/dev; absolute
         # hreflang/canonical/OG come from hreflangs/seo_data/page_canonical.
         "locale_urls": {code: localize_path(bare_path, code) for code in SUPPORTED_LOCALES},
+        "robots_noindex": False,
     }
+
+
+def _quarantine(ctx: dict, noindex: bool) -> dict:
+    """Apply the locale quarantine to a template context."""
+    ctx["robots_noindex"] = noindex
+    if noindex:
+        # Never advertise a quarantined URL as an alternate of an indexable one.
+        ctx["hreflangs"] = []
+    return ctx
 
 
 async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> HTMLResponse:
@@ -485,58 +510,21 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
 
     seo_data = seo_service.get_seo(tool_name, locale=loc)
     template_name = f"tools/{tool_name.replace('-', '_')}.html"
+    if tool_name == "loan-affordability-calculator" and loc in ("de", "es"):
+        # DE/ES use a native affordability model (net income, Kaufnebenkosten,
+        # Zinsbindung, 35/40/45 scenarios) instead of the US PMI/HOA model.
+        template_name = "tools/loan_affordability_calculator_native.html"
     bare_path = f"/tool/{tool_name}"
-    # Fallback-EN locale pages (no real translation) get noindex until translated
-    # to avoid AdSense doorway / duplicate-content flags. Users can still use them.
-    is_fallback = False
-    if loc != "en":
-        try:
-            from app.core import tool_data
-
-            _raw = tool_data.ToolDataLoader.get(tool_name) or {}
-            _over = ((_raw.get("i18n") or {}).get(loc) or {}) if isinstance(_raw, dict) else {}
-            # Unified predicate with sitemap (name|description|meta_title).
-            is_fallback = not (
-                isinstance(_over, dict) and (_over.get("name") or _over.get("description") or _over.get("meta_title"))
-            )
-        except Exception:
-            is_fallback = True
+    # Quarantine anything not explicitly released + reviewed. The page stays
+    # usable (200) but is noindex,follow and absent from hreflang/sitemaps.
+    noindex = loc != "en" and not is_path_indexable(loc, bare_path)
     ctx = {
         "tool_name": seo_data.name,
         "categories": categories,
         "seo_data": seo_data,
-        "robots_noindex_fallback": is_fallback,
     }
     ctx.update(_i18n_context(bare_path, loc))
-    # Filter hreflangs to only translated locales for tool pages (unified predicate).
-    try:
-        from app.core import tool_data as tool_data_mod
-        from app.core.i18n import SUPPORTED_LOCALES as _SUPP
-
-        _raw2 = tool_data_mod.ToolDataLoader.get(tool_name) or {}
-        _i18n2 = (_raw2.get("i18n") or {}) if isinstance(_raw2, dict) else {}
-
-        def _has(lc: str) -> bool:
-            if lc == "en":
-                return True
-            o = _i18n2.get(lc) if isinstance(_i18n2, dict) else None
-            return isinstance(o, dict) and bool(o.get("name") or o.get("description") or o.get("meta_title"))
-
-        _avail = [lc for lc in _SUPP if _has(lc)]
-        base = settings.SITE_URL.rstrip("/")
-        ctx["hreflangs"] = [{"hreflang": lc, "href": base + localize_path(bare_path, lc)} for lc in _avail] + [
-            {"hreflang": "x-default", "href": base + localize_path(bare_path, "en")}
-        ]
-    except Exception:
-        # Fail closed: EN-only hreflang so we never advertise untranslated copies.
-        try:
-            base = settings.SITE_URL.rstrip("/")
-            ctx["hreflangs"] = [
-                {"hreflang": "en", "href": base + localize_path(bare_path, "en")},
-                {"hreflang": "x-default", "href": base + localize_path(bare_path, "en")},
-            ]
-        except Exception:
-            pass
+    _quarantine(ctx, noindex)
     try:
         resp = templates.TemplateResponse(request=request, name=template_name, context=ctx)
     except TemplateNotFound:
@@ -547,9 +535,10 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
     if "Accept-Language" not in vary:
         resp.headers["Vary"] = (vary + ", Accept-Language").strip(", ").strip()
     resp.headers["Content-Language"] = loc
-    if is_fallback:
-        # Tell crawlers (incl. AdSense reviewer bot) not to index EN-fallback copies.
-        resp.headers["X-Robots-Tag"] = "noindex, nofollow"
+    if noindex:
+        # Keep the page crawlable so users/internal links still work, but do not
+        # let search engines index an unreviewed localized rendering.
+        resp.headers["X-Robots-Tag"] = "noindex, follow"
     return resp
 
 
@@ -598,34 +587,29 @@ async def get_page_localized(request: Request, page_name: str) -> HTMLResponse:
             "static_pages": static_pages,
         }
         ctx.update(_i18n_context(f"/{page_name}", loc))
+        _quarantine(ctx, not is_surface_indexable(loc, "hubs"))
         resp = templates.TemplateResponse(request=request, name="hub.html", context=ctx)
         resp.headers.update(_PAGE_CACHE_HEADERS)
         resp.headers["Content-Language"] = loc
+        if ctx["robots_noindex"]:
+            resp.headers["X-Robots-Tag"] = "noindex, follow"
         return resp
     if page_name in _get_cached_page_names():
         categories, static_pages = catalog_service.get_categorized_tools_localized(loc)
-        # Zero-translation legal pages serve identical EN body: noindex until translated.
-        _en_only_statics = {"about", "contact", "privacy", "terms", "disclaimer"}
-        _is_static_fallback = page_name in _en_only_statics
+        bare = f"/{page_name}"
+        noindex = not is_path_indexable(loc, bare)
         ctx = {
             "title": page_name.replace("-", " ").title(),
             "categories": categories,
             "static_pages": static_pages,
-            "robots_noindex_fallback": _is_static_fallback,
         }
-        ctx.update(_i18n_context(f"/{page_name}", loc))
-        if _is_static_fallback:
-            base = settings.SITE_URL.rstrip("/")
-            bare = f"/{page_name}"
-            ctx["hreflangs"] = [
-                {"hreflang": "en", "href": base + localize_path(bare, "en")},
-                {"hreflang": "x-default", "href": base + localize_path(bare, "en")},
-            ]
+        ctx.update(_i18n_context(bare, loc))
+        _quarantine(ctx, noindex)
         resp = templates.TemplateResponse(request=request, name=f"pages/{page_name}.html", context=ctx)
         resp.headers.update(_PAGE_CACHE_HEADERS)
         resp.headers["Content-Language"] = loc
-        if _is_static_fallback:
-            resp.headers["X-Robots-Tag"] = "noindex, nofollow"
+        if noindex:
+            resp.headers["X-Robots-Tag"] = "noindex, follow"
         return resp
     raise HTTPException(status_code=404, detail="Page not found")
 

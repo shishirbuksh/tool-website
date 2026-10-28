@@ -50,12 +50,17 @@ async def sitemap_locale(locale: str) -> Response:
     from fastapi.responses import RedirectResponse  # noqa: PLC0415
 
     from app.core.i18n import is_supported_locale, normalize_locale  # noqa: PLC0415
+    from app.core.locale_policy import is_locale_released  # noqa: PLC0415
 
     if not is_supported_locale(locale):
         raise HTTPException(status_code=404, detail="Not found")
     if normalize_locale(locale) == "en":
         # EN canonical lives at /sitemap.xml (e.g. /sitemap-en.xml requested).
         return RedirectResponse(url="/sitemap.xml", status_code=301)
+    if not is_locale_released(locale):
+        # A quarantined locale has no public sitemap. 404 (not an empty sitemap)
+        # tells search engines to drop the previously submitted file.
+        raise HTTPException(status_code=404, detail="Not found")
     try:
         loc = normalize_locale(locale)
         content = await asyncio.to_thread(sitemap_service.build_sitemap_xml_for_locale, loc)

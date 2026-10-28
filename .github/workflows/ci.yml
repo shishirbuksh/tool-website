@@ -37,6 +37,18 @@ jobs:
         run: mypy --strict app
       - name: Tests with coverage gate (80%)
         run: python -m pytest tests/ -v --tb=short --cov=app --cov-branch --cov-fail-under=80
+      - name: Locale quality gate (released locales)
+        run: python scripts/quality_gate.py --quiet
+      - name: Locale backlog report (informational)
+        run: python scripts/locale_backlog.py --csv var/locale-backlog.csv --json var/locale-backlog.json --quiet
+      - name: Upload locale backlog
+        uses: actions/upload-artifact@v4
+        with:
+          name: locale-backlog
+          path: |
+            var/locale-backlog.csv
+            var/locale-backlog.json
+          if-no-files-found: error
       - name: Frontend build
         run: |
           npm ci

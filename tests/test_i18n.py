@@ -203,12 +203,12 @@ class TestI18nSeo:
         """All non-EN locales travel together: any override implies the full set."""
         from app.core.tool_data import ToolDataLoader
 
-        FULL = {"hi", "es", "fr", "de"}
+        full = {"hi", "es", "fr", "de"}
         all_tools = ToolDataLoader.get_all()
         bad = [
             slug
             for slug, info in all_tools.items()
-            if set((info.get("i18n") or {})) & FULL not in (set(), FULL)
+            if set(info.get("i18n") or {}) & full not in (set(), full)
         ]
         assert not bad, f"asymmetric pilots: {bad[:10]}"
 
@@ -247,7 +247,7 @@ class TestI18nSeo:
         assert de.url.endswith("/de/tool/zz-fallback-probe-unknown")
         assert de.name == en.name
         assert de.description == en.description
-        # Translated tool is indexed with full hreflang cluster (no fallback)
+        # Localized content exists but the locale is quarantined by default.
         hi_tm = svc2.get_seo("task-manager", locale="hi")
         en_tm = svc2.get_seo("task-manager", locale="en")
         assert hi_tm.name != en_tm.name
@@ -257,13 +257,14 @@ class TestI18nSeo:
         r = c.get("/hi/tool/task-manager")
         assert r.status_code == 200
         assert r.headers.get("Content-Language") == "hi"
-        assert "X-Robots-Tag" not in r.headers
-        assert 'hreflang="hi"' in r.text
-        assert 'hreflang="x-default"' in r.text
-        # Static EN-only page still falls back (noindex + filtered hreflang)
+        assert r.headers.get("X-Robots-Tag") == "noindex, follow"
+        assert 'hreflang="hi"' not in r.text
+        assert 'hreflang="x-default"' not in r.text
+        assert 'content="noindex, follow"' in r.text
+        # Static EN-only page follows the same quarantine contract.
         rs = c.get("/hi/contact")
         assert rs.status_code == 200
-        assert rs.headers.get("X-Robots-Tag") == "noindex, nofollow"
+        assert rs.headers.get("X-Robots-Tag") == "noindex, follow"
 
     def test_blog_hi_override(self, settings):
         from app.services.blog_service import BlogService
@@ -337,7 +338,7 @@ class TestI18nSeo:
                     seen[key] = f"blog:{slug}"
 
     def test_blog_i18n_bodies_sane(self, settings):
-        """Translated post bodies: substantial, one tool link, no H2/tables; faqs 3-10."""
+        """Translated post bodies: substantial, one localized tool link, no tables; faqs 3-10."""
         import re
 
         import yaml
@@ -353,8 +354,9 @@ class TestI18nSeo:
                 checked += 1
                 body = str(over.get("body_html", ""))
                 assert len(body) >= 1500, f"{slug}/{loc} thin body {len(body)}"
-                assert 'href="/tool/' in body, f"{slug}/{loc} no tool link"
-                assert "<h2" not in body.lower(), f"{slug}/{loc} H2 in body"
+                # Rebuilt packs link to localized tool URLs (/de/tool/..., /es/tool/...);
+                # legacy drafts still use the English /tool/... path.
+                assert re.search(r'href="(?:/[a-z]{2})?/tool/', body), f"{slug}/{loc} no tool link"
                 assert "<table" not in body.lower(), f"{slug}/{loc} table in body"
                 assert 3 <= len(over.get("faqs", [])) <= 10, f"{slug}/{loc} faqs"
                 assert all(re.search(r"\w", str(f.get("q", ""))) for f in over.get("faqs", [])), f"{slug}/{loc} empty q"
@@ -416,14 +418,13 @@ class TestI18nRoutes:
         assert r.status_code == 200, r.status_code
         assert "text/html" in r.headers.get("content-type", "")
         assert r.headers.get("Content-Language") == "hi"
-        assert 'hreflang="hi"' in r.text
-        assert 'hreflang="x-default"' in r.text
-        # Translated tool carries the full cluster + self markers, no noindex
-        for code in ("en", "hi", "es", "fr", "de"):
-            assert f'hreflang="{code}"' in r.text, code
+        # Default policy: every non-EN locale is quarantined until reviewed.
+        assert r.headers.get("X-Robots-Tag") == "noindex, follow"
+        assert 'content="noindex, follow"' in r.text
+        assert 'hreflang="hi"' not in r.text
+        assert 'hreflang="x-default"' not in r.text
         assert '<html lang="hi"' in r.text
         assert "Vary" in r.headers and "Accept-Language" in r.headers["Vary"]
-        assert "X-Robots-Tag" not in r.headers
         assert "og:locale" in r.text and "hi_IN" in r.text
         assert "/hi/tool/emi-calculator" in r.text  # canonical self
 
@@ -433,7 +434,11 @@ class TestI18nRoutes:
         c = TestClient(app, base_url="http://127.0.0.1")
         r = c.get("/tool/emi-calculator")
         assert r.status_code == 200
-        assert 'hreflang="hi"' in r.text  # EN carries full cluster too
+        assert "X-Robots-Tag" not in r.headers
+        # Quarantined locales must not appear as EN alternates.
+        assert 'hreflang="hi"' not in r.text
+        assert 'hreflang="en"' in r.text
+        assert 'hreflang="x-default"' in r.text
 
     def test_tool_unknown_locale_404(self):
         from app.main import app
@@ -511,11 +516,12 @@ class TestI18nRoutes:
         r = c.get("/de/tool/emi-calculator")
         assert r.status_code == 200, r.status_code
         assert r.headers.get("Content-Language") == "de"
-        assert 'hreflang="de"' in r.text
-        assert 'hreflang="x-default"' in r.text
+        assert r.headers.get("X-Robots-Tag") == "noindex, follow"
+        assert 'hreflang="de"' not in r.text
+        assert 'hreflang="x-default"' not in r.text
         assert '<html lang="de"' in r.text
         assert "de_DE" in r.text
-        assert "X-Robots-Tag" not in r.headers
+        assert 'content="noindex, follow"' in r.text
         rh = c.get("/de/")
         assert rh.status_code == 200, rh.status_code
         assert rh.headers.get("Content-Language") == "de"
@@ -532,38 +538,28 @@ class TestI18nRoutes:
         from app.main import app
 
         c = TestClient(app, base_url="http://127.0.0.1")
-        r = c.get("/sitemap-hi.xml")
-        assert r.status_code == 200
-        assert "/hi/tool/" in r.text
-        assert "xhtml:link" in r.text
-        for loc in ("es", "fr", "de"):
+        # Default policy quarantines every non-EN locale: no locale sitemaps,
+        # and EN must not advertise localized alternates.
+        for loc in ("hi", "es", "fr", "de"):
             rl = c.get(f"/sitemap-{loc}.xml")
-            assert rl.status_code == 200, loc
-            assert f"/{loc}/tool/" in rl.text
-            assert "xhtml:link" in rl.text
+            assert rl.status_code == 404, loc
         r2 = c.get("/sitemap-index.xml")
         assert r2.status_code == 200
-        assert "sitemap-hi.xml" in r2.text
-        assert "sitemap-es.xml" in r2.text
-        assert "sitemap-fr.xml" in r2.text
-        assert "sitemap-de.xml" in r2.text
+        for loc in ("hi", "es", "fr", "de"):
+            assert f"sitemap-{loc}.xml" not in r2.text, loc
         r3 = c.get("/sitemap.xml")
         assert r3.status_code == 200
-        assert "xhtml:link" in r3.text  # EN now carries hreflang too
+        assert "xhtml:link" in r3.text  # EN self + x-default remain
+        assert 'hreflang="hi"' not in r3.text
+        assert 'hreflang="de"' not in r3.text
         r4 = c.get("/robots.txt")
-        assert "sitemap-hi.xml" in r4.text
-        assert "sitemap-es.xml" in r4.text
-        assert "sitemap-fr.xml" in r4.text
-        assert "sitemap-de.xml" in r4.text
+        for loc in ("hi", "es", "fr", "de"):
+            assert f"sitemap-{loc}.xml" not in r4.text, loc
         # EN sitemap alias redirects; unknown locale 404s
         re_ = c.get("/sitemap-en.xml", follow_redirects=False)
         assert re_.status_code == 301, re_.status_code
         assert re_.headers["location"] == "/sitemap.xml"
         assert c.get("/sitemap-xx.xml").status_code == 404
-        # Full coverage: all translated tools included in locale sitemaps
-        assert "/hi/tool/task-manager" in r.text
-        assert "/hi/tool/emi-calculator" in r.text
-        assert r.headers.get("Content-Language") == "hi"
 
     def test_language_switcher_present(self):
         from app.main import app
@@ -626,18 +622,21 @@ class TestI18nRoutes:
         c = TestClient(app, base_url="http://127.0.0.1")
         r = c.get("/offline")
         assert r.status_code == 200
-        assert 'hreflang="hi"' in r.text
+        assert r.headers.get("X-Robots-Tag") == "noindex, follow"
+        assert 'hreflang="hi"' not in r.text
         r2 = c.get("/sitemap")
         assert r2.status_code == 200
-        assert 'hreflang="es"' in r2.text
-        # Localized utility pages render with locale context
+        assert 'hreflang="es"' not in r2.text
+        # Localized utility pages render with locale context but stay noindex.
         for loc in ("hi", "es", "fr", "de"):
             ro = c.get(f"/{loc}/offline")
             assert ro.status_code == 200, loc
             assert ro.headers.get("Content-Language") == loc
+            assert ro.headers.get("X-Robots-Tag") == "noindex, follow"
             rs = c.get(f"/{loc}/sitemap")
             assert rs.status_code == 200, loc
             assert rs.headers.get("Content-Language") == loc
+            assert rs.headers.get("X-Robots-Tag") == "noindex, follow"
 
     def test_blog_post_etag_per_locale(self):
         """Post ETags are locale-scoped: EN ETag must not 304 a locale URL."""
@@ -668,19 +667,19 @@ class TestI18nRoutes:
         assert r_same_de.headers.get("Content-Language") == "de"
 
     def test_blog_fallback_locale_noindex(self):
-        """Full coverage: translated post is indexed; static fallback stays noindex."""
+        """Localized blog posts are quarantined until the locale batch is released."""
         from app.main import app
 
         c = TestClient(app, base_url="http://127.0.0.1")
-        # dark-mode-favicon-svg-guide now HAS hi override -> indexed with hreflang
         r = c.get("/hi/blog/developer-seo/dark-mode-favicon-svg-guide")
         assert r.status_code == 200, r.status_code
         assert r.headers.get("Content-Language") == "hi"
-        assert "X-Robots-Tag" not in r.headers
-        assert 'hreflang="hi"' in r.text
-        # EN-only static page still exercises fallback noindex path
+        assert r.headers.get("X-Robots-Tag") == "noindex, follow"
+        assert 'hreflang="hi"' not in r.text
+        assert 'content="noindex, follow"' in r.text
+        # EN-only static page follows the same contract.
         rs = c.get("/hi/contact")
-        assert rs.headers.get("X-Robots-Tag") == "noindex, nofollow"
+        assert rs.headers.get("X-Robots-Tag") == "noindex, follow"
 
     def test_blog_index_localized(self):
         """Regression: /hi|es|fr/blog must render (prod 404 report, 2026-10-10)."""
@@ -744,11 +743,11 @@ class TestIndexNowLocales:
         page = c.get("/hi/contact")
         assert page.status_code == 200
         assert page.headers.get("Content-Language") == "hi"
-        assert page.headers.get("X-Robots-Tag") == "noindex, nofollow"
+        assert page.headers.get("X-Robots-Tag") == "noindex, follow"
         page_de = c.get("/de/contact")
         assert page_de.status_code == 200
         assert page_de.headers.get("Content-Language") == "de"
-        assert page_de.headers.get("X-Robots-Tag") == "noindex, nofollow"
+        assert page_de.headers.get("X-Robots-Tag") == "noindex, follow"
         r = c.post(
             "/api/contact",
             json={"name": "Asha", "email": "asha@example.com", "message": "Namaste from Hindi page"},

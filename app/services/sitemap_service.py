@@ -184,90 +184,11 @@ class SitemapService:
             logger.exception("Failed to build sitemap blog entries")
         return pages
 
-    def _tool_has_locale(self, slug: str, locale: str) -> bool:
-        """True if tool has a real i18n override for locale (not EN fallback)."""
-        if locale == "en":
-            return True
-        try:
-            info = ToolDataLoader.get(slug)
-        except Exception:
-            return False
-        if not isinstance(info, dict):
-            return False
-        i18n = info.get("i18n") or {}
-        over = i18n.get(locale) if isinstance(i18n, dict) else None
-        if not isinstance(over, dict) or not over:
-            return False
-        # Require at least a translated name/description to count as translated.
-        return bool(over.get("name") or over.get("description") or over.get("meta_title"))
-
-    def _get_blog_raw_cached(self) -> dict:
-        now = time.time()
-        cached = getattr(self, "_blog_raw_cache", None)
-        if cached and now - cached[0] < self._cache_ttl:
-            return cached[1]
-        try:
-            from app.services.blog_service import BlogService  # noqa: PLC0415
-
-            raw = BlogService(self.settings)._load_raw()
-        except Exception:
-            raw = {}
-        self._blog_raw_cache = (now, raw if isinstance(raw, dict) else {})
-        return self._blog_raw_cache[1]
-
-    def _blog_has_locale(self, slug: str, locale: str) -> bool:
-        """True if blog post has a real i18n override for locale (strict: body/desc/title)."""
-        if locale == "en":
-            return True
-        try:
-            raw = self._get_blog_raw_cached().get(slug)
-        except Exception:
-            return False
-        if not isinstance(raw, dict):
-            return False
-        i18n = raw.get("i18n") or {}
-        over = i18n.get(locale) if isinstance(i18n, dict) else None
-        return isinstance(over, dict) and bool(
-            over.get("description") or over.get("body_html") or over.get("meta_title")
-        )
-
-    # Zero-translation legal/static pages: EN-only (identical EN body behind /hi/ is doorway).
-    _LOCALE_STATIC_EN_ONLY = frozenset({"/about", "/contact", "/privacy", "/terms", "/disclaimer"})
-
     def _available_locales(self, loc_path: str) -> list[str]:
-        """Locales with real translated content for a given bare path."""
-        from app.core.i18n import SUPPORTED_LOCALES  # noqa: PLC0415
+        """Indexable locales for a bare path (locale + content status gates)."""
+        from app.core.locale_policy import indexable_locales_for_path  # noqa: PLC0415
 
-        # Memoize per bare path with TTL (same as blog raw cache) + lock-safe replace.
-        now = time.time()
-        memo_ts: float = getattr(self, "_avail_memo_ts", 0.0)
-        memo: dict[str, list[str]] = getattr(self, "_avail_memo", {})
-        if memo and now - memo_ts < self._cache_ttl and loc_path in memo:
-            return memo[loc_path]
-        if memo and now - memo_ts >= self._cache_ttl:
-            memo = {}
-        # Tool pages and blog posts: only list locales with real translations.
-        # Legal/static pages with zero i18n stay EN-only.
-        # Hubs/home/tools/blog-index stay global (chrome translated + localized catalog).
-        if loc_path in self._LOCALE_STATIC_EN_ONLY:
-            result = ["en"]
-        elif loc_path.startswith("/tool/"):
-            slug = loc_path[len("/tool/") :].split("/")[0]
-            result = [lc for lc in SUPPORTED_LOCALES if self._tool_has_locale(slug, lc)]
-        elif loc_path.startswith("/blog/"):
-            parts = loc_path.strip("/").split("/")
-            # /blog/<pillar>/<slug> -> post; /blog and /blog/<pillar> stay global.
-            if len(parts) == 3:
-                slug = parts[2]
-                result = [lc for lc in SUPPORTED_LOCALES if self._blog_has_locale(slug, lc)]
-            else:
-                result = list(SUPPORTED_LOCALES)
-        else:
-            result = list(SUPPORTED_LOCALES)
-        memo[loc_path] = result
-        self._avail_memo = memo
-        self._avail_memo_ts = now
-        return result
+        return indexable_locales_for_path(loc_path)
 
     def _render_urlset(self, pages: list[dict], locale: str = "en") -> str:
         from app.core.i18n import localize_path  # noqa: PLC0415
@@ -316,8 +237,9 @@ class SitemapService:
                 for alt in avail:
                     alt_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{localize_path(bare, alt)}")
                     lines.append(f'    <xhtml:link rel="alternate" hreflang="{alt}" href="{alt_url}" />')
-                default_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{localize_path(bare, 'en')}")
-                lines.append(f'    <xhtml:link rel="alternate" hreflang="x-default" href="{default_url}" />')
+                if "en" in avail:
+                    default_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{localize_path(bare, 'en')}")
+                    lines.append(f'    <xhtml:link rel="alternate" hreflang="x-default" href="{default_url}" />')
 
             lines.append("  </url>")
         lines.append("</urlset>")
@@ -336,6 +258,7 @@ class SitemapService:
 
     def build_sitemap_xml_for_locale(self, locale: str) -> str:
         from app.core.i18n import normalize_locale  # noqa: PLC0415
+        from app.core.locale_policy import is_locale_released  # noqa: PLC0415
 
         loc = normalize_locale(locale)
         cache_attr = f"_sitemap_cache_{loc}"
@@ -343,13 +266,17 @@ class SitemapService:
             cached = self._from_cache(getattr(self, cache_attr, None))
             if cached:
                 return cached
-            pages = self._collect_pages()
-            xml_content = self._render_urlset(pages, locale=loc)
+            if not is_locale_released(loc):
+                # Unreleased locales have no public sitemap (route returns 404).
+                xml_content = self._render_urlset([], locale=loc)
+            else:
+                pages = self._collect_pages()
+                xml_content = self._render_urlset(pages, locale=loc)
             setattr(self, cache_attr, (time.time(), xml_content))
             return xml_content
 
     def build_sitemap_index(self) -> str:
-        from app.core.i18n import SUPPORTED_LOCALES  # noqa: PLC0415
+        from app.core.locale_policy import published_locales  # noqa: PLC0415
 
         base = self.settings.SITE_URL.rstrip("/")
         lines = [
@@ -357,7 +284,7 @@ class SitemapService:
             '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
             f"  <sitemap><loc>{escape(base)}/sitemap.xml</loc></sitemap>",
         ]
-        for loc in SUPPORTED_LOCALES:
+        for loc in published_locales():
             if loc == "en":
                 continue
             lines.append(f"  <sitemap><loc>{escape(base)}/sitemap-{loc}.xml</loc></sitemap>")
@@ -365,7 +292,7 @@ class SitemapService:
         return "\n".join(lines)
 
     def build_robots_txt(self) -> str:
-        from app.core.i18n import SUPPORTED_LOCALES  # noqa: PLC0415
+        from app.core.locale_policy import published_locales  # noqa: PLC0415
 
         with self._lock:
             cached = self._from_cache(self._robots_cache)
@@ -373,13 +300,15 @@ class SitemapService:
                 return cached
 
             site_url = self.settings.SITE_URL.rstrip("/")
-            # Locale sitemap/blog lines generated from SUPPORTED_LOCALES so a
-            # new locale is picked up automatically (matches build_sitemap_index).
+            # Only released locales are advertised. Quarantined locales remain
+            # crawlable (noindex,follow) but must not be pushed via robots.txt.
             locale_allows = "".join(
-                f"Allow: /sitemap-{loc}.xml\nAllow: /{loc}/blog?page=*\n" for loc in SUPPORTED_LOCALES if loc != "en"
+                f"Allow: /sitemap-{loc}.xml\nAllow: /{loc}/blog?page=*\n"
+                for loc in published_locales()
+                if loc != "en"
             )
             locale_sitemaps = "".join(
-                f"Sitemap: {site_url}/sitemap-{loc}.xml\n" for loc in SUPPORTED_LOCALES if loc != "en"
+                f"Sitemap: {site_url}/sitemap-{loc}.xml\n" for loc in published_locales() if loc != "en"
             )
             content = (
                 f"User-agent: *\n"

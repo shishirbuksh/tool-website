@@ -1,0 +1,517 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
+
+{% block head %}
+<style>
+  .aff-card { background: var(--color-base-200); border: 1px solid var(--color-base-300); border-radius: 1.25rem; padding: 1.5rem; }
+  .aff-label { display: block; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.45; margin-bottom: 5px; }
+  .aff-input { width: 100%; box-sizing: border-box; border-radius: 0.75rem; padding: 0.55rem 0.75rem; font: inherit; font-weight: 700; font-size: 0.85rem; color: var(--color-base-content); background: var(--color-base-100); border: 2px solid var(--color-base-300); }
+  .aff-input:focus { outline: none; border-color: var(--color-primary); }
+  .aff-result { background: var(--color-base-100); border: 1px solid var(--color-base-300); border-radius: 1rem; padding: 14px 12px; text-align: center; }
+  .aff-result .iv { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 18px; font-weight: 900; line-height: 1.2; }
+  .aff-result .il { margin-top: 4px; font-size: 8px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.4; }
+  .aff-result.wide { grid-column: 1 / -1; }
+  .aff-result.wide .iv { font-size: 26px; }
+  .aff-bar { height: 100%; transition: width 0.3s ease; }
+  .aff-toast { position: fixed; right: 24px; bottom: 24px; z-index: 999; display: flex; align-items: center; gap: 8px; padding: 10px 18px; border: 1px solid var(--color-base-300); border-radius: 1rem; background: var(--color-base-200); box-shadow: 0 8px 24px rgba(0,0,0,.15); font-size: 13px; font-weight: 700; opacity: 0; transform: translateY(10px); transition: all .25s; pointer-events: none; }
+  .aff-toast.show { opacity: 1; transform: translateY(0); }
+  .aff-table { width: 100%; border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; }
+  .aff-table th { padding: 6px 8px; border-bottom: 1px solid var(--color-base-300); font-size: 9px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.45; text-align: right; }
+  .aff-table th:first-child, .aff-table td:first-child { text-align: left; }
+  .aff-table td { padding: 6px 8px; border-bottom: 1px solid var(--color-base-200); text-align: right; }
+  .aff-table tr:hover { background: color-mix(in oklab, var(--color-primary) 4%, transparent); }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set loc = locale | default('en', true) %}
+{% set sym = '€' %}
+{% if loc == 'de' %}
+  {% set d_income, d_debts, d_equity = '3200', '300', '60000' %}
+  {% set d_rate, d_term, d_costs = '3.8', '30', '10.5' %}
+  {% set d_housing, d_fixed, d_compare = '350', '10', '3.3' %}
+{% else %}
+  {% set d_income, d_debts, d_equity = '2400', '200', '40000' %}
+  {% set d_rate, d_term, d_costs = '3.0', '30', '10' %}
+  {% set d_housing, d_fixed, d_compare = '150', '10', '2.6' %}
+{% endif %}
+{{ tool_hero_section("home", tr('tool.afford.badge', loc), "LOAN AFFORDABILITY", "CALCULATOR", tr('tool.afford.note', loc)) }}
+
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.15s">
+  <div class="lg:w-5/12">
+    <div class="card-premium p-6 md:p-8">
+      <h2 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("sliders-horizontal", "w-5 h-5", 20) | safe }} {{ tr('tool.afford.form_title', loc) }}</h2>
+      <form id="affForm" class="flex flex-col gap-4" novalidate>
+        <div>
+          <label class="aff-label" for="affIncome">{{ tr('tool.afford.net_income', loc) }}</label>
+          <input type="number" id="affIncome" class="aff-input" value="{{ d_income }}" min="0" step="50" inputmode="decimal" aria-label="{{ tr('tool.afford.income_aria', loc) }}">
+        </div>
+        <div>
+          <label class="aff-label" for="affDebts">{{ tr('tool.afford.existing_debts', loc) }}</label>
+          <input type="number" id="affDebts" class="aff-input" value="{{ d_debts }}" min="0" step="25" inputmode="decimal" aria-label="{{ tr('tool.afford.debts_aria', loc) }}">
+        </div>
+        <div>
+          <label class="aff-label" for="affEquity">{{ tr('tool.afford.equity', loc) }}</label>
+          <input type="number" id="affEquity" class="aff-input" value="{{ d_equity }}" min="0" step="1000" inputmode="decimal" aria-label="{{ tr('tool.afford.equity_aria', loc) }}">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="aff-label" for="affRate">{{ tr('tool.afford.interest_rate', loc) }}</label>
+            <input type="number" id="affRate" class="aff-input" value="{{ d_rate }}" min="0" max="20" step="0.1" inputmode="decimal" aria-label="{{ tr('tool.afford.rate_aria', loc) }}">
+          </div>
+          <div>
+            <label class="aff-label" for="affTerm">{{ tr('tool.afford.term', loc) }}</label>
+            <select id="affTerm" class="aff-input" aria-label="{{ tr('tool.afford.term_aria', loc) }}">
+              {% for y in [20, 25, 30, 35] %}<option value="{{ y }}" {% if y|string == d_term %}selected{% endif %}>{{ y }} {{ tr('tool.common.years', loc) }}</option>{% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="aff-label" for="affCosts">{{ tr('tool.afford.purchase_costs', loc) }}</label>
+            <input type="number" id="affCosts" class="aff-input" value="{{ d_costs }}" min="0" max="30" step="0.5" inputmode="decimal" aria-label="{{ tr('tool.afford.costs_aria', loc) }}">
+          </div>
+          <div>
+            <label class="aff-label" for="affHousing">{{ tr('tool.afford.housing_costs', loc) }}</label>
+            <input type="number" id="affHousing" class="aff-input" value="{{ d_housing }}" min="0" step="25" inputmode="decimal" aria-label="{{ tr('tool.afford.housing_aria', loc) }}">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="aff-label" for="affFixed">{{ tr('tool.afford.fixed_period', loc) }}</label>
+            <select id="affFixed" class="aff-input" aria-label="{{ tr('tool.afford.fixed_aria', loc) }}">
+              {% for y in [5, 10, 15, 20] %}<option value="{{ y }}" {% if y|string == d_fixed %}selected{% endif %}>{{ y }} {{ tr('tool.common.years', loc) }}</option>{% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="aff-label" for="affCompare">{{ tr('tool.afford.compare_rate', loc) }}</label>
+            <input type="number" id="affCompare" class="aff-input" value="{{ d_compare }}" min="0" max="20" step="0.1" inputmode="decimal" aria-label="{{ tr('tool.afford.compare_aria', loc) }}">
+          </div>
+        </div>
+        <button type="button" id="affCalcBtn" class="btn btn-cinematic w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">
+          {{ lucide_icon("calculator", "w-5 h-5", 20) | safe }} {{ tr('btn.calculate', loc) | upper }}
+        </button>
+        <div class="flex gap-2">
+          <button type="button" id="affCopyBtn" class="btn btn-ghost btn-sm flex-1 rounded-xl text-[10px] font-bold uppercase tracking-wider">{{ lucide_icon("copy", "w-3 h-3", 12) | safe }} {{ tr('tool.common.copy_results', loc) }}</button>
+          <button type="button" id="affDlBtn" class="btn btn-ghost btn-sm flex-1 rounded-xl text-[10px] font-bold uppercase tracking-wider">{{ lucide_icon("download", "w-3 h-3", 12) | safe }} {{ tr('tool.common.download_report', loc) }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="lg:w-7/12 flex flex-col gap-6">
+    <div class="card-premium p-5">
+      <h2 class="text-sm font-black mb-4 tracking-tight flex items-center gap-2">{{ lucide_icon("git-compare", "w-4 h-4", 16) | safe }} {{ tr('tool.afford.scenarios_title', loc) }}</h2>
+      <div class="grid grid-cols-3 gap-3 text-center" role="group" aria-label="{{ tr('tool.afford.scenarios_title', loc) }}">
+        <div class="glass-cinematic rounded-xl p-4" style="border-color: color-mix(in oklab, var(--color-success) 25%, transparent)">
+          <span class="aff-label text-success" style="opacity:1">{{ tr('tool.afford.conservative', loc) }}</span>
+          <output id="sc35Loan" class="font-black font-mono text-sm" aria-live="polite">0 {{ sym }}</output>
+          <output id="sc35Pmt" class="block text-[10px] text-base-content/40" aria-live="polite">0 {{ sym }}</output>
+        </div>
+        <div class="glass-cinematic rounded-xl p-4" style="border-color: color-mix(in oklab, var(--color-warning) 25%, transparent)">
+          <span class="aff-label text-warning" style="opacity:1">{{ tr('tool.afford.moderate', loc) }}</span>
+          <output id="sc40Loan" class="font-black font-mono text-sm" aria-live="polite">0 {{ sym }}</output>
+          <output id="sc40Pmt" class="block text-[10px] text-base-content/40" aria-live="polite">0 {{ sym }}</output>
+        </div>
+        <div class="glass-cinematic rounded-xl p-4" style="border-color: color-mix(in oklab, var(--color-error) 25%, transparent)">
+          <span class="aff-label text-error" style="opacity:1">{{ tr('tool.afford.aggressive', loc) }}</span>
+          <output id="sc45Loan" class="font-black font-mono text-sm" aria-live="polite">0 {{ sym }}</output>
+          <output id="sc45Pmt" class="block text-[10px] text-base-content/40" aria-live="polite">0 {{ sym }}</output>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-premium p-6 md:p-8">
+      <h2 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("bar-chart-3", "w-5 h-5", 20) | safe }} {{ tr('tool.afford.report_title', loc) }}</h2>
+      {% include "components/ymyl_disclaimer.html" %}
+      <div class="grid grid-cols-2 gap-4" role="group" aria-label="{{ tr('tool.afford.report_title', loc) }}">
+        <div class="aff-result wide" style="border-color: color-mix(in oklab, var(--color-success) 25%, transparent)">
+          <span class="aff-label text-success" style="opacity:1">{{ tr('tool.afford.max_loan', loc) }}</span>
+          <output id="resLoan" class="iv text-success" aria-live="polite">0 {{ sym }}</output>
+        </div>
+        <div class="aff-result">
+          <span class="aff-label">{{ tr('tool.afford.max_payment', loc) }}</span>
+          <output id="resPayment" class="iv" aria-live="polite">0 {{ sym }}</output>
+        </div>
+        <div class="aff-result">
+          <span class="aff-label">{{ tr('tool.afford.max_price', loc) }}</span>
+          <output id="resPrice" class="iv text-primary" aria-live="polite">0 {{ sym }}</output>
+        </div>
+        <div class="aff-result">
+          <span class="aff-label">{{ tr('tool.afford.down_payment', loc) }}</span>
+          <output id="resDown" class="iv" aria-live="polite">0 {{ sym }}</output>
+        </div>
+        <div class="aff-result">
+          <span class="aff-label">{{ tr('tool.afford.purchase_costs_amount', loc) }}</span>
+          <output id="resCosts" class="iv" aria-live="polite">0 {{ sym }}</output>
+        </div>
+        <div class="aff-result">
+          <span class="aff-label">{{ tr('tool.afford.debt_ratio', loc) }}</span>
+          <output id="resRatio" class="iv" aria-live="polite">0 %</output>
+        </div>
+        <div class="aff-result">
+          <span class="aff-label">{{ tr('tool.afford.total_interest', loc) }}</span>
+          <output id="resInterest" class="iv text-warning" aria-live="polite">0 {{ sym }}</output>
+        </div>
+        <div class="aff-result">
+          <span class="aff-label">{{ tr('tool.afford.remaining_balance', loc) }}</span>
+          <output id="resRemaining" class="iv" aria-live="polite">0 {{ sym }}</output>
+        </div>
+        <div class="aff-result">
+          <span class="aff-label">{{ tr('tool.afford.monthly_budget', loc) }}</span>
+          <output id="resBudget" class="iv text-success" aria-live="polite">0 {{ sym }}</output>
+        </div>
+      </div>
+      <p id="equityWarning" class="mt-3 hidden rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-xs font-semibold leading-relaxed text-base-content/80" role="note">{{ tr('tool.afford.equity_warning', loc) }}</p>
+    </div>
+
+    <div id="rateCompCard" class="card-premium p-5 hidden">
+      <h3 class="text-sm font-black mb-3 tracking-tight flex flex-wrap items-center gap-2">{{ lucide_icon("trending-down", "w-4 h-4", 16) | safe }} {{ tr('tool.afford.rate_comparison', loc) }}:
+        <output id="rcRate1" class="text-warning">0 %</output> <span class="opacity-30">→</span> <output id="rcRate2" class="text-success">0 %</output>
+      </h3>
+      <div class="grid grid-cols-3 gap-3 text-center">
+        <div class="glass-cinematic rounded-xl p-3">
+          <span class="aff-label">{{ tr('tool.afford.monthly_savings', loc) }}</span>
+          <output id="rcMonthly" class="font-bold font-mono text-sm text-success" aria-live="polite">0 {{ sym }}</output>
+        </div>
+        <div class="glass-cinematic rounded-xl p-3">
+          <span class="aff-label">{{ tr('tool.afford.interest_saved', loc) }}</span>
+          <output id="rcInterest" class="font-bold font-mono text-sm text-success" aria-live="polite">0 {{ sym }}</output>
+        </div>
+        <div class="glass-cinematic rounded-xl p-3">
+          <span class="aff-label">{{ tr('tool.afford.loan_boost', loc) }}</span>
+          <output id="rcLoanBoost" class="font-bold font-mono text-sm text-primary" aria-live="polite">0 {{ sym }}</output>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-premium p-5">
+      <h3 class="text-sm font-black mb-3 tracking-tight flex items-center gap-2">{{ lucide_icon("pie-chart", "w-4 h-4", 16) | safe }} {{ tr('tool.afford.budget_breakdown', loc) }}</h3>
+      <div class="w-full h-5 rounded-lg overflow-hidden flex text-[10px] font-bold text-white" role="img" aria-label="{{ tr('tool.afford.budget_breakdown', loc) }}">
+        <div id="barDebts" class="aff-bar bg-error/70" style="width:0%"></div>
+        <div id="barHousing" class="aff-bar bg-info" style="width:0%"></div>
+        <div id="barPayment" class="aff-bar bg-primary" style="width:0%"></div>
+        <div id="barFree" class="aff-bar bg-success" style="width:0%"></div>
+      </div>
+      <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] font-bold text-base-content/50">
+        <span><span class="inline-block w-2 h-2 rounded bg-error/70 mr-1"></span>{{ tr('tool.afford.existing_debts_bar', loc) }}: <output id="budgetDebts" class="font-mono">0 {{ sym }}</output></span>
+        <span><span class="inline-block w-2 h-2 rounded bg-info mr-1"></span>{{ tr('tool.afford.housing_costs_bar', loc) }}: <output id="budgetHousing" class="font-mono">0 {{ sym }}</output></span>
+        <span><span class="inline-block w-2 h-2 rounded bg-primary mr-1"></span>{{ tr('tool.afford.new_payment', loc) }}: <output id="budgetPayment" class="font-mono">0 {{ sym }}</output></span>
+        <span><span class="inline-block w-2 h-2 rounded bg-success mr-1"></span>{{ tr('tool.afford.free_budget', loc) }}: <output id="budgetFree" class="font-mono">0 {{ sym }}</output></span>
+      </div>
+    </div>
+
+    <div class="card-premium p-5">
+      <details>
+        <summary class="text-sm font-black tracking-tight flex items-center gap-2 cursor-pointer select-none" role="button">{{ lucide_icon("calendar", "w-4 h-4", 16) | safe }} {{ tr('tool.afford.amortization', loc) }}</summary>
+        <div class="mt-4 overflow-x-auto">
+          <table class="aff-table" aria-label="{{ tr('tool.afford.amortization', loc) }}">
+            <thead>
+              <tr>
+                <th>{{ tr('tool.common.year', loc) }}</th>
+                <th>{{ tr('tool.common.paid', loc) }}</th>
+                <th>{{ tr('tool.common.principal', loc) }}</th>
+                <th>{{ tr('tool.common.interest', loc) }}</th>
+                <th>{{ tr('tool.common.balance', loc) }}</th>
+              </tr>
+            </thead>
+            <tbody id="affAmortBody"></tbody>
+          </table>
+        </div>
+      </details>
+      <p class="text-[10px] leading-relaxed text-base-content/40 mt-3">{{ tr('tool.afford.note', loc) }}</p>
+    </div>
+  </div>
+</div>
+
+<div id="affToast" class="aff-toast" role="status" aria-live="polite"></div>
+
+<script nonce="{{ nonce }}">
+(function () {
+  'use strict';
+  var T = {{ {
+    'copied': tr('tool.common.copied', loc),
+    'copy_failed': tr('tool.common.copy_failed', loc),
+    'downloaded': tr('tool.common.downloaded', loc),
+    'report_title': tr('tool.afford.report_title', loc),
+    'moderate': tr('tool.afford.moderate', loc),
+    'max_payment': tr('tool.afford.max_payment', loc),
+    'max_loan': tr('tool.afford.max_loan', loc),
+    'max_price': tr('tool.afford.max_price', loc),
+    'down_payment': tr('tool.afford.down_payment', loc),
+    'purchase_costs_amount': tr('tool.afford.purchase_costs_amount', loc),
+    'debt_ratio': tr('tool.afford.debt_ratio', loc),
+    'total_interest': tr('tool.afford.total_interest', loc),
+    'remaining_balance': tr('tool.afford.remaining_balance', loc),
+    'monthly_budget': tr('tool.afford.monthly_budget', loc),
+    'rate_comparison': tr('tool.afford.rate_comparison', loc),
+    'monthly_savings': tr('tool.afford.monthly_savings', loc),
+    'interest_saved': tr('tool.afford.interest_saved', loc),
+    'loan_boost': tr('tool.afford.loan_boost', loc),
+    'amortization': tr('tool.afford.amortization', loc),
+    'paid': tr('tool.common.paid', loc),
+    'principal': tr('tool.common.principal', loc),
+    'interest': tr('tool.common.interest', loc),
+    'balance': tr('tool.common.balance', loc),
+    'year': tr('tool.common.year', loc),
+    'per_month': tr('tool.common.per_month', loc)
+  } | tojson }};
+  var INTL_LOCALE = {{ {'de': 'de-DE', 'es': 'es-ES'}.get(loc, 'en-US') | tojson }};
+  var CURRENCY = 'EUR';
+  var DEFAULTS = {{ {
+    'income': d_income, 'debts': d_debts, 'equity': d_equity, 'rate': d_rate,
+    'term': d_term, 'costs': d_costs, 'housing': d_housing, 'fixed': d_fixed, 'compare': d_compare
+  } | tojson }};
+
+  function el(id) { return document.getElementById(id); }
+  function num(id) { var n = parseFloat(el(id).value); return isFinite(n) && n >= 0 ? n : 0; }
+  function fmt(n) {
+    if (!isFinite(n)) n = 0;
+    if (window.sbr && window.sbr.formatCurrency) return window.sbr.formatCurrency(n, 0);
+    try { return new Intl.NumberFormat(INTL_LOCALE, { style: 'currency', currency: CURRENCY, maximumFractionDigits: 0 }).format(n); }
+    catch (e) { return Math.round(n).toLocaleString(INTL_LOCALE) + ' €'; }
+  }
+  function pct(n) {
+    if (!isFinite(n)) n = 0;
+    try { return new Intl.NumberFormat(INTL_LOCALE, { maximumFractionDigits: 1 }).format(n) + ' %'; }
+    catch (e) { return n.toFixed(1) + ' %'; }
+  }
+  function pmt(principal, annualRate, months) {
+    if (principal <= 0 || months <= 0) return 0;
+    var r = annualRate / 100 / 12;
+    if (r <= 0) return principal / months;
+    return principal * r * Math.pow(1 + r, months) / (Math.pow(1 + r, months) - 1);
+  }
+  function maxLoan(payment, annualRate, months) {
+    if (payment <= 0 || months <= 0) return 0;
+    var r = annualRate / 100 / 12;
+    if (r <= 0) return payment * months;
+    return payment * (Math.pow(1 + r, months) - 1) / (r * Math.pow(1 + r, months));
+  }
+  function balanceAfter(principal, annualRate, months, payment, afterMonths) {
+    var n = Math.min(afterMonths, months);
+    if (principal <= 0 || n <= 0) return 0;
+    var r = annualRate / 100 / 12;
+    if (r <= 0) return Math.max(0, principal - payment * n);
+    var bal = principal * Math.pow(1 + r, n) - payment * (Math.pow(1 + r, n) - 1) / r;
+    return Math.max(0, bal);
+  }
+  function scenario(income, debts, housing, rate, months, share) {
+    var payment = Math.max(0, income * share - debts - housing);
+    return { payment: payment, loan: maxLoan(payment, rate, months) };
+  }
+  function toast(message) {
+    var t = el('affToast');
+    t.textContent = message;
+    t.classList.add('show');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+  function save() {
+    try {
+      localStorage.setItem('sb_afford', JSON.stringify({
+        income: num('affIncome'), debts: num('affDebts'), equity: num('affEquity'),
+        rate: num('affRate'), term: el('affTerm').value, costs: num('affCosts'),
+        housing: num('affHousing'), fixed: el('affFixed').value, compare: num('affCompare')
+      }));
+    } catch (e) { /* storage may be unavailable */ }
+  }
+  function renderAmort(principal, rate, months, payment) {
+    var body = el('affAmortBody');
+    body.innerHTML = '';
+    var rows = [];
+    if (principal <= 0 || months <= 0 || payment <= 0) return rows;
+    var r = rate / 100 / 12;
+    var bal = principal;
+    for (var y = 1; y <= Math.ceil(months / 12); y++) {
+      var yearInterest = 0;
+      var yearPrincipal = 0;
+      var count = Math.min(12, months - (y - 1) * 12);
+      for (var m = 0; m < count; m++) {
+        var interest = bal * r;
+        var principalPart = payment - interest;
+        if (principalPart > bal) principalPart = bal;
+        yearInterest += interest;
+        yearPrincipal += principalPart;
+        bal -= principalPart;
+        if (bal < 0) bal = 0;
+      }
+      var row = { year: y, paid: yearPrincipal + yearInterest, principal: yearPrincipal, interest: yearInterest, balance: bal };
+      rows.push(row);
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + row.year + '</td>' +
+        '<td>' + fmt(row.paid) + '</td>' +
+        '<td class="text-success">' + fmt(row.principal) + '</td>' +
+        '<td class="text-warning">' + fmt(row.interest) + '</td>' +
+        '<td class="font-bold">' + fmt(row.balance) + '</td>';
+      body.appendChild(tr);
+    }
+    return rows;
+  }
+
+  var state = null;
+
+  function calc() {
+    var income = num('affIncome');
+    var debts = num('affDebts');
+    var equity = num('affEquity');
+    var rate = num('affRate');
+    var years = parseInt(el('affTerm').value, 10) || 30;
+    var costsPct = num('affCosts');
+    var housing = num('affHousing');
+    var fixedYears = parseInt(el('affFixed').value, 10) || 10;
+    var compareRate = num('affCompare');
+    var months = years * 12;
+
+    var s35 = scenario(income, debts, housing, rate, months, 0.35);
+    var s40 = scenario(income, debts, housing, rate, months, 0.40);
+    var s45 = scenario(income, debts, housing, rate, months, 0.45);
+    [['sc35', s35], ['sc40', s40], ['sc45', s45]].forEach(function (pair) {
+      el(pair[0] + 'Loan').textContent = fmt(pair[1].loan);
+      el(pair[0] + 'Pmt').textContent = fmt(pair[1].payment) + T.per_month;
+    });
+
+    var payment = s40.payment;
+    var loan = s40.loan;
+    var price = (loan + equity) / (1 + costsPct / 100);
+    if (price < loan) price = loan;
+    var down = Math.max(0, price - loan);
+    var costsAmount = price * costsPct / 100;
+    var totalInterest = Math.max(0, payment * months - loan);
+    var remaining = balanceAfter(loan, rate, months, payment, fixedYears * 12);
+    var budget = Math.max(0, income - debts - housing - payment);
+    var ratio = income > 0 ? (debts + housing + payment) / income * 100 : 0;
+    var warning = equity + 0.01 < costsAmount;
+
+    el('resLoan').textContent = fmt(loan);
+    el('resPayment').textContent = fmt(payment) + T.per_month;
+    el('resPrice').textContent = fmt(price);
+    el('resDown').textContent = fmt(down);
+    el('resCosts').textContent = fmt(costsAmount);
+    el('resRatio').textContent = pct(ratio);
+    el('resInterest').textContent = fmt(totalInterest);
+    el('resRemaining').textContent = fmt(remaining);
+    el('resBudget').textContent = fmt(budget);
+    el('equityWarning').classList.toggle('hidden', !warning);
+
+    var total = debts + housing + payment + budget;
+    function width(amount) { return total > 0 ? Math.min(100, amount / total * 100) : 0; }
+    el('barDebts').style.width = width(debts) + '%';
+    el('barHousing').style.width = width(housing) + '%';
+    el('barPayment').style.width = width(payment) + '%';
+    el('barFree').style.width = width(budget) + '%';
+    el('budgetDebts').textContent = fmt(debts);
+    el('budgetHousing').textContent = fmt(housing);
+    el('budgetPayment').textContent = fmt(payment);
+    el('budgetFree').textContent = fmt(budget);
+
+    var compCard = el('rateCompCard');
+    if (compareRate > 0 && Math.abs(compareRate - rate) > 0.001 && loan > 0) {
+      var altPayment = pmt(loan, compareRate, months);
+      var altInterest = Math.max(0, altPayment * months - loan);
+      var monthlySavings = payment - altPayment;
+      var interestSaved = totalInterest - altInterest;
+      var loanBoost = maxLoan(payment, compareRate, months) - loan;
+      el('rcRate1').textContent = pct(rate);
+      el('rcRate2').textContent = pct(compareRate);
+      el('rcMonthly').textContent = fmt(monthlySavings);
+      el('rcInterest').textContent = fmt(interestSaved);
+      el('rcLoanBoost').textContent = fmt(loanBoost);
+      el('rcMonthly').style.color = monthlySavings >= 0 ? 'var(--color-success)' : 'var(--color-error)';
+      el('rcInterest').style.color = interestSaved >= 0 ? 'var(--color-success)' : 'var(--color-error)';
+      el('rcLoanBoost').style.color = loanBoost >= 0 ? 'var(--color-primary)' : 'var(--color-error)';
+      compCard.classList.remove('hidden');
+    } else {
+      compCard.classList.add('hidden');
+    }
+
+    var amort = renderAmort(loan, rate, months, payment);
+    state = {
+      income: income, debts: debts, equity: equity, rate: rate, years: years,
+      costsPct: costsPct, housing: housing, fixedYears: fixedYears, compareRate: compareRate,
+      payment: payment, loan: loan, price: price, down: down, costsAmount: costsAmount,
+      totalInterest: totalInterest, remaining: remaining, budget: budget, ratio: ratio,
+      amort: amort
+    };
+    save();
+  }
+
+  function reportText() {
+    if (!state) return '';
+    var s = state;
+    var text = T.report_title + '\n' +
+      T.moderate + '\n' +
+      T.max_payment + ': ' + fmt(s.payment) + T.per_month + '\n' +
+      T.max_loan + ': ' + fmt(s.loan) + '\n' +
+      T.max_price + ': ' + fmt(s.price) + '\n' +
+      T.down_payment + ': ' + fmt(s.down) + '\n' +
+      T.purchase_costs_amount + ': ' + fmt(s.costsAmount) + '\n' +
+      T.debt_ratio + ': ' + pct(s.ratio) + '\n' +
+      T.total_interest + ': ' + fmt(s.totalInterest) + '\n' +
+      T.remaining_balance + ': ' + fmt(s.remaining) + '\n' +
+      T.monthly_budget + ': ' + fmt(s.budget) + '\n';
+    if (s.compareRate > 0 && Math.abs(s.compareRate - s.rate) > 0.001 && s.loan > 0) {
+      var altPayment = pmt(s.loan, s.compareRate, s.years * 12);
+      var altInterest = Math.max(0, altPayment * s.years * 12 - s.loan);
+      text += '\n' + T.rate_comparison + ': ' + pct(s.rate) + ' -> ' + pct(s.compareRate) + '\n' +
+        T.monthly_savings + ': ' + fmt(s.payment - altPayment) + '\n' +
+        T.interest_saved + ': ' + fmt(s.totalInterest - altInterest) + '\n' +
+        T.loan_boost + ': ' + fmt(maxLoan(s.payment, s.compareRate, s.years * 12) - s.loan) + '\n';
+    }
+    return text + '\n' + T.amortization + ':\n' +
+      T.year + ' | ' + T.paid + ' | ' + T.principal + ' | ' + T.interest + ' | ' + T.balance + '\n' +
+      (s.amort || []).map(function (row) {
+        return row.year + ' | ' + fmt(row.paid) + ' | ' + fmt(row.principal) + ' | ' + fmt(row.interest) + ' | ' + fmt(row.balance);
+      }).join('\n');
+  }
+
+  function copyReport() {
+    var text = reportText();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast(T.copied); }).catch(function () { toast(T.copy_failed); });
+    } else if (window.sbr && window.sbr.copyToClipboard) {
+      window.sbr.copyToClipboard(text, null, T.copied);
+      toast(T.copied);
+    } else {
+      toast(T.copy_failed);
+    }
+  }
+
+  function downloadReport() {
+    var text = '=== ' + T.report_title + ' ===\n' + new Date().toISOString().slice(0, 10) + '\n' + reportText();
+    var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'affordability-report-' + Date.now() + '.txt';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast(T.downloaded);
+  }
+
+  function restore() {
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem('sb_afford') || 'null'); } catch (e) { saved = null; }
+    if (!saved || typeof saved !== 'object') return;
+    ['income', 'debts', 'equity', 'rate', 'costs', 'housing', 'compare'].forEach(function (key) {
+      if (saved[key] !== undefined && saved[key] !== null && saved[key] !== '') el('aff' + key.charAt(0).toUpperCase() + key.slice(1)).value = saved[key];
+    });
+    if (saved.term) el('affTerm').value = saved.term;
+    if (saved.fixed) el('affFixed').value = saved.fixed;
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    restore();
+    calc();
+    el('affCalcBtn').addEventListener('click', calc);
+    el('affCopyBtn').addEventListener('click', copyReport);
+    el('affDlBtn').addEventListener('click', downloadReport);
+    ['affIncome', 'affDebts', 'affEquity', 'affRate', 'affCosts', 'affHousing', 'affCompare', 'affTerm', 'affFixed'].forEach(function (id) {
+      el(id).addEventListener('input', calc);
+      el(id).addEventListener('change', calc);
+    });
+  });
+})();
+</script>
+
+{{ tool_section_end() }}
+{% endblock %}

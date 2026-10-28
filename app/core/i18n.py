@@ -9,6 +9,8 @@ Slugs stay English (no translated slugs in v1) to avoid 301 equity loss.
 
 from __future__ import annotations
 
+from app.core.i18n_calculators import CALCULATOR_STRINGS
+
 SUPPORTED_LOCALES: tuple[str, ...] = ("en", "hi", "es", "fr", "de")
 DEFAULT_LOCALE = "en"
 
@@ -59,14 +61,30 @@ def localize_url(site_url: str, path: str, locale: str) -> str:
     return site_url.rstrip("/") + localize_path(path, locale)
 
 
-def hreflang_links(site_url: str, bare_path: str) -> list[dict[str, str]]:
-    """Full hreflang cluster for a bare (EN) path, incl. x-default -> EN."""
+def hreflang_links(
+    site_url: str, bare_path: str, locales: list[str] | tuple[str, ...] | None = None
+) -> list[dict[str, str]]:
+    """Hreflang cluster for a bare (EN) path, restricted to indexable locales.
+
+    Pass ``locales`` from the locale policy so quarantined or unpublished
+    translations are never advertised. x-default is emitted only when English
+    is part of the cluster.
+    """
     base = site_url.rstrip("/")
     _, bare = split_locale_path(bare_path)
+    allowed = locales if locales is not None else SUPPORTED_LOCALES
+    codes: list[str] = []
+    for raw in allowed:
+        if not is_supported_locale(raw):
+            continue
+        loc = normalize_locale(raw)
+        if loc not in codes:
+            codes.append(loc)
     links: list[dict[str, str]] = []
-    for loc in SUPPORTED_LOCALES:
+    for loc in codes:
         links.append({"hreflang": loc, "href": base + localize_path(bare, loc)})
-    links.append({"hreflang": "x-default", "href": base + localize_path(bare, DEFAULT_LOCALE)})
+    if DEFAULT_LOCALE in codes:
+        links.append({"hreflang": "x-default", "href": base + localize_path(bare, DEFAULT_LOCALE)})
     return links
 
 
@@ -100,6 +118,27 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "footer.popular": "Popular Tools",
         "footer.categories": "Categories",
         "footer.legal": "Legal",
+        "footer.description": (
+            "{count}+ free online tools. No signup. Privacy-first with transparent "
+            "cookie choices. Private, fast, and built for your browser."
+        ),
+        "footer.sitemap": "Sitemap",
+        "footer.privacy": "Privacy",
+        "footer.terms": "Terms",
+        "footer.disclaimer": "Disclaimer",
+        "footer.cookie_settings": "Cookie Settings",
+        "footer.rights": "All rights reserved.",
+        "footer.built": "Built with precision. Privacy by design.",
+        "footer.operator": (
+            "Operated by StoryBrain AI, San Francisco, CA 94105, USA. Contact:"
+        ),
+        "footer.tool.emi": "EMI Calculator",
+        "footer.tool.qr": "QR Generator",
+        "footer.tool.password": "Password Generator",
+        "footer.tool.crypto": "Crypto Price Prediction",
+        "footer.tool.background": "Image Background Remover",
+        "footer.tool.invoice": "Invoice Generator",
+        "footer.tool.sip": "SIP Calculator",
         "cookie.body": "We use cookies to improve your experience and analyze traffic.",
         "cookie.privacy": "Read our Privacy Policy",
         "blog.title": "Blog",
@@ -108,9 +147,27 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "nav.search": "Search",
         "nav.theme": "Theme",
         "nav.menu": "Menu",
+        "nav.close": "Close",
+        "nav.breadcrumb": "Breadcrumb",
+        "nav.mobile": "Mobile navigation",
         "nav.language": "Language",
         "nav.categories": "Categories",
         "tool.faq_title": "Frequently Asked Questions",
+        "tool.methodology_title": "Methodology & feedback",
+        "tool.methodology_body": (
+            "Figures run locally in your browser from the values you enter{date}. "
+            "Estimates are educational only — verify finance, tax and health decisions "
+            "with a qualified professional (see {disclaimer}). Spotted an error? "
+            "{contact} and we correct with a new update date."
+        ),
+        "tool.methodology_updated": " (page updated {date})",
+        "tool.methodology_contact": "Report it via contact",
+        "tool.feedback_question": "Was this tool helpful?",
+        "tool.feedback_yes": "Yes",
+        "tool.feedback_no": "No",
+        "tool.feedback_yes_aria": "Yes, this tool was helpful",
+        "tool.feedback_no_aria": "No, this tool was not helpful",
+        "tool.feedback_thanks": "Thanks — feedback recorded anonymously.",
         "tool.howto_title": "How to Use",
         "tool.howtocalculate_title": "How to Calculate",
         "tool.related_title": "Related Tools",
@@ -354,6 +411,27 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "footer.popular": "लोकप्रिय टूल्स",
         "footer.categories": "श्रेणियां",
         "footer.legal": "कानूनी",
+        "footer.description": (
+            "{count}+ मुफ़्त ऑनलाइन टूल। साइनअप नहीं। पारदर्शी कुकी विकल्पों के साथ "
+            "गोपनीयता पहले। निजी, तेज़ और आपके ब्राउज़र में।"
+        ),
+        "footer.sitemap": "साइटमैप",
+        "footer.privacy": "गोपनीयता",
+        "footer.terms": "शर्तें",
+        "footer.disclaimer": "अस्वीकरण",
+        "footer.cookie_settings": "कुकी सेटिंग्स",
+        "footer.rights": "सर्वाधिकार सुरक्षित।",
+        "footer.built": "सटीकता से बनाया गया। गोपनीयता डिज़ाइन में।",
+        "footer.operator": (
+            "StoryBrain AI द्वारा संचालित, San Francisco, CA 94105, USA। संपर्क:"
+        ),
+        "footer.tool.emi": "ईएमआई कैलकुलेटर",
+        "footer.tool.qr": "QR कोड जनरेटर",
+        "footer.tool.password": "पासवर्ड जनरेटर",
+        "footer.tool.crypto": "क्रिप्टो मूल्य पूर्वानुमान",
+        "footer.tool.background": "इमेज बैकग्राउंड हटाएं",
+        "footer.tool.invoice": "इनवॉइस जनरेटर",
+        "footer.tool.sip": "एसआईपी कैलकुलेटर",
         "cookie.body": "हम आपके अनुभव को बेहतर बनाने और ट्रैफ़िक का विश्लेषण करने के लिए कुकीज़ का उपयोग करते हैं।",
         "cookie.privacy": "हमारी गोपनीयता नीति पढ़ें",
         "blog.title": "ब्लॉग",
@@ -362,9 +440,27 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "nav.search": "खोजें",
         "nav.theme": "थीम",
         "nav.menu": "मेन्यू",
+        "nav.close": "बंद करें",
+        "nav.breadcrumb": "नेविगेशन पथ",
+        "nav.mobile": "मोबाइल नेविगेशन",
         "nav.language": "भाषा",
         "nav.categories": "श्रेणियां",
         "tool.faq_title": "अक्सर पूछे जाने वाले प्रश्न (FAQ)",
+        "tool.methodology_title": "कार्यप्रणाली और फ़ीडबैक",
+        "tool.methodology_body": (
+            "गणना आपके ब्राउज़र में आपके द्वारा दर्ज मानों से लोकल रूप से होती है{date}। "
+            "परिणाम केवल मार्गदर्शन हैं — वित्तीय, कर और स्वास्थ्य निर्णय किसी योग्य "
+            "विशेषज्ञ से जाँचें ({disclaimer} देखें)। कोई त्रुटि मिली? {contact} और हम "
+            "नई अपडेट तिथि के साथ सुधार करेंगे।"
+        ),
+        "tool.methodology_updated": " (पेज अपडेट: {date})",
+        "tool.methodology_contact": "संपर्क के ज़रिए बताएं",
+        "tool.feedback_question": "क्या यह टूल उपयोगी था?",
+        "tool.feedback_yes": "हाँ",
+        "tool.feedback_no": "नहीं",
+        "tool.feedback_yes_aria": "हाँ, यह टूल उपयोगी था",
+        "tool.feedback_no_aria": "नहीं, यह टूल उपयोगी नहीं था",
+        "tool.feedback_thanks": "धन्यवाद — फ़ीडबैक अनाम रूप से दर्ज हुआ।",
         "tool.howto_title": "उपयोग कैसे करें",
         "tool.howtocalculate_title": "गणना कैसे करें",
         "tool.related_title": "संबंधित टूल्स",
@@ -608,6 +704,27 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "footer.popular": "Herramientas populares",
         "footer.categories": "Categorías",
         "footer.legal": "Legal",
+        "footer.description": (
+            "Más de {count} herramientas online gratuitas. Sin registro. "
+            "Privacidad primero y cookies transparentes. Privadas, rápidas y en tu navegador."
+        ),
+        "footer.sitemap": "Mapa del sitio",
+        "footer.privacy": "Privacidad",
+        "footer.terms": "Términos",
+        "footer.disclaimer": "Aviso legal",
+        "footer.cookie_settings": "Configuración de cookies",
+        "footer.rights": "Todos los derechos reservados.",
+        "footer.built": "Creado con precisión. Privacidad por diseño.",
+        "footer.operator": (
+            "Operado por StoryBrain AI, San Francisco, CA 94105, USA. Contacto:"
+        ),
+        "footer.tool.emi": "Calculadora de préstamos",
+        "footer.tool.qr": "Generador de códigos QR",
+        "footer.tool.password": "Generador de contraseñas",
+        "footer.tool.crypto": "Predicción del precio de criptomonedas",
+        "footer.tool.background": "Eliminar fondo de imagen",
+        "footer.tool.invoice": "Generador de facturas",
+        "footer.tool.sip": "Calculadora SIP",
         "cookie.body": "Usamos cookies para mejorar tu experiencia y analizar el tráfico.",
         "cookie.privacy": "Lee nuestra política de privacidad",
         "blog.title": "Blog",
@@ -616,9 +733,28 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "nav.search": "Buscar",
         "nav.theme": "Tema",
         "nav.menu": "Menú",
+        "nav.close": "Cerrar",
+        "nav.breadcrumb": "Ruta de navegación",
+        "nav.mobile": "Navegación móvil",
         "nav.language": "Idioma",
         "nav.categories": "Categorías",
         "tool.faq_title": "Preguntas frecuentes",
+        "tool.methodology_title": "Metodología y comentarios",
+        "tool.methodology_body": (
+            "Los cálculos se ejecutan localmente en tu navegador con los valores que "
+            "introduces{date}. Los resultados son solo orientativos: verifica las "
+            "decisiones financieras, fiscales y de salud con un profesional cualificado "
+            "(consulta el {disclaimer}). ¿Has detectado un error? {contact} y "
+            "corregiremos la fecha de actualización."
+        ),
+        "tool.methodology_updated": " (página actualizada el {date})",
+        "tool.methodology_contact": "Informa a través de contacto",
+        "tool.feedback_question": "¿Te ha resultado útil esta herramienta?",
+        "tool.feedback_yes": "Sí",
+        "tool.feedback_no": "No",
+        "tool.feedback_yes_aria": "Sí, esta herramienta me resultó útil",
+        "tool.feedback_no_aria": "No, esta herramienta no me resultó útil",
+        "tool.feedback_thanks": "Gracias: comentario registrado de forma anónima.",
         "tool.howto_title": "Cómo usar",
         "tool.howtocalculate_title": "Cómo calcular",
         "tool.related_title": "Herramientas relacionadas",
@@ -862,6 +998,27 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "footer.popular": "Outils populaires",
         "footer.categories": "Catégories",
         "footer.legal": "Mentions légales",
+        "footer.description": (
+            "Plus de {count} outils en ligne gratuits. Sans inscription. "
+            "Confidentialité d'abord et cookies transparents. Privés, rapides et dans votre navigateur."
+        ),
+        "footer.sitemap": "Plan du site",
+        "footer.privacy": "Confidentialité",
+        "footer.terms": "Conditions",
+        "footer.disclaimer": "Mentions légales",
+        "footer.cookie_settings": "Paramètres des cookies",
+        "footer.rights": "Tous droits réservés.",
+        "footer.built": "Conçu avec précision. Confidentialité par conception.",
+        "footer.operator": (
+            "Exploité par StoryBrain AI, San Francisco, CA 94105, USA. Contact :"
+        ),
+        "footer.tool.emi": "Calculateur de prêt",
+        "footer.tool.qr": "Générateur de QR codes",
+        "footer.tool.password": "Générateur de mots de passe",
+        "footer.tool.crypto": "Prévision du prix des cryptos",
+        "footer.tool.background": "Supprimer l'arrière-plan d'une image",
+        "footer.tool.invoice": "Générateur de factures",
+        "footer.tool.sip": "Calculateur SIP",
         "cookie.body": "Nous utilisons des cookies pour améliorer votre expérience et analyser le trafic.",
         "cookie.privacy": "Lire notre politique de confidentialité",
         "blog.title": "Blog",
@@ -870,9 +1027,28 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "nav.search": "Rechercher",
         "nav.theme": "Thème",
         "nav.menu": "Menu",
+        "nav.close": "Fermer",
+        "nav.breadcrumb": "Fil d'Ariane",
+        "nav.mobile": "Navigation mobile",
         "nav.language": "Langue",
         "nav.categories": "Catégories",
         "tool.faq_title": "Foire aux questions",
+        "tool.methodology_title": "Méthodologie et retours",
+        "tool.methodology_body": (
+            "Les calculs s'exécutent localement dans votre navigateur à partir des "
+            "valeurs saisies{date}. Les résultats sont indicatifs : vérifiez les "
+            "décisions financières, fiscales et de santé avec un professionnel qualifié "
+            "(voir {disclaimer}). Une erreur ? {contact} et nous corrigerons la date de "
+            "mise à jour."
+        ),
+        "tool.methodology_updated": " (page mise à jour le {date})",
+        "tool.methodology_contact": "Signalez-la via contact",
+        "tool.feedback_question": "Cet outil vous a-t-il été utile ?",
+        "tool.feedback_yes": "Oui",
+        "tool.feedback_no": "Non",
+        "tool.feedback_yes_aria": "Oui, cet outil m'a été utile",
+        "tool.feedback_no_aria": "Non, cet outil ne m'a pas été utile",
+        "tool.feedback_thanks": "Merci — retour enregistré anonymement.",
         "tool.howto_title": "Mode d'emploi",
         "tool.howtocalculate_title": "Méthode de calcul",
         "tool.related_title": "Outils similaires",
@@ -1116,17 +1292,57 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "footer.popular": "Beliebte Tools",
         "footer.categories": "Kategorien",
         "footer.legal": "Rechtliches",
+        "footer.description": (
+            "{count}+ kostenlose Online-Tools. Ohne Anmeldung. Datenschutzorientiert "
+            "mit transparenten Cookie-Einstellungen. Privat, schnell und direkt im Browser."
+        ),
+        "footer.sitemap": "Sitemap",
+        "footer.privacy": "Datenschutz",
+        "footer.terms": "Nutzungsbedingungen",
+        "footer.disclaimer": "Haftungsausschluss",
+        "footer.cookie_settings": "Cookie-Einstellungen",
+        "footer.rights": "Alle Rechte vorbehalten.",
+        "footer.built": "Mit Präzision gebaut. Datenschutz by Design.",
+        "footer.operator": (
+            "Betrieben von StoryBrain AI, San Francisco, CA 94105, USA. Kontakt:"
+        ),
+        "footer.tool.emi": "Kreditrechner",
+        "footer.tool.qr": "QR-Code-Generator",
+        "footer.tool.password": "Passwort-Generator",
+        "footer.tool.crypto": "Krypto-Preisprognose",
+        "footer.tool.background": "Bildhintergrund entfernen",
+        "footer.tool.invoice": "Rechnungsgenerator",
+        "footer.tool.sip": "SIP-Rechner",
         "cookie.body": "Wir verwenden Cookies, um Ihr Erlebnis zu verbessern und Traffic zu analysieren.",
         "cookie.privacy": "Datenschutzerklärung lesen",
         "blog.title": "Blog",
         "nav.about": "Über uns",
         "nav.contact": "Kontakt",
         "nav.search": "Suchen",
-        "nav.theme": "Theme",
+        "nav.theme": "Design",
         "nav.menu": "Menü",
+        "nav.close": "Schließen",
+        "nav.breadcrumb": "Pfadnavigation",
+        "nav.mobile": "Mobile Navigation",
         "nav.language": "Sprache",
         "nav.categories": "Kategorien",
         "tool.faq_title": "Häufig gestellte Fragen",
+        "tool.methodology_title": "Methodik & Feedback",
+        "tool.methodology_body": (
+            "Die Berechnung erfolgt lokal in Ihrem Browser mit den von Ihnen "
+            "eingegebenen Werten{date}. Die Ergebnisse dienen nur zur Orientierung – "
+            "prüfen Sie Finanz-, Steuer- und Gesundheitsentscheidungen mit einer "
+            "qualifizierten Fachperson (siehe {disclaimer}). Fehler entdeckt? {contact}, "
+            "wir korrigieren den Stand mit einem neuen Aktualisierungsdatum."
+        ),
+        "tool.methodology_updated": " (Seite aktualisiert am {date})",
+        "tool.methodology_contact": "Melden Sie es über Kontakt",
+        "tool.feedback_question": "War dieses Tool hilfreich?",
+        "tool.feedback_yes": "Ja",
+        "tool.feedback_no": "Nein",
+        "tool.feedback_yes_aria": "Ja, dieses Tool war hilfreich",
+        "tool.feedback_no_aria": "Nein, dieses Tool war nicht hilfreich",
+        "tool.feedback_thanks": "Danke – Feedback anonym erfasst.",
         "tool.howto_title": "Anleitung zur Nutzung",
         "tool.howtocalculate_title": "Berechnung & Formel",
         "tool.related_title": "Ähnliche Tools",
@@ -1354,6 +1570,11 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "tool.sci.no_calc": "Noch keine Berechnungen",
     },
 }
+
+# Calculator chrome lives in a separate module to keep this table readable.
+# Merge after the base table so tr() and the completeness test see one map.
+for _locale, _strings in CALCULATOR_STRINGS.items():
+    UI_STRINGS.setdefault(_locale, {}).update(_strings)
 
 
 def t(key: str, locale: str) -> str:

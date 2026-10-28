@@ -17,6 +17,11 @@ Usage:
   python3 scripts/submit_indexnow.py --key <KEY> --locale hi --locale es
   python3 scripts/submit_indexnow.py --key <KEY> --sitemap-url https://www.storybrainai.com/sitemap.xml
 
+``--all-locales`` (and explicit ``--locale`` sitemaps) only submit locales that
+are currently released in ``data/locale_publication.yaml``. Quarantined locale
+sitemaps and explicit ``--url`` values under those locales are skipped; submit
+English or released-locale URLs instead.
+
 Docs: https://www.indexnow.org/documentation
 """
 
@@ -24,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import urllib.parse
@@ -35,6 +41,31 @@ KEY_RE = re.compile(r"^[0-9a-fA-F]{8,128}$")
 CHUNK = 10_000
 # Subdirectory locales (must match app/core/i18n.py SUPPORTED_LOCALES minus "en").
 I18N_LOCALES = ("hi", "es", "fr", "de")
+
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+
+
+def released_i18n_locales() -> list[str]:
+    """Locales currently released for indexing, from the central policy.
+
+    Fail closed: if the policy cannot be loaded, no locale sitemap is submitted.
+    """
+    try:
+        from app.core.locale_policy import published_locales
+
+        return [loc for loc in published_locales() if loc in I18N_LOCALES]
+    except Exception as exc:  # pragma: no cover - defensive for standalone runs
+        print(f"warning: cannot read locale release policy: {exc}", file=sys.stderr)
+        return []
+
+
+def url_locale(url: str) -> str:
+    """Return the subdirectory locale of a URL (``en`` when prefix-less)."""
+    path = urllib.parse.urlparse(url).path
+    first = path.strip("/").split("/", 1)[0].lower()
+    return first if first in I18N_LOCALES else "en"
 
 
 def sitemap_urls_for(host: str, *, include_all: bool, locales: list[str]) -> list[str]:
@@ -129,6 +160,16 @@ def main(argv: list[str] | None = None) -> int:
     locales = list(args.locales)
     if args.all_locales:
         locales += [loc for loc in I18N_LOCALES if loc not in locales]
+
+    # Never push a quarantined locale's sitemap: IndexNow would advertise URLs
+    # that the app deliberately serves noindex. Explicit URLs under a
+    # quarantined locale are skipped for the same reason.
+    released = set(released_i18n_locales())
+    blocked = [loc for loc in locales if (loc or "").strip().lower() not in released]
+    if blocked:
+        print(f"skip quarantined locale sitemap(s): {', '.join(blocked)}", file=sys.stderr)
+    locales = [loc for loc in locales if (loc or "").strip().lower() in released]
+
     for sitemap in sitemap_urls_for(args.host, include_all=args.all, locales=locales):
         urls += fetch_sitemap_locs(sitemap, args.timeout)
     sitemap = args.sitemap_url
@@ -152,6 +193,10 @@ def main(argv: list[str] | None = None) -> int:
             netloc = ""
         if netloc.lower() != args.host.lower():
             print(f"skip off-host URL: {u}", file=sys.stderr)
+            continue
+        loc = url_locale(u)
+        if loc != "en" and loc not in released:
+            print(f"skip quarantined locale URL: {u}", file=sys.stderr)
             continue
         seen.add(u)
         clean.append(u)

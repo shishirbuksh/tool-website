@@ -221,6 +221,51 @@ Scope: `app/core/i18n.py` (new), `config.py`, `seo_service.py`, `blog_service.py
 - **Verified:** `test_i18n` 23 (incl. generic length-guard test over all 174 locale overrides + `/{hi,es,fr}/blog` index/pillar regression tests for the 2026-10-10 prod-404 report; local render verified 200 + correct `Content-Language`) + `test_api` 47 + `test_sitemap` 12 + keywords/content/blog/middleware/csp/yaml suites green (145 total in-round); `ruff check app tests/test_i18n.py` clean; `npm run build:js + build:compress` regenerated `static/js/app.js` (+br/gz) with locale-aware catalog fetch.
 - **Remaining:** full-catalog ES/FR/HI expansion (59 tools + 94 posts per locale, batch next); per-category OG images (design); GSC/Bing locale sitemap submit + IndexNow `--all --all-locales` post-deploy.
 
+## 13. Multilingual audit + Phase 0 quarantine (2026-10-28)
+
+Scope: `app/core/i18n.py`, `app/core/locale_policy.py` (new), `app/core/content_sanitize.py` (new), `app/services/{seo,blog,sitemap}_service.py`, `app/api/routes/{pages,blog,seo}.py`, `templates/base.html`, `templates/components/tool_{layout,ui_macros}.html`, all 117 tool templates, `data/locale_publication.yaml` (new), `scripts/{quality_gate,submit_indexnow}.py`, tests.
+
+### 13.1 Findings that blocked indexing
+
+- **Thin localized bodies:** 864 localized overrides existed (468 tool + 396 post blocks across DE/ES/FR/HI), but they were machine drafts. Tool `about_body` median 22–26 words (EN median 66); localized blog bodies median ~203–283 words (EN median 1442) with **zero H2 sections**; localized FAQ answers often 1–7 words. The old presence-based hreflang/sitemap logic advertised all of them.
+- **Render-time artifacts:** `LSI:` keyword scaffolding rendered on localized pages, and localized fields contain real U+FFFD replacement characters. Content must be rebuilt, not repaired. (The artifact scan also surfaced a false-positive `TODO` token in an EN blog body; the check now requires `TODO:` and ignores code-bearing body fields.)
+- **Wrong H1:** localized tool pages rendered the English literal baked into each template (e.g. DE EMI page showed the EN H1) because macro imports dropped context and the hero macro used `title`/`gradient_word`.
+- **Discovery leak:** every non-EN URL was in hreflang clusters, locale sitemaps, sitemap index, robots.txt and eligible for IndexNow, so thin drafts could be crawled/indexed immediately.
+- **Static-page fallback:** `/about /contact /privacy /terms /disclaimer` rendered the English body at localized URLs and inherited the locale-wide static surface.
+
+### 13.2 Implemented controls
+
+- **Two-gate policy:** a localized URL indexes only when (1) the locale is `published` in `data/locale_publication.yaml` and (2) the item has `i18n.<locale>.translation_status: published` (and no `noindex: true`). Missing/legacy overrides fail closed. Non-EN locales default to `quarantined`.
+- **Quarantine contract:** localized URLs stay crawlable (`200`), emit `noindex, follow` (meta + `X-Robots-Tag`), self-canonical, no hreflang, and are absent from sitemap index, locale sitemaps, robots.txt and IndexNow. Locale sitemaps return 404 while quarantined.
+- **Surfaces + static allowlist:** `home`, `tools`, `blog`, `blog_pillars`, `hubs`, `static` are released per locale; static/legal pages additionally require their bare path in `static_pages`. The hard safety net still blocks the five English-fallback pages even if allowlisted.
+- **Localized H1/description:** all 117 tool templates import the macro layer `with context`; the hero prefers localized `seo_data.name`/`description` (verified DE `Kreditrechner`).
+- **Render sanitizer:** `LSI:` blocks are stripped from localized text at render time; raw YAML artifacts are still flagged by the gate so rebuilds are required.
+- **Quality gate (`scripts/quality_gate.py`):** metadata, depth, artifacts, native-language signal, duplicate/cross-locale bodies, keyword coverage, review provenance (`reviewer`, `reviewed_at`, `author`, `sources`), status conflicts, India-only tool release blocks (DE/ES/FR), and sitemap/hreflang/surface/static consistency. EN baseline passes; full DE audit correctly fails (after wave 1a: 1,664 errors / 1,309 warnings; ES: 1,579 / 1,427); `--status published` on DE selects 0 items. `--pack <pack>` scopes a batch audit to the pack's slugs and infers its locale, avoiding the legacy-override sweep caused by missing statuses defaulting to `review`.
+- **Batch applier (`scripts/apply_content_pack.py`):** replaces only the target `i18n.<locale>` block, validates pack fields, preserves CRLF and unrelated bytes, verifies the semantic before/after state, and refuses to overwrite `published` items without `--allow-published`.
+- **IndexNow:** `--all-locales`/`--locale` only submit released locales and fail closed if the policy is unreadable; explicit URLs under a quarantined locale are skipped as well.
+- **Backlog + CI:** `scripts/locale_backlog.py` reports every override with status, missing fields, depth, artifacts and release blockers (CSV + JSON). CI runs the released-locale gate after tests and uploads the backlog artifact; DE/ES/FR/HI join the blocking gate automatically when released.
+
+### 13.3 Verification
+
+- `python -m pytest -q`: 393 passed, 2 skipped (395 collected); `tests/test_quality_gate.py` 24/24 including the new `--pack` selection tests, and `tests/test_locale_backlog.py` green after the rebuilt-DE regression was added.
+- `python -m pytest tests/test_localized_calculator_ui.py -q`: 36/36 rendered-UI tests. A Node `--check` pass over 80 rendered DE/ES inline JS blocks found no syntax errors.
+- `ruff check app scripts tests`: clean.
+- Live contract check: 222/222 passed across DE/ES/FR/HI home, tools, blog, hubs, statics, offline, tool/post pages, sitemap 404s, EN alternates, DE H1, and no `LSI:` output.
+- EN quality gate: 216 items, 0 errors, 356 warnings (advisory depth/meta gaps only); `PASS`.
+- Locale backlog: 864 items audited (216 per locale), 864 blocked, 0 ready, 0 released — expected until the native rebuild and review are complete.
+- Wave 1a rebuild: 10 DE/ES overrides applied (`4 tools + 1 post` per locale). DE tool bodies 289–345 words, ES 306–368; blogs 1,177/1,128 words with 9/8 H2 and 8 internal links; all five items per locale declare 6/6 present keywords. `quality_gate.py --pack` audits 5 items per locale with 0 errors and only the expected `missing_reviewer`/`missing_reviewed_at` warnings.
+- Backlog after wave 1a: 432 DE/ES items, all blocked; the 10 rebuilt items are blocked only on native reviewer/date. The other 854 overrides are unchanged legacy drafts.
+
+### 13.4 Remaining inputs before batch 1 (DE + ES)
+
+- Native reviewer identities + sign-off, and legal entity details for DE Impressum / ES Aviso legal / FR Mentions légales.
+- GSC/Bing access and paid keyword-tool exports for native demand validation.
+- Batch-1 approval: a proposed 20-URL DE/ES plan and keyword worksheet exist (`MULTILINGUAL_BATCH_1.md`, `data/keyword_research_de_es_batch1.csv`), but the URL list and missing-tool decisions (VAT, severance, self-employed, mortgage, PDF compression/signing) are not confirmed. Wave 1a content is applied; release still waits on the inputs below.
+- Calculator UI localization: **done** for the four wave-1a tools. EMI, mortgage overpayment and debt render localized chrome with EUR defaults for DE/ES/FR; DE/ES affordability routes to `loan_affordability_calculator_native.html` (net income, Kaufnebenkosten/purchase costs, Zinsbindung, 35/40/45 scenarios) instead of the US PMI/HOA/DTI model. `src/js/tools.utils.js` is locale-aware and the bundle was rebuilt. `tests/test_localized_calculator_ui.py` protects the rendered pages (36 tests, including footer popular-tool names, shared methodology/feedback chrome and breadcrumb/mobile-nav/cookie-banner ARIA labels across DE/ES/FR/HI).
+- Remaining rendered-UI blocker: `/de/tools` and `/es/tools` still render English directory chrome (`templates/pages/tools.html`). The first DE/ES release therefore keeps `surfaces: []`, which leaves the directory and other hubs `noindex, follow`; add `tools`/`blog`/`blog_pillars` only after their chrome is localized. The tools page is part of the uncommitted homepage/tools redesign, so do not rewrite it blindly.
+- **Blog item hold:** `compound-interest-formula` stays `translation_status: review` in DE and ES for the first release. `templates/blog/post.html` and `blog_macros.html` still render English post chrome (Published/Updated, min read, share, Key Takeaways, TOC, Related Guides, Methodology), and the post links India-only SIP/FD tools. Item pages index from item status, bypassing `surfaces`, so publishing it would expose English chrome on an indexed URL. The first release is therefore 8 tool URLs (4 DE + 4 ES), not 10.
+- Do not localize India-only tools (GST, E-Way Bill, SIP, FD, job card, delivery challan) into DE/ES/FR.
+
 ## Appendix — How This Was Verified
 
 - `audit_tools.py`: TOOLS=107, categories/app_category/priority counters, 0 missing templates, 0 broken related, faq/howto/keyword stats.

@@ -1,4 +1,4 @@
-.PHONY: install build start run clean deploy setup-vps test coverage
+.PHONY: install build start run clean deploy setup-vps test coverage locale-gate locale-backlog
 
 # NOTE: do NOT `include .env` here — it leaks SECRET_KEY into `make -p`/subprocesses.
 # Load locally with: set -a; source .env; set +a  (or direnv), then run make.
@@ -39,6 +39,14 @@ coverage:
 	python -m coverage run -m pytest tests/ -v --tb=short
 	python -m coverage report -m --fail-under=80
 	python -m coverage html
+
+locale-gate:
+	@echo "=== Running locale release quality gate ==="
+	python scripts/quality_gate.py $(ARGS)
+
+locale-backlog:
+	@echo "=== Building locale readiness backlog ==="
+	python scripts/locale_backlog.py $(ARGS)
 
 clean:
 	@echo "=== Cleaning build artifacts ==="

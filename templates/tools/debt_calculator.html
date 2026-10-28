@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all, tool_section_end%}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all, tool_section_end with context %}
 
 {% block head %}
 <style>
@@ -11,8 +11,41 @@
 </style>
 {% endblock %}
 
+{% set loc = locale | default('en', true) %}
+{% set cur_sym = '₹' if loc == 'hi' else ('€' if loc in ['es', 'fr', 'de'] else '$') %}
+{% set zero = ('0 ' ~ cur_sym) if loc in ['es', 'fr', 'de'] else (cur_sym ~ '0') %}
+{% if loc == 'de' %}
+  {% set d_extra = '100' %}
+  {% set defaults = [
+    {'name': tr('tool.debt.default_personal_loan', loc), 'bal': 8000, 'rate': 6.5, 'min': 200},
+    {'name': tr('tool.debt.default_credit_card', loc), 'bal': 2500, 'rate': 18, 'min': 100},
+    {'name': tr('tool.debt.default_car_loan', loc), 'bal': 12000, 'rate': 5.5, 'min': 300}
+  ] %}
+{% elif loc == 'es' %}
+  {% set d_extra = '100' %}
+  {% set defaults = [
+    {'name': tr('tool.debt.default_personal_loan', loc), 'bal': 6000, 'rate': 7.5, 'min': 180},
+    {'name': tr('tool.debt.default_credit_card', loc), 'bal': 2000, 'rate': 19, 'min': 80},
+    {'name': tr('tool.debt.default_car_loan', loc), 'bal': 10000, 'rate': 6, 'min': 250}
+  ] %}
+{% elif loc == 'fr' %}
+  {% set d_extra = '100' %}
+  {% set defaults = [
+    {'name': tr('tool.debt.default_personal_loan', loc), 'bal': 8000, 'rate': 5.5, 'min': 200},
+    {'name': tr('tool.debt.default_credit_card', loc), 'bal': 2000, 'rate': 18, 'min': 80},
+    {'name': tr('tool.debt.default_car_loan', loc), 'bal': 12000, 'rate': 4.5, 'min': 280}
+  ] %}
+{% else %}
+  {% set d_extra = '0' %}
+  {% set defaults = [
+    {'name': tr('tool.debt.default_credit_card', loc), 'bal': 5000, 'rate': 22, 'min': 150},
+    {'name': tr('tool.debt.default_car_loan', loc), 'bal': 15000, 'rate': 6, 'min': 350},
+    {'name': tr('tool.debt.default_student_loan', loc), 'bal': 12000, 'rate': 4.5, 'min': 200}
+  ] %}
+{% endif %}
+
 {% block content %}
-{{ tool_hero_section("shield", "Debt Freedom Tool", "DEBT PAYOFF", "CALCULATOR", "Compare Snowball vs Avalanche methods. See exactly when you'll be debt-free and how much interest you'll pay.") }}
+{{ tool_hero_section("shield", tr('tool.debt.badge', loc), "DEBT PAYOFF", "CALCULATOR", "Compare Snowball vs Avalanche methods. See exactly when you'll be debt-free and how much interest you'll pay.") }}
 
 <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
 
@@ -21,20 +54,20 @@
 
     <!-- Your Debts -->
     <div class="card-premium p-6">
-      <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("credit-card","w-4 h-4",16)|safe }} Your Debts</h2>
-      <p class="text-xs text-base-content/60 mb-4">List the debts you want to pay off.</p>
+      <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("credit-card","w-4 h-4",16)|safe }} {{ tr('tool.debt.your_debts', loc) }}</h2>
+      <p class="text-xs text-base-content/60 mb-4">{{ tr('tool.debt.list_hint', loc) }}</p>
       <div id="debtContainer" class="space-y-3"></div>
       <div class="flex gap-3 mt-4">
-        <button id="addDebtBtn" class="btn-action flex-1" style="background:var(--color-primary);color:var(--color-primary-content)">{{ lucide_icon("plus","w-3.5 h-3.5",14)|safe }} Add Debt</button>
-        <button id="resetDebtsBtn" class="btn-action" style="background:color-mix(in oklab,var(--color-error) 12%,transparent);color:var(--color-error)" aria-label="Reset all debts">{{ lucide_icon("refresh-cw","w-3.5 h-3.5",14)|safe }}</button>
+        <button id="addDebtBtn" class="btn-action flex-1" style="background:var(--color-primary);color:var(--color-primary-content)">{{ lucide_icon("plus","w-3.5 h-3.5",14)|safe }} {{ tr('tool.debt.add_debt', loc) }}</button>
+        <button id="resetDebtsBtn" class="btn-action" style="background:color-mix(in oklab,var(--color-error) 12%,transparent);color:var(--color-error)" aria-label="{{ tr('tool.debt.reset_all', loc) }}">{{ lucide_icon("refresh-cw","w-3.5 h-3.5",14)|safe }}</button>
       </div>
     </div>
 
     <!-- Extra Payment -->
     <div class="card-premium p-6">
-      <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("wallet","w-4 h-4",16)|safe }} Extra Payment</h2>
-      <p class="text-xs text-base-content/60 mb-4">Extra amount you can pay each month beyond minimums.</p>
-      <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="extraPayment">Extra per Month ($)</label><input aria-label="Extrapayment" type="number" id="extraPayment" class="input-cinematic w-full text-sm font-mono font-bold hide-spinner" value="0" min="0"></div>
+      <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("wallet","w-4 h-4",16)|safe }} {{ tr('tool.debt.extra_payment', loc) }}</h2>
+      <p class="text-xs text-base-content/60 mb-4">{{ tr('tool.debt.extra_hint', loc) }}</p>
+      <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="extraPayment">{{ tr('tool.debt.extra_per_month', loc) }} ({{ cur_sym }})</label><input aria-label="{{ tr('tool.debt.extra_per_month', loc) }}" type="number" id="extraPayment" class="input-cinematic w-full text-sm font-mono font-bold hide-spinner" value="{{ d_extra }}" min="0"></div>
     </div>
 
   </div>
@@ -44,31 +77,31 @@
 
     <!-- Payoff Summary -->
     <div class="card-premium p-6">
-      <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Payoff Summary</h2>
+      <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} {{ tr('tool.debt.payoff_summary', loc) }}</h2>
       <div class="grid grid-cols-2 gap-4">
-        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Interest</span><output id="resInterest" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-error)">$0</output></div>
-        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Debt-Free By</span><output id="resPayoff" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-success)">—</output></div>
-        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Min. Only Interest</span><output id="resMinInt" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-warning)">$0</output></div>
-        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Best Method</span><output id="resBest" class="metric-cinematic metric-cinematic--sm font-mono font-bold" style="color:var(--color-primary)">—</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">{{ tr('tool.debt.total_interest', loc) }}</span><output id="resInterest" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-error)">{{ zero }}</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">{{ tr('tool.debt.debt_free_by', loc) }}</span><output id="resPayoff" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-success)">—</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">{{ tr('tool.debt.min_only_interest', loc) }}</span><output id="resMinInt" class="metric-cinematic metric-cinematic--sm font-mono" style="color:var(--color-warning)">{{ zero }}</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">{{ tr('tool.debt.best_method', loc) }}</span><output id="resBest" class="metric-cinematic metric-cinematic--sm font-mono font-bold" style="color:var(--color-primary)">—</output></div>
       </div>
     </div>
 
     <!-- Method Comparison -->
     <div class="card-premium p-6">
-      <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("scale","w-4 h-4",16)|safe }} Method Comparison</h2>
+      <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("scale","w-4 h-4",16)|safe }} {{ tr('tool.debt.method_comparison', loc) }}</h2>
       <div class="grid grid-cols-2 gap-4">
         <div class="stat-cinematic text-center p-4" style="border-color:color-mix(in oklab,var(--color-primary) 20%,transparent)">
-          <span class="text-xs font-black flex items-center justify-center gap-1.5 mb-3" style="color:var(--color-primary)">{{ lucide_icon("snowflake","w-3 h-3",12)|safe }} Snowball</span>
+          <span class="text-xs font-black flex items-center justify-center gap-1.5 mb-3" style="color:var(--color-primary)">{{ lucide_icon("snowflake","w-3 h-3",12)|safe }} {{ tr('tool.debt.snowball', loc) }}</span>
           <div class="space-y-2">
-            <div><span class="text-[9px] font-bold text-base-content/40 block uppercase tracking-wider">Interest Paid</span><span class="text-sm font-mono font-bold" id="resSnowInt">$0</span></div>
-            <div><span class="text-[9px] font-bold text-base-content/40 block uppercase tracking-wider">Payoff Time</span><span class="text-sm font-mono font-bold" id="resSnowMonths">0 mo</span></div>
+            <div><span class="text-[9px] font-bold text-base-content/40 block uppercase tracking-wider">{{ tr('tool.debt.interest_paid', loc) }}</span><span class="text-sm font-mono font-bold" id="resSnowInt">{{ zero }}</span></div>
+            <div><span class="text-[9px] font-bold text-base-content/40 block uppercase tracking-wider">{{ tr('tool.debt.payoff_time', loc) }}</span><span class="text-sm font-mono font-bold" id="resSnowMonths">0 {{ tr('tool.common.month_short', loc) }}</span></div>
           </div>
         </div>
         <div class="stat-cinematic text-center p-4" style="border-color:color-mix(in oklab,var(--color-success) 20%,transparent)">
-          <span class="text-xs font-black flex items-center justify-center gap-1.5 mb-3" style="color:var(--color-success)">{{ lucide_icon("zap","w-3 h-3",12)|safe }} Avalanche</span>
+          <span class="text-xs font-black flex items-center justify-center gap-1.5 mb-3" style="color:var(--color-success)">{{ lucide_icon("zap","w-3 h-3",12)|safe }} {{ tr('tool.debt.avalanche', loc) }}</span>
           <div class="space-y-2">
-            <div><span class="text-[9px] font-bold text-base-content/40 block uppercase tracking-wider">Interest Paid</span><span class="text-sm font-mono font-bold" id="resAvaInt">$0</span></div>
-            <div><span class="text-[9px] font-bold text-base-content/40 block uppercase tracking-wider">Payoff Time</span><span class="text-sm font-mono font-bold" id="resAvaMonths">0 mo</span></div>
+            <div><span class="text-[9px] font-bold text-base-content/40 block uppercase tracking-wider">{{ tr('tool.debt.interest_paid', loc) }}</span><span class="text-sm font-mono font-bold" id="resAvaInt">{{ zero }}</span></div>
+            <div><span class="text-[9px] font-bold text-base-content/40 block uppercase tracking-wider">{{ tr('tool.debt.payoff_time', loc) }}</span><span class="text-sm font-mono font-bold" id="resAvaMonths">0 {{ tr('tool.common.month_short', loc) }}</span></div>
           </div>
         </div>
       </div>
@@ -88,17 +121,36 @@
 (function(){
   'use strict';
   const $ = id => document.getElementById(id);
-  const F = v => '$' + Math.round(v).toLocaleString('en-US');
-  const Fm = v => v === 1 ? '1 mo' : v + ' mo';
+  const INTL_LOCALE = {{ {'hi':'en-IN','es':'es-ES','fr':'fr-FR','de':'de-DE','en':'en-US'}[loc] | tojson }};
+  const CUR_SYM = {{ cur_sym | tojson }};
+  const T = {{ {
+    'name': tr('tool.debt.name', loc),
+    'balance': tr('tool.debt.balance', loc),
+    'rate': tr('tool.debt.rate', loc),
+    'min_payment': tr('tool.debt.min_payment', loc),
+    'remove': tr('tool.debt.remove', loc),
+    'snowball': tr('tool.debt.snowball', loc),
+    'avalanche': tr('tool.debt.avalanche', loc),
+    'same': tr('tool.debt.same', loc),
+    'months_short': tr('tool.common.month_short', loc)
+  } | tojson }};
+  const DEFAULTS = {{ defaults | tojson }};
+  const F = v => {
+    if(window.sbr && window.sbr.formatCurrency) return window.sbr.formatCurrency(v || 0, 0);
+    return CUR_SYM + Math.round(v || 0).toLocaleString(INTL_LOCALE);
+  };
+  const Fm = v => v + ' ' + T.months_short;
   let debtId = 0;
+
+  function escAttr(s){return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
   function debtRow(id, name, bal, rate, minP){
     return '<div class="debt-row rounded-xl p-3 border" style="border-color:color-mix(in oklab,var(--color-base-content) 8%,transparent)" data-id="' + id + '">' +
       '<div class="grid grid-cols-2 gap-2">' +
-      '<div class="col-span-2"><label class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="dn' + id + '">Name</label><input aria-label="Dn" type="text" id="dn' + id + '" class="input-cinematic w-full text-xs font-bold" value="' + name + '"></div>' +
-      '<div><label class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="db' + id + '">Balance ($)</label><input aria-label="Db" type="number" id="db' + id + '" class="input-cinematic w-full text-xs font-mono font-bold hide-spinner" value="' + bal + '" min="1"></div>' +
-      '<div><label class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="dr' + id + '">Rate (%)</label><input aria-label="Dr" type="number" id="dr' + id + '" class="input-cinematic w-full text-xs font-mono font-bold hide-spinner" value="' + rate + '" min="0" step="0.1"></div>' +
-      '<div class="col-span-2"><label class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="dm' + id + '">Min. Payment ($)</label><div class="flex gap-2"><input aria-label="Dm" type="number" id="dm' + id + '" class="input-cinematic flex-1 text-xs font-mono font-bold hide-spinner" value="' + minP + '" min="0"><button class="text-error font-bold text-xs px-1.5 py-1 rounded-lg hover:bg-error/10 transition-colors remove-debt-btn" data-rid="' + id + '" aria-label="Remove debt">✕</button></div></div>' +
+      '<div class="col-span-2"><label class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="dn' + id + '">' + T.name + '</label><input aria-label="' + T.name + '" type="text" id="dn' + id + '" class="input-cinematic w-full text-xs font-bold" value="' + escAttr(name) + '"></div>' +
+      '<div><label class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="db' + id + '">' + T.balance + ' (' + CUR_SYM + ')</label><input aria-label="' + T.balance + '" type="number" id="db' + id + '" class="input-cinematic w-full text-xs font-mono font-bold hide-spinner" value="' + bal + '" min="1"></div>' +
+      '<div><label class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="dr' + id + '">' + T.rate + ' (%)</label><input aria-label="' + T.rate + '" type="number" id="dr' + id + '" class="input-cinematic w-full text-xs font-mono font-bold hide-spinner" value="' + rate + '" min="0" step="0.1"></div>' +
+      '<div class="col-span-2"><label class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="dm' + id + '">' + T.min_payment + ' (' + CUR_SYM + ')</label><div class="flex gap-2"><input aria-label="' + T.min_payment + '" type="number" id="dm' + id + '" class="input-cinematic flex-1 text-xs font-mono font-bold hide-spinner" value="' + minP + '" min="0"><button class="text-error font-bold text-xs px-1.5 py-1 rounded-lg hover:bg-error/10 transition-colors remove-debt-btn" data-rid="' + id + '" aria-label="' + T.remove + '">✕</button></div></div>' +
       '</div></div>';
   }
 
@@ -148,19 +200,22 @@
     const debts = getDebts();
     const extra = parseFloat($('extraPayment').value) || 0;
     if(debts.length === 0){
-      $('resInterest').innerText = '$0'; $('resPayoff').innerText = '—'; $('resMinInt').innerText = '$0'; $('resBest').innerText = '—';
-      $('resSnowInt').innerText = '$0'; $('resSnowMonths').innerText = '0 mo'; $('resAvaInt').innerText = '$0'; $('resAvaMonths').innerText = '0 mo';
+      $('resInterest').innerText = F(0); $('resPayoff').innerText = '—'; $('resMinInt').innerText = F(0); $('resBest').innerText = '—';
+      $('resSnowInt').innerText = F(0); $('resSnowMonths').innerText = Fm(0); $('resAvaInt').innerText = F(0); $('resAvaMonths').innerText = Fm(0);
       return;
     }
     const min = simulate(debts, 0, null);
     const snow = simulate(debts, extra, (a, b) => a.bal - b.bal);
     const ava = simulate(debts, extra, (a, b) => b.rate - a.rate);
+    let best = T.same, bestInt = snow.totalInt, bestMonths = snow.months;
+    if(ava.totalInt < snow.totalInt - 0.01){ best = T.avalanche; bestInt = ava.totalInt; bestMonths = ava.months; }
+    else if(snow.totalInt < ava.totalInt - 0.01){ best = T.snowball; }
     $('resMinInt').innerText = F(min.totalInt);
-    $('resInterest').innerText = F(snow.totalInt);
-    const payoffMonth = new Date(); payoffMonth.setMonth(payoffMonth.getMonth() + snow.months);
-    $('resPayoff').innerText = payoffMonth.toLocaleDateString('en-US', {month:'short', year:'numeric'});
-    const savedInt = min.totalInt - snow.totalInt;
-    $('resBest').innerText = savedInt > 0 ? 'Snowball' : (ava.totalInt < snow.totalInt ? 'Avalanche' : 'Same');
+    $('resInterest').innerText = F(bestInt);
+    const payoffMonth = new Date(); payoffMonth.setMonth(payoffMonth.getMonth() + bestMonths);
+    try { $('resPayoff').innerText = payoffMonth.toLocaleDateString(INTL_LOCALE, {month:'short', year:'numeric'}); }
+    catch(e) { $('resPayoff').innerText = payoffMonth.toLocaleDateString('en-US', {month:'short', year:'numeric'}); }
+    $('resBest').innerText = best;
     $('resSnowInt').innerText = F(snow.totalInt); $('resSnowMonths').innerText = Fm(snow.months);
     $('resAvaInt').innerText = F(ava.totalInt); $('resAvaMonths').innerText = Fm(ava.months);
   }
@@ -183,9 +238,7 @@
   function resetDebts(){
     $('debtContainer').innerHTML = '';
     debtId = 0;
-    addDebt('Credit Card', 5000, 22, 150);
-    addDebt('Car Loan', 15000, 6, 350);
-    addDebt('Student Loan', 12000, 4.5, 200);
+    DEFAULTS.forEach(function(d){ addDebt(d.name, d.bal, d.rate, d.min); });
     calculate();
   }
 

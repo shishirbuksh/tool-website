@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all, tool_section_end%}
+{% from "components/tool_layout.html" import tool_hero_section, tool_seo_all, tool_section_end with context %}
 
 {% block head %}
 <style>
@@ -16,95 +16,103 @@
 </style>
 {% endblock %}
 {% block content %}
-{% set def_sym = "₹" if locale == "hi" else ("€" if locale in ("es", "fr", "de") else "$") %}
-{{ tool_hero_section("home", tr("nav.tools", locale) if tr("nav.tools", locale) != "nav.tools" else "Mortgage Calculator", "OVERPAYMENT", "CALCULATOR", seo.description if seo else "See exactly how much interest you save and how early you become debt-free. Compare scenarios, view your full amortization schedule, and find the best overpayment strategy.") }}
+{% set loc = locale | default('en', true) %}
+{% set def_sym = "₹" if loc == "hi" else ("€" if loc in ("es", "fr", "de") else "$") %}
+{% set zero = ('0 ' ~ def_sym) if loc in ('es', 'fr', 'de') else (def_sym ~ '0') %}
+{% if loc == 'de' %}
+  {% set d_balance, d_rate, d_term, d_extra = '300000', '4.0', '25', '200' %}
+{% elif loc == 'es' %}
+  {% set d_balance, d_rate, d_term, d_extra = '200000', '3.0', '25', '200' %}
+{% elif loc == 'fr' %}
+  {% set d_balance, d_rate, d_term, d_extra = '220000', '3.5', '25', '200' %}
+{% else %}
+  {% set d_balance, d_rate, d_term, d_extra = '250000', '4.5', '25', '200' %}
+{% endif %}
+{% set per_month = tr('tool.common.per_month', loc) %}
+{{ tool_hero_section("home", tr('tool.mortgage.badge', loc), "OVERPAYMENT", "CALCULATOR", seo.description if seo else "See exactly how much interest you save and how early you become debt-free. Compare scenarios, view your full amortization schedule, and find the best overpayment strategy.") }}
 
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 reveal" style="animation-delay:0.15s">
 
   <!-- ─── LEFT COLUMN: INPUTS ─── -->
   <div class="lg:col-span-5">
     <div class="card-premium p-6 md:p-8">
-      <h2 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} {{ seo.name if seo and seo.name else "Your Mortgage" }}</h2>
+      <h2 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} {{ tr('tool.mortgage.your_mortgage', loc) }}</h2>
 
       <!-- Currency selector -->
       <div class="mb-5 pb-5 border-b border-base-content/10">
-        <label class="label-cinematic font-semibold" for="currencySelect">Currency</label>
-        <select aria-label="Select currency" id="currencySelect" class="input input-visible w-full mt-1 rounded-xl">
-          <option value="USD" {% if locale not in ('hi', 'es', 'fr', 'de') %}selected{% endif %}>🇺🇸 USD — US Dollar</option>
-          <option value="EUR" {% if locale in ('es', 'fr', 'de') %}selected{% endif %}>🇪🇺 EUR — Euro</option>
-          <option value="GBP">🇬🇧 GBP — British Pound</option>
-          <option value="JPY">🇯🇵 JPY — Japanese Yen</option>
-          <option value="INR" {% if locale == 'hi' %}selected{% endif %}>🇮🇳 INR — Indian Rupee</option>
-          <option value="CAD">🇨🇦 CAD — Canadian Dollar</option>
-          <option value="AUD">🇦🇺 AUD — Australian Dollar</option>
-          <option value="CHF">🇨🇭 CHF — Swiss Franc</option>
-          <option value="CNY">🇨🇳 CNY — Chinese Yuan</option>
-          <option value="BRL">🇧🇷 BRL — Brazilian Real</option>
-          <option value="KRW">🇰🇷 KRW — South Korean Won</option>
-          <option value="SEK">🇸🇪 SEK — Swedish Krona</option>
-          <option value="NZD">🇳🇿 NZD — New Zealand Dollar</option>
-          <option value="SGD">🇸🇬 SGD — Singapore Dollar</option>
-          <option value="HKD">🇭🇰 HKD — Hong Kong Dollar</option>
-          <option value="ZAR">🇿🇦 ZAR — South African Rand</option>
+        <label class="label-cinematic font-semibold" for="currencySelect">{{ tr('tool.common.currency', loc) }}</label>
+        <select aria-label="{{ tr('tool.mortgage.select_currency', loc) }}" id="currencySelect" class="input input-visible w-full mt-1 rounded-xl">
+          {% set currency_flags = {'USD':'🇺🇸','EUR':'🇪🇺','GBP':'🇬🇧','JPY':'🇯🇵','INR':'🇮🇳','CAD':'🇨🇦','AUD':'🇦🇺','CHF':'🇨🇭','CNY':'🇨🇳','BRL':'🇧🇷','KRW':'🇰🇷','SEK':'🇸🇪','NZD':'🇳🇿','SGD':'🇸🇬','HKD':'🇭🇰','ZAR':'🇿🇦'} %}
+          {% if loc == 'hi' %}
+            {% set currency_order = ['INR','USD','EUR','GBP','JPY','CHF','CAD','AUD','CNY','BRL','KRW','SEK','NZD','SGD','HKD','ZAR'] %}
+          {% elif loc in ('es', 'fr', 'de') %}
+            {% set currency_order = ['EUR','CHF','USD','GBP','JPY','CAD','AUD','CNY','BRL','KRW','SEK','NZD','SGD','HKD','ZAR','INR'] %}
+          {% else %}
+            {% set currency_order = ['USD','EUR','GBP','JPY','CAD','AUD','CHF','INR','CNY','BRL','KRW','SEK','NZD','SGD','HKD','ZAR'] %}
+          {% endif %}
+          {% for code in currency_order %}
+          {% set is_default = (code == 'USD' and loc not in ('hi', 'es', 'fr', 'de')) or (code == 'EUR' and loc in ('es', 'fr', 'de')) or (code == 'INR' and loc == 'hi') %}
+          <option value="{{ code }}" {% if is_default %}selected{% endif %}>{{ currency_flags[code] }} {{ code }} — {{ tr('tool.currency.' ~ (code | lower), loc) }}</option>
+          {% endfor %}
         </select>
       </div>
 
       <div class="flex flex-col gap-4">
         <div>
-          <label class="label-cinematic font-semibold" for="loanBalance">Loan Balance</label>
+          <label class="label-cinematic font-semibold" for="loanBalance">{{ tr('tool.mortgage.loan_balance', loc) }}</label>
           <div class="relative mt-1">
             <span id="symLoan" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">{{ def_sym }}</span>
-            <input aria-label="Loan balance" type="number" id="loanBalance" class="input input-visible w-full pl-8 rounded-xl" value="250000" min="0" step="1000">
+            <input aria-label="{{ tr('tool.mortgage.loan_balance', loc) }}" type="number" id="loanBalance" class="input input-visible w-full pl-8 rounded-xl" value="{{ d_balance }}" min="0" step="1000">
           </div>
         </div>
         <div>
-          <label class="label-cinematic font-semibold" for="interestRate">Annual Interest Rate</label>
+          <label class="label-cinematic font-semibold" for="interestRate">{{ tr('tool.mortgage.annual_rate', loc) }}</label>
           <div class="relative mt-1">
-            <input aria-label="Annual interest rate" type="number" id="interestRate" class="input input-visible w-full rounded-xl" value="4.5" min="0" max="30" step="0.1">
+            <input aria-label="{{ tr('tool.mortgage.annual_rate', loc) }}" type="number" id="interestRate" class="input input-visible w-full rounded-xl" value="{{ d_rate }}" min="0" max="30" step="0.1">
             <span class="absolute inset-y-0 right-0 flex items-center pr-3 font-bold opacity-80" style="color:var(--color-base-content)">%</span>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="label-cinematic font-semibold" for="loanTerm">Term (years)</label>
-            <input aria-label="Loan term in years" type="number" id="loanTerm" class="input input-visible w-full mt-1 rounded-xl" value="25" min="1" max="50">
+            <label class="label-cinematic font-semibold" for="loanTerm">{{ tr('tool.mortgage.term_years', loc) }}</label>
+            <input aria-label="{{ tr('tool.mortgage.term_years', loc) }}" type="number" id="loanTerm" class="input input-visible w-full mt-1 rounded-xl" value="{{ d_term }}" min="1" max="50">
           </div>
           <div>
-            <label class="label-cinematic font-semibold" for="extraPayment">Extra Payment</label>
+            <label class="label-cinematic font-semibold" for="extraPayment">{{ tr('tool.mortgage.extra_payment', loc) }}</label>
             <div class="relative mt-1">
               <span id="symExtra" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">{{ def_sym }}</span>
-              <input aria-label="Extra monthly payment" type="number" id="extraPayment" class="input input-visible w-full pl-8 rounded-xl" value="200" min="0" step="50">
+              <input aria-label="{{ tr('tool.mortgage.extra_payment', loc) }}" type="number" id="extraPayment" class="input input-visible w-full pl-8 rounded-xl" value="{{ d_extra }}" min="0" step="50">
             </div>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="label-cinematic font-semibold" for="extraFreq">Pay Extra</label>
-            <select aria-label="Extra payment frequency" id="extraFreq" class="input input-visible w-full mt-1 rounded-xl">
-              <option value="monthly">Each Month</option>
-              <option value="yearly">Once a Year</option>
-              <option value="onetime">Just Once</option>
+            <label class="label-cinematic font-semibold" for="extraFreq">{{ tr('tool.mortgage.pay_extra', loc) }}</label>
+            <select aria-label="{{ tr('tool.mortgage.pay_extra', loc) }}" id="extraFreq" class="input input-visible w-full mt-1 rounded-xl">
+              <option value="monthly">{{ tr('tool.mortgage.each_month', loc) }}</option>
+              <option value="yearly">{{ tr('tool.mortgage.once_a_year', loc) }}</option>
+              <option value="onetime">{{ tr('tool.mortgage.just_once', loc) }}</option>
             </select>
           </div>
           <div>
-            <label class="label-cinematic font-semibold" for="lumpSum">Lump Sum (one-time)</label>
+            <label class="label-cinematic font-semibold" for="lumpSum">{{ tr('tool.mortgage.lump_sum', loc) }}</label>
             <div class="relative mt-1">
               <span id="symLump" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">{{ def_sym }}</span>
-              <input aria-label="One time lump sum payment" type="number" id="lumpSum" class="input input-visible w-full pl-8 rounded-xl" value="0" min="0" step="1000">
+              <input aria-label="{{ tr('tool.mortgage.lump_sum', loc) }}" type="number" id="lumpSum" class="input input-visible w-full pl-8 rounded-xl" value="0" min="0" step="1000">
             </div>
           </div>
         </div>
-        <button type="button" id="mortCalcBtn" class="btn w-full py-3.5 font-bold tracking-widest uppercase text-sm rounded-xl mt-2 text-white border-none" style="background:linear-gradient(135deg,var(--color-primary),var(--color-secondary));box-shadow:0 4px 15px color-mix(in oklab,var(--color-primary) 40%,transparent);transition:transform 0.15s,box-shadow 0.15s">>{{ lucide_icon("calculator","w-5 h-5", 20) | safe }} {{ tr("btn.calculate", locale) | upper }}</button>
+        <button type="button" id="mortCalcBtn" class="btn w-full py-3.5 font-bold tracking-widest uppercase text-sm rounded-xl mt-2 text-white border-none" style="background:linear-gradient(135deg,var(--color-primary),var(--color-secondary));box-shadow:0 4px 15px color-mix(in oklab,var(--color-primary) 40%,transparent);transition:transform 0.15s,box-shadow 0.15s">{{ lucide_icon("calculator","w-5 h-5", 20) | safe }} {{ tr("btn.calculate", loc) | upper }}</button>
       </div>
 
       <!-- ─── SCENARIO QUICK PICKS ─── -->
       <div class="mt-6 pt-6 border-t border-base-content/10">
-        <p class="label-cinematic font-semibold mb-3">Quick Scenario Picks</p>
+        <p class="label-cinematic font-semibold mb-3">{{ tr('tool.mortgage.quick_picks', loc) }}</p>
         <div class="flex flex-wrap gap-2" id="scenarioBtns">
-          <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-success);background-color:color-mix(in oklab,var(--color-success) 15%,transparent);color:var(--color-success)">+200/mo</button>
-          <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-primary);background-color:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary)">+500/mo</button>
-          <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-secondary);background-color:color-mix(in oklab,var(--color-secondary) 12%,transparent);color:var(--color-secondary)">+1,000/mo</button>
-          <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:#f97316;background-color:color-mix(in oklab,#f97316 12%,transparent);color:#f97316">+2,500/mo</button>
+          <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-success);background-color:color-mix(in oklab,var(--color-success) 15%,transparent);color:var(--color-success)">+200{{ per_month }}</button>
+          <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-primary);background-color:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary)">+500{{ per_month }}</button>
+          <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-secondary);background-color:color-mix(in oklab,var(--color-secondary) 12%,transparent);color:var(--color-secondary)">+1000{{ per_month }}</button>
+          <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:#f97316;background-color:color-mix(in oklab,#f97316 12%,transparent);color:#f97316">+2500{{ per_month }}</button>
         </div>
       </div>
     </div>
@@ -115,23 +123,23 @@
 
     <!-- ═══════ TOP-LEVEL METRICS ═══════ -->
     <div class="card-premium p-6 md:p-8">
-      <h3 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("gauge","w-5 h-5", 20) | safe }} Your Overpayment Impact</h3>
+      <h3 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("gauge","w-5 h-5", 20) | safe }} {{ tr('tool.mortgage.impact_title', loc) }}</h3>
       {% include "components/ymyl_disclaimer.html" %}
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="rounded-xl bg-base-content/5 p-4 text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Interest Saved</p>
-          <output id="resInterestSaved" class="text-2xl font-black text-success" aria-live="polite">$0</output>
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">{{ tr('tool.mortgage.interest_saved', loc) }}</p>
+          <output id="resInterestSaved" class="text-2xl font-black text-success" aria-live="polite">{{ zero }}</output>
         </div>
         <div class="rounded-xl bg-base-content/5 p-4 text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Years Early</p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">{{ tr('tool.mortgage.years_early', loc) }}</p>
           <output id="resYearsEarly" class="text-2xl font-black text-primary" aria-live="polite">0</output>
         </div>
         <div class="rounded-xl bg-base-content/5 p-4 text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Months Early</p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">{{ tr('tool.mortgage.months_early', loc) }}</p>
           <output id="resMonthsSaved" class="text-2xl font-black text-secondary" aria-live="polite">0</output>
         </div>
         <div class="rounded-xl bg-base-content/5 p-4 text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">New Payoff</p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">{{ tr('tool.mortgage.new_payoff', loc) }}</p>
           <output id="resPayoffDate" class="text-lg font-black font-mono" aria-live="polite">—</output>
         </div>
       </div>
@@ -139,22 +147,22 @@
       <!-- ─── SIDE-BY-SIDE COMPARISON BARS ─── -->
       <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="card-compare scenario-base rounded-xl bg-base-content/5 p-4">
-          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Without Overpayment</p>
-          <p class="text-lg font-black"><output id="resStdTotalCost" class="font-mono">$0</output></p>
-          <p class="text-xs text-base-content/40 mt-1">Total interest: <output id="resStdInterest" class="font-mono">$0</output></p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">{{ tr('tool.mortgage.without_overpayment', loc) }}</p>
+          <p class="text-lg font-black"><output id="resStdTotalCost" class="font-mono">{{ zero }}</output></p>
+          <p class="text-xs text-base-content/40 mt-1">{{ tr('tool.mortgage.total_interest', loc) }}: <output id="resStdInterest" class="font-mono">{{ zero }}</output></p>
         </div>
         <div class="card-compare scenario-current rounded-xl bg-primary/5 p-4">
-          <p class="text-xs font-semibold tracking-widest uppercase text-primary/70 mb-1">With Overpayment</p>
-          <p class="text-lg font-black"><output id="resNewTotalCost" class="font-mono">$0</output></p>
-          <p class="text-xs text-base-content/40 mt-1">Total interest: <output id="resNewInterest" class="font-mono">$0</output></p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-primary/70 mb-1">{{ tr('tool.mortgage.with_overpayment', loc) }}</p>
+          <p class="text-lg font-black"><output id="resNewTotalCost" class="font-mono">{{ zero }}</output></p>
+          <p class="text-xs text-base-content/40 mt-1">{{ tr('tool.mortgage.total_interest', loc) }}: <output id="resNewInterest" class="font-mono">{{ zero }}</output></p>
         </div>
       </div>
 
       <!-- ─── INTEREST SAVED BAR ─── -->
       <div class="mt-5">
         <div class="flex justify-between text-xs text-base-content/50 mb-1">
-          <span>Interest paid: <output id="resNewInterestBar" class="font-bold font-mono">$0</output></span>
-          <span>Interest saved: <output id="resSavedBar" class="font-bold font-mono text-success">$0</output></span>
+          <span>{{ tr('tool.mortgage.interest_paid', loc) }}: <output id="resNewInterestBar" class="font-bold font-mono">{{ zero }}</output></span>
+          <span>{{ tr('tool.mortgage.interest_saved_bar', loc) }}: <output id="resSavedBar" class="font-bold font-mono text-success">{{ zero }}</output></span>
         </div>
         <div class="w-full bg-base-content/10 rounded-full h-2 overflow-hidden">
           <div id="interestBarFill" class="bar-fill bg-success h-full rounded-full" style="width:0%"></div>
@@ -164,43 +172,43 @@
 
     <!-- ═══════ PAYMENT BREAKDOWN ═══════ -->
     <div class="card-premium p-6 md:p-8">
-      <h3 class="text-lg font-black mb-4 tracking-tight flex items-center gap-2">{{ lucide_icon("wallet","w-5 h-5", 20) | safe }} Monthly Payment</h3>
+      <h3 class="text-lg font-black mb-4 tracking-tight flex items-center gap-2">{{ lucide_icon("wallet","w-5 h-5", 20) | safe }} {{ tr('tool.mortgage.monthly_payment', loc) }}</h3>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Standard</p>
-          <p class="text-2xl font-black"><output id="resStdPayment" class="font-mono" aria-live="polite">$0</output></p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">{{ tr('tool.mortgage.standard', loc) }}</p>
+          <p class="text-2xl font-black"><output id="resStdPayment" class="font-mono" aria-live="polite">{{ zero }}</output></p>
         </div>
         <div class="text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-primary/70 mb-1">With Overpayment</p>
-          <p class="text-2xl font-black text-primary"><output id="resNewPayment" class="font-mono" aria-live="polite">$0</output></p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-primary/70 mb-1">{{ tr('tool.mortgage.with_overpayment', loc) }}</p>
+          <p class="text-2xl font-black text-primary"><output id="resNewPayment" class="font-mono" aria-live="polite">{{ zero }}</output></p>
         </div>
         <div class="text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-secondary/70 mb-1">Extra Per Month</p>
-          <p class="text-2xl font-black text-secondary"><output id="resExtraMo" class="font-mono" aria-live="polite">$0</output></p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-secondary/70 mb-1">{{ tr('tool.mortgage.extra_per_month', loc) }}</p>
+          <p class="text-2xl font-black text-secondary"><output id="resExtraMo" class="font-mono" aria-live="polite">{{ zero }}</output></p>
         </div>
       </div>
     </div>
 
     <!-- ═══════ AMORTIZATION SCHEDULE ═══════ -->
     <div class="card-premium p-6 md:p-8">
-      <h3 class="text-lg font-black mb-4 tracking-tight flex items-center gap-2">{{ lucide_icon("table-2","w-5 h-5", 20) | safe }} Amortization Schedule <span class="text-xs font-normal text-base-content/40 normal-case">(accelerated payoff)</span></h3>
+      <h3 class="text-lg font-black mb-4 tracking-tight flex items-center gap-2">{{ lucide_icon("table-2","w-5 h-5", 20) | safe }} {{ tr('tool.mortgage.amortization', loc) }} <span class="text-xs font-normal text-base-content/40 normal-case">{{ tr('tool.mortgage.accelerated', loc) }}</span></h3>
       <div class="overflow-x-auto -mx-2">
-        <table class="w-full text-sm" role="table" aria-label="Year by year amortization schedule with extra payments">
+        <table class="w-full text-sm" role="table" aria-label="{{ tr('tool.mortgage.amortization', loc) }}">
           <thead>
             <tr class="text-base-content/50 border-b border-base-content/10 text-xs font-bold tracking-wider uppercase">
-              <th class="text-left py-3 pr-2">Year</th>
-              <th class="text-right px-2 py-3">Start Balance</th>
-              <th class="text-right px-2 py-3">Payment</th>
-              <th class="text-right px-2 py-3">Extra/Year</th>
-              <th class="text-right px-2 py-3">Interest</th>
-              <th class="text-right px-2 py-3">Principal</th>
-              <th class="text-right pl-2 py-3">End Balance</th>
+              <th class="text-left py-3 pr-2">{{ tr('tool.common.year', loc) }}</th>
+              <th class="text-right px-2 py-3">{{ tr('tool.mortgage.start_balance', loc) }}</th>
+              <th class="text-right px-2 py-3">{{ tr('tool.mortgage.payment', loc) }}</th>
+              <th class="text-right px-2 py-3">{{ tr('tool.mortgage.extra_per_year', loc) }}</th>
+              <th class="text-right px-2 py-3">{{ tr('tool.mortgage.interest', loc) }}</th>
+              <th class="text-right px-2 py-3">{{ tr('tool.mortgage.principal', loc) }}</th>
+              <th class="text-right pl-2 py-3">{{ tr('tool.mortgage.end_balance', loc) }}</th>
             </tr>
           </thead>
           <tbody id="amortTableBody"></tbody>
         </table>
       </div>
-      <p class="text-xs text-base-content/30 text-center mt-4">Values rounded to nearest whole unit. Schedule shows accelerated payoff with extra payments applied.</p>
+      <p class="text-xs text-base-content/30 text-center mt-4">{{ tr('tool.mortgage.rounding_note', loc) }}</p>
     </div>
 
   </div>
@@ -209,25 +217,29 @@
 <script nonce="{{ nonce }}">
 (function(){'use strict';
 var activeScenario=null;
-var currentCurrency = {{ ('INR' if locale == 'hi' else ('EUR' if locale in ('es', 'fr', 'de') else 'USD')) | tojson }};
+var INTL_LOCALE = {{ {'hi':'en-IN','es':'es-ES','fr':'fr-FR','de':'de-DE','en':'en-US'}[loc] | tojson }};
+var T = {{ {
+  'per_month': tr('tool.common.per_month', loc)
+} | tojson }};
+var currentCurrency = {{ ('INR' if loc == 'hi' else ('EUR' if loc in ('es', 'fr', 'de') else 'USD')) | tojson }};
 
 var currencies={
-  USD:{sym:'$',loc:'en-US',scAmt:200},
-  EUR:{sym:'\u20AC',loc:'de-DE',scAmt:200},
-  GBP:{sym:'\u00A3',loc:'en-GB',scAmt:150},
-  JPY:{sym:'\u00A5',loc:'ja-JP',scAmt:20000},
-  INR:{sym:'\u20B9',loc:'en-IN',scAmt:15000},
-  CAD:{sym:'CA$',loc:'en-CA',scAmt:250},
-  AUD:{sym:'AU$',loc:'en-AU',scAmt:300},
-  CHF:{sym:'CHF ',loc:'de-CH',scAmt:200},
-  CNY:{sym:'\u00A5',loc:'zh-CN',scAmt:1500},
-  BRL:{sym:'R$',loc:'pt-BR',scAmt:1000},
-  KRW:{sym:'\u20A9',loc:'ko-KR',scAmt:250000},
-  SEK:{sym:'kr ',loc:'sv-SE',scAmt:2000},
-  NZD:{sym:'NZ$',loc:'en-NZ',scAmt:300},
-  SGD:{sym:'S$',loc:'en-SG',scAmt:300},
-  HKD:{sym:'HK$',loc:'en-HK',scAmt:1500},
-  ZAR:{sym:'R ',loc:'en-ZA',scAmt:3500}
+  USD:{sym:'$',scAmt:200},
+  EUR:{sym:'\u20AC',scAmt:200},
+  GBP:{sym:'\u00A3',scAmt:150},
+  JPY:{sym:'\u00A5',scAmt:20000},
+  INR:{sym:'\u20B9',scAmt:15000},
+  CAD:{sym:'CA$',scAmt:250},
+  AUD:{sym:'AU$',scAmt:300},
+  CHF:{sym:'CHF ',scAmt:200},
+  CNY:{sym:'\u00A5',scAmt:1500},
+  BRL:{sym:'R$',scAmt:1000},
+  KRW:{sym:'\u20A9',scAmt:250000},
+  SEK:{sym:'kr ',scAmt:2000},
+  NZD:{sym:'NZ$',scAmt:300},
+  SGD:{sym:'S$',scAmt:300},
+  HKD:{sym:'HK$',scAmt:1500},
+  ZAR:{sym:'R ',scAmt:3500}
 };
 var scenarioAmounts=[200,500,1000,2500];
 
@@ -235,11 +247,11 @@ function getCurr(){return currencies[currentCurrency]||currencies.USD;}
 
 function fmt(n){
   var c=getCurr();
-  try{return c.sym+Math.round(n).toLocaleString(c.loc);}catch(e){return c.sym+Math.round(n).toLocaleString();}
+  try{return new Intl.NumberFormat(INTL_LOCALE,{style:'currency',currency:currentCurrency,maximumFractionDigits:0}).format(Math.round(n));}catch(e){return c.sym+Math.round(n).toLocaleString(INTL_LOCALE);}
 }
 function fmt2(n){
   var c=getCurr();
-  try{return c.sym+n.toLocaleString(c.loc,{minimumFractionDigits:2,maximumFractionDigits:2});}catch(e){return c.sym+n.toFixed(2);}
+  try{return new Intl.NumberFormat(INTL_LOCALE,{style:'currency',currency:currentCurrency,minimumFractionDigits:2,maximumFractionDigits:2}).format(n);}catch(e){return c.sym+n.toFixed(2);}
 }
 
 function setCurrency(curr){
@@ -247,18 +259,17 @@ function setCurrency(curr){
   var c=currencies[curr]||currencies.USD;
   document.querySelectorAll('#symLoan,#symExtra,#symLump').forEach(function(el){el.textContent=c.sym;});
   document.querySelectorAll('[id^=res]').forEach(function(el){
-    if(el.id!=='resYearsEarly'&&el.id!=='resMonthsSaved'&&el.id!=='resPayoffDate'){el.textContent=c.sym+'0';}
+    if(el.id!=='resYearsEarly'&&el.id!=='resMonthsSaved'&&el.id!=='resPayoffDate'){el.textContent=fmt(0);}
   });
   updateScenarioLabels();
   render();
 }
 
 function updateScenarioLabels(){
-  var c=getCurr();
   document.querySelectorAll('#scenarioBtns button').forEach(function(btn,i){
     if(i<scenarioAmounts.length){
       var amt=scenarioAmounts[i];
-      try{btn.textContent='+'+amt.toLocaleString(c.loc)+'/mo';}catch(e){btn.textContent='+'+amt+'/mo';}
+      try{btn.textContent='+'+amt.toLocaleString(INTL_LOCALE)+T.per_month;}catch(e){btn.textContent='+'+amt+T.per_month;}
     }
   });
 }
@@ -330,8 +341,8 @@ function render(){
 
   var today=new Date();
   var payoff=new Date(today.getFullYear(),today.getMonth()+n-mEarly,today.getDate());
-  var mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  document.getElementById('resPayoffDate').innerText=mo[payoff.getMonth()]+' '+payoff.getFullYear();
+  try{document.getElementById('resPayoffDate').innerText=payoff.toLocaleDateString(INTL_LOCALE,{month:'short',year:'numeric'});}
+  catch(e){document.getElementById('resPayoffDate').innerText=payoff.getMonth()+1+'/'+payoff.getFullYear();}
 
   var pct=res.totalIntStd>0?(res.intSaved/res.totalIntStd)*100:0;
   document.getElementById('resNewInterestBar').innerText=fmt(res.totalIntNew);
@@ -350,7 +361,7 @@ function render(){
       '<td class="text-right px-2 py-2.5 font-mono text-sm">'+(s.ex>0?fmt(s.ex):'<span class="text-base-content/20">\u2014</span>')+'</td>'+
       '<td class="text-right px-2 py-2.5 font-mono text-sm text-error/70">'+fmt(s.i)+'</td>'+
       '<td class="text-right px-2 py-2.5 font-mono text-sm text-success/70">'+fmt(s.p)+'</td>'+
-      '<td class="text-right pl-2 py-2.5 font-mono text-sm font-bold">'+(s.e>0?fmt(s.e):'<span class="text-success">'+getCurr().sym+'0</span>')+'</td>';
+      '<td class="text-right pl-2 py-2.5 font-mono text-sm font-bold">'+(s.e>0?fmt(s.e):'<span class="text-success">'+fmt(0)+'</span>')+'</td>';
     tb.appendChild(tr);
   }
 }
@@ -360,6 +371,7 @@ document.addEventListener('DOMContentLoaded',function(){
   if(initCurr && initCurr !== 'USD'){
     setCurrency(initCurr);
   } else {
+    updateScenarioLabels();
     render();
   }
   document.getElementById('mortCalcBtn').addEventListener('click',render);
