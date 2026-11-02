@@ -46,6 +46,9 @@ class TestSitemapService:
         svc = SitemapService(settings)
         result = svc.build_robots_txt()
         assert "Disallow: /api/" in result
+        assert "Allow: /static/" in result
+        assert "Allow: /*.css*" in result
+        assert "Allow: /*.js*" in result
 
     def test_build_llms_txt_returns_string(self, settings):
         svc = SitemapService(settings)
