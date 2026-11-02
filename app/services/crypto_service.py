@@ -3,9 +3,13 @@
 import asyncio
 import concurrent.futures
 import contextlib
+import copy
+import json
 import logging
+import math
 import re
-from datetime import timedelta
+import threading
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app.core.cache import get_cache
@@ -20,6 +24,279 @@ logger = get_logger(__name__)
 # Must match the route-level pattern in app/api/routes/tools_crypto.py
 # (digits are legitimate: e.g. 1000SATS-style symbols).
 _SYMBOL_RE = re.compile(r"^[A-Z0-9]{2,10}-[A-Z0-9]{2,10}$")
+
+_SPOT_CACHE_KEY = "cache:crypto:spot_rates"
+_SPOT_CACHE_TTL = 60
+
+# CoinGecko id -> display symbol. Keep the list small and stable so the
+# endpoint is predictable and cacheable.
+_SPOT_COINS: dict[str, str] = {
+    "bitcoin": "BTC",
+    "ethereum": "ETH",
+    "solana": "SOL",
+    "binancecoin": "BNB",
+    "ripple": "XRP",
+    "dogecoin": "DOGE",
+    "cardano": "ADA",
+}
+_SPOT_BINANCE_PAIRS: dict[str, str] = {
+    "BTC": "BTCUSDT",
+    "ETH": "ETHUSDT",
+    "SOL": "SOLUSDT",
+    "BNB": "BNBUSDT",
+    "XRP": "XRPUSDT",
+    "DOGE": "DOGEUSDT",
+    "ADA": "ADAUSDT",
+}
+_SPOT_CRYPTO_FIATS = ("usd", "eur", "inr", "gbp", "cad", "aud")
+_SPOT_FX_CODES = ("EUR", "GBP", "JPY", "CNY", "INR", "KRW", "CAD", "AUD", "CHF", "SGD", "BRL", "MXN")
+
+_SPOT_LAST_GOOD: dict[str, Any] | None = None
+_SPOT_LAST_GOOD_LOCK = threading.Lock()
+_SPOT_LOCKS: dict[int, asyncio.Lock] = {}
+_SPOT_LOCKS_LOCK = threading.Lock()
+
+
+def _get_spot_lock() -> asyncio.Lock:
+    """Return an asyncio lock scoped to the current event loop."""
+    loop_id = id(asyncio.get_running_loop())
+    with _SPOT_LOCKS_LOCK:
+        lock = _SPOT_LOCKS.get(loop_id)
+        if lock is None:
+            lock = asyncio.Lock()
+            _SPOT_LOCKS[loop_id] = lock
+            if len(_SPOT_LOCKS) > 8:
+                _SPOT_LOCKS.pop(next(iter(_SPOT_LOCKS)), None)
+        return lock
+
+
+def _iso_utc(moment: datetime | None = None) -> str:
+    value = moment or datetime.now(UTC)
+    return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _positive_float(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number) or number <= 0:
+        return None
+    return number
+
+
+def _age_seconds(timestamp: str | None) -> int:
+    if not timestamp:
+        return 0
+    try:
+        parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=UTC)
+        return max(0, int((datetime.now(UTC) - parsed.astimezone(UTC)).total_seconds()))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _http_get_json(url: str, *, params: dict[str, Any] | None = None, timeout: float = 6.0) -> Any:
+    """Small testable HTTP helper. Raises on non-2xx responses."""
+    import requests  # noqa: PLC0415
+
+    response = requests.get(
+        url,
+        params=params,
+        timeout=timeout,
+        headers={"User-Agent": "StoryBrainAI/1.0 (+https://www.storybrainai.com)"},
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def _fetch_fiat_cross_sync() -> dict[str, Any] | None:
+    """Fetch ECB reference rates via Frankfurter. Returns None on failure."""
+    payload = _http_get_json(
+        "https://api.frankfurter.app/latest",
+        params={"from": "USD", "to": ",".join(_SPOT_FX_CODES)},
+        timeout=5.0,
+    )
+    if not isinstance(payload, dict):
+        return None
+    cross: dict[str, float] = {"USD": 1.0}
+    raw_rates = payload.get("rates")
+    if isinstance(raw_rates, dict):
+        allowed = set(_SPOT_FX_CODES)
+        for code, value in raw_rates.items():
+            code_upper = str(code).upper()
+            number = _positive_float(value)
+            if code_upper in allowed and number is not None:
+                cross[code_upper] = number
+    if len(cross) < 2:
+        return None
+    source_date = payload.get("date")
+    return {
+        "rates": cross,
+        "source": "frankfurter_ecb",
+        "source_label": "ECB reference rates via Frankfurter",
+        "date": str(source_date) if source_date else None,
+        "timestamp": f"{source_date}T00:00:00Z" if source_date else None,
+    }
+
+
+def _fetch_coingecko_sync() -> dict[str, Any] | None:
+    payload = _http_get_json(
+        "https://api.coingecko.com/api/v3/simple/price",
+        params={
+            "ids": ",".join(_SPOT_COINS),
+            "vs_currencies": ",".join(_SPOT_CRYPTO_FIATS),
+            "include_last_updated_at": "true",
+        },
+        timeout=6.0,
+    )
+    if not isinstance(payload, dict):
+        return None
+
+    rates: dict[str, dict[str, float]] = {}
+    latest_epoch = 0
+    for coin_id, symbol in _SPOT_COINS.items():
+        entry = payload.get(coin_id)
+        if not isinstance(entry, dict):
+            continue
+        row: dict[str, float] = {}
+        for currency in _SPOT_CRYPTO_FIATS:
+            number = _positive_float(entry.get(currency))
+            if number is not None:
+                row[currency.upper()] = number
+        if "USD" not in row:
+            continue
+        rates[symbol] = row
+        with contextlib.suppress(TypeError, ValueError):
+            latest_epoch = max(latest_epoch, int(entry.get("last_updated_at") or 0))
+    if not rates:
+        return None
+    timestamp = _iso_utc(datetime.fromtimestamp(latest_epoch, tz=UTC)) if latest_epoch > 0 else _iso_utc()
+    return {
+        "rates": rates,
+        "source": "coingecko",
+        "source_label": "CoinGecko public API",
+        "timestamp": timestamp,
+        "partial": len(rates) < len(_SPOT_COINS),
+    }
+
+
+def _fetch_binance_sync(fiat_cross: dict[str, float]) -> dict[str, Any] | None:
+    payload = _http_get_json(
+        "https://api.binance.com/api/v3/ticker/price",
+        params={"symbols": json.dumps(list(_SPOT_BINANCE_PAIRS.values()), separators=(",", ":"))},
+        timeout=6.0,
+    )
+    if not isinstance(payload, list):
+        return None
+    raw = {
+        str(item.get("symbol")): item.get("price")
+        for item in payload
+        if isinstance(item, dict) and item.get("symbol")
+    }
+    rates: dict[str, dict[str, float]] = {}
+    for symbol, pair in _SPOT_BINANCE_PAIRS.items():
+        usd_price = _positive_float(raw.get(pair))
+        if usd_price is None:
+            continue
+        row = {"USD": usd_price}
+        for code, multiplier in fiat_cross.items():
+            if code == "USD":
+                continue
+            converted = _positive_float(usd_price * multiplier)
+            if converted is not None:
+                row[code] = converted
+        rates[symbol] = row
+    if not rates:
+        return None
+    return {
+        "rates": rates,
+        "source": "binance",
+        "source_label": "Binance public ticker (USDT pairs)",
+        "timestamp": _iso_utc(),
+        "partial": len(rates) < len(_SPOT_BINANCE_PAIRS),
+    }
+
+
+def _fetch_spot_rates_sync() -> dict[str, Any]:
+    """Fetch reference rates from public APIs. Never invents fallback prices."""
+    fiat_cross: dict[str, float] = {"USD": 1.0}
+    fiat_meta: dict[str, Any] | None = None
+    fiat_error: str | None = None
+    try:
+        fiat_meta = _fetch_fiat_cross_sync()
+    except Exception as exc:  # noqa: BLE001 - upstream failures are expected
+        fiat_error = type(exc).__name__
+        logger.warning("Frankfurter/ECB reference-rate fetch failed: %s", exc)
+    if fiat_meta:
+        fiat_cross = dict(fiat_meta["rates"])
+    elif fiat_error:
+        logger.info("Proceeding without ECB fiat cross-rates (%s)", fiat_error)
+
+    crypto_meta: dict[str, Any] | None = None
+    errors: list[str] = []
+    try:
+        crypto_meta = _fetch_coingecko_sync()
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"coingecko:{type(exc).__name__}")
+        logger.warning("CoinGecko spot-rate fetch failed: %s", exc)
+
+    if crypto_meta is None:
+        try:
+            crypto_meta = _fetch_binance_sync(fiat_cross)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"binance:{type(exc).__name__}")
+            logger.warning("Binance spot-rate fallback failed: %s", exc)
+
+    if crypto_meta is None:
+        return {
+            "status": "unavailable",
+            "source": None,
+            "source_label": "No live source available",
+            "timestamp": _iso_utc(),
+            "timestamp_epoch": int(datetime.now(UTC).timestamp()),
+            "rates": {},
+            "fiat_cross": fiat_cross,
+            "fiat_source": fiat_meta["source"] if fiat_meta else None,
+            "fiat_source_label": fiat_meta["source_label"] if fiat_meta else None,
+            "fiat_date": fiat_meta.get("date") if fiat_meta else None,
+            "fiat_timestamp": fiat_meta.get("timestamp") if fiat_meta else None,
+            "partial": True,
+            "cache_hit": False,
+            "age_seconds": 0,
+            "note": "Live crypto and fiat feeds could not be reached. Use manual rate mode; no estimated prices are substituted.",
+            "errors": errors,
+        }
+
+    has_fiat_cross = len(fiat_cross) > 1
+    partial = bool(crypto_meta.get("partial")) or not has_fiat_cross
+    notes: list[str] = []
+    if not has_fiat_cross:
+        notes.append("ECB fiat cross-rates are unavailable; fiat-to-fiat conversions are disabled.")
+    if crypto_meta.get("partial"):
+        notes.append("Some tracked assets are missing from the upstream response.")
+    if errors:
+        notes.append("A primary data source failed and a fallback was used.")
+
+    return {
+        "status": "live",
+        "source": crypto_meta["source"],
+        "source_label": crypto_meta["source_label"],
+        "timestamp": crypto_meta["timestamp"],
+        "timestamp_epoch": int(datetime.now(UTC).timestamp()),
+        "rates": crypto_meta["rates"],
+        "fiat_cross": fiat_cross,
+        "fiat_source": fiat_meta["source"] if fiat_meta else None,
+        "fiat_source_label": fiat_meta["source_label"] if fiat_meta else None,
+        "fiat_date": fiat_meta.get("date") if fiat_meta else None,
+        "fiat_timestamp": fiat_meta.get("timestamp") if fiat_meta else None,
+        "partial": partial,
+        "cache_hit": False,
+        "age_seconds": _age_seconds(crypto_meta["timestamp"]),
+        "note": " ".join(notes) if notes else None,
+        "errors": errors,
+    }
 
 _prophet_semaphores: dict[int, asyncio.Semaphore] = {}
 _prophet_sem_lock = __import__("threading").Lock()
@@ -451,3 +728,89 @@ class CryptoService:
             "history": history,
             "predictions": future_data,
         }
+
+    async def get_spot_rates(self) -> dict[str, Any]:
+        """Return cached reference rates with truthful live/stale/unavailable states.
+
+        Design rules:
+        - Never fabricate a price when upstream feeds fail.
+        - CoinGecko is primary; Binance is a fallback for USD/USDT quotes only
+          when real ECB fiat cross-rates are available.
+        - Stale responses reuse a previously verified payload and are labelled.
+        """
+        cache = get_cache()
+        cached = await cache.async_get(_SPOT_CACHE_KEY)
+        if isinstance(cached, dict) and cached.get("status") in {"live", "stale"} and cached.get("rates"):
+            result = copy.deepcopy(cached)
+            result["cache_hit"] = True
+            result["age_seconds"] = _age_seconds(result.get("timestamp"))
+            return result
+
+        async with _get_spot_lock():
+            # Another request may have populated the cache while we waited.
+            cached = await cache.async_get(_SPOT_CACHE_KEY)
+            if isinstance(cached, dict) and cached.get("status") in {"live", "stale"} and cached.get("rates"):
+                result = copy.deepcopy(cached)
+                result["cache_hit"] = True
+                result["age_seconds"] = _age_seconds(result.get("timestamp"))
+                return result
+
+            try:
+                result = await asyncio.wait_for(asyncio.to_thread(_fetch_spot_rates_sync), timeout=20)
+            except TimeoutError:
+                logger.warning("Spot-rate fetch timed out after 20s")
+                result = {
+                    "status": "unavailable",
+                    "source": None,
+                    "source_label": "No live source available",
+                    "timestamp": _iso_utc(),
+                    "rates": {},
+                    "fiat_cross": {"USD": 1.0},
+                    "fiat_source": None,
+                    "fiat_source_label": None,
+                    "partial": True,
+                    "cache_hit": False,
+                    "age_seconds": 0,
+                    "note": "The reference-rate request timed out. Use manual rate mode.",
+                }
+            except Exception:
+                logger.exception("Unexpected spot-rate fetch failure")
+                result = {
+                    "status": "unavailable",
+                    "source": None,
+                    "source_label": "No live source available",
+                    "timestamp": _iso_utc(),
+                    "rates": {},
+                    "fiat_cross": {"USD": 1.0},
+                    "fiat_source": None,
+                    "fiat_source_label": None,
+                    "partial": True,
+                    "cache_hit": False,
+                    "age_seconds": 0,
+                    "note": "The reference-rate request failed. Use manual rate mode.",
+                }
+
+            result["cache_hit"] = False
+
+            if result.get("status") == "live" and result.get("rates"):
+                result["age_seconds"] = _age_seconds(result.get("timestamp"))
+                with _SPOT_LAST_GOOD_LOCK:
+                    global _SPOT_LAST_GOOD
+                    _SPOT_LAST_GOOD = copy.deepcopy(result)
+            elif result.get("status") == "unavailable":
+                with _SPOT_LAST_GOOD_LOCK:
+                    last_good = copy.deepcopy(_SPOT_LAST_GOOD)
+                if last_good and last_good.get("rates"):
+                    last_good["status"] = "stale"
+                    last_good["cache_hit"] = False
+                    last_good["age_seconds"] = _age_seconds(last_good.get("timestamp"))
+                    last_good["note"] = (
+                        "Live feeds could not be reached. Showing the last verified reference rates; "
+                        "they may be outdated and are not a trading quote."
+                    )
+                    result = last_good
+
+            ttl = _SPOT_CACHE_TTL if result.get("status") == "live" else (30 if result.get("status") == "stale" else 15)
+            await cache.async_set(_SPOT_CACHE_KEY, result, ttl=ttl)
+            return result
+

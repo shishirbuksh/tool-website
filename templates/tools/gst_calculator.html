@@ -57,11 +57,6 @@
 .gc-hist-item .hdel{width:20px;height:20px;border-radius:50%;border:none;background:transparent;color:var(--color-base-content);opacity:.2;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;touch-action:manipulation;flex-shrink:0;font-size:10px}
 .gc-hist-item .hdel:hover{opacity:1;background:color-mix(in oklab,var(--color-error) 15%,transparent);color:var(--color-error)}
 .gc-empty{text-align:center;padding:24px 16px;font-size:11px;font-weight:600;opacity:.3}
-.gc-cur{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
-.gc-cur-item{padding:6px 8px;border-radius:.5rem;background:var(--color-base-100);border:1px solid var(--color-base-300);text-align:center;transition:border-color .12s}
-.gc-cur-item:hover{border-color:color-mix(in oklab,var(--color-primary) 20%,transparent)}
-.gc-cur-item .cl{font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.35;margin-bottom:1px}
-.gc-cur-item .cv{font-size:11px;font-weight:800;font-family:monospace}
 .gc-itc{background:var(--color-base-100);border-radius:1rem;padding:12px;border:1px solid var(--color-base-300)}
 .gc-itc .itc-row{display:grid;grid-template-columns:auto 1fr;gap:6px;margin-bottom:5px;align-items:center;font-size:10px;font-weight:600}
 .gc-itc .itc-row select{font-size:10px;padding:.25rem .4rem;border-radius:6px;border:2px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);font-weight:600;font-family:inherit}
@@ -79,34 +74,51 @@
 {% endblock %}
 {% set cur_sym = '₹' if locale == 'hi' else ('€' if locale in ('es', 'fr', 'de') else '$') %}
 {% block content %}
-{{ tool_hero_section("receipt", tr("nav.tools", locale) if tr("nav.tools", locale) != "nav.tools" else "Calculator", "GST", "CALCULATOR", seo.description if seo else "Calculate GST with all slabs, currency conversion, slab info, invoice preview & ITC check.") }}
+{{ tool_hero_section("receipt", tr("nav.tools", locale) if tr("nav.tools", locale) != "nav.tools" else "Calculator", "GST", "CALCULATOR", seo.description if seo else "Calculate Indian GST in INR with inclusive/exclusive modes, CGST/SGST or IGST split, and invoice itemization.") }}
 <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="gc-card">
       <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("calculator","w-4 h-4",16) | safe }} {{ seo.name if seo and seo.name else "GST Calculator" }}</h2>
       <div class="mb-3"><label class="gc-label" for="gcAmount">{{ tr("tool.gst.amount_label", locale) }} ({{ cur_sym }})</label><input type="text" id="gcAmount" class="gc-input" value="1000" inputmode="decimal" autocomplete="off"></div>
       <div class="mb-3"><span class="gc-label">{{ tr("tool.gst.mode", locale) }}</span><div class="gc-mode" id="gcMode" role="radiogroup" aria-label="GST calculation mode"><button type="button" class="on" data-mode="exclusive" role="radio" aria-checked="true">{{ tr("tool.gst.exclusive", locale) }}</button><button type="button" data-mode="inclusive" role="radio" aria-checked="false">{{ tr("tool.gst.inclusive", locale) }}</button></div></div>
-      <div class="mb-3"><span class="gc-label">{{ tr("tool.gst.slab", locale) }}</span><div class="gc-slab-grid" id="gcSlabs"><button type="button" data-rate="0" class="">0%</button><button type="button" data-rate="3" class="">3%</button><button type="button" data-rate="5" class="">5%</button><button type="button" data-rate="12" class="">12%</button><button type="button" data-rate="18" class="on">18%</button><button type="button" data-rate="28" class="">28%</button><button type="button" class="custom" data-rate="custom">Custom</button></div></div>
+      <div class="mb-3"><span class="gc-label">{{ tr("tool.gst.slab", locale) }}</span><div class="gc-slab-grid" id="gcSlabs"><button type="button" data-rate="0" class="">0%</button><button type="button" data-rate="0.25" class="">0.25%</button><button type="button" data-rate="3" class="">3%</button><button type="button" data-rate="5" class="">5%</button><button type="button" data-rate="18" class="on">18%</button><button type="button" data-rate="40" class="">40%</button><button type="button" class="custom" data-rate="custom">Custom</button></div></div>
       <div id="gcSlabInfo" class="mb-3" style="display:none;font-size:9px;font-weight:600;opacity:.55;padding:6px 10px;background:var(--color-base-100);border-radius:.65rem;border:1px solid var(--color-base-300);line-height:1.5"></div>
-      <div id="gcCustomWrap" class="mb-3" hidden><label class="gc-label" for="gcCustomRate">{{ tr("tool.gst.custom_rate", locale) }}</label><input type="number" id="gcCustomRate" class="gc-input" value="" placeholder="{{ tr('tool.gst.custom_placeholder', locale) }}" step="0.1" min="0"></div>
+      <div id="gcCustomWrap" class="mb-3" hidden><label class="gc-label" for="gcCustomRate">{{ tr("tool.gst.custom_rate", locale) }}</label><input type="number" id="gcCustomRate" class="gc-input" value="" placeholder="{{ tr('tool.gst.custom_placeholder', locale) }}" step="any" min="0" max="100"></div>
       <div class="mb-3"><label class="gc-label">{{ tr("tool.gst.trans_type", locale) }}</label><div class="gc-mode" id="gcTrans" role="radiogroup" aria-label="Transaction type"><button type="button" class="on" data-trans="intra" role="radio" aria-checked="true">{{ tr("tool.gst.trans_intra", locale) }}</button><button type="button" data-trans="inter" role="radio" aria-checked="false">{{ tr("tool.gst.trans_inter", locale) }}</button></div></div>
       {% include "components/ymyl_disclaimer.html" %}
       <div class="gc-result-grid mb-3" id="gcResults"><div class="gc-result-card"><div class="rcl">{{ tr("tool.gst.base_amount", locale) }}</div><div class="rcv" id="gcBase">{{ cur_sym }}1,000.00</div></div><div class="gc-result-card"><div class="rcl">{{ tr("tool.gst.total_gst", locale) }}</div><div class="rcv gst" id="gcGst">{{ cur_sym }}180.00</div></div><div class="gc-result-card" style="grid-column:1/-1"><div class="rcl">{{ tr("tool.gst.total_amount", locale) }}</div><div class="rcv" id="gcTotal" style="font-size:24px">{{ cur_sym }}1,180.00</div></div><div class="gc-result-card" id="gcCgst"><div class="rcl">CGST (9%)</div><div class="rcv" id="gcCgstVal">{{ cur_sym }}90.00</div></div><div class="gc-result-card" id="gcSgst"><div class="rcl">SGST (9%)</div><div class="rcv" id="gcSgstVal">{{ cur_sym }}90.00</div></div><div class="gc-result-card" id="gcIgst" hidden><div class="rcl">IGST (18%)</div><div class="rcv" id="gcIgstVal">{{ cur_sym }}180.00</div></div></div>
       <div class="gc-words" id="gcWords">One Thousand One Hundred and Eighty Rupees Only.</div>
-      <div class="gc-cur mt-3" id="gcCurrency"></div>
       <div class="flex items-center gap-2 mt-3">
         <button type="button" id="gcBatchTog" class="gc-toggle" aria-expanded="false" aria-controls="gcBatchWrap">{{ lucide_icon("grid","w-3 h-3",12) | safe }} {{ tr("tool.gst.all_slabs", locale) }}</button>
         <button type="button" id="gcCopyBtn" class="gc-sec" aria-label="Copy result">{{ lucide_icon("copy","w-3 h-3",12) | safe }} {{ tr("btn.copy", locale) }}</button>
         <button type="button" id="gcDlBtn" class="gc-sec" aria-label="Download as text">{{ lucide_icon("download","w-3 h-3",12) | safe }} .txt</button>
       </div>
       <div id="gcBatchWrap" hidden class="mt-3"><div class="gc-batch" id="gcBatch"></div></div>
+
+      <div class="mt-4 p-3.5 rounded-xl border border-base-content/10 bg-base-content/[0.02] text-xs text-base-content/70 leading-relaxed space-y-2">
+        <div class="flex items-center gap-2 font-bold text-base-content text-[11px] uppercase tracking-wider">
+          {{ lucide_icon("shield-alert", "w-3.5 h-3.5 text-warning", 14) | safe }}
+          GST Rate &amp; Calculation Notice
+        </div>
+        <p>
+          The main Indian GST rate schedule effective 22 September 2025 is 0% (exempt), 5% (merit), 18% (standard) and 40% (de-merit), with special rates of 0.25% for rough diamonds and 3% for gold, silver and precious metals. Some goods may still attract cess or specific treatment. The applicable rate depends on the HSN/SAC classification and current notifications; this tool provides educational estimates, not tax advice or a filing determination.
+        </p>
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-base-content/10 text-[10px] text-base-content/50">
+          <span>Reviewed: <strong class="text-base-content/80">2 November 2026</strong></span>
+          <div class="flex items-center gap-2.5">
+            <a href="https://gstcouncil.gov.in/sites/default/files/2025-09/press_release_press_information_bureau_0.pdf" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline font-semibold inline-flex items-center gap-0.5">GST Council release {{ lucide_icon("external-link", "w-2.5 h-2.5", 10) | safe }}</a>
+            <span class="text-base-content/20">•</span>
+            <a href="https://www.cbic-gst.gov.in" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline font-semibold inline-flex items-center gap-0.5">CBIC Portal {{ lucide_icon("external-link", "w-2.5 h-2.5", 10) | safe }}</a>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="gc-card mt-6">
       <div class="flex items-center justify-between mb-3">
-        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon(" shield-check","w-4 h-4",16) | safe }} ITC Eligibility Check</h2>
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("shield-check","w-4 h-4",16) | safe }} ITC Eligibility Indicator</h2>
         <button type="button" id="gcItcTog" class="gc-toggle" aria-expanded="false" aria-controls="gcItcWrap">{{ lucide_icon("arrow-left-right","w-3 h-3",12) | safe }}</button>
       </div>
-      <div id="gcItcWrap" hidden><div class="gc-itc" id="gcItc"></div></div>
+      <div id="gcItcWrap" hidden><div class="gc-itc" id="gcItc"></div><p class="text-[10px] leading-relaxed text-base-content/50 mt-2">Indicative only. Input tax credit depends on Sections 16–17 of the CGST Act, valid tax invoices, business use, blocked-credit rules and filing conditions. Confirm with a tax professional.</p></div>
     </div>
   </div>
   <div class="lg:w-7/12">
@@ -140,16 +152,22 @@
 (function(){'use strict';
 var curRate=18,mode='exclusive',trans='intra',customMode=false;
 var history=[]; try{var h=JSON.parse(localStorage.getItem('sb_gc1')||'[]');if(Array.isArray(h))history=h}catch(e){}
-var slabs=[0,3,5,12,18,28];
+var slabs=[0,0.25,3,5,18,40];
 var numWords=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
 var tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
-var slabGoods={'0':'Essential goods (food grains, vegetables, milk, eggs, bread, salt, fresh fruits, education, healthcare)','3':'Gold, silver, diamonds, precious stones, rough diamonds','5':'Basic necessities (packaged food, tea, coffee, sugar, edible oil, medicines, coal, books, railway/air travel)','12':'Standard goods (computers, processed food, mobile phones, umbrellas, butter, ghee, almonds, furniture)','18':'Majority of goods & services (IT services, telecom, financial services, restaurants, AC hotels, software, electronics)','28':'Luxury & demerit goods (luxury cars, tobacco, aerated drinks, air conditioners, washing machines, cigarettes, pan masala)'};
-var fxRates={'USD':83.5,'EUR':91.2,'GBP':106.8,'JPY':0.56,'AUD':56.1,'SGD':62.8,'AED':22.7,'CAD':62.1};
+var slabGoods={
+ '0':'Exempt supplies: many unpackaged food staples, fresh produce, milk, education and healthcare services, subject to the exact entry.',
+ '0.25':'Rough diamonds, subject to the specific GST entry and conditions.',
+ '3':'Gold, silver, platinum, precious metals and specified jewellery; make charges and linked items may differ.',
+ '5':'Merit-rate goods and services such as many packaged foods, medicines, books and specified transport or welfare items.',
+ '18':'Standard rate covering most goods and services, including many IT, telecom, restaurant, hotel and professional services.',
+ '40':'De-merit rate for specified items such as tobacco, pan masala, aerated drinks and luxury vehicles; cess may also apply.'
+};
 
 function el(id){return document.getElementById(id)}
 var amtInp=el('gcAmount'),modeEl=el('gcMode'),transEl=el('gcTrans'),slabsEl=el('gcSlabs'),slabInfo=el('gcSlabInfo'),customWrap=el('gcCustomWrap'),customRate=el('gcCustomRate');
 var baseEl=el('gcBase'),gstEl=el('gcGst'),totalEl=el('gcTotal'),cgstEl=el('gcCgst'),cgstVal=el('gcCgstVal'),sgstEl=el('gcSgst'),sgstVal=el('gcSgstVal'),igstEl=el('gcIgst'),igstVal=el('gcIgstVal');
-var wordsEl=el('gcWords'),curEl=el('gcCurrency');
+var wordsEl=el('gcWords');
 var batchTog=el('gcBatchTog'),batchWrap=el('gcBatchWrap'),batchEl=el('gcBatch');
 var copyBtn=el('gcCopyBtn'),dlBtn=el('gcDlBtn');
 var invBody=el('gcInvBody'),invAdd=el('gcInvAdd'),invBase=el('gcInvBase'),invGst=el('gcInvGst'),invTotal=el('gcInvTotal'),invRateAll=el('gcInvRateAll'),invClear=el('gcInvClear');
@@ -160,9 +178,10 @@ var toastEl=el('gcToast');
 
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show')},2200)}
-function fmt(n){if(window.sbr&&window.sbr.formatCurrency){return window.sbr.formatCurrency(n, 2);}if(n===null||n===undefined||isNaN(n))return'₹0.00';return'₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function fmtN(n){if(window.sbr&&window.sbr.formatNumber){return window.sbr.formatNumber(n, 2);}if(isNaN(n))return'0.00';return Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function fmtFx(n){if(isNaN(n))return'0.00';return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmt(n){if(n===null||n===undefined||isNaN(n))return'₹0.00';return'₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtN(n){if(isNaN(n))return'0.00';return Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function validAmount(){var raw=String(amtInp.value||'').replace(/[₹,\s]/g,'');var v=parseFloat(raw);if(!isFinite(v)||v<0)return 0;return Math.min(v,1e12)}
+function validRate(r){return isFinite(r)&&r>=0&&r<=100}
 
 function inWords(n){
 if(n===0)return'Zero';function convert(num){if(num===0)return'';if(num<20)return numWords[num]+' ';if(num<100)return tens[Math.floor(num/10)]+' '+(num%10!==0?numWords[num%10]+' ':'');
@@ -181,17 +200,13 @@ return{base:base,gst:gst,total:total}
 function renderSlabInfo(){
 var key=String(curRate);
 if(slabGoods[key]){slabInfo.style.display='block';slabInfo.textContent='📦 '+slabGoods[key]}
+else if(customMode){slabInfo.style.display='block';slabInfo.textContent='📦 Custom rate — confirm the correct classification and current notification for your goods or service.'}
 else{slabInfo.style.display='none'}
 }
 
-function renderCurrency(){
-var r=calc(parseFloat(amtInp.value)||0,curRate,mode);
-var h='';for(var c in fxRates){var v=r.total/fxRates[c];h+='<div class="gc-cur-item"><div class="cl">'+esc(c)+'</div><div class="cv">'+fmtFx(v)+'</div></div>'}
-curEl.innerHTML=h;
-}
-
 function renderResults(){
-var amt=parseFloat(amtInp.value)||0;
+var amt=validAmount();
+if(!validRate(curRate)){curRate=0}
 var r=calc(amt,curRate,mode);
 baseEl.textContent=fmt(r.base);gstEl.textContent='+ '+fmt(r.gst);totalEl.textContent=fmt(r.total);
 var half=r.gst/2;cgstVal.textContent=fmt(half);sgstVal.textContent=fmt(half);igstVal.textContent=fmt(r.gst);
@@ -201,16 +216,16 @@ var totalRupees=Math.round(r.total);var paise=Math.round((r.total-totalRupees)*1
 var w=inWords(totalRupees)+' Rupee'+(totalRupees!==1?'s':'');
 if(paise>0)w+=' and '+inWords(paise)+' Paise'+(paise!==1?'s':'');w+=' Only.';
 wordsEl.textContent=w;
-renderSlabInfo();renderCurrency();renderBatch();
+renderSlabInfo();renderBatch();
 }
 
 function renderBatch(){
 if(batchTog.getAttribute('aria-expanded')!=='true')return;
-var amt=parseFloat(amtInp.value)||0;
+var amt=validAmount();
 var h='';
 slabs.concat([-1]).forEach(function(rate){
 var r=rate===-1?parseFloat(customRate.value):rate;
-if(!r&&r!==0)return;
+if(!validRate(r))return;
 var res=calc(amt,r,mode);
 var label=rate===-1?'Custom ('+r+'%)':r+'%';
 h+='<div class="gc-batch-item"><div style="display:flex;align-items:center;justify-content:space-between"><span class="bl">'+esc(label)+'</span><span class="bgs">Base: '+fmtN(res.base)+'</span></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px"><span class="bv gst">'+fmt(res.gst)+'</span><span class="bv" style="font-size:14px">'+fmt(res.total)+'</span><button type="button" class="bcp" data-total="'+fmtN(res.total)+'" aria-label="Copy total">Copy</button></div></div>';
@@ -220,8 +235,11 @@ batchEl.querySelectorAll('.bcp').forEach(function(b){b.addEventListener('click',
 }
 
 function saveHistory(){
-var amt=parseFloat(amtInp.value)||0;
+var amt=validAmount();
+if(!validRate(curRate)||!amt)return;
 var r=calc(amt,curRate,mode);
+var last=history[0];
+if(last&&last.amt===amt&&last.rate===curRate&&last.mode===mode&&last.trans===trans)return;
 history.unshift({amt:amt,rate:curRate,mode:mode,trans:trans,result:r.total,ts:Date.now()});
 if(history.length>50)history.pop();
 try{localStorage.setItem('sb_gc1',JSON.stringify(history))}catch(e){}
@@ -245,8 +263,8 @@ function renderInv(){
 var rows=invBody.querySelectorAll('.gc-inv-row');
 var tBase=0,tGst=0,tNet=0;
 rows.forEach(function(row){
-var price=parseFloat(row.querySelector('.inv-price').value)||0;
-var qty=parseFloat(row.querySelector('.inv-qty').value)||1;
+var price=Math.max(0,parseFloat(row.querySelector('.inv-price').value)||0);
+var qty=Math.max(0,parseFloat(row.querySelector('.inv-qty').value)||0);
 var rate=parseFloat(row.querySelector('.inv-rate').value)||0;
 var base=price*qty;var gst=base*(rate/100);var net=base+gst;
 row.querySelector('.inv-net').textContent=fmtN(net);
@@ -261,8 +279,8 @@ var rows=invBody.querySelectorAll('.gc-inv-row'),items=[];
 rows.forEach(function(row){
 var desc=row.querySelector('.inv-desc').value.trim();
 if(!desc)return;
-var price=parseFloat(row.querySelector('.inv-price').value)||0;
-var qty=parseFloat(row.querySelector('.inv-qty').value)||1;
+var price=Math.max(0,parseFloat(row.querySelector('.inv-price').value)||0);
+var qty=Math.max(0,parseFloat(row.querySelector('.inv-qty').value)||0);
 var rate=parseFloat(row.querySelector('.inv-rate').value)||0;
 var base=price*qty;var gst=base*(rate/100);var net=base+gst;
 items.push({desc:desc,price:price,qty:qty,rate:rate,base:base,gst:gst,net:net});
@@ -287,7 +305,7 @@ invPreview.innerHTML=h;
 
 function addInvRow(desc,price,qty,rate){
 var h='<tr class="gc-inv-row"><td><input type="text" class="gc-input-sm inv-desc" value="'+esc(desc||'')+'" placeholder="Product / Service"></td><td><input type="text" class="gc-input-sm inv-price" value="'+(price||'')+'" placeholder="0" inputmode="decimal"></td><td><input type="text" class="gc-input-sm inv-qty" value="'+(qty||'1')+'" inputmode="numeric"></td><td><select class="gc-select inv-rate" style="font-size:11px">';
-[0,3,5,12,18,28].forEach(function(r){h+='<option value="'+r+'"'+(r==(rate||18)?' selected':'')+'>'+r+'%</option>'});
+[0,0.25,3,5,18,40].forEach(function(r){h+='<option value="'+r+'"'+(r==(rate===undefined?18:rate)?' selected':'')+'>'+r+'%</option>'});
 h+='</select></td><td class="font-bold font-mono inv-net" style="font-size:12px">0.00</td><td><button type="button" class="gc-sec inv-del" style="padding:.2rem .4rem;font-size:8px" aria-label="Delete item">{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></td></tr>';
 invBody.insertAdjacentHTML('beforeend',h);
 var row=invBody.lastElementChild;
@@ -297,24 +315,23 @@ renderInv();
 }
 
 function renderItc(){
-var r=calc(parseFloat(amtInp.value)||0,curRate,mode);
-var amt=r.total;
+var r=calc(validAmount(),curRate,mode);
 var h='<div class="itc-row"><span>Purchase Type</span><select id="gcItcType"><option value="goods">Goods for resale</option><option value="raw">Raw materials</option><option value="capital">Capital goods</option><option value="services">Services used in business</option><option value="personal">Personal use (non-business)</option></select></div>';
 h+='<div class="itc-row"><span>GST Registered</span><select id="gcItcReg"><option value="yes">Yes — Valid GSTIN</option><option value="no">No — Not registered</option></select></div>';
-h+='<div class="itc-row"><span>Invoice Available</span><select id="gcItcInv"><option value="yes">Yes — Tax invoice received</option><option value="no">No — No invoice</option></select></div>';
+h+='<div class="itc-row"><span>Tax Invoice</span><select id="gcItcInv"><option value="yes">Yes — Tax invoice held</option><option value="no">No — Invoice missing</option></select></div>';
+h+='<div class="itc-row"><span>Business Use</span><select id="gcItcUse"><option value="yes">Yes — Used for business</option><option value="no">No — Blocked or personal use</option></select></div>';
 var type=el('gcItcType')?el('gcItcType').value:'goods';
 var reg=el('gcItcReg')?el('gcItcReg').value:'yes';
 var inv=el('gcItcInv')?el('gcItcInv').value:'yes';
-var elig='yes';var score='Full';var cls='yes';
-if(type==='personal'||reg==='no'){elig='no';score='None';cls='no'}
-else if(inv==='no'){elig='partial';score='Partial';cls='partial'}
-h+='<div class="itc-score '+cls+'">'+score+' ITC Eligibility</div>';
-h+='<div style="font-size:9px;font-weight:600;opacity:.4;text-align:center;margin-top:4px">ITC Amount: '+fmt(elig==='yes'?r.gst:elig==='partial'?r.gst*0.5:0)+'</div>';
+var use=el('gcItcUse')?el('gcItcUse').value:'yes';
+var eligible=reg==='yes'&&inv==='yes'&&use==='yes'&&type!=='personal';
+var score=eligible?'Likely eligible':'Not eligible on these answers';
+var cls=eligible?'yes':'no';
+h+='<div class="itc-score '+cls+'" style="font-size:13px">'+score+'</div>';
+h+='<div style="font-size:9px;font-weight:600;opacity:.4;text-align:center;margin-top:4px">Indicative GST on this transaction: '+fmt(r.gst)+'</div>';
 itcEl.innerHTML=h;
 if(itcTog.getAttribute('aria-expanded')==='true'){
-el('gcItcType').addEventListener('change',renderItc);
-el('gcItcReg').addEventListener('change',renderItc);
-el('gcItcInv').addEventListener('change',renderItc);
+ ['gcItcType','gcItcReg','gcItcInv','gcItcUse'].forEach(function(id){el(id).addEventListener('change',renderItc)});
 }
 }
 
@@ -322,22 +339,22 @@ modeEl.addEventListener('click',function(e){var b=e.target.closest('button[data-
 transEl.addEventListener('click',function(e){var b=e.target.closest('button[data-trans]');if(!b)return;trans=b.getAttribute('data-trans');transEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-trans')===trans);el.setAttribute('aria-checked',el.getAttribute('data-trans')===trans)});renderResults()});
 slabsEl.addEventListener('click',function(e){var b=e.target.closest('button[data-rate]');if(!b)return;var r=b.getAttribute('data-rate');if(r==='custom'){customMode=true;customWrap.hidden=false;slabsEl.querySelectorAll('button').forEach(function(el){el.classList.remove('on')});b.classList.add('on');curRate=parseFloat(customRate.value)||0;renderResults();return}
 customMode=false;customWrap.hidden=true;curRate=parseFloat(r);slabsEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-rate')===r)});renderResults()});
-customRate.addEventListener('input',function(){if(customMode){curRate=parseFloat(this.value)||0;renderResults()}});
+customRate.addEventListener('input',function(){if(customMode){var v=parseFloat(this.value);curRate=validRate(v)?v:0;renderResults()}});
 amtInp.addEventListener('input',renderResults);
 
 batchTog.addEventListener('click',function(){var o=batchTog.getAttribute('aria-expanded')==='true';batchTog.setAttribute('aria-expanded',!o);batchWrap.hidden=o;batchTog.classList.toggle('on');if(!o)renderBatch()});
-copyBtn.addEventListener('click',function(){var amt=parseFloat(amtInp.value)||0;var r=calc(amt,curRate,mode);var txt='GST Calculation\nAmount: ₹'+fmtN(amt)+'\nRate: '+curRate+'% ('+mode+')\nBase: '+fmt(r.base)+'\nGST: '+fmt(r.gst)+'\nTotal: '+fmt(r.total)+'\nWords: '+wordsEl.textContent;
+copyBtn.addEventListener('click',function(){var amt=validAmount();var r=calc(amt,curRate,mode);var txt='GST Calculation\nAmount: ₹'+fmtN(amt)+'\nRate: '+curRate+'% ('+mode+')\nBase: '+fmt(r.base)+'\nGST: '+fmt(r.gst)+'\nTotal: '+fmt(r.total)+'\nWords: '+wordsEl.textContent;
 navigator.clipboard.writeText(txt).then(function(){toast('Copied!');saveHistory()}).catch(function(){toast('Copy failed')})});
-dlBtn.addEventListener('click',function(){var amt=parseFloat(amtInp.value)||0;var r=calc(amt,curRate,mode);var txt='GST Calculation\n==============\nAmount: ₹'+fmtN(amt)+'\nRate: '+curRate+'% ('+mode+')\nTransaction: '+trans+'\nBase Amount: '+fmt(r.base)+'\nGST Amount: '+fmt(r.gst)+'\nTotal Amount: '+fmt(r.total)+'\nAmount in Words: '+wordsEl.textContent+'\nDate: '+new Date().toISOString().slice(0,10);
+dlBtn.addEventListener('click',function(){var amt=validAmount();var r=calc(amt,curRate,mode);var txt='GST Calculation\n==============\nAmount: ₹'+fmtN(amt)+'\nRate: '+curRate+'% ('+mode+')\nTransaction: '+trans+'\nBase Amount: '+fmt(r.base)+'\nGST Amount: '+fmt(r.gst)+'\nTotal Amount: '+fmt(r.total)+'\nAmount in Words: '+wordsEl.textContent+'\nDate: '+new Date().toISOString().slice(0,10);
 var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='gst-calculation-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded')});
 
 invAdd.addEventListener('click',function(){addInvRow('','','1','18')});
 addInvRow('Web Development Services','50000','1','18');
-addInvRow('Cloud Hosting','12000','1','12');
-addInvRow('Domain Registration','999','1','5');
+addInvRow('Cloud Hosting','12000','1','18');
+addInvRow('Domain Registration','999','1','18');
 
-invRateAll.addEventListener('click',function(){var r=prompt('Enter GST rate to apply to all items (0-28):','18');if(r===null||r==='')return;var rate=parseFloat(r);if(isNaN(rate)||rate<0){toast('Invalid rate');return}
-invBody.querySelectorAll('.inv-rate').forEach(function(sel){sel.value=rate});renderInv();toast('Rate applied to all items')});
+invRateAll.addEventListener('click',function(){var r=prompt('Enter GST rate to apply to all items (0-100):','18');if(r===null||r==='')return;var rate=parseFloat(r);if(!validRate(rate)){toast('Invalid rate');return}
+invBody.querySelectorAll('.inv-rate').forEach(function(sel){var opt=Array.from(sel.options).find(function(o){return parseFloat(o.value)===rate});if(!opt){opt=document.createElement('option');opt.value=String(rate);opt.textContent=rate+'%';sel.appendChild(opt)}sel.value=String(rate)});renderInv();toast('Rate applied to all items')});
 invClear.addEventListener('click',function(){if(!confirm('Remove all invoice items?'))return;invBody.innerHTML='';renderInv()});
 
 invPreviewTog.addEventListener('click',function(){var o=invPreviewTog.getAttribute('aria-expanded')==='true';invPreviewTog.setAttribute('aria-expanded',!o);invPreviewWrap.hidden=o;invPreviewTog.classList.toggle('on');if(!o)renderInvPreview()});

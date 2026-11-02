@@ -18,32 +18,54 @@
 {% endblock %}
 
 {% block content %}
-{{ tool_hero_section("arrow-left-right", "Converter Tool", "CRYPTO PRICE", "CONVERTER", "Convert between cryptocurrencies and fiat. See multi-currency dashboard, inverse rates, and conversion history.") }}
+{{ tool_hero_section("arrow-left-right", "Converter Tool", "CRYPTO PRICE", "CONVERTER", "Convert crypto and fiat amounts using live reference rates when available, or enter your own rate in clearly labelled manual mode. Reference data only — not a trading quote.") }}
 
 <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
 
   <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
 
     <div class="card-premium p-6">
-      <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-4 h-4",16)|safe }} Converter</h2>
-      <p class="text-xs text-base-content/60 mb-4">Enter amount, currencies, and exchange rate.</p>
-      <div class="space-y-4">
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="convAmt">Amount</label><input aria-label="Convamt" type="number" id="convAmt" class="input input-cinematic w-full text-sm font-mono font-bold hide-spinner" value="1" min="0" step="any"></div>
-        <div class="grid grid-cols-5 gap-2 items-end">
-          <div class="col-span-2"><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="convFrom">From</label><input aria-label="Convfrom" type="text" id="convFrom" class="input input-cinematic w-full text-sm font-mono font-bold" value="BTC"></div>
-          <div class="flex justify-center pt-5"><button id="swapBtn" class="btn btn-ghost btn-sm btn-square rounded-xl" aria-label="Swap currencies">{{ lucide_icon("arrow-left-right","w-4 h-4",16)|safe }}</button></div>
-          <div class="col-span-2"><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="convTo">To</label><input aria-label="Convto" type="text" id="convTo" class="input input-cinematic w-full text-sm font-mono font-bold" value="USD"></div>
+      <h2 class="text-sm font-black mb-3 flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-4 h-4",16)|safe }} Converter</h2>
+
+      <div id="rateStatusBox" class="flex items-center justify-between p-2.5 rounded-xl mb-3 text-xs" style="background:color-mix(in oklab,var(--color-base-content) 4%,transparent);border:1px solid color-mix(in oklab,var(--color-base-content) 8%,transparent)">
+        <div class="flex items-center gap-2 min-w-0">
+          <span id="rateStatusDot" class="w-2 h-2 rounded-full bg-warning shrink-0"></span>
+          <span id="rateStatusLabel" class="font-bold text-[11px] truncate">Checking reference rates…</span>
         </div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="convRate">Exchange Rate</label><input aria-label="Convrate" type="number" id="convRate" class="input input-cinematic w-full text-sm font-mono font-bold hide-spinner" value="67500" min="0" step="any"></div>
-        <button id="resetBtn" class="btn btn-primary w-full" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span id="rateUpdated" class="text-[10px] text-base-content/40 font-mono">—</span>
+          <button id="refreshRatesBtn" type="button" class="btn btn-ghost btn-xs btn-square" title="Refresh reference rates" aria-label="Refresh reference rates">
+            {{ lucide_icon("rotate-cw","w-3 h-3",12)|safe }}
+          </button>
+        </div>
+      </div>
+      <p id="rateSource" class="text-[10px] text-base-content/45 font-mono mb-2">Source: waiting for response</p>
+      <p id="rateHint" class="text-[11px] text-base-content/60 leading-relaxed mb-4" role="status" aria-live="polite">Live rates load automatically. If the feed is unavailable, the tool switches to manual mode and never substitutes estimated prices.</p>
+
+      <div class="space-y-4">
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="convAmt">Amount</label><input aria-label="Amount to convert" type="number" id="convAmt" class="input input-cinematic w-full text-sm font-mono font-bold hide-spinner" value="1" min="0" step="any"></div>
+        <div class="grid grid-cols-5 gap-2 items-end">
+          <div class="col-span-2"><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="convFrom">From</label><input aria-label="From currency" type="text" id="convFrom" class="input input-cinematic w-full text-sm font-mono font-bold uppercase" value="BTC" maxlength="10" autocomplete="off" spellcheck="false"></div>
+          <div class="flex justify-center pt-5"><button id="swapBtn" type="button" class="btn btn-ghost btn-sm btn-square rounded-xl" aria-label="Swap currencies">{{ lucide_icon("arrow-left-right","w-4 h-4",16)|safe }}</button></div>
+          <div class="col-span-2"><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="convTo">To</label><input aria-label="To currency" type="text" id="convTo" class="input input-cinematic w-full text-sm font-mono font-bold uppercase" value="USD" maxlength="10" autocomplete="off" spellcheck="false"></div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider" for="convRate">Exchange Rate</label>
+            <button id="useLiveBtn" type="button" class="text-[10px] font-bold text-primary hover:underline" hidden>Use live rate</button>
+          </div>
+          <input aria-label="Exchange rate" type="number" id="convRate" class="input input-cinematic w-full text-sm font-mono font-bold hide-spinner" value="" min="0" step="any" placeholder="Enter a rate">
+          <p class="text-[10px] text-base-content/40 mt-1">You can edit this rate. Editing switches the result to manual mode.</p>
+        </div>
+        <button id="resetBtn" type="button" class="btn btn-primary w-full" aria-label="Reset converter">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
         <div>
           <span class="text-[10px] font-bold text-base-content/60 block mb-2 uppercase tracking-wider">Quick Presets</span>
           <div class="flex flex-wrap gap-1.5">
-            <button class="pres-chip active" data-from="BTC" data-to="USD" data-rate="67500">{{ lucide_icon("bitcoin","w-3 h-3",12)|safe }} BTC→USD</button>
-            <button class="pres-chip" data-from="ETH" data-to="USD" data-rate="3450">{{ lucide_icon("diamond","w-3 h-3",12)|safe }} ETH→USD</button>
-            <button class="pres-chip" data-from="SOL" data-to="USD" data-rate="145">{{ lucide_icon("zap","w-3 h-3",12)|safe }} SOL→USD</button>
-            <button class="pres-chip" data-from="BTC" data-to="ETH" data-rate="19.5">{{ lucide_icon("arrow-left-right","w-3 h-3",12)|safe }} BTC→ETH</button>
-            <button class="pres-chip" data-from="USD" data-to="EUR" data-rate="0.92">{{ lucide_icon("dollar-sign","w-3 h-3",12)|safe }} USD→EUR</button>
+            <button type="button" class="pres-chip active" data-from="BTC" data-to="USD">{{ lucide_icon("bitcoin","w-3 h-3",12)|safe }} BTC→USD</button>
+            <button type="button" class="pres-chip" data-from="ETH" data-to="USD">{{ lucide_icon("diamond","w-3 h-3",12)|safe }} ETH→USD</button>
+            <button type="button" class="pres-chip" data-from="SOL" data-to="USD">{{ lucide_icon("zap","w-3 h-3",12)|safe }} SOL→USD</button>
+            <button type="button" class="pres-chip" data-from="BTC" data-to="ETH">{{ lucide_icon("arrow-left-right","w-3 h-3",12)|safe }} BTC→ETH</button>
+            <button type="button" class="pres-chip" data-from="USD" data-to="EUR">{{ lucide_icon("dollar-sign","w-3 h-3",12)|safe }} USD→EUR</button>
           </div>
         </div>
       </div>
@@ -59,23 +81,24 @@
         <span id="convTimestamp" class="text-[9px] text-base-content/30 font-mono"></span>
       </div>
       <div class="rounded-xl p-6 text-center" style="background:color-mix(in oklab,var(--color-base-content) 4%,transparent)" role="status" aria-live="polite">
-        <div class="convert-result" id="resResult" style="color:var(--color-primary)">1 BTC = 67,500 USD</div>
-        <div class="flex items-center justify-center gap-4 mt-2 text-xs">
-          <output id="resRate" class="text-base-content/40 font-mono">Rate: 67,500.00</output>
-          <output id="resInvRate" class="text-base-content/30 font-mono">1 USD = 0.000015 BTC</output>
+        <div class="convert-result" id="resResult" style="color:var(--color-primary)">Enter a rate to convert</div>
+        <div class="flex items-center justify-center gap-4 mt-2 text-xs flex-wrap">
+          <output id="resRate" class="text-base-content/40 font-mono">Rate: —</output>
+          <output id="resInvRate" class="text-base-content/30 font-mono">Inverse: —</output>
         </div>
+        <p class="text-[10px] text-base-content/40 mt-2">Reference only. Exchange quotes include spread, fees and slippage.</p>
       </div>
-      <div class="grid grid-cols-4 gap-3 mt-5">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
         <div class="stat-cinematic text-center p-3"><span class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">From</span><output id="resFrom" class="text-sm font-mono font-bold">BTC</output></div>
         <div class="stat-cinematic text-center p-3"><span class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">To</span><output id="resTo" class="text-sm font-mono font-bold">USD</output></div>
         <div class="stat-cinematic text-center p-3"><span class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Amount</span><output id="resAmt" class="text-sm font-mono font-bold">1</output></div>
-        <div class="stat-cinematic text-center p-3"><span class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Result</span><output id="resResultVal" class="text-sm font-mono font-bold" style="color:var(--color-primary)">67,500</output></div>
+        <div class="stat-cinematic text-center p-3"><span class="text-[9px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Result</span><output id="resResultVal" class="text-sm font-mono font-bold" style="color:var(--color-primary)">—</output></div>
       </div>
     </div>
 
     <div class="card-premium p-6">
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("layout-dashboard","w-4 h-4",16)|safe }} Multi-Currency Dashboard</h2>
-      <p class="text-xs text-base-content/60 mb-4">See how much <strong id="dashFromLabel">1 BTC</strong> is worth across major currencies. Click any row to convert to that pair.</p>
+      <p class="text-xs text-base-content/60 mb-4">See how much <strong id="dashFromLabel">1 BTC</strong> is worth across available reference currencies. Click a row to use that pair.</p>
       <div class="overflow-x-auto">
         <table class="dash-table" role="table">
           <thead><tr><th scope="col">Pair</th><th scope="col">Rate</th><th scope="col">Result</th></tr></thead>
@@ -87,10 +110,10 @@
     <div class="card-premium p-6">
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("clock","w-4 h-4",16)|safe }} Conversion History</h2>
       <div class="flex items-center justify-between mb-3">
-        <p class="text-xs text-base-content/60">Your last 8 conversions (stored locally).</p>
+        <p class="text-xs text-base-content/60">Your last 8 conversions (stored only in this browser).</p>
         <div class="flex gap-1">
-          <button id="exportHistBtn" class="btn btn-ghost btn-xs gap-1 text-[10px] font-bold" aria-label="Export history">{{ lucide_icon("download","w-3 h-3",12)|safe }} Export</button>
-          <button id="clearHistBtn" class="btn btn-ghost btn-xs gap-1 text-[10px] font-bold" style="color:var(--color-error)" aria-label="Clear history">{{ lucide_icon("trash-2","w-3 h-3",12)|safe }} Clear</button>
+          <button id="exportHistBtn" type="button" class="btn btn-ghost btn-xs gap-1 text-[10px] font-bold" aria-label="Copy history">{{ lucide_icon("download","w-3 h-3",12)|safe }} Copy</button>
+          <button id="clearHistBtn" type="button" class="btn btn-ghost btn-xs gap-1 text-[10px] font-bold" style="color:var(--color-error)" aria-label="Clear history">{{ lucide_icon("trash-2","w-3 h-3",12)|safe }} Clear</button>
         </div>
       </div>
       <div id="histList" class="space-y-1.5">
@@ -101,8 +124,30 @@
   </div>
 
 </div>
-{% include "components/ymyl_disclaimer.html" %}
 
+<div class="card-premium p-6 mt-6">
+  <h3 class="text-sm font-black mb-3 flex items-center gap-2">{{ lucide_icon("info","w-4 h-4",16)|safe }} Pricing Sources &amp; Limitations</h3>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-base-content/70 leading-relaxed">
+    <div>
+      <p class="font-bold text-base-content mb-1">Sources and caching</p>
+      <p>Crypto reference prices come from the CoinGecko public API, with Binance public ticker data as a fallback. Fiat cross-rates come from ECB reference rates published through Frankfurter. Responses are cached for about 60 seconds. The status banner shows the source, timestamp and whether data is live, cached (stale) or unavailable.</p>
+    </div>
+    <div>
+      <p class="font-bold text-base-content mb-1">No invented fallback prices</p>
+      <p>If upstream feeds fail, the converter does not substitute a benchmark or estimated price. It switches to manual mode and asks you to enter a rate. Manual results are labelled and are not live quotes.</p>
+    </div>
+    <div>
+      <p class="font-bold text-base-content mb-1">Reference prices, not execution prices</p>
+      <p>Rates are mid-market references and may be delayed. Actual execution prices on centralized or decentralized exchanges differ because of order-book depth, spread, network fees and slippage.</p>
+    </div>
+    <div>
+      <p class="font-bold text-base-content mb-1">Supported pairs</p>
+      <p>The live feed covers BTC, ETH, SOL, BNB, XRP, DOGE and ADA against USD and selected fiat currencies, plus ECB fiat crosses. You can enter any other pair and a manual rate. Always verify critical figures with your exchange or another independent source.</p>
+    </div>
+  </div>
+</div>
+
+{% include "components/ymyl_disclaimer.html" %}
 
 {{ tool_section_end() }}
 {% endblock %}
@@ -113,248 +158,432 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const LS_KEY = 'sb-conv-history';
+  const MAX_HISTORY = 8;
 
-  // Cross-rate multipliers vs USD for dashboard display
-  // When primary pair is X→USD, these derive X→other from the primary rate
-  const FX = {
-    USD: 1, EUR: 0.92, GBP: 0.79, JPY: 149.5, CNY: 7.24,
-    INR: 83.5, KRW: 1350, CAD: 1.37, AUD: 1.50, CHF: 0.88,
-    SGD: 1.35, BRL: 5.05, MXN: 17.5,
-  };
+  let liveData = null;
+  let FX = { USD: 1 };
+  let isManualOverride = false;
+  let lastHistoryKey = '';
 
-  function fmt(n, decimals){
-    if(decimals === undefined){
-      if(Math.abs(n) >= 1000) decimals = 2;
-      else if(Math.abs(n) >= 1) decimals = 4;
-      else decimals = 6;
+  function esc(value){
+    const d = document.createElement('div');
+    d.textContent = String(value == null ? '' : value);
+    return d.innerHTML;
+  }
+
+  function code(value){
+    return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+  }
+
+  function finite(value){
+    return typeof value === 'number' && isFinite(value);
+  }
+
+  function fmt(value, decimals){
+    if(value === null || value === undefined || value === '' || !isFinite(Number(value))) return '—';
+    const number = Number(value);
+    let places = decimals;
+    if(places === undefined){
+      if(Math.abs(number) >= 1000) places = 2;
+      else if(Math.abs(number) >= 1) places = 4;
+      else places = 8;
     }
-    return Number(n).toLocaleString('en-US', {minimumFractionDigits: decimals, maximumFractionDigits: decimals});
+    return number.toLocaleString('en-US', {minimumFractionDigits: places, maximumFractionDigits: places});
   }
 
-  function now(){
-    return new Date().toLocaleTimeString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+  function rateInputValue(rate){
+    if(!finite(rate) || rate <= 0) return '';
+    if(rate >= 1000) return rate.toFixed(2);
+    if(rate >= 1) return rate.toFixed(6);
+    return rate.toFixed(10);
   }
 
-  function convert(){
-    const amt = parseFloat($('convAmt').value) || 0;
-    const from = $('convFrom').value.trim().toUpperCase() || '?';
-    const to = $('convTo').value.trim().toUpperCase() || '?';
-    const rate = parseFloat($('convRate').value) || 0;
-    const result = amt * rate;
+  function sourceText(data){
+    if(!data || !data.source_label) return 'No live source available';
+    return data.source_label;
+  }
 
-    $('resResult').textContent = fmt(amt) + ' ' + from + ' = ' + fmt(result) + ' ' + to;
-    $('resRate').textContent = 'Rate: 1 ' + from + ' = ' + fmt(rate, 6) + ' ' + to;
+  function setStatus(kind, label, source, updated){
+    const dot = $('rateStatusDot');
+    const labels = { live: 'bg-success', stale: 'bg-warning', manual: 'bg-warning', unavailable: 'bg-error', loading: 'bg-warning' };
+    if(dot) dot.className = 'w-2 h-2 rounded-full shrink-0 ' + (labels[kind] || 'bg-warning');
+    if($('rateStatusLabel')) $('rateStatusLabel').textContent = label;
+    if($('rateSource')) $('rateSource').textContent = 'Source: ' + (source || '—');
+    if($('rateUpdated')) $('rateUpdated').textContent = updated || '—';
+  }
+
+  function formatTimestamp(timestamp){
+    if(!timestamp) return '—';
+    const d = new Date(timestamp);
+    if(isNaN(d.getTime())) return '—';
+    return d.toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  }
+
+  function lookupLiveRate(from, to){
+    if(!liveData || !liveData.rates) return null;
+    const rates = liveData.rates;
+    const f = code(from);
+    const t = code(to);
+    if(!f || !t || f === t) return null;
+
+    if(rates[f] && finite(rates[f][t]) && rates[f][t] > 0) return rates[f][t];
+    if(rates[t] && finite(rates[t][f]) && rates[t][f] > 0) return 1 / rates[t][f];
+    if(rates[f] && rates[t] && finite(rates[f].USD) && finite(rates[t].USD) && rates[t].USD > 0){
+      return rates[f].USD / rates[t].USD;
+    }
+    if(rates[f] && finite(rates[f].USD) && finite(FX[t]) && FX[t] > 0){
+      return rates[f].USD * FX[t];
+    }
+    if(rates[t] && finite(rates[t].USD) && rates[t].USD > 0 && finite(FX[f]) && FX[f] > 0){
+      return 1 / (FX[f] * rates[t].USD);
+    }
+    if(finite(FX[f]) && finite(FX[t]) && FX[f] > 0 && FX[t] > 0){
+      return FX[t] / FX[f];
+    }
+    return null;
+  }
+
+  function setManualStatus(message){
+    isManualOverride = true;
+    $('useLiveBtn').hidden = false;
+    setStatus('manual', 'Manual rate', 'User-entered value', 'Not live');
+    if($('rateHint')) $('rateHint').textContent = message || 'Manual mode. Enter a rate; this is not a live market quote.';
+  }
+
+  function applyRateForPair(){
+    const from = code($('convFrom').value);
+    const to = code($('convTo').value);
+    $('convFrom').value = from;
+    $('convTo').value = to;
+    const rate = lookupLiveRate(from, to);
+    if(rate !== null && finite(rate) && rate > 0){
+      isManualOverride = false;
+      $('convRate').value = rateInputValue(rate);
+      $('useLiveBtn').hidden = true;
+      if(liveData && liveData.status === 'stale'){
+        setStatus('stale', 'Cached reference rates', sourceText(liveData), 'Cached ' + formatAge(liveData.age_seconds));
+        $('rateHint').textContent = liveData.note || 'Live feeds are unavailable. Showing last verified reference rates; they may be outdated.';
+        $('rateHint').textContent += ' You can still edit the rate for a manual calculation.';
+      } else {
+        setStatus('live', liveData && liveData.partial ? 'Live reference rates (partial)' : 'Live reference rates', sourceText(liveData), formatTimestamp(liveData.timestamp));
+        const note = liveData && liveData.note ? liveData.note + ' ' : '';
+        $('rateHint').textContent = note + 'This is a reference rate, not an executable quote. You can edit it to run a manual scenario.';
+      }
+      convert(false);
+      return true;
+    }
+
+    $('convRate').value = '';
+    if(liveData && liveData.status === 'live'){
+      setManualStatus('No live reference rate is available for ' + from + '→' + to + '. Enter a rate to calculate a manual scenario.');
+    } else {
+      setManualStatus('Live reference rates are unavailable. Enter a rate to calculate a manual scenario.');
+    }
+    convert(false);
+    return false;
+  }
+
+  function formatAge(seconds){
+    const value = Number(seconds);
+    if(!isFinite(value) || value < 0) return 'unknown age';
+    if(value < 60) return Math.round(value) + 's ago';
+    if(value < 3600) return Math.round(value / 60) + 'm ago';
+    if(value < 86400) return Math.round(value / 3600) + 'h ago';
+    return Math.round(value / 86400) + 'd ago';
+  }
+
+  function convert(record){
+    const amount = parseFloat($('convAmt').value);
+    const from = code($('convFrom').value) || '?';
+    const to = code($('convTo').value) || '?';
+    const rate = parseFloat($('convRate').value);
+
     $('resFrom').textContent = from;
     $('resTo').textContent = to;
-    $('resAmt').textContent = fmt(amt);
-    $('resResultVal').textContent = fmt(result);
-    $('convTimestamp').textContent = now();
 
-    // Inverse rate
-    if(rate !== 0){
-      $('resInvRate').textContent = '1 ' + to + ' = ' + fmt(1 / rate, 8) + ' ' + from;
-      $('resInvRate').style.display = '';
-    } else {
-      $('resInvRate').style.display = 'none';
+    if(!isFinite(amount) || amount < 0 || !isFinite(rate) || rate <= 0){
+      $('resResult').textContent = 'Enter a valid amount and rate';
+      $('resRate').textContent = 'Rate: —';
+      $('resInvRate').textContent = 'Inverse: —';
+      $('resAmt').textContent = fmt(amount);
+      $('resResultVal').textContent = '—';
+      $('convTimestamp').textContent = '';
+      renderDashboard(amount, from, to);
+      return;
     }
 
-    // Multi-currency dashboard
-    renderDashboard(amt, from, to, rate);
+    const result = amount * rate;
+    if(!finite(result)){
+      $('resResult').textContent = 'Result is too large';
+      $('resResultVal').textContent = '—';
+      return;
+    }
 
-    // Add to history
-    addHistory(amt, from, to, rate, result);
+    $('resResult').textContent = fmt(amount) + ' ' + from + ' = ' + fmt(result) + ' ' + to;
+    $('resRate').textContent = 'Rate: 1 ' + from + ' = ' + fmt(rate, 8) + ' ' + to;
+    $('resInvRate').textContent = 'Inverse: 1 ' + to + ' = ' + fmt(1 / rate, 8) + ' ' + from;
+    $('resAmt').textContent = fmt(amount);
+    $('resResultVal').textContent = fmt(result);
+    $('convTimestamp').textContent = isManualOverride ? 'Manual rate' : (liveData && liveData.timestamp ? 'Ref. ' + formatTimestamp(liveData.timestamp) : '');
+    renderDashboard(amount, from, to);
+
+    if(record){
+      const key = [from, to, amount, rate, result].join('|');
+      if(key !== lastHistoryKey) addHistory(amount, from, to, rate, result, isManualOverride);
+    }
   }
 
-  function renderDashboard(amt, from, to, rate){
-    $('dashFromLabel').textContent = fmt(amt) + ' ' + from;
+  function renderDashboard(amount, from, to){
     const tbody = $('dashBody');
-    if(!rate || !amt || !from || !to){
-      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-base-content/30 py-4" style="font-weight:400">Set a valid rate to see dashboard.</td></tr>';
+    $('dashFromLabel').textContent = fmt(amount) + ' ' + from;
+
+    if(!liveData || !liveData.rates || isManualOverride){
+      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-base-content/30 py-4" style="font-weight:400">' + (isManualOverride ? 'Dashboard is available for live reference rates only. Clear the manual rate or refresh the feed.' : 'No live reference data available.') + '</td></tr>';
       return;
     }
 
-    // Collect target currencies: the primary "to" + all FX currencies
-    const targets = FX.hasOwnProperty(to) ? Object.keys(FX) : [to, ...Object.keys(FX)];
-    const seen = new Set();
-    const pairs = [];
+    const targets = new Set([to]);
+    Object.keys(FX).forEach(function(codeName){ targets.add(codeName); });
 
-    targets.forEach(function(t){
-      if(t === from || seen.has(t)) return;
-      let crossRate;
-      if(to === 'USD' && FX[t]){
-        crossRate = rate * FX[t];
-      } else if(t === 'USD'){
-        crossRate = FX[to] ? rate / FX[to] : 0;
-      } else if(FX[to] && FX[t]){
-        crossRate = rate * (FX[t] / FX[to]);
-      } else {
-        return;
-      }
-      if(!crossRate || !isFinite(crossRate)) return;
-      seen.add(t);
-      pairs.push({target: t, rate: crossRate, result: amt * crossRate});
+    const rows = [];
+    targets.forEach(function(target){
+      if(!target || target === from) return;
+      const cross = lookupLiveRate(from, target);
+      if(cross === null || !finite(cross) || cross <= 0) return;
+      rows.push({target: target, rate: cross, result: amount * cross});
     });
 
-    if(pairs.length === 0){
-      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-base-content/30 py-4" style="font-weight:400">No cross-rates available for this pair.</td></tr>';
+    if(!rows.length){
+      tbody.innerHTML = '<tr><td colspan="3" class="text-center text-base-content/30 py-4" style="font-weight:400">No cross-rates available for this pair. Enter a manual rate above.</td></tr>';
       return;
     }
 
-    tbody.innerHTML = pairs.map(function(p){
-      const isPrimary = p.target === to;
-      return '<tr' + (isPrimary ? ' style="background:color-mix(in oklab,var(--color-primary) 6%,transparent)"' : '') + ' data-target="' + p.target + '">' +
-        '<td style="font-weight:' + (isPrimary ? '900' : '700') + ';color:' + (isPrimary ? 'var(--color-primary)' : '') + '">' + from + '→' + p.target + '</td>' +
-        '<td class="text-base-content/40">' + fmt(p.rate, 6) + '</td>' +
-        '<td style="color:var(--color-primary)">' + fmt(p.result) + '</td>' +
+    tbody.innerHTML = rows.map(function(row){
+      const isPrimary = row.target === to;
+      return '<tr data-target="' + esc(row.target) + '"' + (isPrimary ? ' style="background:color-mix(in oklab,var(--color-primary) 6%,transparent)"' : '') + '>' +
+        '<td style="font-weight:' + (isPrimary ? '900' : '700') + ';color:' + (isPrimary ? 'var(--color-primary)' : '') + '">' + esc(from) + '→' + esc(row.target) + '</td>' +
+        '<td class="text-base-content/40">' + fmt(row.rate, 8) + '</td>' +
+        '<td style="color:var(--color-primary)">' + fmt(row.result) + '</td>' +
         '</tr>';
     }).join('');
 
-    // Click row to switch pair
-    tbody.querySelectorAll('tr').forEach(function(row){
+    tbody.querySelectorAll('tr[data-target]').forEach(function(row){
       row.addEventListener('click', function(){
-        const target = this.getAttribute('data-target');
-        if(!target) return;
-        $('convTo').value = target;
-        convert();
+        $('convTo').value = this.getAttribute('data-target');
+        applyRateForPair();
       });
     });
   }
 
-  function addHistory(amt, from, to, rate, result){
-    let hist = [];
-    try{ hist = JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e){}
-    hist.unshift({amt: amt, from: from, to: to, rate: rate, result: result, ts: Date.now()});
-    if(hist.length > 8) hist = hist.slice(0, 8);
-    localStorage.setItem(LS_KEY, JSON.stringify(hist));
+  function readHistory(){
+    try{
+      const parsed = JSON.parse(localStorage.getItem(LS_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    }catch(e){
+      return [];
+    }
+  }
+
+  function addHistory(amount, from, to, rate, result, manual){
+    let history = readHistory();
+    history.unshift({amt: amount, from: from, to: to, rate: rate, result: result, manual: !!manual, ts: Date.now()});
+    if(history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(history)); }catch(e){}
+    lastHistoryKey = [from, to, amount, rate, result].join('|');
     renderHistory();
   }
 
   function renderHistory(){
     const list = $('histList');
-    let hist = [];
-    try{ hist = JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e){}
-    if(!hist.length){
+    const history = readHistory();
+    if(!history.length){
       list.innerHTML = '<p class="text-xs text-base-content/30 text-center py-4">No conversions yet.</p>';
       return;
     }
-    list.innerHTML = hist.map(function(h, i){
-      const d = new Date(h.ts);
-      const ts = d.toLocaleDateString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
-      const pair = h.from + '→' + h.to;
-      return '<div class="hist-entry">' +
-        '<span class="text-[9px] text-base-content/30 font-mono shrink-0 w-12">' + ts + '</span>' +
-        '<span class="text-[9px] text-base-content/40 font-mono shrink-0 w-16">' + pair + '</span>' +
-        '<span class="flex-1 truncate font-mono font-bold text-[10px]">' + fmt(h.amt) + ' = ' + fmt(h.result) + '</span>' +
-        '<span class="text-[9px] text-base-content/30 font-mono shrink-0">@ ' + fmt(h.rate, 4) + '</span>' +
-        '<button class="btn btn-ghost btn-xs btn-square hist-copy shrink-0" data-idx="' + i + '" aria-label="Copy conversion">' +
+    list.innerHTML = history.map(function(item, index){
+      const d = new Date(item.ts);
+      const ts = isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'});
+      const pair = code(item.from) + '→' + code(item.to);
+      return '<div class="hist-entry" data-index="' + index + '">' +
+        '<span class="text-[9px] text-base-content/30 font-mono shrink-0 w-12">' + esc(ts) + '</span>' +
+        '<span class="text-[9px] text-base-content/40 font-mono shrink-0 w-16">' + esc(pair) + '</span>' +
+        '<span class="flex-1 truncate font-mono font-bold text-[10px]">' + fmt(item.amt) + ' = ' + fmt(item.result) + '</span>' +
+        '<span class="text-[9px] text-base-content/30 font-mono shrink-0">' + (item.manual ? 'manual' : 'ref') + '</span>' +
+        '<button type="button" class="btn btn-ghost btn-xs btn-square hist-copy shrink-0" data-index="' + index + '" aria-label="Copy conversion">' +
           '{{ lucide_icon("copy","w-3 h-3",12)|safe }}' +
         '</button>' +
       '</div>';
     }).join('');
 
-    list.querySelectorAll('.hist-copy').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        const idx = parseInt(this.getAttribute('data-idx'), 10);
-        let hist = [];
-        try{ hist = JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e){}
-        if(hist[idx]){
-          const h = hist[idx];
-          navigator.clipboard.writeText(fmt(h.amt) + ' ' + h.from + ' = ' + fmt(h.result) + ' ' + h.to).then(function(){
-            const og = this.innerHTML;
-            this.innerHTML = '{{ lucide_icon("check","w-3 h-3",12)|safe }}';
-            setTimeout(function(){ this.innerHTML = og; }.bind(this), 1200);
-          }.bind(this));
-        }
+    list.querySelectorAll('.hist-copy').forEach(function(button){
+      button.addEventListener('click', function(event){
+        event.stopPropagation();
+        const index = parseInt(this.getAttribute('data-index'), 10);
+        const item = readHistory()[index];
+        if(!item) return;
+        navigator.clipboard.writeText(fmt(item.amt) + ' ' + code(item.from) + ' = ' + fmt(item.result) + ' ' + code(item.to)).then(function(){
+          button.innerHTML = '{{ lucide_icon("check","w-3 h-3",12)|safe }}';
+          setTimeout(function(){ button.innerHTML = '{{ lucide_icon("copy","w-3 h-3",12)|safe }}'; }, 1200);
+        }).catch(function(){});
       });
     });
 
-    // Click on hist entry (not button) to restore conversion
     list.querySelectorAll('.hist-entry').forEach(function(entry){
-      entry.addEventListener('click', function(e){
-        if(e.target.closest('button')) return;
-        const btn = this.querySelector('.hist-copy');
-        if(!btn) return;
-        const idx = parseInt(btn.getAttribute('data-idx'), 10);
-        let hist = [];
-        try{ hist = JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e){}
-        if(hist[idx]){
-          const h = hist[idx];
-          $('convAmt').value = h.amt;
-          $('convFrom').value = h.from;
-          $('convTo').value = h.to;
-          $('convRate').value = h.rate;
-          convert();
+      entry.addEventListener('click', function(event){
+        if(event.target.closest('button')) return;
+        const index = parseInt(this.getAttribute('data-index'), 10);
+        const item = readHistory()[index];
+        if(!item) return;
+        $('convAmt').value = item.amt;
+        $('convFrom').value = code(item.from);
+        $('convTo').value = code(item.to);
+        $('convRate').value = item.rate;
+        isManualOverride = true;
+        if(item.manual){
+          setManualStatus('Restored historical conversion with the rate saved in this browser.');
+        }else{
+          setStatus('manual', 'Historical reference rate', 'Saved in this browser', 'Not current');
+          $('rateHint').textContent = 'This conversion uses the rate saved when the history entry was created. Refresh the live feed for a current reference.';
         }
+        $('useLiveBtn').hidden = false;
+        convert(false);
       });
     });
   }
 
   function swap(){
-    const from = $('convFrom').value.trim().toUpperCase();
-    const to = $('convTo').value.trim().toUpperCase();
-    const rate = parseFloat($('convRate').value) || 0;
+    const from = code($('convFrom').value);
+    const to = code($('convTo').value);
+    const rate = parseFloat($('convRate').value);
     $('convFrom').value = to;
     $('convTo').value = from;
-    if(rate !== 0) $('convRate').value = (1 / rate);
-    convert();
+    if(!isManualOverride && liveData){
+      applyRateForPair();
+      return;
+    }
+    if(isFinite(rate) && rate > 0){
+      $('convRate').value = rateInputValue(1 / rate);
+    }
+    setManualStatus('Currencies swapped. The rate was inverted; verify it or refresh the live feed.');
+    convert(false);
   }
 
   function reset(){
+    isManualOverride = false;
     $('convAmt').value = 1;
     $('convFrom').value = 'BTC';
     $('convTo').value = 'USD';
-    $('convRate').value = 67500;
-    document.querySelectorAll('.pres-chip').forEach(function(b){ b.classList.remove('active'); });
-    document.querySelector('.pres-chip[data-from="BTC"][data-to="USD"]').classList.add('active');
-    convert();
+    $('convRate').value = '';
+    $('useLiveBtn').hidden = true;
+    document.querySelectorAll('.pres-chip').forEach(function(chip){
+      chip.classList.toggle('active', chip.getAttribute('data-from') === 'BTC' && chip.getAttribute('data-to') === 'USD');
+    });
+    if(liveData) applyRateForPair();
+    else convert(false);
   }
 
-  function setPreset(from, to, rate){
+  function setPreset(from, to){
     $('convFrom').value = from;
     $('convTo').value = to;
-    $('convRate').value = rate;
-    document.querySelectorAll('.pres-chip').forEach(function(b){
-      b.classList.toggle('active', b.getAttribute('data-from') === from && b.getAttribute('data-to') === to);
+    document.querySelectorAll('.pres-chip').forEach(function(chip){
+      chip.classList.toggle('active', chip.getAttribute('data-from') === from && chip.getAttribute('data-to') === to);
     });
-    convert();
+    applyRateForPair();
   }
 
   function clearHistory(){
-    localStorage.removeItem(LS_KEY);
+    try{ localStorage.removeItem(LS_KEY); }catch(e){}
+    lastHistoryKey = '';
     renderHistory();
   }
 
   function exportHistory(){
-    let hist = [];
-    try{ hist = JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e){}
-    if(!hist.length) return;
-    const lines = hist.map(function(h){
-      return new Date(h.ts).toLocaleString('en-US') + ' | ' + fmt(h.amt) + ' ' + h.from + ' = ' + fmt(h.result) + ' ' + h.to + ' (rate: ' + fmt(h.rate, 6) + ')';
+    const history = readHistory();
+    if(!history.length) return;
+    const lines = history.map(function(item){
+      return new Date(item.ts).toLocaleString('en-US') + ' | ' + fmt(item.amt) + ' ' + code(item.from) + ' = ' + fmt(item.result) + ' ' + code(item.to) + ' (rate: ' + fmt(item.rate, 10) + (item.manual ? ', manual' : ', reference') + ')';
     });
     navigator.clipboard.writeText(lines.join('\n')).then(function(){
-      const btn = $('exportHistBtn');
-      const og = btn.innerHTML;
-      btn.innerHTML = '{{ lucide_icon("check","w-3 h-3",12)|safe }} Copied';
-      setTimeout(function(){ btn.innerHTML = og; }, 1500);
-    });
+      const button = $('exportHistBtn');
+      const original = button.innerHTML;
+      button.innerHTML = '{{ lucide_icon("check","w-3 h-3",12)|safe }} Copied';
+      setTimeout(function(){ button.innerHTML = original; }, 1500);
+    }).catch(function(){});
+  }
+
+  async function fetchLiveRates(){
+    setStatus('loading', 'Checking reference rates…', 'CoinGecko / Binance / ECB', '—');
+    try{
+      const response = await fetch('/api/crypto-rates', {cache: 'no-store', headers: {Accept: 'application/json'}});
+      if(!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      if((data.status === 'live' || data.status === 'stale') && data.rates && Object.keys(data.rates).length){
+        liveData = data;
+        FX = Object.assign({USD: 1}, data.fiat_cross || {});
+        if(data.status === 'stale'){
+          setStatus('stale', 'Cached reference rates', sourceText(data), 'Cached ' + formatAge(data.age_seconds));
+          $('rateHint').textContent = (data.note || 'Live feeds are unavailable. Showing last verified reference rates; they may be outdated.') + ' Verify before acting.';
+        }else if(data.partial){
+          setStatus('live', 'Live reference rates (partial)', sourceText(data), formatTimestamp(data.timestamp));
+          $('rateHint').textContent = (data.note ? data.note + ' ' : '') + 'Some reference data is unavailable. Check the source label and verify critical figures.';
+        }else{
+          setStatus('live', 'Live reference rates', sourceText(data), formatTimestamp(data.timestamp));
+          $('rateHint').textContent = 'Reference rates loaded. They are cached for about 60 seconds and are not executable trading quotes.';
+        }
+        applyRateForPair();
+      }else{
+        liveData = null;
+        FX = {USD: 1};
+        setStatus('unavailable', 'Live rates unavailable', 'No live source available', 'Manual mode');
+        setManualStatus((data && data.note) ? data.note : 'Live reference rates are unavailable. Enter a rate manually.');
+        convert(false);
+      }
+    }catch(error){
+      liveData = null;
+      FX = {USD: 1};
+      setStatus('unavailable', 'Live rates unavailable', 'No live source available', 'Manual mode');
+      setManualStatus('Could not load reference rates. Enter a rate manually; no estimated price is substituted.');
+      convert(false);
+    }
   }
 
   function init(){
     renderHistory();
-    convert();
-    $('convAmt').addEventListener('input', convert);
-    $('convFrom').addEventListener('input', convert);
-    $('convTo').addEventListener('input', convert);
-    $('convRate').addEventListener('input', convert);
+    convert(false);
+
+    $('convAmt').addEventListener('input', function(){ convert(false); });
+    $('convAmt').addEventListener('change', function(){ convert(true); });
+    $('convFrom').addEventListener('change', applyRateForPair);
+    $('convFrom').addEventListener('blur', applyRateForPair);
+    $('convTo').addEventListener('change', applyRateForPair);
+    $('convTo').addEventListener('blur', applyRateForPair);
+    $('convRate').addEventListener('input', function(){
+      setManualStatus('Manual mode. The result uses the rate you enter, not a live market quote.');
+      convert(false);
+    });
+    $('convRate').addEventListener('change', function(){ convert(true); });
     $('swapBtn').addEventListener('click', swap);
     $('resetBtn').addEventListener('click', reset);
+    $('useLiveBtn').addEventListener('click', function(){
+      isManualOverride = false;
+      if(!liveData) fetchLiveRates();
+      else applyRateForPair();
+    });
     $('clearHistBtn').addEventListener('click', clearHistory);
     $('exportHistBtn').addEventListener('click', exportHistory);
-    document.querySelectorAll('.pres-chip').forEach(function(b){
-      b.addEventListener('click', function(){
-        setPreset(this.getAttribute('data-from'), this.getAttribute('data-to'), parseFloat(this.getAttribute('data-rate')));
+    $('refreshRatesBtn').addEventListener('click', function(){
+      isManualOverride = false;
+      fetchLiveRates();
+    });
+
+    document.querySelectorAll('.pres-chip').forEach(function(button){
+      button.addEventListener('click', function(){
+        isManualOverride = false;
+        setPreset(this.getAttribute('data-from'), this.getAttribute('data-to'));
       });
     });
+
+    fetchLiveRates();
   }
 
   document.addEventListener('DOMContentLoaded', init);

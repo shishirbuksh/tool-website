@@ -314,7 +314,7 @@ class SitemapService:
             return xml_content
 
     def build_sitemap_index(self) -> str:
-        from app.core.locale_policy import is_surface_indexable, published_locales  # noqa: PLC0415
+        from app.core.locale_policy import published_locales  # noqa: PLC0415
 
         base = self.settings.SITE_URL.rstrip("/")
         lines = [

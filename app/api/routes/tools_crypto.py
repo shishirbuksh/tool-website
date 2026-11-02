@@ -4,7 +4,7 @@ import re
 from collections.abc import Callable, Coroutine
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 
 from app.core.config import settings
 from app.core.exceptions import ServiceError
@@ -111,3 +111,22 @@ async def analyze_crypto_trend_async_post(payload: dict[str, Any] | None = None)
         name=f"trend:{symbol}",
         coro_factory=lambda s=symbol: crypto_service.analyze_trend(s),
     )
+
+
+@router.get("/crypto-rates", include_in_schema=True)
+@router.get("/crypto/rates", include_in_schema=False)
+async def get_crypto_spot_rates(response: Response) -> dict[str, Any]:
+    """Get cached reference crypto/fiat rates for the converter.
+
+    Returns HTTP 200 with ``status: unavailable`` when upstream feeds fail so
+    the client can fall back to clearly labelled manual mode. Invented prices
+    are never returned.
+    """
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    try:
+        return await crypto_service.get_spot_rates()
+    except Exception as e:
+        logger.exception("Failed to fetch spot rates")
+        raise HTTPException(status_code=500, detail="Failed to fetch spot rates") from e
+

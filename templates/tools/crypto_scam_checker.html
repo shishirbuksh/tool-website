@@ -19,17 +19,25 @@
 {% endblock %}
 
 {% block content %}
-{{ tool_hero_section("shield-off", "Scam Detector", "CRYPTO SCAM", "CHECKER", "Check if a crypto project looks suspicious. Answer 8 red-flag questions to assess risk and spot warning signs before investing.") }}
+{{ tool_hero_section("shield-alert", "Manual Checklist", "CRYPTO RED FLAG", "SELF-ASSESSMENT TOOL", "Work through a manual checklist of common crypto warning signs. This is an educational self-assessment — not an automated contract audit, on-chain verification, or a guarantee that a project is safe.") }}
 
 <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
 
   <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
 
     <div class="card-premium p-6">
-      <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("search","w-4 h-4",16)|safe }} Check Project</h2>
-      <p class="text-xs text-base-content/60 mb-4">Enter a project name and check the red flags below.</p>
-      <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="projectName">Project Name or URL</label><input aria-label="Projectname" type="text" id="projectName" class="input input-cinematic w-full text-sm font-mono font-bold" value="" placeholder="e.g. MegaMoon Token"></div>
-      <button id="checkBtn" class="btn btn-primary w-full mt-4" aria-label="Check project">{{ lucide_icon("shield","w-3.5 h-3.5",14)|safe }} Check Project</button>
+      <h2 class="text-sm font-black mb-3 flex items-center gap-2">{{ lucide_icon("clipboard-check","w-4 h-4",16)|safe }} Project Label (Optional)</h2>
+      <p class="text-xs text-base-content/60 mb-4">Add a name for your own notes. The name stays in this browser and is not checked against any database.</p>
+      <div>
+        <label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="projectName">Project Name / Ticker (optional)</label>
+        <input aria-label="Project name or ticker" type="text" id="projectName" class="input input-cinematic w-full text-sm font-mono font-bold" value="" placeholder="e.g. MegaMoon Token (MOON)">
+      </div>
+      <p class="text-[10px] text-base-content/45 leading-relaxed mt-3">This tool does not inspect contract addresses, wallets, bytecode, liquidity pools or holder data.</p>
+      <div class="flex gap-2 mt-4">
+        <button id="resetChecklistBtn" type="button" class="btn btn-ghost btn-sm w-full gap-1.5 text-xs" aria-label="Clear checklist">
+          {{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Clear Checklist
+        </button>
+      </div>
     </div>
 
     <div class="card-premium p-6">
@@ -43,41 +51,64 @@
   <div class="flex-1 min-w-0 space-y-6">
 
     <div class="card-premium p-6">
-      <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("shield-off","w-4 h-4",16)|safe }} Risk Assessment</h2>
+      <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("shield-off","w-4 h-4",16)|safe }} Checklist Result</h2>
       <div class="flex items-center gap-5 mb-5" role="status" aria-live="polite">
-        <div class="scam-gauge" id="scamGauge" style="--_pct:0deg;--_gcolor:var(--color-success);color:var(--color-success)">0</div>
+        <div class="scam-gauge" id="scamGauge" style="--_pct:0deg;--_gcolor:var(--color-primary);color:var(--color-primary)">0</div>
         <div>
-          <output id="scamLevel" class="text-lg font-black block" style="color:var(--color-success)">Safe</output>
-          <output id="scamVerdict" class="text-xs text-base-content/60 block mt-1">No red flags detected. This project appears safe.</output>
+          <output id="scamLevel" class="text-lg font-black block" style="color:var(--color-primary)">No Flags Recorded</output>
+          <output id="scamVerdict" class="text-xs text-base-content/60 block mt-1">Select any red flags that apply. The result is not a safety rating.</output>
         </div>
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Risk Score</span><output id="resScore" class="metric-cinematic metric-cinematic--sm font-mono">0/100</output></div>
-        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Flags Found</span><output id="resFlags" class="metric-cinematic metric-cinematic--sm font-mono">0</output></div>
-        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">High Risk</span><output id="resHigh" class="metric-cinematic metric-cinematic--sm font-mono">0</output></div>
-        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Medium Risk</span><output id="resMed" class="metric-cinematic metric-cinematic--sm font-mono">0</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Checklist Weight</span><output id="resScore" class="metric-cinematic metric-cinematic--sm font-mono">0/100</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Flags Selected</span><output id="resFlags" class="metric-cinematic metric-cinematic--sm font-mono">0</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">High-severity Flags</span><output id="resHigh" class="metric-cinematic metric-cinematic--sm font-mono">0</output></div>
+        <div class="stat-cinematic text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Medium-severity Flags</span><output id="resMed" class="metric-cinematic metric-cinematic--sm font-mono">0</output></div>
       </div>
     </div>
 
     <div class="card-premium p-6">
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("list","w-4 h-4",16)|safe }} Flag Details</h2>
       <div id="flagDetailContainer">
-        <p class="text-xs text-base-content/30 text-center py-6" id="flagEmpty">No flags to show. Toggle items above.</p>
+        <p class="text-xs text-base-content/30 text-center py-6">No flags to show. Toggle items above.</p>
       </div>
     </div>
 
     <div class="card-premium p-6">
-      <h2 class="text-sm font-black mb-3 flex items-center gap-2">{{ lucide_icon("shield","w-4 h-4",16)|safe }} Safety Tips</h2>
+      <h2 class="text-sm font-black mb-3 flex items-center gap-2">{{ lucide_icon("shield","w-4 h-4",16)|safe }} Due-Diligence Tips</h2>
       <ul class="space-y-2 text-xs text-base-content/60 leading-relaxed">
-        <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span><strong class="text-base-content">Always DYOR (Do Your Own Research):</strong> Never invest based on hype alone. Check the team, audit reports, tokenomics, and community before putting money in.</span></li>
-        <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span><strong class="text-base-content">Verify contract addresses:</strong> Scammers create fake tokens with similar names. Always get the contract address from the official website or CoinGecko, not from social media posts.</span></li>
-        <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span><strong class="text-base-content">Check for locked liquidity:</strong> One of the biggest scam signs is unlocked liquidity. Legitimate projects lock liquidity for 6-12 months. Check on etherscan or bscscan if the LP is locked.</span></li>
+        <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span><strong class="text-base-content">Do your own research:</strong> Never rely on hype or a single checklist. Review the team, documentation, token distribution, audit scope and community history.</span></li>
+        <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span><strong class="text-base-content">Verify contract addresses:</strong> Get the contract address from the project's official website or a reputable explorer, not from unsolicited social-media messages. Compare every character before interacting.</span></li>
+        <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span><strong class="text-base-content">Check liquidity and permissions:</strong> Review lock status, lock duration, holder concentration and contract permissions on the relevant block explorer or analytics service. A lock is evidence to examine, not a guarantee.</span></li>
+        <li class="flex items-start gap-2"><span class="text-primary mt-0.5">•</span><span><strong class="text-base-content">Confirm audits independently:</strong> Open the auditor's own report and check the contract address, date and scope. A logo on a project website is not proof of an audit.</span></li>
       </ul>
     </div>
 
   </div>
 
 </div>
+
+<div class="card-premium p-6 mt-6">
+  <h3 class="text-sm font-black mb-3 flex items-center gap-2">{{ lucide_icon("alert-circle","w-4 h-4",16)|safe }} Limitations &amp; Verification Notice</h3>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-base-content/70 leading-relaxed">
+    <div>
+      <p class="font-bold text-base-content mb-1">What this checklist does</p>
+      <p>It records red flags you identify yourself and gives each selected item a transparent, illustrative weight. The result is a prompt for further research, not a risk score produced from live on-chain data.</p>
+    </div>
+    <div>
+      <p class="font-bold text-base-content mb-1">What this checklist does NOT do</p>
+      <p>It does <strong>not</strong> inspect smart-contract bytecode, simulate buys or sells, verify an audit, check wallet history, scan a blacklist or confirm whether a project is a scam. <strong>No project is verified or guaranteed safe</strong> because no flags were selected here.</p>
+    </div>
+  </div>
+  <div class="mt-4 pt-4 border-t border-base-content/10 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-base-content/60">
+    <span>Independent services to check:</span>
+    <a href="https://etherscan.io" target="_blank" rel="noopener noreferrer" class="font-semibold text-primary hover:underline">Etherscan</a>
+    <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" class="font-semibold text-primary hover:underline">Solscan</a>
+    <a href="https://tokensniffer.com" target="_blank" rel="noopener noreferrer" class="font-semibold text-primary hover:underline">TokenSniffer</a>
+    <a href="https://defillama.com" target="_blank" rel="noopener noreferrer" class="font-semibold text-primary hover:underline">DefiLlama</a>
+  </div>
+</div>
+
 {% include "components/ymyl_disclaimer.html" %}
 
 
@@ -91,14 +122,14 @@
   const $ = id => document.getElementById(id);
 
   const FLAGS = [
-    {id:0, label:'Anonymous team (no public identities)', severity:'High', weight:20, desc:'Legitimate projects have doxxed teams. If founders hide behind pseudonyms, they can rug pull without consequences.'},
-    {id:1, label:'Promises guaranteed or unrealistic returns', severity:'High', weight:20, desc:'No investment can guarantee returns. This is a classic scam sign. Real projects discuss risks, not just rewards.'},
-    {id:2, label:'No smart contract audit from a known firm', severity:'High', weight:20, desc:'Audits from CertiK, Hacken, or similar identify vulnerabilities. No audit means bugs or backdoors may exist.'},
-    {id:3, label:'Liquidity is not locked', severity:'High', weight:20, desc:'Unlocked liquidity lets developers withdraw all funds. Legitimate projects lock LP tokens for 6-12+ months.'},
-    {id:4, label:'Airdrop or presale requires payment to claim', severity:'High', weight:20, desc:'Real airdrops never ask for payment. If you must pay to claim tokens, it is almost certainly a scam.'},
-    {id:5, label:'Misspelled website or imposter domain', severity:'Medium', weight:10, desc:'Scammers create domains like binance.org or pancakeswap.finance. Always double-check the URL carefully.'},
-    {id:6, label:'No whitepaper or whitepaper is plagiarized', severity:'Medium', weight:10, desc:'A whitepaper explains the project vision. Missing or copied whitepapers indicate lack of substance.'},
-    {id:7, label:'Social media accounts less than 3 months old', severity:'Medium', weight:10, desc:'Newly created Twitter, Telegram, or Discord accounts are a red flag. Established projects have a longer track record.'},
+    {id:0, label:'Anonymous team (no public identities)', severity:'High', weight:20, desc:'Pseudonymous teams are common in crypto and are not proof of fraud, but they make accountability and background checks harder. Look for verifiable public information and a consistent track record.'},
+    {id:1, label:'Promises guaranteed or unrealistic returns', severity:'High', weight:20, desc:'No legitimate investment can guarantee a return. Treat fixed-yield promises and pressure to act quickly as warning signs and check the claims against independent sources.'},
+    {id:2, label:'No smart contract audit from a known firm', severity:'High', weight:20, desc:'An audit can identify some technical issues, but it is not a guarantee of safety. If an audit is cited, open the auditor\'s own report and check the contract address, date and scope.'},
+    {id:3, label:'Liquidity is not locked', severity:'High', weight:20, desc:'Unlocked liquidity can make it easier for whoever controls it to withdraw funds. Locked liquidity reduces that specific route but does not guarantee the project is safe.'},
+    {id:4, label:'Airdrop or presale requires payment to claim', severity:'High', weight:20, desc:'Paying an upfront fee, connecting a wallet with funds, or sharing a seed phrase to claim free tokens is a common theft pattern. Legitimate airdrops do not require your recovery phrase or a payment to receive tokens.'},
+    {id:5, label:'Misspelled website or imposter domain', severity:'Medium', weight:10, desc:'Imposter sites often imitate a real brand with a small spelling change or a different domain ending. Type the address yourself, use a bookmark, and double-check every character before connecting a wallet.'},
+    {id:6, label:'No whitepaper or whitepaper is plagiarized', severity:'Medium', weight:10, desc:'A missing, vague or copied whitepaper makes it harder to assess what the project actually does. Compare the claims with independent sources and look for verifiable technical detail.'},
+    {id:7, label:'Social media accounts less than 3 months old', severity:'Medium', weight:10, desc:'A short history is not proof of fraud, but it gives you less evidence to assess. Check who is behind the account and whether the project has verifiable activity elsewhere.'},
   ];
 
   function renderFlags(){
@@ -131,22 +162,28 @@
     const highCount = activeFlags.filter(function(f){ return f.severity === 'High'; }).length;
     const medCount = activeFlags.filter(function(f){ return f.severity === 'Medium'; }).length;
 
+    const projName = ($('projectName') ? $('projectName').value.trim() : '') || 'This project';
     let level, gcolor, verdict;
     if(totalScore === 0){
-      level = 'Safe'; gcolor = 'var(--color-success)';
-      verdict = 'No red flags detected. This project appears safe.';
+      level = 'No Flags Recorded';
+      gcolor = 'var(--color-primary)';
+      verdict = 'No checklist flags are selected. This is not proof of safety; verify contracts, permissions and audits independently.';
     } else if(totalScore <= 20){
-      level = 'Low Risk'; gcolor = 'var(--color-info)';
-      verdict = 'A few minor concerns. Do more research before investing.';
+      level = 'Few Flags Recorded';
+      gcolor = 'var(--color-info)';
+      verdict = 'A few checklist flags are recorded for ' + projName + '. Research each concern further before acting.';
     } else if(totalScore <= 40){
-      level = 'Medium Risk'; gcolor = 'var(--color-warning)';
-      verdict = 'Several warning signs. Proceed with extreme caution.';
+      level = 'Several Flags Recorded';
+      gcolor = 'var(--color-warning)';
+      verdict = 'Several checklist flags are recorded for ' + projName + '. Treat them as prompts for independent verification, not as proof of fraud.';
     } else if(totalScore <= 60){
-      level = 'High Risk'; gcolor = 'var(--color-error)';
-      verdict = 'Multiple serious red flags. Strongly consider avoiding this project.';
+      level = 'Many Flags Recorded';
+      gcolor = 'var(--color-error)';
+      verdict = 'Many checklist flags are recorded for ' + projName + '. Slow down and verify each concern independently before interacting.';
     } else {
-      level = 'Critical'; gcolor = '#dc2626';
-      verdict = 'Critical risk level. This project has most scam warning signs. Do not invest.';
+      level = 'Most Flags Recorded';
+      gcolor = '#dc2626';
+      verdict = 'Most checklist flags are recorded for ' + projName + '. This warrants serious caution, but it still is not an automated scam determination.';
     }
 
     const pct = Math.min(100, totalScore);
@@ -174,12 +211,11 @@
     // Flag details
     const detailContainer = $('flagDetailContainer');
     if(activeFlags.length === 0){
-      $('flagEmpty').style.display = 'block';
+      detailContainer.innerHTML = '<p class="text-xs text-base-content/30 text-center py-6">No flags to show. Toggle items above.</p>';
       return;
     }
-    $('flagEmpty').style.display = 'none';
     detailContainer.innerHTML =
-      '<table class="scam-table" role="table"><thead><tr><th scope="col">Flag</th><th scope="col">Risk</th><th scope="col">Why It Matters</th></tr></thead><tbody>' +
+      '<table class="scam-table" role="table"><thead><tr><th scope="col">Flag</th><th scope="col">Severity</th><th scope="col">Why It Matters</th></tr></thead><tbody>' +
       activeFlags.map(function(f){
         const sevColor = f.severity === 'High' ? 'var(--color-error)' : 'var(--color-warning)';
         return '<tr><td style="font-weight:700">' + f.label + '</td><td style="color:' + sevColor + ';font-weight:800">' + f.severity + '</td><td class="text-base-content/60" style="font-weight:400">' + f.desc + '</td></tr>';
@@ -192,24 +228,17 @@
       b.classList.remove('active');
       b.setAttribute('aria-pressed', 'false');
     });
-    $('projectName').value = '';
-    $('flagDetailContainer').innerHTML = '';
-    $('flagEmpty').style.display = 'block';
+    if($('projectName')) $('projectName').value = '';
     calculate();
   }
 
   function init(){
     renderFlags();
     calculate();
-    $('checkBtn').addEventListener('click', function(){
-      if($('projectName').value.trim()){
-        document.querySelectorAll('.flag-chip').forEach(function(b){
-          b.classList.add('active');
-          b.setAttribute('aria-pressed', 'true');
-        });
-        calculate();
-      }
-    });
+    const clearBtn = $('resetChecklistBtn');
+    if(clearBtn) clearBtn.addEventListener('click', reset);
+    const pInput = $('projectName');
+    if(pInput) pInput.addEventListener('input', calculate);
   }
 
   document.addEventListener('DOMContentLoaded', init);

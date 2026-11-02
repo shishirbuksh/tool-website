@@ -93,10 +93,10 @@
   {% block head %}{% endblock %}
 
   <script type="application/ld+json" nonce="{{ nonce }}">
-  {"@context":"https://schema.org","@id":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/#organization","@type":"Organization","name":"StoryBrain AI","url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}","foundingDate":"2026-01-15","address":{"@type":"PostalAddress","addressLocality":"San Francisco","addressRegion":"CA","postalCode":"94105","addressCountry":"US"},"contactPoint":[{"@type":"ContactPoint","email":"hello@storybrainai.com","contactType":"customer support","availableLanguage":["en"]}],"logo":{"@type":"ImageObject","url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/static/og-image.webp","width":1200,"height":630}}
+  {"@context":"https://schema.org","@id":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/#organization","@type":"Organization","name":"StoryBrain AI","url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}","contactPoint":[{"@type":"ContactPoint","email":"hello@storybrainai.com","contactType":"customer support","availableLanguage":["en"]}],"logo":{"@type":"ImageObject","url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/static/og-image.webp","width":1200,"height":630}}
   </script>
   <script type="application/ld+json" nonce="{{ nonce }}">
-  {"@context":"https://schema.org","@id":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/#website","@type":"WebSite","name":"StoryBrain AI","url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}","potentialAction":{"@type":"SearchAction","target":{"@type":"EntryPoint","urlTemplate":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/tools?q={search_term_string}"},"query-input":"required name=search_term_string"}}
+  {"@context":"https://schema.org","@id":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/#website","@type":"WebSite","name":"StoryBrain AI","url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}"}
   </script>
   {% if '/blog' not in request.url.path and not (hub_name is defined) and request.url.path not in ('/', '/hi/', '/es/', '/fr/', '/de/', '/hi', '/es', '/fr', '/de') %}
   <script type="application/ld+json" nonce="{{ nonce }}">
@@ -228,6 +228,15 @@
       const banner = document.getElementById("cookieConsent");
       const btnAccept = document.getElementById("cookieAccept");
       const btnReject = document.getElementById("cookieReject");
+      // Global Privacy Control is a browser-level opt-out signal. Honour it as
+      // a rejection and do not display the banner or load Google scripts.
+      const gpcEnabled = navigator.globalPrivacyControl === true || window.globalPrivacyControl === true;
+      window.__sbrGpcEnabled = gpcEnabled;
+      if (gpcEnabled) {
+        banner.hidden = true;
+        banner.setAttribute("inert", "");
+        return;
+      }
       const showBanner = () => {
         banner.hidden = false;
         banner.removeAttribute("inert");
@@ -346,6 +355,7 @@
       
       function loadGoogleScripts() {
         if (googleScriptsLoaded) return;
+        if (navigator.globalPrivacyControl === true || window.globalPrivacyControl === true) return;
         if (localStorage.getItem("cookieConsent") === "rejected") return;
         googleScriptsLoaded = true;
 
@@ -366,8 +376,10 @@
         document.body.appendChild(adsense);
       }
 
-      // Check if consent was already given
-      if (localStorage.getItem("cookieConsent") === "accepted") {
+      // Check if consent was already given. GPC always overrides a stored grant.
+      if (navigator.globalPrivacyControl === true || window.globalPrivacyControl === true) {
+          denyConsentUpdate();
+      } else if (localStorage.getItem("cookieConsent") === "accepted") {
           grantConsentUpdate();
           loadGoogleScripts();
       } else if (localStorage.getItem("cookieConsent") === "rejected") {
