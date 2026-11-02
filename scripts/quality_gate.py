@@ -40,6 +40,8 @@ import yaml  # noqa: E402
 
 from app.core.i18n import SUPPORTED_LOCALES, normalize_locale, split_locale_path  # noqa: E402
 from app.core.locale_policy import (  # noqa: E402
+    INDIA_ONLY_TOOL_SLUGS,
+    WESTERN_LOCALES,
     is_path_indexable,
     is_surface_indexable,
     path_surface,
@@ -47,6 +49,8 @@ from app.core.locale_policy import (  # noqa: E402
     static_pages_for,
     translation_decision,
 )
+
+INDIA_ONLY_TOOLS = INDIA_ONLY_TOOL_SLUGS
 
 VALID_STATUSES = frozenset({"draft", "review", "published"})
 DEFAULT_STATUSES = ("published", "review")
@@ -68,20 +72,6 @@ YMYL_HINTS = (
     "fd",
     "retirement",
 )
-
-# Tools whose demand is India-specific. They may be localized into HI but must
-# never be released for DE/ES/FR (see MULTILINGUAL_RUNBOOK.md).
-INDIA_ONLY_TOOLS = frozenset(
-    {
-        "gst-calculator",
-        "eway-bill-calculator",
-        "sip-calculator",
-        "fd-calculator",
-        "job-card-generator",
-        "delivery-challan-generator",
-    }
-)
-WESTERN_LOCALES = frozenset({"de", "es", "fr"})
 
 ARTIFACT_PATTERNS = (
     ("replacement_char", re.compile("\ufffd")),
@@ -565,7 +555,7 @@ class QualityGate:
         status = raw_status or "review"
         if status not in self.statuses:
             return False
-        if status == "published" and kind == "tool" and slug in INDIA_ONLY_TOOLS and loc in WESTERN_LOCALES:
+        if status == "published" and kind == "tool" and slug in INDIA_ONLY_TOOL_SLUGS and loc in WESTERN_LOCALES:
             self.report.add(
                 "error",
                 loc,

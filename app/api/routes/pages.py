@@ -27,7 +27,13 @@ from app.core.i18n import (
 from app.core.i18n import (
     t as tr,
 )
-from app.core.locale_policy import indexable_locales_for_path, is_path_indexable, is_surface_indexable
+from app.core.locale_policy import (
+    INDIA_ONLY_TOOL_SLUGS,
+    WESTERN_LOCALES,
+    indexable_locales_for_path,
+    is_path_indexable,
+    is_surface_indexable,
+)
 from app.core.sanitize import sanitize_html
 
 try:
@@ -340,8 +346,14 @@ async def tools_catalog(request: Request) -> Response:
             categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools_localized, loc)
         tools = []
         for cat_name, cat_tools in categories.items():
+            display_category = category_label(cat_name, loc)
             for t in cat_tools:
-                tools.append({"name": t["name"], "url": t["url"], "desc": t["desc"], "category": cat_name})
+                slug = str(t.get("url", "")).rstrip("/").rsplit("/", 1)[-1]
+                if loc in WESTERN_LOCALES and slug in INDIA_ONLY_TOOL_SLUGS:
+                    continue
+                tools.append(
+                    {"name": t["name"], "url": t["url"], "desc": t["desc"], "category": display_category}
+                )
         resp = cached_json(tools, max_age=300, stale_while_revalidate=3600)
         if loc != "en":
             resp.headers["Content-Language"] = loc

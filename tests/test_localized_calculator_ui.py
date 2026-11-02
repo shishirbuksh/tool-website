@@ -13,6 +13,7 @@ import re
 
 import pytest
 
+from app.api.routes.pages import templates
 from app.core.i18n import t as tr
 
 # English chrome that must never appear on a localized calculator page.
@@ -217,6 +218,49 @@ def test_footer_popular_tools_and_methodology_are_localized(client, locale):
     assert tr("cookie.title", locale) in page
 
 
+@pytest.mark.parametrize("locale", ["de", "es", "fr", "hi"])
+def test_search_dialog_messages_are_localized(client, locale):
+    path = f"/{locale}/tool/emi-calculator"
+    response = client.get(path)
+    assert response.status_code == 200
+    raw = html_lib.unescape(response.text)
+
+    for attr, key in (
+        ("data-msg-empty", "search.empty"),
+        ("data-msg-no-results", "search.no_results"),
+        ("data-msg-error", "search.error"),
+        ("data-msg-update", "sw.update_available"),
+        ("data-msg-refresh", "sw.refresh"),
+    ):
+        assert f'{attr}="{tr(key, locale)}"' in raw, f"{path} missing {attr}"
+
+
+@pytest.mark.parametrize("locale", ["de", "es", "fr", "hi"])
+def test_skip_link_and_trust_aria_are_localized(client, locale):
+    path = f"/{locale}/tool/emi-calculator"
+    response = client.get(path)
+    assert response.status_code == 200
+    raw = html_lib.unescape(response.text)
+
+    assert f">{tr('a11y.skip', locale)}</a>" in raw
+    assert "Skip to content" not in raw
+    assert f'aria-label="{tr("tool.trust_signals", locale)}"' in raw
+    assert 'aria-label="Trust signals"' not in raw
+
+
+def test_related_tool_fallback_title_is_localized():
+    template = templates.env.from_string(
+        '{% from "components/tool_seo_macros.html" import tool_seo_related with context %}'
+        '{{ tool_seo_related(tools, "de") }}'
+    )
+    rendered = template.render(
+        tools=[{"name": "Kreditrechner", "url": "/de/tool/emi-calculator", "desc": ""}],
+        locale="de",
+    )
+    assert 'title="Kreditrechner öffnen"' in rendered
+    assert "Go to" not in rendered
+
+
 @pytest.mark.parametrize(
     ("locale", "native_markers"),
     [
@@ -234,6 +278,25 @@ def test_de_es_affordability_is_native_not_us_model(client, locale, native_marke
     for us_term in ("PMI", "HOA", "DTI", "Property Tax", "Annual Income", "28%", "36%", "43%"):
         assert us_term not in text, f"{path} still renders US model term {us_term!r}"
     assert 'id="affForm"' in response.text
+
+
+INDIA_ONLY_TOOL_SLUGS = (
+    "gst-calculator",
+    "eway-bill-calculator",
+    "sip-calculator",
+    "fd-calculator",
+    "job-card-generator",
+    "delivery-challan-generator",
+)
+
+
+@pytest.mark.parametrize("locale", ["de", "es"])
+def test_release_pages_do_not_promote_india_only_tools(client, locale):
+    for path in PAGES[locale]:
+        response = client.get(path)
+        assert response.status_code == 200, path
+        for slug in INDIA_ONLY_TOOL_SLUGS:
+            assert f"/tool/{slug}" not in response.text, f"{path} links India-only {slug}"
 
 
 @pytest.mark.parametrize(

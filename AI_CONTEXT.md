@@ -43,3 +43,19 @@
 - Explain the plan
 - List files to modify
 - Wait for approval
+
+## Design System (Apple × SAP)
+- Synthesizes Apple's museum-gallery minimalism (SF Pro/Inter optical tracking, frosted glassmorphism `apple-glass`, pill action buttons `.apple-pill-btn`) with SAP's enterprise precision (Sapphire Blue `#0057d2`, structured 8px controls `.enterprise-control`, data tables `.sap-band`).
+- Design contracts located in `DESIGN_APPLE.md`, `DESIGN_SAP.md`, and `DESIGN_SYNTHESIS.md`.
+
+## Active Agent Skills (.agents/skills)
+- FastAPI: `fastapi`, `fastapi-templates`, `fastapi-python`, `fastapi-code-review`
+- SEO: `seo-audit`, `programmatic-seo`, `seo-competitor-pages`, `seo-content-writer`, `seo-technical`
+- UI/UX & Web Design: `web-design-guidelines` (Vercel Web Interface Guidelines), `ui-ux-pro-max` (Design systems, micro-interactions, responsive accessibility, WCAG contrast)
+
+## UI/UX Standards
+- Explicit button types: All `<button>` elements must specify `type="button"` (or `type="submit"` in forms).
+- Search inputs: Use `type="search" inputmode="search" enterkeyhint="search" spellcheck="false"`.
+- Focus & Touch states: All interactive elements declare `touch-action: manipulation`, `-webkit-tap-highlight-color: transparent`, and `:focus-visible` 2px contrast rings.
+- Dialog scrolling: Overlays and modals must contain `overscroll-behavior: contain`.
+- Typographic punctuation: Use typographic ellipsis `…` instead of literal triple dots `...`.

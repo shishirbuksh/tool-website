@@ -31,6 +31,20 @@ PUBLISHED = "published"
 QUARANTINED = "quarantined"
 MISSING = "missing"
 
+# Tools whose demand is India-specific. They may be localized into HI but must
+# never be released or promoted for DE/ES/FR (see MULTILINGUAL_RUNBOOK.md).
+INDIA_ONLY_TOOL_SLUGS = frozenset(
+    {
+        "gst-calculator",
+        "eway-bill-calculator",
+        "sip-calculator",
+        "fd-calculator",
+        "job-card-generator",
+        "delivery-challan-generator",
+    }
+)
+WESTERN_LOCALES = frozenset({"de", "es", "fr"})
+
 _VALID_STATUSES = frozenset({PUBLISHED, QUARANTINED, "draft", "review"})
 _CONFIG_TTL = 300.0
 _config_lock = threading.RLock()

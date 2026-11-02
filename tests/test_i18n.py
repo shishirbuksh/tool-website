@@ -607,6 +607,16 @@ class TestI18nRoutes:
         de = c.get("/api/tools/catalog?lang=de")
         assert any(t["url"].startswith("/de/tool/") for t in de.json())
         assert de.headers.get("Content-Language") == "de"
+        # Shared search UI: category labels are chrome and must be localized;
+        # India-only tools must not be promoted in DE/ES/FR catalogs.
+        from app.core.i18n import category_label
+
+        for loc in ("de", "es", "fr"):
+            items = c.get(f"/api/tools/catalog?lang={loc}").json()
+            assert category_label("Calculators", loc) in {t["category"] for t in items}
+            assert "Calculators" not in {t["category"] for t in items}
+            for slug in ("sip-calculator", "fd-calculator", "gst-calculator"):
+                assert not any(slug in t["url"] for t in items), (loc, slug)
         # Uppercase lang normalizes; missing lang defaults to EN
         hi_upper = c.get("/api/tools/catalog?lang=HI")
         assert hi_upper.headers.get("Content-Language") == "hi"

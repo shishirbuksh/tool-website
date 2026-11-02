@@ -138,3 +138,96 @@ class TestReleasePath:
         en_tool = client.get("/tool/emi-calculator")
         assert 'hreflang="de"' not in en_tool.text
 
+    def test_published_item_indexes_when_surfaces_are_empty(self, client, tmp_path, monkeypatch):
+        """The 8-tool release: locale published, surfaces [], item published.
+
+        Only the reviewed tool may become indexable. Hubs, home, blog and every
+        other review-status item must stay quarantined and absent from the
+        locale sitemap, sitemap index, robots.txt and hreflang clusters.
+        """
+        import copy
+
+        from app.api.routes import seo as seo_routes
+        from app.core import locale_policy
+        from app.core.config import settings
+        from app.services.sitemap_service import SitemapService
+
+        config = tmp_path / "locale_publication.yaml"
+        config.write_text(
+            "version: 1\n"
+            "locales:\n"
+            "  en: {status: published}\n"
+            "  de:\n"
+            "    status: published\n"
+            "    surfaces: []\n"
+            "  hi: {status: quarantined}\n"
+            "  es: {status: quarantined}\n"
+            "  fr: {status: quarantined}\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(locale_policy, "_config_path", lambda: str(config))
+        monkeypatch.setattr(seo_routes, "sitemap_service", SitemapService(settings))
+
+        # Simulate native sign-off for exactly one tool without mutating the
+        # shared YAML cache used by other tests.
+        original_tool_raw = locale_policy._tool_raw
+
+        def published_emi(slug: str):
+            raw = original_tool_raw(slug)
+            if slug != "emi-calculator":
+                return raw
+            raw = copy.deepcopy(raw)
+            raw.setdefault("i18n", {}).setdefault("de", {})["translation_status"] = "published"
+            return raw
+
+        monkeypatch.setattr(locale_policy, "_tool_raw", published_emi)
+
+        base = settings.SITE_URL.rstrip("/")
+        tool = client.get("/de/tool/emi-calculator")
+        assert tool.status_code == 200
+        assert "X-Robots-Tag" not in tool.headers
+        assert 'content="index, follow"' in tool.text
+        assert f'<link rel="canonical" href="{base}/de/tool/emi-calculator">' in tool.text
+        assert 'hreflang="de"' in tool.text
+        assert 'hreflang="x-default"' in tool.text
+
+        # Empty surfaces: locale-wide chrome remains noindex even though the
+        # locale itself is published.
+        for path in ("/de/", "/de/tools", "/de/blog", "/de/calculators"):
+            page = client.get(path)
+            assert page.status_code == 200, path
+            assert page.headers.get("X-Robots-Tag") == "noindex, follow", path
+            assert 'hreflang="de"' not in page.text, path
+
+        # Review-status tools stay quarantined too.
+        other = client.get("/de/tool/debt-calculator")
+        assert other.status_code == 200
+        assert other.headers.get("X-Robots-Tag") == "noindex, follow"
+        assert 'hreflang="de"' not in other.text
+
+        # Locale sitemap contains only the published tool URL.
+        sitemap = client.get("/sitemap-de.xml")
+        assert sitemap.status_code == 200
+        assert f"{base}/de/tool/emi-calculator</loc>" in sitemap.text
+        assert "/de/tool/debt-calculator" not in sitemap.text
+        assert "/de/tools" not in sitemap.text
+        assert "/de/blog" not in sitemap.text
+        assert "/de/calculators" not in sitemap.text
+        assert f"{base}/de/</loc>" not in sitemap.text
+        assert 'hreflang="de"' in sitemap.text
+        assert 'hreflang="en"' in sitemap.text
+        assert 'hreflang="x-default"' in sitemap.text
+
+        # The locale sitemap is advertised, but no unreleased surface leaks in.
+        assert "sitemap-de.xml" in client.get("/sitemap-index.xml").text
+        robots = client.get("/robots.txt").text
+        assert "sitemap-de.xml" in robots
+        assert "Allow: /de/tools" not in robots
+        assert "Allow: /de/blog" not in robots
+
+        # EN may advertise the published DE item, never the unreleased surface.
+        en_tool = client.get("/tool/emi-calculator")
+        assert 'hreflang="de"' in en_tool.text
+        en_home = client.get("/")
+        assert 'hreflang="de"' not in en_home.text
+

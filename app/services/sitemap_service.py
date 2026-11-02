@@ -190,6 +190,41 @@ class SitemapService:
 
         return indexable_locales_for_path(loc_path)
 
+    def _localized_yaml_date(self, page: dict, locale: str) -> str | None:
+        """Return ``i18n.<locale>.date_modified`` for a localized item page.
+
+        Locale sitemaps must not inherit the English ``date_modified``: a
+        translation can be refreshed long after (or before) the source page.
+        Hubs and other shared templates have no item-level translation date, so
+        they intentionally omit ``lastmod`` instead of advertising fake
+        freshness.
+        """
+        bare = str(page.get("loc") or "")
+        raw: dict | None = None
+        if bare.startswith("/tool/"):
+            slug = bare[len("/tool/") :].split("/")[0]
+            info = ToolDataLoader.get(slug)
+            raw = info if isinstance(info, dict) else None
+        elif bare.startswith("/blog/"):
+            parts = bare.strip("/").split("/")
+            if len(parts) == 3 and parts[0] == "blog":
+                try:
+                    from app.services.blog_service import BlogService  # noqa: PLC0415
+
+                    raw = BlogService(self.settings)._load_raw().get(parts[2])
+                except Exception:
+                    raw = None
+        if not isinstance(raw, dict):
+            return None
+        overrides = raw.get("i18n")
+        if not isinstance(overrides, dict):
+            return None
+        override = overrides.get(locale)
+        if not isinstance(override, dict):
+            return None
+        value = override.get("date_modified")
+        return str(value) if self._is_valid_yaml_date(str(value or "")) else None
+
     def _render_urlset(self, pages: list[dict], locale: str = "en") -> str:
         from app.core.i18n import localize_path  # noqa: PLC0415
 
@@ -216,9 +251,11 @@ class SitemapService:
             yaml_date = page.get("yaml_date")
             filepath = page.get("filepath")
             lastmod = None
-            if yaml_date and self._is_valid_yaml_date(str(yaml_date)):
+            if locale != "en":
+                lastmod = self._localized_yaml_date(page, locale)
+            elif yaml_date and self._is_valid_yaml_date(str(yaml_date)):
                 lastmod = str(yaml_date)
-            elif filepath and page.get("loc") in ("/", "/sitemap", "/tools", "/about", "/privacy", "/terms", "/disclaimer", "/contact"):
+            if not lastmod and filepath and page.get("loc") in ("/", "/sitemap", "/tools", "/about", "/privacy", "/terms", "/disclaimer", "/contact"):
                 # Dedicated templates have their own mtime.
                 # Shared templates (hub.html, pillar.html, post.html, tool pages)
                 # share one mtime across hundreds of URLs — omit instead to avoid fake freshness.
@@ -276,7 +313,7 @@ class SitemapService:
             return xml_content
 
     def build_sitemap_index(self) -> str:
-        from app.core.locale_policy import published_locales  # noqa: PLC0415
+        from app.core.locale_policy import is_surface_indexable, published_locales  # noqa: PLC0415
 
         base = self.settings.SITE_URL.rstrip("/")
         lines = [
@@ -292,7 +329,7 @@ class SitemapService:
         return "\n".join(lines)
 
     def build_robots_txt(self) -> str:
-        from app.core.locale_policy import published_locales  # noqa: PLC0415
+        from app.core.locale_policy import is_surface_indexable, published_locales  # noqa: PLC0415
 
         with self._lock:
             cached = self._from_cache(self._robots_cache)
@@ -303,7 +340,8 @@ class SitemapService:
             # Only released locales are advertised. Quarantined locales remain
             # crawlable (noindex,follow) but must not be pushed via robots.txt.
             locale_allows = "".join(
-                f"Allow: /sitemap-{loc}.xml\nAllow: /{loc}/blog?page=*\n"
+                f"Allow: /sitemap-{loc}.xml\n"
+                + (f"Allow: /{loc}/blog?page=*\n" if is_surface_indexable(loc, "blog") else "")
                 for loc in published_locales()
                 if loc != "en"
             )

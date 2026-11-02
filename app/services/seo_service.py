@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from app.core.config import Settings
 from app.core.config import settings as _global_settings
 from app.core.i18n import localize_path, normalize_locale
+from app.core.locale_policy import INDIA_ONLY_TOOL_SLUGS, WESTERN_LOCALES
 from app.core.tool_data import ToolDataLoader
 
 
@@ -157,6 +158,11 @@ class SeoService:
             all_tools = ToolDataLoader.get_all()
         related: list[dict[str, Any]] = []
         for s in related_slugs:
+            if locale in WESTERN_LOCALES and s in INDIA_ONLY_TOOL_SLUGS:
+                # Never promote India-only tools on an indexable DE/ES/FR page.
+                # The tool URL itself stays quarantined; this also keeps it out
+                # of related-card internal links and visible names.
+                continue
             tool_info = all_tools.get(s) if all_tools else None
             if isinstance(tool_info, dict):
                 # Localize related-card name/desc so HI pages show HI cards
