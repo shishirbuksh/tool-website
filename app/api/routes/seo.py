@@ -83,7 +83,7 @@ async def robots_txt() -> Response:
         return Response(
             content=content,
             media_type="text/plain",
-            headers={"Cache-Control": "public, max-age=3600"},
+            headers={"Cache-Control": "public, max-age=60, s-maxage=10, must-revalidate"},
         )
     except Exception as e:
         logger.exception("Failed to build robots.txt")

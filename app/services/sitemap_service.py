@@ -33,11 +33,12 @@ class SitemapService:
         except ValueError:
             return False
 
-    def _from_cache(self, cache: tuple[float, str] | None) -> str | None:
+    def _from_cache(self, cache: tuple[float, str] | None, ttl: float | None = None) -> str | None:
         # Caller should hold _lock for full check-and-set, but allow lock-free read here
         # since assignment of tuple is atomic under GIL; keep simple thread-safe read.
+        effective_ttl = ttl if ttl is not None else self._cache_ttl
         with self._lock:
-            if cache and (time.time() - cache[0]) < self._cache_ttl:
+            if cache and (time.time() - cache[0]) < effective_ttl:
                 return cache[1]
         return None
 
@@ -332,7 +333,7 @@ class SitemapService:
         from app.core.locale_policy import is_surface_indexable, published_locales  # noqa: PLC0415
 
         with self._lock:
-            cached = self._from_cache(self._robots_cache)
+            cached = self._from_cache(self._robots_cache, ttl=60)
             if cached:
                 return cached
 
