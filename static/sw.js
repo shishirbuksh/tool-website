@@ -2,8 +2,8 @@
 // CACHE version: bump v40 -> v41 on breaking shell changes.
 // TODO: inject app_version at build time (e.g. __APP_VERSION__) so SW cache
 // busts automatically with each deploy instead of manual version bumps.
-const CACHE_NAME = 'storybrain-v41';
-const STATIC_CACHE = 'storybrain-static-v41';
+const CACHE_NAME = 'storybrain-v42';
+const STATIC_CACHE = 'storybrain-static-v42';
 const PAGE_CACHE_MAX_ENTRIES = 50;
 
 // Assets to pre-cache on install (app-shell only; OG/screenshots lazy via runtime cache)
@@ -26,6 +26,9 @@ const PRECACHE_URLS = [
   '/static/js/app.js',
   '/static/js/tools.utils.js',
   '/static/js/tools.js',
+  '/static/js/workers/worker-pool.js',
+  '/static/js/workers/image.worker.js',
+  '/static/js/workers/pdf.worker.js',
   // NOTE: qrcode.min.js + jsqr.min.js intentionally NOT precached (large vendor
   // bundles) — they are cached lazily on first use via fetchAndCache below.
 ];
