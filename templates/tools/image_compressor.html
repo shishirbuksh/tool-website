@@ -28,7 +28,7 @@
 <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="comp-card">
-      <div id="uploadZone" class="preview-box mb-5" tabindex="0" role="button" aria-label="Upload image to compress" style="cursor:pointer;min-height:180px;border:2px dashed var(--color-base-300);transition:border-color .2s">>
+      <div id="uploadZone" class="preview-box mb-5" tabindex="0" role="button" aria-label="Upload image to compress" style="cursor:pointer;min-height:180px;border:2px dashed var(--color-base-300);transition:border-color .2s">
         <input type="file" id="fileInput" class="absolute top-0 left-0 w-full h-full opacity-0" style="cursor:pointer;z-index:10" accept="image/jpeg,image/png,image/webp" aria-label="Choose image file to compress">
         <div class="text-center" aria-hidden="true">
           <div class="mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center" style="width:56px;height:56px">{{ lucide_icon("cloud-upload","w-6 h-6", 24) | safe }}</div>
@@ -59,10 +59,10 @@
             </div>
         </details>
         <div class="flex gap-3 pt-1">
-          <button type="button" id="compressBtn" class="flex-1 py-3 rounded-xl font-bold text-sm uppercase tracking-widest border-none cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed" style="background:var(--color-primary);color:#fff;box-shadow:0 4px 12px color-mix(in oklab,var(--color-primary) 35%,transparent)">>
+          <button type="button" id="compressBtn" class="flex-1 py-3 rounded-xl font-bold text-sm uppercase tracking-widest border-none cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed" style="background:var(--color-primary);color:#fff;box-shadow:0 4px 12px color-mix(in oklab,var(--color-primary) 35%,transparent)">
             {{ lucide_icon("minimize-2","w-4 h-4", 16) | safe }} <span id="compressBtnLabel">{{ tr("tool.img.compress", locale) }}</span>
           </button>
-          <button type="button" id="resetBtn" class="py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer transition-colors" style="background:var(--color-base-300);border:1px solid var(--color-base-300);color:var(--color-base-content);border-color:transparent">>
+          <button type="button" id="resetBtn" class="py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-widest cursor-pointer transition-colors" style="background:var(--color-base-300);border:1px solid var(--color-base-300);color:var(--color-base-content);border-color:transparent">
             {{ lucide_icon("rotate-ccw","w-4 h-4", 16) | safe }}
           </button>
         </div>
@@ -142,9 +142,21 @@ function rd(iw,ih){
   return{w:Math.round(rw),h:Math.round(rh)}
 }
 
-function comp(f){
-  lo.style.display='flex';ci.classList.add('hidden');db.style.display='none';sl.classList.add('hidden');
-  cb.disabled=true;cl.textContent=LBL_COMPRESSING;
+function applyResult(b, w, h, ft){
+  if(bu)URL.revokeObjectURL(bu);
+  bu=URL.createObjectURL(b);
+  ci.src=bu;ci.classList.remove('hidden');
+  cs.textContent=window.sbr.formatFileSize(b.size);cs.style.color='var(--color-success)';
+  var svg=Math.round((1-b.size/f.size)*100);
+  if(svg<0){sl.style.background='var(--color-warning)'}else{sl.style.background='var(--color-success)'}
+  sl.textContent=svg+'%';sl.classList.remove('hidden');
+  var ex=ft==='jpeg'?'jpg':ft;db.href=bu;db.download='compressed_image.'+ex;db.style.display='inline-flex';
+  coi.src=ou||oi.src;cci.src=bu;
+  lo.style.display='none';cb.disabled=false;cl.textContent=LBL_COMPRESS;
+  if(w&&h){dl.textContent=w+'\u00D7'+h;}
+}
+
+function fallbackComp(f, q, ft, mt){
   var r=new FileReader();
   r.onload=function(e){
     var im=new Image();
@@ -153,23 +165,32 @@ function comp(f){
       var d=rd(im.width,im.height),ca=document.createElement('canvas');
       ca.width=d.w;ca.height=d.h;
       var cx=ca.getContext('2d');cx.drawImage(im,0,0,d.w,d.h);
-      var q=parseInt(qs.value)/100,ft=fs.value,mt=ft==='jpeg'?'image/jpeg':ft==='png'?'image/png':'image/webp';
       ca.toBlob(function(b){
         if(!b){lo.style.display='none';cb.disabled=false;cl.textContent=LBL_COMPRESS;return}
-        if(bu)URL.revokeObjectURL(bu);
-        var u=URL.createObjectURL(b);bu=u;
-        ci.src=u;ci.classList.remove('hidden');
-        cs.textContent=window.sbr.formatFileSize(b.size);cs.style.color='var(--color-success)';
-        var svg=Math.round((1-b.size/f.size)*100),bt=svg+'%';
-        if(svg<0){sl.style.background='var(--color-warning)';bt=svg+'%'}else{sl.style.background='var(--color-success)'}
-        sl.textContent=svg+'%';sl.classList.remove('hidden');
-        db.href=u;var ex=ft==='jpeg'?'jpg':ft;db.download='compressed_image.'+ex;db.style.display='inline-flex';
-        coi.src=ou||oi.src;cci.src=u;
-        lo.style.display='none';cb.disabled=false;cl.textContent=LBL_COMPRESS;
-        dl.textContent=d.w+'\u00D7'+d.h;
+        applyResult(b, d.w, d.h, ft);
       },mt,q);
     };im.src=e.target.result;
   };r.readAsDataURL(f);
+}
+
+function comp(f){
+  lo.style.display='flex';ci.classList.add('hidden');db.style.display='none';sl.classList.add('hidden');
+  cb.disabled=true;cl.textContent=LBL_COMPRESSING;
+  var q=parseInt(qs.value)/100,ft=fs.value,mt=ft==='jpeg'?'image/jpeg':ft==='png'?'image/png':'image/webp';
+  var w=mw.value?parseInt(mw.value):0,h=mh.value?parseInt(mh.value):0;
+
+  if(window.sbr&&window.sbr.workers&&typeof window.sbr.workers.compressImage==='function'){
+    window.sbr.workers.compressImage(f,{quality:q,mimeType:mt,maxWidth:w||undefined,maxHeight:h||undefined})
+      .then(function(res){
+        applyResult(res.blob,res.width,res.height,ft);
+      })
+      .catch(function(err){
+        console.warn('Worker offload failed, falling back to main-thread:',err);
+        fallbackComp(f,q,ft,mt);
+      });
+    return;
+  }
+  fallbackComp(f,q,ft,mt);
 }
 
 sb.addEventListener('click',function(){vw('side')});
@@ -184,7 +205,7 @@ document.addEventListener('touchend',function(){dr=false});
 dz.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click()}});
 dz.addEventListener('click',function(){fi.click()});
 fi.addEventListener('change',function(e){if(!e.target.files[0])return;f=e.target.files[0];rc.classList.remove('hidden');vw('side');
-  if(ou)URL.revokeObjectURL(ou);ou=URL.createObjectURL(f);oi.src=ou;os.textContent=window.sbr.formatFileSize(f.size);comp(f);});
+  if(ou)URL.revokeObjectURL(ou);ou=URL.createObjectURL(f);oi.onload=function(){if(oi.naturalWidth&&oi.naturalHeight)ar=oi.naturalWidth/oi.naturalHeight;};oi.src=ou;os.textContent=window.sbr.formatFileSize(f.size);comp(f);});
 qs.addEventListener('input',function(){qv.textContent=qs.value+'%';qs.setAttribute('aria-valuenow',qs.value);if(f)comp(f)});
 fs.addEventListener('change',function(){if(f)comp(f)});
 cb.addEventListener('click',function(){if(f)comp(f)});
