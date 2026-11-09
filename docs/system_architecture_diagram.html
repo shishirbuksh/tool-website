@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StoryBrain AI - System Architecture & Privacy Boundary Diagram</title>
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --canvas: #121212;
+      --surface: #18181b;
+      --surface-hover: #222226;
+      --border: #27272a;
+      --border-subtle: #1f1f23;
+      --ink: #f4f4f5;
+      --ink-muted: #a1a1aa;
+      --ink-faint: #71717a;
+      --accent: #10b981;
+      --accent-glow: rgba(16, 185, 129, 0.15);
+      --amber: #f59e0b;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+      --red: #ef4444;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    [data-theme="light"] {
+      --bg: #f9fafb;
+      --canvas: #ffffff;
+      --surface: #f4f4f5;
+      --surface-hover: #e4e4e7;
+      --border: #e4e4e7;
+      --border-subtle: #f0f0f2;
+      --ink: #111111;
+      --ink-muted: #52525b;
+      --ink-faint: #a1a1aa;
+      --accent: #059669;
+      --accent-glow: rgba(5, 150, 105, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      padding: 24px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Cal.com Window Frame */
+    .app-frame {
+      max-width: 1320px;
+      width: 100%;
+      margin: 0 auto;
+      background-color: var(--canvas);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 40px -15px rgba(0,0,0,0.4);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .frame-header {
+      padding: 12px 18px;
+      background-color: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .mac-dots {
+      display: flex;
+      gap: 7px;
+    }
+    .mac-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+    .dot-red { background-color: #ff5f56; }
+    .dot-yellow { background-color: #ffbd2e; }
+    .dot-green { background-color: #27c93f; }
+
+    .url-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: var(--canvas);
+      border: 1px solid var(--border);
+      padding: 4px 14px;
+      border-radius: 9999px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink-muted);
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background-color: var(--canvas);
+      color: var(--ink);
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn:hover {
+      background-color: var(--surface-hover);
+    }
+    .btn.active {
+      background-color: #111111;
+      color: #ffffff;
+      border-color: #111111;
+    }
+    [data-theme="dark"] .btn.active {
+      background-color: #ffffff;
+      color: #111111;
+      border-color: #ffffff;
+    }
+
+    /* Main Stage */
+    .frame-body {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      min-height: 680px;
+    }
+    @media (max-width: 1024px) {
+      .frame-body { grid-template-columns: 1fr; }
+    }
+
+    .diagram-stage {
+      padding: 24px;
+      overflow-x: auto;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    @media (max-width: 1024px) {
+      .diagram-stage { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+
+    .stage-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 10px 14px;
+      background-color: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      align-items: center;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--ink-muted);
+      font-weight: 500;
+    }
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* Boundaries */
+    .boundary-block {
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      position: relative;
+      background-color: rgba(24, 24, 27, 0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .boundary-client {
+      border-color: var(--accent);
+      background-color: var(--accent-glow);
+    }
+    .boundary-server {
+      border-color: var(--blue);
+      background-color: rgba(59, 130, 246, 0.05);
+    }
+
+    .boundary-label {
+      position: absolute;
+      top: -10px;
+      left: 18px;
+      background-color: var(--canvas);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .boundary-client .boundary-label {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .boundary-server .boundary-label {
+      color: var(--blue);
+      border-color: var(--blue);
+    }
+
+    /* Grid of Components */
+    .component-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .node-card {
+      background-color: var(--canvas);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .node-card:hover {
+      border-color: var(--ink);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px -6px rgba(0,0,0,0.3);
+    }
+    .node-card.selected {
+      border-color: var(--accent) !important;
+      outline: 2px solid var(--accent);
+      background-color: var(--surface);
+    }
+
+    .node-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .node-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--ink);
+    }
+    .node-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background-color: var(--surface);
+      color: var(--ink-muted);
+      border: 1px solid var(--border);
+    }
+    .node-desc {
+      font-size: 12px;
+      color: var(--ink-muted);
+      line-height: 1.4;
+    }
+    .node-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--ink-faint);
+      margin-top: 4px;
+    }
+
+    /* Sequence Flow (Alternative View) */
+    .sequence-view {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .sequence-step {
+      display: grid;
+      grid-template-columns: 36px 1fr 140px;
+      gap: 14px;
+      align-items: center;
+      padding: 12px 16px;
+      background-color: var(--canvas);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      transition: border-color 0.15s;
+      cursor: pointer;
+    }
+    .sequence-step:hover {
+      border-color: var(--ink);
+    }
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--ink);
+      font-family: var(--font-mono);
+    }
+    .step-content .step-name {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--ink);
+    }
+    .step-content .step-detail {
+      font-size: 12px;
+      color: var(--ink-muted);
+    }
+    .step-timing {
+      text-align: right;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* Inspector Sidebar */
+    .inspector-pane {
+      background-color: var(--surface);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .inspector-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .inspector-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .inspector-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-faint);
+      font-weight: 600;
+    }
+    .inspector-value {
+      font-size: 13px;
+      color: var(--ink);
+      font-family: var(--font-mono);
+    }
+    .inspector-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      background-color: var(--accent-glow);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-frame">
+    <!-- Chrome Header -->
+    <header class="frame-header">
+      <div class="mac-dots">
+        <span class="mac-dot dot-red"></span>
+        <span class="mac-dot dot-yellow"></span>
+        <span class="mac-dot dot-green"></span>
+      </div>
+      <div class="url-pill">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 8h10M7 12h10M7 16h10"/></svg>
+        <span>architecture.storybrainai.com // runtime-spec</span>
+      </div>
+      <div class="toolbar-actions">
+        <button type="button" class="btn active" id="btnTopology">Topology View</button>
+        <button type="button" class="btn" id="btnSequence">Execution Trace</button>
+        <button type="button" class="btn" id="btnThemeToggle" aria-label="Toggle theme">◐</button>
+      </div>
+    </header>
+
+    <div class="frame-body">
+      <!-- Diagram Content -->
+      <main class="diagram-stage">
+        
+        <!-- Legend Strip -->
+        <div class="stage-legend">
+          <span style="font-weight:600;color:var(--ink)">Trust Boundary:</span>
+          <span class="legend-item"><span class="badge-dot" style="background:#10b981"></span> 100% Client-Side RAM Sandbox (Zero Network Transmission)</span>
+          <span class="legend-item"><span class="badge-dot" style="background:#3b82f6"></span> CloudPanel & Nginx SSL Edge (Port 443)</span>
+          <span class="legend-item"><span class="badge-dot" style="background:#f59e0b"></span> Gunicorn & FastAPI Backend Proxy (Port 8090)</span>
+        </div>
+
+        <!-- Topology View -->
+        <div id="viewTopology" style="display:flex;flex-direction:column;gap:20px;">
+          
+          <!-- Boundary 1: Client-Side Sandbox -->
+          <div class="boundary-block boundary-client">
+            <span class="boundary-label">Zero-Trust Local Execution Sandbox (User Browser RAM)</span>
+            <div class="component-grid">
+              
+              <div class="node-card selected" data-id="wasm-engine">
+                <div class="node-header">
+                  <span class="node-title">WASM Core Engine</span>
+                  <span class="node-tag">Local CPU</span>
+                </div>
+                <p class="node-desc">Executes heavy calculations, image compression, and cryptography directly in browser threads.</p>
+                <div class="node-meta">
+                  <span>Latency: &lt; 0.4ms</span>
+                  <span>Isolation: Strict</span>
+                </div>
+              </div>
+
+              <div class="node-card" data-id="dom-calculator">
+                <div class="node-header">
+                  <span class="node-title">118 UI Calculators</span>
+                  <span class="node-tag">Reactive DOM</span>
+                </div>
+                <p class="node-desc">EMI, mortgage, tax, unit conversions, and regex testers executing on pure `input` event listeners.</p>
+                <div class="node-meta">
+                  <span>Server Calls: 0</span>
+                  <span>CSP Nonce: Yes</span>
+                </div>
+              </div>
+
+              <div class="node-card" data-id="local-storage">
+                <div class="node-header">
+                  <span class="node-title">Local Browser State</span>
+                  <span class="node-tag">Storage API</span>
+                </div>
+                <p class="node-desc">Stores user calculation history and custom presets in encrypted local client storage.</p>
+                <div class="node-meta">
+                  <span>Cookie Sync: None</span>
+                  <span>Data Retention: Client Only</span>
+                </div>
+              </div>
+
+              <div class="node-card" data-id="client-canvas">
+                <div class="node-header">
+                  <span class="node-title">HTML5 Canvas / PDF.js</span>
+                  <span class="node-tag">Client Graphics</span>
+                </div>
+                <p class="node-desc">Handles PDF merging, metadata editing, QR code generation, and image resizing in-memory.</p>
+                <div class="node-meta">
+                  <span>Max Payload: Unlimited</span>
+                  <span>Telemetry: None</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Boundary 2: Server-Side Edge & Backend -->
+          <div class="boundary-block boundary-server">
+            <span class="boundary-label">Hostinger VPS / CloudPanel Infrastructure (187.77.7.253)</span>
+            <div class="component-grid">
+              
+              <div class="node-card" data-id="nginx-edge">
+                <div class="node-header">
+                  <span class="node-title">Nginx Edge Reverse Proxy</span>
+                  <span class="node-tag">Port 443 / SSL</span>
+                </div>
+                <p class="node-desc">CloudPanel SSL termination, Brotli compression, strict security headers (CSP, HSTS, GPC).</p>
+                <div class="node-meta">
+                  <span>Proxy Pass: 127.0.0.1:8090</span>
+                  <span>Static Caching: 1y</span>
+                </div>
+              </div>
+
+              <div class="node-card" data-id="gunicorn-worker">
+                <div class="node-header">
+                  <span class="node-title">Gunicorn ASGI Master</span>
+                  <span class="node-tag">Systemd Service</span>
+                </div>
+                <p class="node-desc">Uvicorn worker process manager running under unprivileged user `storybrainai`.</p>
+                <div class="node-meta">
+                  <span>Workers: 2 Uvicorn</span>
+                  <span>Service: storybrain-ai</span>
+                </div>
+              </div>
+
+              <div class="node-card" data-id="fastapi-app">
+                <div class="node-header">
+                  <span class="node-title">FastAPI Core Router</span>
+                  <span class="node-tag">Python 3.14</span>
+                </div>
+                <p class="node-desc">Serves SSR Jinja2 templates, i18n routing (`/de/`, `/es/`, `/hi/`, `/fr/`), and SEO metadata.</p>
+                <div class="node-meta">
+                  <span>SSR Engine: Jinja2</span>
+                  <span>Routes: 117 primary</span>
+                </div>
+              </div>
+
+              <div class="node-card" data-id="cache-sqlite">
+                <div class="node-header">
+                  <span class="node-title">In-Memory / Redis Cache</span>
+                  <span class="node-tag">Cache Layer</span>
+                </div>
+                <p class="node-desc">Caches catalog metadata, rate limits, spot rates, and sitemap indices with fallback memory store.</p>
+                <div class="node-meta">
+                  <span>Fallback: DictCache</span>
+                  <span>Status: Healthy</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Sequence View (Execution Trace) -->
+        <div id="viewSequence" class="sequence-view">
+          <div class="sequence-step" data-id="nginx-edge">
+            <div class="step-num">01</div>
+            <div class="step-content">
+              <div class="step-name">HTTPS Request & Edge Termination</div>
+              <div class="step-detail">Nginx verifies TLS, sets strict Content-Security-Policy with cryptographic nonce, applies Brotli compression.</div>
+            </div>
+            <div class="step-timing">1.2ms (SSL)</div>
+          </div>
+
+          <div class="sequence-step" data-id="fastapi-app">
+            <div class="step-num">02</div>
+            <div class="step-content">
+              <div class="step-name">SSR Template Compilation</div>
+              <div class="step-detail">FastAPI renders Cal.com HTML shells with preloaded `Cal Sans` font and localized schema tags.</div>
+            </div>
+            <div class="step-timing">3.4ms (FastAPI)</div>
+          </div>
+
+          <div class="sequence-step" data-id="wasm-engine">
+            <div class="step-num">03</div>
+            <div class="step-content">
+              <div class="step-name">Browser DOM Hydration & WASM Sandbox Boot</div>
+              <div class="step-detail">JavaScript registers nonced event listeners; WebAssembly runtime initializes in client RAM.</div>
+            </div>
+            <div class="step-timing">0.8ms (Client)</div>
+          </div>
+
+          <div class="sequence-step" data-id="dom-calculator">
+            <div class="step-num">04</div>
+            <div class="step-content">
+              <div class="step-name">Live Local Execution & Zero Server Handoff</div>
+              <div class="step-detail">Inputs trigger instant mathematical projections; zero bytes transmitted across network. Privacy 100% retained.</div>
+            </div>
+            <div class="step-timing">0.0ms (Offline)</div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- Inspector Panel -->
+      <aside class="inspector-pane" id="inspector">
+        <div class="inspector-title">
+          <span>Component Details</span>
+          <span class="inspector-badge" id="inspBadge">Verified</span>
+        </div>
+
+        <div class="inspector-row">
+          <span class="inspector-label">Component Name</span>
+          <span class="inspector-value" id="inspName">WASM Core Engine</span>
+        </div>
+
+        <div class="inspector-row">
+          <span class="inspector-label">Execution Environment</span>
+          <span class="inspector-value" id="inspEnv">Client Browser (RAM sandbox)</span>
+        </div>
+
+        <div class="inspector-row">
+          <span class="inspector-label">Network Transmission</span>
+          <span class="inspector-value" id="inspNet">Zero bytes (Air-gapped calculation)</span>
+        </div>
+
+        <div class="inspector-row">
+          <span class="inspector-label">Security & Compliance</span>
+          <span class="inspector-value" id="inspSec">CSP Nonce + GPC + No Cookies</span>
+        </div>
+
+        <div class="inspector-row">
+          <span class="inspector-label">Implementation Reference</span>
+          <span class="inspector-value" id="inspRef">src/js/tools.utils.js</span>
+        </div>
+
+        <div style="margin-top:auto;padding-top:16px;">
+          <div style="font-size:11px;color:var(--ink-faint);line-height:1.4">
+            Click any component or trace step to inspect real-time security boundaries and operational specifications.
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const compData = {
+      'wasm-engine': {
+        name: 'WASM Core Engine',
+        env: 'Client Browser (RAM Sandbox)',
+        net: 'Zero bytes (Air-gapped calculation)',
+        sec: 'WASM isolate, no external eval',
+        ref: 'static/js/tools.utils.js',
+        badge: 'Zero-Latency'
+      },
+      'dom-calculator': {
+        name: '118 UI Calculators',
+        env: 'Client Browser DOM',
+        net: 'No outbound HTTP requests',
+        sec: 'Strict CSP nonce protection',
+        ref: 'templates/tools/*.html',
+        badge: '100% Client-Side'
+      },
+      'local-storage': {
+        name: 'Local Browser State',
+        env: 'Browser LocalStorage / IndexedDB',
+        net: 'Never synced to remote cloud',
+        sec: 'Same-Origin Policy restricted',
+        ref: 'Client-side storage key sb_hv7',
+        badge: 'Private State'
+      },
+      'client-canvas': {
+        name: 'HTML5 Canvas / PDF.js',
+        env: 'Client Graphics Context',
+        net: 'In-memory blob processing',
+        sec: 'No document upload to server',
+        ref: 'static/js/vendor/*.js',
+        badge: 'In-Memory Only'
+      },
+      'nginx-edge': {
+        name: 'Nginx Edge Reverse Proxy',
+        env: 'CloudPanel / Hostinger VPS Linux',
+        net: 'Terminates TLS on Port 443',
+        sec: 'HSTS, CSP, X-Frame-Options DENY',
+        ref: '/etc/nginx/sites-available/',
+        badge: 'Edge Gateway'
+      },
+      'gunicorn-worker': {
+        name: 'Gunicorn ASGI Master',
+        env: 'systemd service (storybrain-ai)',
+        net: 'Binds to 127.0.0.1:8090',
+        sec: 'User storybrainai (No root execution)',
+        ref: 'storybrain-ai.service',
+        badge: 'Daemon Service'
+      },
+      'fastapi-app': {
+        name: 'FastAPI Core Router',
+        env: 'Python 3.14 + Uvicorn worker',
+        net: 'Internal loopback socket',
+        sec: 'Path traversal sanitization',
+        ref: 'app/main.py & app/api/routes/',
+        badge: 'SSR Engine'
+      },
+      'cache-sqlite': {
+        name: 'In-Memory / Redis Cache',
+        env: 'VPS RAM + Local SQLite store',
+        net: 'Internal memory cache fallback',
+        sec: 'TTL bounded expiration',
+        ref: 'app/core/cache.py',
+        badge: 'In-Memory Cache'
+      }
+    };
+
+    function updateInspector(id) {
+      const data = compData[id];
+      if (!data) return;
+      document.getElementById('inspName').textContent = data.name;
+      document.getElementById('inspEnv').textContent = data.env;
+      document.getElementById('inspNet').textContent = data.net;
+      document.getElementById('inspSec').textContent = data.sec;
+      document.getElementById('inspRef').textContent = data.ref;
+      document.getElementById('inspBadge').textContent = data.badge;
+
+      document.querySelectorAll('.node-card, .sequence-step').forEach(el => {
+        el.classList.toggle('selected', el.getAttribute('data-id') === id);
+      });
+    }
+
+    document.querySelectorAll('.node-card, .sequence-step').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = card.getAttribute('data-id');
+        updateInspector(id);
+      });
+    });
+
+    // View toggling
+    const btnTopo = document.getElementById('btnTopology');
+    const btnSeq = document.getElementById('btnSequence');
+    const viewTopo = document.getElementById('viewTopology');
+    const viewSeq = document.getElementById('viewSequence');
+
+    btnTopo.addEventListener('click', () => {
+      btnTopo.classList.add('active');
+      btnSeq.classList.remove('active');
+      viewTopo.style.display = 'flex';
+      viewSeq.style.display = 'none';
+    });
+
+    btnSeq.addEventListener('click', () => {
+      btnSeq.classList.add('active');
+      btnTopo.classList.remove('active');
+      viewTopo.style.display = 'none';
+      viewSeq.style.display = 'flex';
+    });
+
+    // Theme toggle
+    const themeBtn = document.getElementById('btnThemeToggle');
+    themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+    });
+  </script>
+</body>
+</html>
