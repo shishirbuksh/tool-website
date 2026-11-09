@@ -105,16 +105,9 @@
     return d.innerHTML;
   };
 
-  /* ── Format currency (locale-aware) ──
-     Signature compatibility: the second argument is either a maximum
-     fraction-digit count (new callers) or an ISO currency code (legacy
-     callers). The active page locale decides grouping/decimal separators;
-     the page currency decides the symbol. This keeps deferred loading from
-     overwriting base.html's locale-aware formatter with a USD/en-US one. */
+  /* ── Format currency ── */
   window.sbr.formatCurrency = function (value, arg) {
-    var localeMap = { hi: 'en-IN', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', en: 'en-US' };
-    var target = localeMap[window.sbr.locale] || 'en-US';
-    var currency = window.sbr.currency || 'USD';
+    var currency = 'USD';
     var maxFrac = 0;
     if (typeof arg === 'string') {
       currency = arg;
@@ -124,14 +117,13 @@
     var num = Number(value);
     if (!isFinite(num)) num = 0;
     try {
-      return new Intl.NumberFormat(target, {
+      return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: currency,
         maximumFractionDigits: maxFrac
       }).format(num);
     } catch (e) {
-      var symbol = window.sbr.currencySymbol || '$';
-      return symbol + num.toFixed(maxFrac);
+      return '$' + num.toFixed(maxFrac);
     }
   };
 

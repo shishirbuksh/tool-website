@@ -482,7 +482,7 @@ class QualityGate:
         slugs: set[str] | None = None,
         check_sitemaps: bool = True,
     ) -> None:
-        self.report = GateReport(locales=[normalize_locale(loc) for loc in locales])
+        self.report = GateReport(locales=[str(loc).strip().lower() for loc in locales])
         self.statuses = statuses or set(DEFAULT_STATUSES)
         self.slugs = {slug.strip() for slug in slugs} if slugs else None
         self.check_sitemaps = check_sitemaps

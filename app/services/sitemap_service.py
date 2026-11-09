@@ -271,13 +271,9 @@ class SitemapService:
             # (+ x-default -> en). Placed after priority so legacy
             # loc/lastmod/changefreq/priority adjacency regexes keep passing.
             if not page.get("no_localize"):
-                avail = self._available_locales(bare)
-                for alt in avail:
-                    alt_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{localize_path(bare, alt)}")
-                    lines.append(f'    <xhtml:link rel="alternate" hreflang="{alt}" href="{alt_url}" />')
-                if "en" in avail:
-                    default_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{localize_path(bare, 'en')}")
-                    lines.append(f'    <xhtml:link rel="alternate" hreflang="x-default" href="{default_url}" />')
+                en_url = escape(f"{self.settings.SITE_URL.rstrip('/')}{loc_path}")
+                lines.append(f'    <xhtml:link rel="alternate" hreflang="en" href="{en_url}" />')
+                lines.append(f'    <xhtml:link rel="alternate" hreflang="x-default" href="{en_url}" />')
 
             lines.append("  </url>")
         lines.append("</urlset>")

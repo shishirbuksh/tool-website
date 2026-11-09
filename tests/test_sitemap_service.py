@@ -91,9 +91,8 @@ class TestSitemapService:
         assert "/blog/calculators/emi-calculator-guide" in result
         assert "/calculators" in result
 
-    def test_locale_sitemap_uses_localized_item_dates(self, settings, monkeypatch):
+    def test_sitemap_uses_item_dates(self, settings):
         svc = SitemapService(settings)
-        monkeypatch.setattr(svc, "_available_locales", lambda _bare: ["en", "de"])
         pages = [
             {
                 "loc": "/tool/emi-calculator",
@@ -111,15 +110,13 @@ class TestSitemapService:
             },
         ]
 
-        result = svc._render_urlset(pages, locale="de")
+        result = svc._render_urlset(pages, locale="en")
 
-        tool_url = "https://www.storybrainai.com/de/tool/emi-calculator"
-        blog_url = "https://www.storybrainai.com/de/blog/calculators/compound-interest-formula"
+        tool_url = "https://www.storybrainai.com/tool/emi-calculator"
+        blog_url = "https://www.storybrainai.com/blog/calculators/compound-interest-formula"
         assert re.search(
-            rf"<loc>{re.escape(tool_url)}</loc>\s*<lastmod>2026-10-28</lastmod>", result
-        ), "localized tool lastmod is not the DE translation date"
+            rf"<loc>{re.escape(tool_url)}</loc>\s*<lastmod>2026-10-02</lastmod>", result
+        )
         assert re.search(
-            rf"<loc>{re.escape(blog_url)}</loc>\s*<lastmod>2026-10-28</lastmod>", result
-        ), "localized blog lastmod is not the DE translation date"
-        assert "2026-10-02" not in result
-        assert "2026-09-21" not in result
+            rf"<loc>{re.escape(blog_url)}</loc>\s*<lastmod>2026-09-21</lastmod>", result
+        )

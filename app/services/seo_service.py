@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 from app.core.config import Settings
 from app.core.config import settings as _global_settings
 from app.core.i18n import localize_path, normalize_locale
-from app.core.locale_policy import INDIA_ONLY_TOOL_SLUGS, WESTERN_LOCALES
 from app.core.tool_data import ToolDataLoader
 
 
@@ -44,7 +43,7 @@ class ToolSEO(BaseModel):
                 else "https://www.storybrainai.com"
             )
         ).rstrip("/")
-        return f"{base}{localize_path(f'/tool/{self.slug}', self.locale or 'en')}"
+        return f"{base}/tool/{self.slug}"
 
     @property
     def bare_path(self) -> str:
@@ -82,11 +81,6 @@ _TOOL_OG_FILES: set[str] | None = None
 
 
 def _tool_og_url(static_dir: str, slug: str) -> str:
-    """Per-tool OG image (`static/og/t/<slug>.webp`, see scripts/generate_og.py).
-
-    Existence scanned once per process; missing file -> "" (caller falls back
-    to the category image). Same image serves all locales (EN title art).
-    """
     global _TOOL_OG_FILES
     if _TOOL_OG_FILES is None:
         try:
@@ -103,85 +97,44 @@ class SeoService:
         self.CACHE_TTL = 300
 
     def _is_cache_valid(self, locale: str = "en") -> bool:
-        entry = self._cache.get(locale)
+        entry = self._cache.get("en")
         return entry is not None and (time.time() - entry[0]) < self.CACHE_TTL
 
     def get_seo(self, slug: str, locale: str = "en") -> ToolSEO:
-        loc = normalize_locale(locale)
-        # Populate/refresh cache once, then lookup (avoids repeated builds).
-        seo_map = self.get_seo_map(loc)
+        seo_map = self.get_seo_map("en")
         if slug in seo_map:
             return seo_map[slug]
-        return self._build_default(slug, loc)
+        return self._build_default(slug, "en")
 
     def _build_seo(self, slug: str, locale: str = "en") -> ToolSEO:
         raw = ToolDataLoader.get(slug)
         if raw:
-            return self._from_raw(slug, raw, locale=locale)
-        return self._build_default(slug, locale)
-
-    def _localized_raw(self, raw: dict[str, Any], locale: str) -> dict[str, Any]:
-        if locale == "en":
-            return raw
-        i18n = raw.get("i18n") or {}
-        over = i18n.get(locale) if isinstance(i18n, dict) else None
-        if not isinstance(over, dict):
-            return raw
-        from app.core.content_sanitize import clean_localized_value  # noqa: PLC0415
-
-        over = clean_localized_value(over)
-        merged = dict(raw)
-        for k in (
-            "name",
-            "meta_title",
-            "description",
-            "keywords",
-            "faqs",
-            "howto_steps",
-            "howto_calculate",
-            "about_title",
-            "about_body",
-            # Per-locale translation date (optional): lets sitemap lastmod and
-            # article:modified_time reflect the translation, not the EN edit.
-            "date_modified",
-        ):
-            if over.get(k) not in (None, "", []):
-                merged[k] = over[k]
-        return merged
+            return self._from_raw(slug, raw, locale="en")
+        return self._build_default(slug, "en")
 
     def _from_raw(
         self, slug: str, raw: dict[str, Any], all_tools: dict[str, Any] | None = None, locale: str = "en"
     ) -> ToolSEO:
-        raw = self._localized_raw(raw, locale)
         related_slugs = raw.get("related_slugs", [])
         if all_tools is None:
             all_tools = ToolDataLoader.get_all()
         related: list[dict[str, Any]] = []
         for s in related_slugs:
-            if locale in WESTERN_LOCALES and s in INDIA_ONLY_TOOL_SLUGS:
-                # Never promote India-only tools on an indexable DE/ES/FR page.
-                # The tool URL itself stays quarantined; this also keeps it out
-                # of related-card internal links and visible names.
-                continue
             tool_info = all_tools.get(s) if all_tools else None
             if isinstance(tool_info, dict):
-                # Localize related-card name/desc so HI pages show HI cards
-                # (falls back to EN when the related tool has no override).
-                loc_info = self._localized_raw(tool_info, locale)
-                t_name = loc_info.get("name") or s.replace("-", " ").title()
-                t_desc = loc_info.get("description", "")
+                t_name = tool_info.get("name") or s.replace("-", " ").title()
+                t_desc = tool_info.get("description", "")
             else:
                 t_name = s.replace("-", " ").title()
                 t_desc = ""
             related.append(
                 {
                     "name": t_name,
-                    "url": localize_path(f"/tool/{s}", locale),
+                    "url": f"/tool/{s}",
                     "desc": t_desc,
                 }
             )
         name = raw.get("name", slug.replace("-", " ").title())
-
         raw_meta_title = raw.get("meta_title", "")
         cat = raw.get("category", "")
         if not raw_meta_title:
@@ -195,7 +148,6 @@ class SeoService:
                 meta_title = f"{name} — Free Online Tool | StoryBrain AI"
         else:
             meta_title = raw_meta_title
-        # Unify app_category mapping via _CATEGORY_APP unless explicitly set.
         app_category = raw.get("app_category") or _CATEGORY_APP.get(cat, "UtilitiesApplication")
         try:
             static_dir = self.settings.static_dir
@@ -220,7 +172,7 @@ class SeoService:
             related_slugs=related_slugs,
             related=related,
             site_url=self.settings.SITE_URL,
-            locale=locale,
+            locale="en",
         )
 
     def _build_default(self, slug: str, locale: str = "en") -> ToolSEO:
@@ -237,20 +189,17 @@ class SeoService:
             description=f"Free online {name} — fast, private, no-signup browser tool | StoryBrain AI",
             app_category=_CATEGORY_APP.get(cat, "UtilitiesApplication"),
             site_url=self.settings.SITE_URL,
-            locale=locale,
+            locale="en",
         )
 
     def get_seo_map(self, locale: str = "en") -> dict[str, ToolSEO]:
-        """Build and cache ToolSEO for all tools (per locale)."""
-        loc = normalize_locale(locale)
-        if self._is_cache_valid(loc):
-            assert loc in self._cache
-            return self._cache[loc][1]
+        if self._is_cache_valid("en"):
+            return self._cache["en"][1]
         all_data = ToolDataLoader.get_all()
         result: dict[str, ToolSEO] = {}
         for slug in all_data:
-            result[slug] = self._from_raw(slug, all_data[slug], all_data, locale=loc)
-        self._cache[loc] = (time.time(), result)
+            result[slug] = self._from_raw(slug, all_data[slug], all_data, locale="en")
+        self._cache["en"] = (time.time(), result)
         return result
 
 

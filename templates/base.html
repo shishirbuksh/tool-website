@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ html_lang | default('en', true) }}" {% if html_lang in ['ar','he','fa','ur'] %}dir="rtl"{% else %}dir="ltr"{% endif %}>
+<html lang="en" dir="ltr">
 <head>
   {% set _robots_noindex = robots_noindex | default(false) %}
   <meta charset="UTF-8">
@@ -11,10 +11,8 @@
   <link rel="apple-touch-icon" href="/static/apple-touch-icon.png" sizes="180x180">
   <link rel="mask-icon" href="/static/favicon.svg" color="#0ea5e9">
   {% if not _robots_noindex %}
-  {% if skip_hreflang %}{% elif hreflangs %}{% for alt in hreflangs %}<link rel="alternate" href="{{ alt.href }}" hreflang="{{ alt.hreflang }}">
-  {% endfor %}{% else %}{% set _en_path = localize_path(bare_path | default(request.url.path, true), 'en') %}<link rel="alternate" href="{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ _en_path }}" hreflang="en">
-  <link rel="alternate" href="{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ _en_path }}" hreflang="x-default">
-  {% endif %}
+  <link rel="alternate" href="{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}" hreflang="en">
+  <link rel="alternate" href="{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}" hreflang="x-default">
   {% endif %}
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -31,9 +29,9 @@
   <meta name="format-detection" content="telephone=no">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   {% block thumbnail_tag %}<meta name="thumbnail" content="{{ SITE_URL | default('https://www.storybrainai.com', true) }}/static/og-image.webp">{% endblock %}
-  <link rel="canonical" href="{% if seo_data %}{{ seo_data.url }}{% elif page_canonical %}{{ page_canonical }}{% else %}{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ (locale_urls | default({}, true))[locale | default("en", true)] | default(request.url.path, true) }}{% endif %}">
+  <link rel="canonical" href="{% if seo_data %}{{ seo_data.url }}{% elif page_canonical %}{{ page_canonical }}{% else %}{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}{% endif %}">
 
-  {% block og_locale %}<meta property="og:locale" content="{{ og_locale | default('en_US', true) }}">{% set _cur_og = og_locale | default('en_US', true) %}{% for _code in supported_locales | default(['en', 'hi', 'es', 'fr', 'de'], true) %}{% set _alt_og = (locale_meta | default({}, true))[_code]['og_locale'] | default({'en': 'en_US', 'hi': 'hi_IN', 'es': 'es_ES', 'fr': 'fr_FR', 'de': 'de_DE'}[_code] | default('', true), true) %}{% if _alt_og and _alt_og != _cur_og %}<meta property="og:locale:alternate" content="{{ _alt_og }}">{% endif %}{% endfor %}{% endblock %}
+  {% block og_locale %}<meta property="og:locale" content="en_US">{% endblock %}
   <meta property="og:type" content="{% block og_type %}website{% endblock %}">
   {% block og_url %}<meta property="og:url" content="{% if seo_data %}{{ seo_data.url }}{% else %}{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}{% endif %}">{% endblock %}
   <meta property="og:site_name" content="StoryBrain AI">
@@ -78,6 +76,7 @@
   <link rel="stylesheet" data-pagespeed-no-transform href="/static/css/app.css?v={{ app_version }}" fetchpriority="high">
   <link rel="stylesheet" data-pagespeed-no-transform href="/static/css/fonts.css?v={{ app_version }}">
   <noscript><style>.reveal{opacity:1!important}</style></noscript>
+  <link rel="preload" as="font" type="font/woff2" href="/static/fonts/calsans.woff2" crossorigin>
   <link rel="preload" as="font" type="font/woff2" href="/static/fonts/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7.woff2" crossorigin>
   <link rel="preload" as="font" type="font/woff2" href="/static/fonts/QGYvz_MVcBeNP4NJtEtq.woff2" crossorigin>
   <script type="speculationrules" nonce="{{ nonce }}">
@@ -98,16 +97,16 @@
   <script type="application/ld+json" nonce="{{ nonce }}">
   {"@context":"https://schema.org","@id":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/#website","@type":"WebSite","name":"StoryBrain AI","url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}"}
   </script>
-  {% if '/blog' not in request.url.path and not (hub_name is defined) and request.url.path not in ('/', '/hi/', '/es/', '/fr/', '/de/', '/hi', '/es', '/fr', '/de') %}
+  {% if '/blog' not in request.url.path and not (hub_name is defined) and request.url.path not in ('/', '') %}
   <script type="application/ld+json" nonce="{{ nonce }}">
   {"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
-    {"@type":"ListItem","position":1,"name":{{ tr('breadcrumb.home', locale | default('en', true)) | tojson }},"item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ localize_path('/', locale | default('en', true)) }}"}
+    {"@type":"ListItem","position":1,"name":"Home","item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/"}
     {% if '/tool/' in request.url.path %},{
-      "@type":"ListItem","position":2,"name":{{ tr('breadcrumb.tools', locale | default('en', true)) | tojson }},"item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ localize_path('/tools', locale | default('en', true)) }}"
+      "@type":"ListItem","position":2,"name":"Tools","item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/tools"
     },{
       "@type":"ListItem","position":3,"name":{{ tool_name|default(seo_data.name if seo_data else request.url.path.removeprefix('/tool/').strip('/').replace('-', ' ').title()) | tojson }},"item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}"
     }
-    {% elif request.url.path not in ('/', '/hi/', '/es/', '/fr/', '/de/') %},{
+    {% elif request.url.path not in ('/', '') %},{
       "@type":"ListItem","position":2,"name":{{ title|default(request.url.path.strip('/').replace('-', ' ').title()) | tojson }},"item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ request.url.path }}"
     }{% endif %}
   ]}
@@ -117,25 +116,21 @@
   <link rel="manifest" href="/static/manifest.json">
 </head>
 
-<body class="min-h-screen flex flex-col bg-base-100 text-base-content antialiased selection:bg-primary/15 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0 relative overflow-x-hidden">
+<body class="min-h-screen flex flex-col bg-base-100 text-base-content antialiased selection:bg-neutral/10 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0 relative">
 
-  <div class="fixed inset-0 z-[-2] bg-base-100 pointer-events-none" aria-hidden="true"></div>
-  
-  <div class="fixed inset-0 z-[-1] pointer-events-none bg-grid-overlay opacity-40 mix-blend-overlay" aria-hidden="true"></div>
-
-  <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-6 focus:py-3 focus:bg-primary focus:text-primary-content focus:rounded-xl focus:outline-none shadow-[0_0_30px_color-mix(in_oklab,var(--color-primary)_60%,transparent)] text-sm font-bold">{{ tr('a11y.skip', locale | default('en', true)) }}</a>
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-5 focus:py-2.5 btn-cal-primary text-sm font-semibold shadow-md">Skip to content</a>
 
   {% include "components/navbar.html" %}
 
   {% block breadcrumb %}
   {% if '/tool/' in request.url.path %}
-  <nav aria-label="{{ tr('nav.breadcrumb', locale | default('en', true)) }}" class="container-site px-4 pb-3 pt-24 lg:pt-28">
-    <ol class="flex flex-wrap items-center gap-1.5 text-sm" style="color:color-mix(in oklab,var(--color-base-content) 65%,transparent)">
-      <li><a href="{{ localize_path('/', locale | default('en', true)) }}" class="hover:text-primary transition-colors" style="color:var(--color-base-content)">{{ tr('breadcrumb.home', locale | default('en', true)) }}</a></li>
-      <li aria-hidden="true"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg></li>
-      <li><a href="{{ localize_path('/tools', locale | default('en', true)) }}" class="hover:text-primary transition-colors" style="color:var(--color-base-content)">{{ tr('breadcrumb.tools', locale | default('en', true)) }}</a></li>
-      <li aria-hidden="true"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m9 18 6-6-6-6"/></svg></li>
-      <li><span class="text-base-content font-medium" aria-current="page">{{ tool_name }}</span></li>
+  <nav aria-label="Breadcrumb" class="container-site px-4 pb-3 pt-20 lg:pt-24">
+    <ol class="flex flex-wrap items-center gap-1.5 text-xs text-base-content/60 font-medium">
+      <li><a href="/" class="hover:text-base-content transition-colors">Home</a></li>
+      <li aria-hidden="true" class="text-base-content/30"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></li>
+      <li><a href="/tools" class="hover:text-base-content transition-colors">Tools</a></li>
+      <li aria-hidden="true" class="text-base-content/30"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></li>
+      <li><span class="text-base-content font-semibold" aria-current="page">{{ tool_name }}</span></li>
     </ol>
   </nav>
   {% endif %}
@@ -154,72 +149,70 @@
 
   {% include "components/footer.html" %}
 
-  <nav class="bottom-nav lg:hidden" aria-label="{{ tr('nav.mobile', locale | default('en', true)) }}">
-    <a href="{{ localize_path('/', locale | default('en', true)) }}" class="bottom-nav-item" aria-label="{{ tr('nav.home', locale | default('en', true)) }}" {% if request.url.path == '/' %}aria-current="page"{% endif %}>
-      <svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span>{{ tr('nav.home', locale | default('en', true)) }}</span>
+  <nav class="bottom-nav lg:hidden" aria-label="Mobile navigation">
+    <a href="/" class="bottom-nav-item" aria-label="Home" {% if request.url.path == '/' %}aria-current="page"{% endif %}>
+      <svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Home</span>
     </a>
-    <a href="{{ localize_path('/tools', locale | default('en', true)) }}" class="bottom-nav-item" aria-label="{{ tr('nav.all_tools', locale | default('en', true)) }}">
-      <svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-      <span>{{ tr('nav.tools', locale | default('en', true)) }}</span>
+    <a href="/tools" class="bottom-nav-item" aria-label="All Tools">
+      <svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+      <span>Tools</span>
     </a>
-    <button type="button" class="bottom-nav-item" id="searchToggleMobileNav" aria-label="{{ tr('nav.search', locale | default('en', true)) }}" aria-haspopup="dialog" aria-controls="searchDialog" aria-expanded="false">
-      <svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-      <span>{{ tr('nav.search', locale | default('en', true)) }}</span>
+    <button type="button" class="bottom-nav-item" id="searchToggleMobileNav" aria-label="Search" aria-haspopup="dialog" aria-controls="searchDialog" aria-expanded="false">
+      <svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <span>Search</span>
     </button>
-    <button type="button" class="bottom-nav-item theme-toggle" aria-label="{{ tr('nav.theme', locale | default('en', true)) }}">
-      <svg aria-hidden="true" class="w-5 h-5 theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-      <svg aria-hidden="true" class="w-5 h-5 theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-      <span>{{ tr('nav.theme', locale | default('en', true)) }}</span>
+    <button type="button" class="bottom-nav-item theme-toggle" aria-label="Toggle theme">
+      <svg aria-hidden="true" class="w-5 h-5 theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      <svg aria-hidden="true" class="w-5 h-5 theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+      <span>Theme</span>
     </button>
-    <label for="mobileDrawer" class="bottom-nav-item" tabindex="0" role="button" aria-haspopup="dialog" aria-label="{{ tr('nav.menu', locale | default('en', true)) }}" id="mobileMenuBottomNav">
-      <svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
-      <span>{{ tr('nav.menu', locale | default('en', true)) }}</span>
+    <label for="mobileDrawer" class="bottom-nav-item" tabindex="0" role="button" aria-haspopup="dialog" aria-label="Menu" id="mobileMenuBottomNav">
+      <svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+      <span>Menu</span>
     </label>
   </nav>
   <script nonce="{{ nonce }}">(function(){var m=document.getElementById("mobileMenuBottomNav");if(!m)return;m.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();m.click();}});})();</script>
 
-  <dialog id="searchDialog" class="modern-dialog" aria-modal="true" aria-labelledby="searchDialogTitle"
+  <dialog id="searchDialog" class="modern-dialog rounded-xl border border-base-300 bg-base-100 shadow-xl overflow-hidden" aria-modal="true" aria-labelledby="searchDialogTitle"
     data-msg-empty="{{ tr('search.empty', locale | default('en', true)) }}"
     data-msg-no-results="{{ tr('search.no_results', locale | default('en', true)) }}"
     data-msg-error="{{ tr('search.error', locale | default('en', true)) }}"
     data-msg-update="{{ tr('sw.update_available', locale | default('en', true)) }}"
     data-msg-refresh="{{ tr('sw.refresh', locale | default('en', true)) }}">
-    <div class="p-6">
+    <div class="p-5">
       <div class="flex items-center justify-between mb-4">
-        <p id="searchDialogTitle" class="text-lg font-bold">{{ tr('search.title', locale | default('en', true)) }}</p>
-        <button type="button" id="searchClose" class="btn btn-ghost btn-sm btn-square rounded-xl min-target" aria-label="{{ tr('nav.close', locale | default('en', true)) }} {{ tr('nav.search', locale | default('en', true)) }}">
+        <p id="searchDialogTitle" class="text-base font-semibold text-base-content">{{ tr('search.title', locale | default('en', true)) }}</p>
+        <button type="button" id="searchClose" class="btn btn-ghost btn-sm btn-square rounded-md min-target" aria-label="{{ tr('nav.close', locale | default('en', true)) }} {{ tr('nav.search', locale | default('en', true)) }}">
           <svg aria-hidden="true" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
         </button>
       </div>
-      <div class="flex items-center gap-3 glass rounded-xl px-4 py-3 mb-4 border-primary/15">
-        <svg aria-hidden="true" class="w-4 h-4 text-base-content/30 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <div class="flex items-center gap-3 bg-base-200/60 rounded-lg px-3.5 py-2.5 mb-4 border border-base-300 focus-within:border-primary focus-within:bg-base-100 transition-colors">
+        <svg aria-hidden="true" class="w-4 h-4 text-base-content/40 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         <div class="grow flex flex-col justify-center min-w-0">
           <label for="searchInput" class="sr-only">{{ tr('search.title', locale | default('en', true)) }}</label>
-          <input type="search" id="searchInput" class="grow bg-transparent border-none outline-none p-0 text-sm md:text-base font-medium text-base-content placeholder:text-base-content/40 focus:ring-0" placeholder="{{ tr('search.placeholder', locale | default('en', true)) }}" autocomplete="off" inputmode="search" enterkeyhint="search" spellcheck="false">
+          <input type="search" id="searchInput" class="grow bg-transparent border-none outline-none p-0 text-sm font-medium text-base-content placeholder:text-base-content/40 focus:ring-0" placeholder="{{ tr('search.placeholder', locale | default('en', true)) }}" autocomplete="off" inputmode="search" enterkeyhint="search" spellcheck="false">
         </div>
-        <kbd class="kbd kbd-sm text-base-content/30 hidden sm:inline-flex">/</kbd>
+        <kbd class="kbd kbd-xs text-base-content/40 hidden sm:inline-flex font-mono">/</kbd>
       </div>
       <div id="searchResults" class="max-h-72 overflow-y-auto space-y-1 text-sm" aria-live="polite">
-        <p class="text-base-content/30 text-center py-8">{{ tr('search.empty', locale | default('en', true)) }}</p>
+        <p class="text-base-content/40 text-center py-8">{{ tr('search.empty', locale | default('en', true)) }}</p>
       </div>
     </div>
   </dialog>
 
-  <!-- Cookie Consent Widget (Non-blocking UI). NOTE: never use aria-hidden="true" on a
-       container with focusable children — it hides them from AT while keeping them
-       keyboard-focusable. Visibility is toggled via [hidden]/inert + .cookie-hidden. -->
-  <div id="cookieConsent" class="cookie-banner fixed bottom-20 lg:bottom-6 left-4 md:left-6 z-[100] w-[calc(100%-2rem)] md:w-[380px] cookie-hidden transition-transform duration-500 ease-out pointer-events-none" style="padding-bottom: env(safe-area-inset-bottom);" role="dialog" aria-label="{{ tr('cookie.title', locale | default('en', true)) }}" aria-live="polite" hidden inert>
-    <div class="glass-strong rounded-3xl p-5 md:p-6 flex flex-col gap-4 border border-primary/20 shadow-[0_8px_32px_color-mix(in_oklab,var(--color-primary)_15%,transparent)] pointer-events-auto">
-      <div class="text-xs md:text-sm text-base-content/75 leading-relaxed">
-        <p class="font-black text-base-content mb-2 flex items-center gap-2">
-          <span class="text-xl">🍪</span> {{ tr('cookie.title', locale | default('en', true)) }}
+  <!-- Cookie Consent Banner (Cal.com SaaS Floating Card) -->
+  <div id="cookieConsent" class="cookie-banner fixed bottom-20 lg:bottom-6 left-4 md:left-6 z-[100] w-[calc(100%-2rem)] md:w-[380px] cookie-hidden transition-transform duration-300 ease-out pointer-events-none" style="padding-bottom: env(safe-area-inset-bottom);" role="dialog" aria-label="{{ tr('cookie.title', locale | default('en', true)) }}" aria-live="polite" hidden inert>
+    <div class="bg-base-100 rounded-xl p-5 border border-base-300 shadow-xl flex flex-col gap-3 pointer-events-auto">
+      <div class="text-xs text-base-content/80 leading-relaxed">
+        <p class="font-semibold text-base-content mb-1.5 flex items-center gap-2">
+          <span>🍪</span> {{ tr('cookie.title', locale | default('en', true)) }}
         </p>
-        <p>{{ tr('cookie.body', locale | default('en', true)) }} <a href="{{ localize_path('/privacy', locale | default('en', true)) }}" class="text-primary hover:underline font-bold transition-colors">{{ tr('cookie.privacy', locale | default('en', true)) }}</a></p>
+        <p>{{ tr('cookie.body', locale | default('en', true)) }} <a href="{{ localize_path('/privacy', locale | default('en', true)) }}" class="text-primary hover:underline font-medium transition-colors">{{ tr('cookie.privacy', locale | default('en', true)) }}</a></p>
       </div>
-      <div class="flex gap-2 w-full mt-1">
-        <button type="button" id="cookieReject" class="btn btn-ghost flex-1 text-xs md:text-sm h-11 min-h-[44px] rounded-xl font-bold">{{ tr('cookie.reject', locale | default('en', true)) }}</button>
-        <button type="button" id="cookieAccept" class="btn btn-primary flex-1 text-xs md:text-sm h-11 min-h-[44px] rounded-xl font-bold tracking-wider shadow-lg shadow-primary/20">{{ tr('cookie.accept', locale | default('en', true)) }}</button>
+      <div class="flex items-center gap-2 w-full pt-1">
+        <button type="button" id="cookieReject" class="btn btn-ghost btn-sm flex-1 text-xs h-9 min-h-[36px] rounded-md font-medium border border-base-300">{{ tr('cookie.reject', locale | default('en', true)) }}</button>
+        <button type="button" id="cookieAccept" class="btn-cal-primary flex-1 text-xs h-9 min-h-[36px] rounded-md font-semibold">{{ tr('cookie.accept', locale | default('en', true)) }}</button>
       </div>
     </div>
   </div>
@@ -280,37 +273,33 @@
       which are injected only after consent via allowlisted googletagmanager /
       googlesyndication origins).
   #}
-  {# Client-side i18n micro-runtime and Intl currency/number formatters #}
+  {# Client-side micro-runtime and Intl currency/number formatters #}
   <script nonce="{{ nonce }}">
     window.sbr = window.sbr || {};
-    window.sbr.locale = {{ (locale | default('en', true)) | tojson }};
-    window.sbr.currency = {{ ('INR' if (locale | default('en', true)) == 'hi' else ('EUR' if (locale | default('en', true)) in ['es', 'fr', 'de'] else 'USD')) | tojson }};
-    window.sbr.currencySymbol = {{ ('₹' if (locale | default('en', true)) == 'hi' else ('€' if (locale | default('en', true)) in ['es', 'fr', 'de'] else '$')) | tojson }};
+    window.sbr.locale = "en";
+    window.sbr.currency = "USD";
+    window.sbr.currencySymbol = "$";
     window.sbr.i18n = {
-      copy: {{ tr('btn.copy', locale | default('en', true)) | tojson }},
-      copied: {{ tr('btn.copied', locale | default('en', true)) | tojson }},
-      calculate: {{ tr('btn.calculate', locale | default('en', true)) | tojson }},
-      reset: {{ tr('btn.reset', locale | default('en', true)) | tojson }},
-      download: {{ tr('btn.download', locale | default('en', true)) | tojson }},
-      invalidInput: {{ tr('error.invalid_input', locale | default('en', true)) | tojson }}
+      copy: "Copy",
+      copied: "Copied!",
+      calculate: "Calculate",
+      reset: "Reset",
+      download: "Download",
+      invalidInput: "Please check your input values"
     };
     window.sbr.t = function(k){ return (window.sbr.i18n && window.sbr.i18n[k]) || k; };
     window.sbr.formatCurrency = function(val, maxFrac){
       var frac = (typeof maxFrac === 'number') ? maxFrac : 0;
-      var m = {'hi':'en-IN','es':'es-ES','fr':'fr-FR','de':'de-DE','en':'en-US'};
-      var target = m[window.sbr.locale] || 'en-US';
       try {
-        return new Intl.NumberFormat(target, {style:'currency', currency: window.sbr.currency, maximumFractionDigits: frac}).format(val);
+        return new Intl.NumberFormat('en-US', {style:'currency', currency: 'USD', maximumFractionDigits: frac}).format(val);
       } catch(e) {
-        return window.sbr.currencySymbol + val;
+        return '$' + val;
       }
     };
     window.sbr.formatNumber = function(val, maxFrac){
       var frac = (typeof maxFrac === 'number') ? maxFrac : 2;
-      var m = {'hi':'en-IN','es':'es-ES','fr':'fr-FR','de':'de-DE','en':'en-US'};
-      var target = m[window.sbr.locale] || 'en-US';
       try {
-        return new Intl.NumberFormat(target, {maximumFractionDigits: frac}).format(val);
+        return new Intl.NumberFormat('en-US', {maximumFractionDigits: frac}).format(val);
       } catch(e) {
         return String(val);
       }
@@ -412,21 +401,15 @@
       <span class="font-bold tracking-tight text-[15px]">
         <span class="text-base-content">STORYBRAIN</span><span class="text-primary">AI</span>
       </span>
-      <label for="mobileDrawer" class="btn btn-ghost btn-sm btn-circle" aria-label="{{ tr('nav.close', locale | default('en', true)) }}">
+      <label for="mobileDrawer" class="btn btn-ghost btn-sm btn-circle" aria-label="Close menu">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
       </label>
     </div>
     <div class="p-4 flex-1 overflow-y-auto flex flex-col gap-2">
-      <a href="{{ localize_path('/', locale | default('en', true)) }}" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> {{ tr('nav.home', locale | default('en', true)) }}</a>
-      <a href="{{ localize_path('/tools', locale | default('en', true)) }}" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg> {{ tr('nav.all_tools', locale | default('en', true)) }}</a>
-      <a href="{{ localize_path('/about', locale | default('en', true)) }}" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg> {{ tr('nav.about', locale | default('en', true)) }}</a>
-      <a href="{{ localize_path('/contact', locale | default('en', true)) }}" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> {{ tr('nav.contact', locale | default('en', true)) }}</a>
-      <div class="px-4 pt-2 pb-1 text-xs font-semibold uppercase tracking-widest text-base-content/50">{{ tr('nav.language', locale | default('en', true)) }}</div>
-      <div class="flex flex-wrap gap-2 px-4 pb-4">
-        {% for code in supported_locales | default(['en'], true) %}
-        <a href="{{ (locale_urls | default({}, true))[code] | default('/', true) }}" class="px-3 py-2 rounded-xl text-sm font-medium {% if code == (locale | default('en', true)) %}bg-primary/15 text-primary{% else %}hover:bg-base-content/5 text-base-content/80{% endif %}" {% if code == (locale | default('en', true)) %}aria-current="page"{% endif %}>{{ (locale_meta | default({}, true))[code]['name'] | default(code, true) }}</a>
-        {% endfor %}
-      </div>
+      <a href="/" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Home</a>
+      <a href="/tools" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg> All Tools</a>
+      <a href="/about" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg> About</a>
+      <a href="/contact" class="p-4 hover:bg-base-content/5 rounded-xl text-base font-medium flex items-center gap-3"><svg class="w-5 h-5 text-base-content/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Contact</a>
     </div>
   </div>
 
