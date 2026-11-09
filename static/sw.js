@@ -2,8 +2,8 @@
 // CACHE version: bump v40 -> v41 on breaking shell changes.
 // TODO: inject app_version at build time (e.g. __APP_VERSION__) so SW cache
 // busts automatically with each deploy instead of manual version bumps.
-const CACHE_NAME = 'storybrain-v42';
-const STATIC_CACHE = 'storybrain-static-v42';
+const CACHE_NAME = 'storybrain-v43';
+const STATIC_CACHE = 'storybrain-static-v43';
 const PAGE_CACHE_MAX_ENTRIES = 50;
 
 // Assets to pre-cache on install (app-shell only; OG/screenshots lazy via runtime cache)
@@ -19,10 +19,10 @@ const PRECACHE_URLS = [
   '/static/icon-512.png',
   '/static/manifest.json',
   '/offline',
-  '/hi/offline',
-  '/es/offline',
-  '/fr/offline',
-  '/de/offline',
+
+
+
+
   '/static/js/app.js',
   '/static/js/tools.utils.js',
   '/static/js/tools.js',

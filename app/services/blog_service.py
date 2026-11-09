@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 from app.core.config import Settings
 from app.core.config import settings as _global_settings
 
+_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 
 class BlogPost(BaseModel):
     slug: str
@@ -79,7 +81,7 @@ class BlogService:
             path = self._blog_yaml_path()
             try:
                 with open(path, "rb") as f:
-                    data = yaml.safe_load(f) or {}
+                    data = yaml.load(f, Loader=_YAML_LOADER) or {}
             except FileNotFoundError:
                 return {}
             posts = data.get("posts", {})

@@ -4,10 +4,13 @@ Locks in the 2026-10 multi-agent keyword panel outcome:
 - tools avg ~7 keywords, zero exact duplicates tool-vs-tool or tool-vs-blog.
 """
 
+import functools
 import os
 import re
 
 import yaml
+
+_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_PATH = os.path.join(BASE_DIR, "data", "tools.yaml")
@@ -32,14 +35,16 @@ def _norm(s: str) -> str:
     return re.sub(r"\s+", " ", s)
 
 
+@functools.lru_cache(maxsize=1)
 def _tools() -> dict:
     with open(TOOLS_PATH, encoding="utf-8") as f:
-        return yaml.safe_load(f)["tools"]
+        return yaml.load(f, Loader=_YAML_LOADER)["tools"]
 
 
+@functools.lru_cache(maxsize=1)
 def _posts() -> dict:
     with open(BLOG_PATH, encoding="utf-8") as f:
-        return yaml.safe_load(f)["posts"]
+        return yaml.load(f, Loader=_YAML_LOADER)["posts"]
 
 
 class TestToolKeywords:

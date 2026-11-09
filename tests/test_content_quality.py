@@ -1,9 +1,12 @@
 """Content quality gates: bans boilerplate, enforces depth + healthy internal linking."""
 
+import functools
 import os
 import re
 
 import yaml
+
+_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 YAML_PATH = os.path.join(BASE_DIR, "data", "tools.yaml")
@@ -24,9 +27,10 @@ VALID_CATEGORIES = {
 }
 
 
+@functools.lru_cache(maxsize=1)
 def _load():
     with open(YAML_PATH, encoding="utf-8") as f:
-        return yaml.safe_load(f)["tools"]
+        return yaml.load(f, Loader=_YAML_LOADER)["tools"]
 
 
 def _faq_answer(faq: dict) -> str:

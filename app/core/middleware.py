@@ -422,23 +422,29 @@ class MaxBodySizeMiddleware:
 
 
 class CleanQueryMiddleware(BaseHTTPMiddleware):
-    """Strip crawler-junk query params (?PageSpeed=, utm_*, fbclid, gclid) with a 301.
+    """Strip crawler-junk query params (?PageSpeed=) with a 301.
 
-    Prevents ?PageSpeed=noscript and tracking variants from being indexed as
-    duplicate URLs. Runs before the case redirect so canonicalization is single-hop.
+    Prevents ?PageSpeed=noscript from being indexed as duplicate URLs.
+    Marketing parameters (utm_*, gclid, fbclid) are preserved by default to
+    maintain Google Analytics & AdSense attribution, relying on canonical tags
+    and robots.txt for search engine de-duplication. Set STRIP_MARKETING_PARAMS=1
+    in .env if aggressive query-stripping is desired.
     """
 
-    _JUNK_EXACT = {"pagespeed", "fbclid", "gclid"}
-    _JUNK_PREFIXES = ("utm_",)
+    _CRAWLER_JUNK_EXACT = {"pagespeed", "mod_pagespeed"}
+    _MARKETING_EXACT = {"fbclid", "gclid"}
+    _MARKETING_PREFIXES = ("utm_",)
 
     async def dispatch(self, request: Request, call_next) -> Response:
         if request.method in ("GET", "HEAD") and request.url.query:
             params = dict(request.query_params)
-            junk = {
-                k
-                for k in params
-                if k in self._JUNK_EXACT or k.lower() == "pagespeed" or k.startswith(self._JUNK_PREFIXES)
-            }
+            junk = {k for k in params if k.lower() in self._CRAWLER_JUNK_EXACT}
+            if getattr(settings, "STRIP_MARKETING_PARAMS", False):
+                junk |= {
+                    k
+                    for k in params
+                    if k.lower() in self._MARKETING_EXACT or k.lower().startswith(self._MARKETING_PREFIXES)
+                }
             if junk:
                 clean = {k: v for k, v in params.items() if k not in junk}
                 from urllib.parse import urlencode

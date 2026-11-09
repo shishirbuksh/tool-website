@@ -9,6 +9,8 @@ import yaml
 
 from app.core.config import settings
 
+_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 
 class ToolDataLoader:
     _data: dict[str, Any] | None = None
@@ -28,7 +30,7 @@ class ToolDataLoader:
             path = os.path.join(settings.base_dir, "data", "tools.yaml")
             try:
                 with open(path, "rb") as f:
-                    loaded = yaml.safe_load(f)
+                    loaded = yaml.load(f, Loader=_YAML_LOADER)
             except FileNotFoundError as e:
                 msg = f"Tool data file not found: {path}"
                 raise FileNotFoundError(msg) from e

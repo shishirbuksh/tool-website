@@ -11,13 +11,15 @@ from app.main import app
 
 client = TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 80))
 
+_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 @functools.lru_cache(maxsize=1)
 def _blog_posts():
     with open(os.path.join(BASE_DIR, "data", "blog.yaml"), encoding="utf-8") as f:
-        return yaml.safe_load(f)["posts"]
+        return yaml.load(f, Loader=_YAML_LOADER)["posts"]
 
 
 class TestBlogPages:

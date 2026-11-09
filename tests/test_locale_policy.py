@@ -6,7 +6,6 @@ import pytest
 
 from app.core import locale_policy
 from app.core.content_sanitize import clean_localized_text, clean_localized_value
-from app.core.i18n import SUPPORTED_LOCALES
 
 
 class TestLocaleRelease:

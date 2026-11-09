@@ -4,8 +4,6 @@ and no foreign sitemaps or hreflangs leak into English responses.
 
 from __future__ import annotations
 
-import pytest
-
 
 class TestQuarantineContract:
     def test_localized_pages_redirect_to_english(self, client):

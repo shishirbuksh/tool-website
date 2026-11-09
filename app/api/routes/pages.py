@@ -18,11 +18,11 @@ from app.core.i18n import (
     category_label,
     hreflang_links,
     html_lang_for,
-    hub_seo_title,
-    is_supported_locale,
     localize_path,
     normalize_locale,
     og_locale_for,
+)
+from app.core.i18n import (
     t as tr,
 )
 from app.core.sanitize import sanitize_html

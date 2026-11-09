@@ -11,7 +11,6 @@ import re
 
 import pytest
 
-
 ENGLISH_TOOLS = (
     "/tool/emi-calculator",
     "/tool/mortgage-overpayment-calculator",

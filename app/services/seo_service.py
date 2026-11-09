@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 
 from app.core.config import Settings
 from app.core.config import settings as _global_settings
-from app.core.i18n import localize_path, normalize_locale
 from app.core.tool_data import ToolDataLoader
 
 

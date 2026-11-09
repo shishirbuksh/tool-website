@@ -103,3 +103,39 @@ class TestOriginCheckMiddleware:
         response = await middleware.dispatch(mock_request, mock_call_next)
 
         assert response.status_code == 403
+
+
+class TestCleanQueryMiddleware:
+    @pytest.mark.asyncio
+    async def test_strips_pagespeed_junk(self):
+        from app.core.middleware import CleanQueryMiddleware
+
+        mock_url = type("Url", (), {"path": "/tool/calculator", "query": "pagespeed=noscript&valid=1"})()
+        mock_request = AsyncMock(spec=Request)
+        mock_request.method = "GET"
+        mock_request.url = mock_url
+        mock_request.query_params = {"pagespeed": "noscript", "valid": "1"}
+        mock_call_next = AsyncMock(return_value=Response())
+
+        middleware = CleanQueryMiddleware(lambda: None)
+        response = await middleware.dispatch(mock_request, mock_call_next)
+
+        assert response.status_code == 301
+        assert response.headers["location"] == "/tool/calculator?valid=1"
+
+    @pytest.mark.asyncio
+    async def test_preserves_marketing_utm_and_gclid_by_default(self):
+        from app.core.middleware import CleanQueryMiddleware
+
+        mock_url = type("Url", (), {"path": "/tool/calculator", "query": "utm_source=twitter&gclid=123"})()
+        mock_request = AsyncMock(spec=Request)
+        mock_request.method = "GET"
+        mock_request.url = mock_url
+        mock_request.query_params = {"utm_source": "twitter", "gclid": "123"}
+        mock_call_next = AsyncMock(return_value=Response(content="ok", status_code=200))
+
+        middleware = CleanQueryMiddleware(lambda: None)
+        response = await middleware.dispatch(mock_request, mock_call_next)
+
+        # Must not redirect; passes through to call_next
+        assert response.status_code == 200

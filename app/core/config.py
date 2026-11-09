@@ -67,6 +67,11 @@ class Settings(BaseSettings):
         default="",
         description="IndexNow key (Bing/Yandex instant indexing); served at /<KEY>.txt, used by scripts/submit_indexnow.py",
     )
+    STRIP_MARKETING_PARAMS: bool = Field(
+        default=False,
+        description="When true, CleanQueryMiddleware 301-strips utm_* and ad click parameters (gclid, fbclid). "
+        "Keep false to preserve campaign and conversion attribution in Google Analytics and AdSense.",
+    )
     STRICT_ORIGIN_CHECK: bool = Field(
         default=False,
         description="When true, header-less cross-origin writes (no Origin/Referer/Sec-Fetch-Site) are 403'd. "

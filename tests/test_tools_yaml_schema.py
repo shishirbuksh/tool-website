@@ -1,9 +1,12 @@
 """Schema validation for data/tools.yaml: slugs<->templates, related slugs, dates, escapes."""
 
+import functools
 import os
 import re
 
 import yaml
+
+_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 YAML_PATH = os.path.join(BASE_DIR, "data", "tools.yaml")
@@ -12,11 +15,12 @@ TOOLS_DIR = os.path.join(BASE_DIR, "templates", "tools")
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
+@functools.lru_cache(maxsize=1)
 def _load_raw_and_data():
     with open(YAML_PATH, encoding="utf-8") as f:
         raw = f.read()
     with open(YAML_PATH, encoding="utf-8") as f:
-        data = yaml.safe_load(f)["tools"]
+        data = yaml.load(f, Loader=_YAML_LOADER)["tools"]
     return raw, data
 
 

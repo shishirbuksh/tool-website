@@ -70,3 +70,24 @@ class TestJobService:
             assert poll is not None
             assert poll.status == JobStatus.DONE
             assert poll.result == i * 2
+
+    @pytest.mark.asyncio
+    async def test_cross_worker_cache_lookup(self):
+        worker1 = JobService()
+
+        async def worker1_task():
+            return {"data": "from_worker_1"}
+
+        resp = worker1.submit("cross_worker_job", worker1_task)
+        import asyncio
+        await asyncio.sleep(0.02)
+
+        # Worker 2 is a separate instance simulating another Gunicorn worker
+        worker2 = JobService()
+        assert resp.job_id not in worker2._jobs
+
+        # Worker 2 must still resolve the job via shared cache
+        poll = worker2.get_status(resp.job_id)
+        assert poll is not None
+        assert poll.status == JobStatus.DONE
+        assert poll.result == {"data": "from_worker_1"}

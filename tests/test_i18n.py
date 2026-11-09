@@ -4,7 +4,6 @@ sitemaps, and removal of language toggles.
 
 from __future__ import annotations
 
-import re
 from fastapi.testclient import TestClient
 
 

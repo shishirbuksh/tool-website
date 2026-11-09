@@ -58,6 +58,22 @@ class JobService:
                     self._sems.pop(oldest, None)
             return sem
 
+
+    def _sync_cache(self, job: Job) -> None:
+        try:
+            from app.core.cache import get_cache  # noqa: PLC0415
+
+            data = {
+                "job_id": job.job_id,
+                "status": job.status.value if hasattr(job.status, "value") else str(job.status),
+                "result": job.result,
+                "error": job.error,
+                "created_at": job.created_at,
+            }
+            get_cache().set(f"job:{job.job_id}", data, ttl=600)
+        except Exception:
+            pass
+
     def submit(self, name: str, coro_factory: Callable[[], Coroutine[Any, Any, Any]]) -> JobResponse:
         if not callable(coro_factory):
             raise TypeError("coro_factory must be a callable returning a coroutine")
@@ -72,10 +88,12 @@ class JobService:
                 msg = f"Job queue full ({active} active jobs, max {self._max_jobs})"
                 raise RuntimeError(msg)
             self._jobs[job_id] = job
+        self._sync_cache(job)
 
         async def _run():
             with self._lock:
                 job.status = JobStatus.RUNNING
+            self._sync_cache(job)
             try:
                 sem = self._get_sem()
                 try:
@@ -88,17 +106,20 @@ class JobService:
                     sem.release()
                 with self._lock:
                     job.status = JobStatus.DONE
+                self._sync_cache(job)
                 logger.info("Job %s (%s) completed", job_id, name)
             except asyncio.CancelledError:
                 with self._lock:
                     job.status = JobStatus.ERROR
                     job.error = "Job was cancelled"
+                self._sync_cache(job)
                 raise
             except Exception as e:
                 with self._lock:
                     job.status = JobStatus.ERROR
                     # Keep str (not raw traceback object) but truncate to bound memory.
                     job.error = str(e)[:500]
+                self._sync_cache(job)
                 logger.exception("Job %s (%s) failed", job_id, name)
 
         try:
@@ -113,15 +134,34 @@ class JobService:
     def get_status(self, job_id: str) -> JobResponse | None:
         with self._lock:
             job = self._jobs.get(job_id)
-            if not job:
-                return None
-            return JobResponse(
-                job_id=job.job_id,
-                status=job.status,
-                result=job.result,
-                error=job.error,
-                created_at=job.created_at,
-            )
+            if job:
+                return JobResponse(
+                    job_id=job.job_id,
+                    status=job.status,
+                    result=job.result,
+                    error=job.error,
+                    created_at=job.created_at,
+                )
+        try:
+            from app.core.cache import get_cache  # noqa: PLC0415
+
+            cached = get_cache().get(f"job:{job_id}")
+            if isinstance(cached, dict):
+                raw_st = str(cached.get("status", JobStatus.PENDING.value))
+                st = JobStatus(raw_st) if raw_st in JobStatus._value2member_map_ else JobStatus.PENDING
+                err = cached.get("error")
+                if st == JobStatus.ERROR and not err:
+                    err = "Unknown error"
+                return JobResponse(
+                    job_id=str(cached.get("job_id", job_id)),
+                    status=st,
+                    result=cached.get("result"),
+                    error=err,
+                    created_at=float(cached.get("created_at", time.time())),
+                )
+        except Exception:
+            pass
+        return None
 
     def _maybe_cleanup(self) -> None:
         # NOTE: called inline on submit; for long-running servers hook this into

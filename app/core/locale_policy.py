@@ -3,13 +3,11 @@
 
 from __future__ import annotations
 
-import os
-import threading
 from dataclasses import dataclass
 from typing import Any
 
 from app.core.config import settings
-from app.core.i18n import DEFAULT_LOCALE, SUPPORTED_LOCALES, normalize_locale, split_locale_path
+from app.core.i18n import DEFAULT_LOCALE, split_locale_path
 
 PUBLISHED = "published"
 QUARANTINED = "quarantined"

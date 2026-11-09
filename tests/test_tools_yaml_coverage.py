@@ -1,8 +1,11 @@
 """Tools catalog coverage: every tool has metadata, dates, and a template."""
 
+import functools
 import os
 
 import yaml
+
+_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 YAML_PATH = os.path.join(BASE_DIR, "data", "tools.yaml")
@@ -11,9 +14,10 @@ TOOLS_DIR = os.path.join(BASE_DIR, "templates", "tools")
 MIN_TOOLS = 100
 
 
+@functools.lru_cache(maxsize=1)
 def _load() -> dict:
     with open(YAML_PATH, encoding="utf-8") as f:
-        return yaml.safe_load(f)["tools"]
+        return yaml.load(f, Loader=_YAML_LOADER)["tools"]
 
 
 class TestToolsYamlCoverage:

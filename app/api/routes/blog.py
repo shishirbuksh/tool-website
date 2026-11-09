@@ -16,11 +16,12 @@ from app.core.i18n import (
     category_label,
     hreflang_links,
     html_lang_for,
-    is_supported_locale,
     localize_path,
     normalize_locale,
     og_locale_for,
     pillar_label,
+)
+from app.core.i18n import (
     t as _tr,
 )
 from app.core.icons import lucide_icon
