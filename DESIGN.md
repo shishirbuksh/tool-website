@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: cal.com
+name: Cal.com-design-analysis
 description: A clean, calendar-software-first interface anchored on white canvas with black primary CTAs and custom Cal Sans display typography. The system reads as friendly modern SaaS — generous whitespace, soft-rounded cards (~12px), product UI fragments shown directly inside cards, and a dark navy footer that visually closes long-scroll pages. Brand voltage comes from the Cal Sans display headline (a custom geometric face) and from product UI artifacts shown in-card rather than from accent colors.
 
 colors:
@@ -270,9 +270,6 @@ components:
     typography: "{typography.body-sm}"
     padding: 64px
 ---
-<!-- MIT licensed. Copyright and license: https://opendesignmd.com/licenses/ -->
-
-# How cal.com is designed
 
 ## Overview
 
@@ -430,7 +427,7 @@ Avatar photos use `{rounded.full}` (perfect circles) at 36px or 40px. Product UI
 
 **`button-text-link`** — Inline text button, no background. Used for "Sign in" in the top nav and inline CTA links inside cards.
 
-**`text-link`** — Inline body links in `{colors.ink}` (the brand keeps inline links monochrome). Underlined on hover (not documented, but mentioned for context).
+**`text-link`** — Inline body links in `{colors.ink}` (the brand keeps inline links monochrome). Underlined on hover (not documented per the no-hover policy, but mentioned for context).
 
 ### Cards & Containers
 
@@ -536,7 +533,7 @@ Avatar photos use `{rounded.full}` (perfect circles) at 36px or 40px. Product UI
 
 ## Known Gaps
 
-- Frequency analysis captured `Buttons: 0 variants` — Cal.com renders most CTAs as styled `<a>` link elements rather than `<button>` tags, which analysis's button selector doesn't capture. Button styles are documented from screenshot ground-truth + standard Cal Sans / Inter baselines.
+- The dembrandt frequency analyzer captured `Buttons: 0 variants` — Cal.com renders most CTAs as styled `<a>` link elements rather than `<button>` tags, which dembrandt's button selector doesn't capture. Button styles are documented from screenshot ground-truth + standard Cal Sans / Inter baselines.
 - Cal Sans is licensed to Cal.com and not available as a public web font; substitutes are documented in the typography section.
 - The badge pastel set (orange / pink / violet / emerald) is documented from observed avatar fill colors; exact hex values may shift seasonally.
 - Animation and transition timings (calendar slot picker, schedule confirmation, integration grid hover-reveal) are not in scope.
