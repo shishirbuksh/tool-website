@@ -4,7 +4,7 @@
 {% block head %}
 <!-- ROUND-2 perf: chart.js lazy-loaded on user action (was blocking vendor defer) -->
 <script nonce="{{ nonce }}">
-async function loadChart(){ if(window._chartLoaded) return; const s=document.createElement('script'); s.src='/static/js/vendor/chart.min.js'; s.defer=true; document.body.appendChild(s); await new Promise(r=>s.onload=r); window._chartLoaded=true; }
+async function loadChart(){ if(window._chartLoaded) return; if(window._chartLoading) return window._chartLoading; window._chartLoading=new Promise(function(r){ const s=document.createElement('script'); s.src='/static/js/vendor/chart.min.js'; s.defer=true; s.onload=function(){ window._chartLoaded=true; r(); }; document.body.appendChild(s); }); return window._chartLoading; }
 document.addEventListener('DOMContentLoaded', function(){
   // TODO: no single Run/Calculate button id found; lazy-load on chart visibility + first input.
   var c = document.getElementById('mrrChart');
@@ -392,6 +392,7 @@ function calc(){
 }
 
 function renderChart(labels,mrrData,newData,churnedData){
+  if(typeof Chart==='undefined'){loadChart().then(function(){renderChart(labels,mrrData,newData,churnedData);});return;}
   var ctx=document.getElementById('mrrChart').getContext('2d');
   var isDark=document.documentElement.getAttribute('data-theme')==='night';
   var grid=isDark?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.08)';

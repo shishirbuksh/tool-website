@@ -104,6 +104,120 @@ class TestPages:
         assert "cagCopyCss" in resp.text
         assert "cagTimingContainer" in resp.text
 
+    def test_negative_marking_calculator_returns_200(self):
+        resp = client.get("/tool/negative-marking-calculator")
+        assert resp.status_code == 200
+        assert "nmcExamSelect" in resp.text
+        assert "nmcModeTabs" in resp.text
+        assert "nmcNetScore" in resp.text
+        assert "nmcPdfBtn" in resp.text
+        assert "nmcFormulaTrace" in resp.text
+        assert '"@type":"SoftwareApplication"' in resp.text or '"@type": "SoftwareApplication"' in resp.text
+        assert '"@type":"FAQPage"' in resp.text or '"@type": "FAQPage"' in resp.text
+
+    def test_exam_photo_signature_resizer_returns_200(self):
+        resp = client.get("/tool/exam-photo-signature-resizer")
+        assert resp.status_code == 200
+        assert "eprExamSelect" in resp.text
+        assert "eprDownloadBtn" in resp.text
+        assert "eprCleanPaper" in resp.text
+        assert "eprStampToggle" in resp.text
+        assert '"@type":"SoftwareApplication"' in resp.text or '"@type": "SoftwareApplication"' in resp.text
+        assert '"@type":"FAQPage"' in resp.text or '"@type": "FAQPage"' in resp.text
+
+    def test_exam_age_eligibility_calculator_returns_200(self):
+        resp = client.get("/tool/exam-age-eligibility-calculator")
+        assert resp.status_code == 200
+        assert "eaeExamSelect" in resp.text
+        assert "eaeVerdictBadge" in resp.text
+        assert "eaeMatrixBody" in resp.text
+        assert "eaePdfBtn" in resp.text
+        assert '"@type":"SoftwareApplication"' in resp.text or '"@type": "SoftwareApplication"' in resp.text
+        assert '"@type":"FAQPage"' in resp.text or '"@type": "FAQPage"' in resp.text
+
+    def test_attendance_calculator_returns_200(self):
+        resp = client.get("/tool/attendance-calculator")
+        assert resp.status_code == 200
+        assert "atcAttended" in resp.text
+        assert "atcHeld" in resp.text
+        assert "atcSafeBunks" in resp.text
+        assert "atcFormulaTrace" in resp.text
+        assert "atcPdfBtn" in resp.text
+        assert '"@type":"SoftwareApplication"' in resp.text or '"@type": "SoftwareApplication"' in resp.text
+        assert '"@type":"FAQPage"' in resp.text or '"@type": "FAQPage"' in resp.text
+
+    def test_cgpa_percentage_calculator_returns_200(self):
+        resp = client.get("/tool/cgpa-percentage-calculator")
+        assert resp.status_code == 200
+        assert "cpcUniSelect" in resp.text
+        assert "cpcModeTabs" in resp.text
+        assert "cpcHeroValue" in resp.text
+        assert "cpcMatrixBody" in resp.text
+        assert "cpcPdfBtn" in resp.text
+        assert '"@type":"SoftwareApplication"' in resp.text or '"@type": "SoftwareApplication"' in resp.text
+        assert '"@type":"FAQPage"' in resp.text or '"@type": "FAQPage"' in resp.text
+
+    def test_marks_percentage_calculator_returns_200(self):
+        resp = client.get("/tool/marks-percentage-calculator")
+        assert resp.status_code == 200
+        assert "mpcPresets" in resp.text
+        assert "mpcModeTabs" in resp.text
+        assert "mpcHeroPct" in resp.text
+        assert "mpcTableBody" in resp.text
+        assert "mpcPdfBtn" in resp.text
+        assert "mpcRuleSelect" in resp.text
+        assert '"@type":"SoftwareApplication"' in resp.text or '"@type": "SoftwareApplication"' in resp.text
+        assert '"@type":"FAQPage"' in resp.text or '"@type": "FAQPage"' in resp.text
+
+    def test_student_tools_hub_returns_200(self):
+        resp = client.get("/student-tools")
+        assert resp.status_code == 200
+        assert "shGoalTabs" in resp.text
+        assert "shTrackTabs" in resp.text
+        assert "shSearchInput" in resp.text
+        assert "/tool/negative-marking-calculator" in resp.text
+        assert "/tool/marks-percentage-calculator" in resp.text
+        assert "/tool/exam-photo-signature-resizer" in resp.text
+        assert "/static/og-student-tools.webp" in resp.text
+        assert '"@type":"CollectionPage"' in resp.text
+        assert '"@type":"ItemList"' in resp.text
+        assert '"@type":"FAQPage"' in resp.text
+        assert "icon-missing" not in resp.text
+
+    def test_exam_typing_speed_test_returns_200(self):
+        resp = client.get("/tool/exam-typing-speed-test")
+        assert resp.status_code == 200
+        assert "ettPresets" in resp.text
+        assert "ettModeTabs" in resp.text
+        assert "ettHeroWpm" in resp.text
+        assert "ettPassageBox" in resp.text
+        assert "ettTypingInput" in resp.text
+        assert "ettPdfBtn" in resp.text
+        assert '"@type":"SoftwareApplication"' in resp.text or '"@type": "SoftwareApplication"' in resp.text
+        assert '"@type":"FAQPage"' in resp.text or '"@type": "FAQPage"' in resp.text
+
+    def test_passing_marks_calculator_returns_200(self):
+        resp = client.get("/tool/passing-marks-calculator")
+        assert resp.status_code == 200
+        assert "pmcPresets" in resp.text
+        assert "pmcModeTabs" in resp.text
+        assert "pmcHeroMarks" in resp.text
+        assert "pmcMatrixBody" in resp.text
+        assert "pmcPdfBtn" in resp.text
+        assert '"@type":"SoftwareApplication"' in resp.text or '"@type": "SoftwareApplication"' in resp.text
+        assert '"@type":"FAQPage"' in resp.text or '"@type": "FAQPage"' in resp.text
+
+    def test_gpa_scale_converter_returns_200(self):
+        resp = client.get("/tool/gpa-scale-converter")
+        assert resp.status_code == 200
+        assert "gscPresets" in resp.text
+        assert "gscModeTabs" in resp.text
+        assert "gscHeroPrimary" in resp.text
+        assert "gscRefTableBody" in resp.text
+        assert "gscPdfBtn" in resp.text
+        assert '"@type":"SoftwareApplication"' in resp.text or '"@type": "SoftwareApplication"' in resp.text
+        assert '"@type":"FAQPage"' in resp.text or '"@type": "FAQPage"' in resp.text
+
     def test_invalid_tool_returns_404(self):
         resp = client.get("/tool/this-tool-does-not-exist")
         assert resp.status_code == 404

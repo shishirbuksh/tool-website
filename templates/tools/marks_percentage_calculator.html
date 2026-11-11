@@ -1,0 +1,785 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
+
+{% block head %}
+<style>
+.mpc-panel{background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:12px;padding:1.25rem}
+.mpc-subcard{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:12px}
+.mpc-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:12px;font-weight:600;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;transition:all .14s;touch-action:manipulation;white-space:nowrap}
+.mpc-pill:hover{border-color:var(--color-base-content)}
+.mpc-pill.is-active{background:#111111;color:#ffffff;border-color:#111111}
+[data-theme="night"] .mpc-pill.is-active{background:#ffffff;color:#111111;border-color:#ffffff}
+.mpc-pill:focus-visible,.mpc-btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.mpc-scroll{overscroll-behavior:contain}
+.mpc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-100);color:var(--color-base-content);border:1px solid var(--color-base-300);border-radius:12px;padding:10px 18px;font-weight:600;font-size:13px;box-shadow:0 10px 25px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);pointer-events:none;transition:all .22s ease;display:flex;align-items:center;gap:8px}
+.mpc-toast.show{opacity:1;transform:translateY(0)}
+@media print{
+  header,nav,.bottom-nav,#cookieConsent,footer,.mpc-no-print,.breadcrumb{display:none!important}
+  body{padding:0!important;background:#ffffff!important;color:#111111!important}
+  .mpc-panel,.mpc-subcard{border:1px solid #d1d5db!important;background:#ffffff!important;box-shadow:none!important}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{{ tool_hero_section("award", "Board & Entrance Result Engine", "MARKS PERCENTAGE", "CALCULATOR", seo_data.description if seo_data else "Calculate CBSE and ICSE Best-of-5 percentage, Class 10 & 12 board marks, PCM aggregate for JEE/BITS, and PCB percentage for NEET — with automatic dropped-subject detection and PDF marksheet.") }}
+
+<div class="space-y-6 reveal" style="animation-delay:0.15s">
+  <!-- Presets & Rules Strip -->
+  <section class="mpc-panel mpc-no-print" aria-label="Board presets and evaluation rules">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+      <div class="flex flex-wrap items-center gap-2">
+        {{ lucide_icon("zap", "w-4 h-4 text-base-content/70", 16) | safe }}
+        <h2 class="font-display text-base font-semibold tracking-tight text-base-content">Board &amp; Stream Presets</h2>
+        <span class="badge badge-sm badge-soft font-mono">CBSE · ICSE · ISC · JEE · NEET</span>
+      </div>
+      <div class="flex flex-wrap gap-1.5" id="mpcPresets">
+        <button type="button" class="mpc-pill is-active" data-preset="cbse10">CBSE Class 10 (6 Subj)</button>
+        <button type="button" class="mpc-pill" data-preset="cbse12_pcm">Class 12 PCM (JEE)</button>
+        <button type="button" class="mpc-pill" data-preset="cbse12_pcb">Class 12 PCB (NEET)</button>
+        <button type="button" class="mpc-pill" data-preset="icse10">ICSE Class 10 (Best 5)</button>
+        <button type="button" class="mpc-pill" data-preset="isc12">ISC / DU (Best 4)</button>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div role="tablist" id="mpcModeTabs" class="tabs tabs-box tabs-xs sm:tabs-sm flex-wrap max-w-full bg-base-100 border border-base-300 p-1">
+        <button type="button" role="tab" class="tab font-semibold tab-active mpc-btn" data-mode="best5">Best-of-5 / Board</button>
+        <button type="button" role="tab" class="tab font-semibold mpc-btn" data-mode="stream">PCM / PCB Eligibility</button>
+        <button type="button" role="tab" class="tab font-semibold mpc-btn" data-mode="quick">Total Marks &rarr; %</button>
+      </div>
+
+      <div class="flex items-center gap-2 min-w-0 max-w-full w-full sm:w-auto">
+        <label for="mpcRuleSelect" class="text-xs font-semibold text-base-content/70 shrink-0">Rule:</label>
+        <select id="mpcRuleSelect" class="select select-xs sm:select-sm cal-input font-medium min-w-0 max-w-full flex-1 sm:flex-initial">
+          <option value="eng_top4">Best of 5 (Language Mandatory + Top 4)</option>
+          <option value="pure_top5">Best of 5 (Any Highest 5 Subjects)</option>
+          <option value="eng_top3">Best of 4 (Language Mandatory + Top 3 — ISC/DU)</option>
+          <option value="all">All Subjects Combined (No Drop)</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Workspace -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Left Column: Inputs -->
+    <div class="min-w-0 lg:col-span-6 space-y-5">
+      <!-- Mode 1 & 2: Subject Rows -->
+      <div id="mpcSubjPanel" class="mpc-panel space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("book-open", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h2 id="mpcInputTitle" class="font-display text-base font-semibold tracking-tight text-base-content">Subject Marks</h2>
+          </div>
+          <div class="flex items-center gap-1.5 mpc-no-print">
+            <button type="button" id="mpcAddSubjBtn" class="btn btn-xs btn-neutral gap-1 mpc-btn">
+              {{ lucide_icon("plus", "w-3.5 h-3.5", 14) | safe }}
+              <span>Add Subject</span>
+            </button>
+            <button type="button" id="mpcResetBtn" class="btn btn-ghost btn-xs mpc-btn" aria-label="Reset marks">
+              {{ lucide_icon("rotate-ccw", "w-3.5 h-3.5", 14) | safe }}
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-base-content/55">
+          <div class="col-span-4">Subject</div>
+          <div class="col-span-2 text-center">Marks</div>
+          <div class="col-span-2 text-center">Max</div>
+          <div class="col-span-3">Role</div>
+          <div class="col-span-1"></div>
+        </div>
+
+        <div id="mpcSubjList" class="space-y-2 max-h-96 overflow-y-auto pr-1 mpc-scroll"></div>
+      </div>
+
+      <!-- Mode 2: Stream Category Control -->
+      <div id="mpcStreamConfig" class="mpc-panel space-y-3 hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-base-content/65">Entrance Criteria Check</span>
+          <span class="badge badge-xs badge-soft font-mono">JEE / NEET / BITSAT</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="mpcExamTarget" class="block text-xs font-semibold text-base-content/75 mb-1">Entrance Exam</label>
+            <select id="mpcExamTarget" class="select select-sm cal-input w-full">
+              <option value="jee">JEE Main / NITs / IITs (75% Board or 65% SC/ST)</option>
+              <option value="neet">NEET UG (PCB 50% Gen / 40% OBC-SC-ST / 45% PwBD)</option>
+              <option value="bits">BITSAT (PCM 75% Aggregate + 60% Each)</option>
+            </select>
+          </div>
+          <div>
+            <label for="mpcExamCat" class="block text-xs font-semibold text-base-content/75 mb-1">Category</label>
+            <select id="mpcExamCat" class="select select-sm cal-input w-full">
+              <option value="gen">General / EWS</option>
+              <option value="obc">OBC-NCL</option>
+              <option value="scst">SC / ST</option>
+              <option value="pwbd">PwBD (General)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mode 3: Quick Total Marks -> % -->
+      <div id="mpcQuickPanel" class="mpc-panel space-y-4 hidden">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("calculator", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h2 class="font-display text-base font-semibold tracking-tight text-base-content">Quick Total Marks Converter</h2>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="mpcQuickGot" class="block text-xs font-semibold text-base-content/75 mb-1">Total Marks Obtained</label>
+            <input type="number" id="mpcQuickGot" step="0.5" min="0" max="10000" value="440" class="input input-md cal-input w-full font-mono text-lg font-bold">
+          </div>
+          <div>
+            <label for="mpcQuickMax" class="block text-xs font-semibold text-base-content/75 mb-1">Total Maximum Marks</label>
+            <input type="number" id="mpcQuickMax" step="1" min="1" max="10000" value="500" class="input input-md cal-input w-full font-mono text-lg font-bold">
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-1.5 text-xs">
+          <span class="text-base-content/55 font-medium mr-1">Common Out-Of Totals:</span>
+          <button type="button" class="btn btn-xs btn-outline font-mono mpc-btn" data-qmax="500">Out of 500</button>
+          <button type="button" class="btn btn-xs btn-outline font-mono mpc-btn" data-qmax="600">Out of 600</button>
+          <button type="button" class="btn btn-xs btn-outline font-mono mpc-btn" data-qmax="720">NEET 720</button>
+          <button type="button" class="btn btn-xs btn-outline font-mono mpc-btn" data-qmax="300">JEE 300</button>
+        </div>
+      </div>
+
+      <!-- Saved History -->
+      <div class="mpc-panel mpc-no-print space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("history", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h3 class="font-display text-sm font-semibold text-base-content">Saved Marksheets</h3>
+            <span id="mpcHistCount" class="badge badge-xs badge-soft font-mono">0</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" id="mpcSaveBtn" class="btn btn-xs btn-outline mpc-btn">Save Result</button>
+            <button type="button" id="mpcClearHistBtn" class="btn btn-xs btn-ghost text-error hidden mpc-btn" aria-label="Clear history">
+              {{ lucide_icon("trash-2", "w-3.5 h-3.5", 14) | safe }}
+            </button>
+          </div>
+        </div>
+        <div id="mpcHistList" class="space-y-1.5 max-h-40 overflow-y-auto mpc-scroll text-xs">
+          <p class="text-base-content/50 py-3 text-center">No saved marksheets yet.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Result Summary & Breakdown -->
+    <div class="min-w-0 lg:col-span-6 space-y-5">
+      <section class="mpc-panel space-y-4" aria-label="Board marks percentage summary">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div id="mpcRuleTitle" class="text-xs font-semibold uppercase tracking-wider text-base-content/55">Best of 5 (Language Mandatory + Top 4)</div>
+            <div class="flex items-baseline gap-2.5 mt-0.5">
+              <span id="mpcHeroPct" class="font-display text-3xl sm:text-4xl font-bold font-mono text-base-content">88.00%</span>
+              <span id="mpcHeroTotal" class="text-sm font-mono text-base-content/65">440 / 500 Marks</span>
+            </div>
+          </div>
+          <span id="mpcDivBadge" class="badge badge-md badge-success text-success-content font-mono font-bold">Distinction</span>
+        </div>
+
+        <progress id="mpcProgress" class="progress progress-neutral w-full h-2.5" value="88" max="100"></progress>
+
+        <!-- 4 Core Stats -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div class="mpc-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">Best-of Rule %</div>
+            <div id="mpcStatBest" class="font-mono text-base sm:text-lg font-bold text-base-content mt-0.5">88.00%</div>
+          </div>
+          <div class="mpc-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">All Subjects %</div>
+            <div id="mpcStatAll" class="font-mono text-base sm:text-lg font-bold text-base-content mt-0.5">86.33%</div>
+          </div>
+          <div class="mpc-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">PCM / PCB %</div>
+            <div id="mpcStatStream" class="font-mono text-base sm:text-lg font-bold text-base-content mt-0.5">—</div>
+          </div>
+          <div class="mpc-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">CBSE Est CGPA</div>
+            <div id="mpcStatCgpa" class="font-mono text-base sm:text-lg font-bold text-base-content mt-0.5">9.26</div>
+          </div>
+        </div>
+
+        <!-- Entrance / Eligibility Verdict Banner -->
+        <div id="mpcEligBox" class="mpc-subcard p-3.5 border-l-4 text-xs leading-relaxed">
+          <div id="mpcEligTitle" class="font-semibold text-sm text-base-content">—</div>
+          <p id="mpcEligSub" class="text-base-content/75 mt-0.5">—</p>
+        </div>
+
+        <!-- Formula Breakdown -->
+        <div class="mpc-subcard p-3.5 space-y-1">
+          <div class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Formula Calculation</div>
+          <div id="mpcFormulaTrace" class="font-mono text-xs text-base-content leading-relaxed">—</div>
+        </div>
+
+        <!-- Actions -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mpc-no-print">
+          <button type="button" id="mpcPdfBtn" class="btn-cal-primary h-10 text-xs gap-1.5 !px-2 whitespace-nowrap mpc-btn">
+            {{ lucide_icon("file-text", "w-3.5 h-3.5", 14) | safe }}
+            <span>PDF Report</span>
+          </button>
+          <button type="button" id="mpcPrintBtn" class="btn-cal-secondary h-10 text-xs gap-1.5 mpc-btn">
+            {{ lucide_icon("printer", "w-3.5 h-3.5", 14) | safe }}
+            <span>Print</span>
+          </button>
+          <button type="button" id="mpcCopyBtn" class="btn-cal-secondary h-10 text-xs gap-1.5 mpc-btn">
+            {{ lucide_icon("copy", "w-3.5 h-3.5", 14) | safe }}
+            <span>Copy</span>
+          </button>
+          <button type="button" id="mpcShareBtn" class="btn-cal-secondary h-10 text-xs gap-1.5 mpc-btn">
+            {{ lucide_icon("share-2", "w-3.5 h-3.5", 14) | safe }}
+            <span>Share</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Included vs Dropped Selection Breakdown Table -->
+      <section class="mpc-panel space-y-3" id="mpcBreakdownSection">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("layers", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h3 class="font-display text-sm font-semibold text-base-content">Included vs Dropped Subject Selection</h3>
+          </div>
+        </div>
+        <div class="overflow-x-auto mpc-subcard">
+          <table class="table table-xs w-full">
+            <thead>
+              <tr>
+                <th>Subject</th>
+                <th class="text-right">Score</th>
+                <th class="text-right">%</th>
+                <th class="text-right">Selection</th>
+              </tr>
+            </thead>
+            <tbody id="mpcTableBody" class="font-mono text-xs"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div id="mpcToast" class="mpc-toast" role="status" aria-live="polite"></div>
+
+<script nonce="{{ nonce }}">
+(function(){
+  'use strict';
+
+  var PRESETS = {
+    cbse10: {
+      rule:'eng_top4',
+      subjects:[
+        { name:'English', got:92, max:100, role:'lang' },
+        { name:'Mathematics', got:78, max:100, role:'core' },
+        { name:'Science', got:85, max:100, role:'core' },
+        { name:'Social Science', got:88, max:100, role:'core' },
+        { name:'Hindi', got:80, max:100, role:'core' },
+        { name:'Info. Technology', got:95, max:100, role:'skill' }
+      ]
+    },
+    cbse12_pcm: {
+      rule:'eng_top4',
+      subjects:[
+        { name:'English Core', got:89, max:100, role:'lang' },
+        { name:'Physics', got:84, max:100, role:'phys' },
+        { name:'Chemistry', got:82, max:100, role:'chem' },
+        { name:'Mathematics', got:91, max:100, role:'math' },
+        { name:'Computer Science', got:94, max:100, role:'core' },
+        { name:'Physical Education', got:95, max:100, role:'skill' }
+      ]
+    },
+    cbse12_pcb: {
+      rule:'eng_top4',
+      subjects:[
+        { name:'English Core', got:88, max:100, role:'lang' },
+        { name:'Physics', got:79, max:100, role:'phys' },
+        { name:'Chemistry', got:84, max:100, role:'chem' },
+        { name:'Biology', got:92, max:100, role:'bio' },
+        { name:'Psychology', got:86, max:100, role:'core' }
+      ]
+    },
+    icse10: {
+      rule:'eng_top4',
+      subjects:[
+        { name:'English (Compulsory)', got:90, max:100, role:'lang' },
+        { name:'History & Civics / Geo', got:91, max:100, role:'core' },
+        { name:'Mathematics', got:87, max:100, role:'math' },
+        { name:'Science (PCB)', got:89, max:100, role:'core' },
+        { name:'Second Language', got:82, max:100, role:'core' },
+        { name:'Computer Applications', got:98, max:100, role:'skill' }
+      ]
+    },
+    isc12: {
+      rule:'eng_top3',
+      subjects:[
+        { name:'English (Compulsory)', got:91, max:100, role:'lang' },
+        { name:'Economics', got:94, max:100, role:'core' },
+        { name:'Accountancy', got:88, max:100, role:'core' },
+        { name:'Commerce', got:92, max:100, role:'core' },
+        { name:'Mathematics', got:81, max:100, role:'math' }
+      ]
+    }
+  };
+
+  var ROLES = [
+    { v:'lang', t:'English / Language (Req)' },
+    { v:'phys', t:'Physics' },
+    { v:'chem', t:'Chemistry' },
+    { v:'math', t:'Mathematics' },
+    { v:'bio',  t:'Biology / Biotech' },
+    { v:'core', t:'Core / Elective' },
+    { v:'skill',t:'6th / Additional' }
+  ];
+
+  function el(id){ return document.getElementById(id); }
+
+  var state = {
+    mode: 'best5',
+    preset: 'cbse10',
+    subjects: PRESETS.cbse10.subjects.map(function(s){ return Object.assign({}, s); })
+  };
+
+  var hist = [];
+  try{
+    var p = JSON.parse(localStorage.getItem('sb_mpc_hist_v1') || '[]');
+    if (Array.isArray(p)) hist = p;
+  }catch(e){}
+
+  var toastEl = el('mpcToast');
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastEl._t);
+    toastEl._t = setTimeout(function(){ toastEl.classList.remove('show'); }, 2100);
+  }
+
+  function evaluateBestN(subjects, rule){
+    var items = subjects.map(function(s, idx){
+      var m = Math.max(1, Number(s.max) || 100);
+      var g = Math.min(m, Math.max(0, Number(s.got) || 0));
+      return { idx:idx, name:s.name || ('Subject ' + (idx + 1)), got:g, max:m, pct:(g / m) * 100, role:s.role || 'core', included:false };
+    });
+
+    if (rule === 'all' || items.length <= 1){
+      items.forEach(function(it){ it.included = true; });
+    } else {
+      var targetCount = rule === 'eng_top3' ? 4 : 5;
+      targetCount = Math.min(targetCount, items.length);
+
+      if (rule === 'eng_top4' || rule === 'eng_top3'){
+        var langPick = null;
+        for (var i = 0; i < items.length; i++){
+          if (items[i].role === 'lang'){
+            if (!langPick || items[i].pct > langPick.pct) langPick = items[i];
+          }
+        }
+        var picked = [];
+        if (langPick){
+          langPick.included = true;
+          picked.push(langPick);
+        }
+        var rest = items.filter(function(it){ return !it.included; }).sort(function(a, b){ return b.pct - a.pct; });
+        while (picked.length < targetCount && rest.length){
+          var nx = rest.shift();
+          nx.included = true;
+          picked.push(nx);
+        }
+      } else {
+        var sorted = items.slice().sort(function(a, b){ return b.pct - a.pct; });
+        for (var k = 0; k < targetCount; k++){
+          sorted[k].included = true;
+        }
+      }
+    }
+
+    var incGot = 0, incMax = 0, allGot = 0, allMax = 0;
+    items.forEach(function(it){
+      allGot += it.got; allMax += it.max;
+      if (it.included){ incGot += it.got; incMax += it.max; }
+    });
+    var bestPct = incMax > 0 ? (incGot / incMax) * 100 : 0;
+    var allPct = allMax > 0 ? (allGot / allMax) * 100 : 0;
+
+    return { items:items, incGot:incGot, incMax:incMax, allGot:allGot, allMax:allMax, bestPct:bestPct, allPct:allPct };
+  }
+
+  function applyPreset(key){
+    var pr = PRESETS[key];
+    if (!pr) return;
+    state.preset = key;
+    state.subjects = pr.subjects.map(function(s){ return Object.assign({}, s); });
+    el('mpcRuleSelect').value = pr.rule;
+    document.querySelectorAll('#mpcPresets .mpc-pill').forEach(function(b){
+      b.classList.toggle('is-active', b.getAttribute('data-preset') === key);
+    });
+    renderSubjects();
+    calculate();
+  }
+
+  function renderSubjects(){
+    var list = el('mpcSubjList');
+    list.innerHTML = '';
+    state.subjects.forEach(function(s, idx){
+      var row = document.createElement('div');
+      row.className = 'mpc-subcard p-2 grid grid-cols-12 gap-1.5 items-center';
+
+      var nm = document.createElement('input');
+      nm.type = 'text';
+      nm.value = s.name;
+      nm.maxLength = 32;
+      nm.className = 'input input-xs cal-input col-span-4 font-medium';
+      nm.setAttribute('aria-label', 'Subject name ' + (idx + 1));
+      nm.addEventListener('input', function(){ s.name = this.value || ('Subject ' + (idx + 1)); calculate(); });
+
+      var got = document.createElement('input');
+      got.type = 'number'; got.step = '0.5'; got.min = '0'; got.max = String(s.max || 100);
+      got.value = String(s.got);
+      got.className = 'input input-xs cal-input col-span-2 font-mono text-center';
+      got.setAttribute('aria-label', 'Marks obtained ' + (idx + 1));
+      got.addEventListener('input', function(){ s.got = Math.max(0, parseFloat(this.value) || 0); calculate(); });
+
+      var mx = document.createElement('input');
+      mx.type = 'number'; mx.step = '1'; mx.min = '1'; mx.max = '1000';
+      mx.value = String(s.max);
+      mx.className = 'input input-xs cal-input col-span-2 font-mono text-center';
+      mx.setAttribute('aria-label', 'Max marks ' + (idx + 1));
+      mx.addEventListener('input', function(){ s.max = Math.max(1, parseFloat(this.value) || 100); got.max = String(s.max); calculate(); });
+
+      var role = document.createElement('select');
+      role.className = 'select select-xs cal-input col-span-3 text-[11px]';
+      ROLES.forEach(function(r){
+        var o = document.createElement('option');
+        o.value = r.v; o.textContent = r.t;
+        if (r.v === s.role) o.selected = true;
+        role.appendChild(o);
+      });
+      role.addEventListener('change', function(){ s.role = this.value; calculate(); });
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'btn btn-ghost btn-xs text-error col-span-1 px-0 mpc-btn';
+      del.textContent = '×';
+      del.title = 'Remove subject';
+      del.disabled = state.subjects.length <= 2;
+      del.addEventListener('click', function(){
+        if (state.subjects.length <= 2) return;
+        state.subjects.splice(idx, 1);
+        renderSubjects();
+        calculate();
+      });
+
+      row.appendChild(nm);
+      row.appendChild(got);
+      row.appendChild(mx);
+      row.appendChild(role);
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  function getDiv(pct){
+    if (pct >= 75) return { txt:'Distinction', cls:'badge-success text-success-content' };
+    if (pct >= 60) return { txt:'First Division', cls:'badge-neutral' };
+    if (pct >= 50) return { txt:'Second Division', cls:'badge-ghost' };
+    if (pct >= 33) return { txt:'Pass', cls:'badge-warning' };
+    return { txt:'Below Pass', cls:'badge-error text-error-content' };
+  }
+
+  function escHtml(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  var lastReport = null;
+
+  function calculate(){
+    if (state.mode === 'quick'){
+      var qMax = Math.max(1, parseFloat(el('mpcQuickMax').value) || 500);
+      var qGot = Math.min(qMax, Math.max(0, parseFloat(el('mpcQuickGot').value) || 0));
+      var qPct = (qGot / qMax) * 100;
+      var qDiv = getDiv(qPct);
+      el('mpcRuleTitle').textContent = 'Direct Total Marks Percentage';
+      el('mpcHeroPct').textContent = qPct.toFixed(2) + '%';
+      el('mpcHeroTotal').textContent = qGot + ' / ' + qMax + ' Marks';
+      el('mpcDivBadge').textContent = qDiv.txt;
+      el('mpcDivBadge').className = 'badge badge-md font-mono font-bold ' + qDiv.cls;
+      el('mpcProgress').value = Math.round(qPct);
+      el('mpcStatBest').textContent = qPct.toFixed(2) + '%';
+      el('mpcStatAll').textContent = qPct.toFixed(2) + '%';
+      el('mpcStatStream').textContent = '—';
+      el('mpcStatCgpa').textContent = Math.min(10, qPct / 9.5).toFixed(2);
+      el('mpcEligBox').style.borderLeftColor = qPct >= 75 ? 'var(--color-success)' : 'var(--color-base-300)';
+      el('mpcEligTitle').textContent = qDiv.txt + ' (' + qPct.toFixed(2) + '%)';
+      el('mpcEligSub').textContent = 'Indicative CBSE CGPA equivalent (÷ 9.5): ' + Math.min(10, qPct / 9.5).toFixed(2) + ' / 10.';
+      el('mpcFormulaTrace').textContent = 'Percentage = (' + qGot + ' ÷ ' + qMax + ') × 100 = ' + qPct.toFixed(2) + '%';
+      el('mpcBreakdownSection').classList.add('hidden');
+      lastReport = {
+        title:'Direct Marks Percentage',
+        pct:qPct.toFixed(2), got:qGot, max:qMax, div:qDiv.txt,
+        trace:el('mpcFormulaTrace').textContent, elig:el('mpcEligTitle').textContent, items:[]
+      };
+      return;
+    }
+
+    el('mpcBreakdownSection').classList.remove('hidden');
+    var rule = el('mpcRuleSelect').value;
+    var ev = evaluateBestN(state.subjects, rule);
+
+    // Stream aggregates (PCM / PCB)
+    var findRole = function(r){ return ev.items.find(function(x){ return x.role === r; }); };
+    var p = findRole('phys'), c = findRole('chem'), m = findRole('math'), b = findRole('bio');
+    var pcmItems = [p, c, m].filter(Boolean);
+    var pcbItems = [p, c, b].filter(Boolean);
+    var pcmPct = pcmItems.length === 3 ? (pcmItems.reduce(function(a,x){return a+x.got;},0) / pcmItems.reduce(function(a,x){return a+x.max;},0)) * 100 : null;
+    var pcbPct = pcbItems.length === 3 ? (pcbItems.reduce(function(a,x){return a+x.got;},0) / pcbItems.reduce(function(a,x){return a+x.max;},0)) * 100 : null;
+
+    var showPct = ev.bestPct;
+    var showGot = ev.incGot;
+    var showMax = ev.incMax;
+    var ruleLabel = el('mpcRuleSelect').options[el('mpcRuleSelect').selectedIndex].text;
+
+    var exam = el('mpcExamTarget').value;
+    var cat = el('mpcExamCat').value;
+    var eligOk = true;
+    var eligHead = '';
+    var eligDesc = '';
+
+    if (state.mode === 'stream'){
+      if (exam === 'neet' && pcbPct !== null){
+        showPct = pcbPct;
+        showGot = pcbItems.reduce(function(a,x){return a+x.got;},0);
+        showMax = pcbItems.reduce(function(a,x){return a+x.max;},0);
+        ruleLabel = 'NEET UG — PCB Aggregate Percentage';
+        var minNeet = cat === 'gen' ? 50 : (cat === 'pwbd' ? 45 : 40);
+        eligOk = pcbPct >= minNeet;
+        eligHead = eligOk ? ('Meets NEET UG ' + minNeet + '% PCB Criteria (' + pcbPct.toFixed(2) + '%)') : ('Below NEET UG ' + minNeet + '% PCB Cutoff (' + pcbPct.toFixed(2) + '%)');
+        eligDesc = 'NEET requires >= ' + minNeet + '% combined in Physics, Chemistry, and Biology for your selected category.';
+      } else if (exam === 'bits' && pcmPct !== null){
+        showPct = pcmPct;
+        showGot = pcmItems.reduce(function(a,x){return a+x.got;},0);
+        showMax = pcmItems.reduce(function(a,x){return a+x.max;},0);
+        ruleLabel = 'BITSAT — PCM Aggregate & Subject Minimum';
+        var each60 = pcmItems.every(function(x){ return x.pct >= 60; });
+        eligOk = pcmPct >= 75 && each60;
+        eligHead = eligOk ? ('Eligible for BITSAT Criteria (PCM ' + pcmPct.toFixed(2) + '%)') : ('Does Not Meet BITSAT 75% + 60% Each Criteria');
+        eligDesc = 'Requires >= 75% PCM aggregate AND >= 60% individually in Physics (' + p.pct.toFixed(0) + '%), Chemistry (' + c.pct.toFixed(0) + '%), and Maths (' + m.pct.toFixed(0) + '%).';
+      } else {
+        var minJee = cat === 'scst' ? 65 : 75;
+        eligOk = ev.bestPct >= minJee;
+        eligHead = eligOk ? ('Meets JEE/NIT ' + minJee + '% Criteria (' + ev.bestPct.toFixed(2) + '%)') : ('Short of JEE ' + minJee + '% Threshold by ' + (minJee - ev.bestPct).toFixed(2) + '%');
+        eligDesc = 'JoSAA requires ' + minJee + '% (aggregate / Best of 5) or Top 20 percentile of your respective Class 12 board.';
+      }
+    } else {
+      var minJ = 75;
+      eligOk = ev.bestPct >= minJ;
+      var dropped = ev.items.filter(function(it){ return !it.included; }).map(function(it){ return it.name; });
+      eligHead = dropped.length ? ('Included ' + ev.items.filter(function(i){return i.included;}).length + ' Subjects · Dropped ' + dropped.join(', ')) : ('All ' + ev.items.length + ' Subjects Included');
+      eligDesc = 'All-subjects aggregate is ' + ev.allPct.toFixed(2) + '% vs ' + ev.bestPct.toFixed(2) + '% under your Best-of selection rule (' + (ev.bestPct - ev.allPct >= 0 ? '+' : '') + (ev.bestPct - ev.allPct).toFixed(2) + '% lift).';
+    }
+
+    var div = getDiv(showPct);
+    el('mpcRuleTitle').textContent = ruleLabel;
+    el('mpcHeroPct').textContent = showPct.toFixed(2) + '%';
+    el('mpcHeroTotal').textContent = showGot + ' / ' + showMax + ' Marks';
+    el('mpcDivBadge').textContent = div.txt;
+    el('mpcDivBadge').className = 'badge badge-md font-mono font-bold ' + div.cls;
+    el('mpcProgress').value = Math.round(showPct);
+
+    el('mpcStatBest').textContent = ev.bestPct.toFixed(2) + '%';
+    el('mpcStatAll').textContent = ev.allPct.toFixed(2) + '%';
+    el('mpcStatStream').textContent = pcmPct !== null ? ('PCM ' + pcmPct.toFixed(1) + '%') : (pcbPct !== null ? ('PCB ' + pcbPct.toFixed(1) + '%') : '—');
+    el('mpcStatCgpa').textContent = Math.min(10, showPct / 9.5).toFixed(2);
+
+    el('mpcEligBox').style.borderLeftColor = eligOk ? 'var(--color-success)' : 'var(--color-warning)';
+    el('mpcEligTitle').textContent = eligHead;
+    el('mpcEligSub').textContent = eligDesc;
+    el('mpcFormulaTrace').textContent = 'Percentage = (' + showGot + ' ÷ ' + showMax + ') × 100 = ' + showPct.toFixed(2) + '%';
+
+    // Table
+    var tb = el('mpcTableBody');
+    tb.innerHTML = '';
+    ev.items.forEach(function(it){
+      var tr = document.createElement('tr');
+      if (!it.included) tr.className = 'opacity-55';
+      tr.innerHTML = '<td class="font-sans font-medium">' + escHtml(it.name) + '</td>'
+        + '<td class="text-right">' + it.got + ' / ' + it.max + '</td>'
+        + '<td class="text-right">' + it.pct.toFixed(1) + '%</td>'
+        + '<td class="text-right">' + (it.included ? '<span class="badge badge-xs badge-success text-success-content">Included</span>' : '<span class="badge badge-xs badge-ghost">Dropped</span>') + '</td>';
+      tb.appendChild(tr);
+    });
+
+    lastReport = {
+      title: ruleLabel, pct: showPct.toFixed(2), got: showGot, max: showMax, div: div.txt,
+      trace: el('mpcFormulaTrace').textContent, elig: eligHead, items: ev.items
+    };
+  }
+
+  function renderHist(){
+    var list = el('mpcHistList');
+    el('mpcHistCount').textContent = String(hist.length);
+    el('mpcClearHistBtn').classList.toggle('hidden', hist.length === 0);
+    if (!hist.length){
+      list.innerHTML = '<p class="text-base-content/50 py-3 text-center">No saved marksheets yet.</p>';
+      return;
+    }
+    list.innerHTML = '';
+    hist.forEach(function(h){
+      var d = document.createElement('div');
+      d.className = 'mpc-subcard p-2 flex items-center justify-between gap-2';
+      d.innerHTML = '<div class="min-w-0"><div class="font-semibold text-base-content truncate">' + escHtml(h.title) + '</div><div class="font-mono text-[11px] text-base-content/60">' + h.got + ' / ' + h.max + ' (' + h.pct + '%)</div></div><span class="badge badge-xs font-mono shrink-0">' + h.div + '</span>';
+      list.appendChild(d);
+    });
+  }
+
+  // ASCII-safe PDF 1.4 Marksheet Generator
+  function pdfEsc(str){
+    return String(str)
+      .replace(/[^\x20-\x7E]/g, function(ch){ return ch === '×' ? 'x' : (ch === '÷' ? '/' : '-'); })
+      .replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  }
+
+  function buildPdfBlob(r){
+    var lines = [];
+    var y = 760;
+    function add(text, font, size, x, dy){
+      lines.push('BT /' + font + ' ' + size + ' Tf ' + x + ' ' + y + ' Td (' + pdfEsc(text) + ') Tj ET');
+      y -= (dy || 18);
+    }
+    add('STORYBRAIN AI - BOARD MARKS PERCENTAGE REPORT', 'F2', 14, 48, 22);
+    add('Rule: ' + r.title + '   |   Generated: ' + new Date().toISOString().slice(0, 10), 'F1', 10, 48, 18);
+    lines.push('0.85 w 48 ' + (y + 6) + ' m 547 ' + (y + 6) + ' l S');
+    y -= 10;
+    add('PERCENTAGE: ' + r.pct + '%   (' + r.got + ' / ' + r.max + ' Marks)   [' + r.div + ']', 'F2', 15, 48, 22);
+    add(r.elig, 'F1', 10, 48, 18);
+    add('Calculation: ' + r.trace, 'F1', 10, 48, 22);
+    if (r.items && r.items.length){
+      add('SUBJECT BREAKDOWN', 'F2', 11, 48, 16);
+      r.items.forEach(function(it){
+        add(it.name + ': ' + it.got + '/' + it.max + ' (' + it.pct.toFixed(1) + '%) [' + (it.included ? 'Included' : 'Dropped') + ']', 'F1', 10, 56, 15);
+      });
+    }
+    add('Generated locally at storybrainai.com/tool/marks-percentage-calculator', 'F1', 9, 48, 14);
+
+    var stream = lines.join('\n');
+    var objs = [
+      '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+      '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+      '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n',
+      '4 0 obj\n<< /Length ' + stream.length + ' >>\nstream\n' + stream + '\nendstream\nendobj\n',
+      '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+      '6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n'
+    ];
+    var pdf = '%PDF-1.4\n';
+    var offs = [0];
+    objs.forEach(function(o){ offs.push(pdf.length); pdf += o; });
+    var xp = pdf.length;
+    pdf += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+    for (var i = 1; i < offs.length; i++){
+      pdf += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+    }
+    pdf += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xp + '\n%%EOF';
+    return new Blob([pdf], { type: 'application/pdf' });
+  }
+
+  // Events
+  document.querySelectorAll('#mpcPresets .mpc-pill').forEach(function(b){
+    b.addEventListener('click', function(){ applyPreset(b.getAttribute('data-preset')); });
+  });
+
+  document.querySelectorAll('#mpcModeTabs [role="tab"]').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      state.mode = tab.getAttribute('data-mode');
+      document.querySelectorAll('#mpcModeTabs [role="tab"]').forEach(function(t){ t.classList.toggle('tab-active', t === tab); });
+      el('mpcSubjPanel').classList.toggle('hidden', state.mode === 'quick');
+      el('mpcStreamConfig').classList.toggle('hidden', state.mode !== 'stream');
+      el('mpcQuickPanel').classList.toggle('hidden', state.mode !== 'quick');
+      if (state.mode === 'stream' && state.preset === 'cbse10') applyPreset('cbse12_pcm');
+      else calculate();
+    });
+  });
+
+  ['mpcRuleSelect','mpcExamTarget','mpcExamCat','mpcQuickGot','mpcQuickMax'].forEach(function(id){
+    el(id).addEventListener('input', calculate);
+    el(id).addEventListener('change', calculate);
+  });
+
+  document.querySelectorAll('[data-qmax]').forEach(function(b){
+    b.addEventListener('click', function(){
+      el('mpcQuickMax').value = b.getAttribute('data-qmax');
+      calculate();
+    });
+  });
+
+  el('mpcAddSubjBtn').addEventListener('click', function(){
+    state.subjects.push({ name:'Subject ' + (state.subjects.length + 1), got:80, max:100, role:'core' });
+    renderSubjects();
+    calculate();
+  });
+
+  el('mpcResetBtn').addEventListener('click', function(){
+    applyPreset('cbse10');
+    toast('Reset to CBSE Class 10 preset.');
+  });
+
+  el('mpcSaveBtn').addEventListener('click', function(){
+    if (!lastReport) return;
+    hist.unshift({ title:lastReport.title, got:lastReport.got, max:lastReport.max, pct:lastReport.pct, div:lastReport.div });
+    hist = hist.slice(0, 15);
+    try{ localStorage.setItem('sb_mpc_hist_v1', JSON.stringify(hist)); }catch(e){}
+    renderHist();
+    toast('Saved marksheet summary!');
+  });
+
+  el('mpcClearHistBtn').addEventListener('click', function(){
+    hist = [];
+    try{ localStorage.removeItem('sb_mpc_hist_v1'); }catch(e){}
+    renderHist();
+    toast('History cleared.');
+  });
+
+  el('mpcPdfBtn').addEventListener('click', function(){
+    if (!lastReport) return;
+    var blob = buildPdfBlob(lastReport);
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'board-marks-percentage-report.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    toast('PDF marksheet downloaded!');
+  });
+
+  el('mpcPrintBtn').addEventListener('click', function(){ window.print(); });
+  el('mpcCopyBtn').addEventListener('click', function(){
+    if (!lastReport) return;
+    var txt = lastReport.title + ': ' + lastReport.got + '/' + lastReport.max + ' (' + lastReport.pct + '%) - ' + lastReport.div;
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ toast('Summary copied!'); });
+    }
+  });
+  el('mpcShareBtn').addEventListener('click', function(){
+    var url = window.location.origin + window.location.pathname + '?got=' + (lastReport ? lastReport.got : 440) + '&max=' + (lastReport ? lastReport.max : 500);
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(function(){ toast('Share link copied!'); });
+    }
+  });
+
+  var sp = new URLSearchParams(window.location.search);
+  if (sp.get('got') && sp.get('max')){
+    el('mpcQuickGot').value = sp.get('got');
+    el('mpcQuickMax').value = sp.get('max');
+  }
+
+  renderHist();
+  applyPreset('cbse10');
+})();
+</script>
+
+{{ tool_section_end() }}
+{% endblock %}

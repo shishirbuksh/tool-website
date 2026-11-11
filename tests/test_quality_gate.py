@@ -186,7 +186,7 @@ class TestRepositoryBaseline:
         gate = QualityGate(locales=["en"], check_sitemaps=True)
         report = gate.run()
         assert report.passed, [issue.message for issue in report.errors[:10]]
-        assert report.items_checked == 216
+        assert report.items_checked == 225
 
     def test_quarantined_german_sample_is_blocked(self):
         gate = QualityGate(locales=["de"], slugs={"ad-performance-analyzer"}, check_sitemaps=False)

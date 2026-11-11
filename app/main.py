@@ -193,10 +193,13 @@ class CachedStaticFiles(StaticFiles):
             elif _HASHED_ASSET_RE.search(path):
                 # Only content-hashed filenames (app.[hash].js) are immutable.
                 response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-            else:
+            elif settings.is_prod:
                 # Non-hashed entry points must revalidate or browsers pin stale
                 # code for a year when Caddy is bypassed (matches Caddyfile).
                 response.headers["Cache-Control"] = "public, max-age=3600, must-revalidate"
+            else:
+                # In local dev, force immediate revalidation so rebuilt CSS/JS applies on reload.
+                response.headers["Cache-Control"] = "public, max-age=0, must-revalidate"
 
             if response.status_code == 200:
                 import time as _time

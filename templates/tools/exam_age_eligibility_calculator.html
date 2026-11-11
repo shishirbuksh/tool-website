@@ -1,0 +1,748 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
+
+{% block head %}
+<style>
+.eae-panel{background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:12px;padding:1.25rem}
+.eae-subcard{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:12px}
+.eae-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:12px;font-weight:600;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;transition:all .14s;touch-action:manipulation;white-space:nowrap}
+.eae-pill:hover{border-color:var(--color-base-content)}
+.eae-pill.is-active{background:#111111;color:#ffffff;border-color:#111111}
+[data-theme="night"] .eae-pill.is-active{background:#ffffff;color:#111111;border-color:#ffffff}
+.eae-pill:focus-visible,.eae-btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.eae-scroll{overscroll-behavior:contain}
+.eae-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-100);color:var(--color-base-content);border:1px solid var(--color-base-300);border-radius:12px;padding:10px 18px;font-weight:600;font-size:13px;box-shadow:0 10px 25px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);pointer-events:none;transition:all .22s ease;display:flex;align-items:center;gap:8px}
+.eae-toast.show{opacity:1;transform:translateY(0)}
+@media print{
+  header,nav,.bottom-nav,#cookieConsent,footer,.eae-no-print,.breadcrumb{display:none!important}
+  body{padding:0!important;background:#ffffff!important;color:#111111!important}
+  .eae-panel,.eae-subcard{border:1px solid #d1d5db!important;background:#ffffff!important;box-shadow:none!important}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{{ tool_hero_section("user-check", "Exam Eligibility Engine", "EXAM AGE LIMIT", "CALCULATOR", seo_data.description if seo_data else "Check exact age eligibility on cutoff dates for UPSC CSE, SSC CGL, CHSL, GD, IBPS, SBI, RRB, NDA, and NEET with OBC/SC/ST/PwBD relaxation, attempt count, and PDF report.") }}
+
+<div class="space-y-6 reveal" style="animation-delay:0.15s">
+  <!-- Quick Exam Presets -->
+  <section class="eae-panel eae-no-print" aria-label="Competitive exam age presets">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+      <div class="flex items-center gap-2">
+        {{ lucide_icon("zap", "w-4 h-4 text-base-content/70", 16) | safe }}
+        <h2 class="font-display text-base font-semibold tracking-tight text-base-content">Official Exam Presets</h2>
+        <span class="badge badge-sm badge-soft font-mono">18+ Recruitment Rules</span>
+      </div>
+      <div class="w-full sm:w-80">
+        <label for="eaeExamSelect" class="sr-only">Choose competitive exam preset</label>
+        <select id="eaeExamSelect" class="select select-sm cal-input w-full font-medium">
+          <optgroup label="UPSC &amp; Civil Services">
+            <option value="upsc_cse">UPSC CSE / IAS (21-32 yrs | 1 Aug)</option>
+            <option value="upsc_capf">UPSC CAPF AC (20-25 yrs | 1 Aug)</option>
+            <option value="upsc_nda">UPSC NDA &amp; NA (16.5-19.5 yrs | No Relax)</option>
+            <option value="upsc_cds">UPSC CDS IMA/INA (19-24 yrs | No Relax)</option>
+          </optgroup>
+          <optgroup label="SSC Exams">
+            <option value="ssc_cgl_30">SSC CGL Posts 18-30 yrs (1 Aug)</option>
+            <option value="ssc_cgl_27">SSC CGL Posts 18-27 yrs (1 Aug)</option>
+            <option value="ssc_cgl_32">SSC CGL JSO Posts 18-32 yrs (1 Aug)</option>
+            <option value="ssc_chsl">SSC CHSL 10+2 (18-27 yrs | 1 Aug)</option>
+            <option value="ssc_gd">SSC GD Constable (18-23 yrs | 1 Jan)</option>
+            <option value="ssc_mts">SSC MTS (18-25 yrs | 1 Aug)</option>
+            <option value="ssc_cpo">SSC CPO Sub-Inspector (20-25 yrs | 1 Aug)</option>
+          </optgroup>
+          <optgroup label="Banking, Railways &amp; Regulatory">
+            <option value="ibps_po">IBPS PO / MT (20-30 yrs | 1 Aug)</option>
+            <option value="ibps_clerk">IBPS Clerk (20-28 yrs | 1 Aug)</option>
+            <option value="sbi_po">SBI PO (21-30 yrs | 1 Apr)</option>
+            <option value="rbi_grade_b">RBI Grade B (21-30 yrs | 1 Jul)</option>
+            <option value="rrb_ntpc">RRB NTPC Graduate (18-36 yrs | 1 Jan)</option>
+            <option value="rrb_alp">RRB ALP (18-30 yrs | 1 Jul)</option>
+          </optgroup>
+          <optgroup label="Entrance, Teaching &amp; Defence">
+            <option value="neet_ug">NEET UG Medical (17+ yrs, No Upper Limit)</option>
+            <option value="ugc_net_jrf">UGC NET JRF (Up to 30 yrs | +5y Women/SC/ST/OBC)</option>
+            <option value="afcat">AFCAT Flying Branch (20-24 yrs | No Relax)</option>
+            <option value="agniveer">Agniveer Recruitment (17.5-21 yrs | No Relax)</option>
+            <option value="custom">Custom Age Limit &amp; Cutoff Date</option>
+          </optgroup>
+        </select>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-1.5" id="eaeQuickChips">
+      <button type="button" class="eae-pill is-active" data-preset="upsc_cse">UPSC CSE (21-32)</button>
+      <button type="button" class="eae-pill" data-preset="ssc_cgl_30">SSC CGL (18-30)</button>
+      <button type="button" class="eae-pill" data-preset="ssc_gd">SSC GD (18-23)</button>
+      <button type="button" class="eae-pill" data-preset="ssc_chsl">SSC CHSL (18-27)</button>
+      <button type="button" class="eae-pill" data-preset="ibps_po">IBPS PO (20-30)</button>
+      <button type="button" class="eae-pill" data-preset="rrb_ntpc">RRB NTPC (18-36)</button>
+      <button type="button" class="eae-pill" data-preset="neet_ug">NEET UG (17+)</button>
+      <button type="button" class="eae-pill" data-preset="upsc_nda">NDA (16.5-19.5)</button>
+    </div>
+  </section>
+
+  <!-- Main 2-Column Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Left Inputs -->
+    <div class="min-w-0 lg:col-span-5 space-y-5">
+      <div class="eae-panel space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("calendar", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h2 class="font-display text-base font-semibold tracking-tight text-base-content">Candidate Details</h2>
+          </div>
+          <button type="button" id="eaeResetBtn" class="btn btn-ghost btn-xs gap-1 eae-btn">
+            {{ lucide_icon("rotate-ccw", "w-3.5 h-3.5", 14) | safe }}
+            <span>Reset</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="eaeDob" class="block text-xs font-semibold text-base-content/75 mb-1">Date of Birth (DOB)</label>
+            <input type="date" id="eaeDob" class="input input-sm cal-input w-full font-mono">
+          </div>
+          <div>
+            <label for="eaeCutoff" class="block text-xs font-semibold text-base-content/75 mb-1">Age Cutoff ("As On") Date</label>
+            <input type="date" id="eaeCutoff" class="input input-sm cal-input w-full font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="eaeCategory" class="block text-xs font-semibold text-base-content/75 mb-1">Reservation Category</label>
+            <select id="eaeCategory" class="select select-sm cal-input w-full">
+              <option value="gen">General / EWS (+0 yrs)</option>
+              <option value="obc">OBC-NCL (+3 yrs)</option>
+              <option value="sc">SC (+5 yrs)</option>
+              <option value="st">ST (+5 yrs)</option>
+              <option value="pwbd_gen">PwBD General (+10 yrs)</option>
+              <option value="pwbd_obc">PwBD OBC (+13 yrs)</option>
+              <option value="pwbd_scst">PwBD SC/ST (+15 yrs)</option>
+              <option value="exs">Ex-Servicemen (+3 yrs std)</option>
+            </select>
+          </div>
+          <div>
+            <label for="eaeAttemptsUsed" class="block text-xs font-semibold text-base-content/75 mb-1">Attempts Used (UPSC/Exam)</label>
+            <input type="number" id="eaeAttemptsUsed" min="0" max="20" value="0" class="input input-sm cal-input w-full font-mono">
+          </div>
+        </div>
+
+        <div class="eae-subcard p-3 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Exam Age Limits</span>
+            <label class="inline-flex items-center gap-1.5 text-xs cursor-pointer">
+              <input type="checkbox" id="eaeCustomOverride" class="checkbox checkbox-xs">
+              <span class="text-base-content/70">Custom Override</span>
+            </label>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label for="eaeMinAge" class="block text-[11px] font-medium text-base-content/60 mb-1">Min Age (yrs)</label>
+              <input type="number" id="eaeMinAge" step="0.5" min="10" max="60" value="21" class="input input-sm cal-input w-full font-mono">
+            </div>
+            <div>
+              <label for="eaeMaxAge" class="block text-[11px] font-medium text-base-content/60 mb-1">Max Age (0=None)</label>
+              <input type="number" id="eaeMaxAge" step="0.5" min="0" max="75" value="32" class="input input-sm cal-input w-full font-mono">
+            </div>
+            <div>
+              <label for="eaeExtraRelax" class="block text-[11px] font-medium text-base-content/60 mb-1">Extra Relax (yrs)</label>
+              <input type="number" id="eaeExtraRelax" step="1" min="0" max="20" value="0" class="input input-sm cal-input w-full font-mono">
+            </div>
+          </div>
+          <p id="eaeRelaxNote" class="text-[11px] text-base-content/60 leading-snug"></p>
+        </div>
+
+        <!-- Sample Quick Fill -->
+        <div class="flex flex-wrap items-center gap-2 pt-1 text-xs">
+          <span class="text-base-content/55 font-medium">Quick DOB:</span>
+          <button type="button" id="eaeSample1998" class="btn btn-xs btn-outline font-mono eae-btn">1998-06-15</button>
+          <button type="button" id="eaeSample2003" class="btn btn-xs btn-outline font-mono eae-btn">2003-04-20</button>
+          <button type="button" id="eaeSample1994" class="btn btn-xs btn-outline font-mono eae-btn">1994-08-02</button>
+        </div>
+      </div>
+
+      <!-- History Panel -->
+      <div class="eae-panel eae-no-print space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("history", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h3 class="font-display text-sm font-semibold text-base-content">Saved Checks</h3>
+            <span id="eaeHistCount" class="badge badge-xs badge-soft font-mono">0</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" id="eaeSaveHistBtn" class="btn btn-xs btn-outline eae-btn">Save Check</button>
+            <button type="button" id="eaeClearHistBtn" class="btn btn-xs btn-ghost text-error hidden eae-btn" aria-label="Clear history">
+              {{ lucide_icon("trash-2", "w-3.5 h-3.5", 14) | safe }}
+            </button>
+          </div>
+        </div>
+        <div id="eaeHistList" class="space-y-1.5 max-h-52 overflow-y-auto eae-scroll text-xs">
+          <p class="text-base-content/50 py-3 text-center">No saved checks yet.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Verdict & Analytics -->
+    <div class="min-w-0 lg:col-span-7 space-y-5">
+      <!-- Primary Verdict Card -->
+      <section class="eae-panel space-y-4" aria-label="Eligibility verdict summary">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-wider text-base-content/55">Eligibility Verdict</div>
+            <h2 id="eaeOutExamName" class="font-display text-lg font-bold text-base-content">UPSC CSE / IAS</h2>
+          </div>
+          <span id="eaeVerdictBadge" class="badge badge-md font-mono font-bold">—</span>
+        </div>
+
+        <!-- Big Verdict Banner -->
+        <div id="eaeVerdictBox" class="eae-subcard p-4 border-l-4">
+          <div id="eaeVerdictHeadline" class="font-display text-xl sm:text-2xl font-bold text-base-content">—</div>
+          <p id="eaeVerdictDetail" class="text-xs sm:text-sm text-base-content/75 mt-1 leading-relaxed">—</p>
+        </div>
+
+        <!-- 4 Core Age Metrics -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="eae-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">Exact Age</div>
+            <div id="eaeAgeYMD" class="font-mono text-base sm:text-lg font-bold text-base-content mt-0.5">—</div>
+          </div>
+          <div class="eae-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">Effective Limit</div>
+            <div id="eaeEffRange" class="font-mono text-base sm:text-lg font-bold text-base-content mt-0.5">—</div>
+          </div>
+          <div class="eae-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">Relaxation Applied</div>
+            <div id="eaeRelaxApplied" class="font-mono text-base sm:text-lg font-bold text-base-content mt-0.5">+0 yrs</div>
+          </div>
+          <div class="eae-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">Remaining Attempts</div>
+            <div id="eaeAttemptsRem" class="font-mono text-base sm:text-lg font-bold text-base-content mt-0.5">—</div>
+          </div>
+        </div>
+
+        <!-- Permissible DOB Window & Total Days -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="eae-subcard p-3.5">
+            <div class="text-xs font-semibold text-base-content/60 mb-1">Permissible DOB Window (Official Rule)</div>
+            <div id="eaeDobWindow" class="font-mono text-sm font-bold text-base-content">—</div>
+          </div>
+          <div class="eae-subcard p-3.5">
+            <div class="text-xs font-semibold text-base-content/60 mb-1">Chronological Age Totals</div>
+            <div id="eaeTotalChrono" class="font-mono text-sm font-bold text-base-content">—</div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 eae-no-print">
+          <button type="button" id="eaePdfBtn" class="btn-cal-primary h-10 text-xs gap-1.5 !px-2 whitespace-nowrap eae-btn">
+            {{ lucide_icon("file-text", "w-3.5 h-3.5", 14) | safe }}
+            <span>PDF Report</span>
+          </button>
+          <button type="button" id="eaePrintBtn" class="btn-cal-secondary h-10 text-xs gap-1.5 eae-btn">
+            {{ lucide_icon("printer", "w-3.5 h-3.5", 14) | safe }}
+            <span>Print</span>
+          </button>
+          <button type="button" id="eaeCopyBtn" class="btn-cal-secondary h-10 text-xs gap-1.5 eae-btn">
+            {{ lucide_icon("copy", "w-3.5 h-3.5", 14) | safe }}
+            <span>Copy Summary</span>
+          </button>
+          <button type="button" id="eaeShareBtn" class="btn-cal-secondary h-10 text-xs gap-1.5 eae-btn">
+            {{ lucide_icon("share-2", "w-3.5 h-3.5", 14) | safe }}
+            <span>Share Link</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Multi-Year Forecast & Multi-Exam Eligibility Matrix -->
+      <section class="eae-panel space-y-4">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            {{ lucide_icon("award", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h3 class="font-display text-sm font-semibold text-base-content">Multi-Year Attempt Forecast (Selected Exam)</h3>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2" id="eaeForecastRow"></div>
+        </div>
+
+        <div>
+          <h3 class="font-display text-sm font-semibold text-base-content mb-2">Exams You Qualify For Right Now (With Selected DOB &amp; Category)</h3>
+          <div class="overflow-x-auto eae-subcard">
+            <table class="table table-xs w-full">
+              <thead>
+                <tr>
+                  <th>Exam</th>
+                  <th>Age Band</th>
+                  <th>Cutoff Rule</th>
+                  <th class="text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody id="eaeMatrixBody" class="font-mono text-xs"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div id="eaeToast" class="eae-toast" role="status" aria-live="polite"></div>
+
+<script nonce="{{ nonce }}">
+(function(){
+  'use strict';
+
+  // Official baseline presets (relax:true applies OBC +3 / SC,ST +5 / PwBD +10..15)
+  var EXAMS = {
+    upsc_cse:   { name:'UPSC CSE (IAS / IPS)', min:21, max:32, strictUpper:true, cMonth:8, cDay:1, cYear:2026, relax:true, attempts:{gen:6, obc:9, sc:-1, st:-1, pwbd_gen:9, pwbd_obc:9, pwbd_scst:-1, exs:6} },
+    upsc_capf:  { name:'UPSC CAPF (AC)', min:20, max:25, strictUpper:true, cMonth:8, cDay:1, cYear:2026, relax:true, attempts:null },
+    upsc_nda:   { name:'UPSC NDA & NA', min:16.5, max:19.5, strictUpper:true, cMonth:1, cDay:2, cYear:2027, relax:false, attempts:null, note:'NDA applies strict 16.5-19.5 birth-date bounds with no category relaxation.' },
+    upsc_cds:   { name:'UPSC CDS (IMA / INA)', min:19, max:24, strictUpper:true, cMonth:1, cDay:1, cYear:2027, relax:false, attempts:null, note:'Defence academies do not grant OBC/SC/ST upper age relaxation.' },
+    ssc_cgl_30: { name:'SSC CGL (18-30 Posts)', min:18, max:30, strictUpper:true, cMonth:8, cDay:1, cYear:2026, relax:true, attempts:null },
+    ssc_cgl_27: { name:'SSC CGL (18-27 Posts)', min:18, max:27, strictUpper:true, cMonth:8, cDay:1, cYear:2026, relax:true, attempts:null },
+    ssc_cgl_32: { name:'SSC CGL (JSO 18-32)', min:18, max:32, strictUpper:true, cMonth:8, cDay:1, cYear:2026, relax:true, attempts:null },
+    ssc_chsl:   { name:'SSC CHSL (10+2)', min:18, max:27, strictUpper:true, cMonth:8, cDay:1, cYear:2026, relax:true, attempts:null },
+    ssc_gd:     { name:'SSC GD Constable', min:18, max:23, strictUpper:true, cMonth:1, cDay:1, cYear:2026, relax:true, attempts:null },
+    ssc_mts:    { name:'SSC MTS & Havaldar', min:18, max:25, strictUpper:true, cMonth:8, cDay:1, cYear:2026, relax:true, attempts:null },
+    ssc_cpo:    { name:'SSC CPO Sub-Inspector', min:20, max:25, strictUpper:true, cMonth:8, cDay:1, cYear:2026, relax:true, attempts:null },
+    ibps_po:    { name:'IBPS PO / MT', min:20, max:30, strictUpper:true, cMonth:8, cDay:1, cYear:2026, relax:true, attempts:null },
+    ibps_clerk: { name:'IBPS Clerk', min:20, max:28, strictUpper:true, cMonth:8, cDay:1, cYear:2026, relax:true, attempts:null },
+    sbi_po:     { name:'SBI PO', min:21, max:30, strictUpper:true, cMonth:4, cDay:1, cYear:2026, relax:true, attempts:{gen:4, obc:7, sc:-1, st:-1, pwbd_gen:7, pwbd_obc:7, pwbd_scst:-1, exs:4} },
+    rbi_grade_b:{ name:'RBI Grade B', min:21, max:30, strictUpper:true, cMonth:7, cDay:1, cYear:2026, relax:true, attempts:{gen:6, obc:9, sc:-1, st:-1, pwbd_gen:9, pwbd_obc:9, pwbd_scst:-1, exs:6} },
+    rrb_ntpc:   { name:'RRB NTPC (Graduate)', min:18, max:36, strictUpper:false, cMonth:1, cDay:1, cYear:2026, relax:true, attempts:null },
+    rrb_alp:    { name:'RRB ALP', min:18, max:30, strictUpper:false, cMonth:7, cDay:1, cYear:2026, relax:true, attempts:null },
+    neet_ug:    { name:'NEET UG (Medical)', min:17, max:0, strictUpper:false, cMonth:12, cDay:31, cYear:2026, relax:false, attempts:null, note:'NEET UG requires turning 17 by 31 Dec of admission year; there is no upper age cap.' },
+    ugc_net_jrf:{ name:'UGC NET (JRF)', min:0, max:30, strictUpper:false, cMonth:6, cDay:1, cYear:2026, relax:true, attempts:null, note:'JRF grants +5 yrs to SC/ST/OBC-NCL/PwBD/Women; Assistant Professor has no upper age limit.' },
+    afcat:      { name:'AFCAT (Flying Branch)', min:20, max:24, strictUpper:true, cMonth:1, cDay:1, cYear:2027, relax:false, attempts:null, note:'Armed Forces academies do not apply reservation upper-age relaxation.' },
+    agniveer:   { name:'Agniveer Scheme', min:17.5, max:21, strictUpper:false, cMonth:10, cDay:1, cYear:2026, relax:false, attempts:null, note:'Agniveer uses a fixed 17.5 to 21 age bracket across categories.' },
+    custom:     { name:'Custom Exam Criteria', min:18, max:30, strictUpper:true, cMonth:8, cDay:1, cYear:2026, relax:true, attempts:null }
+  };
+
+  var RELAX_MAP = { gen:0, obc:3, sc:5, st:5, pwbd_gen:10, pwbd_obc:13, pwbd_scst:15, exs:3 };
+  var MATRIX_KEYS = ['upsc_cse','ssc_cgl_30','ssc_cgl_27','ssc_chsl','ssc_gd','ibps_po','sbi_po','rbi_grade_b','rrb_ntpc','ugc_net_jrf','neet_ug','upsc_nda'];
+
+  function el(id){ return document.getElementById(id); }
+
+  function parseIsoUtc(s){
+    if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+    var p = s.split('-');
+    var y = parseInt(p[0], 10), m = parseInt(p[1], 10), d = parseInt(p[2], 10);
+    var dt = new Date(Date.UTC(y, m - 1, d));
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+    return dt;
+  }
+
+  function toIso(dt){
+    return dt.getUTCFullYear() + '-' + String(dt.getUTCMonth() + 1).padStart(2, '0') + '-' + String(dt.getUTCDate()).padStart(2, '0');
+  }
+
+  function fmtDateNice(dt){
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return String(dt.getUTCDate()).padStart(2, '0') + ' ' + months[dt.getUTCMonth()] + ' ' + dt.getUTCFullYear();
+  }
+
+  function daysInMonthUtc(y, mZero){
+    return new Date(Date.UTC(y, mZero + 1, 0)).getUTCDate();
+  }
+
+  function diffYMD(fromDt, toDt){
+    if (toDt.getTime() < fromDt.getTime()){
+      return { negative:true, y:0, m:0, d:0, totalDays: Math.ceil((toDt - fromDt) / 86400000) };
+    }
+    var y = toDt.getUTCFullYear() - fromDt.getUTCFullYear();
+    var m = toDt.getUTCMonth() - fromDt.getUTCMonth();
+    var d = toDt.getUTCDate() - fromDt.getUTCDate();
+    if (d < 0){
+      m -= 1;
+      var prevM = toDt.getUTCMonth() - 1;
+      var prevY = toDt.getUTCFullYear();
+      if (prevM < 0){ prevM = 11; prevY -= 1; }
+      d += daysInMonthUtc(prevY, prevM);
+    }
+    if (m < 0){
+      y -= 1;
+      m += 12;
+    }
+    var totalDays = Math.round((toDt - fromDt) / 86400000);
+    return { negative:false, y:y, m:m, d:d, totalDays:totalDays };
+  }
+
+  function addYM(baseDt, yearsFloat){
+    var wholeY = Math.trunc(yearsFloat);
+    var remM = Math.round((yearsFloat - wholeY) * 12);
+    var ny = baseDt.getUTCFullYear() + wholeY;
+    var nm = baseDt.getUTCMonth() + remM;
+    while (nm >= 12){ ny += 1; nm -= 12; }
+    while (nm < 0){ ny -= 1; nm += 12; }
+    var nd = Math.min(baseDt.getUTCDate(), daysInMonthUtc(ny, nm));
+    return new Date(Date.UTC(ny, nm, nd));
+  }
+
+  function addDaysUtc(dt, days){
+    return new Date(dt.getTime() + days * 86400000);
+  }
+
+  function evalExam(dobDt, cutoffDt, minY, effMaxY, strictUpper){
+    var age = diffYMD(dobDt, cutoffDt);
+    if (age.negative){
+      return { status:'under', reason:'Date of birth is after the cutoff date.', age:age, minDt:null, maxDt:null };
+    }
+    var minDobReq = minY > 0 ? addYM(cutoffDt, -minY) : null;
+    // Standard inclusive birth-date boundaries:
+    // Latest allowed DOB: cutoff - minAge (must attain minAge on or before cutoff)
+    // Earliest allowed DOB: cutoff - effMaxAge + (strictUpper ? 1 day : 0 days)
+    var earliestDob = effMaxY > 0 ? addDaysUtc(addYM(cutoffDt, -effMaxY), strictUpper ? 1 : 0) : null;
+    var latestDob = minDobReq;
+
+    var tooYoung = latestDob && dobDt.getTime() > latestDob.getTime();
+    var tooOld = earliestDob && dobDt.getTime() < earliestDob.getTime();
+
+    if (tooYoung){
+      var short = diffYMD(cutoffDt, addYM(dobDt, minY));
+      return { status:'under', gap:short, age:age, earliestDob:earliestDob, latestDob:latestDob };
+    }
+    if (tooOld){
+      var over = diffYMD(addYM(dobDt, effMaxY), cutoffDt);
+      return { status:'over', gap:over, age:age, earliestDob:earliestDob, latestDob:latestDob };
+    }
+    return { status:'eligible', age:age, earliestDob:earliestDob, latestDob:latestDob };
+  }
+
+  var toastEl = el('eaeToast');
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastEl._t);
+    toastEl._t = setTimeout(function(){ toastEl.classList.remove('show'); }, 2200);
+  }
+
+  var hist = [];
+  try{
+    var parsedH = JSON.parse(localStorage.getItem('sb_eae_hist_v1') || '[]');
+    if (Array.isArray(parsedH)) hist = parsedH;
+  }catch(e){}
+
+  function applyPreset(key){
+    var ex = EXAMS[key] || EXAMS.upsc_cse;
+    el('eaeExamSelect').value = key;
+    document.querySelectorAll('#eaeQuickChips .eae-pill').forEach(function(b){
+      b.classList.toggle('is-active', b.getAttribute('data-preset') === key);
+    });
+    if (!el('eaeCustomOverride').checked){
+      el('eaeMinAge').value = String(ex.min);
+      el('eaeMaxAge').value = String(ex.max);
+      var iso = ex.cYear + '-' + String(ex.cMonth).padStart(2, '0') + '-' + String(ex.cDay).padStart(2, '0');
+      el('eaeCutoff').value = iso;
+    }
+    el('eaeRelaxNote').textContent = ex.note || (ex.relax ? 'Category upper-age relaxation (+3 OBC, +5 SC/ST, +10..15 PwBD) is active.' : 'No category upper-age relaxation applies for this exam.');
+    calculate();
+  }
+
+  var lastSummary = null;
+
+  function calculate(){
+    var key = el('eaeExamSelect').value || 'upsc_cse';
+    var ex = EXAMS[key] || EXAMS.upsc_cse;
+    var dobDt = parseIsoUtc(el('eaeDob').value);
+    var cutoffDt = parseIsoUtc(el('eaeCutoff').value);
+
+    if (!dobDt || !cutoffDt){
+      el('eaeVerdictHeadline').textContent = 'Enter a valid Date of Birth and Cutoff Date';
+      return;
+    }
+
+    var cat = el('eaeCategory').value;
+    var baseMin = parseFloat(el('eaeMinAge').value) || 0;
+    var baseMax = parseFloat(el('eaeMaxAge').value) || 0;
+    var extra = parseInt(el('eaeExtraRelax').value, 10) || 0;
+    var catRelax = ex.relax ? (RELAX_MAP[cat] || 0) : 0;
+    if (key === 'ugc_net_jrf' && cat === 'obc') catRelax = 5;
+    var totalRelax = baseMax > 0 ? (catRelax + extra) : 0;
+    var effMax = baseMax > 0 ? (baseMax + totalRelax) : 0;
+
+    var res = evalExam(dobDt, cutoffDt, baseMin, effMax, !!ex.strictUpper);
+
+    el('eaeOutExamName').textContent = ex.name + ' (' + fmtDateNice(cutoffDt) + ')';
+    el('eaeAgeYMD').textContent = res.age.negative ? 'Future DOB' : (res.age.y + 'y ' + res.age.m + 'm ' + res.age.d + 'd');
+    el('eaeEffRange').textContent = effMax > 0 ? (baseMin + ' - ' + effMax + ' yrs') : (baseMin + '+ yrs');
+    el('eaeRelaxApplied').textContent = totalRelax > 0 ? ('+' + totalRelax + ' yrs') : '0 yrs';
+
+    // Attempts calculation
+    var used = Math.max(0, parseInt(el('eaeAttemptsUsed').value, 10) || 0);
+    if (ex.attempts){
+      var maxAtt = ex.attempts[cat];
+      el('eaeAttemptsRem').textContent = maxAtt === -1 ? 'Unlimited (up to age)' : Math.max(0, maxAtt - used) + ' / ' + maxAtt;
+    } else {
+      el('eaeAttemptsRem').textContent = 'No Cap';
+    }
+
+    // Window & chronological totals
+    if (res.earliestDob && res.latestDob){
+      el('eaeDobWindow').textContent = fmtDateNice(res.earliestDob) + ' to ' + fmtDateNice(res.latestDob);
+    } else if (res.latestDob){
+      el('eaeDobWindow').textContent = 'Born on or before ' + fmtDateNice(res.latestDob);
+    } else if (res.earliestDob){
+      el('eaeDobWindow').textContent = 'Born on or after ' + fmtDateNice(res.earliestDob);
+    } else {
+      el('eaeDobWindow').textContent = 'Open to all valid dates';
+    }
+    var totalMonths = res.age.negative ? 0 : (res.age.y * 12 + res.age.m);
+    el('eaeTotalChrono').textContent = totalMonths.toLocaleString('en-US') + ' mos | ' + res.age.totalDays.toLocaleString('en-US') + ' days';
+
+    // Verdict styling
+    var badge = el('eaeVerdictBadge');
+    var box = el('eaeVerdictBox');
+    if (res.status === 'eligible'){
+      badge.textContent = 'ELIGIBLE';
+      badge.className = 'badge badge-md badge-success text-success-content font-mono font-bold';
+      box.style.borderLeftColor = 'var(--color-success)';
+      el('eaeVerdictHeadline').textContent = 'Eligible for ' + ex.name;
+      el('eaeVerdictDetail').textContent = 'On ' + fmtDateNice(cutoffDt) + ', your age is ' + res.age.y + ' years, ' + res.age.m + ' months, and ' + res.age.d + ' days — inside the ' + (effMax > 0 ? (baseMin + ' to ' + effMax + ' years') : (baseMin + '+ years')) + ' limit.';
+    } else if (res.status === 'under'){
+      badge.textContent = 'UNDER-AGE';
+      badge.className = 'badge badge-md badge-warning font-mono font-bold';
+      box.style.borderLeftColor = 'var(--color-warning)';
+      el('eaeVerdictHeadline').textContent = 'Not Yet Eligible (Under Minimum Age)';
+      el('eaeVerdictDetail').textContent = res.gap
+        ? ('You are younger than the ' + baseMin + '-year minimum requirement by ' + res.gap.y + 'y ' + res.gap.m + 'm ' + res.gap.d + 'd on ' + fmtDateNice(cutoffDt) + '.')
+        : 'Date of birth cannot be after the cutoff date.';
+    } else {
+      badge.textContent = 'OVER-AGE';
+      badge.className = 'badge badge-md badge-error text-error-content font-mono font-bold';
+      box.style.borderLeftColor = 'var(--color-error)';
+      el('eaeVerdictHeadline').textContent = 'Not Eligible (Exceeds Upper Age Limit)';
+      el('eaeVerdictDetail').textContent = 'With your category limit (' + effMax + ' years), you exceed the ' + fmtDateNice(cutoffDt) + ' age cutoff by ' + res.gap.y + 'y ' + res.gap.m + 'm ' + res.gap.d + 'd.';
+    }
+
+    // Multi-year forecast (selected exam across 5 consecutive cycles)
+    var fRow = el('eaeForecastRow');
+    fRow.innerHTML = '';
+    var startYr = cutoffDt.getUTCFullYear();
+    for (var yi = 0; yi < 5; yi++){
+      var yr = startYr + yi;
+      var nd = new Date(Date.UTC(yr, cutoffDt.getUTCMonth(), Math.min(cutoffDt.getUTCDate(), daysInMonthUtc(yr, cutoffDt.getUTCMonth()))));
+      var fr = evalExam(dobDt, nd, baseMin, effMax, !!ex.strictUpper);
+      var card = document.createElement('div');
+      card.className = 'eae-subcard p-2.5 text-center';
+      var stText = fr.status === 'eligible' ? 'Eligible' : (fr.status === 'under' ? 'Too Young' : 'Over-Age');
+      var stCls = fr.status === 'eligible' ? 'badge-success text-success-content' : (fr.status === 'under' ? 'badge-warning' : 'badge-ghost opacity-60');
+      card.innerHTML = '<div class="font-mono text-xs font-bold text-base-content">' + yr + '</div>'
+        + '<div class="font-mono text-[11px] text-base-content/60 mt-0.5">' + (fr.age.negative ? '-' : (fr.age.y + 'y ' + fr.age.m + 'm')) + '</div>'
+        + '<span class="badge badge-xs mt-1.5 font-semibold ' + stCls + '">' + stText + '</span>';
+      fRow.appendChild(card);
+    }
+
+    // Matrix of all key exams
+    var mb = el('eaeMatrixBody');
+    mb.innerHTML = '';
+    MATRIX_KEYS.forEach(function(mk){
+      var m = EXAMS[mk];
+      var mCutoff = new Date(Date.UTC(m.cYear, m.cMonth - 1, m.cDay));
+      var mRelax = m.relax ? (RELAX_MAP[cat] || 0) : 0;
+      if (mk === 'ugc_net_jrf' && cat === 'obc') mRelax = 5;
+      var mEffMax = m.max > 0 ? (m.max + mRelax + extra) : 0;
+      var mr = evalExam(dobDt, mCutoff, m.min, mEffMax, !!m.strictUpper);
+      var tr = document.createElement('tr');
+      var bCls = mr.status === 'eligible' ? 'badge-success text-success-content' : (mr.status === 'under' ? 'badge-warning' : 'badge-ghost opacity-60');
+      var bTxt = mr.status === 'eligible' ? 'ELIGIBLE' : (mr.status === 'under' ? 'UNDER-AGE' : 'OVER-AGE');
+      tr.innerHTML = '<td class="font-sans font-medium">' + m.name + '</td>'
+        + '<td>' + (mEffMax > 0 ? (m.min + '-' + mEffMax + 'y') : (m.min + '+y')) + '</td>'
+        + '<td>' + fmtDateNice(mCutoff) + '</td>'
+        + '<td class="text-right"><span class="badge badge-xs font-bold ' + bCls + '">' + bTxt + '</span></td>';
+      mb.appendChild(tr);
+    });
+
+    lastSummary = {
+      examKey: key,
+      examName: ex.name,
+      dob: toIso(dobDt),
+      cutoff: toIso(cutoffDt),
+      cutoffNice: fmtDateNice(cutoffDt),
+      dobNice: fmtDateNice(dobDt),
+      category: el('eaeCategory').options[el('eaeCategory').selectedIndex].text,
+      ageYMD: el('eaeAgeYMD').textContent,
+      effRange: el('eaeEffRange').textContent,
+      relaxApplied: el('eaeRelaxApplied').textContent,
+      dobWindow: el('eaeDobWindow').textContent,
+      verdict: badge.textContent,
+      headline: el('eaeVerdictHeadline').textContent,
+      detail: el('eaeVerdictDetail').textContent
+    };
+    syncUrl();
+  }
+
+  function syncUrl(){
+    try{
+      var p = new URLSearchParams();
+      p.set('exam', el('eaeExamSelect').value);
+      p.set('dob', el('eaeDob').value);
+      p.set('cat', el('eaeCategory').value);
+      history.replaceState(null, '', '?' + p.toString());
+    }catch(e){}
+  }
+
+  function renderHist(){
+    var list = el('eaeHistList');
+    el('eaeHistCount').textContent = String(hist.length);
+    el('eaeClearHistBtn').classList.toggle('hidden', hist.length === 0);
+    if (!hist.length){
+      list.innerHTML = '<p class="text-base-content/50 py-3 text-center">No saved checks yet.</p>';
+      return;
+    }
+    list.innerHTML = '';
+    hist.forEach(function(item, idx){
+      var row = document.createElement('div');
+      row.className = 'eae-subcard p-2 flex items-center justify-between gap-2 cursor-pointer hover:border-base-content transition-colors';
+      row.innerHTML = '<div class="min-w-0">'
+        + '<div class="font-semibold text-base-content truncate">' + item.examName + '</div>'
+        + '<div class="font-mono text-[11px] text-base-content/60">DOB ' + item.dob + ' | ' + item.ageYMD + '</div>'
+        + '</div>'
+        + '<span class="badge badge-xs font-mono shrink-0 ' + (item.verdict === 'ELIGIBLE' ? 'badge-success text-success-content' : 'badge-ghost') + '">' + item.verdict + '</span>';
+      row.addEventListener('click', function(){
+        el('eaeDob').value = item.dob;
+        el('eaeCategory').value = item.cat || 'gen';
+        applyPreset(item.examKey);
+      });
+      list.appendChild(row);
+    });
+  }
+
+  // Pure ASCII PDF 1.4 Report Builder
+  function pdfEsc(str){
+    return String(str)
+      .replace(/[^\x20-\x7E]/g, '-')
+      .replace(/\\/g, '\\\\')
+      .replace(/\(/g, '\\(')
+      .replace(/\)/g, '\\)');
+  }
+
+  function buildPdfBlob(s){
+    var lines = [];
+    var y = 760;
+    function add(text, font, size, x, dy){
+      lines.push('BT /' + font + ' ' + size + ' Tf ' + x + ' ' + y + ' Td (' + pdfEsc(text) + ') Tj ET');
+      y -= (dy || 18);
+    }
+    add('STORYBRAIN AI - EXAM AGE ELIGIBILITY REPORT', 'F2', 14, 48, 22);
+    add('Exam Preset: ' + s.examName + '   |   Generated: ' + new Date().toISOString().slice(0, 10), 'F1', 10, 48, 18);
+    lines.push('0.85 w 48 ' + (y + 6) + ' m 547 ' + (y + 6) + ' l S');
+    y -= 10;
+    add('VERDICT: ' + s.verdict + ' - ' + s.headline, 'F2', 14, 48, 24);
+    add('Candidate DOB: ' + s.dobNice + '    |    Cutoff Date: ' + s.cutoffNice, 'F1', 11, 48, 18);
+    add('Exact Age on Cutoff: ' + s.ageYMD + '    |    Category: ' + s.category, 'F1', 11, 48, 18);
+    add('Effective Age Limit: ' + s.effRange + ' (Relaxation: ' + s.relaxApplied + ')', 'F1', 11, 48, 18);
+    add('Permissible Birth Window: ' + s.dobWindow, 'F1', 11, 48, 24);
+    add('NOTES', 'F2', 11, 48, 16);
+    add(s.detail, 'F1', 10, 48, 22);
+    add('Generated locally at storybrainai.com/tool/exam-age-eligibility-calculator', 'F1', 9, 48, 14);
+
+    var stream = lines.join('\n');
+    var objs = [
+      '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+      '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+      '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n',
+      '4 0 obj\n<< /Length ' + stream.length + ' >>\nstream\n' + stream + '\nendstream\nendobj\n',
+      '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+      '6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n'
+    ];
+    var pdf = '%PDF-1.4\n';
+    var offs = [0];
+    objs.forEach(function(o){ offs.push(pdf.length); pdf += o; });
+    var xp = pdf.length;
+    pdf += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+    for (var i = 1; i < offs.length; i++){
+      pdf += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+    }
+    pdf += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xp + '\n%%EOF';
+    return new Blob([pdf], { type: 'application/pdf' });
+  }
+
+  // Event listeners
+  el('eaeExamSelect').addEventListener('change', function(){ applyPreset(this.value); });
+  document.querySelectorAll('#eaeQuickChips .eae-pill').forEach(function(btn){
+    btn.addEventListener('click', function(){ applyPreset(btn.getAttribute('data-preset')); });
+  });
+  ['eaeDob','eaeCutoff','eaeCategory','eaeAttemptsUsed','eaeMinAge','eaeMaxAge','eaeExtraRelax','eaeCustomOverride'].forEach(function(id){
+    el(id).addEventListener('input', calculate);
+    el(id).addEventListener('change', calculate);
+  });
+
+  el('eaeSample1998').addEventListener('click', function(){ el('eaeDob').value = '1998-06-15'; calculate(); });
+  el('eaeSample2003').addEventListener('click', function(){ el('eaeDob').value = '2003-04-20'; calculate(); });
+  el('eaeSample1994').addEventListener('click', function(){ el('eaeDob').value = '1994-08-02'; calculate(); });
+
+  el('eaeSaveHistBtn').addEventListener('click', function(){
+    if (!lastSummary) return;
+    hist.unshift({
+      examKey: lastSummary.examKey,
+      examName: lastSummary.examName,
+      dob: lastSummary.dob,
+      cat: el('eaeCategory').value,
+      ageYMD: lastSummary.ageYMD,
+      verdict: lastSummary.verdict
+    });
+    hist = hist.slice(0, 15);
+    try{ localStorage.setItem('sb_eae_hist_v1', JSON.stringify(hist)); }catch(e){}
+    renderHist();
+    toast('Saved age check!');
+  });
+
+  el('eaeClearHistBtn').addEventListener('click', function(){
+    hist = [];
+    try{ localStorage.removeItem('sb_eae_hist_v1'); }catch(e){}
+    renderHist();
+    toast('History cleared.');
+  });
+
+  el('eaePdfBtn').addEventListener('click', function(){
+    if (!lastSummary) return;
+    var blob = buildPdfBlob(lastSummary);
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = lastSummary.examKey + '-age-eligibility-report.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    toast('PDF eligibility report downloaded!');
+  });
+
+  el('eaePrintBtn').addEventListener('click', function(){ window.print(); });
+  el('eaeCopyBtn').addEventListener('click', function(){
+    if (!lastSummary) return;
+    var txt = lastSummary.examName + ' Eligibility (' + lastSummary.cutoffNice + ')\n'
+      + 'Verdict: ' + lastSummary.verdict + ' | Exact Age: ' + lastSummary.ageYMD + '\n'
+      + 'Allowed Limit: ' + lastSummary.effRange + ' | Window: ' + lastSummary.dobWindow;
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ toast('Summary copied!'); });
+    }
+  });
+  el('eaeShareBtn').addEventListener('click', function(){
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(window.location.href).then(function(){ toast('Share link copied!'); });
+    }
+  });
+
+  el('eaeResetBtn').addEventListener('click', function(){
+    el('eaeDob').value = '2001-05-15';
+    el('eaeCategory').value = 'gen';
+    el('eaeAttemptsUsed').value = '0';
+    el('eaeExtraRelax').value = '0';
+    el('eaeCustomOverride').checked = false;
+    applyPreset('upsc_cse');
+    toast('Reset to default exam criteria.');
+  });
+
+  // Init from query params or defaults
+  var sp = new URLSearchParams(window.location.search);
+  el('eaeDob').value = sp.get('dob') && /^\d{4}-\d{2}-\d{2}$/.test(sp.get('dob')) ? sp.get('dob') : '2001-05-15';
+  if (sp.get('cat') && RELAX_MAP.hasOwnProperty(sp.get('cat'))) el('eaeCategory').value = sp.get('cat');
+  var initExam = sp.get('exam') && EXAMS[sp.get('exam')] ? sp.get('exam') : 'upsc_cse';
+  renderHist();
+  applyPreset(initExam);
+})();
+</script>
+
+{{ tool_section_end() }}
+{% endblock %}

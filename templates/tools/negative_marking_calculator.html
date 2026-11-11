@@ -1,0 +1,1227 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
+{% block head %}
+<style>
+.nmc-shell{--nmc-border:var(--color-base-300);--nmc-surface:var(--color-base-200);--nmc-card:var(--color-base-100)}
+.nmc-panel{background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:12px;padding:1.25rem}
+.nmc-subcard{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:12px}
+.nmc-pill-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:12px;font-weight:600;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;transition:border-color .15s,background-color .15s,transform .15s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+.nmc-pill-btn:hover{border-color:var(--color-base-content)}
+.nmc-pill-btn.is-active{background:#111111;color:#ffffff;border-color:#111111}
+[data-theme="night"] .nmc-pill-btn.is-active{background:#ffffff;color:#111111;border-color:#ffffff}
+.nmc-pill-btn:focus-visible,.nmc-ratio-btn:focus-visible,.nmc-action-btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.nmc-ratio-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+@media (min-width:640px){.nmc-ratio-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.nmc-ratio-btn{padding:8px 6px;border-radius:8px;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);font-size:12px;font-weight:600;text-align:center;cursor:pointer;transition:all .14s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;line-height:1.2}
+.nmc-ratio-btn:hover{border-color:var(--color-base-content)}
+.nmc-ratio-btn.is-active{background:#111111;color:#ffffff;border-color:#111111}
+[data-theme="night"] .nmc-ratio-btn.is-active{background:#ffffff;color:#111111;border-color:#ffffff}
+.nmc-ratio-btn span{display:block;font-size:10px;opacity:.65;font-weight:500;margin-top:2px}
+.nmc-action-btn{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.nmc-scroll{overscroll-behavior:contain}
+.nmc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-100);color:var(--color-base-content);border:1px solid var(--color-base-300);border-radius:12px;padding:10px 18px;font-weight:600;font-size:13px;box-shadow:0 10px 25px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);pointer-events:none;transition:all .22s ease;display:flex;align-items:center;gap:8px}
+.nmc-toast.show{opacity:1;transform:translateY(0)}
+.nmc-hist-item{padding:8px 10px;border-radius:8px;background:var(--color-base-100);border:1px solid var(--color-base-300);display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;transition:border-color .14s}
+.nmc-hist-item:hover{border-color:var(--color-base-content)}
+.nmc-sec-row{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:10px;padding:10px}
+@media print{
+  header,nav,.bottom-nav,#cookieConsent,footer,.nmc-no-print,.breadcrumb{display:none!important}
+  body{padding:0!important;background:#ffffff!important;color:#111111!important}
+  .nmc-panel,.nmc-subcard{border:1px solid #d1d5db!important;background:#ffffff!important;box-shadow:none!important}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{{ tool_hero_section("graduation-cap", "Exam Score Engine", "NEGATIVE MARKING", "CALCULATOR", seo_data.description if seo_data else "Calculate net exam marks with 0.25, 0.50, 1/3, 1/4, or 1/8 negative marking for SSC, UPSC, NEET, JEE, RRB, and Bank exams. Instant formula math and PDF scorecard.") }}
+
+<div class="nmc-shell space-y-6 reveal" style="animation-delay:0.15s">
+  <!-- Quick Exam Presets Strip -->
+  <section class="nmc-panel nmc-no-print" aria-label="Popular exam marking presets">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+      <div class="flex items-center gap-2">
+        {{ lucide_icon("zap", "w-4 h-4 text-base-content/70", 16) | safe }}
+        <h2 class="font-display text-base font-semibold tracking-tight text-base-content">Quick Exam Presets</h2>
+        <span class="badge badge-sm badge-soft font-mono">32+ Exams</span>
+      </div>
+      <div class="w-full sm:w-80">
+        <label for="nmcExamSelect" class="sr-only">Choose competitive exam preset</label>
+        <select id="nmcExamSelect" class="select select-sm cal-input w-full font-medium">
+          <option value="">Select Exam Pattern…</option>
+          <optgroup label="SSC &amp; Defence">
+            <option value="ssc_cgl_1">SSC CGL Tier-1 (+2 / −0.50 | 1/4)</option>
+            <option value="ssc_cgl_2">SSC CGL Tier-2 (+3 / −1.00 | 1/3)</option>
+            <option value="ssc_chsl_1">SSC CHSL Tier-1 (+2 / −0.50 | 1/4)</option>
+            <option value="ssc_gd">SSC GD Constable (+2 / −0.25 | 1/8)</option>
+            <option value="ssc_mts">SSC MTS Session-2 (+3 / −1.00 | 1/3)</option>
+            <option value="ssc_cpo">SSC CPO (+1 / −0.25 | 1/4)</option>
+            <option value="delhi_police">Delhi Police Constable (+1 / −0.25 | 1/4)</option>
+            <option value="nda_math">UPSC NDA Maths (+2.5 / −0.83 | 1/3)</option>
+            <option value="nda_gat">UPSC NDA GAT (+4 / −1.33 | 1/3)</option>
+            <option value="cds">UPSC CDS (+0.83 / −0.28 | 1/3)</option>
+            <option value="afcat">AFCAT Exam (+3 / −1.00 | 1/3)</option>
+          </optgroup>
+          <optgroup label="UPSC &amp; State PSC">
+            <option value="upsc_gs">UPSC Prelims GS Paper 1 (+2 / −0.67 | 1/3)</option>
+            <option value="upsc_csat">UPSC Prelims CSAT (+2.5 / −0.83 | 1/3)</option>
+            <option value="uppsc">UPPSC Prelims GS (+1.33 / −0.44 | 1/3)</option>
+            <option value="bpsc">BPSC CCE Prelims (+1 / −0.33 | 1/3)</option>
+            <option value="mpsc">MPSC Rajyaseva (+2 / −0.50 | 1/4)</option>
+            <option value="rpsc">RPSC RAS Prelims (+1.33 / −0.44 | 1/3)</option>
+            <option value="kpsc">KPSC KAS Prelims (+2 / −0.50 | 1/4)</option>
+            <option value="kerala_psc">Kerala PSC (+1 / −0.33 | 1/3)</option>
+            <option value="bihar_si">Bihar SI (+2 / −0.20 | 1/10)</option>
+          </optgroup>
+          <optgroup label="Medical, Engineering &amp; Entrance">
+            <option value="neet_ug">NEET UG (+4 / −1.00 | 1/4)</option>
+            <option value="neet_pg">NEET PG (+4 / −1.00 | 1/4)</option>
+            <option value="jee_main">JEE Main (+4 / −1.00 | 1/4)</option>
+            <option value="gate_1">GATE 1-Mark Questions (+1 / −0.33 | 1/3)</option>
+            <option value="gate_2">GATE 2-Mark Questions (+2 / −0.67 | 1/3)</option>
+            <option value="cuet_ug">CUET UG (+5 / −1.00 | 1/5)</option>
+            <option value="clat_ug">CLAT UG (+1 / −0.25 | 1/4)</option>
+            <option value="ca_found">CA Foundation (+1 / −0.25 | 1/4)</option>
+          </optgroup>
+          <optgroup label="Banking &amp; Railways">
+            <option value="ibps_po">IBPS / SBI PO Prelims (+1 / −0.25 | 1/4)</option>
+            <option value="ibps_clerk">IBPS / SBI Clerk (+1 / −0.25 | 1/4)</option>
+            <option value="rrb_ntpc">RRB NTPC CBT (+1 / −0.33 | 1/3)</option>
+            <option value="rrb_gd">RRB Group D (+1 / −0.33 | 1/3)</option>
+          </optgroup>
+          <option value="custom">Custom Marking Scheme</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2" id="nmcPresetChips">
+      <button type="button" class="nmc-pill-btn is-active" data-preset="ssc_cgl_1">SSC CGL Tier-1 (1/4 · −0.50)</button>
+      <button type="button" class="nmc-pill-btn" data-preset="ssc_gd">SSC GD (1/8 · −0.25)</button>
+      <button type="button" class="nmc-pill-btn" data-preset="upsc_gs">UPSC Prelims (1/3)</button>
+      <button type="button" class="nmc-pill-btn" data-preset="neet_ug">NEET UG (+4/−1)</button>
+      <button type="button" class="nmc-pill-btn" data-preset="jee_main">JEE Main (+4/−1)</button>
+      <button type="button" class="nmc-pill-btn" data-preset="ibps_po">Bank / IBPS (−0.25)</button>
+      <button type="button" class="nmc-pill-btn" data-preset="rrb_ntpc">RRB NTPC (1/3)</button>
+      <button type="button" class="nmc-pill-btn" data-preset="cuet_ug">CUET UG (1/5)</button>
+    </div>
+  </section>
+
+  <!-- Main Workspace Split -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <!-- Left Column: Inputs & Controls -->
+    <div class="min-w-0 lg:col-span-5 space-y-5 nmc-no-print">
+      <div class="nmc-panel">
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <h2 class="font-display text-lg font-semibold tracking-tight text-base-content flex items-center gap-2">
+            {{ lucide_icon("sliders", "w-4 h-4", 16) | safe }}
+            <span>Exam Parameters</span>
+          </h2>
+          <button type="button" id="nmcResetBtn" class="btn btn-ghost btn-xs nmc-action-btn gap-1 text-base-content/70" aria-label="Reset calculator inputs">
+            {{ lucide_icon("rotate-ccw", "w-3.5 h-3.5", 14) | safe }}
+            <span>Reset</span>
+          </button>
+        </div>
+
+        <!-- Mode Tabs (daisyUI tabs-box) -->
+        <div role="tablist" aria-label="Score input mode" class="tabs tabs-box tabs-sm bg-base-100 border border-base-300 p-1 mb-4 grid grid-cols-3" id="nmcModeTabs">
+          <button type="button" role="tab" class="tab font-semibold tab-active" data-mode="attempted" aria-selected="true">Attempted</button>
+          <button type="button" role="tab" class="tab font-semibold" data-mode="direct" aria-selected="false">Correct/Wrong</button>
+          <button type="button" role="tab" class="tab font-semibold" data-mode="sectional" aria-selected="false">Multi-Section</button>
+        </div>
+
+        <!-- Exam Title -->
+        <div class="mb-3">
+          <label for="nmcExamName" class="text-xs font-semibold text-base-content/75 mb-1 block">Exam / Mock Test Name</label>
+          <input type="text" id="nmcExamName" class="input input-sm cal-input w-full" value="SSC CGL Tier-1" maxlength="80" placeholder="e.g. SSC CGL Mock 04 or UPSC GS-1">
+        </div>
+
+        <!-- Single-Exam Modes (Attempted & Direct) -->
+        <div id="nmcSingleInputs" class="space-y-3">
+          <div class="grid grid-cols-3 gap-2.5">
+            <div>
+              <label for="nmcTotalQ" class="text-xs font-semibold text-base-content/75 mb-1 block">Total Qs</label>
+              <input type="number" id="nmcTotalQ" class="input input-sm cal-input w-full font-mono" value="100" min="1" step="1" inputmode="numeric">
+            </div>
+            <div>
+              <label for="nmcMaxMarks" class="text-xs font-semibold text-base-content/75 mb-1 block">Max Marks</label>
+              <input type="number" id="nmcMaxMarks" class="input input-sm cal-input w-full font-mono" value="200" min="1" step="any" inputmode="decimal">
+            </div>
+            <div>
+              <label for="nmcMpq" class="text-xs font-semibold text-base-content/75 mb-1 block">+Marks / Q</label>
+              <input type="number" id="nmcMpq" class="input input-sm cal-input w-full font-mono" value="2" min="0.01" step="any" inputmode="decimal">
+            </div>
+          </div>
+
+          <div id="nmcAttemptedFields" class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label for="nmcAttempted" class="text-xs font-semibold text-base-content/75 mb-1 block">Attempted Qs</label>
+              <input type="number" id="nmcAttempted" class="input input-sm cal-input w-full font-mono" value="85" min="0" step="1" inputmode="numeric">
+            </div>
+            <div>
+              <label for="nmcWrongA" class="text-xs font-semibold text-base-content/75 mb-1 block">Wrong Answers</label>
+              <input type="number" id="nmcWrongA" class="input input-sm cal-input w-full font-mono" value="15" min="0" step="1" inputmode="numeric">
+            </div>
+          </div>
+
+          <div id="nmcDirectFields" class="grid grid-cols-2 gap-2.5 hidden">
+            <div>
+              <label for="nmcCorrectD" class="text-xs font-semibold text-base-content/75 mb-1 block">Correct Answers</label>
+              <input type="number" id="nmcCorrectD" class="input input-sm cal-input w-full font-mono" value="70" min="0" step="1" inputmode="numeric">
+            </div>
+            <div>
+              <label for="nmcWrongD" class="text-xs font-semibold text-base-content/75 mb-1 block">Wrong Answers</label>
+              <input type="number" id="nmcWrongD" class="input input-sm cal-input w-full font-mono" value="15" min="0" step="1" inputmode="numeric">
+            </div>
+          </div>
+
+          <!-- Penalty Scheme Selector: Ratio vs Fixed Marks -->
+          <div class="pt-2 border-t border-base-300">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <span class="text-xs font-semibold text-base-content/75">Negative Marking Scheme</span>
+              <div class="join" role="radiogroup" aria-label="Penalty input type">
+                <button type="button" class="btn btn-xs join-item nmc-action-btn btn-neutral" data-ptype="ratio" aria-checked="true">Fraction Ratio</button>
+                <button type="button" class="btn btn-xs join-item nmc-action-btn btn-ghost border border-base-300" data-ptype="fixed" aria-checked="false">Exact Marks (−)</button>
+              </div>
+            </div>
+
+            <div id="nmcRatioWrap">
+              <div class="nmc-ratio-grid" id="nmcRatioBtns" role="radiogroup" aria-label="Negative marking fraction ratio">
+                <button type="button" class="nmc-ratio-btn is-active" data-num="1" data-den="4">1/4<span>0.25×</span></button>
+                <button type="button" class="nmc-ratio-btn" data-num="1" data-den="3">1/3<span>0.33×</span></button>
+                <button type="button" class="nmc-ratio-btn" data-num="1" data-den="2">1/2<span>0.50×</span></button>
+                <button type="button" class="nmc-ratio-btn" data-num="1" data-den="5">1/5<span>0.20×</span></button>
+                <button type="button" class="nmc-ratio-btn" data-num="1" data-den="8">1/8<span>0.125×</span></button>
+                <button type="button" class="nmc-ratio-btn" data-num="1" data-den="10">1/10<span>0.10×</span></button>
+                <button type="button" class="nmc-ratio-btn" data-num="1" data-den="6">1/6<span>0.167×</span></button>
+                <button type="button" class="nmc-ratio-btn" data-num="1" data-den="7">1/7<span>0.143×</span></button>
+                <button type="button" class="nmc-ratio-btn" data-num="1" data-den="1">1/1<span>1.00×</span></button>
+                <button type="button" class="nmc-ratio-btn" data-num="0" data-den="1">None<span>0×</span></button>
+              </div>
+              <div class="grid grid-cols-2 gap-2 mt-2.5 items-end">
+                <div>
+                  <label for="nmcCustomRatio" class="text-[11px] font-medium text-base-content/60 mb-1 block">Custom Fraction / Ratio</label>
+                  <input type="text" id="nmcCustomRatio" class="input input-xs cal-input w-full font-mono" value="1/4" placeholder="e.g. 1/4, 2/3, 0.25">
+                </div>
+                <div class="text-xs font-mono bg-base-100 border border-base-300 rounded-lg px-2.5 py-1.5 text-center">
+                  <span class="text-base-content/50 block text-[10px] font-sans">Penalty / Wrong</span>
+                  <strong id="nmcComputedPenalty" class="text-error">−0.50 marks</strong>
+                </div>
+              </div>
+            </div>
+
+            <div id="nmcFixedWrap" class="hidden space-y-2">
+              <div class="flex flex-wrap gap-1.5" id="nmcFixedChips">
+                <button type="button" class="btn btn-xs btn-outline nmc-action-btn font-mono" data-fixed="0.25">−0.25</button>
+                <button type="button" class="btn btn-xs btn-outline nmc-action-btn font-mono" data-fixed="0.33">−0.33</button>
+                <button type="button" class="btn btn-xs btn-outline nmc-action-btn font-mono" data-fixed="0.5">−0.50</button>
+                <button type="button" class="btn btn-xs btn-outline nmc-action-btn font-mono" data-fixed="0.67">−0.67</button>
+                <button type="button" class="btn btn-xs btn-outline nmc-action-btn font-mono" data-fixed="1">−1.00</button>
+                <button type="button" class="btn btn-xs btn-outline nmc-action-btn font-mono" data-fixed="0">0.00</button>
+              </div>
+              <div>
+                <label for="nmcFixedPenalty" class="text-xs font-semibold text-base-content/75 mb-1 block">Fixed Penalty Deducted per Wrong Answer</label>
+                <input type="number" id="nmcFixedPenalty" class="input input-sm cal-input w-full font-mono" value="0.50" min="0" step="0.01" inputmode="decimal">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Multi-Section Exam Builder -->
+        <div id="nmcSectionalInputs" class="hidden space-y-3">
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" class="btn btn-xs btn-outline nmc-action-btn" data-sec-preset="ssc_cgl_tier1">Load SSC CGL (4 Sec)</button>
+            <button type="button" class="btn btn-xs btn-outline nmc-action-btn" data-sec-preset="neet_ug">Load NEET UG (3 Sec)</button>
+            <button type="button" class="btn btn-xs btn-outline nmc-action-btn" data-sec-preset="jee_main">Load JEE Main (3 Sec)</button>
+          </div>
+          <div id="nmcSectionsList" class="space-y-2 max-h-80 overflow-y-auto nmc-scroll pr-0.5"></div>
+          <button type="button" id="nmcAddSectionBtn" class="btn btn-sm btn-outline w-full nmc-action-btn gap-1.5">
+            {{ lucide_icon("plus", "w-3.5 h-3.5", 14) | safe }}
+            <span>Add Exam Section / Subject</span>
+          </button>
+        </div>
+
+        <!-- Validation Error Alert -->
+        <div id="nmcAlert" role="alert" class="hidden mt-3 p-3 rounded-lg border border-error/30 bg-error/10 text-error text-xs font-semibold flex items-center gap-2">
+          {{ lucide_icon("alert-circle", "w-4 h-4 shrink-0", 16) | safe }}
+          <span id="nmcAlertText">Please check your inputs.</span>
+        </div>
+
+        <!-- Primary Actions -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4 pt-3 border-t border-base-300">
+          <button type="button" id="nmcSaveBtn" class="btn-cal-primary col-span-2 sm:col-span-2 h-10 text-xs nmc-action-btn">
+            {{ lucide_icon("calculator", "w-4 h-4", 16) | safe }}
+            <span>Save Mock Score</span>
+          </button>
+          <button type="button" id="nmcPdfBtn" class="btn-cal-secondary h-10 text-xs nmc-action-btn" title="Download Exam Scorecard PDF">
+            {{ lucide_icon("file-text", "w-3.5 h-3.5", 14) | safe }}
+            <span>PDF</span>
+          </button>
+          <button type="button" id="nmcPrintBtn" class="btn-cal-secondary h-10 text-xs nmc-action-btn" title="Print Scorecard">
+            {{ lucide_icon("printer", "w-3.5 h-3.5", 14) | safe }}
+            <span>Print</span>
+          </button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 mt-2">
+          <button type="button" id="nmcCopyBtn" class="btn btn-xs btn-ghost border border-base-300 nmc-action-btn gap-1">
+            {{ lucide_icon("copy", "w-3 h-3", 12) | safe }}
+            <span>Copy Summary</span>
+          </button>
+          <button type="button" id="nmcCsvBtn" class="btn btn-xs btn-ghost border border-base-300 nmc-action-btn gap-1">
+            {{ lucide_icon("download", "w-3 h-3", 12) | safe }}
+            <span>Export CSV</span>
+          </button>
+          <button type="button" id="nmcShareBtn" class="btn btn-xs btn-ghost border border-base-300 nmc-action-btn gap-1">
+            {{ lucide_icon("share-2", "w-3 h-3", 12) | safe }}
+            <span>Share Link</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Saved Mock Test History -->
+      <div class="nmc-panel">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-display text-sm font-semibold text-base-content flex items-center gap-2">
+            {{ lucide_icon("history", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <span>Mock Test History</span>
+            <span id="nmcHistCount" class="badge badge-xs badge-soft font-mono">0</span>
+          </h3>
+          <button type="button" id="nmcHistClear" class="btn btn-ghost btn-xs text-error nmc-action-btn hidden" aria-label="Clear mock history">
+            {{ lucide_icon("trash-2", "w-3.5 h-3.5", 14) | safe }}
+          </button>
+        </div>
+        <div id="nmcHistList" class="space-y-1.5 max-h-52 overflow-y-auto nmc-scroll">
+          <p class="text-xs text-base-content/45 py-3 text-center">Save any score to compare mock tests over time.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Live Scoreboard, Formula Trace & Analytics -->
+    <div class="min-w-0 lg:col-span-7 space-y-5">
+      <!-- Primary Scoreboard Card -->
+      <div class="nmc-panel" aria-live="polite">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <span class="text-[11px] uppercase tracking-wider font-semibold text-base-content/50 block">Live Exam Score Report</span>
+            <h2 id="nmcReportTitle" class="font-display text-lg font-semibold text-base-content tracking-tight">SSC CGL Tier-1</h2>
+          </div>
+          <span id="nmcGradeBadge" class="badge badge-sm font-mono font-semibold">Good Pace</span>
+        </div>
+
+        <!-- Hero Net Score + Progress -->
+        <div class="nmc-subcard p-5 mb-3">
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div>
+              <span class="text-xs font-semibold text-base-content/55 uppercase tracking-wider">Net Final Score</span>
+              <div class="flex items-baseline gap-2 mt-0.5">
+                <output id="nmcNetScore" class="font-display text-4xl sm:text-5xl font-semibold tracking-tight font-mono tnum text-base-content">132.50</output>
+                <span id="nmcOutOf" class="text-sm font-mono text-base-content/50">/ 200</span>
+              </div>
+            </div>
+            <div class="text-left sm:text-right">
+              <span class="text-xs font-semibold text-base-content/55 uppercase tracking-wider block">Score Percentage</span>
+              <output id="nmcPct" class="font-mono text-2xl font-bold text-base-content tnum">66.25%</output>
+            </div>
+          </div>
+          <div class="mt-4 space-y-1.5">
+            <progress id="nmcScoreBar" class="progress progress-neutral w-full h-2.5" value="66.25" max="100"></progress>
+            <div class="flex flex-wrap items-center justify-between text-xs text-base-content/65 font-mono">
+              <span id="nmcPosSummary" class="text-success">+140.00 positive</span>
+              <span id="nmcNegSummary" class="text-error">−7.50 deducted</span>
+              <span id="nmcSchemeSummary">+2 / −0.50 (1/4)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6-Tile Breakdown (daisyUI stats grid) -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          <div class="nmc-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/50">Correct</div>
+            <div id="nmcStatCorrect" class="font-mono text-xl font-bold text-success mt-0.5 tnum">70</div>
+            <div id="nmcStatPosMarks" class="text-xs text-base-content/60 font-mono">+140.00 marks</div>
+          </div>
+          <div class="nmc-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/50">Wrong</div>
+            <div id="nmcStatWrong" class="font-mono text-xl font-bold text-error mt-0.5 tnum">15</div>
+            <div id="nmcStatNegMarks" class="text-xs text-base-content/60 font-mono">−7.50 penalty</div>
+          </div>
+          <div class="nmc-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/50">Unattempted</div>
+            <div id="nmcStatSkipped" class="font-mono text-xl font-bold text-base-content mt-0.5 tnum">15</div>
+            <div id="nmcStatAttemptRate" class="text-xs text-base-content/60 font-mono">85.0% attempted</div>
+          </div>
+          <div class="nmc-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/50">Accuracy Rate</div>
+            <div id="nmcStatAccuracy" class="font-mono text-xl font-bold text-base-content mt-0.5 tnum">82.35%</div>
+            <div class="text-xs text-base-content/60">Correct ÷ Attempted</div>
+          </div>
+          <div class="nmc-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/50">Break-Even</div>
+            <div id="nmcStatBreakeven" class="font-mono text-xl font-bold text-base-content mt-0.5 tnum">20.00%</div>
+            <div id="nmcStatBreakevenDesc" class="text-xs text-base-content/60">1 in 5 right = 0</div>
+          </div>
+          <div class="nmc-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/50">Marks / Attempt</div>
+            <div id="nmcStatMpa" class="font-mono text-xl font-bold text-base-content mt-0.5 tnum">+1.56</div>
+            <div id="nmcStatMpaDesc" class="text-xs text-base-content/60">Above break-even</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step-by-Step Formula & Exam Maths Breakdown -->
+      <div class="nmc-panel">
+        <h3 class="font-display text-base font-semibold text-base-content flex items-center gap-2 mb-3">
+          {{ lucide_icon("info", "w-4 h-4 text-base-content/70", 16) | safe }}
+          <span>Negative Marking Formula &amp; Step-by-Step Math</span>
+        </h3>
+        <div class="nmc-subcard p-4 font-mono text-xs sm:text-sm space-y-2 leading-relaxed">
+          <div class="text-base-content/60">Formula: <span class="text-base-content font-semibold">Net Score = (Correct × Marks/Q) − (Wrong × Penalty/Q)</span></div>
+          <div id="nmcFormulaTrace" class="text-base-content font-semibold break-words"></div>
+          <div id="nmcBreakevenTrace" class="text-xs text-base-content/70 pt-1 border-t border-base-300"></div>
+        </div>
+      </div>
+
+      <!-- Section Breakdown Table (shown in Multi-Section mode) -->
+      <div id="nmcSecTableCard" class="nmc-panel hidden">
+        <h3 class="font-display text-base font-semibold text-base-content flex items-center gap-2 mb-3">
+          {{ lucide_icon("layers", "w-4 h-4 text-base-content/70", 16) | safe }}
+          <span>Section-Wise Scorecard</span>
+        </h3>
+        <div class="overflow-x-auto nmc-subcard">
+          <table class="table table-xs sm:table-sm w-full">
+            <thead>
+              <tr>
+                <th>Section</th>
+                <th class="text-right">C / W</th>
+                <th class="text-right">Rule</th>
+                <th class="text-right">Accuracy</th>
+                <th class="text-right">Net Score</th>
+              </tr>
+            </thead>
+            <tbody id="nmcSecTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- What-If Guessing Risk & Penalty Comparison -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div class="nmc-panel">
+          <h3 class="font-display text-sm font-semibold text-base-content flex items-center gap-2 mb-2">
+            {{ lucide_icon("target", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <span>Should You Guess? (+10 Unattempted)</span>
+          </h3>
+          <p id="nmcGuessAdvice" class="text-xs text-base-content/70 mb-3 leading-relaxed"></p>
+          <div class="overflow-x-auto nmc-subcard">
+            <table class="table table-xs w-full font-mono">
+              <thead>
+                <tr>
+                  <th>Guess Accuracy</th>
+                  <th class="text-right">Delta (10 Qs)</th>
+                  <th class="text-right">Projected</th>
+                </tr>
+              </thead>
+              <tbody id="nmcGuessBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="nmc-panel">
+          <h3 class="font-display text-sm font-semibold text-base-content flex items-center gap-2 mb-2">
+            {{ lucide_icon("bar-chart-3", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <span>Same Answers Across Penalty Ratios</span>
+          </h3>
+          <p class="text-xs text-base-content/70 mb-3 leading-relaxed">Compare how 0.25, 0.50, 1/3, 1/4, and 1/8 schemes change your net score.</p>
+          <div class="overflow-x-auto nmc-subcard">
+            <table class="table table-xs w-full font-mono">
+              <thead>
+                <tr>
+                  <th>Marking Ratio</th>
+                  <th class="text-right">Penalty</th>
+                  <th class="text-right">Net Score</th>
+                </tr>
+              </thead>
+              <tbody id="nmcCompareBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="nmcToast" class="nmc-toast" role="status" aria-live="polite"></div>
+
+<script nonce="{{ nonce }}">
+(function(){
+  'use strict';
+  function el(id){ return document.getElementById(id); }
+  function num(v, fallback){
+    var n = parseFloat(v);
+    return Number.isFinite(n) ? n : (fallback || 0);
+  }
+  function fmt(n, d){
+    if (!Number.isFinite(n)) return '0';
+    var dec = typeof d === 'number' ? d : 2;
+    var r = Math.round(n * Math.pow(10, dec)) / Math.pow(10, dec);
+    return Number.isInteger(r) && dec === 0 ? String(r) : r.toFixed(dec);
+  }
+  function fmtTrim(n){
+    if (!Number.isFinite(n)) return '0';
+    var r = Math.round(n * 10000) / 10000;
+    return String(r);
+  }
+  function esc(s){
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+  function gcd(a, b){
+    a = Math.abs(Math.round(a));
+    b = Math.abs(Math.round(b));
+    while (b){ var t = b; b = a % b; a = t; }
+    return a || 1;
+  }
+
+  var PRESETS = {
+    ssc_cgl_1: { name: 'SSC CGL Tier-1', tq: 100, mm: 200, mpq: 2, num: 1, den: 4, att: 85, wrong: 15 },
+    ssc_cgl_2: { name: 'SSC CGL Tier-2', tq: 130, mm: 390, mpq: 3, num: 1, den: 3, att: 112, wrong: 14 },
+    ssc_chsl_1: { name: 'SSC CHSL Tier-1', tq: 100, mm: 200, mpq: 2, num: 1, den: 4, att: 82, wrong: 14 },
+    ssc_gd: { name: 'SSC GD Constable', tq: 80, mm: 160, mpq: 2, num: 1, den: 8, att: 70, wrong: 10 },
+    ssc_mts: { name: 'SSC MTS Session-2', tq: 50, mm: 150, mpq: 3, num: 1, den: 3, att: 42, wrong: 6 },
+    ssc_cpo: { name: 'SSC CPO Paper-1', tq: 200, mm: 200, mpq: 1, num: 1, den: 4, att: 165, wrong: 25 },
+    delhi_police: { name: 'Delhi Police Constable', tq: 100, mm: 100, mpq: 1, num: 1, den: 4, att: 84, wrong: 16 },
+    nda_math: { name: 'UPSC NDA Maths', tq: 120, mm: 300, mpq: 2.5, num: 1, den: 3, att: 90, wrong: 18 },
+    nda_gat: { name: 'UPSC NDA GAT', tq: 150, mm: 600, mpq: 4, num: 1, den: 3, att: 120, wrong: 24 },
+    cds: { name: 'UPSC CDS (IMA/INA/AFA)', tq: 120, mm: 100, mpq: 100/120, num: 1, den: 3, att: 96, wrong: 18 },
+    afcat: { name: 'AFCAT Exam', tq: 100, mm: 300, mpq: 3, num: 1, den: 3, att: 80, wrong: 15 },
+    upsc_gs: { name: 'UPSC Prelims GS Paper-1', tq: 100, mm: 200, mpq: 2, num: 1, den: 3, att: 82, wrong: 24 },
+    upsc_csat: { name: 'UPSC Prelims CSAT', tq: 80, mm: 200, mpq: 2.5, num: 1, den: 3, att: 54, wrong: 12 },
+    uppsc: { name: 'UPPSC Prelims GS', tq: 150, mm: 200, mpq: 200/150, num: 1, den: 3, att: 124, wrong: 26 },
+    bpsc: { name: 'BPSC CCE Prelims', tq: 150, mm: 150, mpq: 1, num: 1, den: 3, att: 130, wrong: 25 },
+    mpsc: { name: 'MPSC Rajyaseva Prelims', tq: 100, mm: 200, mpq: 2, num: 1, den: 4, att: 85, wrong: 17 },
+    rpsc: { name: 'RPSC RAS Prelims', tq: 150, mm: 200, mpq: 200/150, num: 1, den: 3, att: 120, wrong: 24 },
+    kpsc: { name: 'KPSC KAS Prelims', tq: 100, mm: 200, mpq: 2, num: 1, den: 4, att: 84, wrong: 16 },
+    kerala_psc: { name: 'Kerala PSC Exam', tq: 100, mm: 100, mpq: 1, num: 1, den: 3, att: 88, wrong: 15 },
+    bihar_si: { name: 'Bihar Police SI', tq: 100, mm: 200, mpq: 2, num: 1, den: 10, att: 90, wrong: 18 },
+    neet_ug: { name: 'NEET UG', tq: 180, mm: 720, mpq: 4, num: 1, den: 4, att: 170, wrong: 15 },
+    neet_pg: { name: 'NEET PG', tq: 200, mm: 800, mpq: 4, num: 1, den: 4, att: 190, wrong: 30 },
+    jee_main: { name: 'JEE Main', tq: 75, mm: 300, mpq: 4, num: 1, den: 4, att: 64, wrong: 10 },
+    gate_1: { name: 'GATE (1-Mark Qs)', tq: 25, mm: 25, mpq: 1, num: 1, den: 3, att: 22, wrong: 4 },
+    gate_2: { name: 'GATE (2-Mark Qs)', tq: 30, mm: 60, mpq: 2, num: 1, den: 3, att: 25, wrong: 5 },
+    cuet_ug: { name: 'CUET UG', tq: 50, mm: 250, mpq: 5, num: 1, den: 5, att: 45, wrong: 5 },
+    clat_ug: { name: 'CLAT UG', tq: 120, mm: 120, mpq: 1, num: 1, den: 4, att: 108, wrong: 16 },
+    ca_found: { name: 'CA Foundation MCQ', tq: 100, mm: 100, mpq: 1, num: 1, den: 4, att: 86, wrong: 14 },
+    ibps_po: { name: 'IBPS / SBI PO Prelims', tq: 100, mm: 100, mpq: 1, num: 1, den: 4, att: 78, wrong: 12 },
+    ibps_clerk: { name: 'IBPS / SBI Clerk', tq: 100, mm: 100, mpq: 1, num: 1, den: 4, att: 88, wrong: 10 },
+    rrb_ntpc: { name: 'RRB NTPC CBT-1', tq: 100, mm: 100, mpq: 1, num: 1, den: 3, att: 84, wrong: 12 },
+    rrb_gd: { name: 'RRB Group D', tq: 100, mm: 100, mpq: 1, num: 1, den: 3, att: 82, wrong: 14 },
+    custom: { name: 'Custom Exam', tq: 100, mm: 100, mpq: 1, num: 1, den: 4, att: 80, wrong: 12 }
+  };
+
+  var SECTION_PRESETS = {
+    ssc_cgl_tier1: [
+      { name: 'Quantitative Aptitude', tq: 25, c: 19, w: 4, mpq: 2, ratio: '1/4' },
+      { name: 'General Intelligence', tq: 25, c: 21, w: 3, mpq: 2, ratio: '1/4' },
+      { name: 'English Comprehension', tq: 25, c: 20, w: 4, mpq: 2, ratio: '1/4' },
+      { name: 'General Awareness', tq: 25, c: 12, w: 6, mpq: 2, ratio: '1/4' }
+    ],
+    neet_ug: [
+      { name: 'Physics', tq: 45, c: 38, w: 5, mpq: 4, ratio: '1/4' },
+      { name: 'Chemistry', tq: 45, c: 40, w: 4, mpq: 4, ratio: '1/4' },
+      { name: 'Biology (Botany + Zoology)', tq: 90, c: 82, w: 6, mpq: 4, ratio: '1/4' }
+    ],
+    jee_main: [
+      { name: 'Physics', tq: 25, c: 18, w: 4, mpq: 4, ratio: '1/4' },
+      { name: 'Chemistry', tq: 25, c: 20, w: 3, mpq: 4, ratio: '1/4' },
+      { name: 'Mathematics', tq: 25, c: 15, w: 4, mpq: 4, ratio: '1/4' }
+    ]
+  };
+
+  var state = {
+    mode: 'attempted',
+    ptype: 'ratio',
+    rNum: 1,
+    rDen: 4,
+    sections: JSON.parse(JSON.stringify(SECTION_PRESETS.ssc_cgl_tier1))
+  };
+  var HIST_KEY = 'sb_nmc1';
+  var history = [];
+  try {
+    var saved = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+    if (Array.isArray(saved)) history = saved;
+  } catch (e) {}
+
+  var toastEl = el('nmcToast');
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastEl._t);
+    toastEl._t = setTimeout(function(){ toastEl.classList.remove('show'); }, 2200);
+  }
+
+  function parseRatio(raw){
+    var s = String(raw || '').trim();
+    if (!s || s === '0' || s.toLowerCase() === 'none') return { num: 0, den: 1, label: '0 (None)' };
+    if (s.indexOf('/') !== -1){
+      var parts = s.split('/');
+      var a = parseFloat(parts[0]);
+      var b = parseFloat(parts[1]);
+      if (Number.isFinite(a) && Number.isFinite(b) && b > 0 && a >= 0){
+        if (Number.isInteger(a) && Number.isInteger(b)){
+          var g = gcd(a, b);
+          return { num: a / g, den: b / g, label: (a / g) + '/' + (b / g) };
+        }
+        return { num: a, den: b, label: s };
+      }
+    }
+    var dec = parseFloat(s);
+    if (Number.isFinite(dec) && dec >= 0){
+      return { num: dec, den: 1, label: fmtTrim(dec) + '×' };
+    }
+    return { num: 1, den: 4, label: '1/4' };
+  }
+
+  function setActiveRatioBtn(n, d){
+    var btns = el('nmcRatioBtns').querySelectorAll('button');
+    btns.forEach(function(b){
+      var bn = parseFloat(b.getAttribute('data-num'));
+      var bd = parseFloat(b.getAttribute('data-den'));
+      var match = Math.abs((bn / bd) - (n / d)) < 1e-6;
+      b.classList.toggle('is-active', match);
+    });
+  }
+
+  function applyPreset(key){
+    var p = PRESETS[key];
+    if (!p) return;
+    el('nmcExamName').value = p.name;
+    el('nmcTotalQ').value = p.tq;
+    el('nmcMaxMarks').value = fmtTrim(p.mm);
+    el('nmcMpq').value = fmtTrim(p.mpq);
+    el('nmcAttempted').value = p.att;
+    el('nmcWrongA').value = p.wrong;
+    el('nmcCorrectD').value = Math.max(0, p.att - p.wrong);
+    el('nmcWrongD').value = p.wrong;
+    state.ptype = 'ratio';
+    setPtypeUI('ratio');
+    state.rNum = p.num;
+    state.rDen = p.den;
+    el('nmcCustomRatio').value = p.num === 0 ? '0' : (p.num + '/' + p.den);
+    setActiveRatioBtn(p.num, p.den);
+    el('nmcFixedPenalty').value = fmt(p.mpq * (p.num / p.den), 2);
+    el('nmcExamSelect').value = key;
+    el('nmcPresetChips').querySelectorAll('button').forEach(function(btn){
+      btn.classList.toggle('is-active', btn.getAttribute('data-preset') === key);
+    });
+    if (state.mode === 'sectional' && SECTION_PRESETS[key]){
+      state.sections = JSON.parse(JSON.stringify(SECTION_PRESETS[key]));
+      renderSections();
+    }
+    calculate();
+  }
+
+  function setPtypeUI(ptype){
+    state.ptype = ptype;
+    el('nmcRatioWrap').classList.toggle('hidden', ptype !== 'ratio');
+    el('nmcFixedWrap').classList.toggle('hidden', ptype !== 'fixed');
+    var btns = document.querySelectorAll('[data-ptype]');
+    btns.forEach(function(b){
+      var active = b.getAttribute('data-ptype') === ptype;
+      b.setAttribute('aria-checked', String(active));
+      b.classList.toggle('btn-neutral', active);
+      b.classList.toggle('btn-ghost', !active);
+      b.classList.toggle('border', !active);
+      b.classList.toggle('border-base-300', !active);
+    });
+  }
+
+  function setMode(mode){
+    state.mode = mode;
+    el('nmcModeTabs').querySelectorAll('button[role="tab"]').forEach(function(b){
+      var on = b.getAttribute('data-mode') === mode;
+      b.classList.toggle('tab-active', on);
+      b.setAttribute('aria-selected', String(on));
+    });
+    el('nmcSingleInputs').classList.toggle('hidden', mode === 'sectional');
+    el('nmcSectionalInputs').classList.toggle('hidden', mode !== 'sectional');
+    el('nmcAttemptedFields').classList.toggle('hidden', mode !== 'attempted');
+    el('nmcDirectFields').classList.toggle('hidden', mode !== 'direct');
+    el('nmcSecTableCard').classList.toggle('hidden', mode !== 'sectional');
+    if (mode === 'sectional') renderSections();
+    calculate();
+  }
+
+  function renderSections(){
+    var wrap = el('nmcSectionsList');
+    var html = '';
+    state.sections.forEach(function(sec, idx){
+      html += '<div class="nmc-sec-row" data-sec-idx="' + idx + '">' +
+        '<div class="flex items-center justify-between gap-2 mb-2">' +
+          '<input type="text" class="input input-xs cal-input flex-1 font-semibold" data-sec-field="name" value="' + esc(sec.name) + '" placeholder="Section name" aria-label="Section ' + (idx + 1) + ' name">' +
+          (state.sections.length > 1 ? '<button type="button" class="btn btn-ghost btn-xs text-error nmc-action-btn" data-sec-del="' + idx + '" aria-label="Remove section">✕</button>' : '') +
+        '</div>' +
+        '<div class="grid grid-cols-5 gap-1.5">' +
+          '<div><label class="text-[10px] text-base-content/60 block">Total Q</label><input type="number" class="input input-xs cal-input w-full font-mono" data-sec-field="tq" value="' + sec.tq + '" min="1" step="1" aria-label="Total questions"></div>' +
+          '<div><label class="text-[10px] text-base-content/60 block">Correct</label><input type="number" class="input input-xs cal-input w-full font-mono" data-sec-field="c" value="' + sec.c + '" min="0" step="1" aria-label="Correct answers"></div>' +
+          '<div><label class="text-[10px] text-base-content/60 block">Wrong</label><input type="number" class="input input-xs cal-input w-full font-mono" data-sec-field="w" value="' + sec.w + '" min="0" step="1" aria-label="Wrong answers"></div>' +
+          '<div><label class="text-[10px] text-base-content/60 block">+Marks</label><input type="number" class="input input-xs cal-input w-full font-mono" data-sec-field="mpq" value="' + sec.mpq + '" min="0.01" step="any" aria-label="Marks per question"></div>' +
+          '<div><label class="text-[10px] text-base-content/60 block">Ratio</label><select class="select select-xs cal-input w-full font-mono" data-sec-field="ratio" aria-label="Penalty ratio">' +
+            '<option value="1/4"' + (sec.ratio === '1/4' ? ' selected' : '') + '>1/4</option>' +
+            '<option value="1/3"' + (sec.ratio === '1/3' ? ' selected' : '') + '>1/3</option>' +
+            '<option value="1/2"' + (sec.ratio === '1/2' ? ' selected' : '') + '>1/2</option>' +
+            '<option value="1/5"' + (sec.ratio === '1/5' ? ' selected' : '') + '>1/5</option>' +
+            '<option value="1/8"' + (sec.ratio === '1/8' ? ' selected' : '') + '>1/8</option>' +
+            '<option value="0"' + (sec.ratio === '0' ? ' selected' : '') + '>0</option>' +
+          '</select></div>' +
+        '</div>' +
+      '</div>';
+    });
+    wrap.innerHTML = html;
+  }
+
+  function showAlert(msg){
+    var box = el('nmcAlert');
+    if (!msg){ box.classList.add('hidden'); return; }
+    el('nmcAlertText').textContent = msg;
+    box.classList.remove('hidden');
+  }
+
+  var lastResult = null;
+
+  function calculate(){
+    var examName = (el('nmcExamName').value || 'Exam Score Report').trim();
+    var tq = 0, mm = 0, mpq = 0, correct = 0, wrong = 0, attempted = 0, skipped = 0;
+    var posMarks = 0, negMarks = 0, netScore = 0, penaltyPerWrong = 0, ratioFloat = 0, ratioLabel = '';
+    var errMsg = '';
+    var secRows = [];
+
+    if (state.mode === 'sectional'){
+      state.sections.forEach(function(s){
+        var stq = Math.max(0, num(s.tq, 0));
+        var sc = Math.max(0, num(s.c, 0));
+        var sw = Math.max(0, num(s.w, 0));
+        var smpq = Math.max(0.01, num(s.mpq, 1));
+        var pr = parseRatio(s.ratio);
+        var sr = pr.den > 0 ? (pr.num / pr.den) : 0;
+        var spen = smpq * sr;
+        var spos = sc * smpq;
+        var sneg = sw * spen;
+        var snet = spos - sneg;
+        if (sc + sw > stq && stq > 0) errMsg = 'Section "' + s.name + '": Correct + Wrong exceeds Total Questions.';
+        tq += stq;
+        mm += stq * smpq;
+        correct += sc;
+        wrong += sw;
+        posMarks += spos;
+        negMarks += sneg;
+        netScore += snet;
+        var satt = sc + sw;
+        secRows.push({
+          name: s.name || 'Section',
+          c: sc, w: sw, tq: stq, mpq: smpq,
+          ratioLabel: pr.label,
+          acc: satt > 0 ? (sc / satt * 100) : 0,
+          net: snet,
+          max: stq * smpq
+        });
+      });
+      attempted = correct + wrong;
+      skipped = Math.max(0, tq - attempted);
+      mpq = tq > 0 ? (mm / tq) : 1;
+      penaltyPerWrong = wrong > 0 ? (negMarks / wrong) : (mpq * 0.25);
+      ratioFloat = mpq > 0 ? (penaltyPerWrong / mpq) : 0;
+      ratioLabel = 'Sectional';
+    } else {
+      tq = Math.max(1, Math.round(num(el('nmcTotalQ').value, 100)));
+      mpq = Math.max(0.001, num(el('nmcMpq').value, 1));
+      mm = Math.max(0.01, num(el('nmcMaxMarks').value, tq * mpq));
+      if (state.mode === 'attempted'){
+        attempted = Math.max(0, Math.round(num(el('nmcAttempted').value, 0)));
+        wrong = Math.max(0, Math.round(num(el('nmcWrongA').value, 0)));
+        if (attempted > tq) errMsg = 'Attempted questions (' + attempted + ') cannot exceed Total Questions (' + tq + ').';
+        else if (wrong > attempted) errMsg = 'Wrong answers (' + wrong + ') cannot exceed Attempted questions (' + attempted + ').';
+        correct = Math.max(0, attempted - wrong);
+      } else {
+        correct = Math.max(0, Math.round(num(el('nmcCorrectD').value, 0)));
+        wrong = Math.max(0, Math.round(num(el('nmcWrongD').value, 0)));
+        attempted = correct + wrong;
+        if (attempted > tq) errMsg = 'Correct + Wrong (' + attempted + ') exceeds Total Questions (' + tq + ').';
+      }
+      skipped = Math.max(0, tq - attempted);
+
+      if (state.ptype === 'ratio'){
+        ratioFloat = state.rDen > 0 ? (state.rNum / state.rDen) : 0;
+        penaltyPerWrong = mpq * ratioFloat;
+        ratioLabel = state.rNum === 0 ? '0 (None)' : (state.rNum + '/' + state.rDen);
+        el('nmcComputedPenalty').textContent = '−' + fmt(penaltyPerWrong, 2) + ' marks';
+      } else {
+        penaltyPerWrong = Math.max(0, num(el('nmcFixedPenalty').value, 0));
+        ratioFloat = mpq > 0 ? (penaltyPerWrong / mpq) : 0;
+        ratioLabel = 'Fixed −' + fmt(penaltyPerWrong, 2);
+      }
+      posMarks = correct * mpq;
+      negMarks = wrong * penaltyPerWrong;
+      netScore = posMarks - negMarks;
+    }
+
+    showAlert(errMsg);
+
+    var pct = mm > 0 ? (netScore / mm * 100) : 0;
+    var acc = attempted > 0 ? (correct / attempted * 100) : 0;
+    var attRate = tq > 0 ? (attempted / tq * 100) : 0;
+    var breakeven = (ratioFloat / (1 + ratioFloat)) * 100;
+    var mpa = attempted > 0 ? (netScore / attempted) : 0;
+
+    el('nmcReportTitle').textContent = examName;
+    el('nmcNetScore').textContent = fmt(netScore, 2);
+    el('nmcOutOf').textContent = '/ ' + fmtTrim(mm);
+    el('nmcPct').textContent = fmt(pct, 2) + '%';
+
+    var barVal = Math.max(0, Math.min(100, pct));
+    var bar = el('nmcScoreBar');
+    bar.value = barVal;
+    bar.className = 'progress w-full h-2.5 ' + (pct >= 75 ? 'progress-success' : pct >= 50 ? 'progress-neutral' : pct >= 30 ? 'progress-warning' : 'progress-error');
+
+    var badge = el('nmcGradeBadge');
+    if (pct >= 80){ badge.textContent = 'Top Tier (≥80%)'; badge.className = 'badge badge-sm badge-success font-mono'; }
+    else if (pct >= 60){ badge.textContent = 'Competitive (60–79%)'; badge.className = 'badge badge-sm badge-neutral font-mono'; }
+    else if (pct >= 40){ badge.textContent = 'Borderline (40–59%)'; badge.className = 'badge badge-sm badge-warning font-mono'; }
+    else { badge.textContent = 'High Risk (<40%)'; badge.className = 'badge badge-sm badge-error font-mono'; }
+
+    el('nmcPosSummary').textContent = '+' + fmt(posMarks, 2) + ' positive';
+    el('nmcNegSummary').textContent = '−' + fmt(negMarks, 2) + ' deducted';
+    el('nmcSchemeSummary').textContent = state.mode === 'sectional'
+      ? (state.sections.length + ' sections combined')
+      : ('+' + fmtTrim(mpq) + ' / −' + fmt(penaltyPerWrong, 2) + ' (' + ratioLabel + ')');
+
+    el('nmcStatCorrect').textContent = String(correct);
+    el('nmcStatPosMarks').textContent = '+' + fmt(posMarks, 2) + ' marks';
+    el('nmcStatWrong').textContent = String(wrong);
+    el('nmcStatNegMarks').textContent = '−' + fmt(negMarks, 2) + ' penalty';
+    el('nmcStatSkipped').textContent = String(skipped);
+    el('nmcStatAttemptRate').textContent = fmt(attRate, 1) + '% attempted';
+    el('nmcStatAccuracy').textContent = fmt(acc, 2) + '%';
+    el('nmcStatBreakeven').textContent = fmt(breakeven, 2) + '%';
+    var rightPerTotal = ratioFloat > 0 ? Math.round(1 + (1 / ratioFloat)) : 0;
+    el('nmcStatBreakevenDesc').textContent = ratioFloat === 0 ? 'No guessing penalty' : ('1 in ' + fmtTrim(1 + 1 / ratioFloat) + ' right = 0');
+    el('nmcStatMpa').textContent = (mpa >= 0 ? '+' : '−') + fmt(Math.abs(mpa), 2);
+    el('nmcStatMpaDesc').textContent = acc >= breakeven ? 'Above break-even' : 'Below break-even';
+
+    // Formula Trace
+    if (state.mode === 'sectional'){
+      el('nmcFormulaTrace').textContent = 'Sum of Sections: +' + fmt(posMarks, 2) + ' − ' + fmt(negMarks, 2) + ' = ' + fmt(netScore, 2) + ' / ' + fmtTrim(mm);
+    } else {
+      el('nmcFormulaTrace').textContent = '(' + correct + ' × ' + fmtTrim(mpq) + ') − (' + wrong + ' × ' + fmt(penaltyPerWrong, 2) + ') = ' + fmt(posMarks, 2) + ' − ' + fmt(negMarks, 2) + ' = ' + fmt(netScore, 2);
+    }
+    el('nmcBreakevenTrace').textContent = 'Break-Even Formula: Penalty ÷ (Marks/Q + Penalty) × 100 = ' + fmt(penaltyPerWrong, 2) + ' ÷ (' + fmtTrim(mpq) + ' + ' + fmt(penaltyPerWrong, 2) + ') × 100 = ' + fmt(breakeven, 2) + '%';
+
+    // Section Table
+    if (state.mode === 'sectional'){
+      var sh = '';
+      secRows.forEach(function(r){
+        sh += '<tr><td class="font-semibold">' + esc(r.name) + '</td><td class="text-right font-mono">' + r.c + ' / ' + r.w + '</td><td class="text-right font-mono">+' + fmtTrim(r.mpq) + ' (' + esc(r.ratioLabel) + ')</td><td class="text-right font-mono">' + fmt(r.acc, 1) + '%</td><td class="text-right font-mono font-bold">' + fmt(r.net, 2) + ' / ' + fmtTrim(r.max) + '</td></tr>';
+      });
+      el('nmcSecTableBody').innerHTML = sh;
+    }
+
+    // Guess Simulator (+10 extra attempts)
+    var guessPcts = [20, 25, 33.33, 50, 75];
+    var gh = '';
+    var guessCount = Math.min(10, skipped > 0 ? skipped : 10);
+    guessPcts.forEach(function(gp){
+      var expRight = guessCount * (gp / 100);
+      var expWrong = guessCount - expRight;
+      var delta = expRight * mpq - expWrong * penaltyPerWrong;
+      var proj = netScore + delta;
+      var cls = delta > 0.001 ? 'text-success' : delta < -0.001 ? 'text-error' : 'text-base-content/70';
+      gh += '<tr><td>' + fmtTrim(gp) + '%</td><td class="text-right font-bold ' + cls + '">' + (delta >= 0 ? '+' : '−') + fmt(Math.abs(delta), 2) + '</td><td class="text-right">' + fmt(proj, 2) + '</td></tr>';
+    });
+    el('nmcGuessBody').innerHTML = gh;
+    el('nmcGuessAdvice').textContent = ratioFloat === 0
+      ? 'Zero negative marking: attempt every remaining question (' + skipped + ' left) for free upside.'
+      : ('Random 4-option guessing yields 25% accuracy. With ' + fmt(breakeven, 1) + '% break-even, ' + (breakeven < 25 ? 'even 25% guessing has positive EV, and eliminating 1 option (33.3%) boosts gains.' : breakeven === 25 ? 'pure 25% guessing breaks even; eliminate at least 1 option (33.3%+) to gain marks.' : 'random 25% guessing loses marks; eliminate 2 options (50%+) before attempting.'));
+
+    // Cross-Ratio Comparison Table
+    var ratios = [
+      { label: '1/8 (0.125×)', f: 1 / 8 },
+      { label: '1/5 (0.20×)', f: 1 / 5 },
+      { label: '1/4 (0.25×)', f: 1 / 4 },
+      { label: '1/3 (0.333×)', f: 1 / 3 },
+      { label: '1/2 (0.50×)', f: 1 / 2 },
+      { label: 'None (0×)', f: 0 }
+    ];
+    var ch = '';
+    ratios.forEach(function(item){
+      var p = mpq * item.f;
+      var nScore = (correct * mpq) - (wrong * p);
+      var isCur = Math.abs(item.f - ratioFloat) < 0.005;
+      ch += '<tr class="' + (isCur ? 'bg-base-200 font-bold' : '') + '"><td>' + item.label + (isCur ? ' •' : '') + '</td><td class="text-right text-error">−' + fmt(p, 2) + '</td><td class="text-right font-bold">' + fmt(nScore, 2) + '</td></tr>';
+    });
+    el('nmcCompareBody').innerHTML = ch;
+
+    lastResult = {
+      examName: examName, tq: tq, mm: mm, mpq: mpq,
+      correct: correct, wrong: wrong, attempted: attempted, skipped: skipped,
+      posMarks: posMarks, negMarks: negMarks, netScore: netScore,
+      penaltyPerWrong: penaltyPerWrong, ratioLabel: ratioLabel,
+      pct: pct, acc: acc, breakeven: breakeven, mpa: mpa,
+      secRows: secRows, mode: state.mode
+    };
+  }
+
+  // Minimal self-contained PDF 1.4 generator (ASCII / WinAnsi safe, exact xref offsets)
+  function pdfEsc(str){
+    return String(str)
+      .replace(/[^\x20-\x7E]/g, function(ch){
+        if (ch === '−' || ch === '–' || ch === '—') return '-';
+        if (ch === '×') return 'x';
+        if (ch === '÷') return '/';
+        return ' ';
+      })
+      .replace(/\\/g, '\\\\')
+      .replace(/\(/g, '\\(')
+      .replace(/\)/g, '\\)');
+  }
+
+  function buildPdfBlob(res){
+    var lines = [];
+    var y = 760;
+    function addLine(text, font, size, x, dy){
+      lines.push('BT /' + font + ' ' + size + ' Tf ' + x + ' ' + y + ' Td (' + pdfEsc(text) + ') Tj ET');
+      y -= (dy || 18);
+    }
+    addLine('STORYBRAIN AI - NEGATIVE MARKING EXAM SCORECARD', 'F2', 14, 48, 22);
+    addLine('Exam: ' + res.examName + '   |   Generated: ' + new Date().toISOString().slice(0, 10), 'F1', 10, 48, 18);
+    lines.push('0.85 w 48 ' + (y + 6) + ' m 547 ' + (y + 6) + ' l S');
+    y -= 10;
+    addLine('NET FINAL SCORE: ' + fmt(res.netScore, 2) + ' / ' + fmtTrim(res.mm) + '  (' + fmt(res.pct, 2) + '%)', 'F2', 16, 48, 26);
+    addLine('Marking Scheme: +' + fmtTrim(res.mpq) + ' per Correct  |  -' + fmt(res.penaltyPerWrong, 2) + ' per Wrong (' + res.ratioLabel + ')', 'F1', 11, 48, 22);
+    addLine('PERFORMANCE BREAKDOWN', 'F2', 12, 48, 18);
+    addLine('Total Questions: ' + res.tq + '    Attempted: ' + res.attempted + '    Unattempted: ' + res.skipped, 'F1', 11, 56, 17);
+    addLine('Correct Answers: ' + res.correct + ' (+' + fmt(res.posMarks, 2) + ' marks)', 'F1', 11, 56, 17);
+    addLine('Wrong Answers:   ' + res.wrong + ' (-' + fmt(res.negMarks, 2) + ' deducted)', 'F1', 11, 56, 17);
+    addLine('Accuracy Rate:   ' + fmt(res.acc, 2) + '%    |    Break-Even Accuracy: ' + fmt(res.breakeven, 2) + '%', 'F1', 11, 56, 17);
+    addLine('Marks / Attempt: ' + (res.mpa >= 0 ? '+' : '-') + fmt(Math.abs(res.mpa), 2), 'F1', 11, 56, 24);
+    addLine('FORMULA USED', 'F2', 12, 48, 18);
+    addLine('Net Score = (Correct x Marks/Q) - (Wrong x Penalty/Q)', 'F1', 10, 56, 16);
+    addLine('Result = (' + res.correct + ' x ' + fmtTrim(res.mpq) + ') - (' + res.wrong + ' x ' + fmt(res.penaltyPerWrong, 2) + ') = ' + fmt(res.netScore, 2), 'F1', 10, 56, 24);
+    if (res.mode === 'sectional' && res.secRows.length){
+      addLine('SECTION-WISE BREAKDOWN', 'F2', 12, 48, 18);
+      res.secRows.forEach(function(sr){
+        addLine(sr.name + ': ' + sr.c + ' Right / ' + sr.w + ' Wrong | Net: ' + fmt(sr.net, 2) + ' / ' + fmtTrim(sr.max) + ' (' + fmt(sr.acc, 1) + '%)', 'F1', 10, 56, 16);
+      });
+    }
+    addLine('Generated locally in your browser at storybrainai.com/tool/negative-marking-calculator', 'F1', 9, 48, 14);
+
+    var stream = lines.join('\n');
+    var objs = [
+      '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+      '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+      '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n',
+      '4 0 obj\n<< /Length ' + stream.length + ' >>\nstream\n' + stream + '\nendstream\nendobj\n',
+      '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+      '6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n'
+    ];
+    var pdf = '%PDF-1.4\n';
+    var offsets = [0];
+    objs.forEach(function(o){
+      offsets.push(pdf.length);
+      pdf += o;
+    });
+    var xrefPos = pdf.length;
+    pdf += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+    for (var i = 1; i < offsets.length; i++){
+      pdf += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+    }
+    pdf += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xrefPos + '\n%%EOF';
+    return new Blob([pdf], { type: 'application/pdf' });
+  }
+
+  function renderHistory(){
+    var list = el('nmcHistList');
+    el('nmcHistCount').textContent = String(history.length);
+    el('nmcHistClear').classList.toggle('hidden', history.length === 0);
+    if (!history.length){
+      list.innerHTML = '<p class="text-xs text-base-content/45 py-3 text-center">Save any score to compare mock tests over time.</p>';
+      return;
+    }
+    var h = '';
+    history.forEach(function(item, idx){
+      h += '<div class="nmc-hist-item" data-hidx="' + idx + '">' +
+        '<div class="min-w-0 flex-1">' +
+          '<div class="text-xs font-semibold text-base-content truncate">' + esc(item.examName) + '</div>' +
+          '<div class="text-[11px] font-mono text-base-content/60">' + fmt(item.netScore, 2) + '/' + fmtTrim(item.mm) + ' (' + fmt(item.pct, 1) + '%) · Acc ' + fmt(item.acc, 1) + '%</div>' +
+        '</div>' +
+        '<button type="button" class="btn btn-ghost btn-xs text-error nmc-action-btn" data-hdel="' + idx + '" aria-label="Delete mock entry">✕</button>' +
+      '</div>';
+    });
+    list.innerHTML = h;
+  }
+
+  // Event Listeners (CSP-clean)
+  el('nmcExamSelect').addEventListener('change', function(){
+    if (this.value) applyPreset(this.value);
+  });
+
+  el('nmcPresetChips').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-preset]');
+    if (b) applyPreset(b.getAttribute('data-preset'));
+  });
+
+  el('nmcModeTabs').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-mode]');
+    if (b) setMode(b.getAttribute('data-mode'));
+  });
+
+  document.addEventListener('click', function(e){
+    var pt = e.target.closest('[data-ptype]');
+    if (pt){
+      setPtypeUI(pt.getAttribute('data-ptype'));
+      calculate();
+      return;
+    }
+    var fx = e.target.closest('#nmcFixedChips button[data-fixed]');
+    if (fx){
+      el('nmcFixedPenalty').value = fx.getAttribute('data-fixed');
+      calculate();
+      return;
+    }
+    var sp = e.target.closest('button[data-sec-preset]');
+    if (sp){
+      var key = sp.getAttribute('data-sec-preset');
+      if (SECTION_PRESETS[key]){
+        state.sections = JSON.parse(JSON.stringify(SECTION_PRESETS[key]));
+        renderSections();
+        calculate();
+        toast('Section template loaded');
+      }
+      return;
+    }
+    var delSec = e.target.closest('button[data-sec-del]');
+    if (delSec){
+      var si = parseInt(delSec.getAttribute('data-sec-del'), 10);
+      if (state.sections.length > 1){
+        state.sections.splice(si, 1);
+        renderSections();
+        calculate();
+      }
+      return;
+    }
+  });
+
+  el('nmcRatioBtns').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-num]');
+    if (!b) return;
+    state.rNum = parseFloat(b.getAttribute('data-num'));
+    state.rDen = parseFloat(b.getAttribute('data-den'));
+    el('nmcCustomRatio').value = state.rNum === 0 ? '0' : (state.rNum + '/' + state.rDen);
+    setActiveRatioBtn(state.rNum, state.rDen);
+    calculate();
+  });
+
+  el('nmcCustomRatio').addEventListener('input', function(){
+    var parsed = parseRatio(this.value);
+    state.rNum = parsed.num;
+    state.rDen = parsed.den;
+    setActiveRatioBtn(state.rNum, state.rDen);
+    calculate();
+  });
+
+  el('nmcTotalQ').addEventListener('input', function(){
+    var tq = Math.max(1, num(this.value, 1));
+    var mpq = Math.max(0.01, num(el('nmcMpq').value, 1));
+    el('nmcMaxMarks').value = fmtTrim(tq * mpq);
+    calculate();
+  });
+  el('nmcMaxMarks').addEventListener('input', function(){
+    var tq = Math.max(1, num(el('nmcTotalQ').value, 1));
+    var mm = Math.max(0.01, num(this.value, 1));
+    el('nmcMpq').value = fmtTrim(mm / tq);
+    calculate();
+  });
+  el('nmcMpq').addEventListener('input', function(){
+    var tq = Math.max(1, num(el('nmcTotalQ').value, 1));
+    var mpq = Math.max(0.01, num(this.value, 1));
+    el('nmcMaxMarks').value = fmtTrim(tq * mpq);
+    calculate();
+  });
+
+  ['nmcExamName', 'nmcAttempted', 'nmcWrongA', 'nmcCorrectD', 'nmcWrongD', 'nmcFixedPenalty'].forEach(function(id){
+    el(id).addEventListener('input', calculate);
+  });
+
+  el('nmcSectionsList').addEventListener('input', function(e){
+    var row = e.target.closest('[data-sec-idx]');
+    if (!row) return;
+    var idx = parseInt(row.getAttribute('data-sec-idx'), 10);
+    var field = e.target.getAttribute('data-sec-field');
+    if (state.sections[idx] && field){
+      state.sections[idx][field] = e.target.value;
+      calculate();
+    }
+  });
+  el('nmcSectionsList').addEventListener('change', function(e){
+    var row = e.target.closest('[data-sec-idx]');
+    if (!row) return;
+    var idx = parseInt(row.getAttribute('data-sec-idx'), 10);
+    var field = e.target.getAttribute('data-sec-field');
+    if (state.sections[idx] && field){
+      state.sections[idx][field] = e.target.value;
+      calculate();
+    }
+  });
+
+  el('nmcAddSectionBtn').addEventListener('click', function(){
+    state.sections.push({ name: 'Section ' + (state.sections.length + 1), tq: 25, c: 18, w: 4, mpq: 2, ratio: '1/4' });
+    renderSections();
+    calculate();
+  });
+
+  el('nmcResetBtn').addEventListener('click', function(){
+    applyPreset('ssc_cgl_1');
+    toast('Reset to SSC CGL Tier-1 defaults');
+  });
+
+  el('nmcSaveBtn').addEventListener('click', function(){
+    if (!lastResult) return;
+    history.unshift({
+      examName: lastResult.examName,
+      tq: lastResult.tq,
+      mm: lastResult.mm,
+      mpq: lastResult.mpq,
+      attempted: lastResult.attempted,
+      correct: lastResult.correct,
+      wrong: lastResult.wrong,
+      netScore: lastResult.netScore,
+      pct: lastResult.pct,
+      acc: lastResult.acc,
+      rNum: state.rNum,
+      rDen: state.rDen,
+      ptype: state.ptype,
+      fixedPenalty: el('nmcFixedPenalty').value,
+      ts: Date.now()
+    });
+    if (history.length > 30) history.pop();
+    try { localStorage.setItem(HIST_KEY, JSON.stringify(history)); } catch (e) {}
+    renderHistory();
+    toast('Mock score saved!');
+  });
+
+  el('nmcHistClear').addEventListener('click', function(){
+    history = [];
+    try { localStorage.setItem(HIST_KEY, '[]'); } catch (e) {}
+    renderHistory();
+    toast('History cleared');
+  });
+
+  el('nmcHistList').addEventListener('click', function(e){
+    var del = e.target.closest('button[data-hdel]');
+    if (del){
+      var idx = parseInt(del.getAttribute('data-hdel'), 10);
+      history.splice(idx, 1);
+      try { localStorage.setItem(HIST_KEY, JSON.stringify(history)); } catch (err) {}
+      renderHistory();
+      return;
+    }
+    var item = e.target.closest('.nmc-hist-item');
+    if (!item) return;
+    var h = history[parseInt(item.getAttribute('data-hidx'), 10)];
+    if (!h) return;
+    setMode('attempted');
+    el('nmcExamName').value = h.examName;
+    el('nmcTotalQ').value = h.tq;
+    el('nmcMaxMarks').value = fmtTrim(h.mm);
+    el('nmcMpq').value = fmtTrim(h.mpq);
+    el('nmcAttempted').value = h.attempted;
+    el('nmcWrongA').value = h.wrong;
+    el('nmcCorrectD').value = h.correct;
+    el('nmcWrongD').value = h.wrong;
+    state.rNum = h.rNum != null ? h.rNum : 1;
+    state.rDen = h.rDen != null ? h.rDen : 4;
+    setPtypeUI(h.ptype || 'ratio');
+    if (h.fixedPenalty != null) el('nmcFixedPenalty').value = h.fixedPenalty;
+    setActiveRatioBtn(state.rNum, state.rDen);
+    calculate();
+    toast('Loaded "' + h.examName + '"');
+  });
+
+  el('nmcPdfBtn').addEventListener('click', function(){
+    if (!lastResult) return;
+    var blob = buildPdfBlob(lastResult);
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    var safeSlug = lastResult.examName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'exam';
+    a.download = safeSlug + '-negative-marking-scorecard.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    toast('PDF scorecard downloaded!');
+  });
+
+  el('nmcPrintBtn').addEventListener('click', function(){ window.print(); });
+
+  el('nmcCopyBtn').addEventListener('click', function(){
+    if (!lastResult) return;
+    var summary = lastResult.examName + ' Score Report\n' +
+      'Net Score: ' + fmt(lastResult.netScore, 2) + ' / ' + fmtTrim(lastResult.mm) + ' (' + fmt(lastResult.pct, 2) + '%)\n' +
+      'Correct: ' + lastResult.correct + ' (+' + fmt(lastResult.posMarks, 2) + ') | Wrong: ' + lastResult.wrong + ' (-' + fmt(lastResult.negMarks, 2) + ') | Skipped: ' + lastResult.skipped + '\n' +
+      'Accuracy: ' + fmt(lastResult.acc, 2) + '% | Break-Even: ' + fmt(lastResult.breakeven, 2) + '%';
+    navigator.clipboard.writeText(summary).then(function(){ toast('Score report copied!'); }).catch(function(){ toast('Copy failed'); });
+  });
+
+  el('nmcCsvBtn').addEventListener('click', function(){
+    if (!lastResult) return;
+    var rows = [
+      ['Exam', 'Total Questions', 'Max Marks', 'Attempted', 'Correct', 'Wrong', 'Unattempted', 'Positive Marks', 'Negative Penalty', 'Net Score', 'Percentage %', 'Accuracy %', 'Break-Even %'],
+      [lastResult.examName, lastResult.tq, fmtTrim(lastResult.mm), lastResult.attempted, lastResult.correct, lastResult.wrong, lastResult.skipped, fmt(lastResult.posMarks, 2), fmt(lastResult.negMarks, 2), fmt(lastResult.netScore, 2), fmt(lastResult.pct, 2), fmt(lastResult.acc, 2), fmt(lastResult.breakeven, 2)]
+    ];
+    var csv = rows.map(function(r){ return r.map(function(v){ return '"' + String(v).replace(/"/g, '""') + '"'; }).join(','); }).join('\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'negative-marking-scorecard.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    toast('CSV exported!');
+  });
+
+  el('nmcShareBtn').addEventListener('click', function(){
+    var u = new URL(window.location.href);
+    u.searchParams.set('exam', el('nmcExamName').value);
+    u.searchParams.set('tq', el('nmcTotalQ').value);
+    u.searchParams.set('mpq', el('nmcMpq').value);
+    u.searchParams.set('att', el('nmcAttempted').value);
+    u.searchParams.set('w', el('nmcWrongA').value);
+    u.searchParams.set('r', state.rNum + '/' + state.rDen);
+    navigator.clipboard.writeText(u.toString()).then(function(){ toast('Share link copied!'); }).catch(function(){ toast('Copy failed'); });
+  });
+
+  // Restore URL params if shared
+  (function initFromUrl(){
+    var sp = new URLSearchParams(window.location.search);
+    if (sp.has('tq')){
+      if (sp.get('exam')) el('nmcExamName').value = sp.get('exam');
+      el('nmcTotalQ').value = sp.get('tq');
+      if (sp.get('mpq')) el('nmcMpq').value = sp.get('mpq');
+      el('nmcMaxMarks').value = fmtTrim(num(el('nmcTotalQ').value, 100) * num(el('nmcMpq').value, 1));
+      if (sp.get('att')) el('nmcAttempted').value = sp.get('att');
+      if (sp.get('w')) el('nmcWrongA').value = sp.get('w');
+      if (sp.get('r')){
+        var pr = parseRatio(sp.get('r'));
+        state.rNum = pr.num;
+        state.rDen = pr.den;
+        el('nmcCustomRatio').value = pr.num === 0 ? '0' : (pr.num + '/' + pr.den);
+        setActiveRatioBtn(pr.num, pr.den);
+      }
+    }
+  })();
+
+  renderHistory();
+  calculate();
+})();
+</script>
+
+{{ tool_section_end() }}
+{% endblock %}

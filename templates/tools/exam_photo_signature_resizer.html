@@ -1,0 +1,807 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
+
+{% block head %}
+<style>
+.epr-panel{background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:12px;padding:1.25rem}
+.epr-subcard{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:12px}
+.epr-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:12px;font-weight:600;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;transition:all .14s;touch-action:manipulation;white-space:nowrap}
+.epr-pill:hover{border-color:var(--color-base-content)}
+.epr-pill.is-active{background:#111111;color:#ffffff;border-color:#111111}
+[data-theme="night"] .epr-pill.is-active{background:#ffffff;color:#111111;border-color:#ffffff}
+.epr-pill:focus-visible,.epr-btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.epr-drop{border:2px dashed var(--color-base-300);border-radius:12px;background:var(--color-base-100);min-height:170px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer;transition:border-color .18s,background-color .18s}
+.epr-drop:hover,.epr-drop.is-drag{border-color:var(--color-base-content);background:color-mix(in oklab,var(--color-primary) 5%,var(--color-base-100))}
+.epr-preview-stage{border:1px solid var(--color-base-300);border-radius:12px;background:repeating-conic-gradient(var(--color-base-200) 0% 25%,var(--color-base-100) 0% 50%) 50% / 16px 16px;min-height:240px;display:flex;align-items:center;justify-content:center;padding:12px;overflow:hidden}
+.epr-preview-stage img,.epr-preview-stage canvas{max-width:100%;max-height:290px;object-fit:contain;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.1)}
+.epr-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-100);color:var(--color-base-content);border:1px solid var(--color-base-300);border-radius:12px;padding:10px 18px;font-weight:600;font-size:13px;box-shadow:0 10px 25px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);pointer-events:none;transition:all .22s ease;display:flex;align-items:center;gap:8px}
+.epr-toast.show{opacity:1;transform:translateY(0)}
+</style>
+{% endblock %}
+
+{% block content %}
+{{ tool_hero_section("camera", "Exam Form Prep", "PHOTO & SIGNATURE", "RESIZER", seo_data.description if seo_data else "Resize and compress exam photos, signatures, and thumb impressions to exact 10KB-20KB, 20KB-50KB, or custom pixel and DPI limits for SSC, UPSC, NEET, JEE, and IBPS forms in your browser.") }}
+
+<div class="space-y-6 reveal" style="animation-delay:0.15s">
+  <!-- Exam Presets & Document Type -->
+  <section class="epr-panel" aria-label="Exam presets and document types">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
+      <div class="flex flex-wrap items-center gap-2">
+        {{ lucide_icon("zap", "w-4 h-4 text-base-content/70", 16) | safe }}
+        <h2 class="font-display text-base font-semibold tracking-tight text-base-content">Portal Presets</h2>
+        <span class="badge badge-sm badge-soft font-mono">100% Browser Private</span>
+      </div>
+      <div class="flex flex-wrap gap-1.5" id="eprTypeTabs" role="group" aria-label="Document upload type">
+        <button type="button" class="epr-pill is-active" data-dtype="photo">Photo</button>
+        <button type="button" class="epr-pill" data-dtype="signature">Signature</button>
+        <button type="button" class="epr-pill" data-dtype="thumb">Thumb / Finger</button>
+        <button type="button" class="epr-pill" data-dtype="declaration">Declaration</button>
+        <button type="button" class="epr-pill" data-dtype="custom">Custom KB</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+      <div class="md:col-span-5">
+        <label for="eprExamSelect" class="sr-only">Choose competitive exam preset</label>
+        <select id="eprExamSelect" class="select select-sm cal-input w-full font-medium">
+          <optgroup label="SSC &amp; Defence (SSC CGL, CHSL, GD, CPO)">
+            <option value="ssc_photo">SSC Photo (20-50 KB | 3.5x4.5cm | 200 DPI)</option>
+            <option value="ssc_sign">SSC Signature (10-20 KB | 4x2cm | 315x157 px)</option>
+          </optgroup>
+          <optgroup label="UPSC (CSE, NDA, CDS, CAPF)">
+            <option value="upsc_photo">UPSC Photo (20-300 KB | 550x550 px)</option>
+            <option value="upsc_sign">UPSC Signature (20-300 KB | 550x250 px)</option>
+          </optgroup>
+          <optgroup label="NTA (NEET UG, JEE Main, CUET)">
+            <option value="neet_photo">NEET / JEE Passport Photo (10-200 KB | 3.5x4.5cm)</option>
+            <option value="neet_postcard">NEET Postcard Photo 4x6 in (10-200 KB | 600x900 px)</option>
+            <option value="neet_sign">NEET / JEE Signature (4-30 KB | 315x157 px)</option>
+            <option value="neet_thumb">NEET Left &amp; Right Fingers/Thumb (10-200 KB | 350x150 px)</option>
+          </optgroup>
+          <optgroup label="Banking (IBPS PO/Clerk, SBI, RBI)">
+            <option value="ibps_photo">IBPS / SBI Photo (20-50 KB | 200x230 px)</option>
+            <option value="ibps_sign">IBPS / SBI Signature (10-20 KB | 140x60 px)</option>
+            <option value="ibps_thumb">IBPS Left Thumb Impression (20-50 KB | 240x240 px)</option>
+            <option value="ibps_decl">IBPS Handwritten Declaration (50-100 KB | 800x400 px)</option>
+          </optgroup>
+          <optgroup label="GATE, RRB, PAN &amp; Passport">
+            <option value="gate_photo">GATE / JAM Photo (5-200 KB | 480x640 px)</option>
+            <option value="gate_sign">GATE / JAM Signature (5-200 KB | 560x160 px)</option>
+            <option value="rrb_photo">RRB NTPC / ALP / Group D Photo (30-70 KB | 275x354 px)</option>
+            <option value="rrb_sign">RRB Signature (30-70 KB | 315x157 px)</option>
+            <option value="pan_photo">PAN Card NSDL/UTIITSL Photo (10-50 KB | 213x213 px | 300 DPI)</option>
+            <option value="pan_sign">PAN Card Signature (10-60 KB | 400x200 px | 600 DPI->300 DPI)</option>
+            <option value="passport_photo">Passport / Visa Photo 2x2 in (20-100 KB | 600x600 px)</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="md:col-span-7 flex flex-wrap gap-1.5" id="eprQuickChips">
+        <button type="button" class="epr-pill is-active" data-preset="ssc_photo">SSC Photo (20-50 KB)</button>
+        <button type="button" class="epr-pill" data-preset="ssc_sign">SSC Sign (10-20 KB)</button>
+        <button type="button" class="epr-pill" data-preset="upsc_photo">UPSC Photo</button>
+        <button type="button" class="epr-pill" data-preset="neet_photo">NEET Photo</button>
+        <button type="button" class="epr-pill" data-preset="ibps_photo">IBPS 200x230</button>
+        <button type="button" class="epr-pill" data-preset="ibps_decl">IBPS Declaration</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Workspace -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Left Column: Upload & Tuning -->
+    <div class="min-w-0 lg:col-span-6 space-y-5">
+      <div class="epr-panel space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("upload", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h2 class="font-display text-base font-semibold tracking-tight text-base-content">1. Upload Image</h2>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" id="eprDemoPhotoBtn" class="btn btn-ghost btn-xs epr-btn">Sample Photo</button>
+            <button type="button" id="eprDemoSignBtn" class="btn btn-ghost btn-xs epr-btn">Sample Sign</button>
+            <button type="button" id="eprResetBtn" class="btn btn-ghost btn-xs gap-1 epr-btn">
+              {{ lucide_icon("rotate-ccw", "w-3.5 h-3.5", 14) | safe }}
+              <span>Reset</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="eprDropZone" class="epr-drop" tabindex="0" role="button" aria-label="Upload or paste photo or signature image">
+          <input type="file" id="eprFileInput" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" aria-label="Select photo or signature file">
+          <div id="eprPlaceholder" class="text-center px-4 py-6 pointer-events-none">
+            <div class="w-11 h-11 rounded-full bg-base-200 border border-base-300 flex items-center justify-center mx-auto mb-2.5">
+              {{ lucide_icon("file-image", "w-5 h-5 text-base-content", 20) | safe }}
+            </div>
+            <p class="text-sm font-semibold text-base-content">Drop photo / signature here or click to browse</p>
+            <p class="text-xs text-base-content/60 mt-1">JPG, PNG, WebP supported &bull; Paste with <kbd class="kbd kbd-xs">Ctrl+V</kbd></p>
+          </div>
+          <img id="eprSourceThumb" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Uploaded original source preview" class="hidden max-h-40 object-contain p-2 pointer-events-none">
+        </div>
+
+        <div id="eprSourceMeta" class="hidden flex items-center justify-between text-xs text-base-content/70 bg-base-100 border border-base-300 rounded-lg px-3 py-2">
+          <span id="eprSrcName" class="font-mono truncate max-w-[55%]">—</span>
+          <span id="eprSrcDims" class="font-mono font-semibold">—</span>
+        </div>
+
+        <!-- Dimensions & KB Limits -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+          <div>
+            <label for="eprWidth" class="block text-xs font-semibold text-base-content/70 mb-1">Width (px)</label>
+            <input type="number" id="eprWidth" min="30" max="4000" value="275" class="input input-sm cal-input w-full font-mono">
+          </div>
+          <div>
+            <label for="eprHeight" class="block text-xs font-semibold text-base-content/70 mb-1">Height (px)</label>
+            <input type="number" id="eprHeight" min="30" max="4000" value="354" class="input input-sm cal-input w-full font-mono">
+          </div>
+          <div>
+            <label for="eprMinKb" class="block text-xs font-semibold text-base-content/70 mb-1">Min Size (KB)</label>
+            <input type="number" id="eprMinKb" min="1" max="2000" value="20" class="input input-sm cal-input w-full font-mono">
+          </div>
+          <div>
+            <label for="eprMaxKb" class="block text-xs font-semibold text-base-content/70 mb-1">Max Size (KB)</label>
+            <input type="number" id="eprMaxKb" min="2" max="5000" value="50" class="input input-sm cal-input w-full font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label for="eprFitMode" class="block text-xs font-semibold text-base-content/70 mb-1">Fit Mode</label>
+            <select id="eprFitMode" class="select select-sm cal-input w-full">
+              <option value="cover">Crop to Fill (Cover)</option>
+              <option value="contain">Fit on White (No Crop)</option>
+            </select>
+          </div>
+          <div>
+            <label for="eprDpi" class="block text-xs font-semibold text-base-content/70 mb-1">JPEG DPI Header</label>
+            <select id="eprDpi" class="select select-sm cal-input w-full">
+              <option value="200">200 DPI (SSC / Bank)</option>
+              <option value="300">300 DPI (PAN / Print)</option>
+              <option value="96">96 DPI (Standard)</option>
+            </select>
+          </div>
+          <div>
+            <label for="eprFormat" class="block text-xs font-semibold text-base-content/70 mb-1">Output Format</label>
+            <select id="eprFormat" class="select select-sm cal-input w-full">
+              <option value="image/jpeg">JPEG (.jpg)</option>
+              <option value="image/png">PNG (.png)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Crop, Rotate & Cleanup -->
+      <div class="epr-panel space-y-4">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("sliders", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h2 class="font-display text-base font-semibold tracking-tight text-base-content">2. Crop, Clean Paper &amp; Date Stamp</h2>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" id="eprRotBtn" class="btn btn-xs btn-outline epr-btn" title="Rotate 90 degrees">Rotate 90&deg;</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <label for="eprZoom" class="font-semibold text-base-content/70">Zoom</label>
+              <span id="eprZoomVal" class="font-mono text-base-content/70">100%</span>
+            </div>
+            <input type="range" id="eprZoom" min="50" max="240" value="100" class="range range-xs range-neutral w-full">
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <label for="eprPanX" class="font-semibold text-base-content/70">Horizontal</label>
+              <span id="eprPanXVal" class="font-mono text-base-content/70">0</span>
+            </div>
+            <input type="range" id="eprPanX" min="-100" max="100" value="0" class="range range-xs range-neutral w-full">
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <label for="eprPanY" class="font-semibold text-base-content/70">Vertical</label>
+              <span id="eprPanYVal" class="font-mono text-base-content/70">0</span>
+            </div>
+            <input type="range" id="eprPanY" min="-100" max="100" value="0" class="range range-xs range-neutral w-full">
+          </div>
+        </div>
+
+        <!-- Signature Paper Cleanup + Name/Date Strip -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <label class="epr-subcard p-3 flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="eprCleanPaper" class="checkbox checkbox-sm mt-0.5">
+            <span class="text-xs leading-snug">
+              <strong class="block text-base-content">Whiten Paper / Boost Ink</strong>
+              <span class="text-base-content/60">Ideal for phone photos of signatures or declarations on white paper.</span>
+            </span>
+          </label>
+          <label class="epr-subcard p-3 flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="eprStampToggle" class="checkbox checkbox-sm mt-0.5">
+            <span class="text-xs leading-snug">
+              <strong class="block text-base-content">Add Name &amp; Date Stamp</strong>
+              <span class="text-base-content/60">Adds white bottom strip (required by NEET/state exam notices).</span>
+            </span>
+          </label>
+        </div>
+
+        <div id="eprStampFields" class="hidden grid grid-cols-1 sm:grid-cols-12 gap-2.5 epr-subcard p-3">
+          <div class="sm:col-span-6">
+            <label for="eprStampName" class="block text-xs font-semibold text-base-content/70 mb-1">Candidate Name</label>
+            <input type="text" id="eprStampName" maxlength="42" placeholder="AARAV SHARMA" class="input input-sm cal-input w-full">
+          </div>
+          <div class="sm:col-span-4">
+            <label for="eprStampDate" class="block text-xs font-semibold text-base-content/70 mb-1">Date of Photo</label>
+            <input type="text" id="eprStampDate" maxlength="20" placeholder="11-11-2026" class="input input-sm cal-input w-full font-mono">
+          </div>
+          <div class="sm:col-span-2 flex items-end">
+            <button type="button" id="eprTodayBtn" class="btn btn-sm btn-outline w-full text-xs epr-btn">Today</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Live Output & Download -->
+    <div class="min-w-0 lg:col-span-6 space-y-5">
+      <div class="epr-panel space-y-4">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("shield-check", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h2 class="font-display text-base font-semibold tracking-tight text-base-content">3. Portal-Ready Output</h2>
+          </div>
+          <span id="eprStatusBadge" class="badge badge-sm badge-soft font-mono">Waiting for image</span>
+        </div>
+
+        <div class="epr-preview-stage" id="eprOutStage">
+          <div id="eprOutEmpty" class="text-center text-xs text-base-content/60 max-w-xs">
+            Upload your photo or signature (or click <strong>Sample Photo</strong>) to see the resized, target-KB verified preview.
+          </div>
+          <img id="eprOutImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Resized portal ready output preview" class="hidden">
+        </div>
+
+        <!-- 4 Output Metrics -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div class="epr-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">Final Size</div>
+            <div id="eprStatKb" class="font-mono text-lg font-bold text-base-content mt-0.5">—</div>
+          </div>
+          <div class="epr-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">Dimensions</div>
+            <div id="eprStatDim" class="font-mono text-lg font-bold text-base-content mt-0.5">—</div>
+          </div>
+          <div class="epr-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">JPEG Quality</div>
+            <div id="eprStatQ" class="font-mono text-lg font-bold text-base-content mt-0.5">—</div>
+          </div>
+          <div class="epr-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">Saved vs Orig</div>
+            <div id="eprStatSaved" class="font-mono text-lg font-bold text-base-content mt-0.5">—</div>
+          </div>
+        </div>
+
+        <!-- Portal Compliance Checklist -->
+        <div id="eprCheckBanner" class="epr-subcard p-3 flex items-start gap-2.5 text-xs text-base-content/80">
+          {{ lucide_icon("info", "w-4 h-4 shrink-0 mt-0.5 text-base-content/60", 16) | safe }}
+          <span id="eprCheckMsg">Choose an exam preset and upload an image to auto-compress inside the portal KB range.</span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <button type="button" id="eprDownloadBtn" class="btn-cal-primary h-11 text-sm sm:col-span-2 gap-2 epr-btn" disabled>
+            {{ lucide_icon("download", "w-4 h-4", 16) | safe }}
+            <span>Download Resized Image</span>
+          </button>
+          <button type="button" id="eprReprocessBtn" class="btn-cal-secondary h-11 text-xs gap-1.5 !px-2.5 whitespace-nowrap epr-btn" disabled>
+            {{ lucide_icon("crop", "w-3.5 h-3.5", 14) | safe }}
+            <span>Re-Compress</span>
+          </button>
+        </div>
+
+        <!-- Portal Guideline Summary Table -->
+        <div class="epr-subcard p-3">
+          <div class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-2">Active Preset Specification</div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div><span class="text-base-content/55 block">Target KB</span><strong id="eprSpecKb" class="font-mono">20 - 50 KB</strong></div>
+            <div><span class="text-base-content/55 block">Pixels</span><strong id="eprSpecPx" class="font-mono">275 x 354 px</strong></div>
+            <div><span class="text-base-content/55 block">Print Size</span><strong id="eprSpecCm" class="font-mono">3.5 x 4.5 cm</strong></div>
+            <div><span class="text-base-content/55 block">Portal Format</span><strong id="eprSpecFmt" class="font-mono">JPG (200 DPI)</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy Note -->
+      <div class="epr-panel text-xs text-base-content/75 flex items-start gap-2.5">
+        {{ lucide_icon("shield-check", "w-4 h-4 shrink-0 mt-0.5 text-base-content/70", 16) | safe }}
+        <p><strong>Zero Server Uploads:</strong> Cropping, signature paper whitening, name/date stamping, DPI header injection, and exact-KB JPEG compression execute locally inside your browser HTML5 Canvas.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="eprToast" class="epr-toast" role="status" aria-live="polite"></div>
+
+<script nonce="{{ nonce }}">
+(function(){
+  'use strict';
+
+  var PRESETS = {
+    ssc_photo: { dtype:'photo', label:'SSC Photo', w:275, h:354, minKb:20, maxKb:50, dpi:200, fmt:'image/jpeg', cm:'3.5 x 4.5 cm', fit:'cover', clean:false, fname:'ssc-photo' },
+    ssc_sign: { dtype:'signature', label:'SSC Signature', w:315, h:157, minKb:10, maxKb:20, dpi:200, fmt:'image/jpeg', cm:'4.0 x 2.0 cm', fit:'contain', clean:true, fname:'ssc-signature' },
+    upsc_photo: { dtype:'photo', label:'UPSC Photo', w:550, h:550, minKb:20, maxKb:300, dpi:200, fmt:'image/jpeg', cm:'Square (350-1000 px)', fit:'cover', clean:false, fname:'upsc-photo' },
+    upsc_sign: { dtype:'signature', label:'UPSC Signature', w:550, h:250, minKb:20, maxKb:300, dpi:200, fmt:'image/jpeg', cm:'Rect (350-1000 px)', fit:'contain', clean:true, fname:'upsc-signature' },
+    neet_photo: { dtype:'photo', label:'NEET/JEE Passport Photo', w:275, h:354, minKb:10, maxKb:200, dpi:200, fmt:'image/jpeg', cm:'3.5 x 4.5 cm', fit:'cover', clean:false, fname:'neet-passport-photo' },
+    neet_postcard: { dtype:'photo', label:'NEET Postcard 4x6 Photo', w:600, h:900, minKb:10, maxKb:200, dpi:200, fmt:'image/jpeg', cm:'4 x 6 inches', fit:'cover', clean:false, fname:'neet-postcard-photo' },
+    neet_sign: { dtype:'signature', label:'NEET/JEE Signature', w:315, h:157, minKb:4, maxKb:30, dpi:200, fmt:'image/jpeg', cm:'4.0 x 2.0 cm', fit:'contain', clean:true, fname:'neet-signature' },
+    neet_thumb: { dtype:'thumb', label:'NEET Finger & Thumb Impression', w:350, h:150, minKb:10, maxKb:200, dpi:200, fmt:'image/jpeg', cm:'3.5 x 1.5 cm', fit:'contain', clean:true, fname:'neet-thumb-impression' },
+    ibps_photo: { dtype:'photo', label:'IBPS/SBI Photo', w:200, h:230, minKb:20, maxKb:50, dpi:200, fmt:'image/jpeg', cm:'4.5 x 3.5 cm', fit:'cover', clean:false, fname:'ibps-photo' },
+    ibps_sign: { dtype:'signature', label:'IBPS/SBI Signature', w:140, h:60, minKb:10, maxKb:20, dpi:200, fmt:'image/jpeg', cm:'140 x 60 px', fit:'contain', clean:true, fname:'ibps-signature' },
+    ibps_thumb: { dtype:'thumb', label:'IBPS Left Thumb', w:240, h:240, minKb:20, maxKb:50, dpi:200, fmt:'image/jpeg', cm:'240 x 240 px', fit:'contain', clean:true, fname:'ibps-left-thumb' },
+    ibps_decl: { dtype:'declaration', label:'IBPS Handwritten Declaration', w:800, h:400, minKb:50, maxKb:100, dpi:200, fmt:'image/jpeg', cm:'800 x 400 px', fit:'contain', clean:true, fname:'ibps-declaration' },
+    gate_photo: { dtype:'photo', label:'GATE/JAM Photo', w:480, h:640, minKb:5, maxKb:200, dpi:200, fmt:'image/jpeg', cm:'3.5 x 4.5 cm', fit:'cover', clean:false, fname:'gate-photo' },
+    gate_sign: { dtype:'signature', label:'GATE/JAM Signature', w:560, h:160, minKb:5, maxKb:200, dpi:200, fmt:'image/jpeg', cm:'2.0 x 7.0 cm', fit:'contain', clean:true, fname:'gate-signature' },
+    rrb_photo: { dtype:'photo', label:'RRB Photo', w:275, h:354, minKb:30, maxKb:70, dpi:200, fmt:'image/jpeg', cm:'3.5 x 4.5 cm', fit:'cover', clean:false, fname:'rrb-photo' },
+    rrb_sign: { dtype:'signature', label:'RRB Signature', w:315, h:157, minKb:30, maxKb:70, dpi:200, fmt:'image/jpeg', cm:'5.0 x 2.0 cm', fit:'contain', clean:true, fname:'rrb-signature' },
+    pan_photo: { dtype:'photo', label:'PAN Card Photo', w:213, h:213, minKb:10, maxKb:50, dpi:300, fmt:'image/jpeg', cm:'2.5 x 2.5 cm @300dpi', fit:'cover', clean:false, fname:'pan-photo' },
+    pan_sign: { dtype:'signature', label:'PAN Card Signature', w:400, h:200, minKb:10, maxKb:60, dpi:300, fmt:'image/jpeg', cm:'4.5 x 2.0 cm', fit:'contain', clean:true, fname:'pan-signature' },
+    passport_photo: { dtype:'photo', label:'Passport 2x2 Photo', w:600, h:600, minKb:20, maxKb:100, dpi:300, fmt:'image/jpeg', cm:'2 x 2 in (51x51 mm)', fit:'cover', clean:false, fname:'passport-photo' }
+  };
+
+  function el(id){ return document.getElementById(id); }
+
+  var state = {
+    presetKey: 'ssc_photo',
+    srcImg: null,
+    srcBytes: 0,
+    srcName: '',
+    rot: 0,
+    outBlob: null,
+    outUrl: '',
+    processing: false
+  };
+
+  var toastEl = el('eprToast');
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastEl._t);
+    toastEl._t = setTimeout(function(){ toastEl.classList.remove('show'); }, 2200);
+  }
+
+  function applyPreset(key){
+    var p = PRESETS[key];
+    if (!p) return;
+    state.presetKey = key;
+    el('eprExamSelect').value = key;
+    el('eprWidth').value = p.w;
+    el('eprHeight').value = p.h;
+    el('eprMinKb').value = p.minKb;
+    el('eprMaxKb').value = p.maxKb;
+    el('eprDpi').value = String(p.dpi);
+    el('eprFormat').value = p.fmt;
+    el('eprFitMode').value = p.fit;
+    el('eprCleanPaper').checked = !!p.clean;
+    updateActiveButtons(p.dtype, key);
+    updateSpecBox();
+    scheduleProcess();
+  }
+
+  function updateActiveButtons(dtype, key){
+    document.querySelectorAll('#eprTypeTabs .epr-pill').forEach(function(b){
+      b.classList.toggle('is-active', b.getAttribute('data-dtype') === dtype);
+    });
+    document.querySelectorAll('#eprQuickChips .epr-pill').forEach(function(b){
+      b.classList.toggle('is-active', b.getAttribute('data-preset') === key);
+    });
+  }
+
+  function updateSpecBox(){
+    var w = parseInt(el('eprWidth').value, 10) || 275;
+    var h = parseInt(el('eprHeight').value, 10) || 354;
+    var minK = parseFloat(el('eprMinKb').value) || 1;
+    var maxK = parseFloat(el('eprMaxKb').value) || 50;
+    var dpi = el('eprDpi').value;
+    var fmt = el('eprFormat').value === 'image/png' ? 'PNG' : 'JPG (' + dpi + ' DPI)';
+    var p = PRESETS[state.presetKey];
+    el('eprSpecKb').textContent = minK + ' - ' + maxK + ' KB';
+    el('eprSpecPx').textContent = w + ' x ' + h + ' px';
+    el('eprSpecCm').textContent = p ? p.cm : (w + ' x ' + h + ' px');
+    el('eprSpecFmt').textContent = fmt;
+  }
+
+  // Patch JFIF APP0 DPI density bytes in standard JPEG (SOI + APP0)
+  function setJpegDpi(u8, dpi){
+    if (u8.length < 20 || u8[0] !== 0xFF || u8[1] !== 0xD8) return u8;
+    if (u8[2] === 0xFF && u8[3] === 0xE0 && u8[6] === 0x4A && u8[7] === 0x46 && u8[8] === 0x49 && u8[9] === 0x46){
+      var out = new Uint8Array(u8);
+      out[13] = 1; // dots per inch
+      out[14] = (dpi >> 8) & 0xFF;
+      out[15] = dpi & 0xFF;
+      out[16] = (dpi >> 8) & 0xFF;
+      out[17] = dpi & 0xFF;
+      return out;
+    }
+    return u8;
+  }
+
+  // Add valid JPEG COM marker (FF FE) if crisp signature falls below portal minimum KB
+  function padJpegMinBytes(u8, targetMinBytes){
+    if (u8.length >= targetMinBytes || u8.length < 24 || u8[0] !== 0xFF || u8[1] !== 0xD8) return u8;
+    var needed = targetMinBytes - u8.length;
+    var chunks = [];
+    var rem = needed;
+    while (rem > 0){
+      var payloadLen = Math.min(rem - 4, 60000);
+      if (payloadLen < 1) payloadLen = 1;
+      var segLen = payloadLen + 2;
+      var seg = new Uint8Array(segLen + 2);
+      seg[0] = 0xFF;
+      seg[1] = 0xFE;
+      seg[2] = (segLen >> 8) & 0xFF;
+      seg[3] = segLen & 0xFF;
+      seg.fill(0x20, 4);
+      chunks.push(seg);
+      rem -= seg.length;
+    }
+    var insertAt = 2;
+    if (u8[2] === 0xFF && u8[3] === 0xE0){
+      insertAt = 4 + ((u8[4] << 8) | u8[5]);
+    }
+    var extraTotal = chunks.reduce(function(a, c){ return a + c.length; }, 0);
+    var merged = new Uint8Array(u8.length + extraTotal);
+    merged.set(u8.slice(0, insertAt), 0);
+    var cursor = insertAt;
+    chunks.forEach(function(c){ merged.set(c, cursor); cursor += c.length; });
+    merged.set(u8.slice(insertAt), cursor);
+    return merged;
+  }
+
+  function dataUrlToBytes(dataUrl){
+    var idx = dataUrl.indexOf(',');
+    var bin = atob(dataUrl.slice(idx + 1));
+    var arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return arr;
+  }
+
+  function renderToCanvas(targetW, targetH){
+    var c = document.createElement('canvas');
+    c.width = targetW;
+    c.height = targetH;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, targetW, targetH);
+
+    var stampOn = el('eprStampToggle').checked && (el('eprStampName').value.trim() || el('eprStampDate').value.trim());
+    var stripH = stampOn ? Math.max(26, Math.round(targetH * 0.16)) : 0;
+    var drawH = Math.max(20, targetH - stripH);
+
+    var img = state.srcImg;
+    var rot = ((state.rot % 360) + 360) % 360;
+    var iw = (rot === 90 || rot === 270) ? img.naturalHeight : img.naturalWidth;
+    var ih = (rot === 90 || rot === 270) ? img.naturalWidth : img.naturalHeight;
+
+    var fitMode = el('eprFitMode').value;
+    var baseScale = fitMode === 'contain'
+      ? Math.min(targetW / iw, drawH / ih)
+      : Math.max(targetW / iw, drawH / ih);
+    var zoom = (parseInt(el('eprZoom').value, 10) || 100) / 100;
+    var panX = (parseInt(el('eprPanX').value, 10) || 0) / 100;
+    var panY = (parseInt(el('eprPanY').value, 10) || 0) / 100;
+
+    var sc = baseScale * zoom;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, targetW, drawH);
+    ctx.clip();
+    ctx.translate(targetW / 2 + panX * (targetW * 0.4), drawH / 2 + panY * (drawH * 0.4));
+    ctx.rotate(rot * Math.PI / 180);
+    ctx.scale(sc, sc);
+    ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+    ctx.restore();
+
+    // Signature / declaration paper whitening filter
+    if (el('eprCleanPaper').checked){
+      var imgData = ctx.getImageData(0, 0, targetW, drawH);
+      var d = imgData.data;
+      for (var i = 0; i < d.length; i += 4){
+        var lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+        if (lum > 168){
+          d[i] = 255; d[i + 1] = 255; d[i + 2] = 255;
+        } else {
+          d[i] = Math.max(0, Math.round(d[i] * 0.72));
+          d[i + 1] = Math.max(0, Math.round(d[i + 1] * 0.72));
+          d[i + 2] = Math.max(0, Math.round(d[i + 2] * 0.72));
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+
+    // Optional Name & Date white strip
+    if (stampOn){
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, drawH, targetW, stripH);
+      ctx.strokeStyle = '#d1d5db';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, drawH);
+      ctx.lineTo(targetW, drawH);
+      ctx.stroke();
+
+      var nm = (el('eprStampName').value.trim() || 'CANDIDATE NAME').toUpperCase();
+      var dt = el('eprStampDate').value.trim() || new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
+      var f1 = Math.max(9, Math.min(18, Math.floor(stripH * 0.36)));
+      var f2 = Math.max(8, Math.min(16, Math.floor(stripH * 0.32)));
+      ctx.fillStyle = '#111111';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '700 ' + f1 + 'px Arial, sans-serif';
+      ctx.fillText(nm, targetW / 2, drawH + stripH * 0.34, targetW - 10);
+      ctx.font = '600 ' + f2 + 'px Arial, sans-serif';
+      ctx.fillText('DOP: ' + dt, targetW / 2, drawH + stripH * 0.72, targetW - 10);
+    }
+
+    return c;
+  }
+
+  function processImage(){
+    if (!state.srcImg) return;
+    var w = Math.max(30, Math.min(4000, parseInt(el('eprWidth').value, 10) || 275));
+    var h = Math.max(30, Math.min(4000, parseInt(el('eprHeight').value, 10) || 354));
+    var minKb = Math.max(1, parseFloat(el('eprMinKb').value) || 1);
+    var maxKb = Math.max(minKb + 1, parseFloat(el('eprMaxKb').value) || 50);
+    var minBytes = Math.round(minKb * 1024);
+    var maxBytes = Math.round(maxKb * 1024);
+    var dpi = parseInt(el('eprDpi').value, 10) || 200;
+    var fmt = el('eprFormat').value || 'image/jpeg';
+
+    var canvas = renderToCanvas(w, h);
+    var bestBytes = null;
+    var bestQ = 0.92;
+
+    if (fmt === 'image/png'){
+      bestBytes = dataUrlToBytes(canvas.toDataURL('image/png'));
+      bestQ = 1.0;
+    } else {
+      // Binary search quality inside [0.12, 0.99] to fit cleanly under maxBytes (aiming toward upper comfortable third of range)
+      var targetAim = Math.min(maxBytes - 512, Math.max(minBytes + 1024, Math.round(minBytes + (maxBytes - minBytes) * 0.68)));
+      var lo = 0.10, hi = 0.99;
+      for (var step = 0; step < 10; step++){
+        var mid = (lo + hi) / 2;
+        var u8 = setJpegDpi(dataUrlToBytes(canvas.toDataURL('image/jpeg', mid)), dpi);
+        if (u8.length > maxBytes){
+          hi = mid;
+        } else {
+          bestBytes = u8;
+          bestQ = mid;
+          if (u8.length < targetAim){
+            lo = mid;
+          } else {
+            hi = mid;
+          }
+        }
+      }
+      if (!bestBytes){
+        bestBytes = setJpegDpi(dataUrlToBytes(canvas.toDataURL('image/jpeg', 0.08)), dpi);
+        bestQ = 0.08;
+      }
+      if (bestBytes.length < minBytes && minBytes < maxBytes){
+        bestBytes = padJpegMinBytes(bestBytes, Math.min(maxBytes - 256, minBytes + 1024));
+      }
+    }
+
+    var blob = new Blob([bestBytes], { type: fmt });
+    if (state.outUrl) URL.revokeObjectURL(state.outUrl);
+    state.outBlob = blob;
+    state.outUrl = URL.createObjectURL(blob);
+
+    el('eprOutEmpty').classList.add('hidden');
+    var outImg = el('eprOutImg');
+    outImg.src = state.outUrl;
+    outImg.classList.remove('hidden');
+
+    var kb = blob.size / 1024;
+    var origKb = state.srcBytes ? (state.srcBytes / 1024) : kb;
+    var diffPct = origKb > 0 ? Math.round(((origKb - kb) / origKb) * 100) : 0;
+
+    el('eprStatKb').textContent = kb.toFixed(1) + ' KB';
+    el('eprStatDim').textContent = w + ' x ' + h;
+    el('eprStatQ').textContent = fmt === 'image/png' ? 'Lossless' : Math.round(bestQ * 100) + '%';
+    el('eprStatSaved').textContent = (diffPct >= 0 ? '-' : '+') + Math.abs(diffPct) + '%';
+
+    var inRange = blob.size >= minBytes && blob.size <= maxBytes;
+    var badge = el('eprStatusBadge');
+    badge.textContent = inRange ? ('Pass: ' + kb.toFixed(1) + ' KB') : (blob.size > maxBytes ? 'Above Max KB' : 'Below Min KB');
+    badge.className = 'badge badge-sm font-mono ' + (inRange ? 'badge-success text-success-content' : 'badge-warning');
+
+    el('eprCheckMsg').textContent = inRange
+      ? ('Ready to upload: ' + kb.toFixed(1) + ' KB is strictly within the ' + minKb + '-' + maxKb + ' KB exam portal range at ' + w + ' x ' + h + ' px.')
+      : ('Current output is ' + kb.toFixed(1) + ' KB (target ' + minKb + '-' + maxKb + ' KB). Switch to JPEG format or adjust dimensions if needed.');
+
+    el('eprDownloadBtn').disabled = false;
+    el('eprReprocessBtn').disabled = false;
+  }
+
+  var procTimer = null;
+  function scheduleProcess(){
+    clearTimeout(procTimer);
+    procTimer = setTimeout(processImage, 60);
+  }
+
+  function loadImageFile(file){
+    if (!file || !file.type.startsWith('image/')){
+      toast('Please select a valid JPG, PNG, or WebP image.');
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var img = new Image();
+      img.onload = function(){
+        state.srcImg = img;
+        state.srcBytes = file.size || 0;
+        state.srcName = file.name || 'image';
+        state.rot = 0;
+        el('eprZoom').value = '100';
+        el('eprPanX').value = '0';
+        el('eprPanY').value = '0';
+        el('eprZoomVal').textContent = '100%';
+        el('eprPanXVal').textContent = '0';
+        el('eprPanYVal').textContent = '0';
+
+        var thumb = el('eprSourceThumb');
+        thumb.src = ev.target.result;
+        thumb.classList.remove('hidden');
+        el('eprPlaceholder').classList.add('hidden');
+        el('eprSourceMeta').classList.remove('hidden');
+        el('eprSrcName').textContent = state.srcName;
+        el('eprSrcDims').textContent = img.naturalWidth + ' x ' + img.naturalHeight + ' px (' + (state.srcBytes / 1024).toFixed(1) + ' KB)';
+        processImage();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function loadDemo(type){
+    var c = document.createElement('canvas');
+    if (type === 'sign'){
+      c.width = 640; c.height = 240;
+      var ctx = c.getContext('2d');
+      ctx.fillStyle = '#f3f4f6';
+      ctx.fillRect(0, 0, 640, 240);
+      ctx.strokeStyle = '#1e3a8a';
+      ctx.lineWidth = 6;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(80, 150);
+      ctx.bezierCurveTo(130, 50, 190, 180, 240, 110);
+      ctx.bezierCurveTo(285, 45, 330, 165, 395, 115);
+      ctx.bezierCurveTo(445, 78, 500, 145, 560, 125);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(110, 175);
+      ctx.quadraticCurveTo(320, 160, 535, 170);
+      ctx.stroke();
+      applyPreset('ssc_sign');
+    } else {
+      c.width = 600; c.height = 750;
+      var g = c.getContext('2d');
+      g.fillStyle = '#f8fafc';
+      g.fillRect(0, 0, 600, 750);
+      g.fillStyle = '#1e293b';
+      g.beginPath(); g.arc(300, 260, 108, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.moveTo(110, 750); g.quadraticCurveTo(300, 410, 490, 750); g.closePath(); g.fill();
+      g.fillStyle = '#94a3b8';
+      g.font = 'bold 26px sans-serif';
+      g.textAlign = 'center';
+      g.fillText('SAMPLE CANDIDATE PHOTO', 300, 690);
+      applyPreset('ssc_photo');
+    }
+    c.toBlob(function(blob){
+      loadImageFile(new File([blob], type === 'sign' ? 'sample-signature.jpg' : 'sample-photo.jpg', { type: 'image/jpeg' }));
+      toast(type === 'sign' ? 'Loaded sample signature!' : 'Loaded sample photo!');
+    }, 'image/jpeg', 0.95);
+  }
+
+  // Event wiring
+  el('eprExamSelect').addEventListener('change', function(){ applyPreset(this.value); });
+
+  document.querySelectorAll('#eprTypeTabs .epr-pill').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var dtype = btn.getAttribute('data-dtype');
+      var map = { photo:'ssc_photo', signature:'ssc_sign', thumb:'ibps_thumb', declaration:'ibps_decl' };
+      if (map[dtype]) applyPreset(map[dtype]);
+      else updateActiveButtons('custom', '');
+    });
+  });
+
+  document.querySelectorAll('#eprQuickChips .epr-pill').forEach(function(btn){
+    btn.addEventListener('click', function(){ applyPreset(btn.getAttribute('data-preset')); });
+  });
+
+  el('eprFileInput').addEventListener('change', function(){
+    if (this.files && this.files[0]) loadImageFile(this.files[0]);
+  });
+
+  var drop = el('eprDropZone');
+  drop.addEventListener('dragover', function(e){ e.preventDefault(); drop.classList.add('is-drag'); });
+  drop.addEventListener('dragleave', function(){ drop.classList.remove('is-drag'); });
+  drop.addEventListener('drop', function(e){
+    e.preventDefault();
+    drop.classList.remove('is-drag');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) loadImageFile(e.dataTransfer.files[0]);
+  });
+
+  document.addEventListener('paste', function(e){
+    var items = (e.clipboardData || {}).items || [];
+    for (var i = 0; i < items.length; i++){
+      if (items[i].type.indexOf('image/') === 0){
+        loadImageFile(items[i].getAsFile());
+        break;
+      }
+    }
+  });
+
+  ['eprWidth','eprHeight','eprMinKb','eprMaxKb','eprFitMode','eprDpi','eprFormat','eprCleanPaper','eprStampName','eprStampDate'].forEach(function(id){
+    el(id).addEventListener('input', function(){ updateSpecBox(); scheduleProcess(); });
+    el(id).addEventListener('change', function(){ updateSpecBox(); scheduleProcess(); });
+  });
+
+  el('eprZoom').addEventListener('input', function(){ el('eprZoomVal').textContent = this.value + '%'; scheduleProcess(); });
+  el('eprPanX').addEventListener('input', function(){ el('eprPanXVal').textContent = this.value; scheduleProcess(); });
+  el('eprPanY').addEventListener('input', function(){ el('eprPanYVal').textContent = this.value; scheduleProcess(); });
+
+  el('eprRotBtn').addEventListener('click', function(){ state.rot = (state.rot + 90) % 360; processImage(); });
+  el('eprStampToggle').addEventListener('change', function(){
+    el('eprStampFields').classList.toggle('hidden', !this.checked);
+    processImage();
+  });
+  el('eprTodayBtn').addEventListener('click', function(){
+    var d = new Date();
+    var dd = String(d.getDate()).padStart(2, '0');
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    el('eprStampDate').value = dd + '-' + mm + '-' + d.getFullYear();
+    processImage();
+  });
+
+  el('eprDemoPhotoBtn').addEventListener('click', function(){ loadDemo('photo'); });
+  el('eprDemoSignBtn').addEventListener('click', function(){ loadDemo('sign'); });
+  el('eprReprocessBtn').addEventListener('click', processImage);
+
+  el('eprDownloadBtn').addEventListener('click', function(){
+    if (!state.outUrl) return;
+    var p = PRESETS[state.presetKey];
+    var ext = el('eprFormat').value === 'image/png' ? 'png' : 'jpg';
+    var a = document.createElement('a');
+    a.href = state.outUrl;
+    a.download = (p ? p.fname : 'exam-image') + '.' + ext;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast('Downloaded portal-ready image!');
+  });
+
+  el('eprResetBtn').addEventListener('click', function(){
+    state.srcImg = null;
+    state.srcBytes = 0;
+    state.rot = 0;
+    if (state.outUrl){ URL.revokeObjectURL(state.outUrl); state.outUrl = ''; }
+    state.outBlob = null;
+    el('eprSourceThumb').classList.add('hidden');
+    el('eprPlaceholder').classList.remove('hidden');
+    el('eprSourceMeta').classList.add('hidden');
+    el('eprOutImg').classList.add('hidden');
+    el('eprOutEmpty').classList.remove('hidden');
+    el('eprDownloadBtn').disabled = true;
+    el('eprReprocessBtn').disabled = true;
+    el('eprStatusBadge').textContent = 'Waiting for image';
+    el('eprStatusBadge').className = 'badge badge-sm badge-soft font-mono';
+    ['eprStatKb','eprStatDim','eprStatQ','eprStatSaved'].forEach(function(id){ el(id).textContent = '—'; });
+    el('eprFileInput').value = '';
+    applyPreset('ssc_photo');
+    toast('Reset image editor.');
+  });
+
+  applyPreset('ssc_photo');
+})();
+</script>
+
+{{ tool_section_end() }}
+{% endblock %}

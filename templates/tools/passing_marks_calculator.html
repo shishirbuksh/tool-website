@@ -1,0 +1,822 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
+
+{% block head %}
+<style>
+.pmc-panel{background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:12px;padding:1.25rem}
+.pmc-subcard{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:12px}
+.pmc-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:12px;font-weight:600;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;transition:all .14s;touch-action:manipulation;white-space:nowrap}
+.pmc-pill:hover{border-color:var(--color-base-content)}
+.pmc-pill.is-active{background:#111111;color:#ffffff;border-color:#111111}
+[data-theme="night"] .pmc-pill.is-active{background:#ffffff;color:#111111;border-color:#ffffff}
+.pmc-pill:focus-visible,.pmc-btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.pmc-scroll{overscroll-behavior:contain}
+.pmc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-100);color:var(--color-base-content);border:1px solid var(--color-base-300);border-radius:12px;padding:10px 18px;font-weight:600;font-size:13px;box-shadow:0 10px 25px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);pointer-events:none;transition:all .22s ease;display:flex;align-items:center;gap:8px}
+.pmc-toast.show{opacity:1;transform:translateY(0)}
+@media print{
+  header,nav,.bottom-nav,#cookieConsent,footer,.pmc-no-print,.breadcrumb{display:none!important}
+  body{padding:0!important;background:#ffffff!important;color:#111111!important}
+  .pmc-panel,.pmc-subcard{border:1px solid #d1d5db!important;background:#ffffff!important;box-shadow:none!important}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{{ tool_hero_section("target", "Internal + External Passing & Grade Engine", "PASSING MARKS", "CALCULATOR", seo_data.description if seo_data else "Calculate exact minimum external / end-semester marks needed to pass under VTU, AKTU, Mumbai University, SPPU, CBSE Class 10/12, and weighted final exam rules — plus target O/A+/A grade matrix and PDF report.") }}
+
+<div class="space-y-6 reveal" style="animation-delay:0.15s">
+
+  <!-- Presets & Modes Strip -->
+  <section class="pmc-panel pmc-no-print" aria-label="University and board passing schemes">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+      <div class="flex flex-wrap items-center gap-2">
+        {{ lucide_icon("zap", "w-4 h-4 text-base-content/70", 16) | safe }}
+        <h2 class="font-display text-base font-semibold tracking-tight text-base-content">University &amp; Board Schemes</h2>
+        <span class="badge badge-sm badge-soft font-mono">VTU · AKTU · MU · SPPU · CBSE</span>
+      </div>
+      <div class="flex flex-wrap gap-1.5" id="pmcPresets">
+        <button type="button" class="pmc-pill is-active" data-preset="aktu_30_70">AKTU (30 + 70)</button>
+        <button type="button" class="pmc-pill" data-preset="vtu_50_50">VTU (50 + 50)</button>
+        <button type="button" class="pmc-pill" data-preset="mu_20_80">Mumbai Univ (20 + 80)</button>
+        <button type="button" class="pmc-pill" data-preset="sppu_30_70">SPPU Pune (30 + 70)</button>
+        <button type="button" class="pmc-pill" data-preset="cbse12_70_30">CBSE Class 12 (70 + 30)</button>
+        <button type="button" class="pmc-pill" data-preset="cbse10_80_20">CBSE Class 10 (80 + 20)</button>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div role="tablist" id="pmcModeTabs" class="tabs tabs-box tabs-xs sm:tabs-sm flex-wrap max-w-full bg-base-100 border border-base-300 p-1">
+        <button type="button" role="tab" class="tab font-semibold tab-active pmc-btn" data-mode="single">Internal + External Pass</button>
+        <button type="button" role="tab" class="tab font-semibold pmc-btn" data-mode="multi">Semester Subject Planner</button>
+        <button type="button" role="tab" class="tab font-semibold pmc-btn" data-mode="weighted">Weighted Final % Target</button>
+      </div>
+      <span id="pmcActiveRuleHint" class="text-xs text-base-content/65 font-medium">AKTU Standard · 30% minimum in External (21/70) + 40% Combined Total (40/100)</span>
+    </div>
+  </section>
+
+  <!-- Main 2-Column Workspace -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+    <!-- Left Column: Inputs & Grade Target Matrix -->
+    <div class="min-w-0 lg:col-span-7 space-y-5">
+
+      <!-- Mode 1: Single Subject Internal + External Pass -->
+      <section id="pmcSinglePanel" class="pmc-panel space-y-4" aria-label="Single subject passing marks inputs">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 class="font-display text-lg font-semibold text-base-content">Enter Internal Marks &amp; Exam Rules</h3>
+          <button type="button" id="pmcResetBtn" class="btn btn-xs btn-ghost border border-base-300 gap-1 pmc-btn pmc-no-print">
+            {{ lucide_icon("rotate-ccw", "w-3.5 h-3.5", 14) | safe }}
+            <span>Reset Preset</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold text-base-content/75 mb-1">Internal / Sessional Scored</span>
+            <input type="number" id="pmcIntGot" value="18" min="0" max="500" step="0.5" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold text-base-content/75 mb-1">Max Internal Marks</span>
+            <input type="number" id="pmcIntMax" value="30" min="0" max="500" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold text-base-content/75 mb-1">Max External / End-Sem Marks</span>
+            <input type="number" id="pmcExtMax" value="70" min="1" max="500" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold text-base-content/75 mb-1">Internal Min Pass % (0 if none)</span>
+            <input type="number" id="pmcIntMinPct" value="0" min="0" max="100" step="1" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold text-base-content/75 mb-1">Separate External Min % (0 if none)</span>
+            <input type="number" id="pmcExtMinPct" value="30" min="0" max="100" step="1" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold text-base-content/75 mb-1">Combined Total Aggregate Min %</span>
+            <input type="number" id="pmcTotMinPct" value="40" min="1" max="100" step="1" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+        </div>
+
+        <label class="form-control pt-1">
+          <span class="label-text text-xs font-semibold text-base-content/75 mb-1">Custom Target Overall Percentage (Optional)</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <input type="number" id="pmcCustomTargetPct" value="75" min="1" max="100" step="1" class="input input-bordered input-sm cal-input w-32 bg-base-100 font-mono">
+            <span id="pmcCustomNeedTxt" class="text-xs font-mono font-semibold text-base-content/75">Need 57 / 70 in External to hit 75% overall</span>
+          </div>
+        </label>
+      </section>
+
+      <!-- Mode 2: Multi-Subject Semester Tracker -->
+      <section id="pmcMultiPanel" class="pmc-panel hidden space-y-4" aria-label="Semester subjects passing planner">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="font-display text-lg font-semibold text-base-content">Semester Subject Passing Planner</h3>
+            <p class="text-xs text-base-content/65">Uses current External Min % &amp; Combined Min % rules for every subject row.</p>
+          </div>
+          <button type="button" id="pmcAddSubjBtn" class="btn btn-xs btn-primary gap-1 pmc-btn pmc-no-print">
+            {{ lucide_icon("plus", "w-3.5 h-3.5", 14) | safe }}
+            <span>Add Subject</span>
+          </button>
+        </div>
+
+        <div id="pmcMultiRows" class="space-y-2.5"></div>
+      </section>
+
+      <!-- Mode 3: Weighted Coursework + Final Exam Calculator -->
+      <section id="pmcWeightedPanel" class="pmc-panel hidden space-y-4" aria-label="Weighted final exam required score">
+        <div class="flex items-center gap-2">
+          {{ lucide_icon("sliders-horizontal", "w-4 h-4 text-primary", 16) | safe }}
+          <h3 class="font-display text-lg font-semibold text-base-content">Weighted Final Exam % Calculator</h3>
+        </div>
+        <p class="text-xs text-base-content/70 leading-relaxed">
+          Best for credit/weightage grading systems: enter your current internal coursework percentage, the final exam's weightage in the course total, and your target overall course grade.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold mb-1">Current Coursework (%)</span>
+            <input type="number" id="pmcWCurrPct" value="72" min="0" max="100" step="0.5" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold mb-1">Final Exam Weight (%)</span>
+            <input type="number" id="pmcWWeight" value="60" min="1" max="99" step="1" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold mb-1">Target Course Grade (%)</span>
+            <input type="number" id="pmcWTargPct" value="75" min="1" max="100" step="0.5" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+        </div>
+      </section>
+
+      <!-- Target Grade Matrix Card -->
+      <section class="pmc-panel space-y-3" aria-label="External marks needed per grade level">
+        <div class="flex items-center justify-between">
+          <h3 class="font-display text-base font-semibold text-base-content">External Marks Needed for Every Grade Target</h3>
+          <span class="badge badge-xs badge-soft font-mono" id="pmcMatrixSubjLabel">Subject Total: 100</span>
+        </div>
+        <div class="overflow-x-auto pmc-scroll">
+          <table class="table table-xs sm:table-sm">
+            <thead>
+              <tr>
+                <th>Overall Grade / % Target</th>
+                <th>Total Marks Needed</th>
+                <th>External Score Required</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="pmcMatrixBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Right Column: Sticky Verdict Panel + Exports + Local History -->
+    <div class="min-w-0 lg:col-span-5 space-y-5 lg:sticky lg:top-24">
+
+      <!-- Result Verdict Card -->
+      <section class="pmc-panel space-y-4" aria-label="Passing marks verdict and formula breakdown">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/55 mb-1">Minimum External Score to Pass</div>
+            <div class="flex items-baseline gap-2">
+              <span id="pmcHeroMarks" class="text-4xl sm:text-5xl font-display font-semibold tracking-tight text-base-content tnum">22</span>
+              <span id="pmcHeroMax" class="text-base font-semibold text-base-content/60">/ 70</span>
+            </div>
+          </div>
+          <span id="pmcStatusBadge" class="badge badge-md badge-success font-semibold">Passable</span>
+        </div>
+
+        <!-- Dual Rule Breakdown Cards -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="pmc-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">External % Needed</div>
+            <div id="pmcStatExtPct" class="text-lg font-mono font-bold tnum">31.4%</div>
+          </div>
+          <div class="pmc-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">Binding Rule</div>
+            <div id="pmcStatBinding" class="text-sm font-semibold text-primary leading-tight mt-0.5">Combined 40% Aggregate</div>
+          </div>
+          <div class="pmc-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">Separate External Min</div>
+            <div id="pmcStatSepMin" class="text-base font-mono font-bold tnum">21 / 70</div>
+          </div>
+          <div class="pmc-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">Combined Rule Needed</div>
+            <div id="pmcStatCombMin" class="text-base font-mono font-bold tnum">22 / 70</div>
+          </div>
+        </div>
+
+        <!-- Detailed Trace Box -->
+        <div id="pmcTraceBox" class="rounded-xl bg-base-100 border border-base-300 p-3 text-xs font-mono text-base-content/75 leading-relaxed">
+          max(External Min 21, Combined 40 - 18 = 22) = 22 / 70 marks needed in external exam.
+        </div>
+
+        <!-- Export Buttons -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 pmc-no-print">
+          <button type="button" id="pmcPdfBtn" class="btn btn-sm btn-primary gap-1.5 pmc-btn col-span-2">
+            {{ lucide_icon("file-text", "w-3.5 h-3.5", 14) | safe }}
+            <span>PDF Report</span>
+          </button>
+          <button type="button" id="pmcPrintBtn" class="btn btn-sm btn-ghost border border-base-300 gap-1 pmc-btn">
+            {{ lucide_icon("printer", "w-3.5 h-3.5", 14) | safe }}
+            <span>Print</span>
+          </button>
+          <button type="button" id="pmcCopyBtn" class="btn btn-sm btn-ghost border border-base-300 gap-1 pmc-btn">
+            {{ lucide_icon("copy", "w-3.5 h-3.5", 14) | safe }}
+            <span>Copy</span>
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 pmc-no-print">
+          <button type="button" id="pmcSaveBtn" class="btn btn-xs btn-ghost border border-base-300 gap-1 pmc-btn">
+            {{ lucide_icon("award", "w-3.5 h-3.5", 14) | safe }}
+            <span>Save Subject Plan</span>
+          </button>
+          <button type="button" id="pmcShareBtn" class="btn btn-xs btn-ghost border border-base-300 gap-1 pmc-btn">
+            {{ lucide_icon("share-2", "w-3.5 h-3.5", 14) | safe }}
+            <span>Copy Share Link</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Saved Calculations History -->
+      <section class="pmc-panel space-y-3 pmc-no-print" aria-label="Saved passing marks history">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("history", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h3 class="font-display text-sm font-semibold text-base-content">Saved Subject Plans</h3>
+          </div>
+          <button type="button" id="pmcClearHistBtn" class="text-xs font-semibold text-base-content/60 hover:text-error cursor-pointer">Clear</button>
+        </div>
+        <div id="pmcHistList" class="space-y-2 text-xs text-base-content/65">
+          <p>No saved subject plans yet.</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div id="pmcToast" class="pmc-toast" role="status" aria-live="polite"></div>
+
+<script nonce="{{ nonce }}">
+(function(){
+  var PRESETS = {
+    aktu_30_70: { title: 'AKTU (30 + 70)', intGot: 18, intMax: 30, extMax: 70, intMinPct: 0, extMinPct: 30, totMinPct: 40, hint: 'AKTU Standard · 30% minimum in External (21/70) + 40% Combined Total (40/100)' },
+    vtu_50_50: { title: 'VTU (50 + 50 Scheme)', intGot: 24, intMax: 50, extMax: 50, intMinPct: 40, extMinPct: 35, totMinPct: 40, hint: 'VTU CIE + SEE · Min 40% Internal (20/50), 35% External (18/50), and 40% Total (40/100)' },
+    mu_20_80: { title: 'Mumbai Univ (20 + 80)', intGot: 12, intMax: 20, extMax: 80, intMinPct: 40, extMinPct: 40, totMinPct: 40, hint: 'Mumbai Univ Engineering/CBCS · Separate 40% in Internal (8/20) & External (32/80)' },
+    sppu_30_70: { title: 'SPPU Pune (30 + 70)', intGot: 16, intMax: 30, extMax: 70, intMinPct: 40, extMinPct: 40, totMinPct: 40, hint: 'SPPU Pune Univ · Separate 40% minimum in Internal (12/30) and End-Sem (28/70)' },
+    cbse12_70_30: { title: 'CBSE Class 12 (70 Th + 30 Prac)', intGot: 26, intMax: 30, extMax: 70, intMinPct: 33, extMinPct: 33, totMinPct: 33, hint: 'CBSE Class 12 Science · Separate 33% required in Theory (24/70) and Practical (10/30)' },
+    cbse10_80_20: { title: 'CBSE Class 10 (80 + 20)', intGot: 18, intMax: 20, extMax: 80, intMinPct: 0, extMinPct: 0, totMinPct: 33, hint: 'CBSE Class 10 Board · Overall 33% combined passing aggregate (33/100 total)' }
+  };
+
+  var GRADE_BANDS = [
+    { label: 'Pass Minimum', pct: null },
+    { label: 'Second Class (50%)', pct: 50 },
+    { label: 'First Class / B+ (60%)', pct: 60 },
+    { label: 'First Class Distinction (70%)', pct: 70 },
+    { label: 'A+ Excellence (80%)', pct: 80 },
+    { label: 'O Outstanding (90%)', pct: 90 }
+  ];
+
+  function el(id){ return document.getElementById(id); }
+
+  function ceilPct(pct, maxMarks){
+    if (!pct || pct <= 0 || !maxMarks || maxMarks <= 0) return 0;
+    return Math.ceil((Number(pct) * Number(maxMarks)) / 100 - 1e-9);
+  }
+
+  function evaluatePassing(cfg){
+    var intMax = Math.max(0, Number(cfg.intMax) || 0);
+    var intGot = Math.min(intMax, Math.max(0, Number(cfg.intGot) || 0));
+    var extMax = Math.max(1, Number(cfg.extMax) || 70);
+    var totalMax = intMax + extMax;
+    var intMinPct = Math.max(0, Math.min(100, Number(cfg.intMinPct) || 0));
+    var extMinPct = Math.max(0, Math.min(100, Number(cfg.extMinPct) || 0));
+    var totMinPct = Math.max(1, Math.min(100, Number(cfg.totMinPct) || 40));
+
+    var minIntMarks = ceilPct(intMinPct, intMax);
+    var minExtSeparate = ceilPct(extMinPct, extMax);
+    var minCombinedTotal = ceilPct(totMinPct, totalMax);
+    var combinedExtNeeded = Math.max(0, minCombinedTotal - intGot);
+    var reqExt = Math.max(minExtSeparate, combinedExtNeeded);
+
+    var internalShort = intGot < minIntMarks;
+    var unreachable = internalShort || (reqExt > extMax);
+
+    var bindingRule = 'Combined ' + totMinPct + '% Aggregate';
+    if (internalShort){
+      bindingRule = 'Internal Min Short (' + minIntMarks + '/' + intMax + ')';
+    } else if (minExtSeparate > combinedExtNeeded){
+      bindingRule = 'Separate External ' + extMinPct + '%';
+    } else if (minExtSeparate === combinedExtNeeded && minExtSeparate > 0){
+      bindingRule = 'External & Combined Tied';
+    }
+
+    var reqPctOfExt = (reqExt / extMax) * 100;
+    var matrix = GRADE_BANDS.map(function(g){
+      var tp = g.pct === null ? totMinPct : Math.max(totMinPct, g.pct);
+      var label = g.pct === null ? ('Pass Minimum (' + tp + '%)') : g.label;
+      var needTot = ceilPct(tp, totalMax);
+      var needExt = Math.max(minExtSeparate, needTot - intGot);
+      var status = 'Achievable';
+      if (internalShort) status = 'Internal Short';
+      else if (needExt > extMax) status = 'Exceeds Max';
+      else if (needExt <= reqExt) status = 'Cleared at Pass';
+      return {
+        label: label,
+        targetPct: tp,
+        needTotal: needTot,
+        totalMax: totalMax,
+        needExt: needExt,
+        extMax: extMax,
+        status: status
+      };
+    });
+
+    var customPct = Math.max(1, Math.min(100, Number(cfg.customPct) || 75));
+    var customTotNeed = ceilPct(customPct, totalMax);
+    var customExtNeed = Math.max(minExtSeparate, customTotNeed - intGot);
+
+    return {
+      intGot: intGot,
+      intMax: intMax,
+      extMax: extMax,
+      totalMax: totalMax,
+      minIntMarks: minIntMarks,
+      minExtSeparate: minExtSeparate,
+      minCombinedTotal: minCombinedTotal,
+      combinedExtNeeded: combinedExtNeeded,
+      reqExt: reqExt,
+      reqPctOfExt: reqPctOfExt,
+      internalShort: internalShort,
+      unreachable: unreachable,
+      bindingRule: bindingRule,
+      matrix: matrix,
+      customPct: customPct,
+      customExtNeed: customExtNeed
+    };
+  }
+
+  function evaluateWeightedFinal(currPct, finalWeight, targetPct){
+    var w = Math.max(1, Math.min(99, Number(finalWeight) || 60));
+    var c = Math.max(0, Math.min(100, Number(currPct) || 0));
+    var t = Math.max(1, Math.min(100, Number(targetPct) || 75));
+    var cwFrac = 1 - (w / 100);
+    var finFrac = w / 100;
+    var reqFinalPct = (t - (c * cwFrac)) / finFrac;
+    var maxPossiblePct = (c * cwFrac) + (100 * finFrac);
+    var minPossiblePct = (c * cwFrac);
+    return {
+      currPct: c,
+      finalWeight: w,
+      targetPct: t,
+      reqFinalPct: reqFinalPct,
+      maxPossiblePct: maxPossiblePct,
+      minPossiblePct: minPossiblePct,
+      unreachable: reqFinalPct > 100,
+      alreadyGuaranteed: reqFinalPct <= 0
+    };
+  }
+
+  function pdfEsc(str){
+    return String(str)
+      .replace(/[^\x20-\x7E]/g, function(ch){ return ch === '×' ? 'x' : (ch === '÷' ? '/' : '-'); })
+      .replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  }
+
+  function buildPdfBlob(r){
+    var lines = [];
+    var y = 760;
+    function add(text, font, size, x, dy){
+      lines.push('BT /' + font + ' ' + size + ' Tf ' + x + ' ' + y + ' Td (' + pdfEsc(text) + ') Tj ET');
+      y -= (dy || 18);
+    }
+    add('STORYBRAIN AI - PASSING MARKS & TARGET GRADE REPORT', 'F2', 14, 48, 22);
+    add('Scheme: ' + r.title + '   |   Date: ' + new Date().toISOString().slice(0, 10), 'F1', 10, 48, 18);
+    lines.push('0.85 w 48 ' + (y + 6) + ' m 547 ' + (y + 6) + ' l S');
+    y -= 10;
+    add('MINIMUM REQUIRED: ' + r.heroVal + ' ' + r.heroUnit + '   [' + r.statusLabel + ']', 'F2', 14, 48, 22);
+    add('Rule Analysis: ' + r.trace, 'F1', 10, 48, 22);
+    if (r.matrix && r.matrix.length){
+      add('GRADE TARGET BREAKDOWN', 'F2', 11, 48, 16);
+      r.matrix.forEach(function(row){
+        add(row.label + ' -> Total ' + row.needTotal + '/' + row.totalMax + ' -> Ext Needed: ' + row.needExt + '/' + row.extMax + ' [' + row.status + ']', 'F1', 10, 56, 15);
+      });
+    }
+    add('Generated locally at storybrainai.com/tool/passing-marks-calculator', 'F1', 9, 48, 14);
+
+    var stream = lines.join('\n');
+    var objs = [
+      '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+      '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+      '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n',
+      '4 0 obj\n<< /Length ' + stream.length + ' >>\nstream\n' + stream + '\nendstream\nendobj\n',
+      '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+      '6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n'
+    ];
+    var pdf = '%PDF-1.4\n';
+    var offs = [0];
+    objs.forEach(function(o){ offs.push(pdf.length); pdf += o; });
+    var xp = pdf.length;
+    pdf += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+    for (var i = 1; i < offs.length; i++){
+      pdf += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+    }
+    pdf += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xp + '\n%%EOF';
+    return new Blob([pdf], { type: 'application/pdf' });
+  }
+
+  // Browser runtime guard for Node unit tests
+  if (typeof document === 'undefined' || !el('pmcPresets')) return;
+
+  var state = {
+    presetKey: 'aktu_30_70',
+    mode: 'single',
+    subjects: [
+      { name: 'Mathematics III', intGot: 19, intMax: 30, extMax: 70 },
+      { name: 'Data Structures', intGot: 24, intMax: 30, extMax: 70 },
+      { name: 'Digital Logic', intGot: 15, intMax: 30, extMax: 70 },
+      { name: 'Operating Systems', intGot: 21, intMax: 30, extMax: 70 }
+    ]
+  };
+  var lastReport = null;
+  var hist = [];
+  try{ hist = JSON.parse(localStorage.getItem('sb_pmc_hist_v1') || '[]') || []; }catch(e){}
+
+  function toast(msg){
+    var t = el('pmcToast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._tid);
+    t._tid = setTimeout(function(){ t.classList.remove('show'); }, 2400);
+  }
+
+  function renderMultiRows(){
+    var box = el('pmcMultiRows');
+    if (!box) return;
+    var intMinPct = Number(el('pmcIntMinPct').value) || 0;
+    var extMinPct = Number(el('pmcExtMinPct').value) || 0;
+    var totMinPct = Number(el('pmcTotMinPct').value) || 40;
+    box.textContent = '';
+
+    state.subjects.forEach(function(s, idx){
+      var ev = evaluatePassing({ intGot: s.intGot, intMax: s.intMax, extMax: s.extMax, intMinPct: intMinPct, extMinPct: extMinPct, totMinPct: totMinPct });
+      var row = document.createElement('div');
+      row.className = 'pmc-subcard p-3 grid grid-cols-12 gap-2 items-end';
+
+      var colName = document.createElement('div');
+      colName.className = 'col-span-12 sm:col-span-4';
+      colName.innerHTML = '<span class="text-[11px] font-semibold text-base-content/60 block mb-1">Subject</span>';
+      var inpName = document.createElement('input');
+      inpName.type = 'text';
+      inpName.value = s.name;
+      inpName.className = 'input input-bordered input-xs w-full bg-base-100 font-semibold';
+      inpName.setAttribute('data-mfield', 'name');
+      inpName.setAttribute('data-midx', String(idx));
+      colName.appendChild(inpName);
+
+      var colInt = document.createElement('div');
+      colInt.className = 'col-span-4 sm:col-span-2';
+      colInt.innerHTML = '<span class="text-[11px] font-semibold text-base-content/60 block mb-1">Int Got</span>';
+      var inpInt = document.createElement('input');
+      inpInt.type = 'number';
+      inpInt.value = String(s.intGot);
+      inpInt.min = '0';
+      inpInt.className = 'input input-bordered input-xs w-full bg-base-100 font-mono';
+      inpInt.setAttribute('data-mfield', 'intGot');
+      inpInt.setAttribute('data-midx', String(idx));
+      colInt.appendChild(inpInt);
+
+      var colIMax = document.createElement('div');
+      colIMax.className = 'col-span-4 sm:col-span-2';
+      colIMax.innerHTML = '<span class="text-[11px] font-semibold text-base-content/60 block mb-1">Int Max</span>';
+      var inpIMax = document.createElement('input');
+      inpIMax.type = 'number';
+      inpIMax.value = String(s.intMax);
+      inpIMax.min = '0';
+      inpIMax.className = 'input input-bordered input-xs w-full bg-base-100 font-mono';
+      inpIMax.setAttribute('data-mfield', 'intMax');
+      inpIMax.setAttribute('data-midx', String(idx));
+      colIMax.appendChild(inpIMax);
+
+      var colEMax = document.createElement('div');
+      colEMax.className = 'col-span-4 sm:col-span-2';
+      colEMax.innerHTML = '<span class="text-[11px] font-semibold text-base-content/60 block mb-1">Ext Max</span>';
+      var inpEMax = document.createElement('input');
+      inpEMax.type = 'number';
+      inpEMax.value = String(s.extMax);
+      inpEMax.min = '1';
+      inpEMax.className = 'input input-bordered input-xs w-full bg-base-100 font-mono';
+      inpEMax.setAttribute('data-mfield', 'extMax');
+      inpEMax.setAttribute('data-midx', String(idx));
+      colEMax.appendChild(inpEMax);
+
+      var colNeed = document.createElement('div');
+      colNeed.className = 'col-span-12 sm:col-span-2 flex items-center justify-between sm:justify-end gap-1.5';
+      var b = document.createElement('span');
+      b.className = 'badge badge-xs font-mono font-bold ' + (ev.unreachable ? 'badge-error' : 'badge-success');
+      b.textContent = ev.internalShort ? 'Int Short' : (ev.unreachable ? 'Short' : ('Need ' + ev.reqExt + '/' + s.extMax));
+      colNeed.appendChild(b);
+
+      if (state.subjects.length > 1){
+        var delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn btn-ghost btn-xs px-1 text-error';
+        delBtn.textContent = '×';
+        delBtn.setAttribute('data-mdel', String(idx));
+        colNeed.appendChild(delBtn);
+      }
+
+      row.appendChild(colName);
+      row.appendChild(colInt);
+      row.appendChild(colIMax);
+      row.appendChild(colEMax);
+      row.appendChild(colNeed);
+      box.appendChild(row);
+    });
+  }
+
+  function renderMatrix(matrix, totalMax){
+    var body = el('pmcMatrixBody');
+    if (!body) return;
+    el('pmcMatrixSubjLabel').textContent = 'Subject Total: ' + totalMax;
+    body.textContent = '';
+    matrix.forEach(function(row){
+      var tr = document.createElement('tr');
+      var td1 = document.createElement('td');
+      td1.className = 'font-semibold';
+      td1.textContent = row.label;
+
+      var td2 = document.createElement('td');
+      td2.className = 'font-mono tnum';
+      td2.textContent = row.needTotal + ' / ' + row.totalMax;
+
+      var td3 = document.createElement('td');
+      td3.className = 'font-mono font-bold tnum';
+      td3.textContent = row.needExt > row.extMax ? ('Impossible (' + row.needExt + ')') : (row.needExt + ' / ' + row.extMax);
+
+      var td4 = document.createElement('td');
+      var badge = document.createElement('span');
+      badge.className = 'badge badge-xs font-semibold ' + (row.status === 'Exceeds Max' || row.status === 'Internal Short' ? 'badge-error' : (row.status === 'Cleared at Pass' ? 'badge-success' : 'badge-soft'));
+      badge.textContent = row.status;
+      td4.appendChild(badge);
+
+      tr.appendChild(td1);
+      tr.appendChild(td2);
+      tr.appendChild(td3);
+      tr.appendChild(td4);
+      body.appendChild(tr);
+    });
+  }
+
+  function calculate(){
+    var p = PRESETS[state.presetKey] || PRESETS.aktu_30_70;
+    if (state.mode === 'weighted'){
+      var wf = evaluateWeightedFinal(el('pmcWCurrPct').value, el('pmcWWeight').value, el('pmcWTargPct').value);
+      var statusW = wf.unreachable ? 'Unreachable' : (wf.alreadyGuaranteed ? 'Guaranteed' : 'On Track');
+      el('pmcHeroMarks').textContent = Math.max(0, wf.reqFinalPct).toFixed(1) + '%';
+      el('pmcHeroMax').textContent = 'needed in Final (' + wf.finalWeight + '% wt)';
+      el('pmcStatExtPct').textContent = wf.maxPossiblePct.toFixed(1) + '% max';
+      el('pmcStatBinding').textContent = 'Coursework ' + (100 - wf.finalWeight) + '% + Final ' + wf.finalWeight + '%';
+      el('pmcStatSepMin').textContent = wf.minPossiblePct.toFixed(1) + '% floor';
+      el('pmcStatCombMin').textContent = wf.targetPct.toFixed(1) + '% goal';
+
+      var sb = el('pmcStatusBadge');
+      sb.textContent = statusW;
+      sb.className = 'badge badge-md font-semibold ' + (wf.unreachable ? 'badge-error' : 'badge-success');
+
+      var traceW = '(' + wf.targetPct + ' - ' + wf.currPct + ' x ' + ((100 - wf.finalWeight) / 100).toFixed(2) + ') / ' + (wf.finalWeight / 100).toFixed(2) + ' = ' + wf.reqFinalPct.toFixed(2) + '% required in Final Exam.';
+      el('pmcTraceBox').textContent = traceW;
+
+      var wMatrix = [50, 60, 70, 75, 80, 90].map(function(tp){
+        var r2 = evaluateWeightedFinal(wf.currPct, wf.finalWeight, tp);
+        return {
+          label: tp + '% Course Grade',
+          needTotal: tp + '%',
+          totalMax: '100%',
+          needExt: Math.max(0, Math.ceil(r2.reqFinalPct)),
+          extMax: 100,
+          status: r2.unreachable ? 'Exceeds Max' : (r2.alreadyGuaranteed ? 'Cleared at Pass' : 'Achievable')
+        };
+      });
+      renderMatrix(wMatrix, 100);
+      lastReport = { title: 'Weighted Coursework Final %', heroVal: Math.max(0, wf.reqFinalPct).toFixed(1) + '%', heroUnit: 'in Final Exam', statusLabel: statusW, trace: traceW, matrix: wMatrix };
+      return;
+    }
+
+    var cfg = {
+      intGot: el('pmcIntGot').value,
+      intMax: el('pmcIntMax').value,
+      extMax: el('pmcExtMax').value,
+      intMinPct: el('pmcIntMinPct').value,
+      extMinPct: el('pmcExtMinPct').value,
+      totMinPct: el('pmcTotMinPct').value,
+      customPct: el('pmcCustomTargetPct').value
+    };
+    var res = evaluatePassing(cfg);
+
+    el('pmcCustomNeedTxt').textContent = res.customExtNeed > res.extMax
+      ? ('Need ' + res.customExtNeed + ' / ' + res.extMax + ' (Exceeds external max ' + res.extMax + ')')
+      : ('Need ' + res.customExtNeed + ' / ' + res.extMax + ' in External to reach ' + res.customPct + '% overall');
+
+    var statusLabel = res.internalShort ? 'Internal Short' : (res.unreachable ? 'Exceeds Max' : 'Passable');
+    el('pmcHeroMarks').textContent = String(res.reqExt);
+    el('pmcHeroMax').textContent = '/ ' + res.extMax;
+    el('pmcStatExtPct').textContent = res.reqPctOfExt.toFixed(1) + '%';
+    el('pmcStatBinding').textContent = res.bindingRule;
+    el('pmcStatSepMin').textContent = res.minExtSeparate + ' / ' + res.extMax;
+    el('pmcStatCombMin').textContent = res.combinedExtNeeded + ' / ' + res.extMax;
+
+    var sb2 = el('pmcStatusBadge');
+    sb2.textContent = statusLabel;
+    sb2.className = 'badge badge-md font-semibold ' + (res.unreachable ? 'badge-error' : 'badge-success');
+
+    var trace = 'max(Separate External Min ' + res.minExtSeparate + ', Combined Aggregate ' + res.minCombinedTotal + ' - ' + res.intGot + ' = ' + res.combinedExtNeeded + ') = ' + res.reqExt + ' / ' + res.extMax + ' marks required in External.';
+    if (res.internalShort) trace = 'Internal scored (' + res.intGot + '/' + res.intMax + ') is below Internal minimum (' + res.minIntMarks + '). ' + trace;
+    el('pmcTraceBox').textContent = trace;
+
+    renderMatrix(res.matrix, res.totalMax);
+    if (state.mode === 'multi') renderMultiRows();
+
+    lastReport = {
+      title: p.title,
+      heroVal: String(res.reqExt),
+      heroUnit: '/ ' + res.extMax + ' External Marks',
+      statusLabel: statusLabel,
+      trace: trace,
+      matrix: res.matrix
+    };
+  }
+
+  function applyPreset(key){
+    state.presetKey = key;
+    var p = PRESETS[key] || PRESETS.aktu_30_70;
+    document.querySelectorAll('#pmcPresets button[data-preset]').forEach(function(b){
+      b.classList.toggle('is-active', b.getAttribute('data-preset') === key);
+    });
+    el('pmcActiveRuleHint').textContent = p.hint;
+    el('pmcIntGot').value = String(p.intGot);
+    el('pmcIntMax').value = String(p.intMax);
+    el('pmcExtMax').value = String(p.extMax);
+    el('pmcIntMinPct').value = String(p.intMinPct);
+    el('pmcExtMinPct').value = String(p.extMinPct);
+    el('pmcTotMinPct').value = String(p.totMinPct);
+    calculate();
+  }
+
+  function renderHist(){
+    var box = el('pmcHistList');
+    if (!box) return;
+    if (!hist.length){
+      box.innerHTML = '<p>No saved subject plans yet.</p>';
+      return;
+    }
+    box.textContent = '';
+    hist.forEach(function(item){
+      var row = document.createElement('div');
+      row.className = 'pmc-subcard p-2.5 flex items-center justify-between gap-2';
+      var left = document.createElement('div');
+      var t = document.createElement('div');
+      t.className = 'font-semibold text-base-content';
+      t.textContent = item.title;
+      var s = document.createElement('div');
+      s.className = 'text-[11px] font-mono text-base-content/60';
+      s.textContent = 'Need ' + item.heroVal + ' ' + item.heroUnit;
+      left.appendChild(t);
+      left.appendChild(s);
+
+      var b = document.createElement('span');
+      b.className = 'badge badge-xs font-semibold ' + (item.statusLabel === 'Passable' || item.statusLabel === 'On Track' || item.statusLabel === 'Guaranteed' ? 'badge-success' : 'badge-error');
+      b.textContent = item.statusLabel;
+      row.appendChild(left);
+      row.appendChild(b);
+      box.appendChild(row);
+    });
+  }
+
+  // Events
+  el('pmcPresets').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-preset]');
+    if (b) applyPreset(b.getAttribute('data-preset'));
+  });
+
+  el('pmcModeTabs').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-mode]');
+    if (!b) return;
+    state.mode = b.getAttribute('data-mode');
+    el('pmcModeTabs').querySelectorAll('button[data-mode]').forEach(function(t){
+      t.classList.toggle('tab-active', t === b);
+    });
+    el('pmcSinglePanel').classList.toggle('hidden', state.mode !== 'single');
+    el('pmcMultiPanel').classList.toggle('hidden', state.mode !== 'multi');
+    el('pmcWeightedPanel').classList.toggle('hidden', state.mode !== 'weighted');
+    calculate();
+  });
+
+  ['pmcIntGot', 'pmcIntMax', 'pmcExtMax', 'pmcIntMinPct', 'pmcExtMinPct', 'pmcTotMinPct', 'pmcCustomTargetPct', 'pmcWCurrPct', 'pmcWWeight', 'pmcWTargPct'].forEach(function(id){
+    el(id).addEventListener('input', calculate);
+  });
+
+  el('pmcAddSubjBtn').addEventListener('click', function(){
+    if (state.subjects.length >= 10){ toast('Maximum 10 subjects per semester plan.'); return; }
+    state.subjects.push({ name: 'Subject ' + (state.subjects.length + 1), intGot: 20, intMax: 30, extMax: 70 });
+    renderMultiRows();
+  });
+
+  el('pmcMultiRows').addEventListener('input', function(e){
+    var idx = Number(e.target.getAttribute('data-midx'));
+    var field = e.target.getAttribute('data-mfield');
+    if (isNaN(idx) || !field || !state.subjects[idx]) return;
+    state.subjects[idx][field] = field === 'name' ? e.target.value : (Number(e.target.value) || 0);
+    // Update badge in place without losing input focus
+    var row = e.target.closest('.pmc-subcard');
+    if (row){
+      var badge = row.querySelector('.badge');
+      var ev = evaluatePassing({
+        intGot: state.subjects[idx].intGot,
+        intMax: state.subjects[idx].intMax,
+        extMax: state.subjects[idx].extMax,
+        intMinPct: el('pmcIntMinPct').value,
+        extMinPct: el('pmcExtMinPct').value,
+        totMinPct: el('pmcTotMinPct').value
+      });
+      if (badge){
+        badge.className = 'badge badge-xs font-mono font-bold ' + (ev.unreachable ? 'badge-error' : 'badge-success');
+        badge.textContent = ev.internalShort ? 'Int Short' : (ev.unreachable ? 'Short' : ('Need ' + ev.reqExt + '/' + state.subjects[idx].extMax));
+      }
+    }
+  });
+
+  el('pmcMultiRows').addEventListener('click', function(e){
+    var del = e.target.getAttribute('data-mdel');
+    if (del === null) return;
+    state.subjects.splice(Number(del), 1);
+    renderMultiRows();
+  });
+
+  el('pmcResetBtn').addEventListener('click', function(){
+    applyPreset('aktu_30_70');
+    toast('Reset to AKTU (30 + 70) preset.');
+  });
+
+  el('pmcSaveBtn').addEventListener('click', function(){
+    if (!lastReport) return;
+    hist.unshift({ title: lastReport.title, heroVal: lastReport.heroVal, heroUnit: lastReport.heroUnit, statusLabel: lastReport.statusLabel });
+    hist = hist.slice(0, 15);
+    try{ localStorage.setItem('sb_pmc_hist_v1', JSON.stringify(hist)); }catch(e){}
+    renderHist();
+    toast('Saved passing marks plan!');
+  });
+
+  el('pmcClearHistBtn').addEventListener('click', function(){
+    hist = [];
+    try{ localStorage.removeItem('sb_pmc_hist_v1'); }catch(e){}
+    renderHist();
+    toast('Saved plans cleared.');
+  });
+
+  el('pmcPdfBtn').addEventListener('click', function(){
+    if (!lastReport) return;
+    var blob = buildPdfBlob(lastReport);
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'passing-marks-report.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    toast('PDF report downloaded!');
+  });
+
+  el('pmcPrintBtn').addEventListener('click', function(){ window.print(); });
+  el('pmcCopyBtn').addEventListener('click', function(){
+    if (!lastReport) return;
+    var txt = lastReport.title + ': Need ' + lastReport.heroVal + ' ' + lastReport.heroUnit + ' (' + lastReport.statusLabel + ') — ' + lastReport.trace;
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ toast('Result copied!'); });
+    }
+  });
+  el('pmcShareBtn').addEventListener('click', function(){
+    var url = window.location.origin + window.location.pathname + '?preset=' + encodeURIComponent(state.presetKey) + '&intGot=' + encodeURIComponent(el('pmcIntGot').value);
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(function(){ toast('Share link copied!'); });
+    }
+  });
+
+  var sp = new URLSearchParams(window.location.search);
+  var reqPreset = sp.get('preset');
+  applyPreset(PRESETS[reqPreset] ? reqPreset : 'aktu_30_70');
+  if (sp.get('intGot')){
+    el('pmcIntGot').value = sp.get('intGot');
+    calculate();
+  }
+  renderHist();
+})();
+</script>
+
+{{ tool_section_end() }}
+{% endblock %}

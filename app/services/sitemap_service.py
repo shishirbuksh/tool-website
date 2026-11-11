@@ -127,7 +127,7 @@ class SitemapService:
                 if f.endswith(".html"):
                     slug = f[:-5]
                     if slug not in skip_pages:
-                        if slug == "tools":
+                        if slug in ("tools", "student-tools"):
                             pages.append(
                                 {
                                     "loc": f"/{slug}",

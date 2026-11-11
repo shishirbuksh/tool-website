@@ -1,0 +1,777 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
+
+{% block head %}
+<style>
+.cpc-panel{background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:12px;padding:1.25rem}
+.cpc-subcard{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:12px}
+.cpc-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:12px;font-weight:600;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;transition:all .14s;touch-action:manipulation;white-space:nowrap}
+.cpc-pill:hover{border-color:var(--color-base-content)}
+.cpc-pill.is-active{background:#111111;color:#ffffff;border-color:#111111}
+[data-theme="night"] .cpc-pill.is-active{background:#ffffff;color:#111111;border-color:#ffffff}
+.cpc-pill:focus-visible,.cpc-btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.cpc-scroll{overscroll-behavior:contain}
+.cpc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-100);color:var(--color-base-content);border:1px solid var(--color-base-300);border-radius:12px;padding:10px 18px;font-weight:600;font-size:13px;box-shadow:0 10px 25px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);pointer-events:none;transition:all .22s ease;display:flex;align-items:center;gap:8px}
+.cpc-toast.show{opacity:1;transform:translateY(0)}
+@media print{
+  header,nav,.bottom-nav,#cookieConsent,footer,.cpc-no-print,.breadcrumb{display:none!important}
+  body{padding:0!important;background:#ffffff!important;color:#111111!important}
+  .cpc-panel,.cpc-subcard{border:1px solid #d1d5db!important;background:#ffffff!important;box-shadow:none!important}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{{ tool_hero_section("graduation-cap", "University Grade Engine", "CGPA & SGPA", "CONVERTER", seo_data.description if seo_data else "Convert CGPA and SGPA to exact Percentage across CBSE, VTU, MAKAUT, Mumbai University, Anna University, GTU, SPPU, DU, and AKTU rules — plus credit-weighted multi-semester CGPA calculator and PDF report.") }}
+
+<div class="space-y-6 reveal" style="animation-delay:0.15s">
+  <!-- University Presets Strip -->
+  <section class="cpc-panel cpc-no-print" aria-label="University grading presets">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+      <div class="flex flex-wrap items-center gap-2">
+        {{ lucide_icon("zap", "w-4 h-4 text-base-content/70", 16) | safe }}
+        <h2 class="font-display text-base font-semibold tracking-tight text-base-content">University Formula Presets</h2>
+        <span class="badge badge-sm badge-soft font-mono">14 Official Rules</span>
+      </div>
+      <div class="w-full md:w-80">
+        <label for="cpcUniSelect" class="sr-only">Choose university conversion formula</label>
+        <select id="cpcUniSelect" class="select select-sm cal-input w-full font-medium">
+          <option value="cbse">CBSE / Standard 10-Point (CGPA x 9.5)</option>
+          <option value="vtu_2022">VTU 2021 &amp; 2022+ Scheme (CGPA x 10)</option>
+          <option value="vtu_2018">VTU 2015 &amp; 2018 CBCS ((CGPA - 0.75) x 10)</option>
+          <option value="makaut">MAKAUT / WBUT ((CGPA - 0.75) x 10)</option>
+          <option value="anna">Anna University R2021+ (CGPA x 10)</option>
+          <option value="mumbai_engg">Mumbai Univ Engineering (7.1 x CGPA + 11)</option>
+          <option value="mumbai_gen">Mumbai Univ Arts/Sci/Com (7.4 x CGPA + 12)</option>
+          <option value="gtu">GTU Gujarat Tech Univ ((CGPA - 0.5) x 10)</option>
+          <option value="sppu">SPPU Pune University (CGPA x 8.9)</option>
+          <option value="du_old">Delhi Univ CBCS Pre-2022 (CGPA x 9.5)</option>
+          <option value="du_nep">Delhi Univ NEP 2022+ (CGPA x 10)</option>
+          <option value="aktu">AKTU / UPTU Standard (CGPA x 10)</option>
+          <option value="aicte">AICTE General Scheme ((CGPA - 0.5) x 10)</option>
+          <option value="scale_4">4.0 GPA Direct Scale ((GPA / 4) x 100)</option>
+          <option value="custom">Custom Multiplier &amp; Offset Formula</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap gap-1.5" id="cpcUniChips">
+      <button type="button" class="cpc-pill is-active" data-uni="cbse">CBSE (x9.5)</button>
+      <button type="button" class="cpc-pill" data-uni="vtu_2022">VTU 2022+ (x10)</button>
+      <button type="button" class="cpc-pill" data-uni="vtu_2018">VTU 2018 (C-0.75)x10</button>
+      <button type="button" class="cpc-pill" data-uni="makaut">MAKAUT (C-0.75)x10</button>
+      <button type="button" class="cpc-pill" data-uni="anna">Anna Univ (x10)</button>
+      <button type="button" class="cpc-pill" data-uni="mumbai_engg">Mumbai Engg</button>
+      <button type="button" class="cpc-pill" data-uni="sppu">SPPU Pune (x8.9)</button>
+      <button type="button" class="cpc-pill" data-uni="gtu">GTU (C-0.5)x10</button>
+    </div>
+  </section>
+
+  <!-- Main Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Left Column: Mode Tabs + Inputs -->
+    <div class="min-w-0 lg:col-span-6 space-y-5">
+      <div class="cpc-panel space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 cpc-no-print">
+          <div role="tablist" id="cpcModeTabs" class="tabs tabs-box tabs-xs sm:tabs-sm flex-wrap max-w-full bg-base-100 border border-base-300 p-1">
+            <button type="button" role="tab" class="tab font-semibold tab-active cpc-btn" data-mode="cgpa2pct">CGPA &rarr; %</button>
+            <button type="button" role="tab" class="tab font-semibold cpc-btn" data-mode="pct2cgpa">% &rarr; CGPA</button>
+            <button type="button" role="tab" class="tab font-semibold cpc-btn" data-mode="sgpa2cgpa">SGPA &rarr; CGPA</button>
+            <button type="button" role="tab" class="tab font-semibold cpc-btn" data-mode="courses2sgpa">Grades &rarr; SGPA</button>
+          </div>
+          <button type="button" id="cpcResetBtn" class="btn btn-ghost btn-xs gap-1 cpc-btn">
+            {{ lucide_icon("rotate-ccw", "w-3.5 h-3.5", 14) | safe }}
+            <span>Reset</span>
+          </button>
+        </div>
+
+        <!-- Mode 1: CGPA -> Percentage -->
+        <div id="cpcPaneCgpa" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="cpcCgpaInput" class="block text-xs font-semibold text-base-content/75 mb-1">Enter CGPA / SGPA Score</label>
+              <input type="number" id="cpcCgpaInput" step="0.01" min="0" max="10" value="8.45" class="input input-md cal-input w-full font-mono text-lg font-bold">
+            </div>
+            <div>
+              <label for="cpcScaleSelect" class="block text-xs font-semibold text-base-content/75 mb-1">Grading Scale</label>
+              <select id="cpcScaleSelect" class="select select-md cal-input w-full font-mono">
+                <option value="10">10.0 Scale (India / Europe)</option>
+                <option value="4">4.0 Scale (US / Canada)</option>
+                <option value="5">5.0 Scale</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Custom Formula Inputs -->
+          <div id="cpcCustomFormulaRow" class="cpc-subcard p-3 grid grid-cols-2 gap-3">
+            <div>
+              <label for="cpcMult" class="block text-[11px] font-semibold text-base-content/65 mb-1">Multiplier (m)</label>
+              <input type="number" id="cpcMult" step="0.05" min="1" max="30" value="9.5" class="input input-sm cal-input w-full font-mono">
+            </div>
+            <div>
+              <label for="cpcOffset" class="block text-[11px] font-semibold text-base-content/65 mb-1">Offset (b) &bull; % = m&times;C + b</label>
+              <input type="number" id="cpcOffset" step="0.5" min="-25" max="25" value="0" class="input input-sm cal-input w-full font-mono">
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-1.5 text-xs">
+            <span class="text-base-content/55 font-medium mr-1">Quick Test:</span>
+            <button type="button" class="btn btn-xs btn-outline font-mono cpc-btn" data-qcgpa="7.5">7.5</button>
+            <button type="button" class="btn btn-xs btn-outline font-mono cpc-btn" data-qcgpa="8.0">8.0</button>
+            <button type="button" class="btn btn-xs btn-outline font-mono cpc-btn" data-qcgpa="8.5">8.5</button>
+            <button type="button" class="btn btn-xs btn-outline font-mono cpc-btn" data-qcgpa="9.2">9.2</button>
+          </div>
+        </div>
+
+        <!-- Mode 2: Percentage -> CGPA -->
+        <div id="cpcPanePct" class="space-y-4 hidden">
+          <div>
+            <label for="cpcPctInput" class="block text-xs font-semibold text-base-content/75 mb-1">Enter Marks Percentage (%)</label>
+            <input type="number" id="cpcPctInput" step="0.01" min="0" max="100" value="80.28" class="input input-md cal-input w-full font-mono text-lg font-bold">
+          </div>
+          <p class="text-xs text-base-content/65">Uses the exact algebraic inverse of your chosen university formula: <code class="font-mono">CGPA = (Percentage − b) ÷ m</code>.</p>
+        </div>
+
+        <!-- Mode 3: Multi-Semester SGPA -> CGPA -->
+        <div id="cpcPaneSgpa" class="space-y-3 hidden">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <label class="inline-flex items-center gap-2 text-xs cursor-pointer">
+              <input type="checkbox" id="cpcWeightedToggle" class="checkbox checkbox-xs" checked>
+              <span class="font-semibold text-base-content/80">Credit-Weighted Average (&Sigma;(SGPA &times; Credits) &divide; &Sigma;Credits)</span>
+            </label>
+            <button type="button" id="cpcAddSemBtn" class="btn btn-xs btn-neutral gap-1 cpc-btn">
+              {{ lucide_icon("plus", "w-3.5 h-3.5", 14) | safe }}
+              <span>Add Semester</span>
+            </button>
+          </div>
+          <div id="cpcSemList" class="space-y-2 max-h-80 overflow-y-auto pr-1 cpc-scroll"></div>
+        </div>
+
+        <!-- Mode 4: Course Grades -> SGPA -->
+        <div id="cpcPaneCourses" class="space-y-3 hidden">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-semibold text-base-content/70">Subjects / Credits (CBCS 10-Pt Grade Scale)</span>
+            <button type="button" id="cpcAddCourseBtn" class="btn btn-xs btn-neutral gap-1 cpc-btn">
+              {{ lucide_icon("plus", "w-3.5 h-3.5", 14) | safe }}
+              <span>Add Course</span>
+            </button>
+          </div>
+          <div id="cpcCourseList" class="space-y-2 max-h-80 overflow-y-auto pr-1 cpc-scroll"></div>
+        </div>
+      </div>
+
+      <!-- Saved History -->
+      <div class="cpc-panel cpc-no-print space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("history", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h3 class="font-display text-sm font-semibold text-base-content">Saved Calculations</h3>
+            <span id="cpcHistCount" class="badge badge-xs badge-soft font-mono">0</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" id="cpcSaveBtn" class="btn btn-xs btn-outline cpc-btn">Save Result</button>
+            <button type="button" id="cpcClearHistBtn" class="btn btn-xs btn-ghost text-error hidden cpc-btn" aria-label="Clear saved history">
+              {{ lucide_icon("trash-2", "w-3.5 h-3.5", 14) | safe }}
+            </button>
+          </div>
+        </div>
+        <div id="cpcHistList" class="space-y-1.5 max-h-44 overflow-y-auto cpc-scroll text-xs">
+          <p class="text-base-content/50 py-3 text-center">No saved academic results yet.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Result Summary, Comparison Table & Export -->
+    <div class="min-w-0 lg:col-span-6 space-y-5">
+      <section class="cpc-panel space-y-4" aria-label="Converted academic result">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-wider text-base-content/55" id="cpcRuleSubtitle">CBSE / Standard 10-Point</div>
+            <div class="flex items-baseline gap-2.5 mt-0.5">
+              <span id="cpcHeroValue" class="font-display text-3xl sm:text-4xl font-bold font-mono text-base-content">80.28%</span>
+              <span id="cpcSecondaryVal" class="text-sm font-mono text-base-content/65">CGPA 8.45 / 10</span>
+            </div>
+          </div>
+          <span id="cpcClassBadge" class="badge badge-md badge-neutral font-mono font-bold">Distinction</span>
+        </div>
+
+        <progress id="cpcProgress" class="progress progress-neutral w-full h-2.5" value="80" max="100"></progress>
+
+        <!-- 4 Core Stat Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div class="cpc-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">CGPA</div>
+            <div id="cpcStatCgpa" class="font-mono text-base sm:text-lg font-bold text-base-content mt-0.5">8.45</div>
+          </div>
+          <div class="cpc-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">Percentage</div>
+            <div id="cpcStatPct" class="font-mono text-base sm:text-lg font-bold text-base-content mt-0.5">80.28%</div>
+          </div>
+          <div class="cpc-subcard p-3">
+            <div class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">US 4.0 Est.</div>
+            <div id="cpcStatGpa4" class="font-mono text-base sm:text-lg font-bold text-base-content mt-0.5">3.38</div>
+          </div>
+          <div class="cpc-subcard p-3">
+            <div id="cpcStatFourLbl" class="text-[11px] font-semibold uppercase tracking-wide text-base-content/55">Division</div>
+            <div id="cpcStatFourVal" class="font-mono text-xs font-bold leading-tight text-base-content mt-1">1st Div</div>
+          </div>
+        </div>
+
+        <!-- Live Formula Breakdown -->
+        <div class="cpc-subcard p-3.5 space-y-1.5">
+          <div class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Live Formula Breakdown</div>
+          <div id="cpcFormulaTrace" class="font-mono text-xs text-base-content leading-relaxed">—</div>
+          <p id="cpcUniNote" class="text-[11px] text-base-content/60 pt-0.5"></p>
+        </div>
+
+        <!-- Export Buttons -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 cpc-no-print">
+          <button type="button" id="cpcPdfBtn" class="btn-cal-primary h-10 text-xs gap-1.5 !px-2 whitespace-nowrap cpc-btn">
+            {{ lucide_icon("file-text", "w-3.5 h-3.5", 14) | safe }}
+            <span>PDF Report</span>
+          </button>
+          <button type="button" id="cpcPrintBtn" class="btn-cal-secondary h-10 text-xs gap-1.5 cpc-btn">
+            {{ lucide_icon("printer", "w-3.5 h-3.5", 14) | safe }}
+            <span>Print</span>
+          </button>
+          <button type="button" id="cpcCopyBtn" class="btn-cal-secondary h-10 text-xs gap-1.5 cpc-btn">
+            {{ lucide_icon("copy", "w-3.5 h-3.5", 14) | safe }}
+            <span>Copy</span>
+          </button>
+          <button type="button" id="cpcShareBtn" class="btn-cal-secondary h-10 text-xs gap-1.5 cpc-btn">
+            {{ lucide_icon("share-2", "w-3.5 h-3.5", 14) | safe }}
+            <span>Share</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Multi-University Comparison Table -->
+      <section class="cpc-panel space-y-3">
+        <div class="flex items-center gap-2">
+          {{ lucide_icon("layers", "w-4 h-4 text-base-content/70", 16) | safe }}
+          <h3 class="font-display text-sm font-semibold text-base-content">Cross-University Conversion Matrix</h3>
+        </div>
+        <div class="overflow-x-auto cpc-subcard">
+          <table class="table table-xs w-full">
+            <thead>
+              <tr>
+                <th>University / Board</th>
+                <th>Official Rule</th>
+                <th class="text-right">Converted %</th>
+              </tr>
+            </thead>
+            <tbody id="cpcMatrixBody" class="font-mono text-xs"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div id="cpcToast" class="cpc-toast" role="status" aria-live="polite"></div>
+
+<script nonce="{{ nonce }}">
+(function(){
+  'use strict';
+
+  var UNIS = {
+    cbse:        { name:'CBSE / Standard 10-Pt', m:9.5, b:0, scale:10, rule:'CGPA x 9.5', note:'Official CBSE indicative conversion factor (CGPA x 9.5).' },
+    vtu_2022:    { name:'VTU 2021 & 2022+ Scheme', m:10, b:0, scale:10, rule:'CGPA x 10', note:'VTU 2021 and 2022 schemes onwards specify Percentage = CGPA x 10.' },
+    vtu_2018:    { name:'VTU 2015 / 2018 CBCS', m:10, b:-7.5, scale:10, rule:'(CGPA - 0.75) x 10', note:'VTU 2015 and 2018 CBCS batches subtract 0.75 before multiplying by 10.' },
+    makaut:      { name:'MAKAUT / WBUT', m:10, b:-7.5, scale:10, rule:'(CGPA - 0.75) x 10', note:'MAKAUT notification formula: Percentage = (CGPA - 0.75) x 10.' },
+    anna:        { name:'Anna University (R2021+)', m:10, b:0, scale:10, rule:'CGPA x 10', note:'Anna University standard CGPA conversion multiplies by 10.' },
+    mumbai_engg: { name:'Mumbai Univ (Engineering)', m:7.1, b:11, scale:10, rule:'7.1 x CGPA + 11', note:'Mumbai University Engineering CBCS linear conversion: 7.1 x CGPA + 11.' },
+    mumbai_gen:  { name:'Mumbai Univ (Arts/Sci/Com)', m:7.4, b:12, scale:10, rule:'7.4 x CGPA + 12', note:'Check your faculty circular (Arts/Commerce/Science typically uses 7.4 x CGPA + 12 or 10-pt slab).' },
+    gtu:         { name:'GTU Gujarat Tech Univ', m:10, b:-5, scale:10, rule:'(CGPA - 0.5) x 10', note:'GTU formula: Percentage = (CGPA - 0.5) x 10.' },
+    sppu:        { name:'SPPU Pune University', m:8.9, b:0, scale:10, rule:'CGPA x 8.9', note:'Savitribai Phule Pune University standard multiplier (x 8.9; verify degree-specific slabs).' },
+    du_old:      { name:'Delhi Univ CBCS (Pre-2022)', m:9.5, b:0, scale:10, rule:'CGPA x 9.5', note:'DU CBCS transcripts prior to NEP UGCF 2022 use Grand CGPA x 9.5.' },
+    du_nep:      { name:'Delhi Univ NEP (2022+)', m:10, b:0, scale:10, rule:'CGPA x 10', note:'DU NEP UGCF 2022 onwards applies Grand CGPA x 10.' },
+    aktu:        { name:'AKTU / UPTU Standard', m:10, b:0, scale:10, rule:'CGPA x 10', note:'AKTU 10-point percentage formula (check older pre-2016 regulations if different).' },
+    aicte:       { name:'AICTE Model ((C-0.5)x10)', m:10, b:-5, scale:10, rule:'(CGPA - 0.5) x 10', note:'Commonly used across AICTE-aligned autonomous institutes.' },
+    scale_4:     { name:'4.0 GPA Direct Scale', m:25, b:0, scale:4, rule:'(GPA / 4) x 100', note:'Linear percentage equivalent on a 4.0 GPA scale.' },
+    custom:      { name:'Custom Formula (m x C + b)', m:9.5, b:0, scale:10, rule:'m x CGPA + b', note:'Adjust Multiplier (m) and Offset (b) freely for any university.' }
+  };
+
+  var MATRIX_UNIS = ['cbse','vtu_2022','vtu_2018','makaut','mumbai_engg','gtu','sppu','du_nep'];
+  var GRADE_PTS = [
+    { label:'O (Outstanding - 10)', pt:10 },
+    { label:'A+ (Excellent - 9)', pt:9 },
+    { label:'A (Very Good - 8)', pt:8 },
+    { label:'B+ (Good - 7)', pt:7 },
+    { label:'B (Above Avg - 6)', pt:6 },
+    { label:'C (Average - 5)', pt:5 },
+    { label:'P (Pass - 4)', pt:4 },
+    { label:'F (Fail - 0)', pt:0 }
+  ];
+
+  function el(id){ return document.getElementById(id); }
+
+  var state = {
+    mode: 'cgpa2pct',
+    uni: 'cbse',
+    semesters: [
+      { name:'Semester 1', sgpa:8.15, credits:20 },
+      { name:'Semester 2', sgpa:8.42, credits:22 },
+      { name:'Semester 3', sgpa:8.65, credits:24 },
+      { name:'Semester 4', sgpa:8.58, credits:24 }
+    ],
+    courses: [
+      { name:'Applied Mathematics', pt:9, credits:4 },
+      { name:'Computer Networks', pt:10, credits:4 },
+      { name:'Database Systems', pt:8, credits:3 },
+      { name:'Software Lab', pt:9, credits:2 }
+    ]
+  };
+
+  var hist = [];
+  try{
+    var parsedH = JSON.parse(localStorage.getItem('sb_cpc_hist_v1') || '[]');
+    if (Array.isArray(parsedH)) hist = parsedH;
+  }catch(e){}
+
+  var toastEl = el('cpcToast');
+  function toast(msg){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastEl._t);
+    toastEl._t = setTimeout(function(){ toastEl.classList.remove('show'); }, 2100);
+  }
+
+  function clamp(v, lo, hi){ return Math.min(hi, Math.max(lo, v)); }
+
+  function cgpaToPct(cgpa, m, b){
+    return clamp(m * cgpa + b, 0, 100);
+  }
+
+  function pctToCgpa(pct, m, b, scale){
+    if (!m) return 0;
+    return clamp((pct - b) / m, 0, scale);
+  }
+
+  function getDivision(pct){
+    if (pct >= 75) return { badge:'Distinction', short:'Distinction', cls:'badge-success text-success-content' };
+    if (pct >= 60) return { badge:'First Class', short:'1st Class', cls:'badge-neutral' };
+    if (pct >= 50) return { badge:'Second Class', short:'2nd Class', cls:'badge-ghost' };
+    if (pct >= 40) return { badge:'Pass Class', short:'Pass', cls:'badge-warning' };
+    return { badge:'Below Pass', short:'Low', cls:'badge-error text-error-content' };
+  }
+
+  function applyUni(key){
+    var u = UNIS[key] || UNIS.cbse;
+    state.uni = key;
+    el('cpcUniSelect').value = key;
+    document.querySelectorAll('#cpcUniChips .cpc-pill').forEach(function(b){
+      b.classList.toggle('is-active', b.getAttribute('data-uni') === key);
+    });
+    if (key !== 'custom'){
+      el('cpcMult').value = String(u.m);
+      el('cpcOffset').value = String(u.b);
+      el('cpcScaleSelect').value = String(u.scale);
+      el('cpcCgpaInput').max = String(u.scale);
+    }
+    el('cpcCustomFormulaRow').classList.toggle('opacity-75', key !== 'custom');
+    calculate();
+  }
+
+  function renderSemesters(){
+    var list = el('cpcSemList');
+    list.innerHTML = '';
+    state.semesters.forEach(function(sem, idx){
+      var row = document.createElement('div');
+      row.className = 'cpc-subcard p-2.5 grid grid-cols-12 gap-2 items-center';
+
+      var nm = document.createElement('input');
+      nm.type = 'text';
+      nm.value = sem.name;
+      nm.maxLength = 24;
+      nm.className = 'input input-xs cal-input col-span-5 font-medium';
+      nm.addEventListener('input', function(){ sem.name = this.value || ('Sem ' + (idx + 1)); calculate(); });
+
+      var sg = document.createElement('input');
+      sg.type = 'number'; sg.step = '0.01'; sg.min = '0'; sg.max = '10';
+      sg.value = String(sem.sgpa);
+      sg.title = 'Semester SGPA';
+      sg.className = 'input input-xs cal-input col-span-3 font-mono';
+      sg.addEventListener('input', function(){ sem.sgpa = clamp(parseFloat(this.value) || 0, 0, 10); calculate(); });
+
+      var cr = document.createElement('input');
+      cr.type = 'number'; cr.step = '1'; cr.min = '1'; cr.max = '60';
+      cr.value = String(sem.credits);
+      cr.title = 'Semester Credits';
+      cr.className = 'input input-xs cal-input col-span-2 font-mono';
+      cr.addEventListener('input', function(){ sem.credits = Math.max(1, parseFloat(this.value) || 1); calculate(); });
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'btn btn-ghost btn-xs text-error col-span-2 cpc-btn';
+      del.textContent = 'Del';
+      del.disabled = state.semesters.length <= 1;
+      del.addEventListener('click', function(){
+        if (state.semesters.length <= 1) return;
+        state.semesters.splice(idx, 1);
+        renderSemesters();
+        calculate();
+      });
+
+      row.appendChild(nm);
+      row.appendChild(sg);
+      row.appendChild(cr);
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  function renderCourses(){
+    var list = el('cpcCourseList');
+    list.innerHTML = '';
+    state.courses.forEach(function(c, idx){
+      var row = document.createElement('div');
+      row.className = 'cpc-subcard p-2.5 grid grid-cols-12 gap-2 items-center';
+
+      var nm = document.createElement('input');
+      nm.type = 'text';
+      nm.value = c.name;
+      nm.maxLength = 30;
+      nm.className = 'input input-xs cal-input col-span-5 font-medium';
+      nm.addEventListener('input', function(){ c.name = this.value || ('Course ' + (idx + 1)); calculate(); });
+
+      var sel = document.createElement('select');
+      sel.className = 'select select-xs cal-input col-span-3 font-mono';
+      GRADE_PTS.forEach(function(g){
+        var o = document.createElement('option');
+        o.value = String(g.pt);
+        o.textContent = g.label;
+        if (g.pt === c.pt) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', function(){ c.pt = parseFloat(this.value) || 0; calculate(); });
+
+      var cr = document.createElement('input');
+      cr.type = 'number'; cr.step = '0.5'; cr.min = '0.5'; cr.max = '20';
+      cr.value = String(c.credits);
+      cr.title = 'Credits';
+      cr.className = 'input input-xs cal-input col-span-2 font-mono';
+      cr.addEventListener('input', function(){ c.credits = Math.max(0.5, parseFloat(this.value) || 1); calculate(); });
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'btn btn-ghost btn-xs text-error col-span-2 cpc-btn';
+      del.textContent = 'Del';
+      del.disabled = state.courses.length <= 1;
+      del.addEventListener('click', function(){
+        if (state.courses.length <= 1) return;
+        state.courses.splice(idx, 1);
+        renderCourses();
+        calculate();
+      });
+
+      row.appendChild(nm);
+      row.appendChild(sel);
+      row.appendChild(cr);
+      row.appendChild(del);
+      list.appendChild(row);
+    });
+  }
+
+  var lastRes = null;
+
+  function calculate(){
+    var u = UNIS[state.uni] || UNIS.cbse;
+    var m = parseFloat(el('cpcMult').value);
+    if (!isFinite(m) || m <= 0) m = u.m;
+    var b = parseFloat(el('cpcOffset').value);
+    if (!isFinite(b)) b = u.b;
+    var scale = parseFloat(el('cpcScaleSelect').value) || u.scale || 10;
+
+    var cgpa = 0;
+    var pct = 0;
+    var trace = '';
+    var fourthLbl = 'Division';
+    var fourthVal = '1st Class';
+
+    if (state.mode === 'cgpa2pct'){
+      cgpa = clamp(parseFloat(el('cpcCgpaInput').value) || 0, 0, scale);
+      pct = cgpaToPct(cgpa, m, b);
+      trace = 'Percentage = (' + m + ' x ' + cgpa.toFixed(2) + ')' + (b >= 0 ? (' + ' + b) : (' - ' + Math.abs(b))) + ' = ' + pct.toFixed(2) + '%';
+    } else if (state.mode === 'pct2cgpa'){
+      pct = clamp(parseFloat(el('cpcPctInput').value) || 0, 0, 100);
+      cgpa = pctToCgpa(pct, m, b, scale);
+      trace = 'CGPA = (' + pct.toFixed(2) + (b >= 0 ? (' - ' + b) : (' + ' + Math.abs(b))) + ') / ' + m + ' = ' + cgpa.toFixed(2) + ' / ' + scale;
+    } else if (state.mode === 'sgpa2cgpa'){
+      var weighted = el('cpcWeightedToggle').checked;
+      var sumNum = 0, sumDen = 0;
+      state.semesters.forEach(function(s){
+        var cr = weighted ? Math.max(1, Number(s.credits) || 1) : 1;
+        sumNum += clamp(Number(s.sgpa) || 0, 0, scale) * cr;
+        sumDen += cr;
+      });
+      cgpa = sumDen > 0 ? (sumNum / sumDen) : 0;
+      pct = cgpaToPct(cgpa, m, b);
+      fourthLbl = 'Total Credits';
+      fourthVal = String(state.semesters.reduce(function(a, s){ return a + (Number(s.credits) || 0); }, 0));
+      trace = (weighted ? 'Weighted ' : 'Equal ') + 'CGPA = ' + sumNum.toFixed(2) + ' / ' + sumDen + ' = ' + cgpa.toFixed(2) + ' -> ' + pct.toFixed(2) + '%';
+    } else {
+      var cNum = 0, cDen = 0;
+      state.courses.forEach(function(c){
+        var cr = Math.max(0.5, Number(c.credits) || 1);
+        cNum += (Number(c.pt) || 0) * cr;
+        cDen += cr;
+      });
+      cgpa = cDen > 0 ? (cNum / cDen) : 0;
+      pct = cgpaToPct(cgpa, m, b);
+      fourthLbl = 'Course Credits';
+      fourthVal = String(cDen);
+      trace = 'SGPA = Sigma(GradePt x Credit) / Sigma(Credits) = ' + cNum.toFixed(1) + ' / ' + cDen + ' = ' + cgpa.toFixed(2) + ' -> ' + pct.toFixed(2) + '%';
+    }
+
+    var div = getDivision(pct);
+    var gpa4 = scale > 0 ? clamp((cgpa / scale) * 4.0, 0, 4.0) : 0;
+
+    el('cpcRuleSubtitle').textContent = u.name + ' (' + u.rule + ')';
+    if (state.mode === 'pct2cgpa'){
+      el('cpcHeroValue').textContent = cgpa.toFixed(2) + ' CGPA';
+      el('cpcSecondaryVal').textContent = pct.toFixed(2) + '%';
+    } else if (state.mode === 'courses2sgpa'){
+      el('cpcHeroValue').textContent = cgpa.toFixed(2) + ' SGPA';
+      el('cpcSecondaryVal').textContent = pct.toFixed(2) + '%';
+    } else {
+      el('cpcHeroValue').textContent = pct.toFixed(2) + '%';
+      el('cpcSecondaryVal').textContent = (state.mode === 'sgpa2cgpa' ? 'CGPA ' : 'Score ') + cgpa.toFixed(2) + ' / ' + scale;
+    }
+
+    el('cpcClassBadge').textContent = div.badge;
+    el('cpcClassBadge').className = 'badge badge-md font-mono font-bold ' + div.cls;
+    el('cpcProgress').value = Math.round(pct);
+
+    el('cpcStatCgpa').textContent = cgpa.toFixed(2);
+    el('cpcStatPct').textContent = pct.toFixed(2) + '%';
+    el('cpcStatGpa4').textContent = gpa4.toFixed(2);
+    el('cpcStatFourLbl').textContent = fourthLbl;
+    el('cpcStatFourVal').textContent = state.mode === 'cgpa2pct' || state.mode === 'pct2cgpa' ? div.short : fourthVal;
+
+    el('cpcFormulaTrace').textContent = trace;
+    el('cpcUniNote').textContent = u.note;
+
+    // Cross-University Comparison Table
+    var mb = el('cpcMatrixBody');
+    mb.innerHTML = '';
+    MATRIX_UNIS.forEach(function(mk){
+      var mu = UNIS[mk];
+      var mPct = cgpaToPct(scale === 4 ? (cgpa / 4) * 10 : cgpa, mu.m, mu.b);
+      var tr = document.createElement('tr');
+      if (mk === state.uni) tr.className = 'bg-base-200/70 font-bold';
+      tr.innerHTML = '<td class="font-sans">' + mu.name + '</td>'
+        + '<td>' + mu.rule + '</td>'
+        + '<td class="text-right">' + mPct.toFixed(2) + '%</td>';
+      mb.appendChild(tr);
+    });
+
+    lastRes = {
+      mode: state.mode,
+      uniKey: state.uni,
+      uniName: u.name,
+      rule: u.rule,
+      cgpa: cgpa.toFixed(2),
+      scale: scale,
+      pct: pct.toFixed(2),
+      gpa4: gpa4.toFixed(2),
+      division: div.badge,
+      trace: trace,
+      semesters: state.semesters.slice(),
+      courses: state.courses.slice()
+    };
+  }
+
+  function renderHist(){
+    var list = el('cpcHistList');
+    el('cpcHistCount').textContent = String(hist.length);
+    el('cpcClearHistBtn').classList.toggle('hidden', hist.length === 0);
+    if (!hist.length){
+      list.innerHTML = '<p class="text-base-content/50 py-3 text-center">No saved academic results yet.</p>';
+      return;
+    }
+    list.innerHTML = '';
+    hist.forEach(function(h){
+      var d = document.createElement('div');
+      d.className = 'cpc-subcard p-2 flex items-center justify-between gap-2 cursor-pointer hover:border-base-content transition-colors';
+      d.innerHTML = '<div class="min-w-0"><div class="font-semibold text-base-content truncate">' + h.uniName + '</div><div class="font-mono text-[11px] text-base-content/60">CGPA ' + h.cgpa + ' -> ' + h.pct + '%</div></div><span class="badge badge-xs font-mono shrink-0">' + h.division + '</span>';
+      d.addEventListener('click', function(){
+        el('cpcCgpaInput').value = h.cgpa;
+        applyUni(h.uniKey || 'cbse');
+      });
+      list.appendChild(d);
+    });
+  }
+
+  // ASCII-safe PDF 1.4 Academic Summary Generator
+  function pdfEsc(str){
+    return String(str)
+      .replace(/[^\x20-\x7E]/g, function(ch){ return ch === '×' ? 'x' : '-'; })
+      .replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  }
+
+  function buildPdfBlob(r){
+    var lines = [];
+    var y = 760;
+    function add(text, font, size, x, dy){
+      lines.push('BT /' + font + ' ' + size + ' Tf ' + x + ' ' + y + ' Td (' + pdfEsc(text) + ') Tj ET');
+      y -= (dy || 18);
+    }
+    add('STORYBRAIN AI - CGPA / SGPA TO PERCENTAGE REPORT', 'F2', 14, 48, 22);
+    add('University Rule: ' + r.uniName + ' (' + r.rule + ')   |   ' + new Date().toISOString().slice(0, 10), 'F1', 10, 48, 18);
+    lines.push('0.85 w 48 ' + (y + 6) + ' m 547 ' + (y + 6) + ' l S');
+    y -= 10;
+    add('CONVERTED SCORE: ' + r.pct + '%   |   CGPA: ' + r.cgpa + ' / ' + r.scale, 'F2', 16, 48, 24);
+    add('Division Classification: ' + r.division + '   |   Indicative 4.0 US GPA: ' + r.gpa4, 'F1', 11, 48, 20);
+    add('Calculation: ' + r.trace, 'F1', 10, 48, 24);
+    if (r.mode === 'sgpa2cgpa' && r.semesters.length){
+      add('SEMESTER-WISE SGPA & CREDITS', 'F2', 11, 48, 16);
+      r.semesters.forEach(function(s){
+        add(s.name + ': SGPA ' + Number(s.sgpa).toFixed(2) + ' (' + s.credits + ' credits)', 'F1', 10, 56, 15);
+      });
+    } else if (r.mode === 'courses2sgpa' && r.courses.length){
+      add('COURSE-WISE GRADE POINTS & CREDITS', 'F2', 11, 48, 16);
+      r.courses.forEach(function(c){
+        add(c.name + ': Grade Pt ' + c.pt + ' (' + c.credits + ' credits)', 'F1', 10, 56, 15);
+      });
+    }
+    add('Generated locally at storybrainai.com/tool/cgpa-percentage-calculator', 'F1', 9, 48, 14);
+
+    var stream = lines.join('\n');
+    var objs = [
+      '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+      '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+      '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n',
+      '4 0 obj\n<< /Length ' + stream.length + ' >>\nstream\n' + stream + '\nendstream\nendobj\n',
+      '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+      '6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n'
+    ];
+    var pdf = '%PDF-1.4\n';
+    var offs = [0];
+    objs.forEach(function(o){ offs.push(pdf.length); pdf += o; });
+    var xp = pdf.length;
+    pdf += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+    for (var i = 1; i < offs.length; i++){
+      pdf += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+    }
+    pdf += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xp + '\n%%EOF';
+    return new Blob([pdf], { type: 'application/pdf' });
+  }
+
+  // Events
+  el('cpcUniSelect').addEventListener('change', function(){ applyUni(this.value); });
+  document.querySelectorAll('#cpcUniChips .cpc-pill').forEach(function(b){
+    b.addEventListener('click', function(){ applyUni(b.getAttribute('data-uni')); });
+  });
+
+  document.querySelectorAll('#cpcModeTabs [role="tab"]').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      state.mode = tab.getAttribute('data-mode');
+      document.querySelectorAll('#cpcModeTabs [role="tab"]').forEach(function(t){
+        t.classList.toggle('tab-active', t === tab);
+      });
+      el('cpcPaneCgpa').classList.toggle('hidden', state.mode !== 'cgpa2pct');
+      el('cpcPanePct').classList.toggle('hidden', state.mode !== 'pct2cgpa');
+      el('cpcPaneSgpa').classList.toggle('hidden', state.mode !== 'sgpa2cgpa');
+      el('cpcPaneCourses').classList.toggle('hidden', state.mode !== 'courses2sgpa');
+      if (state.mode === 'sgpa2cgpa') renderSemesters();
+      if (state.mode === 'courses2sgpa') renderCourses();
+      calculate();
+    });
+  });
+
+  ['cpcCgpaInput','cpcScaleSelect','cpcPctInput','cpcWeightedToggle'].forEach(function(id){
+    el(id).addEventListener('input', calculate);
+    el(id).addEventListener('change', calculate);
+  });
+
+  ['cpcMult','cpcOffset'].forEach(function(id){
+    el(id).addEventListener('input', function(){
+      state.uni = 'custom';
+      el('cpcUniSelect').value = 'custom';
+      document.querySelectorAll('#cpcUniChips .cpc-pill').forEach(function(b){ b.classList.remove('is-active'); });
+      calculate();
+    });
+  });
+
+  document.querySelectorAll('[data-qcgpa]').forEach(function(b){
+    b.addEventListener('click', function(){
+      el('cpcCgpaInput').value = b.getAttribute('data-qcgpa');
+      calculate();
+    });
+  });
+
+  el('cpcAddSemBtn').addEventListener('click', function(){
+    state.semesters.push({ name:'Semester ' + (state.semesters.length + 1), sgpa:8.5, credits:22 });
+    renderSemesters();
+    calculate();
+  });
+
+  el('cpcAddCourseBtn').addEventListener('click', function(){
+    state.courses.push({ name:'Course ' + (state.courses.length + 1), pt:8, credits:3 });
+    renderCourses();
+    calculate();
+  });
+
+  el('cpcSaveBtn').addEventListener('click', function(){
+    if (!lastRes) return;
+    hist.unshift({ uniKey:lastRes.uniKey, uniName:lastRes.uniName, cgpa:lastRes.cgpa, pct:lastRes.pct, division:lastRes.division });
+    hist = hist.slice(0, 15);
+    try{ localStorage.setItem('sb_cpc_hist_v1', JSON.stringify(hist)); }catch(e){}
+    renderHist();
+    toast('Saved grade calculation!');
+  });
+
+  el('cpcClearHistBtn').addEventListener('click', function(){
+    hist = [];
+    try{ localStorage.removeItem('sb_cpc_hist_v1'); }catch(e){}
+    renderHist();
+    toast('History cleared.');
+  });
+
+  el('cpcPdfBtn').addEventListener('click', function(){
+    if (!lastRes) return;
+    var blob = buildPdfBlob(lastRes);
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'cgpa-percentage-report.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    toast('PDF report downloaded!');
+  });
+
+  el('cpcPrintBtn').addEventListener('click', function(){ window.print(); });
+  el('cpcCopyBtn').addEventListener('click', function(){
+    if (!lastRes) return;
+    var txt = lastRes.uniName + ': CGPA ' + lastRes.cgpa + '/' + lastRes.scale + ' = ' + lastRes.pct + '% (' + lastRes.division + ')';
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ toast('Result copied!'); });
+    }
+  });
+  el('cpcShareBtn').addEventListener('click', function(){
+    var url = window.location.origin + window.location.pathname + '?uni=' + state.uni + '&cgpa=' + (lastRes ? lastRes.cgpa : el('cpcCgpaInput').value);
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(function(){ toast('Share link copied!'); });
+    }
+  });
+
+  el('cpcResetBtn').addEventListener('click', function(){
+    el('cpcCgpaInput').value = '8.45';
+    el('cpcPctInput').value = '80.28';
+    applyUni('cbse');
+    toast('Reset to default values.');
+  });
+
+  var sp = new URLSearchParams(window.location.search);
+  if (sp.get('cgpa')) el('cpcCgpaInput').value = String(clamp(parseFloat(sp.get('cgpa')) || 8.45, 0, 10));
+  var initUni = sp.get('uni') && UNIS[sp.get('uni')] ? sp.get('uni') : 'cbse';
+  renderHist();
+  applyUni(initUni);
+})();
+</script>
+
+{{ tool_section_end() }}
+{% endblock %}

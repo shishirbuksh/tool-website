@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+{% from "components/tool_card.html" import tool_card %}
+
+{% set hub_name = "student-tools" %}
+{% set tool_map = {} %}
+{% for cat_name, cat_tools in categories.items() %}
+  {% for item in cat_tools %}
+    {% set _ = tool_map.update({item.url: item}) %}
+  {% endfor %}
+{% endfor %}
+
+{% set curated_tracks = [
+  {
+    "id": "exams",
+    "title": "Competitive Exams & Form Prep",
+    "subtitle": "Mock score evaluators, cut-off age checks, NTA/SSC/UPSC image compressors, and scientific math.",
+    "icon": "target",
+    "tools": [
+      {"slug": "negative-marking-calculator", "icon": "graduation-cap", "color": "#10b981", "featured": true, "tag": "1/3 · 1/4 · +4/-1"},
+      {"slug": "exam-age-eligibility-calculator", "icon": "user-check", "color": "#0ea5e9", "featured": true, "tag": "Age & Attempts"},
+      {"slug": "exam-photo-signature-resizer", "icon": "camera", "color": "#6366f1", "featured": true, "tag": "Photo & Sign KB"},
+      {"slug": "exam-typing-speed-test", "icon": "keyboard", "color": "#8b5cf6", "featured": true, "tag": "DEST · 35 WPM"},
+      {"slug": "scientific-calculator", "icon": "sigma", "color": "#14b8a6", "featured": false, "tag": "Trig & Log Math"}
+    ]
+  },
+  {
+    "id": "marks",
+    "title": "Board Marks, CGPA & Attendance",
+    "subtitle": "Best-of-5 board percentages, credit-weighted SGPA/CGPA university formulas, and 75% attendance tracking.",
+    "icon": "award",
+    "tools": [
+      {"slug": "marks-percentage-calculator", "icon": "award", "color": "#f59e0b", "featured": true, "tag": "Best-of-5 · JEE/NEET"},
+      {"slug": "passing-marks-calculator", "icon": "target", "color": "#059669", "featured": true, "tag": "External · CIE+SEE"},
+      {"slug": "cgpa-percentage-calculator", "icon": "graduation-cap", "color": "#10b981", "featured": true, "tag": "VTU · MAKAUT · CBSE"},
+      {"slug": "gpa-scale-converter", "icon": "globe", "color": "#2563eb", "featured": true, "tag": "4.0 WES · German"},
+      {"slug": "attendance-calculator", "icon": "calendar-check", "color": "#0ea5e9", "featured": true, "tag": "75% Bunk Margin"},
+      {"slug": "percentage-calculator", "icon": "percent", "color": "#8b5cf6", "featured": false, "tag": "Quick Ratios"}
+    ]
+  },
+  {
+    "id": "study",
+    "title": "Study Focus, Notes & PDF Workflows",
+    "subtitle": "Deep-work timers, syllabus trackers, OCR note capture, and portal-ready PDF/image utilities.",
+    "icon": "timer",
+    "tools": [
+      {"slug": "pomodoro-timer", "icon": "timer", "color": "#f43f5e", "featured": true, "tag": "Exam Sprints"},
+      {"slug": "habit-tracker", "icon": "check-circle-2", "color": "#10b981", "featured": false, "tag": "Revision Streaks"},
+      {"slug": "task-manager", "icon": "check-square", "color": "#3b82f6", "featured": false, "tag": "Syllabus Checklist"},
+      {"slug": "note-organizer", "icon": "book-open", "color": "#f59e0b", "featured": false, "tag": "Revision Notes"},
+      {"slug": "pdf-merger", "icon": "file-text", "color": "#6366f1", "featured": false, "tag": "Merge Docs"},
+      {"slug": "pdf-converter", "icon": "layers", "color": "#ec4899", "featured": false, "tag": "PDF Export"},
+      {"slug": "pdf-to-images", "icon": "camera", "color": "#06b6d4", "featured": false, "tag": "Extract Pages"},
+      {"slug": "image-compressor", "icon": "zap", "color": "#84cc16", "featured": false, "tag": "Shrink File KB"},
+      {"slug": "image-to-text", "icon": "scan-text", "color": "#a855f7", "featured": false, "tag": "OCR Textbook"}
+    ]
+  },
+  {
+    "id": "career",
+    "title": "Placements, Essays & Lab Units",
+    "subtitle": "ATS-friendly fresher resumes, SOP word limits, and SI/metric physics & chemistry conversions.",
+    "icon": "clipboard-list",
+    "tools": [
+      {"slug": "resume-generator", "icon": "file-text", "color": "#2563eb", "featured": true, "tag": "Fresher ATS CV"},
+      {"slug": "resume-analyzer", "icon": "search", "color": "#7c3aed", "featured": false, "tag": "Keyword Audit"},
+      {"slug": "word-counter", "icon": "clipboard-list", "color": "#059669", "featured": false, "tag": "Essay & SOP Limit"},
+      {"slug": "unit-converter", "icon": "compass", "color": "#d97706", "featured": false, "tag": "SI Lab Units"}
+    ]
+  }
+] %}
+
+{% set resolved_ns = namespace(all_tools=[]) %}
+{% for trk in curated_tracks %}
+  {% for entry in trk.tools %}
+    {% set url = '/tool/' ~ entry.slug %}
+    {% set obj = tool_map.get(url) %}
+    {% if obj %}
+      {% set _ = resolved_ns.all_tools.append({"track": trk.id, "track_title": trk.title, "obj": obj, "entry": entry}) %}
+    {% endif %}
+  {% endfor %}
+{% endfor %}
+{% set student_tool_count = resolved_ns.all_tools | length %}
+
+{% set student_faqs = [
+  {"q": "Which free student tools online are included in this Student Hub?", "a": "The Student Hub brings together " ~ student_tool_count ~ " browser utilities tailored for school, college, and competitive exam workflows—including Negative Marking Calculator, Exam Age Limit Calculator, Exam Photo & Signature Resizer, CBSE/ICSE Best-of-5 Marks Percentage Calculator, VTU/MAKAUT/CBSE CGPA & SGPA Converter, 75% Attendance Calculator, Pomodoro Timer, PDF tools, and ATS Resume builders."},
+  {"q": "Do these exam preparation calculators follow Indian board and NTA/SSC rules?", "a": "Yes. Presets cover NTA JEE/NEET (+4/-1), SSC/UPSC/RRB/GATE negative marking fractions, SSC/UPSC cutoff age relaxation dates, official KB photo and signature dimensions, CBSE & ICSE Best-of-5, BITSAT 75% PCM + 60% per-subject rules, and VTU, MAKAUT, Mumbai University, Anna University, GTU, and SPPU CGPA equations."},
+  {"q": "Are student photos, marksheets, and PDFs uploaded to a server?", "a": "The calculators, marks percentage breakdown, CGPA converters, photo/signature KB resizer, study timers, and ATS resume tools process inputs locally inside your browser with zero account signup required."},
+  {"q": "How do I resize photo and signature for SSC, UPSC, or NEET application forms?", "a": "Open the Exam Photo & Signature Resizer from the Competitive Exams track, pick your exam preset (for example SSC 20-50 KB photo / 10-20 KB signature or NTA 10-200 KB), crop visually, and export to exact pixel dimensions and target KB size."},
+  {"q": "Can college students track 75% attendance and credit-weighted CGPA here?", "a": "Yes. Use the 75% Attendance Calculator to see exact classes you can miss or must attend to hit 75%, 80%, or 85%, and pair it with the CGPA & SGPA Converter for weighted semester calculations across up to 12 semesters."},
+  {"q": "Can I export marksheets and attendance plans as PDF reports?", "a": "Yes. Our Negative Marking, Exam Age Limit, 75% Attendance, CGPA & SGPA Converter, and Best-of-5 Marks Percentage tools all generate single-page PDF scorecards right inside your browser."}
+] %}
+
+{% block title %}Student Hub — {{ student_tool_count }} Free Exam, Marks, CGPA &amp; Study Tools | StoryBrain AI{% endblock %}
+{% block meta_description %}All {{ student_tool_count }} free student tools in one hub: Negative Marking, Exam Photo Resizer, Age Limit, CBSE Best-of-5 Marks %, CGPA/SGPA Converter, 75% Attendance, Pomodoro &amp; PDF tools.{% endblock %}
+{% block meta_keywords %}free student tools online, exam preparation calculators india, competitive exam form tools, student grade and attendance calculators, cbse icse college student tools, jee neet ssc student utilities{% endblock %}
+
+{% block og_url %}<meta property="og:url" content="{{ SITE_URL | default('https://www.storybrainai.com', true) }}/student-tools">{% endblock %}
+{% block og_title %}Student Hub — {{ student_tool_count }} Free Exam &amp; Study Calculators | StoryBrain AI{% endblock %}
+{% block og_description %}Calculate negative marking, Best-of-5 board %, CGPA/SGPA, 75% attendance, age limits, and resize exam photos/signatures to exact KB — free, private, no signup.{% endblock %}
+{% block thumbnail_tag %}<meta name="thumbnail" content="{{ SITE_URL | default('https://www.storybrainai.com', true) }}/static/og-student-tools.webp">{% endblock %}
+{% block og_image %}<meta property="og:image" content="{{ SITE_URL | default('https://www.storybrainai.com', true) }}/static/og-student-tools.webp">{% endblock %}
+{% block og_image_meta %}<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/webp">
+<meta property="og:image:alt" content="StoryBrain AI Student Hub — Free Exam, Marks & Study Calculators">
+<meta property="og:image:secure_url" content="{{ SITE_URL | default('https://www.storybrainai.com', true) }}/static/og-student-tools.webp">{% endblock %}
+{% block twitter_title %}Student Hub — Free Exam, Marks, CGPA &amp; Study Tools | StoryBrain AI{% endblock %}
+{% block twitter_description %}One workspace for SSC, UPSC, JEE, NEET, CBSE, ICSE, and college students — 100% browser-side and free.{% endblock %}
+{% block twitter_image %}<meta name="twitter:image" content="{{ SITE_URL | default('https://www.storybrainai.com', true) }}/static/og-student-tools.webp">{% endblock %}
+{% block twitter_image_alt %}StoryBrain AI Student Hub{% endblock %}
+
+{% block head %}
+<style>
+.sh-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:9999px;font-size:12px;font-weight:600;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;transition:all .14s;touch-action:manipulation;white-space:nowrap}
+.sh-pill:hover{border-color:var(--color-base-content)}
+.sh-pill.is-active{background:#111111;color:#ffffff;border-color:#111111}
+[data-theme="night"] .sh-pill.is-active{background:#ffffff;color:#111111;border-color:#ffffff}
+.sh-pill:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.sh-step-card{display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:12px;border:1px solid var(--color-base-300);background:var(--color-base-100);transition:all .15s}
+.sh-step-card:hover{border-color:var(--color-base-content);transform:translateY(-1px)}
+</style>
+
+<script type="application/ld+json" nonce="{{ nonce }}">
+{"@context":"https://schema.org","@type":"CollectionPage","name":"Student Tools Hub — {{ student_tool_count }} Free Exam, Grade & Study Tools","description":"Curated collection of {{ student_tool_count }} free browser tools for competitive exams, CBSE/ICSE board percentages, university CGPA/SGPA conversion, 75% attendance tracking, study timers, and placements.","url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/student-tools","inLanguage":"en","isPartOf":{"@id":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/#website"}}
+</script>
+<script type="application/ld+json" nonce="{{ nonce }}">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/"},{"@type":"ListItem","position":2,"name":"All Tools","item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/tools"},{"@type":"ListItem","position":3,"name":"Student Hub","item":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}/student-tools"}]}
+</script>
+<script type="application/ld+json" nonce="{{ nonce }}">
+{"@context":"https://schema.org","@type":"ItemList","name":"Free Online Student & Exam Tools","numberOfItems":{{ student_tool_count }},"inLanguage":"en","itemListElement":[{% for item in resolved_ns.all_tools %}{"@type":"ListItem","position":{{ loop.index }},"name":{{ item.obj.name | tojson }},"url":"{{ SITE_URL | default('https://www.storybrainai.com', true) }}{{ item.obj.url }}","description":{{ item.obj.desc | truncate(160) | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]}
+</script>
+<script type="application/ld+json" nonce="{{ nonce }}">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{% for faq in student_faqs %}{"@type":"Question","name":{{ faq.q | tojson }},"acceptedAnswer":{"@type":"Answer","text":{{ faq.a | tojson }}}}{% if not loop.last %},{% endif %}{% endfor %}]}
+</script>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="Breadcrumb" class="container-site px-4 pb-3 pt-20 lg:pt-24">
+  <ol class="flex flex-wrap items-center gap-1.5 text-xs text-base-content/60 font-medium">
+    <li><a href="/" class="hover:text-base-content transition-colors">Home</a></li>
+    <li aria-hidden="true" class="text-base-content/30"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></li>
+    <li><a href="/tools" class="hover:text-base-content transition-colors">All Tools</a></li>
+    <li aria-hidden="true" class="text-base-content/30"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></li>
+    <li><span class="text-base-content font-semibold" aria-current="page">Student Hub</span></li>
+  </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<section class="container-site px-4 pb-20" aria-label="Student tools hub">
+
+  <!-- Hero Band -->
+  <div class="cta-band-light mb-10">
+    <div class="mb-5 flex flex-wrap items-center justify-center gap-2">
+      <a href="/tools" class="btn-cal-secondary text-xs h-8 min-h-[32px] px-3.5">
+        {{ lucide_icon("arrow-left", "w-3.5 h-3.5", 14) | safe }}
+        <span>All Tools Directory</span>
+      </a>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-base-300 bg-base-100 text-xs font-semibold text-base-content/80">
+        {{ lucide_icon("graduation-cap", "w-3.5 h-3.5 text-primary", 14) | safe }}
+        <span>{{ student_tool_count }} Student &amp; Exam Tools</span>
+      </span>
+    </div>
+
+    <h1 class="font-display text-3xl sm:text-5xl font-semibold tracking-[-0.035em] text-base-content mb-3 text-balance">
+      Student Tools &amp; Exam Prep Hub
+    </h1>
+
+    <p class="text-base-content/70 font-normal text-sm sm:text-base max-w-2xl mx-auto leading-relaxed mb-6">
+      Every free calculator, exam form image resizer, percentage &amp; CGPA converter, attendance tracker, and study focus tool in one privacy-first workspace. No account, no uploads, instant PDF exports.
+    </p>
+
+    <div class="flex flex-wrap items-center justify-center gap-4 text-xs text-base-content/60 font-medium">
+      <span class="flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span>CBSE · ICSE · JEE · NEET · SSC · UPSC · University</span>
+      </span>
+      <span class="text-base-content/30">·</span>
+      <span>100% Browser-Side &amp; Mobile Friendly</span>
+    </div>
+  </div>
+
+  <!-- Interactive Goal Workflow Builder -->
+  <div class="feature-card p-5 sm:p-6 mb-10" aria-label="Recommended exam and semester workflows">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5 pb-4 border-b border-base-300">
+      <div>
+        <div class="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary mb-1">
+          {{ lucide_icon("sparkles", "w-3.5 h-3.5", 14) | safe }}
+          <span>Step-by-Step Toolkit</span>
+        </div>
+        <h2 class="font-display text-lg sm:text-xl font-semibold text-base-content">What are you preparing for today?</h2>
+      </div>
+      <div class="flex flex-wrap gap-2" id="shGoalTabs" role="tablist" aria-label="Student goal presets">
+        <button type="button" class="sh-pill is-active" data-goal="ssc" role="tab" aria-selected="true">SSC / UPSC / Banking</button>
+        <button type="button" class="sh-pill" data-goal="jee" role="tab" aria-selected="false">JEE / BITSAT</button>
+        <button type="button" class="sh-pill" data-goal="neet" role="tab" aria-selected="false">NEET UG</button>
+        <button type="button" class="sh-pill" data-goal="boards" role="tab" aria-selected="false">CBSE / ICSE Boards</button>
+        <button type="button" class="sh-pill" data-goal="college" role="tab" aria-selected="false">College &amp; Placements</button>
+      </div>
+    </div>
+
+    <div id="shGoalSteps" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <a href="/tool/exam-age-eligibility-calculator" class="sh-step-card group">
+        <span class="badge badge-sm font-mono font-bold bg-base-200 border-base-300 shrink-0 mt-0.5">01</span>
+        <div>
+          <div class="text-sm font-semibold text-base-content group-hover:text-primary transition-colors">Check Age Limit &amp; Attempts</div>
+          <p class="text-xs text-base-content/65 mt-0.5">Verify SSC, UPSC, or Banking cutoff age &amp; OBC/SC/ST relaxation.</p>
+        </div>
+      </a>
+      <a href="/tool/exam-photo-signature-resizer" class="sh-step-card group">
+        <span class="badge badge-sm font-mono font-bold bg-base-200 border-base-300 shrink-0 mt-0.5">02</span>
+        <div>
+          <div class="text-sm font-semibold text-base-content group-hover:text-primary transition-colors">Resize Photo (20–50 KB) &amp; Sign</div>
+          <p class="text-xs text-base-content/65 mt-0.5">Export compliant passport photo &amp; signature dimensions in seconds.</p>
+        </div>
+      </a>
+      <a href="/tool/negative-marking-calculator" class="sh-step-card group">
+        <span class="badge badge-sm font-mono font-bold bg-base-200 border-base-300 shrink-0 mt-0.5">03</span>
+        <div>
+          <div class="text-sm font-semibold text-base-content group-hover:text-primary transition-colors">Calculate Mock Score &amp; Accuracy</div>
+          <p class="text-xs text-base-content/65 mt-0.5">Analyze 1/3, 1/4, or 0.50 negative marking penalties &amp; net percentage.</p>
+        </div>
+      </a>
+      <a href="/tool/pdf-merger" class="sh-step-card group">
+        <span class="badge badge-sm font-mono font-bold bg-base-200 border-base-300 shrink-0 mt-0.5">04</span>
+        <div>
+          <div class="text-sm font-semibold text-base-content group-hover:text-primary transition-colors">Merge Admit Card &amp; Certificates</div>
+          <p class="text-xs text-base-content/65 mt-0.5">Combine scanned ID proofs, marksheets, and forms into one PDF.</p>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Search & Track Filter Toolbar -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div class="flex flex-wrap gap-2" id="shTrackTabs" role="tablist" aria-label="Filter student tools by track">
+      <button type="button" class="sh-pill is-active" data-track="all" role="tab" aria-selected="true">All ({{ student_tool_count }})</button>
+      {% for trk in curated_tracks %}
+      <button type="button" class="sh-pill" data-track="{{ trk.id }}" role="tab" aria-selected="false">{{ trk.title.split(' & ')[0] }}</button>
+      {% endfor %}
+    </div>
+
+    <div class="flex items-center gap-3 w-full md:w-auto">
+      <label class="flex items-center gap-2 px-3.5 h-10 rounded-xl border border-base-300 bg-base-100 w-full md:w-72 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10">
+        {{ lucide_icon("search", "w-4 h-4 text-base-content/45 shrink-0", 16) | safe }}
+        <input type="search" id="shSearchInput" aria-label="Filter student tools" placeholder="Filter by exam, CGPA, PDF, photo..." class="grow bg-transparent border-none outline-none text-sm text-base-content placeholder:text-base-content/45" autocomplete="off">
+      </label>
+      <span id="shCountLabel" class="text-xs font-semibold text-base-content/60 whitespace-nowrap tnum">{{ student_tool_count }} shown</span>
+    </div>
+  </div>
+
+  <!-- Grouped Tool Tracks -->
+  <div id="shSectionsWrap" class="space-y-12">
+    {% for trk in curated_tracks %}
+    <section class="sh-track-section" data-track-section="{{ trk.id }}" aria-label="{{ trk.title }}">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-2 pb-3 mb-5 border-b border-base-300">
+        <div class="flex items-start gap-2.5">
+          <div class="w-9 h-9 rounded-lg bg-base-200 border border-base-300 flex items-center justify-center text-base-content shrink-0 mt-0.5">
+            {{ lucide_icon(trk.icon, "w-4 h-4", 16) | safe }}
+          </div>
+          <div>
+            <h2 class="font-display text-xl font-semibold tracking-tight text-base-content">{{ trk.title }}</h2>
+            <p class="text-xs sm:text-sm text-base-content/65">{{ trk.subtitle }}</p>
+          </div>
+        </div>
+        <span class="badge badge-sm badge-soft font-mono">{{ trk.tools | length }} tools</span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {% for entry in trk.tools %}
+          {% set url = '/tool/' ~ entry.slug %}
+          {% set obj = tool_map.get(url) %}
+          {% if obj %}
+          <div class="sh-card-wrap h-full" data-track="{{ trk.id }}" data-search="{{ (obj.name ~ ' ' ~ obj.desc ~ ' ' ~ entry.tag ~ ' ' ~ entry.slug) | lower | e }}">
+            {{ tool_card(obj.name, obj.url, entry.icon, entry.color, obj.desc, entry.tag, entry.featured, "") }}
+          </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+  </div>
+
+  <!-- Empty Filter State -->
+  <div id="shEmptyState" class="hidden flex-col items-center justify-center py-14 px-4 rounded-2xl border border-dashed border-base-300 bg-base-200/40 text-center my-8">
+    <p class="text-base font-semibold text-base-content mb-2">No student tools matched your filter.</p>
+    <p class="text-sm text-base-content/65 mb-4">Try clearing the search query or switching back to All student tracks.</p>
+    <button type="button" id="shResetFiltersBtn" class="btn-cal-primary text-xs px-4 h-9">Show All {{ student_tool_count }} Student Tools</button>
+  </div>
+
+  <!-- Quick Exam & Academic Rules Reference Table -->
+  <section class="mt-16 grid grid-cols-1 lg:grid-cols-3 gap-6" aria-label="Quick student formulas and exam portals reference">
+    <div class="lg:col-span-2 feature-card p-6">
+      <div class="flex items-center gap-2 mb-3">
+        {{ lucide_icon("book-open", "w-4 h-4 text-primary", 16) | safe }}
+        <h2 class="font-display text-xl font-semibold text-base-content">Quick Student Rules &amp; Cutoff Cheat Sheet</h2>
+      </div>
+      <p class="text-sm text-base-content/70 mb-4 leading-relaxed">
+        Common Indian exam, university, and application form rules pre-loaded across our calculators. Click any tool name to run your exact numbers with step-by-step trace and PDF export.
+      </p>
+      <div class="overflow-x-auto">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Workflow</th>
+              <th>Standard Rule / Preset</th>
+              <th>Calculator</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="font-semibold">JEE / NEET Negative Marking</td>
+              <td>+4 Correct, −1 Incorrect (1/4 penalty)</td>
+              <td><a href="/tool/negative-marking-calculator" class="text-primary hover:underline font-semibold">Open Tool</a></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">SSC / UPSC / RRB Negative Marking</td>
+              <td>1/3 (−0.66 on 2 marks) or 1/4 (−0.50)</td>
+              <td><a href="/tool/negative-marking-calculator" class="text-primary hover:underline font-semibold">Open Tool</a></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">CBSE / ICSE Best of 5</td>
+              <td>English + Top 4 subjects (÷ 500 × 100)</td>
+              <td><a href="/tool/marks-percentage-calculator" class="text-primary hover:underline font-semibold">Open Tool</a></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">CGPA → Percentage Formulas</td>
+              <td>CBSE ×9.5 · VTU/Anna ×10 · MAKAUT (C−0.75)×10</td>
+              <td><a href="/tool/cgpa-percentage-calculator" class="text-primary hover:underline font-semibold">Open Tool</a></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">German Grade &amp; US 4.0 WES</td>
+              <td>Bavarian Formula 1 + 3×(Nmax−Nd)/(Nmax−Nmin)</td>
+              <td><a href="/tool/gpa-scale-converter" class="text-primary hover:underline font-semibold">Open Tool</a></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">College 75% Attendance</td>
+              <td>Classes safe to bunk vs lectures needed</td>
+              <td><a href="/tool/attendance-calculator" class="text-primary hover:underline font-semibold">Open Tool</a></td>
+            </tr>
+            <tr>
+              <td class="font-semibold">SSC / UPSC Photo &amp; Sign KB</td>
+              <td>Photo 20–50 KB · Signature 10–20 KB</td>
+              <td><a href="/tool/exam-photo-signature-resizer" class="text-primary hover:underline font-semibold">Open Tool</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Paired Student Guides & Privacy Summary -->
+    <div class="flex flex-col gap-6">
+      <div class="feature-card p-6">
+        <h3 class="font-display text-lg font-semibold text-base-content mb-3">Related Study Guides</h3>
+        <ul class="space-y-3 text-sm">
+          <li>
+            <a href="/blog/productivity-utilities/pomodoro-exam-season-focus-guide" class="font-semibold text-base-content hover:text-primary transition-colors block">Pomodoro Exam Season Focus Plan (2026)</a>
+            <span class="text-xs text-base-content/60">Structured study intervals without burnout</span>
+          </li>
+          <li>
+            <a href="/blog/productivity-utilities/resume-generator-ats-guide" class="font-semibold text-base-content hover:text-primary transition-colors block">ATS Resume Generator &amp; Checker Guide</a>
+            <span class="text-xs text-base-content/60">Formatting tips for college internships &amp; placements</span>
+          </li>
+          <li>
+            <a href="/blog/image-processing/image-to-text-ocr-guide" class="font-semibold text-base-content hover:text-primary transition-colors block">Image to Text OCR Study Notes Guide</a>
+            <span class="text-xs text-base-content/60">Turn whiteboard and textbook snapshots into editable text</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="feature-card p-6">
+        <h3 class="font-display text-lg font-semibold text-base-content mb-3">Why Students Bookmark This Hub</h3>
+        <ul class="space-y-2.5 text-sm text-base-content/75 leading-relaxed">
+          <li><strong class="text-base-content">Zero Login Friction:</strong> Open any calculator or form resizer instantly during deadlines.</li>
+          <li><strong class="text-base-content">Private Local Processing:</strong> Your marks, photos, signatures, and ID PDFs stay in your browser.</li>
+          <li><strong class="text-base-content">Offline-Ready Results:</strong> Generate instant single-page PDFs for counseling and records.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Student Hub FAQ Section -->
+  <section class="mt-16" aria-label="Student Hub frequently asked questions">
+    <h2 class="font-display text-2xl font-semibold tracking-tight text-base-content mb-6">Frequently Asked Questions</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% for faq in student_faqs %}
+      <div class="feature-card p-5">
+        <h3 class="font-display text-base font-semibold text-base-content mb-2">{{ faq.q }}</h3>
+        <p class="text-sm text-base-content/70 leading-relaxed">{{ faq.a }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+</section>
+
+<script nonce="{{ nonce }}">
+(function(){
+  var GOALS = {
+    ssc: [
+      { n: '01', href: '/tool/exam-age-eligibility-calculator', title: 'Check Age Limit & Attempts', desc: 'Verify SSC, UPSC, or Banking cutoff age & OBC/SC/ST relaxation.' },
+      { n: '02', href: '/tool/exam-photo-signature-resizer', title: 'Resize Photo (20–50 KB) & Sign', desc: 'Export compliant passport photo & signature dimensions in seconds.' },
+      { n: '03', href: '/tool/negative-marking-calculator', title: 'Calculate Mock Score & Accuracy', desc: 'Analyze 1/3, 1/4, or 0.50 negative marking penalties & net percentage.' },
+      { n: '04', href: '/tool/pdf-merger', title: 'Merge Admit Card & Certificates', desc: 'Combine scanned ID proofs, marksheets, and forms into one PDF.' }
+    ],
+    jee: [
+      { n: '01', href: '/tool/marks-percentage-calculator', title: 'Verify JEE 75% & BITSAT PCM Rules', desc: 'Check 5-subject 75% aggregate plus BITSAT 60%-per-subject criteria.' },
+      { n: '02', href: '/tool/exam-photo-signature-resizer', title: 'NTA JEE Photo & Signature Size', desc: 'Set exact JPG KB limits and clean dimensions before form upload.' },
+      { n: '03', href: '/tool/negative-marking-calculator', title: 'Score +4 / −1 Mock Papers', desc: 'Track positive marks, negative deductions, and strike-rate accuracy.' },
+      { n: '04', href: '/tool/pomodoro-timer', title: 'Run Timed Problem Sprints', desc: 'Build 25/50-minute JEE Physics & Maths problem-solving blocks.' }
+    ],
+    neet: [
+      { n: '01', href: '/tool/marks-percentage-calculator', title: 'Check NEET PCB Aggregate (50%/40%)', desc: 'Verify Physics + Chemistry + Biology aggregate against category cutoffs.' },
+      { n: '02', href: '/tool/exam-age-eligibility-calculator', title: 'Verify 17+ Minimum Age Cutoff', desc: 'Confirm exact age as of 31 December admission year.' },
+      { n: '03', href: '/tool/exam-photo-signature-resizer', title: 'Postcard & Passport Photo Resizer', desc: 'Resize NTA passport/postcard photo and signature within exact KB bounds.' },
+      { n: '04', href: '/tool/negative-marking-calculator', title: 'Evaluate +4 / −1 OMR Score', desc: 'Calculate mock Biology, Chemistry, Physics totals out of 720.' }
+    ],
+    boards: [
+      { n: '01', href: '/tool/marks-percentage-calculator', title: 'Best-of-5 / Best-of-4 Percentage', desc: 'Compare All-Subjects vs English+Top-4 CBSE, ICSE, and ISC scores.' },
+      { n: '02', href: '/tool/cgpa-percentage-calculator', title: 'Convert CBSE CGPA × 9.5', desc: 'Translate 10-point board grades to percentage or reverse-check marks.' },
+      { n: '03', href: '/tool/image-to-text', title: 'Extract Notes with Browser OCR', desc: 'Copy editable revision text from textbook photos and classroom slides.' },
+      { n: '04', href: '/tool/pomodoro-timer', title: 'Board Revision Focus Timer', desc: 'Stay consistent across daily sample paper practice sessions.' }
+    ],
+    college: [
+      { n: '01', href: '/tool/attendance-calculator', title: 'Track 75% Attendance Margin', desc: 'See exact lectures you can bunk or must attend before finals.' },
+      { n: '02', href: '/tool/cgpa-percentage-calculator', title: 'Credit-Weighted SGPA to CGPA', desc: 'Compute VTU, MAKAUT, Mumbai, Anna, GTU, or SPPU transcripts.' },
+      { n: '03', href: '/tool/resume-generator', title: 'Build a Fresher ATS Resume', desc: 'Export a clean internship or campus placement CV with zero templates clutter.' },
+      { n: '04', href: '/tool/resume-analyzer', title: 'Audit Resume & SOP Word Count', desc: 'Check section readiness and essay limits with Word Counter.' }
+    ]
+  };
+
+  var goalTabs = document.getElementById('shGoalTabs');
+  var goalSteps = document.getElementById('shGoalSteps');
+  var trackTabs = document.getElementById('shTrackTabs');
+  var searchInput = document.getElementById('shSearchInput');
+  var countLabel = document.getElementById('shCountLabel');
+  var emptyState = document.getElementById('shEmptyState');
+  var resetBtn = document.getElementById('shResetFiltersBtn');
+  var sectionsWrap = document.getElementById('shSectionsWrap');
+  var activeTrack = 'all';
+
+  function renderGoal(key){
+    var steps = GOALS[key];
+    if (!steps || !goalSteps) return;
+    goalSteps.textContent = '';
+    steps.forEach(function(st){
+      var a = document.createElement('a');
+      a.href = st.href;
+      a.className = 'sh-step-card group';
+
+      var badge = document.createElement('span');
+      badge.className = 'badge badge-sm font-mono font-bold bg-base-200 border-base-300 shrink-0 mt-0.5';
+      badge.textContent = st.n;
+
+      var wrap = document.createElement('div');
+      var title = document.createElement('div');
+      title.className = 'text-sm font-semibold text-base-content group-hover:text-primary transition-colors';
+      title.textContent = st.title;
+      var desc = document.createElement('p');
+      desc.className = 'text-xs text-base-content/65 mt-0.5';
+      desc.textContent = st.desc;
+
+      wrap.appendChild(title);
+      wrap.appendChild(desc);
+      a.appendChild(badge);
+      a.appendChild(wrap);
+      goalSteps.appendChild(a);
+    });
+  }
+
+  function applyFilters(){
+    if (!sectionsWrap) return;
+    var q = searchInput ? (searchInput.value || '').trim().toLowerCase() : '';
+    var totalShown = 0;
+
+    var sections = sectionsWrap.querySelectorAll('.sh-track-section');
+    sections.forEach(function(sec){
+      var secTrack = sec.getAttribute('data-track-section');
+      var trackMatch = (activeTrack === 'all' || activeTrack === secTrack);
+      var secShown = 0;
+      var cards = sec.querySelectorAll('.sh-card-wrap');
+      cards.forEach(function(card){
+        var hay = card.getAttribute('data-search') || '';
+        var show = trackMatch && (!q || hay.indexOf(q) !== -1);
+        card.classList.toggle('hidden', !show);
+        if (show){
+          secShown++;
+          totalShown++;
+        }
+      });
+      sec.classList.toggle('hidden', secShown === 0);
+    });
+
+    if (countLabel) countLabel.textContent = totalShown + ' shown';
+    if (emptyState){
+      emptyState.classList.toggle('hidden', totalShown > 0);
+      emptyState.classList.toggle('flex', totalShown === 0);
+    }
+  }
+
+  if (goalTabs){
+    goalTabs.addEventListener('click', function(e){
+      var btn = e.target.closest('button[data-goal]');
+      if (!btn) return;
+      goalTabs.querySelectorAll('button[data-goal]').forEach(function(b){
+        var on = b === btn;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      renderGoal(btn.getAttribute('data-goal'));
+    });
+  }
+
+  if (trackTabs){
+    trackTabs.addEventListener('click', function(e){
+      var btn = e.target.closest('button[data-track]');
+      if (!btn) return;
+      activeTrack = btn.getAttribute('data-track') || 'all';
+      trackTabs.querySelectorAll('button[data-track]').forEach(function(b){
+        var on = b === btn;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      applyFilters();
+    });
+  }
+
+  if (searchInput){
+    searchInput.addEventListener('input', applyFilters);
+  }
+
+  if (resetBtn){
+    resetBtn.addEventListener('click', function(){
+      activeTrack = 'all';
+      if (searchInput) searchInput.value = '';
+      if (trackTabs){
+        trackTabs.querySelectorAll('button[data-track]').forEach(function(b){
+          var on = b.getAttribute('data-track') === 'all';
+          b.classList.toggle('is-active', on);
+          b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+      }
+      applyFilters();
+    });
+  }
+})();
+</script>
+{% endblock %}

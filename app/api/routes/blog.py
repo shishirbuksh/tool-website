@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 
 from app.api.routes.pages import NonceJinja2Templates
-from app.core.config import settings
+from app.core.config import APP_VERSION, settings
 from app.core.i18n import (
     LOCALE_META,
     SUPPORTED_LOCALES,
@@ -55,7 +55,6 @@ templates.env.globals["supported_locales"] = SUPPORTED_LOCALES
 templates.env.globals["locale_meta"] = LOCALE_META
 templates.env.globals["localize_path"] = localize_path
 
-APP_VERSION = os.getenv("APP_VERSION", "dev")
 templates.env.globals["app_version"] = APP_VERSION
 
 _INDEX_CACHE_HEADERS = {"Cache-Control": "private, no-cache, no-store, must-revalidate"}

@@ -1,0 +1,997 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
+
+{% block head %}
+<style>
+.ett-panel{background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:12px;padding:1.25rem}
+.ett-subcard{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:12px}
+.ett-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:12px;font-weight:600;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;transition:all .14s;touch-action:manipulation;white-space:nowrap}
+.ett-pill:hover{border-color:var(--color-base-content)}
+.ett-pill.is-active{background:#111111;color:#ffffff;border-color:#111111}
+[data-theme="night"] .ett-pill.is-active{background:#ffffff;color:#111111;border-color:#ffffff}
+.ett-pill:focus-visible,.ett-btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.ett-passage{font-family:var(--font-sans,ui-sans-serif,system-ui,sans-serif);font-size:1.05rem;line-height:1.8;max-height:13.5rem;overflow-y:auto;user-select:none;overscroll-behavior:contain}
+.ett-w-ok{color:var(--color-success,#16a34a);font-weight:500}
+.ett-w-err{color:var(--color-error,#dc2626);text-decoration:underline;text-decoration-style:wavy;font-weight:600}
+.ett-w-half{color:var(--color-warning,#d97706);border-bottom:2px dotted currentColor;font-weight:600}
+.ett-w-cur{background:color-mix(in srgb,var(--color-primary) 18%,transparent);border-radius:4px;padding:1px 3px;font-weight:600;color:var(--color-base-content)}
+.ett-w-omit{background:color-mix(in srgb,var(--color-error,#dc2626) 14%,transparent);color:var(--color-error,#dc2626);border-radius:4px;padding:0 4px;text-decoration:line-through;font-size:.9em}
+.ett-w-extra{background:color-mix(in srgb,var(--color-warning,#d97706) 16%,transparent);color:var(--color-warning,#d97706);border-radius:4px;padding:0 4px;font-size:.9em}
+.ett-input-box{font-family:var(--font-mono,ui-monospace,monospace);font-size:0.98rem;line-height:1.7;resize:vertical}
+.ett-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-100);color:var(--color-base-content);border:1px solid var(--color-base-300);border-radius:12px;padding:10px 18px;font-weight:600;font-size:13px;box-shadow:0 10px 25px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);pointer-events:none;transition:all .22s ease;display:flex;align-items:center;gap:8px}
+.ett-toast.show{opacity:1;transform:translateY(0)}
+@media print{
+  header,nav,.bottom-nav,#cookieConsent,footer,.ett-no-print,.breadcrumb{display:none!important}
+  body{padding:0!important;background:#ffffff!important;color:#111111!important}
+  .ett-panel,.ett-subcard{border:1px solid #d1d5db!important;background:#ffffff!important;box-shadow:none!important}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{{ tool_hero_section("keyboard", "Competitive Exam Typing & Error Engine", "EXAM TYPING", "SPEED TEST", seo_data.description if seo_data else "Practice SSC CGL DEST (2000 key depressions / 15 min), SSC CHSL 35 WPM, RRB NTPC 30 WPM, and CPCT typing tests with real Full & Half Mistake evaluation, backspace lock, KDPH tracking, and PDF scorecard.") }}
+
+<div class="space-y-6 reveal" style="animation-delay:0.15s">
+
+  <!-- Exam Presets & Mode Strip -->
+  <section class="ett-panel ett-no-print" aria-label="Exam presets and typing mode">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+      <div class="flex flex-wrap items-center gap-2">
+        {{ lucide_icon("zap", "w-4 h-4 text-base-content/70", 16) | safe }}
+        <h2 class="font-display text-base font-semibold tracking-tight text-base-content">Exam Presets</h2>
+        <span class="badge badge-sm badge-soft font-mono">DEST · CHSL · RRB · CPCT</span>
+      </div>
+      <div class="flex flex-wrap gap-1.5" id="ettPresets">
+        <button type="button" class="ett-pill is-active" data-preset="ssc_cgl">SSC CGL DEST (2000 KD / 15m)</button>
+        <button type="button" class="ett-pill" data-preset="ssc_chsl">SSC CHSL (35 WPM / 10m)</button>
+        <button type="button" class="ett-pill" data-preset="rrb_ntpc">RRB NTPC (30 WPM Strict)</button>
+        <button type="button" class="ett-pill" data-preset="high_court">CPCT / High Court (40 WPM)</button>
+        <button type="button" class="ett-pill" data-preset="sprint_1m">1-Min Warmup</button>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div role="tablist" id="ettModeTabs" class="tabs tabs-box tabs-xs sm:tabs-sm flex-wrap max-w-full bg-base-100 border border-base-300 p-1">
+        <button type="button" role="tab" class="tab font-semibold tab-active ett-btn" data-mode="test">Live Typing Test</button>
+        <button type="button" role="tab" class="tab font-semibold ett-btn" data-mode="calc">SSC Error &amp; KDPH Calculator</button>
+      </div>
+      <span id="ettActiveRuleHint" class="text-xs text-base-content/65 font-medium">SSC CGL DEST · Target 2,000 Key Depressions (8,000 KDPH) in 15 min</span>
+    </div>
+  </section>
+
+  <!-- Main Workspace Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+    <!-- Left Column: Interactive Typing Area OR Manual Error Calculator -->
+    <div class="min-w-0 lg:col-span-7 space-y-5">
+
+      <!-- Mode 1: Live Typing Simulator -->
+      <section id="ettTestPanel" class="ett-panel space-y-4" aria-label="Interactive typing simulator">
+
+        <!-- Exam Rules & Live HUD Bar -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div class="ett-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55 uppercase">Time Left</div>
+            <div id="ettTimerDisp" class="text-xl font-mono font-bold text-base-content tnum">15:00</div>
+          </div>
+          <div class="ett-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55 uppercase">Live Net WPM</div>
+            <div id="ettLiveWpm" class="text-xl font-mono font-bold text-primary tnum">0.0</div>
+          </div>
+          <div class="ett-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55 uppercase">Key Depressions</div>
+            <div id="ettLiveKd" class="text-xl font-mono font-bold text-base-content tnum">0 <span class="text-xs font-normal text-base-content/55">/ 2000</span></div>
+          </div>
+          <div class="ett-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55 uppercase">KDPH Rate</div>
+            <div id="ettLiveKdph" class="text-xl font-mono font-bold text-base-content tnum">0</div>
+          </div>
+        </div>
+
+        <!-- Settings Bar -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 ett-no-print">
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold text-base-content/70 mb-1">Passage</span>
+            <select id="ettPassageSelect" class="select select-bordered select-sm cal-input w-full bg-base-100">
+              <option value="0">Passage 1 — Digital Public Infrastructure (2,240 KD)</option>
+              <option value="1">Passage 2 — Indian Monetary Policy &amp; Credit (2,190 KD)</option>
+              <option value="2">Passage 3 — Clean Energy Grid Storage (2,260 KD)</option>
+              <option value="3">Passage 4 — Urban Transit &amp; Rail Corridors (2,180 KD)</option>
+              <option value="custom">Custom Passage (Paste Practice Text)</option>
+            </select>
+          </label>
+
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold text-base-content/70 mb-1">Allowed Error Limit</span>
+            <select id="ettErrorLimitSelect" class="select select-bordered select-sm cal-input w-full bg-base-100">
+              <option value="20">20% (SSC CGL DEST UR Standard)</option>
+              <option value="10">10% (SSC OBC / SC / ST Limit)</option>
+              <option value="7">7% (SSC CHSL UR Limit)</option>
+              <option value="5">5% (Strict RRB NTPC / CSS / CPCT)</option>
+            </select>
+          </label>
+
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold text-base-content/70 mb-1">Duration (Minutes)</span>
+            <select id="ettDurationSelect" class="select select-bordered select-sm cal-input w-full bg-base-100">
+              <option value="1">1 Min Warmup</option>
+              <option value="3">3 Min Sprint</option>
+              <option value="5">5 Min Drill</option>
+              <option value="10">10 Min (CHSL / RRB / CPCT)</option>
+              <option value="15" selected>15 Min (SSC CGL DEST)</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- Exam Security Toggles -->
+        <div class="flex flex-wrap items-center justify-between gap-3 py-2 px-3 rounded-xl bg-base-100 border border-base-300 ett-no-print">
+          <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-base-content">
+            <input type="checkbox" id="ettAllowBackspace" class="checkbox checkbox-xs checkbox-primary" checked>
+            <span>Allow Backspace</span>
+          </label>
+          <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-base-content">
+            <input type="checkbox" id="ettLiveHighlight" class="checkbox checkbox-xs checkbox-primary" checked>
+            <span>Live Highlight (Turn off for TCS Exam Neutral Mode)</span>
+          </label>
+        </div>
+
+        <!-- Custom Passage Input Drawer -->
+        <div id="ettCustomWrap" class="hidden space-y-2 ett-no-print">
+          <label class="text-xs font-semibold text-base-content/70 block" for="ettCustomText">Paste custom practice passage (minimum 25 words):</label>
+          <textarea id="ettCustomText" rows="4" class="textarea textarea-bordered cal-input w-full bg-base-100 text-xs font-mono" placeholder="Paste any English passage here to practice under exact exam timing and SSC Full/Half mistake evaluation..."></textarea>
+          <button type="button" id="ettApplyCustomBtn" class="btn btn-xs btn-primary">Load Custom Passage</button>
+        </div>
+
+        <!-- Target Reference Passage Display -->
+        <div class="ett-subcard p-4">
+          <div class="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-base-300">
+            <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Reference Exam Passage</span>
+            <span id="ettRefMeta" class="text-xs font-mono text-base-content/60 tnum">0 words · 0 KD</span>
+          </div>
+          <div id="ettPassageBox" class="ett-passage text-base-content/90 pr-1" aria-label="Reference passage to type"></div>
+        </div>
+
+        <!-- Typing Box -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label for="ettTypingInput" class="text-xs font-semibold text-base-content/75">Type Passage Below (Timer starts on your first keystroke)</label>
+            <span id="ettStatusPill" class="badge badge-sm badge-soft font-mono">Ready</span>
+          </div>
+          <textarea id="ettTypingInput" rows="6" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" class="textarea textarea-bordered cal-input w-full bg-base-100 ett-input-box" placeholder="Click here and start typing the reference passage above..."></textarea>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 ett-no-print">
+          <div class="flex flex-wrap gap-2">
+            <button type="button" id="ettSubmitBtn" class="btn btn-sm btn-primary gap-1.5 ett-btn">
+              {{ lucide_icon("check-circle-2", "w-4 h-4", 16) | safe }}
+              <span>Evaluate &amp; Finish</span>
+            </button>
+            <button type="button" id="ettResetBtn" class="btn btn-sm btn-ghost border border-base-300 gap-1.5 ett-btn">
+              {{ lucide_icon("rotate-ccw", "w-4 h-4", 16) | safe }}
+              <span>Restart Passage</span>
+            </button>
+          </div>
+          <span class="text-[11px] text-base-content/55 font-mono" id="ettBackspaceCounter">Backspaces used: 0</span>
+        </div>
+
+      </section>
+
+      <!-- Mode 2: Manual SSC Error & KDPH Calculator -->
+      <section id="ettCalcPanel" class="ett-panel hidden space-y-4" aria-label="Manual SSC error percentage and KDPH calculator">
+        <div class="flex items-center gap-2 mb-1">
+          {{ lucide_icon("sliders-horizontal", "w-4 h-4 text-primary", 16) | safe }}
+          <h2 class="font-display text-lg font-semibold text-base-content">SSC Error %, Net WPM &amp; KDPH Calculator</h2>
+        </div>
+        <p class="text-xs text-base-content/70 leading-relaxed">
+          Already completed an offline typing drill? Enter your typed key depressions, full mistakes (omitted, wrong, extra, or misspelled words = 1.0 each), half mistakes (spacing, case, or punctuation = 0.5 each), and minutes elapsed to calculate official SSC Error % and KDPH.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold mb-1">Total Key Depressions Typed</span>
+            <input type="number" id="ettManKd" value="2020" min="1" max="50000" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold mb-1">Total Reference Words Attempted</span>
+            <input type="number" id="ettManWords" value="390" min="1" max="10000" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold mb-1">Full Mistakes (1.0 weight each)</span>
+            <input type="number" id="ettManFull" value="6" min="0" max="1000" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold mb-1">Half Mistakes (0.5 weight each)</span>
+            <input type="number" id="ettManHalf" value="4" min="0" max="1000" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold mb-1">Time Taken (Minutes)</span>
+            <input type="number" id="ettManMins" value="15" min="0.5" max="120" step="0.5" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold mb-1">Permissible Error Limit (%)</span>
+            <input type="number" id="ettManLimit" value="7" min="1" max="50" step="0.5" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+        </div>
+
+        <button type="button" id="ettManCalcBtn" class="btn btn-sm btn-primary ett-btn">Calculate SSC Error &amp; Speed</button>
+      </section>
+
+      <!-- Word-by-Word Error Review Card -->
+      <section class="ett-panel space-y-3" aria-label="Word by word error review">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 class="font-display text-base font-semibold text-base-content">Mistake Breakdown &amp; Word Diff Review</h3>
+          <div class="flex flex-wrap gap-2 text-[11px] font-semibold">
+            <span class="ett-w-ok">Correct</span>
+            <span class="ett-w-err">Full Mistake (1.0)</span>
+            <span class="ett-w-half">Half Mistake (0.5)</span>
+            <span class="ett-w-omit">Omitted</span>
+            <span class="ett-w-extra">Extra</span>
+          </div>
+        </div>
+        <div id="ettDiffBody" class="ett-subcard p-4 text-sm leading-relaxed max-h-60 overflow-y-auto ett-scroll">
+          <p class="text-xs text-base-content/60">Complete the passage or click <strong>Evaluate &amp; Finish</strong> to view exact word-by-word Full and Half mistake annotations.</p>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Right Column: Sticky Result Scorecard + PDF/Actions + Attempt History -->
+    <div class="min-w-0 lg:col-span-5 space-y-5 lg:sticky lg:top-24">
+
+      <!-- Scorecard Hero -->
+      <section class="ett-panel space-y-4" aria-label="Typing speed and qualification result">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/55 mb-1">Performance Verdict</div>
+            <div class="flex items-baseline gap-2.5">
+              <span id="ettHeroWpm" class="text-4xl sm:text-5xl font-display font-semibold tracking-tight text-base-content tnum">0.0</span>
+              <span class="text-sm font-semibold text-base-content/60">Net WPM</span>
+            </div>
+          </div>
+          <span id="ettVerdictBadge" class="badge badge-md font-semibold">Ready</span>
+        </div>
+
+        <!-- Key Stats Grid -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="ett-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">Gross WPM</div>
+            <div id="ettStatGross" class="text-lg font-mono font-bold tnum">0.0</div>
+          </div>
+          <div class="ett-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">Key Depressions / Hr</div>
+            <div id="ettStatKdph" class="text-lg font-mono font-bold tnum">0</div>
+          </div>
+          <div class="ett-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">SSC Error %</div>
+            <div id="ettStatErrPct" class="text-lg font-mono font-bold tnum">0.00%</div>
+          </div>
+          <div class="ett-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">Accuracy</div>
+            <div id="ettStatAcc" class="text-lg font-mono font-bold tnum">100.0%</div>
+          </div>
+        </div>
+
+        <!-- Detailed Error Accounting -->
+        <div class="ett-subcard p-3.5 space-y-2 text-xs">
+          <div class="flex justify-between">
+            <span class="text-base-content/70">Total Key Depressions (Final / Raw)</span>
+            <span id="ettStatKdPair" class="font-mono font-semibold tnum">0 / 0</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-base-content/70">Full Mistakes (1.0x: Wrong/Omit/Extra)</span>
+            <span id="ettStatFull" class="font-mono font-semibold tnum">0</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-base-content/70">Half Mistakes (0.5x: Case/Punct/Space)</span>
+            <span id="ettStatHalf" class="font-mono font-semibold tnum">0</span>
+          </div>
+          <div class="flex justify-between pt-1.5 border-t border-base-300">
+            <span class="font-semibold text-base-content">Weighted Error Total</span>
+            <span id="ettStatWeighted" class="font-mono font-bold tnum">0.0</span>
+          </div>
+        </div>
+
+        <!-- Benchmark Comparison Strip -->
+        <div id="ettTraceBox" class="rounded-xl bg-base-100 border border-base-300 p-3 text-xs font-mono text-base-content/75 leading-relaxed">
+          Start typing or switch to SSC Error Calculator to see step-by-step KDPH and SSC Error % math.
+        </div>
+
+        <!-- Export & Utility Buttons -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 ett-no-print">
+          <button type="button" id="ettPdfBtn" class="btn btn-sm btn-primary gap-1.5 ett-btn col-span-2 sm:col-span-2">
+            {{ lucide_icon("file-text", "w-3.5 h-3.5", 14) | safe }}
+            <span>PDF Report</span>
+          </button>
+          <button type="button" id="ettPrintBtn" class="btn btn-sm btn-ghost border border-base-300 gap-1 ett-btn" title="Print Report">
+            {{ lucide_icon("printer", "w-3.5 h-3.5", 14) | safe }}
+            <span>Print</span>
+          </button>
+          <button type="button" id="ettCopyBtn" class="btn btn-sm btn-ghost border border-base-300 gap-1 ett-btn" title="Copy Summary">
+            {{ lucide_icon("copy", "w-3.5 h-3.5", 14) | safe }}
+            <span>Copy</span>
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 ett-no-print">
+          <button type="button" id="ettSaveBtn" class="btn btn-xs btn-ghost border border-base-300 gap-1 ett-btn">
+            {{ lucide_icon("award", "w-3.5 h-3.5", 14) | safe }}
+            <span>Save Attempt</span>
+          </button>
+          <button type="button" id="ettShareBtn" class="btn btn-xs btn-ghost border border-base-300 gap-1 ett-btn">
+            {{ lucide_icon("share-2", "w-3.5 h-3.5", 14) | safe }}
+            <span>Copy Result Link</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Local Attempt History -->
+      <section class="ett-panel space-y-3 ett-no-print" aria-label="Recent typing attempts history">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("history", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h3 class="font-display text-sm font-semibold text-base-content">Recent Practice Attempts</h3>
+          </div>
+          <button type="button" id="ettClearHistBtn" class="text-xs font-semibold text-base-content/60 hover:text-error cursor-pointer">Clear</button>
+        </div>
+        <div id="ettHistList" class="space-y-2 text-xs text-base-content/65">
+          <p>No saved attempts yet. Finish a test to record progress locally.</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div id="ettToast" class="ett-toast" role="status" aria-live="polite"></div>
+
+<script nonce="{{ nonce }}">
+(function(){
+  var PASSAGES = [
+    "India has accelerated the expansion of its digital public infrastructure over the past decade, turning real-time retail payments, paperless identity verification, and consent-based document sharing into foundational utilities for citizens and small enterprises. Unified payment networks now process billions of monthly transactions across urban neighborhoods and rural marketplaces alike, lowering settlement friction and bringing first-time savers into formal financial channels. At the same time, public portals increasingly verify applicant eligibility and educational credentials instantaneously through encrypted repositories rather than physical photocopies. Administrators emphasize that resilient systems depend not only on software uptime, but also on clear service standards, transparent grievance mechanisms, and offline backup counters for applicants who face intermittent connectivity. As university admissions, competitive examinations, and district welfare offices adopt standardized digital forms, accurate keyboard entry and disciplined document review remain essential administrative skills for clerical and supervisory staff across government departments.",
+    "Central bank policy committees monitor inflation momentum, food supply shocks, rural wage recovery, and global commodity prices before adjusting benchmark policy rates. When seasonal supply constraints push vegetable and cereal prices higher, households tighten discretionary spending while businesses reassess borrowing timelines for fresh capital expenditure. Liquidity management desks balance short-term money market conditions through variable rate repo operations so productive credit continues reaching agricultural cooperatives and export manufacturers without fueling speculative excess. Quarterly reviews also examine bank capital adequacy buffers, digital fraud reporting rates, and regional credit deposit ratios to ensure smaller towns receive equitable working capital. Economists regularly point out that predictable communication schedules reduce volatility in bond yields and help state treasuries plan infrastructure borrowing across the fiscal year with greater confidence and lower interest spreads.",
+    "Integrating solar and wind generation into regional electricity grids requires rapid forecasting, transmission reinforcement, and multi-hour energy storage corridors. Because daytime solar output peaks around noon while residential air conditioning and evening lighting demand surges after sunset, utilities combine pumped hydro reservoirs with grid-scale lithium and sodium battery banks to smooth frequency fluctuations. State load dispatch centers rely on automated weather telemetry across desert generation parks and coastal turbine zones to schedule thermal backing units hours in advance. Expanding interstate green energy corridors also reduces curtailment losses during monsoon winds and allows industrial clusters to procure reliable daytime renewable power under open-access rules. Engineers note that pairing smart feeder metering with agricultural solar pumps shifts irrigation loads to sunny hours and strengthens voltage stability for rural feeders nationwide.",
+    "Modernizing metropolitan transit corridors and high-density railway junctions hinges on synchronized signaling upgrades, multimodal station plazas, and predictable last-mile feeder buses. Dedicated suburban tracks reduce conflicts between fast intercity expresses and commuter rakes, allowing planners to tighten peak-hour headways without compromising track maintenance blocks at night. Integrated smart cards allow daily commuters, students, and office staff to transfer seamlessly between metro lines, suburban trains, and municipal electric buses using a single fare wallet. Station redevelopment projects increasingly separate arrival concourses from departure platforms while adding tactile floor strips, automated escalators, and real-time train arrival boards for passengers with visual or mobility needs. Transport economists observe that reliable forty-minute cross-city rail commutes expand job access across satellite townships and ease parking congestion around historic commercial districts."
+  ];
+
+  var PRESETS = {
+    ssc_cgl: { title: 'SSC CGL DEST (2000 KD / 15m)', mins: 15, targetKd: 2000, targetKdph: 8000, targetWpm: 27, errLimit: 20, allowBackspace: true, hint: 'SSC CGL DEST · Target 2,000 Key Depressions (8,000 KDPH) in 15 min' },
+    ssc_chsl: { title: 'SSC CHSL (35 WPM / 10m)', mins: 10, targetKd: 1750, targetKdph: 10500, targetWpm: 35, errLimit: 7, allowBackspace: true, hint: 'SSC CHSL LDC/JSA · 35 WPM English (10,500 KDPH) · UR max 7% error' },
+    rrb_ntpc: { title: 'RRB NTPC (30 WPM Strict)', mins: 10, targetKd: 1500, targetKdph: 9000, targetWpm: 30, errLimit: 5, allowBackspace: false, hint: 'RRB NTPC Skill Test · 30 WPM English · Backspace disabled & max 5% error' },
+    high_court: { title: 'CPCT / High Court (40 WPM)', mins: 10, targetKd: 2000, targetKdph: 12000, targetWpm: 40, errLimit: 5, allowBackspace: true, hint: 'High Court / CPCT · 40 WPM English (12,000 KDPH) · Strict 5% error cap' },
+    sprint_1m: { title: '1-Min Warmup Sprint', mins: 1, targetKd: 175, targetKdph: 10500, targetWpm: 35, errLimit: 7, allowBackspace: true, hint: 'Quick 1-Minute Speed & Accuracy Check (Target 35+ WPM)' }
+  };
+
+  function el(id){ return document.getElementById(id); }
+  function stripPunct(w){ return String(w || '').replace(/^[.,;:!?'"()\-]+|[.,;:!?'"()\-]+$/g, ''); }
+
+  function classifyPair(refW, typedW){
+    if (refW === typedW) return 'ok';
+    if (refW.toLowerCase() === typedW.toLowerCase()) return 'half_case';
+    var sr = stripPunct(refW), st = stripPunct(typedW);
+    if (sr && sr === st) return 'half_punct';
+    if (sr && sr.toLowerCase() === st.toLowerCase()) return 'half_punct';
+    return 'wrong';
+  }
+
+  function evaluateTyping(referenceText, typedText, elapsedSec, rawKeystrokes, errLimitPct, targetKdph){
+    var refWords = String(referenceText || '').trim().split(/\s+/).filter(Boolean);
+    var typedRaw = String(typedText || '');
+    var typedWords = typedRaw.trim() ? typedRaw.trim().split(/\s+/).filter(Boolean) : [];
+    var m = typedWords.length;
+    var n = refWords.length;
+
+    var ops = [];
+    var fullWrong = 0, fullOmit = 0, fullExtra = 0, halfCase = 0, halfPunct = 0, correctWords = 0;
+    var halfSpace = (typedRaw.match(/ {2,}/g) || []).length;
+
+    if (m > 0 && n > 0){
+      var evalLen = Math.min(n, m + 12);
+      var dp = [];
+      for (var i = 0; i <= evalLen; i++){
+        dp[i] = new Array(m + 1);
+        dp[i][0] = i;
+      }
+      for (var j = 0; j <= m; j++){ dp[0][j] = j; }
+
+      for (var i = 1; i <= evalLen; i++){
+        for (var j = 1; j <= m; j++){
+          var cls = classifyPair(refWords[i - 1], typedWords[j - 1]);
+          var subCost = cls === 'ok' ? 0 : ((cls === 'half_case' || cls === 'half_punct') ? 0.5 : 1);
+          var delCost = dp[i - 1][j] + 1;
+          var insCost = dp[i][j - 1] + 1;
+          var repCost = dp[i - 1][j - 1] + subCost;
+          dp[i][j] = Math.min(repCost, delCost, insCost);
+        }
+      }
+
+      // Stop evaluating reference words at the best end-row where all m typed words are consumed
+      var bestRow = Math.min(evalLen, m);
+      var bestScore = Infinity;
+      for (var r = 1; r <= evalLen; r++){
+        if (dp[r][m] <= bestScore){
+          bestScore = dp[r][m];
+          bestRow = r;
+        }
+      }
+
+      var curI = bestRow, curJ = m;
+      while (curI > 0 || curJ > 0){
+        if (curI > 0 && curJ > 0){
+          var cls2 = classifyPair(refWords[curI - 1], typedWords[curJ - 1]);
+          var sc2 = cls2 === 'ok' ? 0 : ((cls2 === 'half_case' || cls2 === 'half_punct') ? 0.5 : 1);
+          if (Math.abs(dp[curI][curJ] - (dp[curI - 1][curJ - 1] + sc2)) < 1e-6){
+            ops.push({ type: cls2, ref: refWords[curI - 1], typed: typedWords[curJ - 1] });
+            curI--; curJ--; continue;
+          }
+        }
+        if (curI > 0 && Math.abs(dp[curI][curJ] - (dp[curI - 1][curJ] + 1)) < 1e-6){
+          ops.push({ type: 'omit', ref: refWords[curI - 1], typed: '' });
+          curI--; continue;
+        }
+        ops.push({ type: 'extra', ref: '', typed: typedWords[curJ - 1] });
+        curJ--;
+      }
+      ops.reverse();
+
+      ops.forEach(function(op){
+        if (op.type === 'ok') correctWords++;
+        else if (op.type === 'half_case') halfCase++;
+        else if (op.type === 'half_punct') halfPunct++;
+        else if (op.type === 'wrong') fullWrong++;
+        else if (op.type === 'omit') fullOmit++;
+        else if (op.type === 'extra') fullExtra++;
+      });
+    }
+
+    var sec = Math.max(1, Number(elapsedSec) || 1);
+    var mins = sec / 60;
+    var kdFinal = typedRaw.length;
+    var kdRaw = Math.max(kdFinal, Number(rawKeystrokes) || kdFinal);
+    var fullMistakes = fullWrong + fullOmit + fullExtra;
+    var halfMistakes = halfCase + halfPunct + halfSpace;
+    var weightedErr = fullMistakes + 0.5 * halfMistakes;
+
+    var denomWords = Math.max(1, m, (fullWrong + fullOmit + correctWords + halfCase + halfPunct));
+    var errorPct = m === 0 ? 0 : (weightedErr / denomWords) * 100;
+    var accuracyPct = m === 0 ? 100 : Math.max(0, 100 - errorPct);
+    var grossWpm = (kdFinal / 5) / mins;
+    var netWpm = Math.max(0, ((kdFinal / 5) - weightedErr) / mins);
+    var kdph = Math.round((kdFinal / mins) * 60);
+
+    var limit = Number(errLimitPct) || 7;
+    var reqKdph = Number(targetKdph) || 8000;
+    var qualified = m > 0 && errorPct <= limit && kdph >= reqKdph;
+
+    return {
+      mode: 'live',
+      ops: ops,
+      kdFinal: kdFinal,
+      kdRaw: kdRaw,
+      typedWords: m,
+      correctWords: correctWords,
+      fullMistakes: fullMistakes,
+      halfMistakes: halfMistakes,
+      halfSpace: halfSpace,
+      weightedErr: weightedErr,
+      errorPct: errorPct,
+      accuracyPct: accuracyPct,
+      grossWpm: grossWpm,
+      netWpm: netWpm,
+      kdph: kdph,
+      mins: mins,
+      limit: limit,
+      reqKdph: reqKdph,
+      qualified: qualified
+    };
+  }
+
+  function evaluateManual(kd, refWords, fullM, halfM, mins, limitPct, targetKdph){
+    var m = Math.max(0.5, Number(mins) || 15);
+    var finalKd = Math.max(0, Number(kd) || 0);
+    var words = Math.max(1, Number(refWords) || Math.round(finalKd / 5));
+    var f = Math.max(0, Number(fullM) || 0);
+    var h = Math.max(0, Number(halfM) || 0);
+    var weightedErr = f + 0.5 * h;
+    var errorPct = (weightedErr / words) * 100;
+    var accuracyPct = Math.max(0, 100 - errorPct);
+    var grossWpm = (finalKd / 5) / m;
+    var netWpm = Math.max(0, ((finalKd / 5) - weightedErr) / m);
+    var kdph = Math.round((finalKd / m) * 60);
+    var lim = Math.max(0.5, Number(limitPct) || 7);
+    var req = Number(targetKdph) || 8000;
+    return {
+      mode: 'manual',
+      ops: [],
+      kdFinal: finalKd,
+      kdRaw: finalKd,
+      typedWords: words,
+      correctWords: Math.max(0, words - f - h),
+      fullMistakes: f,
+      halfMistakes: h,
+      halfSpace: 0,
+      weightedErr: weightedErr,
+      errorPct: errorPct,
+      accuracyPct: accuracyPct,
+      grossWpm: grossWpm,
+      netWpm: netWpm,
+      kdph: kdph,
+      mins: m,
+      limit: lim,
+      reqKdph: req,
+      qualified: errorPct <= lim && kdph >= req
+    };
+  }
+
+  function pdfEsc(str){
+    return String(str)
+      .replace(/[^\x20-\x7E]/g, function(ch){ return ch === '×' ? 'x' : (ch === '÷' ? '/' : '-'); })
+      .replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  }
+
+  function buildPdfBlob(r){
+    var lines = [];
+    var y = 760;
+    function add(text, font, size, x, dy){
+      lines.push('BT /' + font + ' ' + size + ' Tf ' + x + ' ' + y + ' Td (' + pdfEsc(text) + ') Tj ET');
+      y -= (dy || 18);
+    }
+    add('STORYBRAIN AI - EXAM TYPING & SSC ERROR REPORT', 'F2', 14, 48, 22);
+    add('Preset: ' + r.title + '   |   Date: ' + new Date().toISOString().slice(0, 10), 'F1', 10, 48, 18);
+    lines.push('0.85 w 48 ' + (y + 6) + ' m 547 ' + (y + 6) + ' l S');
+    y -= 10;
+    add('NET SPEED: ' + r.netWpm.toFixed(1) + ' WPM   |   KDPH: ' + r.kdph + '   [' + r.verdict + ']', 'F2', 14, 48, 22);
+    add('Gross Speed: ' + r.grossWpm.toFixed(1) + ' WPM   |   Key Depressions: ' + r.kdFinal + ' (Raw: ' + r.kdRaw + ')', 'F1', 10, 48, 18);
+    add('SSC Error %: ' + r.errorPct.toFixed(2) + '% (Limit <= ' + r.limit + '%)   |   Accuracy: ' + r.accuracyPct.toFixed(1) + '%', 'F1', 10, 48, 20);
+    add('MISTAKE BREAKDOWN', 'F2', 11, 48, 16);
+    add('Full Mistakes (1.0x weight): ' + r.fullMistakes, 'F1', 10, 56, 15);
+    add('Half Mistakes (0.5x weight): ' + r.halfMistakes, 'F1', 10, 56, 15);
+    add('Weighted Error Total: ' + r.weightedErr.toFixed(1) + '   |   Evaluated Words: ' + r.typedWords, 'F1', 10, 56, 20);
+    add('Generated locally at storybrainai.com/tool/exam-typing-speed-test', 'F1', 9, 48, 14);
+
+    var stream = lines.join('\n');
+    var objs = [
+      '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+      '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+      '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>\nendobj\n',
+      '4 0 obj\n<< /Length ' + stream.length + ' >>\nstream\n' + stream + '\nendstream\nendobj\n',
+      '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+      '6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n'
+    ];
+    var pdf = '%PDF-1.4\n';
+    var offs = [0];
+    objs.forEach(function(o){ offs.push(pdf.length); pdf += o; });
+    var xp = pdf.length;
+    pdf += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+    for (var i = 1; i < offs.length; i++){
+      pdf += String(offs[i]).padStart(10, '0') + ' 00000 n \n';
+    }
+    pdf += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xp + '\n%%EOF';
+    return new Blob([pdf], { type: 'application/pdf' });
+  }
+
+  // Runtime state (guarded when executed inside Node unit test sandbox)
+  if (typeof document === 'undefined' || !el('ettPresets')) return;
+
+  var state = {
+    presetKey: 'ssc_cgl',
+    mode: 'test',
+    passageText: PASSAGES[0],
+    durationSec: 900,
+    remainingSec: 900,
+    running: false,
+    finished: false,
+    startTimeMs: 0,
+    timerId: null,
+    rawKeystrokes: 0,
+    backspaces: 0
+  };
+  var lastReport = null;
+  var hist = [];
+  try{ hist = JSON.parse(localStorage.getItem('sb_ett_hist_v1') || '[]') || []; }catch(e){}
+
+  function toast(msg){
+    var t = el('ettToast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._tid);
+    t._tid = setTimeout(function(){ t.classList.remove('show'); }, 2400);
+  }
+
+  function fmtSec(s){
+    var sec = Math.max(0, Math.round(s));
+    var mm = Math.floor(sec / 60);
+    var ss = sec % 60;
+    return String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
+  }
+
+  function renderPassageDisplay(){
+    var box = el('ettPassageBox');
+    if (!box) return;
+    var refWords = state.passageText.trim().split(/\s+/).filter(Boolean);
+    var typedRaw = el('ettTypingInput').value || '';
+    var endedSpace = /\s$/.test(typedRaw);
+    var typedWords = typedRaw.trim() ? typedRaw.trim().split(/\s+/).filter(Boolean) : [];
+    var liveHL = el('ettLiveHighlight').checked;
+    var curIdx = endedSpace ? typedWords.length : Math.max(0, typedWords.length - 1);
+    if (!typedRaw) curIdx = 0;
+
+    box.textContent = '';
+    var activeSpan = null;
+    refWords.forEach(function(w, idx){
+      var sp = document.createElement('span');
+      sp.textContent = w + ' ';
+      if (liveHL){
+        if (idx < typedWords.length && (endedSpace || idx < typedWords.length - 1)){
+          var cls = classifyPair(w, typedWords[idx]);
+          sp.className = cls === 'ok' ? 'ett-w-ok' : ((cls === 'half_case' || cls === 'half_punct') ? 'ett-w-half' : 'ett-w-err');
+        } else if (idx === curIdx && typedRaw.length > 0){
+          sp.className = 'ett-w-cur';
+          activeSpan = sp;
+        }
+      } else if (idx === curIdx && typedRaw.length > 0){
+        sp.className = 'ett-w-cur';
+        activeSpan = sp;
+      }
+      box.appendChild(sp);
+    });
+    if (activeSpan && activeSpan.offsetTop > box.scrollTop + box.clientHeight - 40){
+      box.scrollTop = Math.max(0, activeSpan.offsetTop - 44);
+    }
+    el('ettRefMeta').textContent = refWords.length + ' words · ' + state.passageText.length + ' KD';
+  }
+
+  function renderDiff(ops){
+    var wrap = el('ettDiffBody');
+    if (!wrap) return;
+    if (!ops || !ops.length){
+      wrap.innerHTML = '';
+      var p = document.createElement('p');
+      p.className = 'text-xs text-base-content/60';
+      p.textContent = state.mode === 'calc'
+        ? 'Manual SSC Calculator mode summarizes numerical error counts without word-diff alignment.'
+        : 'Type the passage and click Evaluate & Finish to view word-by-word Full and Half mistake tags.';
+      wrap.appendChild(p);
+      return;
+    }
+    wrap.textContent = '';
+    ops.forEach(function(op){
+      var sp = document.createElement('span');
+      if (op.type === 'ok'){
+        sp.className = 'ett-w-ok';
+        sp.textContent = op.ref + ' ';
+      } else if (op.type === 'half_case' || op.type === 'half_punct'){
+        sp.className = 'ett-w-half';
+        sp.title = 'Expected: ' + op.ref + ' | Typed: ' + op.typed;
+        sp.textContent = op.typed + '[' + op.ref + '] ';
+      } else if (op.type === 'wrong'){
+        sp.className = 'ett-w-err';
+        sp.title = 'Expected: ' + op.ref + ' | Typed: ' + op.typed;
+        sp.textContent = op.typed + '[' + op.ref + '] ';
+      } else if (op.type === 'omit'){
+        sp.className = 'ett-w-omit';
+        sp.textContent = op.ref + ' ';
+      } else if (op.type === 'extra'){
+        sp.className = 'ett-w-extra';
+        sp.textContent = '+' + op.typed + ' ';
+      }
+      wrap.appendChild(sp);
+    });
+  }
+
+  function updateScorecard(res, isFinal){
+    var p = PRESETS[state.presetKey] || PRESETS.ssc_cgl;
+    var verdictText = res.typedWords === 0 ? 'Ready' : (res.qualified ? 'Qualified' : (isFinal ? 'Needs Practice' : 'In Progress'));
+    lastReport = {
+      title: res.mode === 'manual' ? 'Manual SSC Error Check' : p.title,
+      netWpm: res.netWpm,
+      grossWpm: res.grossWpm,
+      kdph: res.kdph,
+      kdFinal: res.kdFinal,
+      kdRaw: res.kdRaw,
+      typedWords: res.typedWords,
+      fullMistakes: res.fullMistakes,
+      halfMistakes: res.halfMistakes,
+      weightedErr: res.weightedErr,
+      errorPct: res.errorPct,
+      accuracyPct: res.accuracyPct,
+      limit: res.limit,
+      verdict: verdictText
+    };
+
+    el('ettHeroWpm').textContent = res.netWpm.toFixed(1);
+    el('ettStatGross').textContent = res.grossWpm.toFixed(1);
+    el('ettStatKdph').textContent = res.kdph.toLocaleString('en-IN');
+    el('ettStatErrPct').textContent = res.errorPct.toFixed(2) + '%';
+    el('ettStatAcc').textContent = res.accuracyPct.toFixed(1) + '%';
+    el('ettStatKdPair').textContent = res.kdFinal + ' / ' + res.kdRaw;
+    el('ettStatFull').textContent = String(res.fullMistakes);
+    el('ettStatHalf').textContent = String(res.halfMistakes) + (res.halfSpace ? ' (incl. ' + res.halfSpace + ' spacing)' : '');
+    el('ettStatWeighted').textContent = res.weightedErr.toFixed(1);
+
+    var vb = el('ettVerdictBadge');
+    vb.textContent = verdictText;
+    vb.className = 'badge badge-md font-semibold ' + (res.typedWords === 0 ? '' : (res.qualified ? 'badge-success' : (isFinal ? 'badge-error' : 'badge-warning')));
+
+    el('ettTraceBox').textContent = 'Net WPM = ((' + res.kdFinal + ' / 5) - ' + res.weightedErr.toFixed(1) + ') / ' + res.mins.toFixed(2) + 'm = ' + res.netWpm.toFixed(1) + ' | Error % = ' + res.weightedErr.toFixed(1) + ' / ' + res.typedWords + ' = ' + res.errorPct.toFixed(2) + '% (Target <= ' + res.limit + '%, KDPH >= ' + res.reqKdph + ')';
+    renderDiff(res.ops);
+  }
+
+  function computeLive(isFinal){
+    var p = PRESETS[state.presetKey] || PRESETS.ssc_cgl;
+    var elapsedSec = state.startTimeMs > 0 ? Math.max(1, (Date.now() - state.startTimeMs) / 1000) : 1;
+    if (isFinal && state.remainingSec === 0) elapsedSec = state.durationSec;
+    var limitPct = Number(el('ettErrorLimitSelect').value) || p.errLimit;
+    var res = evaluateTyping(state.passageText, el('ettTypingInput').value, elapsedSec, state.rawKeystrokes, limitPct, p.targetKdph);
+
+    el('ettLiveWpm').textContent = res.netWpm.toFixed(1);
+    el('ettLiveKd').innerHTML = '';
+    el('ettLiveKd').appendChild(document.createTextNode(res.kdFinal + ' '));
+    var span = document.createElement('span');
+    span.className = 'text-xs font-normal text-base-content/55';
+    span.textContent = '/ ' + p.targetKd;
+    el('ettLiveKd').appendChild(span);
+    el('ettLiveKdph').textContent = String(res.kdph);
+    updateScorecard(res, isFinal);
+    return res;
+  }
+
+  function finishTest(reason){
+    if (state.timerId){ clearInterval(state.timerId); state.timerId = null; }
+    state.running = false;
+    state.finished = true;
+    el('ettTypingInput').disabled = true;
+    el('ettStatusPill').textContent = reason || 'Completed';
+    computeLive(true);
+    toast(reason || 'Test evaluated!');
+  }
+
+  function startTimer(){
+    if (state.running || state.finished) return;
+    state.running = true;
+    state.startTimeMs = Date.now();
+    el('ettStatusPill').textContent = 'Running';
+    state.timerId = setInterval(function(){
+      var elapsed = Math.floor((Date.now() - state.startTimeMs) / 1000);
+      state.remainingSec = Math.max(0, state.durationSec - elapsed);
+      el('ettTimerDisp').textContent = fmtSec(state.remainingSec);
+      computeLive(false);
+      if (state.remainingSec <= 0){
+        finishTest('Time Up - Auto Evaluated');
+      }
+    }, 400);
+  }
+
+  function resetTyping(){
+    if (state.timerId){ clearInterval(state.timerId); state.timerId = null; }
+    var p = PRESETS[state.presetKey] || PRESETS.ssc_cgl;
+    state.durationSec = (Number(el('ettDurationSelect').value) || p.mins) * 60;
+    state.remainingSec = state.durationSec;
+    state.running = false;
+    state.finished = false;
+    state.startTimeMs = 0;
+    state.rawKeystrokes = 0;
+    state.backspaces = 0;
+    el('ettTypingInput').disabled = false;
+    el('ettTypingInput').value = '';
+    el('ettTimerDisp').textContent = fmtSec(state.durationSec);
+    el('ettStatusPill').textContent = 'Ready';
+    el('ettBackspaceCounter').textContent = 'Backspaces used: 0';
+    el('ettLiveWpm').textContent = '0.0';
+    el('ettLiveKdph').textContent = '0';
+    renderPassageDisplay();
+    var blank = evaluateTyping(state.passageText, '', 1, 0, Number(el('ettErrorLimitSelect').value) || 20, p.targetKdph);
+    el('ettLiveKd').innerHTML = '0 <span class="text-xs font-normal text-base-content/55">/ ' + p.targetKd + '</span>';
+    updateScorecard(blank, false);
+  }
+
+  function applyPreset(key){
+    state.presetKey = key;
+    var p = PRESETS[key] || PRESETS.ssc_cgl;
+    document.querySelectorAll('#ettPresets button[data-preset]').forEach(function(b){
+      b.classList.toggle('is-active', b.getAttribute('data-preset') === key);
+    });
+    el('ettActiveRuleHint').textContent = p.hint;
+    el('ettDurationSelect').value = String(p.mins);
+    el('ettErrorLimitSelect').value = String(p.errLimit);
+    el('ettAllowBackspace').checked = !!p.allowBackspace;
+    el('ettManLimit').value = String(p.errLimit);
+    el('ettManMins').value = String(p.mins);
+    resetTyping();
+  }
+
+  function renderHist(){
+    var box = el('ettHistList');
+    if (!box) return;
+    if (!hist.length){
+      box.innerHTML = '<p>No saved attempts yet. Finish a test to record progress locally.</p>';
+      return;
+    }
+    box.textContent = '';
+    hist.forEach(function(item){
+      var row = document.createElement('div');
+      row.className = 'ett-subcard p-2.5 flex items-center justify-between gap-2';
+      var left = document.createElement('div');
+      var t = document.createElement('div');
+      t.className = 'font-semibold text-base-content';
+      t.textContent = item.title;
+      var sub = document.createElement('div');
+      sub.className = 'text-[11px] text-base-content/60 font-mono';
+      sub.textContent = item.netWpm + ' WPM · ' + item.kdph + ' KDPH · Err ' + item.errPct + '%';
+      left.appendChild(t);
+      left.appendChild(sub);
+
+      var b = document.createElement('span');
+      b.className = 'badge badge-xs font-semibold ' + (item.verdict === 'Qualified' ? 'badge-success' : 'badge-ghost');
+      b.textContent = item.verdict;
+      row.appendChild(left);
+      row.appendChild(b);
+      box.appendChild(row);
+    });
+  }
+
+  // Event Wiring
+  el('ettPresets').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-preset]');
+    if (!b) return;
+    applyPreset(b.getAttribute('data-preset'));
+  });
+
+  el('ettModeTabs').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-mode]');
+    if (!b) return;
+    state.mode = b.getAttribute('data-mode');
+    el('ettModeTabs').querySelectorAll('button[data-mode]').forEach(function(t){
+      t.classList.toggle('tab-active', t === b);
+    });
+    el('ettTestPanel').classList.toggle('hidden', state.mode !== 'test');
+    el('ettCalcPanel').classList.toggle('hidden', state.mode !== 'calc');
+    if (state.mode === 'calc'){
+      el('ettManCalcBtn').click();
+    } else {
+      computeLive(state.finished);
+    }
+  });
+
+  el('ettPassageSelect').addEventListener('change', function(){
+    var v = this.value;
+    el('ettCustomWrap').classList.toggle('hidden', v !== 'custom');
+    if (v !== 'custom'){
+      state.passageText = PASSAGES[Number(v) || 0];
+      resetTyping();
+    }
+  });
+
+  el('ettApplyCustomBtn').addEventListener('click', function(){
+    var txt = (el('ettCustomText').value || '').trim();
+    if (txt.split(/\s+/).filter(Boolean).length < 15){
+      toast('Enter at least 15 words for a valid custom passage.');
+      return;
+    }
+    state.passageText = txt;
+    el('ettCustomWrap').classList.add('hidden');
+    resetTyping();
+    toast('Custom passage loaded!');
+  });
+
+  el('ettDurationSelect').addEventListener('change', resetTyping);
+  el('ettErrorLimitSelect').addEventListener('change', function(){ computeLive(state.finished); });
+  el('ettLiveHighlight').addEventListener('change', renderPassageDisplay);
+
+  var inp = el('ettTypingInput');
+  inp.addEventListener('paste', function(e){
+    e.preventDefault();
+    toast('Paste is disabled in exam typing mode.');
+  });
+  inp.addEventListener('keydown', function(e){
+    if (state.finished) return;
+    if (!el('ettAllowBackspace').checked && (e.key === 'Backspace' || e.key === 'Delete')){
+      e.preventDefault();
+      toast('Backspace is locked in this strict exam mode.');
+      return;
+    }
+    if (e.key === 'Backspace'){
+      state.backspaces++;
+      el('ettBackspaceCounter').textContent = 'Backspaces used: ' + state.backspaces;
+    } else if (e.key.length === 1){
+      state.rawKeystrokes++;
+    }
+  });
+  inp.addEventListener('input', function(){
+    if (!state.running && !state.finished && inp.value.length > 0){
+      startTimer();
+    }
+    renderPassageDisplay();
+    computeLive(false);
+  });
+
+  el('ettSubmitBtn').addEventListener('click', function(){
+    if (!el('ettTypingInput').value.trim()){
+      toast('Type part of the passage before evaluating.');
+      return;
+    }
+    finishTest('Evaluated Manually');
+  });
+  el('ettResetBtn').addEventListener('click', function(){
+    resetTyping();
+    toast('Passage restarted.');
+  });
+
+  el('ettManCalcBtn').addEventListener('click', function(){
+    var p = PRESETS[state.presetKey] || PRESETS.ssc_cgl;
+    var res = evaluateManual(
+      el('ettManKd').value,
+      el('ettManWords').value,
+      el('ettManFull').value,
+      el('ettManHalf').value,
+      el('ettManMins').value,
+      el('ettManLimit').value,
+      p.targetKdph
+    );
+    updateScorecard(res, true);
+  });
+
+  el('ettSaveBtn').addEventListener('click', function(){
+    if (!lastReport || lastReport.typedWords === 0){
+      toast('Complete a test or calculation first.');
+      return;
+    }
+    hist.unshift({
+      title: lastReport.title,
+      netWpm: lastReport.netWpm.toFixed(1),
+      kdph: lastReport.kdph,
+      errPct: lastReport.errorPct.toFixed(2),
+      verdict: lastReport.verdict
+    });
+    hist = hist.slice(0, 15);
+    try{ localStorage.setItem('sb_ett_hist_v1', JSON.stringify(hist)); }catch(e){}
+    renderHist();
+    toast('Attempt saved locally!');
+  });
+
+  el('ettClearHistBtn').addEventListener('click', function(){
+    hist = [];
+    try{ localStorage.removeItem('sb_ett_hist_v1'); }catch(e){}
+    renderHist();
+    toast('Attempt history cleared.');
+  });
+
+  el('ettPdfBtn').addEventListener('click', function(){
+    if (!lastReport){ return; }
+    var blob = buildPdfBlob(lastReport);
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'exam-typing-speed-report.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    toast('PDF report downloaded!');
+  });
+
+  el('ettPrintBtn').addEventListener('click', function(){ window.print(); });
+  el('ettCopyBtn').addEventListener('click', function(){
+    if (!lastReport) return;
+    var txt = lastReport.title + ': ' + lastReport.netWpm.toFixed(1) + ' Net WPM (' + lastReport.kdph + ' KDPH, Error ' + lastReport.errorPct.toFixed(2) + '%) - ' + lastReport.verdict;
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ toast('Scorecard copied!'); });
+    }
+  });
+  el('ettShareBtn').addEventListener('click', function(){
+    var url = window.location.origin + window.location.pathname + '?preset=' + encodeURIComponent(state.presetKey);
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(function(){ toast('Share link copied!'); });
+    }
+  });
+
+  var sp = new URLSearchParams(window.location.search);
+  var reqPreset = sp.get('preset');
+  renderHist();
+  applyPreset(PRESETS[reqPreset] ? reqPreset : 'ssc_cgl');
+})();
+</script>
+
+{{ tool_section_end() }}
+{% endblock %}

@@ -1,0 +1,919 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
+
+{% block head %}
+<style>
+.gsc-panel{background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:12px;padding:1.25rem}
+.gsc-subcard{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:12px}
+.gsc-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:12px;font-weight:600;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;transition:all .14s;touch-action:manipulation;white-space:nowrap}
+.gsc-pill:hover{border-color:var(--color-base-content)}
+.gsc-pill.is-active{background:#111111;color:#ffffff;border-color:#111111}
+[data-theme="night"] .gsc-pill.is-active{background:#ffffff;color:#111111;border-color:#ffffff}
+.gsc-pill:focus-visible,.gsc-btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.gsc-scroll{overscroll-behavior:contain}
+.gsc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-100);color:var(--color-base-content);border:1px solid var(--color-base-300);border-radius:12px;padding:10px 18px;font-weight:600;font-size:13px;box-shadow:0 10px 25px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);pointer-events:none;transition:all .22s ease;display:flex;align-items:center;gap:8px}
+.gsc-toast.show{opacity:1;transform:translateY(0)}
+@media print{
+  header,nav,.bottom-nav,#cookieConsent,footer,.gsc-no-print,.breadcrumb{display:none!important}
+  body{padding:0!important;background:#ffffff!important;color:#111111!important}
+  .gsc-panel,.gsc-subcard{border:1px solid #d1d5db!important;background:#ffffff!important;box-shadow:none!important}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{{ tool_hero_section("globe", "Bavarian Formula, WES 4.0 & Study-Abroad Grader", "INTERNATIONAL GPA &", "GERMAN GRADE", seo_data.description if seo_data else "Convert 10-point CGPA or percentage into German grades (Modified Bavarian Formula for uni-assist), US 4.0 WES GPA, Canada 4.33 GPA, UK Honours, Australian 7-point GPA, and ECTS.") }}
+
+<div class="space-y-6 reveal" style="animation-delay:0.15s">
+
+  <!-- Country / Evaluation Presets & Mode Tabs -->
+  <section class="gsc-panel gsc-no-print" aria-label="Study abroad destination presets">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+      <div class="flex flex-wrap items-center gap-2">
+        {{ lucide_icon("sparkles", "w-4 h-4 text-base-content/70", 16) | safe }}
+        <h2 class="font-display text-base font-semibold tracking-tight text-base-content">Study-Abroad Destination Presets</h2>
+        <span class="badge badge-sm badge-soft font-mono">DE · US · CA · UK · AU</span>
+      </div>
+      <div class="flex flex-wrap gap-1.5" id="gscPresets">
+        <button type="button" class="gsc-pill is-active" data-preset="germany_10pt">Germany (10-Pt Direct)</button>
+        <button type="button" class="gsc-pill" data-preset="germany_pct">Germany (% First)</button>
+        <button type="button" class="gsc-pill" data-preset="us_wes">USA (4.0 WES)</button>
+        <button type="button" class="gsc-pill" data-preset="canada_433">Canada (4.33 / 4.0)</button>
+        <button type="button" class="gsc-pill" data-preset="uk_honours">UK Honours (1st / 2:1)</button>
+        <button type="button" class="gsc-pill" data-preset="aus_7pt">Australia (7-Pt GPA)</button>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div role="tablist" id="gscModeTabs" class="tabs tabs-box tabs-xs sm:tabs-sm flex-wrap max-w-full bg-base-100 border border-base-300 p-1">
+        <button type="button" role="tab" class="tab font-semibold tab-active gsc-btn" data-mode="quick">Quick Scale Converter</button>
+        <button type="button" role="tab" class="tab font-semibold gsc-btn" data-mode="transcript">WES Course-by-Course</button>
+        <button type="button" role="tab" class="tab font-semibold gsc-btn" data-mode="bavarian">Bavarian Formula &amp; Target</button>
+      </div>
+      <span id="gscRuleHint" class="text-xs text-base-content/65 font-medium">uni-assist Bavarian Formula · Nmax 10.0, Nmin 4.0 (1.0 = Best, 4.0 = Min Pass)</span>
+    </div>
+  </section>
+
+  <!-- Main 2-Column Workspace -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+    <!-- Left Column: Inputs & Breakdown Reference -->
+    <div class="min-w-0 lg:col-span-7 space-y-5">
+
+      <!-- Mode 1: Quick Scale Converter -->
+      <section id="gscQuickPanel" class="gsc-panel space-y-4" aria-label="Quick international GPA converter">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 class="font-display text-lg font-semibold text-base-content">Enter Your Current CGPA, % or GPA</h3>
+          <button type="button" id="gscResetBtn" class="btn btn-xs btn-ghost border border-base-300 gap-1 gsc-btn gsc-no-print">
+            {{ lucide_icon("rotate-ccw", "w-3.5 h-3.5", 14) | safe }}
+            <span>Reset Preset</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold text-base-content/75 mb-1">Input Score Scale</span>
+            <select id="gscInputScale" class="select select-bordered select-sm cal-input bg-base-100 font-medium">
+              <option value="cgpa10">10-Point CGPA (India / ECTS 10)</option>
+              <option value="pct100">Percentage (0% to 100%)</option>
+              <option value="gpa4">US 4.0 GPA Scale</option>
+              <option value="german5">German Grade (1.0 to 5.0)</option>
+            </select>
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold text-base-content/75 mb-1">Your Score (<span id="gscScoreRangeLabel">0.00 - 10.00</span>)</span>
+            <input type="number" id="gscScoreVal" value="8.40" min="0" max="100" step="0.01" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+
+          <label class="form-control" id="gscUnivPctWrap">
+            <span class="label-text text-xs font-semibold text-base-content/75 mb-1">CGPA &rarr; Percentage Formula</span>
+            <select id="gscUnivFormula" class="select select-bordered select-sm cal-input bg-base-100 font-medium">
+              <option value="x10">Standard (CGPA &times; 10)</option>
+              <option value="x95">CBSE / UGC / DU (CGPA &times; 9.5)</option>
+              <option value="sub075">VTU 2018 / MAKAUT ((CGPA - 0.75) &times; 10)</option>
+              <option value="mu">Mumbai Univ Engg (7.1 &times; CGPA + 11)</option>
+              <option value="gtu">GTU / AICTE ((CGPA - 0.5) &times; 10)</option>
+              <option value="sppu">SPPU Pune (CGPA &times; 8.9)</option>
+            </select>
+          </label>
+
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold text-base-content/75 mb-1">Min Passing Grade (Nmin for Bavarian)</span>
+            <select id="gscPassFloor" class="select select-bordered select-sm cal-input bg-base-100 font-mono">
+              <option value="auto">Auto by Scale (4.0 on 10-pt / 40% / 1.0 on 4.0)</option>
+              <option value="4.0">4.0 / 10 (Standard India 40% Pass)</option>
+              <option value="4.5">4.5 / 10 (Strict Institute Pass)</option>
+              <option value="5.0">5.0 / 10 (50% Pass Floor)</option>
+              <option value="35">35% Pass (State Board / Anna / VTU SEE)</option>
+              <option value="40">40% Pass (Standard Univ Passing)</option>
+              <option value="50">50% Pass (Honours / PG Cutoff)</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <label class="flex items-center gap-2 cursor-pointer text-xs font-medium text-base-content/80">
+            <input type="checkbox" id="gscPctFirstToggle" class="checkbox checkbox-xs checkbox-neutral">
+            <span>Convert 10-pt CGPA to % via university formula before Bavarian calculation</span>
+          </label>
+          <span class="badge badge-xs badge-soft font-mono" id="gscPctEqChip">Equiv: 84.0%</span>
+        </div>
+      </section>
+
+      <!-- Mode 2: WES / Course-by-Course Transcript Calculator -->
+      <section id="gscTranscriptPanel" class="gsc-panel hidden space-y-4" aria-label="Course-by-course WES GPA calculator">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="font-display text-lg font-semibold text-base-content">WES-Style Course-by-Course Credit Sheet</h3>
+            <p class="text-xs text-base-content/65">Enter subject credits and marks/grades to compare Credit-Weighted US 4.0 (Band vs Linear) and German Bavarian GPA.</p>
+          </div>
+          <button type="button" id="gscAddCourseBtn" class="btn btn-xs btn-primary gap-1 gsc-btn gsc-no-print">
+            {{ lucide_icon("plus", "w-3.5 h-3.5", 14) | safe }}
+            <span>Add Course</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold text-base-content/75 mb-1">Course Grade Input Format</span>
+            <select id="gscCourseFmt" class="select select-bordered select-sm cal-input bg-base-100 font-medium">
+              <option value="gp10">10-Point Grade Points (0 - 10)</option>
+              <option value="pct">Subject Marks % (0 - 100)</option>
+            </select>
+          </label>
+          <div class="gsc-subcard px-3 py-2 flex items-center justify-between">
+            <span class="text-xs text-base-content/65 font-medium">Total Transcript Credits</span>
+            <span id="gscTotalCreditsVal" class="font-mono font-bold text-sm text-base-content">20 Cr</span>
+          </div>
+        </div>
+
+        <div id="gscCourseRows" class="space-y-2.5"></div>
+      </section>
+
+      <!-- Mode 3: Custom Bavarian Formula Lab & Target Cutoff Checker -->
+      <section id="gscBavarianPanel" class="gsc-panel hidden space-y-4" aria-label="Custom Modified Bavarian Formula calculator">
+        <div class="flex items-center gap-2">
+          {{ lucide_icon("sliders-horizontal", "w-4 h-4 text-primary", 16) | safe }}
+          <h3 class="font-display text-lg font-semibold text-base-content">Modified Bavarian Formula &amp; German Cutoff Target</h3>
+        </div>
+        <p class="text-xs text-base-content/70 leading-relaxed">
+          Works with any university scale globally (Bangladesh, Nepal, Pakistan, Nigeria, Europe, UK, US). Set your transcript maximum (Nmax), minimum passing score (Nmin), and score (Nd) — or check what minimum score you need to hit a German university admission cutoff.
+        </p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold mb-1">Max Possible Grade (Nmax)</span>
+            <input type="number" id="gscBavNmax" value="10" min="1" max="1000" step="0.1" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold mb-1">Min Passing Grade (Nmin)</span>
+            <input type="number" id="gscBavNmin" value="4" min="0" max="999" step="0.1" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+          <label class="form-control">
+            <span class="label-text text-xs font-semibold mb-1">Your Current Score (Nd)</span>
+            <input type="number" id="gscBavNd" value="8.2" min="0" max="1000" step="0.01" class="input input-bordered input-sm cal-input bg-base-100 font-mono">
+          </label>
+        </div>
+
+        <div class="gsc-subcard p-3.5 space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs font-semibold text-base-content">Reverse German Admission Cutoff Checker</span>
+            <span class="badge badge-xs badge-soft font-mono">Target N_d Solver</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-3">
+            <label class="flex items-center gap-2 text-xs text-base-content/75 font-medium">
+              <span>Target German Grade &le;</span>
+              <input type="number" id="gscBavTargetDe" value="2.0" min="1.0" max="4.0" step="0.1" class="input input-bordered input-sm cal-input w-24 bg-base-100 font-mono">
+            </label>
+            <div id="gscBavTargetOut" class="text-xs font-mono font-bold text-base-content">
+              Minimum required on your scale: 8.00 / 10
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Global Reference Conversion Matrix -->
+      <section class="gsc-panel space-y-3" aria-label="International grade equivalency reference table">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h3 class="font-display text-base font-semibold text-base-content">10-Point CGPA to German, US 4.0, UK &amp; Canada Reference</h3>
+          <span class="badge badge-xs badge-soft font-mono">Nmin = 4.0 / 40%</span>
+        </div>
+        <div class="overflow-x-auto gsc-scroll">
+          <table class="table table-xs sm:table-sm">
+            <thead>
+              <tr>
+                <th>10-Pt CGPA</th>
+                <th>German (Bavarian)</th>
+                <th>German Label</th>
+                <th>US 4.0 (WES / Linear)</th>
+                <th>UK Honours</th>
+                <th>ECTS</th>
+              </tr>
+            </thead>
+            <tbody id="gscRefTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Right Column: Sticky Verdict Panel + Country Grid + Exports -->
+    <div class="min-w-0 lg:col-span-5 space-y-5 lg:sticky lg:top-24">
+
+      <section class="gsc-panel space-y-4" aria-label="Converted international GPA results">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/55 mb-1" id="gscHeroLabel">German Bavarian Grade</div>
+            <div class="flex items-baseline gap-2.5">
+              <span id="gscHeroPrimary" class="text-4xl sm:text-5xl font-display font-semibold tracking-tight text-base-content tnum">1.80</span>
+              <span id="gscHeroSub" class="text-sm font-semibold text-base-content/65">Gut (Good)</span>
+            </div>
+          </div>
+          <span id="gscTierBadge" class="badge badge-md badge-success font-semibold">Competitive Admit</span>
+        </div>
+
+        <!-- 6-Country Equivalents Grid -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div class="gsc-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">US 4.0 (Proportional)</div>
+            <div id="gscOutUsLin" class="text-lg font-mono font-bold tnum">3.36 / 4.0</div>
+          </div>
+          <div class="gsc-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">US 4.0 (WES Band Est.)</div>
+            <div id="gscOutUsWes" class="text-lg font-mono font-bold text-primary tnum">3.70 / 4.0</div>
+          </div>
+          <div class="gsc-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">German Bavarian Grade</div>
+            <div id="gscOutDe" class="text-base font-mono font-bold tnum">1.80 (Gut)</div>
+          </div>
+          <div class="gsc-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">Canada 4.33 Scale</div>
+            <div id="gscOutCa" class="text-base font-mono font-bold tnum">3.64 / 4.33</div>
+          </div>
+          <div class="gsc-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">UK Degree Class</div>
+            <div id="gscOutUk" class="text-sm font-bold leading-snug mt-0.5">First Class (1st)</div>
+          </div>
+          <div class="gsc-subcard p-3">
+            <div class="text-[11px] font-semibold text-base-content/55">Australia 7-Pt &amp; ECTS</div>
+            <div id="gscOutAuEcts" class="text-base font-mono font-bold tnum">6.0 &middot; ECTS B</div>
+          </div>
+        </div>
+
+        <!-- Exact Bavarian & WES Formula Trace -->
+        <div id="gscTraceBox" class="rounded-xl bg-base-100 border border-base-300 p-3 text-xs font-mono text-base-content/75 leading-relaxed">
+          Bavarian: 1 + 3 &times; (10 - 8.40) / (10 - 4) = 1.80 (Gut) &middot; US Linear: (8.40 / 10) &times; 4 = 3.36
+        </div>
+
+        <!-- Actions -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 gsc-no-print">
+          <button type="button" id="gscPdfBtn" class="btn btn-sm btn-primary gap-1.5 gsc-btn col-span-2">
+            {{ lucide_icon("file-text", "w-3.5 h-3.5", 14) | safe }}
+            <span>PDF Report</span>
+          </button>
+          <button type="button" id="gscPrintBtn" class="btn btn-sm btn-ghost border border-base-300 gap-1 gsc-btn">
+            {{ lucide_icon("printer", "w-3.5 h-3.5", 14) | safe }}
+            <span>Print</span>
+          </button>
+          <button type="button" id="gscCopyBtn" class="btn btn-sm btn-ghost border border-base-300 gap-1 gsc-btn">
+            {{ lucide_icon("copy", "w-3.5 h-3.5", 14) | safe }}
+            <span>Copy</span>
+          </button>
+        </div>
+
+        <div class="flex items-center justify-between gap-2 gsc-no-print">
+          <button type="button" id="gscSaveBtn" class="btn btn-xs btn-ghost border border-base-300 gap-1 gsc-btn">
+            {{ lucide_icon("award", "w-3.5 h-3.5", 14) | safe }}
+            <span>Save Conversion</span>
+          </button>
+          <button type="button" id="gscShareBtn" class="btn btn-xs btn-ghost border border-base-300 gap-1 gsc-btn">
+            {{ lucide_icon("share-2", "w-3.5 h-3.5", 14) | safe }}
+            <span>Copy Share Link</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Local History Panel -->
+      <section class="gsc-panel space-y-3 gsc-no-print" aria-label="Saved international GPA conversions">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("history", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h3 class="font-display text-sm font-semibold text-base-content">Saved GPA Conversions</h3>
+          </div>
+          <button type="button" id="gscClearHistBtn" class="text-xs font-semibold text-base-content/60 hover:text-error cursor-pointer">Clear</button>
+        </div>
+        <div id="gscHistList" class="space-y-2 text-xs text-base-content/65">
+          <p>No saved conversions yet.</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<div id="gscToast" class="gsc-toast" role="status" aria-live="polite"></div>
+
+<script nonce="{{ nonce }}">
+(function(){
+  var PRESETS = {
+    germany_10pt: {
+      scale: 'cgpa10', val: 8.40, pctFirst: false, passFloor: '4.0', univFormula: 'x10', focus: 'german',
+      hint: 'uni-assist Bavarian Formula \u00B7 Nmax 10.0, Nmin 4.0 (1.0 = Best, 4.0 = Min Pass)'
+    },
+    germany_pct: {
+      scale: 'cgpa10', val: 8.40, pctFirst: true, passFloor: '40', univFormula: 'x95', focus: 'german',
+      hint: 'Percentage-First Bavarian \u00B7 Converts CGPA to % via university rule, then Nmax=100, Nmin=40'
+    },
+    us_wes: {
+      scale: 'cgpa10', val: 8.40, pctFirst: false, passFloor: '4.0', univFormula: 'x10', focus: 'us',
+      hint: 'US Graduate Admissions \u00B7 Compares Direct (CGPA/10)\u00D74 scaling with WES-style course grade tiers'
+    },
+    canada_433: {
+      scale: 'cgpa10', val: 8.40, pctFirst: false, passFloor: '4.0', univFormula: 'x10', focus: 'ca',
+      hint: 'Canada 4.33 / 4.0 Scale \u00B7 Proportional & A+/A/B+ band equivalents alongside 4.0 GPA'
+    },
+    uk_honours: {
+      scale: 'pct100', val: 72.0, pctFirst: false, passFloor: '40', univFormula: 'x10', focus: 'uk',
+      hint: 'UK Degree Classification \u00B7 First Class (70%+), Upper Second 2:1 (60-69%), Lower Second 2:2 (50-59%)'
+    },
+    aus_7pt: {
+      scale: 'cgpa10', val: 8.40, pctFirst: false, passFloor: '4.0', univFormula: 'x10', focus: 'au',
+      hint: 'Australia 7-Point & ECTS \u00B7 High Distinction (7.0) to Pass (4.0) with European ECTS bands'
+    }
+  };
+
+  var DEFAULT_COURSES = [
+    { name: 'Data Structures & Algorithms', credits: 4, score: 9.0 },
+    { name: 'Operating Systems', credits: 4, score: 8.0 },
+    { name: 'Database Management Systems', credits: 4, score: 8.5 },
+    { name: 'Computer Networks', credits: 4, score: 7.5 },
+    { name: 'Discrete Mathematics', credits: 4, score: 9.0 }
+  ];
+
+  var state = {
+    presetKey: 'germany_10pt',
+    mode: 'quick',
+    courses: DEFAULT_COURSES.map(function(c){ return Object.assign({}, c); })
+  };
+
+  var lastReport = null;
+  var hist = [];
+  try{ hist = JSON.parse(localStorage.getItem('sb_gsc_hist_v1') || '[]') || []; }catch(e){ hist = []; }
+
+  function el(id){ return document.getElementById(id); }
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  function toast(msg){
+    var t = el('gscToast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function(){ t.classList.remove('show'); }, 2400);
+  }
+
+  function applyUnivFormula(cgpa, formulaKey){
+    if (formulaKey === 'x95') return clamp(cgpa * 9.5, 0, 100);
+    if (formulaKey === 'sub075') return clamp((cgpa - 0.75) * 10, 0, 100);
+    if (formulaKey === 'mu') return clamp((cgpa * 7.1) + 11, 0, 100);
+    if (formulaKey === 'gtu') return clamp((cgpa - 0.5) * 10, 0, 100);
+    if (formulaKey === 'sppu') return clamp(cgpa * 8.9, 0, 100);
+    return clamp(cgpa * 10, 0, 100);
+  }
+
+  function pctToWesSingle(pct){
+    if (pct >= 85) return 4.00;
+    if (pct >= 75) return 3.70;
+    if (pct >= 65) return 3.30;
+    if (pct >= 60) return 3.00;
+    if (pct >= 55) return 2.70;
+    if (pct >= 50) return 2.30;
+    if (pct >= 40) return 2.00;
+    if (pct >= 35) return 1.00;
+    return 0.00;
+  }
+
+  function germanLabel(g){
+    if (g <= 1.50) return { tag: 'Sehr gut', en: 'Very Good', cls: 'badge-success', tier: 'Top Tier Admit' };
+    if (g <= 2.50) return { tag: 'Gut', en: 'Good', cls: 'badge-success', tier: 'Competitive Admit' };
+    if (g <= 3.50) return { tag: 'Befriedigend', en: 'Satisfactory', cls: 'badge-warning', tier: 'Eligible Range' };
+    if (g <= 4.00) return { tag: 'Ausreichend', en: 'Sufficient Pass', cls: 'badge-warning', tier: 'Minimum Pass' };
+    return { tag: 'Nicht bestanden', en: 'Below Pass', cls: 'badge-error', tier: 'Below Min Pass' };
+  }
+
+  function germanToEcts(g){
+    if (g <= 1.50) return 'ECTS A (Excellent)';
+    if (g <= 2.00) return 'ECTS B (Very Good)';
+    if (g <= 2.50) return 'ECTS C (Good)';
+    if (g <= 3.50) return 'ECTS D (Satisfactory)';
+    if (g <= 4.00) return 'ECTS E (Sufficient)';
+    return 'ECTS F (Fail)';
+  }
+
+  function pctToUk(pct){
+    if (pct >= 70) return 'First Class Honours (1st)';
+    if (pct >= 60) return 'Upper Second-Class (2:1)';
+    if (pct >= 50) return 'Lower Second-Class (2:2)';
+    if (pct >= 40) return 'Third-Class Honours (3rd)';
+    return 'Below UK Honours Pass';
+  }
+
+  function pctToAus(pct){
+    if (pct >= 85) return '7.0 (High Distinction)';
+    if (pct >= 75) return '6.0 (Distinction)';
+    if (pct >= 65) return '5.0 (Credit)';
+    if (pct >= 50) return '4.0 (Pass)';
+    return '1.5 - 3.0 (Below Pass)';
+  }
+
+  function pctToCanada(pct){
+    if (pct >= 90) return 4.33;
+    if (pct >= 85) return 4.00;
+    if (pct >= 80) return 3.67;
+    if (pct >= 76) return 3.33;
+    if (pct >= 72) return 3.00;
+    if (pct >= 68) return 2.67;
+    if (pct >= 64) return 2.33;
+    if (pct >= 60) return 2.00;
+    if (pct >= 55) return 1.67;
+    if (pct >= 50) return 1.00;
+    return 0.00;
+  }
+
+  function computeBavarian(nd, nmax, nmin){
+    if (nmax <= nmin) return { raw: 4.0, display: 4.0, belowPass: false };
+    var raw = 1 + 3 * ((nmax - nd) / (nmax - nmin));
+    var clamped = Math.max(1.0, Math.min(5.0, raw));
+    return {
+      raw: raw,
+      display: Math.round(clamped * 100) / 100,
+      belowPass: nd < nmin
+    };
+  }
+
+  function evaluateScales(opts){
+    var pct = clamp(Number(opts.pct) || 0, 0, 100);
+    var cgpa10 = clamp(Number(opts.cgpa10) || 0, 0, 10);
+    var bav = computeBavarian(opts.nd, opts.nmax, opts.nmin);
+    var usLin = Math.round(((cgpa10 / 10) * 4.0) * 100) / 100;
+    var usWes = typeof opts.overrideWes === 'number' ? opts.overrideWes : pctToWesSingle(pct);
+    var ca433 = pctToCanada(pct);
+    var deMeta = germanLabel(bav.raw);
+    return {
+      pct: pct,
+      cgpa10: cgpa10,
+      deVal: bav.display,
+      deRaw: bav.raw,
+      belowPass: bav.belowPass,
+      deMeta: deMeta,
+      usLin: usLin,
+      usWes: usWes,
+      ca433: ca433,
+      uk: pctToUk(pct),
+      aus: pctToAus(pct),
+      ects: germanToEcts(bav.raw)
+    };
+  }
+
+  function renderReferenceTable(){
+    var rows = [9.5, 9.0, 8.5, 8.0, 7.5, 7.0, 6.5, 6.0, 5.0];
+    var html = rows.map(function(c){
+      var b = computeBavarian(c, 10, 4.0);
+      var meta = germanLabel(b.raw);
+      var usL = ((c / 10) * 4.0).toFixed(2);
+      var usW = pctToWesSingle(c * 10).toFixed(2);
+      var uk = c >= 7.0 ? 'First Class (1st)' : (c >= 6.0 ? 'Upper Second (2:1)' : 'Lower Second (2:2)');
+      var ects = germanToEcts(b.raw).replace(/ \(.*\)/, '');
+      return '<tr>' +
+        '<td class="font-mono font-bold">' + c.toFixed(1) + '</td>' +
+        '<td class="font-mono font-bold">' + b.display.toFixed(2) + '</td>' +
+        '<td><span class="badge badge-xs ' + meta.cls + '">' + meta.tag + '</span></td>' +
+        '<td class="font-mono">' + usW + ' WES / ' + usL + '</td>' +
+        '<td class="text-xs">' + uk + '</td>' +
+        '<td class="font-mono">' + ects + '</td>' +
+      '</tr>';
+    }).join('');
+    el('gscRefTableBody').innerHTML = html;
+  }
+
+  function updateResultCards(res, opts){
+    var focus = (PRESETS[state.presetKey] && PRESETS[state.presetKey].focus) || 'german';
+    if (opts && opts.customBav){
+      el('gscHeroLabel').textContent = 'Modified Bavarian German Grade';
+      el('gscHeroPrimary').textContent = res.belowPass ? '> 4.00' : res.deVal.toFixed(2);
+      el('gscHeroSub').textContent = res.deMeta.tag + ' (' + res.deMeta.en + ')';
+    } else if (focus === 'us'){
+      el('gscHeroLabel').textContent = 'Estimated US 4.0 GPA (WES Band / Linear)';
+      el('gscHeroPrimary').textContent = res.usWes.toFixed(2);
+      el('gscHeroSub').textContent = 'Proportional: ' + res.usLin.toFixed(2) + ' / 4.0';
+    } else if (focus === 'ca'){
+      el('gscHeroLabel').textContent = 'Canadian 4.33 GPA Equivalent';
+      el('gscHeroPrimary').textContent = res.ca433.toFixed(2);
+      el('gscHeroSub').textContent = 'Out of 4.33 (' + res.pct.toFixed(1) + '%)';
+    } else if (focus === 'uk'){
+      el('gscHeroLabel').textContent = 'UK Honours Classification';
+      el('gscHeroPrimary').textContent = res.pct.toFixed(1) + '%';
+      el('gscHeroSub').textContent = res.uk;
+    } else if (focus === 'au'){
+      el('gscHeroLabel').textContent = 'Australian 7-Point GPA';
+      el('gscHeroPrimary').textContent = res.aus.split(' ')[0];
+      el('gscHeroSub').textContent = res.aus;
+    } else {
+      el('gscHeroLabel').textContent = 'German Bavarian Grade (uni-assist)';
+      el('gscHeroPrimary').textContent = res.belowPass ? '> 4.00' : res.deVal.toFixed(2);
+      el('gscHeroSub').textContent = res.deMeta.tag + ' (' + res.deMeta.en + ')';
+    }
+
+    var badge = el('gscTierBadge');
+    badge.className = 'badge badge-md font-semibold ' + res.deMeta.cls;
+    badge.textContent = res.deMeta.tier;
+
+    el('gscOutUsLin').textContent = res.usLin.toFixed(2) + ' / 4.0';
+    el('gscOutUsWes').textContent = res.usWes.toFixed(2) + ' / 4.0';
+    el('gscOutDe').textContent = (res.belowPass ? '>4.00' : res.deVal.toFixed(2)) + ' (' + res.deMeta.tag + ')';
+    el('gscOutCa').textContent = res.ca433.toFixed(2) + ' / 4.33';
+    el('gscOutUk').textContent = res.uk;
+    el('gscOutAuEcts').textContent = res.aus.split(' ')[0] + ' \u00B7 ' + res.ects.replace(/ \(.*\)/, '');
+
+    el('gscTraceBox').textContent = opts.trace;
+
+    lastReport = {
+      title: opts.title,
+      heroLabel: el('gscHeroLabel').textContent,
+      heroPrimary: el('gscHeroPrimary').textContent,
+      heroSub: el('gscHeroSub').textContent,
+      tier: res.deMeta.tier,
+      usLin: res.usLin.toFixed(2) + ' / 4.0',
+      usWes: res.usWes.toFixed(2) + ' / 4.0',
+      deGrade: (res.belowPass ? '>4.00' : res.deVal.toFixed(2)) + ' (' + res.deMeta.tag + ')',
+      caGrade: res.ca433.toFixed(2) + ' / 4.33',
+      ukClass: res.uk,
+      ausEcts: res.aus + ' | ' + res.ects,
+      trace: opts.trace
+    };
+  }
+
+  function resolveFloor(kind){
+    var sel = el('gscPassFloor').value;
+    if (sel !== 'auto'){
+      var n = Number(sel);
+      if (kind === 'pct') return n <= 10 ? n * 10 : n;
+      if (kind === 'cgpa10') return n > 10 ? n / 10 : n;
+      return n;
+    }
+    if (kind === 'pct') return 40;
+    if (kind === 'gpa4') return 1.0;
+    return 4.0;
+  }
+
+  function calculateQuick(){
+    var scale = el('gscInputScale').value;
+    var val = Number(el('gscScoreVal').value);
+    if (isNaN(val)) val = 0;
+    var uFormula = el('gscUnivFormula').value;
+    var pctFirst = el('gscPctFirstToggle').checked;
+
+    var cgpa10 = 0, pct = 0, nd = 0, nmax = 10, nmin = 4.0, trace = '';
+    if (scale === 'cgpa10'){
+      el('gscScoreRangeLabel').textContent = '0.00 - 10.00';
+      cgpa10 = clamp(val, 0, 10);
+      pct = applyUnivFormula(cgpa10, uFormula);
+      if (pctFirst){
+        nd = pct;
+        nmax = 100;
+        nmin = resolveFloor('pct');
+        trace = 'Percentage-First Bavarian: ' + pct.toFixed(1) + '% -> 1 + 3 \u00D7 (100 - ' + pct.toFixed(1) + ') / (100 - ' + nmin + ') = ' + computeBavarian(nd, nmax, nmin).display.toFixed(2);
+      } else {
+        nd = cgpa10;
+        nmax = 10;
+        nmin = resolveFloor('cgpa10');
+        trace = 'Bavarian: 1 + 3 \u00D7 (10 - ' + cgpa10.toFixed(2) + ') / (10 - ' + nmin.toFixed(1) + ') = ' + computeBavarian(nd, nmax, nmin).display.toFixed(2) + ' \u00B7 US Linear: (' + cgpa10.toFixed(2) + '/10)\u00D74 = ' + ((cgpa10 / 10) * 4).toFixed(2);
+      }
+    } else if (scale === 'pct100'){
+      el('gscScoreRangeLabel').textContent = '0.0 - 100.0%';
+      pct = clamp(val, 0, 100);
+      cgpa10 = pct / 10;
+      nd = pct;
+      nmax = 100;
+      nmin = resolveFloor('pct');
+      trace = 'Bavarian: 1 + 3 \u00D7 (100 - ' + pct.toFixed(1) + ') / (100 - ' + nmin + ') = ' + computeBavarian(nd, nmax, nmin).display.toFixed(2) + ' \u00B7 Pct ' + pct.toFixed(1) + '%';
+    } else if (scale === 'gpa4'){
+      el('gscScoreRangeLabel').textContent = '0.00 - 4.00';
+      var g4 = clamp(val, 0, 4.0);
+      cgpa10 = (g4 / 4.0) * 10;
+      pct = g4 * 25;
+      nd = g4;
+      nmax = 4.0;
+      nmin = 1.0;
+      trace = 'US 4.0 Bavarian: 1 + 3 \u00D7 (4.0 - ' + g4.toFixed(2) + ') / (4.0 - 1.0) = ' + computeBavarian(nd, nmax, nmin).display.toFixed(2) + ' \u00B7 10-Pt Equiv: ' + cgpa10.toFixed(2);
+    } else {
+      el('gscScoreRangeLabel').textContent = '1.00 - 5.00';
+      var de = clamp(val, 1.0, 5.0);
+      nmin = resolveFloor('cgpa10');
+      cgpa10 = clamp(10 - ((de - 1) / 3) * (10 - nmin), 0, 10);
+      pct = cgpa10 * 10;
+      nd = cgpa10;
+      nmax = 10;
+      trace = 'Reverse Bavarian (' + de.toFixed(2) + ' German Grade) -> Approx 10-Pt CGPA: ' + cgpa10.toFixed(2) + ' (' + pct.toFixed(1) + '%)';
+    }
+
+    el('gscPctEqChip').textContent = 'Equiv: ' + pct.toFixed(1) + '% (' + cgpa10.toFixed(2) + '/10)';
+    var res = evaluateScales({ pct: pct, cgpa10: cgpa10, nd: nd, nmax: nmax, nmin: nmin });
+    updateResultCards(res, {
+      title: scale.toUpperCase() + ' (' + val + ')',
+      trace: trace
+    });
+  }
+
+  function calculateTranscript(){
+    var fmt = el('gscCourseFmt').value;
+    var totCr = 0, weighted10 = 0, weightedWes4 = 0, weightedPct = 0;
+    state.courses.forEach(function(c){
+      var cr = Math.max(0.5, Number(c.credits) || 0);
+      var sc = Number(c.score) || 0;
+      var gp10 = fmt === 'pct' ? clamp(sc / 10, 0, 10) : clamp(sc, 0, 10);
+      var pct = fmt === 'pct' ? clamp(sc, 0, 100) : clamp(sc * 10, 0, 100);
+      var wes4 = pctToWesSingle(pct);
+      totCr += cr;
+      weighted10 += gp10 * cr;
+      weightedWes4 += wes4 * cr;
+      weightedPct += pct * cr;
+    });
+    if (totCr <= 0) totCr = 1;
+    var avg10 = weighted10 / totCr;
+    var avgWes = Math.round((weightedWes4 / totCr) * 100) / 100;
+    var avgPct = weightedPct / totCr;
+    el('gscTotalCreditsVal').textContent = totCr + ' Cr';
+
+    var nmin = resolveFloor('cgpa10');
+    var res = evaluateScales({
+      pct: avgPct, cgpa10: avg10, nd: avg10, nmax: 10, nmin: nmin, overrideWes: avgWes
+    });
+    updateResultCards(res, {
+      title: 'WES Transcript (' + state.courses.length + ' courses, ' + totCr + ' cr)',
+      trace: 'Credit-weighted avg: ' + avg10.toFixed(2) + '/10 CGPA across ' + totCr + ' credits -> WES Course GPA ' + avgWes.toFixed(2) + '/4.0 & German ' + res.deVal.toFixed(2)
+    });
+  }
+
+  function calculateBavarianLab(){
+    var nmax = Number(el('gscBavNmax').value) || 10;
+    var nmin = Number(el('gscBavNmin').value) || 0;
+    var nd = Number(el('gscBavNd').value) || 0;
+    var targetDe = clamp(Number(el('gscBavTargetDe').value) || 2.0, 1.0, 4.0);
+
+    var bav = computeBavarian(nd, nmax, nmin);
+    var normPct = nmax > 0 ? clamp((nd / nmax) * 100, 0, 100) : 0;
+    var cgpa10 = normPct / 10;
+    var reqNd = nmax - ((targetDe - 1) / 3) * (nmax - nmin);
+    el('gscBavTargetOut').textContent = 'Minimum score needed for German \u2264 ' + targetDe.toFixed(1) + ': ' + reqNd.toFixed(2) + ' / ' + nmax;
+
+    var res = evaluateScales({ pct: normPct, cgpa10: cgpa10, nd: nd, nmax: nmax, nmin: nmin });
+    updateResultCards(res, {
+      customBav: true,
+      title: 'Bavarian Lab (Nd ' + nd + ' in ' + nmin + '-' + nmax + ')',
+      trace: 'Modified Bavarian: 1 + 3 \u00D7 (' + nmax + ' - ' + nd + ') / (' + nmax + ' - ' + nmin + ') = ' + (bav.belowPass ? '>4.00 (Fail)' : bav.display.toFixed(2)) + ' \u00B7 Target \u2264 ' + targetDe.toFixed(1) + ' needs ' + reqNd.toFixed(2)
+    });
+  }
+
+  function renderCourseRows(){
+    var wrap = el('gscCourseRows');
+    var fmt = el('gscCourseFmt').value;
+    wrap.innerHTML = state.courses.map(function(c, i){
+      var pct = fmt === 'pct' ? clamp(Number(c.score) || 0, 0, 100) : clamp((Number(c.score) || 0) * 10, 0, 100);
+      var gp4 = pctToWesSingle(pct);
+      return '<div class="gsc-subcard p-2.5 grid grid-cols-12 gap-2 items-center">' +
+        '<input type="text" data-cidx="' + i + '" data-cfield="name" value="' + String(c.name).replace(/"/g, '&quot;') + '" class="input input-bordered input-xs col-span-5 sm:col-span-5 bg-base-100" aria-label="Course name">' +
+        '<label class="col-span-2 flex items-center gap-1 text-[11px] font-mono"><span class="text-base-content/50 hidden sm:inline">Cr</span><input type="number" data-cidx="' + i + '" data-cfield="credits" value="' + c.credits + '" min="0.5" max="20" step="0.5" class="input input-bordered input-xs w-full bg-base-100 font-mono" aria-label="Credits"></label>' +
+        '<label class="col-span-2 flex items-center gap-1 text-[11px] font-mono"><span class="text-base-content/50 hidden sm:inline">Sc</span><input type="number" data-cidx="' + i + '" data-cfield="score" value="' + c.score + '" min="0" max="100" step="0.1" class="input input-bordered input-xs w-full bg-base-100 font-mono" aria-label="Score"></label>' +
+        '<div class="col-span-2 text-right font-mono text-[11px] font-bold"><span class="badge badge-xs badge-soft">' + gp4.toFixed(1) + ' GPA</span></div>' +
+        '<div class="col-span-1 text-right"><button type="button" data-cdel="' + i + '" class="btn btn-xs btn-ghost text-error px-1" aria-label="Remove course">&times;</button></div>' +
+      '</div>';
+    }).join('');
+    calculateTranscript();
+  }
+
+  function calculate(){
+    if (state.mode === 'quick') calculateQuick();
+    else if (state.mode === 'transcript') calculateTranscript();
+    else calculateBavarianLab();
+  }
+
+  function applyPreset(key){
+    var p = PRESETS[key];
+    if (!p) return;
+    state.presetKey = key;
+    document.querySelectorAll('#gscPresets .gsc-pill').forEach(function(b){
+      b.classList.toggle('is-active', b.getAttribute('data-preset') === key);
+    });
+    el('gscInputScale').value = p.scale;
+    el('gscScoreVal').value = p.val;
+    el('gscPctFirstToggle').checked = !!p.pctFirst;
+    el('gscPassFloor').value = p.passFloor;
+    el('gscUnivFormula').value = p.univFormula;
+    el('gscRuleHint').textContent = p.hint;
+    if (state.mode !== 'quick' && key !== 'us_wes') setMode('quick');
+    calculate();
+  }
+
+  function setMode(mode){
+    state.mode = mode;
+    document.querySelectorAll('#gscModeTabs [role="tab"]').forEach(function(t){
+      t.classList.toggle('tab-active', t.getAttribute('data-mode') === mode);
+    });
+    el('gscQuickPanel').classList.toggle('hidden', mode !== 'quick');
+    el('gscTranscriptPanel').classList.toggle('hidden', mode !== 'transcript');
+    el('gscBavarianPanel').classList.toggle('hidden', mode !== 'bavarian');
+    if (mode === 'transcript') renderCourseRows();
+    else calculate();
+  }
+
+  function renderHist(){
+    var box = el('gscHistList');
+    if (!hist.length){
+      box.innerHTML = '<p>No saved conversions yet.</p>';
+      return;
+    }
+    box.innerHTML = hist.map(function(h){
+      return '<div class="gsc-subcard px-3 py-2 flex items-center justify-between gap-2">' +
+        '<div class="min-w-0"><div class="font-semibold text-base-content truncate">' + h.title + '</div><div class="text-[11px] text-base-content/55 font-mono">' + h.deGrade + ' \u00B7 ' + h.usWes + '</div></div>' +
+        '<span class="badge badge-xs badge-soft font-mono">' + h.heroPrimary + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  function asciiSafe(s){ return String(s || '').replace(/[^\x20-\x7E]/g, '-'); }
+  function pdfEsc(s){ return asciiSafe(s).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)'); }
+
+  function buildPdfBlob(rep){
+    var lines = [
+      'StoryBrain AI - International GPA & German Grade Report',
+      '------------------------------------------------------------',
+      'Input Profile : ' + rep.title,
+      rep.heroLabel + ' : ' + rep.heroPrimary + ' (' + rep.heroSub + ')',
+      'Admission Status : ' + rep.tier,
+      '',
+      'Country & University Equivalents:',
+      '  German Bavarian Grade  : ' + rep.deGrade,
+      '  US 4.0 WES-Band Est.   : ' + rep.usWes,
+      '  US 4.0 Proportional    : ' + rep.usLin,
+      '  Canada 4.33 GPA        : ' + rep.caGrade,
+      '  UK Honours Equivalent  : ' + rep.ukClass,
+      '  Australia 7-Pt & ECTS  : ' + rep.ausEcts,
+      '',
+      'Formula Trace:',
+      '  ' + rep.trace,
+      '',
+      'Note: Official WES and uni-assist evaluations apply university-specific grading rules.',
+      'Generated locally at storybrainai.com/tool/gpa-scale-converter'
+    ];
+    var y = 760;
+    var stream = 'BT\n/F1 13 Tf\n50 785 Td\n(' + pdfEsc(lines[0]) + ') Tj\n/F1 10 Tf\n';
+    for (var i = 1; i < lines.length; i++){
+      y -= 18;
+      stream += '1 0 0 1 50 ' + y + ' Tm (' + pdfEsc(lines[i]) + ') Tj\n';
+    }
+    stream += 'ET\n';
+
+    var objs = [
+      '1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n',
+      '2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n',
+      '3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj\n',
+      '4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n',
+      '5 0 obj << /Length ' + stream.length + ' >> stream\n' + stream + 'endstream\nendobj\n'
+    ];
+    var pdf = '%PDF-1.4\n';
+    var offsets = [0];
+    for (var k = 0; k < objs.length; k++){
+      offsets.push(pdf.length);
+      pdf += objs[k];
+    }
+    var xrefPos = pdf.length;
+    pdf += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+    for (var m = 1; m < offsets.length; m++){
+      pdf += String(offsets[m]).padStart(10, '0') + ' 00000 n \n';
+    }
+    pdf += 'trailer << /Size ' + (objs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xrefPos + '\n%%EOF';
+    return new Blob([pdf], { type: 'application/pdf' });
+  }
+
+  el('gscPresets').addEventListener('click', function(e){
+    var btn = e.target.closest('[data-preset]');
+    if (btn) applyPreset(btn.getAttribute('data-preset'));
+  });
+
+  el('gscModeTabs').addEventListener('click', function(e){
+    var tab = e.target.closest('[data-mode]');
+    if (tab) setMode(tab.getAttribute('data-mode'));
+  });
+
+  ['gscInputScale', 'gscScoreVal', 'gscUnivFormula', 'gscPassFloor', 'gscPctFirstToggle', 'gscBavNmax', 'gscBavNmin', 'gscBavNd', 'gscBavTargetDe'].forEach(function(id){
+    el(id).addEventListener('input', calculate);
+    el(id).addEventListener('change', calculate);
+  });
+
+  el('gscCourseFmt').addEventListener('change', renderCourseRows);
+
+  el('gscAddCourseBtn').addEventListener('click', function(){
+    if (state.courses.length >= 15){
+      toast('Maximum 15 courses supported.');
+      return;
+    }
+    state.courses.push({ name: 'Elective Subject ' + (state.courses.length + 1), credits: 3, score: el('gscCourseFmt').value === 'pct' ? 78 : 8.0 });
+    renderCourseRows();
+  });
+
+  el('gscCourseRows').addEventListener('input', function(e){
+    var idx = Number(e.target.getAttribute('data-cidx'));
+    var field = e.target.getAttribute('data-cfield');
+    if (isNaN(idx) || !field || !state.courses[idx]) return;
+    state.courses[idx][field] = field === 'name' ? e.target.value : (Number(e.target.value) || 0);
+    var row = e.target.closest('.gsc-subcard');
+    if (row){
+      var badge = row.querySelector('.badge');
+      var sc = Number(state.courses[idx].score) || 0;
+      var pct = el('gscCourseFmt').value === 'pct' ? clamp(sc, 0, 100) : clamp(sc * 10, 0, 100);
+      if (badge) badge.textContent = pctToWesSingle(pct).toFixed(1) + ' GPA';
+    }
+    calculateTranscript();
+  });
+
+  el('gscCourseRows').addEventListener('click', function(e){
+    var del = e.target.getAttribute('data-cdel');
+    if (del === null) return;
+    if (state.courses.length <= 1){
+      toast('Keep at least 1 course row.');
+      return;
+    }
+    state.courses.splice(Number(del), 1);
+    renderCourseRows();
+  });
+
+  el('gscResetBtn').addEventListener('click', function(){
+    applyPreset('germany_10pt');
+    toast('Reset to Germany 10-Pt Bavarian preset.');
+  });
+
+  el('gscSaveBtn').addEventListener('click', function(){
+    if (!lastReport) return;
+    hist.unshift(lastReport);
+    hist = hist.slice(0, 15);
+    try{ localStorage.setItem('sb_gsc_hist_v1', JSON.stringify(hist)); }catch(e){}
+    renderHist();
+    toast('Conversion saved to browser history!');
+  });
+
+  el('gscClearHistBtn').addEventListener('click', function(){
+    hist = [];
+    try{ localStorage.removeItem('sb_gsc_hist_v1'); }catch(e){}
+    renderHist();
+    toast('Saved conversions cleared.');
+  });
+
+  el('gscPdfBtn').addEventListener('click', function(){
+    if (!lastReport) return;
+    var blob = buildPdfBlob(lastReport);
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'international-gpa-conversion-report.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    toast('PDF report downloaded!');
+  });
+
+  el('gscPrintBtn').addEventListener('click', function(){ window.print(); });
+
+  el('gscCopyBtn').addEventListener('click', function(){
+    if (!lastReport) return;
+    var txt = lastReport.title + ' -> German: ' + lastReport.deGrade + ' | US WES Est: ' + lastReport.usWes + ' | US Linear: ' + lastReport.usLin + ' | Canada: ' + lastReport.caGrade + ' | UK: ' + lastReport.ukClass;
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){ toast('GPA summary copied!'); });
+    }
+  });
+
+  el('gscShareBtn').addEventListener('click', function(){
+    var url = window.location.origin + window.location.pathname + '?preset=' + encodeURIComponent(state.presetKey) + '&scale=' + encodeURIComponent(el('gscInputScale').value) + '&val=' + encodeURIComponent(el('gscScoreVal').value);
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(function(){ toast('Share link copied!'); });
+    }
+  });
+
+  renderReferenceTable();
+  var sp = new URLSearchParams(window.location.search);
+  var reqPreset = sp.get('preset');
+  applyPreset(PRESETS[reqPreset] ? reqPreset : 'germany_10pt');
+  if (sp.get('scale') && ['cgpa10','pct100','gpa4','german5'].indexOf(sp.get('scale')) !== -1){
+    el('gscInputScale').value = sp.get('scale');
+  }
+  if (sp.get('val')){
+    el('gscScoreVal').value = sp.get('val');
+  }
+  calculate();
+  renderHist();
+})();
+</script>
+
+{{ tool_section_end() }}
+{% endblock %}

@@ -171,3 +171,34 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+class _DynamicAssetVersion:
+    """Resolve explicit APP_VERSION in prod, or bundle mtime in dev so rebuilds bust cache."""
+
+    def __init__(self, static_dir: str) -> None:
+        self._static_dir = static_dir
+
+    def _resolve(self) -> str:
+        explicit = os.getenv("APP_VERSION", "").strip()
+        if explicit and explicit != "dev":
+            return explicit
+        if settings.is_prod:
+            return explicit or "dev"
+        mtimes = []
+        for rel in ("css/app.css", "js/app.js"):
+            path = os.path.join(self._static_dir, rel)
+            try:
+                mtimes.append(int(os.path.getmtime(path)))
+            except OSError:
+                pass
+        return f"dev-{max(mtimes)}" if mtimes else "dev"
+
+    def __str__(self) -> str:
+        return self._resolve()
+
+    def __repr__(self) -> str:
+        return self._resolve()
+
+
+APP_VERSION = _DynamicAssetVersion(settings.static_dir)
