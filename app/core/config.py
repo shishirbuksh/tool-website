@@ -7,6 +7,7 @@ Wiring notes (kept trivial on purpose):
   ``app.core.cache.CacheService`` when callers pass no explicit TTL.
 """
 
+import hashlib
 import os
 
 from pydantic import Field, model_validator
@@ -174,25 +175,53 @@ settings = Settings()
 
 
 class _DynamicAssetVersion:
-    """Resolve explicit APP_VERSION in prod, or bundle mtime in dev so rebuilds bust cache."""
+    """Resolve asset cache-buster combining explicit APP_VERSION with bundle content hash."""
 
     def __init__(self, static_dir: str) -> None:
         self._static_dir = static_dir
+        self._cached_sig: tuple[tuple[int, int] | None, ...] | None = None
+        self._cached_digest: str = ""
+
+    def _bundle_digest(self) -> str:
+        paths = [
+            os.path.join(self._static_dir, "css", "app.css"),
+            os.path.join(self._static_dir, "js", "app.js"),
+        ]
+        sigs: list[tuple[int, int] | None] = []
+        for path in paths:
+            try:
+                st = os.stat(path)
+                sigs.append((st.st_mtime_ns, st.st_size))
+            except OSError:
+                sigs.append(None)
+        sig_tuple = tuple(sigs)
+        if sig_tuple == self._cached_sig:
+            return self._cached_digest
+        if not any(sig_tuple):
+            self._cached_sig = sig_tuple
+            self._cached_digest = ""
+            return ""
+        hasher = hashlib.sha256()
+        for path, sig in zip(paths, sig_tuple):
+            if sig is None:
+                continue
+            try:
+                with open(path, "rb") as f:
+                    hasher.update(f.read())
+            except OSError:
+                pass
+        digest = hasher.hexdigest()[:8]
+        self._cached_sig = sig_tuple
+        self._cached_digest = digest
+        return digest
 
     def _resolve(self) -> str:
         explicit = os.getenv("APP_VERSION", "").strip()
-        if explicit and explicit != "dev":
-            return explicit
-        if settings.is_prod:
-            return explicit or "dev"
-        mtimes = []
-        for rel in ("css/app.css", "js/app.js"):
-            path = os.path.join(self._static_dir, rel)
-            try:
-                mtimes.append(int(os.path.getmtime(path)))
-            except OSError:
-                pass
-        return f"dev-{max(mtimes)}" if mtimes else "dev"
+        base = explicit if explicit else ("dev")
+        digest = self._bundle_digest()
+        if digest:
+            return f"{base}-{digest}"
+        return base
 
     def __str__(self) -> str:
         return self._resolve()
