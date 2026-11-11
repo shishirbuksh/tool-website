@@ -35,7 +35,7 @@ try:
 except ImportError:  # email-validator not installed: fall back to plain str
     _EmailType = str  # type: ignore[assignment]
 
-from app.core.config import APP_VERSION, settings
+from app.core.config import APP_CSS_HREF, APP_VERSION, settings
 from app.core.icons import lucide_icon
 from app.core.log import get_logger
 from app.core.responses import cached_json
@@ -108,6 +108,7 @@ templates.env.globals["locale_meta"] = LOCALE_META
 templates.env.globals["localize_path"] = localize_path
 
 templates.env.globals["app_version"] = APP_VERSION
+templates.env.globals["app_css_href"] = APP_CSS_HREF
 
 _PAGE_CACHE_HEADERS = {"Cache-Control": "private, no-cache, no-store, must-revalidate"}
 

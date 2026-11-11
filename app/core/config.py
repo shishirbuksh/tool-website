@@ -174,21 +174,17 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-class _DynamicAssetVersion:
-    """Resolve asset cache-buster combining explicit APP_VERSION with bundle content hash."""
+class _FileHashCache:
+    """Stat-cached SHA-256 prefix over one or more files on disk."""
 
-    def __init__(self, static_dir: str) -> None:
-        self._static_dir = static_dir
+    def __init__(self, paths: list[str]) -> None:
+        self._paths = paths
         self._cached_sig: tuple[tuple[int, int] | None, ...] | None = None
         self._cached_digest: str = ""
 
-    def _bundle_digest(self) -> str:
-        paths = [
-            os.path.join(self._static_dir, "css", "app.css"),
-            os.path.join(self._static_dir, "js", "app.js"),
-        ]
+    def digest(self) -> str:
         sigs: list[tuple[int, int] | None] = []
-        for path in paths:
+        for path in self._paths:
             try:
                 st = os.stat(path)
                 sigs.append((st.st_mtime_ns, st.st_size))
@@ -198,11 +194,11 @@ class _DynamicAssetVersion:
         if sig_tuple == self._cached_sig:
             return self._cached_digest
         if not any(sig_tuple):
-            self._cached_sig = sig_tuple
             self._cached_digest = ""
+            self._cached_sig = sig_tuple
             return ""
         hasher = hashlib.sha256()
-        for path, sig in zip(paths, sig_tuple):
+        for path, sig in zip(self._paths, sig_tuple):
             if sig is None:
                 continue
             try:
@@ -211,13 +207,28 @@ class _DynamicAssetVersion:
             except OSError:
                 pass
         digest = hasher.hexdigest()[:8]
-        self._cached_sig = sig_tuple
+        # Write digest before sig_tuple so concurrent readers never pair a fresh sig with a stale digest.
         self._cached_digest = digest
+        self._cached_sig = sig_tuple
         return digest
+
+
+class _DynamicAssetVersion:
+    """Resolve asset cache-buster combining explicit APP_VERSION with bundle content hash."""
+
+    def __init__(self, static_dir: str) -> None:
+        self._static_dir = static_dir
+        self._hash_cache = _FileHashCache([
+            os.path.join(static_dir, "css", "app.css"),
+            os.path.join(static_dir, "js", "app.js"),
+        ])
+
+    def _bundle_digest(self) -> str:
+        return self._hash_cache.digest()
 
     def _resolve(self) -> str:
         explicit = os.getenv("APP_VERSION", "").strip()
-        base = explicit if explicit else ("dev")
+        base = explicit if explicit else "dev"
         digest = self._bundle_digest()
         if digest:
             return f"{base}-{digest}"
@@ -230,4 +241,29 @@ class _DynamicAssetVersion:
         return self._resolve()
 
 
+class _DynamicAppCssHref:
+    """Resolve stylesheet href to content-hashed app.<hash8>.css when present on disk."""
+
+    def __init__(self, static_dir: str, asset_version: _DynamicAssetVersion) -> None:
+        self._static_dir = static_dir
+        self._asset_version = asset_version
+        self._hash_cache = _FileHashCache([os.path.join(static_dir, "css", "app.css")])
+
+    def _resolve(self) -> str:
+        digest = self._hash_cache.digest()
+        if digest:
+            hashed_name = f"app.{digest}.css"
+            hashed_path = os.path.join(self._static_dir, "css", hashed_name)
+            if os.path.isfile(hashed_path):
+                return f"/static/css/{hashed_name}"
+        return f"/static/css/app.css?v={self._asset_version}"
+
+    def __str__(self) -> str:
+        return self._resolve()
+
+    def __repr__(self) -> str:
+        return self._resolve()
+
+
 APP_VERSION = _DynamicAssetVersion(settings.static_dir)
+APP_CSS_HREF = _DynamicAppCssHref(settings.static_dir, APP_VERSION)

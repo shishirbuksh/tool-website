@@ -1,11 +1,42 @@
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
 
-// ROUND-2 perf: emit precompressed .gz/.br for Caddy to serve directly.
-// Targets mirror scripts/build.js outputs + postcss CSS output. No deps.
+// Emit a content-hashed copy of static/css/app.css so reverse proxies (CloudPanel Nginx,
+// Cloudflare) can never serve a stale precompressed app.css.br under query-string URLs,
+// and emit precompressed .gz/.br for Caddy/Nginx to serve directly. No external deps.
+const ROOT = path.join(__dirname, '..');
+const HASHED_CSS_RE = /^app\.[0-9a-f]{8}\.css(\.(?:gz|br))?$/i;
+
+function syncHashedAppCss() {
+  const cssDir = path.join(ROOT, 'static', 'css');
+  const appCssAbs = path.join(cssDir, 'app.css');
+  if (!fs.existsSync(appCssAbs)) return null;
+
+  const buf = fs.readFileSync(appCssAbs);
+  const hash8 = crypto.createHash('sha256').update(buf).digest('hex').slice(0, 8);
+  const hashedName = `app.${hash8}.css`;
+  const hashedAbs = path.join(cssDir, hashedName);
+
+  for (const entry of fs.readdirSync(cssDir)) {
+    if (!HASHED_CSS_RE.test(entry)) continue;
+    if (entry === hashedName || entry === `${hashedName}.gz` || entry === `${hashedName}.br`) continue;
+    fs.unlinkSync(path.join(cssDir, entry));
+  }
+
+  if (!fs.existsSync(hashedAbs) || !fs.readFileSync(hashedAbs).equals(buf)) {
+    fs.writeFileSync(hashedAbs, buf);
+    console.log(`emitted: static/css/${hashedName} (${buf.length} bytes)`);
+  }
+  return `static/css/${hashedName}`;
+}
+
+const hashedCssTarget = syncHashedAppCss();
+
 const targets = [
   'static/css/app.css',
+  ...(hashedCssTarget ? [hashedCssTarget] : []),
   'static/css/fonts.css',
   'static/js/app.js',
   'static/js/tools.utils.js',
@@ -21,7 +52,7 @@ const targets = [
 ];
 
 function compressOne(rel) {
-  const abs = path.join(__dirname, '..', rel);
+  const abs = path.join(ROOT, rel);
   if (!fs.existsSync(abs)) {
     // Silently skip optional missing targets (e.g. fonts.css/sitemap.xsl not
     // built yet) to avoid CI noise; use VERBOSE=1 to debug.
