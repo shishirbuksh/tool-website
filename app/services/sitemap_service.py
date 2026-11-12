@@ -336,6 +336,7 @@ class SitemapService:
             lines.append("## Categories")
             lines.append("")
             lines.append(f"- [All Tools]({site_base}/tools): complete directory of every free tool")
+            lines.append(f"- [Student Hub & Exam Calculators]({site_base}/student-tools): CBSE/university CGPA, negative marking, passing marks, typing test & exam age tools")
             for hub in self.settings.HUB_CATEGORIES:
                 if hub == "pdf-tools":
                     continue  # legacy alias, not indexed

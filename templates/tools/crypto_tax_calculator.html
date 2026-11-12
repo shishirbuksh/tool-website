@@ -24,25 +24,40 @@
 
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-4 h-4",16)|safe }} Tax Details</h2>
-      <p class="text-xs text-base-content/60 mb-4">Enter your trade and income details for an estimated tax calculation.</p>
+      <p class="text-xs text-base-content/60 mb-4">Enter your trade, fee, and jurisdiction details for an estimated crypto tax breakdown.</p>
       <div class="space-y-4">
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxCostBasis">Cost Basis ($)</label><input aria-label="Purchase Price / Cost Basis" type="number" id="taxCostBasis" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="42000" min="0" step="any"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxProceeds">Sale Proceeds ($)</label><input aria-label="Sale Price / Proceeds" type="number" id="taxProceeds" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="67500" min="0" step="any"></div>
         <div>
+          <label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxJurisdiction">Tax Jurisdiction</label>
+          <select id="taxJurisdiction" aria-label="Tax Jurisdiction" class="select cal-input w-full text-sm font-bold">
+            <option value="us" selected>United States (Federal Brackets)</option>
+            <option value="in">India (VDA Sec 115BBH — 30% + 4% Cess)</option>
+            <option value="uk">United Kingdom (CGT — £3,000 Allowance)</option>
+            <option value="custom">Custom Flat Tax Rate (%)</option>
+          </select>
+        </div>
+        <div id="taxCustomWrap" class="hidden">
+          <label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxCustomRate">Custom Tax Rate (%)</label>
+          <input aria-label="Custom Tax Rate Percent" type="number" id="taxCustomRate" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="20" min="0" max="100" step="0.5">
+        </div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxCostBasis" id="lblCostBasis">Cost Basis ($)</label><input aria-label="Purchase Price / Cost Basis" type="number" id="taxCostBasis" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="42000" min="0" step="any"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxProceeds" id="lblProceeds">Sale Proceeds ($)</label><input aria-label="Sale Price / Proceeds" type="number" id="taxProceeds" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="67500" min="0" step="any"></div>
+        <div id="taxFeesWrap"><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxFees" id="lblFees">Deductible Exchange / Gas Fees ($)</label><input aria-label="Deductible Exchange and Gas Fees" type="number" id="taxFees" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="0" min="0" step="any"></div>
+        <div id="taxPeriodWrap">
           <span class="text-[10px] font-bold text-base-content/60 block mb-2 uppercase tracking-wider">Holding Period</span>
           <div class="toggle-group" role="radiogroup" aria-label="Holding Period">
-            <button type="button" class="toggle-opt active" data-tax-period="short" role="radio" aria-checked="true">Short Term (<1 yr)</button>
-            <button type="button" class="toggle-opt" data-tax-period="long" role="radio" aria-checked="false">Long Term (>1 yr)</button>
+            <button type="button" class="toggle-opt active" data-tax-period="short" role="radio" aria-checked="true">Short Term (&lt;1 yr)</button>
+            <button type="button" class="toggle-opt" data-tax-period="long" role="radio" aria-checked="false">Long Term (&gt;1 yr)</button>
           </div>
         </div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxIncome">Annual Taxable Income ($)</label><input aria-label="Other Annual Income" type="number" id="taxIncome" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="60000" min="0" step="any"></div>
-        <div>
+        <div id="taxIncomeWrap"><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxIncome" id="lblIncome">Annual Taxable Income ($)</label><input aria-label="Other Annual Income" type="number" id="taxIncome" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="60000" min="0" step="any"></div>
+        <div id="taxStatusWrap">
           <span class="text-[10px] font-bold text-base-content/60 block mb-2 uppercase tracking-wider">Filing Status</span>
           <div class="toggle-group" role="radiogroup" aria-label="Filing Status">
             <button type="button" class="toggle-opt active" data-tax-status="single" role="radio" aria-checked="true">Single</button>
             <button type="button" class="toggle-opt" data-tax-status="married" role="radio" aria-checked="false">Married Joint</button>
           </div>
         </div>
+        <div id="taxRegimeNote" class="text-[11px] text-base-content/60 p-3 rounded-xl bg-base-200/40 leading-relaxed">US estimate applies IRS ordinary income brackets for short-term gains and 0%/15%/20% brackets for assets held over 1 year.</div>
         <button type="button" id="resetBtn" class="btn btn-primary w-full mt-2" aria-label="Reset">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
       </div>
     </div>
@@ -68,11 +83,12 @@
         <table class="tax-table" role="table">
           <thead><tr><th scope="col">Category</th><th scope="col">Amount</th></tr></thead>
           <tbody id="tableBody">
-            <tr><td style="font-weight:800">Cost Basis ($)</td><td id="tbCost">$42,000.00</td></tr>
-            <tr><td style="font-weight:800">Sale Proceeds ($)</td><td id="tbProceeds">$67,500.00</td></tr>
-            <tr><td style="font-weight:800">Capital Gain</td><td id="tbGain" style="color:var(--color-success)">+$25,500.00</td></tr>
-            <tr><td style="font-weight:800">Gain Type</td><td id="tbType">Short Term (<1 yr)</td></tr>
-            <tr><td style="font-weight:800">Tax Rate</td><td id="tbRate">12.0%</td></tr>
+            <tr><td style="font-weight:800" id="lblTbCost">Cost Basis ($)</td><td id="tbCost">$42,000.00</td></tr>
+            <tr><td style="font-weight:800" id="lblTbProceeds">Sale Proceeds ($)</td><td id="tbProceeds">$67,500.00</td></tr>
+            <tr><td style="font-weight:800" id="lblTbFees">Deductible Fees ($)</td><td id="tbFees">$0.00</td></tr>
+            <tr><td style="font-weight:800">Net Capital Gain</td><td id="tbGain" style="color:var(--color-success)">+$25,500.00</td></tr>
+            <tr><td style="font-weight:800">Rule / Gain Type</td><td id="tbType">Short Term (&lt;1 yr)</td></tr>
+            <tr><td style="font-weight:800">Applied Tax Rate</td><td id="tbRate">12.0%</td></tr>
             <tr><td style="font-weight:800">Estimated Tax Owed</td><td id="tbTax" style="color:var(--color-error)">$3,060.00</td></tr>
             <tr style="background:color-mix(in oklab,var(--color-primary) 5%,transparent)"><td style="font-weight:900;color:var(--color-primary)">After-Tax Profit</td><td id="tbAfterTax" style="font-weight:900;color:var(--color-success)">+$22,440.00</td></tr>
           </tbody>
@@ -135,44 +151,108 @@
     return brackets.rates[brackets.rates.length - 1];
   }
 
+  function fmtMoney(v, sym, loc, signed){
+    const abs = Math.abs(v).toLocaleString(loc, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    if(!signed) return sym + abs;
+    return (v > 0 ? '+' : v < 0 ? '-' : '') + sym + abs;
+  }
+
+  function updateJurisdictionUI(){
+    const jur = $('taxJurisdiction').value;
+    const isUs = jur === 'us', isIn = jur === 'in', isUk = jur === 'uk', isCustom = jur === 'custom';
+    const sym = isIn ? '₹' : isUk ? '£' : '$';
+    $('lblCostBasis').textContent = 'Cost Basis (' + sym + ')';
+    $('lblProceeds').textContent = 'Sale Proceeds (' + sym + ')';
+    $('lblFees').textContent = 'Deductible Exchange / Gas Fees (' + sym + ')';
+    $('lblIncome').textContent = 'Annual Taxable Income (' + sym + ')';
+    $('lblTbCost').textContent = 'Cost Basis (' + sym + ')';
+    $('lblTbProceeds').textContent = 'Sale Proceeds (' + sym + ')';
+    $('lblTbFees').textContent = 'Deductible Fees (' + sym + ')';
+
+    $('taxCustomWrap').classList.toggle('hidden', !isCustom);
+    $('taxPeriodWrap').classList.toggle('hidden', !isUs);
+    $('taxStatusWrap').classList.toggle('hidden', !isUs);
+    $('taxIncomeWrap').classList.toggle('hidden', isIn || isCustom);
+    $('taxFeesWrap').classList.toggle('hidden', isIn);
+
+    if(isUs){
+      $('taxRegimeNote').textContent = 'United States estimate uses federal marginal brackets (10%-37% short-term; 0%/15%/20% long-term) plus deductible trading fees. Excludes NIIT (3.8%) and state taxes.';
+    }else if(isIn){
+      $('taxRegimeNote').textContent = 'India Sec 115BBH applies a flat 30% tax + 4% Health & Education Cess (31.2% total) on positive VDA gains. Exchange fees and losses are non-deductible; excludes 1% TDS credit tracking.';
+    }else if(isUk){
+      $('taxRegimeNote').textContent = 'United Kingdom CGT deducts trading fees and the £3,000 annual exempt amount, then taxes remaining gains at 18% (basic band up to £50,270 total income) or 24% (higher rate).';
+    }else{
+      $('taxRegimeNote').textContent = 'Custom mode deducts acquisition cost and exchange/gas fees, then applies your chosen flat rate (%) to positive net gains.';
+    }
+  }
+
   function calculate(){
+    const jur = $('taxJurisdiction').value;
+    const isIn = jur === 'in', isUk = jur === 'uk', isCustom = jur === 'custom';
+    const sym = isIn ? '₹' : isUk ? '£' : '$';
+    const loc = isIn ? 'en-IN' : isUk ? 'en-GB' : 'en-US';
+
     const costBasis = parseFloat($('taxCostBasis').value) || 0;
     const proceeds = parseFloat($('taxProceeds').value) || 0;
+    const rawFees = parseFloat($('taxFees').value) || 0;
+    const fees = isIn ? 0 : Math.max(0, rawFees);
     const income = parseFloat($('taxIncome').value) || 0;
 
     const isLong = document.querySelector('.toggle-opt[data-tax-period="long"].active') !== null;
     const isMarried = document.querySelector('.toggle-opt[data-tax-status="married"].active') !== null;
 
-    const gain = proceeds - costBasis;
-    const absGain = Math.abs(gain);
+    const gain = proceeds - costBasis - fees;
     const isProfit = gain >= 0;
 
-    const brackets = getBrackets(isLong, isMarried);
-    const totalIncome = income + Math.max(0, gain);
-    const rate = getMarginalRate(totalIncome, brackets);
-    const tax = gain > 0 ? gain * (rate / 100) : 0;
+    let rate = 0;
+    let tax = 0;
+    let typeLabel = '';
+
+    if(isIn){
+      rate = 31.2;
+      tax = gain > 0 ? gain * 0.312 : 0;
+      typeLabel = 'India VDA Flat (30% + 4% Cess)';
+    }else if(isUk){
+      const exempt = 3000;
+      const taxableGain = Math.max(0, gain - exempt);
+      const basicBandLeft = Math.max(0, 50270 - income);
+      const inBasic = Math.min(taxableGain, basicBandLeft);
+      const inHigher = Math.max(0, taxableGain - inBasic);
+      tax = inBasic * 0.18 + inHigher * 0.24;
+      rate = taxableGain > 0 ? (tax / taxableGain) * 100 : (income + gain > 50270 ? 24 : 18);
+      typeLabel = 'UK CGT (18%/24% above £3k)';
+    }else if(isCustom){
+      rate = Math.max(0, Math.min(100, parseFloat($('taxCustomRate').value) || 0));
+      tax = gain > 0 ? gain * (rate / 100) : 0;
+      typeLabel = 'Custom Flat Rate';
+    }else{
+      const brackets = getBrackets(isLong, isMarried);
+      const totalIncome = income + Math.max(0, gain);
+      rate = getMarginalRate(totalIncome, brackets);
+      tax = gain > 0 ? gain * (rate / 100) : 0;
+      typeLabel = isLong ? longTermLabel : shortTermLabel;
+    }
+
     const afterTax = gain - tax;
     const effRate = gain > 0 ? (tax / gain) * 100 : 0;
-
     const gainColor = isProfit ? 'var(--color-success)' : 'var(--color-error)';
-    const gainSign = isProfit ? '+' : '';
-    const typeLabel = isLong ? longTermLabel : shortTermLabel;
 
-    $('resGain').textContent = gainSign + '$' + absGain.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    $('resGain').textContent = fmtMoney(gain, sym, loc, true);
     $('resGain').style.color = gainColor;
-    $('resTax').textContent = '$' + tax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    $('resAfterTax').textContent = (afterTax >= 0 ? '+' : '') + '$' + afterTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    $('resTax').textContent = fmtMoney(tax, sym, loc, false);
+    $('resAfterTax').textContent = fmtMoney(afterTax, sym, loc, true);
     $('resAfterTax').style.color = afterTax >= 0 ? 'var(--color-success)' : 'var(--color-error)';
     $('resRate').textContent = FP(effRate);
 
-    $('tbCost').textContent = '$' + costBasis.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    $('tbProceeds').textContent = '$' + proceeds.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    $('tbGain').textContent = gainSign + '$' + absGain.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    $('tbCost').textContent = fmtMoney(costBasis, sym, loc, false);
+    $('tbProceeds').textContent = fmtMoney(proceeds, sym, loc, false);
+    $('tbFees').textContent = isIn ? 'N/A (Sec 115BBH)' : fmtMoney(fees, sym, loc, false);
+    $('tbGain').textContent = fmtMoney(gain, sym, loc, true);
     $('tbGain').style.color = gainColor;
     $('tbType').textContent = typeLabel;
     $('tbRate').textContent = FP(rate);
-    $('tbTax').textContent = '$' + tax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    $('tbAfterTax').textContent = (afterTax >= 0 ? '+' : '') + '$' + afterTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    $('tbTax').textContent = fmtMoney(tax, sym, loc, false);
+    $('tbAfterTax').textContent = fmtMoney(afterTax, sym, loc, true);
     $('tbAfterTax').style.color = afterTax >= 0 ? 'var(--color-success)' : 'var(--color-error)';
   }
 
@@ -193,21 +273,27 @@
   }
 
   function reset(){
+    $('taxJurisdiction').value = 'us';
     $('taxCostBasis').value = 42000;
     $('taxProceeds').value = 67500;
+    $('taxFees').value = 0;
+    $('taxCustomRate').value = 20;
     $('taxIncome').value = 60000;
     document.querySelectorAll('.toggle-opt').forEach(function(b){ b.classList.remove('active'); b.setAttribute('aria-checked', 'false'); });
     document.querySelector('.toggle-opt[data-tax-period="short"]').classList.add('active');
     document.querySelector('.toggle-opt[data-tax-period="short"]').setAttribute('aria-checked', 'true');
     document.querySelector('.toggle-opt[data-tax-status="single"]').classList.add('active');
     document.querySelector('.toggle-opt[data-tax-status="single"]').setAttribute('aria-checked', 'true');
+    updateJurisdictionUI();
     calculate();
   }
 
   document.addEventListener('DOMContentLoaded', function(){
     setupToggles();
+    updateJurisdictionUI();
     calculate();
-    ['taxCostBasis','taxProceeds','taxIncome'].forEach(function(id){ $(id).addEventListener('input', calculate); });
+    $('taxJurisdiction').addEventListener('change', function(){ updateJurisdictionUI(); calculate(); });
+    ['taxCostBasis','taxProceeds','taxFees','taxCustomRate','taxIncome'].forEach(function(id){ $(id).addEventListener('input', calculate); });
     $('resetBtn').addEventListener('click', reset);
   });
 })();

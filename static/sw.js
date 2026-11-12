@@ -1,16 +1,13 @@
-// StoryBrain AI Service Worker v41 (keep in sync with CACHE_NAME / STATIC_CACHE below)
-// CACHE version: bump v40 -> v41 on breaking shell changes.
-// TODO: inject app_version at build time (e.g. __APP_VERSION__) so SW cache
-// busts automatically with each deploy instead of manual version bumps.
-const CACHE_NAME = 'storybrain-v46';
-const STATIC_CACHE = 'storybrain-static-v46';
+// StoryBrain AI Service Worker (cache version & hashed CSS synced by scripts/compress.js)
+const CACHE_NAME = 'storybrain-v47-c2d99026';
+const STATIC_CACHE = 'storybrain-static-v47-c2d99026';
 const PAGE_CACHE_MAX_ENTRIES = 50;
 
 // Assets to pre-cache on install (app-shell only; OG/screenshots lazy via runtime cache)
 // NOTE: '/' intentionally NOT precached — network-first pages + /offline fallback
 // cover it, and precaching '/' pins a stale HTML shell across deploys.
 const PRECACHE_URLS = [
-  '/static/css/app.css',
+  '/static/css/app.cb771ff8.css',
   '/static/css/fonts.css',
   '/static/favicon.svg',
   '/static/favicon.ico',
@@ -19,10 +16,6 @@ const PRECACHE_URLS = [
   '/static/icon-512.png',
   '/static/manifest.json',
   '/offline',
-
-
-
-
   '/static/js/app.js',
   '/static/js/tools.utils.js',
   '/static/js/tools.js',

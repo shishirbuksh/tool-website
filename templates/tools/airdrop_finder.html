@@ -14,17 +14,24 @@
 {% endblock %}
 
 {% block content %}
-{{ tool_hero_section("gift", "Airdrop Finder", "AIRDROP", "FINDER", "Browse active and upcoming cryptocurrency airdrops. See requirements, estimated values, and how to qualify for free tokens.") }}
+{{ tool_hero_section("gift", "Eligibility & Archive", "AIRDROP", "FINDER", seo_data.description if seo_data else "Evaluate crypto airdrop wallet readiness, check anti-Sybil hygiene criteria, and review verified historical TGE allocation benchmarks.") }}
 
 <div class="reveal" style="animation-delay:0.2s">
 
-  <!-- Filters -->
+  <!-- Security Callout & Filters -->
+  <div class="feature-card p-4 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div class="text-xs text-base-content/75 leading-relaxed">
+      <strong class="text-base-content">Security Notice:</strong> Never sign blind approvals or connect your primary cold wallet to unverified claim URLs. Verify official protocol domains and contract addresses independently.
+    </div>
+    <span class="badge-pill shrink-0 bg-primary/10 text-primary" id="checklistScore">Readiness: 0 / 6</span>
+  </div>
+
   <div class="flex flex-wrap items-center gap-2 mb-6">
     <span class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider mr-1">Filter:</span>
     <button type="button" class="filter-btn active" data-filter="all">All</button>
-    <button type="button" class="filter-btn" data-filter="active">Active</button>
-    <button type="button" class="filter-btn" data-filter="upcoming">Upcoming</button>
-    <span class="text-[10px] font-mono text-base-content/60 ml-auto" id="resultCount">12 airdrops</span>
+    <button type="button" class="filter-btn" data-filter="checklist">Sybil Hygiene Checklist</button>
+    <button type="button" class="filter-btn" data-filter="tge">Historical TGE Benchmarks</button>
+    <span class="text-[10px] font-mono text-base-content/60 ml-auto" id="resultCount">14 items</span>
   </div>
 
   <!-- Airdrop Grid -->
@@ -40,47 +47,89 @@
 <script nonce="{{ nonce }}">
 (function(){
   'use strict';
-  const airdrops = [
-    {name:"zkSync",status:"active",desc:"Layer 2 scaling solution for Ethereum. zkSync uses zero-knowledge rollups for fast and cheap transactions.",req:"Use the zkSync bridge or DApps before the token launch.",val:"$500-$3,000",tag:"Layer 2"},
-    {name:"LayerZero",status:"active",desc:"Omnichain interoperability protocol connecting blockchains. Already confirmed by the team.",req:"Bridge assets across supported chains using Stargate or other LayerZero DApps.",val:"$1,000-$5,000",tag:"Interop"},
-    {name:"Blast",status:"active",desc:"L2 with native yield for ETH and stablecoins. Backed by Paradigm and already popular.",req:"Bridge ETH to Blast and interact with ecosystem DApps.",val:"$300-$2,000",tag:"L2"},
-    {name:"Linea",status:"active",desc:"ConsenSys-backed zkEVM layer 2. Growing fast with many DApps and campaigns.",req:"Use the Linea bridge and complete on-chain tasks on their network.",val:"$200-$1,500",tag:"L2"},
-    {name:"StarkNet",status:"active",desc:"ZK-rollup L2 using STARK proofs. Already has a thriving DeFi ecosystem.",req:"Use StarkNet DApps, provide liquidity, or bridge assets.",val:"$500-$4,000",tag:"L2"},
-    {name:"Scroll",status:"active",desc:"zkEVM-based L2 with strong community. Mainnet is live with multiple DeFi protocols.",req:"Bridge ETH and use DApps on Scroll mainnet.",val:"$200-$2,000",tag:"L2"},
-    {name:"Berachain",status:"upcoming",desc:"L1 blockchain with a unique Proof-of-Liquidity consensus. High community anticipation.",req:"Test the public testnet and interact with ecosystem DApps.",val:"$500-$3,000",tag:"Layer 1"},
-    {name:"EigenLayer",status:"upcoming",desc:"Ethereum restaking protocol. Allows re-staking ETH to secure other networks.",req:"Restake ETH or liquid staking tokens (stETH, rETH) on EigenLayer.",val:"$500-$5,000",tag:"Restaking"},
-    {name:"Kelp DAO",status:"upcoming",desc:"Liquid restaking platform on EigenLayer. Growing TVL very quickly.",req:"Deposit LST tokens into Kelp DAO for restaking points.",val:"$200-$1,500",tag:"Restaking"},
-    {name:"Swell Network",status:"upcoming",desc:"Liquid staking and restaking platform. Already has significant TVL.",req:"Stake ETH with Swell or deposit into their restaking vaults.",val:"$200-$1,000",tag:"Restaking"},
-    {name:"Morph",status:"upcoming",desc:"Consumer L2 using optimistic zk-rollup technology. Focuses on real-world apps.",req:"Join the testnet and complete tasks on Morph.",val:"$100-$800",tag:"L2"},
-    {name:"Aleo",status:"upcoming",desc:"Privacy-focused L1 using zero-knowledge proofs. Mainnet launch approaching.",req:"Participate in testnet programs and complete zk-based tasks.",val:"$500-$3,000",tag:"L1"}
+  const checklist = [
+    {id:"chk-age", category:"checklist", name:"Organic Wallet Age & Cadence", tag:"Anti-Sybil", desc:"Protocols penalize burst-farmed wallets. Spread real transactions across separate weeks and months rather than single-day scripts.", req:"Activity across >= 3 distinct months with organic gas funding.", val:"Core Filter"},
+    {id:"chk-tx", category:"checklist", name:"Unique Smart Contracts & DApps", tag:"Depth", desc:"Interacting with multiple real ecosystem primitives (DEX, lending, naming, governance) carries heavier weight than wash swaps.", req:"5+ independent protocol interactions without self-transfers.", val:"Multiplier"},
+    {id:"chk-bal", category:"checklist", name:"Minimum Mainnet Liquidity / Stake", tag:"Capital", desc:"Post-2024 snapshots apply dust filters (e.g. $50-$500 minimum average balance) to exclude Sybil clusters.", req:"Maintain non-dust native ETH/L2 or LP balance through snapshot.", val:"Dust Guard"},
+    {id:"chk-gov", category:"checklist", name:"Governance Votes & Delegation", tag:"Alignment", desc:"Snapshot, Tally, and native governance participation frequently earns bonus tiers in retroactive allocations.", req:"Vote or delegate on active proposals across ecosystem DAOs.", val:"Bonus Tier"},
+    {id:"chk-cluster", category:"checklist", name:"Zero Exchange Deposit Clustering", tag:"Sybil Risk", desc:"Consolidating multiple wallets to the same centralized exchange (CEX) deposit address triggers Hop/LayerZero-style Sybil clustering.", req:"Use distinct CEX sub-addresses and never chain-fund sibling wallets.", val:"Critical"},
+    {id:"chk-sec", category:"checklist", name:"Burner Wallet & Allowance Hygiene", tag:"Security", desc:"Airdrop claim drainer sites target blind permit/SetApprovalForAll signatures.", req:"Claim only via verified project docs using a dedicated claim wallet; revoke stale allowances.", val:"Safety"}
   ];
+
+  const tgeArchive = [
+    {category:"tge", name:"LayerZero (ZRO)", tag:"Interop Archive", desc:"Implemented an industry-first Sybil self-reporting bounty and strict clustering audit before 2024 TGE.", req:"Cross-chain messaging depth across non-Sybil source/destination pairs.", val:"Completed TGE"},
+    {category:"tge", name:"zkSync (ZK)", tag:"L2 Archive", desc:"June 2024 distribution weighted time-weighted liquidity, Paymaster use, and native Ecosystem contracts.", req:"Multi-month ZKsync Era liquidity and 10+ qualifying on-chain criteria.", val:"Completed TGE"},
+    {category:"tge", name:"EigenLayer (EIGEN)", tag:"Restaking Archive", desc:"Multi-season restaking points model distributing stakedrop shares across native ETH and LST depositors.", req:"Restaked ETH or supported LSTs during Season 1 & Season 2 snapshots.", val:"Completed TGE"},
+    {category:"tge", name:"Starknet (STRK)", tag:"ZK-Rollup Archive", desc:"Rewarded Starknet Prover users, open-source Ethereum contributors, ECMP participants, and early testnet/mainnet accounts.", req:"On-chain TX count, cumulative volume tiers, plus minimum ETH balance.", val:"Completed TGE"},
+    {category:"tge", name:"Scroll (SCR)", tag:"zkEVM Archive", desc:"Session Marks program converting bridged assets, DEX TVL, and Canvas badges into SCR allocations.", req:"Time-weighted TVL in Scroll Sessions (ETH/stablecoin/LRT pools).", val:"Completed TGE"},
+    {category:"tge", name:"Berachain (BERA)", tag:"Layer 1 Archive", desc:"Distributed BERA at 2025 mainnet launch across bArtio testnet users, Boyco pre-deposit vaults, and ecosystem NFTs.", req:"Boyco pre-deposit liquidity, social/community roles, and ecosystem NFTs.", val:"Completed TGE"},
+    {category:"tge", name:"Blast (BLAST)", tag:"L2 Archive", desc:"Point + Gold yield distribution split between early bridge depositors and active Blast DApp users.", req:"Native ETH/USDB bridge deposits + DApp Gold allocations.", val:"Completed TGE"},
+    {category:"tge", name:"Hyperliquid (HYPE)", tag:"Perps L1 Archive", desc:"Genesis distribution directly to active traders via points seasons with zero VC allocations.", req:"Genuine perpetual & spot trading volume during closed/open seasons.", val:"Completed TGE"}
+  ];
+
+  const STORAGE_KEY = 'sb_airdrop_chk_v1';
+  let checkedMap = {};
+  try { checkedMap = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; } catch (e) { checkedMap = {}; }
 
   const $ = id => document.getElementById(id);
 
+  function updateScore(){
+    const done = checklist.filter(c => !!checkedMap[c.id]).length;
+    $('checklistScore').textContent = 'Readiness: ' + done + ' / ' + checklist.length;
+  }
+
   function render(filter){
     const grid = $('airdropGrid');
-    const filtered = filter === 'all' ? airdrops : airdrops.filter(a => a.status === filter);
-    $('resultCount').innerText = filtered.length + ' airdrops';
-    grid.innerHTML = filtered.map(a => `
-      <div class="feature-card p-4 feature-card">
-        <div class="flex items-start justify-between gap-2 mb-2">
-          <div class="flex items-center gap-2 min-w-0">
-            <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0" style="background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary)">${a.name[0]}</div>
-            <div class="min-w-0"><div class="text-sm font-bold truncate">${a.name}</div><span class="text-[11px] font-bold text-base-content/30 uppercase tracking-wider block">${a.tag}</span></div>
+    const allItems = checklist.concat(tgeArchive);
+    const filtered = filter === 'all' ? allItems : allItems.filter(a => a.category === filter);
+    $('resultCount').innerText = filtered.length + ' items';
+    updateScore();
+
+    grid.innerHTML = filtered.map(a => {
+      if (a.category === 'checklist') {
+        const isChecked = !!checkedMap[a.id];
+        return `
+          <div class="feature-card p-4 ${isChecked ? 'border-primary/60' : ''}">
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <label class="flex items-center gap-2 min-w-0 cursor-pointer">
+                <input type="checkbox" class="checkbox checkbox-xs checkbox-primary chk-item" data-chk-id="${a.id}" ${isChecked ? 'checked' : ''} aria-label="Mark ${a.name} ready">
+                <div class="min-w-0"><div class="text-sm font-bold truncate">${a.name}</div><span class="text-[11px] font-bold text-base-content/40 uppercase tracking-wider block">${a.tag}</span></div>
+              </label>
+              <span class="badge-pill shrink-0" style="background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary)">${a.val}</span>
+            </div>
+            <p class="text-[11px] text-base-content/70 leading-relaxed mb-3">${a.desc}</p>
+            <div class="flex items-start gap-2 text-[10px]"><span class="font-bold text-base-content/45 shrink-0 w-16">Standard:</span><span class="text-base-content/65">${a.req}</span></div>
           </div>
-          <span class="badge-pill ${a.status === 'active' ? 'status-active' : 'status-upcoming'}" style="background:${a.status === 'active' ? 'color-mix(in oklab,var(--color-success) 12%,transparent)' : 'color-mix(in oklab,var(--color-warning) 12%,transparent)'};color:${a.status === 'active' ? 'var(--color-success)' : 'var(--color-warning)'}">${a.status === 'active' ? 'LIVE' : 'UPCOMING'}</span>
+        `;
+      }
+      return `
+        <div class="feature-card p-4">
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0" style="background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary)">${a.name[0]}</div>
+              <div class="min-w-0"><div class="text-sm font-bold truncate">${a.name}</div><span class="text-[11px] font-bold text-base-content/40 uppercase tracking-wider block">${a.tag}</span></div>
+            </div>
+            <span class="badge-pill shrink-0" style="background:color-mix(in oklab,var(--color-base-content) 10%,transparent);color:var(--color-base-content)">TGE ENDED</span>
+          </div>
+          <p class="text-[11px] text-base-content/70 leading-relaxed mb-3">${a.desc}</p>
+          <div class="space-y-1">
+            <div class="flex items-start gap-2 text-[10px]"><span class="font-bold text-base-content/45 shrink-0 w-16">Criteria:</span><span class="text-base-content/65">${a.req}</span></div>
+            <div class="flex items-center gap-2 text-[10px]"><span class="font-bold text-base-content/45 shrink-0 w-16">Status:</span><span class="font-mono font-bold text-base-content/75">${a.val}</span></div>
+          </div>
         </div>
-        <p class="text-[11px] text-base-content/70 leading-relaxed mb-3">${a.desc}</p>
-        <div class="space-y-1">
-          <div class="flex items-start gap-2 text-[10px]"><span class="font-bold text-base-content/40 shrink-0 w-16">Requires:</span><span class="text-base-content/60">${a.req}</span></div>
-          <div class="flex items-center gap-2 text-[10px]"><span class="font-bold text-base-content/40 shrink-0 w-16">Est. Value:</span><span class="font-mono font-bold" style="color:var(--color-success)">${a.val}</span></div>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   document.addEventListener('DOMContentLoaded', function(){
     render('all');
+    $('airdropGrid').addEventListener('change', function(e){
+      const cb = e.target.closest('.chk-item');
+      if (!cb) return;
+      checkedMap[cb.getAttribute('data-chk-id')] = cb.checked;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(checkedMap)); } catch (err) {}
+      updateScore();
+    });
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.addEventListener('click', function(){
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));

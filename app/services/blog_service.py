@@ -23,6 +23,9 @@ class BlogPost(BaseModel):
     keywords: list[str] = Field(default_factory=list)
     date_published: str = ""
     date_modified: str = ""
+    author: str = ""
+    reviewed_by: str = ""
+    sources: list[dict[str, str]] = Field(default_factory=list)
     image: str = ""
     faqs: list[dict[str, Any]] = Field(default_factory=list)
     howto_steps: list[dict[str, Any]] = Field(default_factory=list)
@@ -103,6 +106,13 @@ class BlogService:
             keywords=list(raw.get("keywords", []) or []),
             date_published=str(raw.get("date_published", "") or ""),
             date_modified=str(raw.get("date_modified", "") or ""),
+            author=str(raw.get("author", "") or ""),
+            reviewed_by=str(raw.get("reviewed_by", "") or ""),
+            sources=[
+                {"label": str(src.get("label") or src.get("url")), "url": str(src["url"])}
+                for src in (raw.get("sources") or [])
+                if isinstance(src, dict) and src.get("url")
+            ],
             image=_post_og_url(static_dir, slug) or str(raw.get("image", "") or ""),
             faqs=list(raw.get("faqs", []) or []),
             howto_steps=list(raw.get("howto_steps", []) or []),

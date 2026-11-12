@@ -29,7 +29,46 @@ function syncHashedAppCss() {
     fs.writeFileSync(hashedAbs, buf);
     console.log(`emitted: static/css/${hashedName} (${buf.length} bytes)`);
   }
+  syncServiceWorker(hashedName);
   return `static/css/${hashedName}`;
+}
+
+function syncServiceWorker(hashedCssName) {
+  const swAbs = path.join(ROOT, 'static', 'sw.js');
+  if (!fs.existsSync(swAbs)) return;
+
+  const h = crypto.createHash('sha256');
+  for (const rel of [
+    `static/css/${hashedCssName}`,
+    'static/css/fonts.css',
+    'static/js/app.js',
+    'static/js/tools.utils.js',
+    'static/js/tools.js',
+  ]) {
+    const abs = path.join(ROOT, rel);
+    if (fs.existsSync(abs)) h.update(fs.readFileSync(abs));
+  }
+  const swHash = h.digest('hex').slice(0, 8);
+
+  const orig = fs.readFileSync(swAbs, 'utf8');
+  let next = orig
+    .replace(
+      /\/static\/css\/app(?:\.[0-9a-f]{8})?\.css/gi,
+      `/static/css/${hashedCssName}`,
+    )
+    .replace(
+      /const CACHE_NAME = 'storybrain-[^']+';/,
+      `const CACHE_NAME = 'storybrain-v47-${swHash}';`,
+    )
+    .replace(
+      /const STATIC_CACHE = 'storybrain-static-[^']+';/,
+      `const STATIC_CACHE = 'storybrain-static-v47-${swHash}';`,
+    );
+
+  if (next !== orig) {
+    fs.writeFileSync(swAbs, next, 'utf8');
+    console.log(`synced: static/sw.js (css=${hashedCssName}, sw=${swHash})`);
+  }
 }
 
 const hashedCssTarget = syncHashedAppCss();

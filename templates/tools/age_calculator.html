@@ -49,6 +49,7 @@
     <div class="ac-card">
       <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("calendar","w-4 h-4",16) | safe }} Date of Birth</h2>
       <div class="mb-3"><label class="ac-label" for="aDob">Date of Birth</label><input type="date" id="aDob" class="ac-input" aria-label="Date of birth"></div>
+      <div class="mb-3"><label class="ac-label" for="aAsOf">Calculate Age At (Target Date)</label><input type="date" id="aAsOf" class="ac-input" aria-label="Age at target date"></div>
       <button type="button" id="aCalcBtn" class="ac-pri w-full mb-2">{{ lucide_icon("hourglass","w-4 h-4",16) | safe }} Calculate Age</button>
       <div class="flex gap-2 mb-3">
         <button type="button" id="aLiveBtn" class="ac-sec flex-1">{{ lucide_icon("play","w-3 h-3",12) | safe }} <span id="aLiveLbl">Live Counter</span></button>
@@ -89,7 +90,7 @@ var live=false,raf=null;
 var history=[]; try{var h=JSON.parse(localStorage.getItem('sb_ac1')||'[]');if(Array.isArray(h))history=h}catch(e){}
 
 function el(id){return document.getElementById(id)}
-var dobEl=el('aDob'),calcBtn=el('aCalcBtn'),liveBtn=el('aLiveBtn'),liveLbl=el('aLiveLbl');
+var dobEl=el('aDob'),asOfEl=el('aAsOf'),calcBtn=el('aCalcBtn'),liveBtn=el('aLiveBtn'),liveLbl=el('aLiveLbl');
 var saveBtn=el('aSave'),clearBtn=el('aClear');
 var emptyEl=el('aEmpty'),resultsEl=el('aResults'),ageGrid=el('aAgeGrid'),countdownEl=el('aBirthdayCountdown');
 var infoEl=el('aInfo');
@@ -97,7 +98,8 @@ var hiToggle=el('aHiToggle'),hiCount=el('aHiCount'),hiClear=el('aHiClear'),hiWra
 var toastEl=el('aToast');
 
 var savedDob=localStorage.getItem('sb_ac1_dob');if(savedDob){dobEl.value=savedDob}
-var maxDate=new Date().toISOString().slice(0,10);dobEl.setAttribute('max',maxDate);
+var todayIso=new Date().toISOString().slice(0,10);dobEl.setAttribute('max',todayIso);
+if(asOfEl&&!asOfEl.value){asOfEl.value=todayIso}
 
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show')},2200)}
@@ -122,43 +124,61 @@ function getChineseZodiac(y){return chineseZodiac[(y-4)%12]}
 var stones=['Garnet','Amethyst','Aquamarine','Diamond','Emerald','Pearl','Ruby','Peridot','Sapphire','Opal','Topaz','Turquoise'];
 function getStone(m){return stones[m]}
 
-function calcAge(dobStr){
+function calcAge(dobStr,asOfStr,useNowClock){
 if(!dobStr)return null;
-var sp=dobStr.split('-');var dob=new Date(sp[0],sp[1]-1,sp[2],12,0,0);
-var now=new Date();var y=now.getFullYear()-dob.getFullYear();var m=now.getMonth()-dob.getMonth();var d=now.getDate()-dob.getDate();
+var sp=dobStr.split('-');var dob=new Date(parseInt(sp[0],10),parseInt(sp[1],10)-1,parseInt(sp[2],10),12,0,0);
+var now;
+if(useNowClock){
+  now=new Date();
+}else if(asOfStr){
+  var ap=asOfStr.split('-');now=new Date(parseInt(ap[0],10),parseInt(ap[1],10)-1,parseInt(ap[2],10),12,0,0);
+}else{
+  var td=new Date();now=new Date(td.getFullYear(),td.getMonth(),td.getDate(),12,0,0);
+}
+if(now<dob)return{invalidRange:true};
+var y=now.getFullYear()-dob.getFullYear();var m=now.getMonth()-dob.getMonth();var d=now.getDate()-dob.getDate();
 if(d<0){m--;var prev=new Date(now.getFullYear(),now.getMonth(),0);d+=prev.getDate()}
 if(m<0){y--;m+=12}
 var totalDays=Math.floor((now-dob)/86400000);
+var totalMonths=y*12+m;
+var totalWeeks=Math.floor(totalDays/7);
+var remDays=totalDays%7;
 var totalHours=Math.floor((now-dob)/3600000);
 var totalMinutes=Math.floor((now-dob)/60000);
 var totalSeconds=Math.floor((now-dob)/1000);
-return{y:y,m:m,d:d,totalDays:totalDays,totalHours:totalHours,totalMinutes:totalMinutes,totalSeconds:totalSeconds,dob:dob}
+return{y:y,m:m,d:d,totalMonths:totalMonths,totalWeeks:totalWeeks,remDays:remDays,totalDays:totalDays,totalHours:totalHours,totalMinutes:totalMinutes,totalSeconds:totalSeconds,dob:dob}
 }
 
 function getWeekday(d){return['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()]}
 
-function calcCountdown(dobStr){
+function calcCountdown(dobStr,asOfStr,useNowClock){
 if(!dobStr)return null;
-var sp=dobStr.split('-');var now=new Date();
-var bd=new Date(now.getFullYear(),parseInt(sp[1])-1,parseInt(sp[2]),12,0,0);
-if(bd<=now)bd.setFullYear(bd.getFullYear()+1);
-var diff=bd-now;if(diff<=0)return null;
+var sp=dobStr.split('-');
+var ref=useNowClock?new Date():(asOfStr?(function(){var ap=asOfStr.split('-');return new Date(parseInt(ap[0],10),parseInt(ap[1],10)-1,parseInt(ap[2],10),0,0,0)})():new Date());
+var bd=new Date(ref.getFullYear(),parseInt(sp[1],10)-1,parseInt(sp[2],10),useNowClock?12:0,0,0);
+if(bd<ref)bd.setFullYear(bd.getFullYear()+1);
+var diff=bd-ref;if(diff<=0&&useNowClock)return null;
 var days=Math.floor(diff/86400000);var hrs=Math.floor((diff%86400000)/3600000);var mins=Math.floor((diff%3600000)/60000);var secs=Math.floor((diff%60000)/1000);
 return{d:days,h:hrs,m:mins,s:secs}
 }
 
 function render(){
 var dob=dobEl.value;
-if(!dob){emptyEl.hidden=false;resultsEl.hidden=true;return}
-var age=calcAge(dob);if(!age){emptyEl.hidden=false;resultsEl.hidden=true;return}
+var asOf=asOfEl?asOfEl.value:'';
+if(!dob){emptyEl.hidden=false;emptyEl.textContent='Enter your date of birth and click Calculate';resultsEl.hidden=true;return}
+var age=calcAge(dob,asOf,false);
+if(!age){emptyEl.hidden=false;resultsEl.hidden=true;return}
+if(age.invalidRange){emptyEl.hidden=false;emptyEl.textContent='Target date must be on or after the date of birth';resultsEl.hidden=true;return}
 emptyEl.hidden=true;resultsEl.hidden=false;
 ageGrid.innerHTML=
 '<div class="ac-metric-item lg"><div class="val">'+age.y+'</div><div class="lbl">Years</div></div>'+
 '<div class="ac-metric-item"><div class="val">'+age.m+'</div><div class="lbl">Months</div></div>'+
 '<div class="ac-metric-item"><div class="val">'+age.d+'</div><div class="lbl">Days</div></div>'+
-'<div class="ac-metric-item"><div class="val">'+age.totalDays.toLocaleString()+'</div><div class="lbl">Days Lived</div></div>';
-var cd=calcCountdown(dob);
-countdownEl.textContent=cd?cd.d+'d '+cd.h+'h '+cd.m+'m '+cd.s+'s':'Happy Birthday!';
+'<div class="ac-metric-item"><div class="val">'+age.totalMonths.toLocaleString()+'m '+age.d+'d</div><div class="lbl">Total Months (Baby)</div></div>'+
+'<div class="ac-metric-item"><div class="val">'+age.totalWeeks.toLocaleString()+'w '+age.remDays+'d</div><div class="lbl">Total Weeks (Baby)</div></div>'+
+'<div class="ac-metric-item"><div class="val">'+age.totalDays.toLocaleString()+'</div><div class="lbl">Total Days</div></div>';
+var cd=calcCountdown(dob,asOf,asOf===todayIso||!asOf);
+countdownEl.textContent=(cd&&(cd.d>0||cd.h>0||cd.m>0||cd.s>0))?(cd.d+'d '+cd.h+'h '+cd.m+'m '+cd.s+'s'):'Birthday Today!';
 if(cd&&cd.d===0&&cd.h===0&&cd.m===0&&cd.s<=60)countdownEl.style.color='var(--color-primary)';else countdownEl.style.color='';
 renderInfo(dob);
 }
@@ -179,27 +199,29 @@ function liveTick(){
 if(!live)return;
 var dob=dobEl.value;
 if(!dob){render();raf=requestAnimationFrame(liveTick);return}
-var age=calcAge(dob);
-if(!age){render();raf=requestAnimationFrame(liveTick);return}
+var age=calcAge(dob,todayIso,true);
+if(!age||age.invalidRange){render();raf=requestAnimationFrame(liveTick);return}
 var hrs=age.totalHours%24;var mins=age.totalMinutes%60;var secs=age.totalSeconds%60;
 ageGrid.innerHTML=
 '<div class="ac-metric-item lg"><div class="val">'+age.y+'</div><div class="lbl">Years</div></div>'+
 '<div class="ac-metric-item"><div class="val">'+age.m+'</div><div class="lbl">Months</div></div>'+
 '<div class="ac-metric-item"><div class="val">'+age.d+'</div><div class="lbl">Days</div></div>'+
+'<div class="ac-metric-item"><div class="val">'+age.totalMonths.toLocaleString()+'m '+age.d+'d</div><div class="lbl">Total Months</div></div>'+
+'<div class="ac-metric-item"><div class="val">'+age.totalWeeks.toLocaleString()+'w '+age.remDays+'d</div><div class="lbl">Total Weeks</div></div>'+
 '<div class="ac-metric-item"><div class="val">'+String(hrs).padStart(2,'0')+':'+String(mins).padStart(2,'0')+':'+String(secs).padStart(2,'0')+'</div><div class="lbl">Live Clock</div></div>';
-var cd=calcCountdown(dob);
-countdownEl.textContent=cd?cd.d+'d '+cd.h+'h '+cd.m+'m '+cd.s+'s':'Happy Birthday!';
+var cd=calcCountdown(dob,todayIso,true);
+countdownEl.textContent=cd?cd.d+'d '+cd.h+'h '+cd.m+'m '+cd.s+'s':'Birthday Today!';
 raf=requestAnimationFrame(liveTick);
 }
 
 function toggleLive(){
 if(live){cancelAnimationFrame(raf);live=false;liveLbl.textContent='Live Counter';liveBtn.classList.remove('on')}
-else{if(!dobEl.value){toast('Enter DOB first');return}live=true;liveLbl.textContent='Stop';liveBtn.classList.add('on');liveTick()}
+else{if(!dobEl.value){toast('Enter DOB first');return}if(asOfEl&&asOfEl.value!==todayIso){asOfEl.value=todayIso}live=true;liveLbl.textContent='Stop';liveBtn.classList.add('on');liveTick()}
 }
 
 function saveHistory(){
 var dob=dobEl.value;if(!dob)return;
-var age=calcAge(dob);if(!age)return;
+var age=calcAge(dob,asOfEl?asOfEl.value:'',false);if(!age||age.invalidRange)return;
 history.unshift({d:dob,y:age.y,m:age.m,day:age.d,td:age.totalDays,label:dob+' ('+age.y+'y '+age.m+'m '+age.d+'d)',ts:Date.now()});
 if(history.length>50)history.pop();
 try{localStorage.setItem('sb_ac1',JSON.stringify(history))}catch(e){}renderHistory();
@@ -218,9 +240,11 @@ hiList.innerHTML=h;
 }
 
 calcBtn.addEventListener('click',function(){if(live)toggleLive();render();saveHistory()});
+if(asOfEl){asOfEl.addEventListener('change',function(){if(live)toggleLive();if(dobEl.value)render();});}
+dobEl.addEventListener('change',function(){if(!live&&dobEl.value)render();});
 liveBtn.addEventListener('click',toggleLive);
 saveBtn.addEventListener('click',function(){if(!dobEl.value){toast('No DOB to save');return}try{localStorage.setItem('sb_ac1_dob',dobEl.value)}catch(e){}toast('Saved!')});
-clearBtn.addEventListener('click',function(){dobEl.value='';emptyEl.hidden=false;resultsEl.hidden=true;infoEl.innerHTML='<span style="font-size:10px;font-weight:600;opacity:.3">Enter your date of birth to see fun facts</span>';if(live)toggleLive();toast('Cleared')});
+clearBtn.addEventListener('click',function(){dobEl.value='';if(asOfEl){asOfEl.value=todayIso}emptyEl.hidden=false;emptyEl.textContent='Enter your date of birth and click Calculate';resultsEl.hidden=true;infoEl.innerHTML='<span style="font-size:10px;font-weight:600;opacity:.3">Enter your date of birth to see fun facts</span>';if(live)toggleLive();toast('Cleared')});
 
 hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
 hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_ac1',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});

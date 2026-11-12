@@ -2,7 +2,7 @@
 {% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
 
 {% block content %}
-{{ tool_hero_section("bot", "Developer Tool", "Robots.txt", "Generator", seo_data.description if seo_data else "Generate and validate custom robots.txt rules, crawl directives, AI bot blocks, and XML sitemap links in your browser.") }}
+{{ tool_hero_section("bot", "Crawler Directives Builder", "Robots.txt", "Generator", seo_data.description if seo_data else "Generate and validate custom robots.txt rules, crawl directives, AI bot blocks, and XML sitemap links in your browser.") }}
 
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 reveal" style="animation-delay:0.2s">
 
@@ -29,7 +29,7 @@
             <option value="" disabled>Choose a preset...</option>
             <option value="custom" selected>Custom</option>
             <option value="allow">Allow All — no restrictions</option>
-            <option value="seo">SEO-friendly — block AI crawlers</option>
+            <option value="seo">SEO-friendly — block AI training crawlers</option>
             <option value="wordpress">WordPress — protect /wp-admin/</option>
             <option value="block">Block All — maintenance mode</option>
           </select>
@@ -133,15 +133,13 @@
 <script nonce="{{ nonce }}">
 (function(){'use strict';
   var url=document.getElementById('rtUrl'),rules=document.getElementById('rtRules'),sm=document.getElementById('rtSitemap'),cm=document.getElementById('rtComment'),out=document.getElementById('rtOut'),cp=document.getElementById('rtCopy'),dl=document.getElementById('rtDl'),add=document.getElementById('rtAddRule'),reset=document.getElementById('rtReset'),preset=document.getElementById('rtPreset'),err=document.getElementById('rtError'),et=document.getElementById('rtErrorText'),sRules=document.getElementById('rtStatRules'),sLines=document.getElementById('rtStatLines'),sSize=document.getElementById('rtStatSize'),rc=document.getElementById('rtRuleCount'),em=document.getElementById('rtEmptyMsg'),tpl=document.getElementById('rtRuleTpl'),to=null;
-  var agents=['*','Googlebot','Bingbot','GPTBot','Claude-Web','Googlebot-Image','Baiduspider','YandexBot'];
-
-  var agentMap={'*':'*','Googlebot':'Googlebot','Bingbot':'Bingbot','GPTBot':'GPTBot','Claude-Web':'Claude-Web','Googlebot-Image':'Googlebot-Image','Baiduspider':'Baiduspider','YandexBot':'YandexBot'};
+  var agents=['*','Googlebot','Bingbot','GPTBot','OAI-SearchBot','ClaudeBot','Claude-Web','PerplexityBot','Google-Extended','CCBot','Googlebot-Image','Baiduspider','YandexBot'];
 
   var presetRules={
     custom:[['*','/cgi-bin/','','']],
     allow:[['*','','','']],
-    seo:[['*','','',''],['GPTBot','/','','15'],['Claude-Web','/','','15']],
-    wordpress:[['*','','',''],['GPTBot','/wp-admin/','/wp-admin/admin-ajax.php','']],
+    seo:[['*','/cgi-bin/\n/tmp/','',''],['GPTBot','/','',''],['ClaudeBot','/','',''],['Claude-Web','/','',''],['Google-Extended','/','',''],['CCBot','/','','']],
+    wordpress:[['*','/wp-admin/\n/wp-includes/','/wp-admin/admin-ajax.php',''],['GPTBot','/','',''],['CCBot','/','','']],
     block:[['*','/','','']]
   };
 
@@ -199,18 +197,39 @@
       select.appendChild(o);
     });
     var custOpt=document.createElement('option');custOpt.value='__custom__';custOpt.textContent='Custom...';
-    if(ua&&agents.indexOf(ua)===-1){custOpt.selected=true;}
+    if(ua&&agents.indexOf(ua)===-1){
+      var customPresetOpt=document.createElement('option');
+      customPresetOpt.value=ua;customPresetOpt.textContent=ua;customPresetOpt.selected=true;
+      select.appendChild(customPresetOpt);
+    }
     select.appendChild(custOpt);
     var disEl=clone.querySelector('.rt-dis'),allowEl=clone.querySelector('.rt-allow'),delayEl=clone.querySelector('.rt-delay');
     if(dis)disEl.value=dis;if(allow)allowEl.value=allow;if(delay)delayEl.value=delay;
     var wrap=document.createElement('div');wrap.appendChild(clone);
     var el=wrap.firstElementChild;
-    select.onchange=function(){
-      if(this.value==='__custom__'){var c=prompt('Enter custom user-agent:');if(c&&c.trim()){var o=document.createElement('option');o.selected=true;o.textContent=c.trim();select.innerHTML='';select.appendChild(o);}else{select.value='*';}}
+    var prevUa=select.value;
+    select.addEventListener('change',function(){
+      if(this.value==='__custom__'){
+        var c=prompt('Enter custom user-agent:');
+        var trimmed=c?c.trim():'';
+        if(trimmed){
+          var existing=[].slice.call(select.options).find(function(op){return op.value===trimmed;});
+          if(existing){existing.selected=true;}
+          else{
+            var o=document.createElement('option');o.value=trimmed;o.textContent=trimmed;o.selected=true;
+            select.insertBefore(o,custOpt);
+          }
+          prevUa=trimmed;
+        }else{
+          select.value=prevUa&&prevUa!=='__custom__'?prevUa:'*';
+        }
+      }else{
+        prevUa=this.value;
+      }
       gen();
-    };
-    disEl.oninput=gen;allowEl.oninput=gen;delayEl.oninput=gen;
-    el.querySelector('.rt-rm').onclick=function(){el.remove();gen();};
+    });
+    disEl.addEventListener('input',gen);allowEl.addEventListener('input',gen);delayEl.addEventListener('input',gen);
+    el.querySelector('.rt-rm').addEventListener('click',function(){el.remove();gen();});
     return el;
   }
 
@@ -224,11 +243,23 @@
   function doReset(){url.value='example.com';sm.value='';cm.value='';preset.value='custom';setRules([['*','/cgi-bin/','','']]);gen();}
   function doCopy(){
     if(!out.value)return;
-    navigator.clipboard.writeText(out.value);
-    cp.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
-    cp.classList.add('btn-active');
-    clearTimeout(to);
-    to=setTimeout(function(){cp.innerHTML='{{ lucide_icon("copy","w-3.5 h-3.5", 14) | safe }} Copy';cp.classList.remove('btn-active');},2200);
+    var markCopied=function(){
+      cp.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+      cp.classList.add('btn-active');
+      clearTimeout(to);
+      to=setTimeout(function(){cp.innerHTML='{{ lucide_icon("copy","w-3.5 h-3.5", 14) | safe }} Copy';cp.classList.remove('btn-active');},2200);
+    };
+    if(window.sbr&&typeof window.sbr.copyToClipboard==='function'){
+      window.sbr.copyToClipboard(out.value,cp).then(markCopied).catch(markCopied);
+      return;
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(out.value).then(markCopied).catch(function(){
+        out.select();document.execCommand('copy');markCopied();
+      });
+    }else{
+      out.select();document.execCommand('copy');markCopied();
+    }
   }
   function doDl(){
     if(!out.value)return;
@@ -239,19 +270,19 @@
 
   window.addRule=addRule;window.doReset=doReset;window.doCopy=doCopy;window.doDl=doDl;
 
-  add.onclick=addRule;
-  reset.onclick=doReset;
-  cp.onclick=doCopy;
-  dl.onclick=doDl;
+  add.addEventListener('click',addRule);
+  reset.addEventListener('click',doReset);
+  cp.addEventListener('click',doCopy);
+  dl.addEventListener('click',doDl);
 
-  preset.onchange=function(){
+  preset.addEventListener('change',function(){
     var v=this.value;
     if(!v)return;
     var p=presetRules[v];
     if(p)setRules(p);
-  };
+  });
 
-  url.oninput=gen;sm.oninput=gen;cm.oninput=gen;
+  url.addEventListener('input',gen);sm.addEventListener('input',gen);cm.addEventListener('input',gen);
 
   setRules([['*','/cgi-bin/','','']]);
   gen();

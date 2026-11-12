@@ -27,6 +27,9 @@ class ToolSEO(BaseModel):
     about_title: str = ""
     about_body: str = ""
     date_modified: str = ""
+    author: str = ""
+    reviewed_by: str = ""
+    sources: list[dict[str, str]] = Field(default_factory=list)
     related_slugs: list[str] = Field(default_factory=list)
     related: list[dict[str, Any]] = Field(default_factory=list)
     site_url: str = ""
@@ -168,6 +171,13 @@ class SeoService:
             about_title=raw.get("about_title", ""),
             about_body=raw.get("about_body", ""),
             date_modified=raw.get("date_modified", ""),
+            author=str(raw.get("author", "") or ""),
+            reviewed_by=str(raw.get("reviewed_by", "") or ""),
+            sources=[
+                {"label": str(src.get("label") or src.get("url")), "url": str(src["url"])}
+                for src in (raw.get("sources") or [])
+                if isinstance(src, dict) and src.get("url")
+            ],
             related_slugs=related_slugs,
             related=related,
             site_url=self.settings.SITE_URL,

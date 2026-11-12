@@ -18,12 +18,12 @@
 {{ tool_hero_section("wallet", "Paycheck & Salary Tool", "SALARY", "CALCULATOR", seo_data.description if seo_data else "Convert hourly, daily, weekly, monthly, and annual pay with tax withholding estimates across 16 currencies.") }}
 
 <div class="feature-card rounded-xl p-5 md:p-6 max-w-5xl mx-auto reveal">
-  <div class="flex flex-wrap gap-2 mb-6">
-    <button type="button" class="tab-btn active px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" data-tab="converter">Pay Converter</button>
-    <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" data-tab="takehome">Take-Home Pay</button>
-    <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" data-tab="compare">Compare Offers</button>
-    <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" data-tab="breakdown">Pay Breakdown</button>
-    <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" data-tab="planner">Career Planner</button>
+  <div class="flex flex-wrap gap-2 mb-6" role="tablist" aria-label="Salary Calculator Modes">
+    <button type="button" class="tab-btn active px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" role="tab" aria-selected="true" data-tab="converter">Pay Converter</button>
+    <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" role="tab" aria-selected="false" data-tab="takehome">Take-Home Pay</button>
+    <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" role="tab" aria-selected="false" data-tab="compare">Compare Offers</button>
+    <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" role="tab" aria-selected="false" data-tab="breakdown">Pay Breakdown</button>
+    <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" role="tab" aria-selected="false" data-tab="planner">Career Planner</button>
   </div>
 
   <div id="tab-converter" class="tab-content">
@@ -101,19 +101,32 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
         <div class="mb-4">
-          <label for="thAnnual" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Annual Gross Salary ($)</label>
-          <input type="number" id="thAnnual" aria-label="Annual gross salary" class="input input-visible w-full rounded-xl text-sm" value="60000" min="0" step="1000">
+          <label for="thRegime" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Tax Jurisdiction / Regime</label>
+          <select id="thRegime" aria-label="Tax jurisdiction" class="select w-full rounded-xl text-sm font-bold bg-base-200 border-base-content/20 h-11">
+            <option value="us" selected>United States (2025 Federal Brackets — $)</option>
+            <option value="in">India (FY 2025-26 New Tax Regime — ₹)</option>
+            <option value="uk">United Kingdom (2025/26 Income Tax — £)</option>
+            <option value="custom">Custom Effective Tax Rate (%)</option>
+          </select>
         </div>
         <div class="mb-4">
+          <label for="thAnnual" id="thAnnualLabel" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Annual Gross Salary ($)</label>
+          <input type="number" id="thAnnual" aria-label="Annual gross salary" class="input input-visible w-full rounded-xl text-sm" value="60000" min="0" step="1000">
+        </div>
+        <div class="mb-4" id="thStatusWrap">
           <label for="thStatus" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Filing Status</label>
           <select id="thStatus" aria-label="Tax filing status" class="select w-full rounded-xl text-sm font-bold bg-base-200 border-base-content/20 h-11">
             <option value="single">Single</option>
             <option value="married">Married Filing Jointly</option>
           </select>
         </div>
-        <div class="text-xs text-base-content/40 leading-relaxed p-3 rounded-xl bg-base-200/30">
-          <strong>Standard deduction:</strong> <span class="currency-sym" id="thDedSym">$</span><span id="thDedLabel">15,000</span> (Single).<br>
-          Based on 2025 US federal tax brackets. Simplified estimate — does not include credits or additional deductions.
+        <div class="mb-4 hidden" id="thCustomRateWrap">
+          <label for="thCustomRate" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Effective Tax Rate (%)</label>
+          <input type="number" id="thCustomRate" aria-label="Effective tax rate percent" class="input input-visible w-full rounded-xl text-sm" value="20" min="0" max="100" step="0.5">
+        </div>
+        <div class="text-xs text-base-content/55 leading-relaxed p-3 rounded-xl bg-base-200/30" id="thNoteBox">
+          <strong>Standard deduction:</strong> <span class="currency-sym" id="thDedSym">$</span><span id="thDedLabel">15,000</span>.<br>
+          <span id="thNoteText">Based on 2025 US federal tax brackets. Excludes FICA, state/local tax, credits, and pre-tax contributions.</span>
         </div>
       </div>
       <div class="space-y-3">
@@ -296,28 +309,79 @@ h.addEventListener('input',function(){convRecalc();});
 d.addEventListener('input',function(){convRecalc();});
 ids.forEach(function(id){inp[id].addEventListener('input',function(){convRecalc(id);});});
 
-var thAnn=document.getElementById('thAnnual'),thStat=document.getElementById('thStatus');
+var thAnn=document.getElementById('thAnnual'),thStat=document.getElementById('thStatus'),thRegime=document.getElementById('thRegime'),thCustomRate=document.getElementById('thCustomRate');
 var thTaxable=document.getElementById('thTaxable'),thTax=document.getElementById('thTax');
 var thTakeHome=document.getElementById('thTakeHome'),thRate=document.getElementById('thRate'),thMarginal=document.getElementById('thMarginal'),thDedLabel=document.getElementById('thDedLabel');
+var thStatusWrap=document.getElementById('thStatusWrap'),thCustomRateWrap=document.getElementById('thCustomRateWrap'),thAnnualLabel=document.getElementById('thAnnualLabel'),thNoteText=document.getElementById('thNoteText');
 var taxSingle=[{min:0,max:11925,rate:.1},{min:11925,max:48475,rate:.12},{min:48475,max:103350,rate:.22},{min:103350,max:197300,rate:.24},{min:197300,max:250525,rate:.32},{min:250525,max:626350,rate:.35},{min:626350,rate:.37}];
 var taxMarried=[{min:0,max:23850,rate:.1},{min:23850,max:96950,rate:.12},{min:96950,max:206700,rate:.22},{min:206700,max:394600,rate:.24},{min:394600,max:501050,rate:.32},{min:501050,max:751600,rate:.35},{min:751600,rate:.37}];
-function calcTax(){
-  var s=parseFloat(thAnn.value)||0,status=thStat.value,ded=status==='married'?30000:15000;
-  thDedLabel.textContent=ded.toLocaleString('en-US');
-  var taxable=Math.max(0,s-ded),tax=0,marginal=0,brackets=status==='married'?taxMarried:taxSingle;
-  for(var i=0;i<brackets.length;i++){
-    var b=brackets[i],top=b.max||1/0;
+var taxIndiaNew=[{min:0,max:400000,rate:0},{min:400000,max:800000,rate:.05},{min:800000,max:1200000,rate:.10},{min:1200000,max:1600000,rate:.15},{min:1600000,max:2000000,rate:.20},{min:2000000,max:2400000,rate:.25},{min:2400000,max:null,rate:.30}];
+function slabCalc(taxable,slabs){
+  var tax=0,marginal=0;
+  for(var i=0;i<slabs.length;i++){
+    var b=slabs[i],top=b.max||1/0;
     if(taxable>b.min){var inc=Math.min(taxable,top)-b.min;tax+=inc*b.rate;}
     if(taxable>=b.min&&taxable<=top)marginal=b.rate*100;
   }
-  var rate=taxable>0?tax/taxable*100:0;
-  thTaxable.textContent=currSym+taxable.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  thTax.textContent=currSym+tax.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  thTakeHome.textContent=currSym+(s-tax).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  thRate.textContent=rate.toFixed(1)+'%';
-  thMarginal.textContent=marginal+'%';
+  return{tax:tax,marginal:marginal};
+}
+function syncRegimeUI(){
+  var reg=thRegime?thRegime.value:'us';
+  if(thStatusWrap)thStatusWrap.classList.toggle('hidden',reg!=='us');
+  if(thCustomRateWrap)thCustomRateWrap.classList.toggle('hidden',reg!=='custom');
+  var sym=reg==='in'?'₹':reg==='uk'?'£':reg==='us'?'$':currSym;
+  if(thDedSym)thDedSym.textContent=sym;
+  if(thAnnualLabel)thAnnualLabel.textContent='Annual Gross Salary ('+sym.trim()+')';
+}
+function calcTax(){
+  var s=parseFloat(thAnn.value)||0,reg=thRegime?thRegime.value:'us',status=thStat.value;
+  var sym=reg==='in'?'₹':reg==='uk'?'£':reg==='us'?'$':currSym;
+  var loc=reg==='in'?'en-IN':reg==='uk'?'en-GB':'en-US';
+  var ded=0,taxable=s,tax=0,marginal=0;
+
+  if(reg==='in'){
+    ded=75000;
+    taxable=Math.max(0,s-ded);
+    var res=slabCalc(taxable,taxIndiaNew);
+    var slabTax=taxable<=1200000?0:Math.min(res.tax,taxable-1200000);
+    tax=slabTax*1.04;
+    marginal=taxable<=1200000?0:res.marginal*1.04;
+    thDedLabel.textContent=ded.toLocaleString('en-IN')+' (Salaried Std Deduction)';
+    if(thNoteText)thNoteText.textContent='India FY 2025-26 New Regime: 0-4L 0%, 4-8L 5%, 8-12L 10%, 12-16L 15%, 16-20L 20%, 20-24L 25%, >24L 30% + Sec 87A rebate up to ₹12L taxable & 4% Cess.';
+  }else if(reg==='uk'){
+    var pa=12570;
+    if(s>100000){pa=Math.max(0,pa-Math.floor((s-100000)/2));}
+    ded=pa;
+    taxable=Math.max(0,s-ded);
+    var ukRes=slabCalc(taxable,[{min:0,max:37700,rate:.20},{min:37700,max:125140,rate:.40},{min:125140,max:null,rate:.45}]);
+    tax=ukRes.tax;marginal=ukRes.marginal;
+    thDedLabel.textContent=ded.toLocaleString('en-GB')+' (Personal Allowance)';
+    if(thNoteText)thNoteText.textContent='UK 2025/26 Income Tax (England/Wales/NI): 20% Basic, 40% Higher, 45% Additional. Excludes National Insurance (NI) & student loans.';
+  }else if(reg==='custom'){
+    ded=0;taxable=s;
+    var r=Math.max(0,Math.min(100,parseFloat(thCustomRate.value)||0));
+    tax=s*(r/100);marginal=r;
+    thDedLabel.textContent='0';
+    if(thNoteText)thNoteText.textContent='Applies your custom effective rate ('+r.toFixed(1)+'%) across '+c.value+' salary.';
+  }else{
+    ded=status==='married'?30000:15000;
+    taxable=Math.max(0,s-ded);
+    var usRes=slabCalc(taxable,status==='married'?taxMarried:taxSingle);
+    tax=usRes.tax;marginal=usRes.marginal;
+    thDedLabel.textContent=ded.toLocaleString('en-US')+(status==='married'?' (Married Joint)':' (Single)');
+    if(thNoteText)thNoteText.textContent='Based on 2025 US federal tax brackets. Excludes FICA (Social Security/Medicare) and state taxes.';
+  }
+  var eff=s>0?tax/s*100:0;
+  thTaxable.textContent=sym+taxable.toLocaleString(loc,{minimumFractionDigits:2,maximumFractionDigits:2});
+  thTax.textContent=sym+tax.toLocaleString(loc,{minimumFractionDigits:2,maximumFractionDigits:2});
+  thTakeHome.textContent=sym+(s-tax).toLocaleString(loc,{minimumFractionDigits:2,maximumFractionDigits:2});
+  thRate.textContent=eff.toFixed(1)+'%';
+  thMarginal.textContent=marginal.toFixed(marginal%1===0?0:1)+'%';
 }
 thAnn.addEventListener('input',calcTax);thStat.addEventListener('change',calcTax);
+if(thRegime){thRegime.addEventListener('change',function(){syncRegimeUI();calcTax();});}
+if(thCustomRate){thCustomRate.addEventListener('input',calcTax);}
+syncRegimeUI();
 
 var cp1=document.getElementById('cp1Amt'),cp1p=document.getElementById('cp1Period'),cp1h=document.getElementById('cp1Hrs');
 var cp2=document.getElementById('cp2Amt'),cp2p=document.getElementById('cp2Period'),cp2h=document.getElementById('cp2Hrs');
@@ -374,8 +438,8 @@ plCur.addEventListener('input',calcPl);plPct.addEventListener('input',calcPl);pl
 
 document.querySelectorAll('.tab-btn').forEach(function(btn){
   btn.addEventListener('click',function(){
-    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
-    this.classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');b.setAttribute('aria-selected','false');});
+    this.classList.add('active');this.setAttribute('aria-selected','true');
     document.querySelectorAll('.tab-content').forEach(function(t){t.classList.add('hidden');});
     var tab=document.getElementById('tab-'+this.getAttribute('data-tab'));
     if(tab)tab.classList.remove('hidden');

@@ -104,7 +104,8 @@
       "name": {{ seo.name | default('StoryBrain AI Tool', true) | tojson }},
       {% if seo.url %}"url": {{ seo.url | tojson }},{% endif %}
       "inLanguage": "en",
-      "author": {"@type": "Organization", "name": "StoryBrain AI", "url": "https://www.storybrainai.com"},
+      "author": {"@type": "Organization", "name": {{ (seo.author or 'StoryBrain AI') | tojson }}, "url": "https://www.storybrainai.com"},
+      {% if seo.sources %}"citation": [{% for s in seo.sources %}{{ s.url | tojson }}{% if not loop.last %},{% endif %}{% endfor %}],{% endif %}
       "applicationCategory": {{ seo.app_category | default('UtilitiesApplication', true) | tojson }},
       {% if seo.app_sub_category %}"applicationSubCategory": {{ seo.app_sub_category | tojson }},{% endif %}
       "operatingSystem": "Web browser",
@@ -161,8 +162,21 @@
     {% set date_html = ' (page updated {date})' | replace('{date}', '<time datetime="' ~ seo.date_modified ~ '">' ~ seo.date_modified ~ '</time>') %}
   {% endif %}
   <div class="mt-10 pt-8 border-t border-base-300 reveal text-sm text-base-content/60 leading-relaxed">
-    <h2 class="font-display font-semibold text-lg text-base-content mb-2">Methodology & feedback</h2>
+    <h2 class="font-display font-semibold text-lg text-base-content mb-2">Methodology &amp; feedback</h2>
+    <p class="text-xs text-base-content/55 mb-2">
+      <span>Prepared by <strong class="font-semibold text-base-content/80">{{ seo.author or 'StoryBrain AI Editorial & Engineering Team' }}</strong></span>{% if seo.reviewed_by %} · <span>{{ seo.reviewed_by }}</span>{% endif %}
+    </p>
     <p>{{ 'Figures run locally in your browser from the values you enter{date}. Estimates are educational only — verify finance, tax and health decisions with a qualified professional (see {disclaimer}). Spotted an error? {contact} and we correct with a new update date.' | replace('{date}', date_html) | replace('{disclaimer}', disclaimer_link) | replace('{contact}', contact_link) | safe }}</p>
+    {% if seo.sources %}
+    <div class="mt-4 pt-3 border-t border-base-300/60">
+      <div class="text-xs font-semibold uppercase tracking-wider text-base-content/50 mb-1.5">Primary Sources &amp; Standards</div>
+      <ul class="list-disc pl-5 space-y-1 text-xs">
+        {% for src in seo.sources %}
+        <li><a href="{{ src.url }}" target="_blank" rel="noopener noreferrer" class="underline hover:text-base-content transition-colors">{{ src.label }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
     <div class="mt-4 flex flex-wrap items-center gap-3" data-helpful-box data-tool="{{ seo.slug }}">
       <span class="font-medium text-base-content/70">Was this tool helpful?</span>
       <button type="button" class="btn-cal-secondary h-8 px-3 text-xs" data-helpful="yes" aria-label="Yes, this tool was helpful">Yes</button>
