@@ -88,6 +88,9 @@ def test_apex_host_redirects_to_www_and_mobile_nav_has_blog():
     assert "Guides &amp; Blog" in home.text
     # Ensure Consent Mode v2 initializes Google scripts cleanly on default visit (still gated by GPC/reject)
     assert "loadGoogleScripts();" in home.text
+    csp = home.headers.get("content-security-policy", "")
+    assert "https://fundingchoicesmessages.google.com" in csp
+    assert "https://*.adtrafficquality.google" in csp
 
 
 def test_all_blog_posts_free_of_boilerplate_and_eeat_complete():
