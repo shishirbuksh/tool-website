@@ -78,6 +78,16 @@ class Settings(BaseSettings):
         description="When true, header-less cross-origin writes (no Origin/Referer/Sec-Fetch-Site) are 403'd. "
         "Keep false if non-browser clients (curl, server-to-server) use the write APIs.",
     )
+    ADSENSE_BLOG_SLOT_ID: str = Field(
+        default="",
+        description="Optional AdSense manual responsive ad unit slot ID for blog articles. "
+        "Leave empty before AdSense approval so no blank Advertisement placeholders are rendered.",
+    )
+    ADSENSE_TOOL_SLOT_ID: str = Field(
+        default="",
+        description="Optional AdSense manual responsive ad unit slot ID below tool content. "
+        "Leave empty before AdSense approval so no blank Advertisement placeholders are rendered.",
+    )
 
     SUPPORTED_LOCALES: tuple[str, ...] = ("en",)
     DEFAULT_LOCALE: str = "en"

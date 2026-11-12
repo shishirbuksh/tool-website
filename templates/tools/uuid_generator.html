@@ -2,37 +2,105 @@
 {% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
 
 {% block content %}
-{{ tool_hero_section("fingerprint", "UUID v4 Identifier Tool", "UUID", "GENERATOR", seo_data.description if seo_data else "Generate UUIDs (Universally Unique Identifiers) in v4 format.") }}
+{{ tool_hero_section("fingerprint", "RFC 9562 Cryptographic UUIDs", "UUID v4 &amp; v7", "GENERATOR", seo_data.description if seo_data else "Generate cryptographically random UUID v4 or time-ordered UUID v7 identifiers locally using Web Crypto.") }}
   <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
     <div class="lg:w-5/12">
       <div class="feature-card p-6 md:p-8">
         <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Options</h2>
         <form class="flex flex-col gap-5">
-          <div><label class="text-xs font-semibold text-base-content/70" for="uuidCount">Number of UUIDs</label><input aria-label="Number of UUIDs to Generate" type="number" id="uuidCount" class="input w-full cal-input bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="1" min="1" max="100"></div>
+          <div>
+            <label class="text-xs font-semibold text-base-content/70" for="uuidVersion">UUID Version</label>
+            <select id="uuidVersion" class="select w-full cal-input bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" aria-label="UUID Version">
+              <option value="v4" selected>UUID v4 (Random — 122 bits CSPRNG)</option>
+              <option value="v7">UUID v7 (Unix ms Time-Sorted — RFC 9562)</option>
+              <option value="nil">Nil UUID (All Zeros Sentinel)</option>
+            </select>
+          </div>
+          <div><label class="text-xs font-semibold text-base-content/70" for="uuidCount">Number of UUIDs (1–500)</label><input aria-label="Number of UUIDs to Generate" type="number" id="uuidCount" class="input w-full cal-input bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="5" min="1" max="500"></div>
           <div class="flex items-center gap-3"><input aria-label="Uppercase UUID Letters" type="checkbox" id="uppercaseUUID" class="checkbox checkbox-neutral rounded-md border-base-content/30"><label class="text-xs font-semibold text-base-content/70 mb-0" for="uppercaseUUID">Uppercase letters</label></div>
-          <div class="flex items-center gap-3"><input aria-label="Remove Hyphens from UUID" type="checkbox" id="removeDashes" class="checkbox checkbox-neutral rounded-md border-base-content/30"><label class="text-xs font-semibold text-base-content/70 mb-0" for="removeDashes">Remove dashes</label></div>
+          <div class="flex items-center gap-3"><input aria-label="Remove Hyphens from UUID" type="checkbox" id="removeDashes" class="checkbox checkbox-neutral rounded-md border-base-content/30"><label class="text-xs font-semibold text-base-content/70 mb-0" for="removeDashes">Compact hex (remove hyphens)</label></div>
+          <div class="flex items-center gap-3"><input aria-label="Wrap UUIDs as URN" type="checkbox" id="wrapUrn" class="checkbox checkbox-neutral rounded-md border-base-content/30"><label class="text-xs font-semibold text-base-content/70 mb-0" for="wrapUrn">Prefix urn:uuid:</label></div>
           <button type="button" id="uuidGenBtn" class="btn btn-cal-primary w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("refresh-cw","w-5 h-5", 20) | safe }} GENERATE</button>
         </form>
       </div>
     </div>
     <div class="lg:w-7/12">
       <div class="feature-card p-6 md:p-8">
-        <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Generated UUIDs</h3>
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h3 class="text-xl font-black tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Generated UUIDs</h3>
+          <span id="uuidMeta" class="text-xs font-mono text-base-content/50">crypto.getRandomValues()</span>
+        </div>
         <div class="feature-card p-6" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-          <output id="result" class="block min-h-[120px] p-4 bg-base-300/20 rounded-xl text-sm font-mono break-all text-base-content leading-loose">Click Generate</output>
-          <button type="button" id="uuidCopyBtn" class="btn btn-cal-primary mt-4 py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("copy","w-4 h-4", 16) | safe }} COPY ALL</button>
+          <output id="result" class="block min-h-[160px] max-h-[340px] overflow-y-auto p-4 bg-base-300/20 rounded-xl text-sm font-mono break-all text-base-content leading-loose whitespace-pre-wrap">Click Generate</output>
+          <div class="flex flex-wrap gap-2 mt-4">
+            <button type="button" id="uuidCopyBtn" class="btn btn-cal-primary py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("copy","w-4 h-4", 16) | safe }} COPY ALL</button>
+            <button type="button" id="uuidCopyJsonBtn" class="btn btn-cal-secondary py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">COPY JSON</button>
+            <button type="button" id="uuidDownloadBtn" class="btn btn-cal-secondary py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("download","w-4 h-4", 16) | safe }} .TXT</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 <script nonce="{{ nonce }}">
-(function(){'use strict';function generateUUID(){const hex='0123456789abcdef';let uuid='';for(let i=0;i<36;i++){if(i===8||i===13||i===18||i===23){uuid+='-';}else if(i===14){uuid+='4';}else if(i===19){uuid+=hex[(Math.random()*4|0)+8];}else{uuid+=hex[Math.random()*16|0];}}
-return uuid;}
-function generate(){const count=parseInt(document.getElementById('uuidCount').value)||1;const upper=document.getElementById('uppercaseUUID').checked;const noDash=document.getElementById('removeDashes').checked;const uuids=[];for(let i=0;i<count;i++){let u=generateUUID();if(upper)u=u.toUpperCase();if(noDash)u=u.replace(/-/g,'');uuids.push(u);}
-document.getElementById('result').innerText=uuids.join('\n');}
-function copyUUIDs(){const text=document.getElementById('result').innerText;navigator.clipboard.writeText(text);document.getElementById('result').innerText='Copied!';setTimeout(()=>generate(),1200);}
-document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('input').forEach(function(el){el.addEventListener('input',generate);});document.getElementById('uuidGenBtn').addEventListener('click',generate);document.getElementById('uuidCopyBtn').addEventListener('click',copyUUIDs);generate();});})();
+(function(){'use strict';
+var lastList=[];
+function randBytes(n){
+  var b=new Uint8Array(n);
+  if(window.crypto&&window.crypto.getRandomValues){window.crypto.getRandomValues(b);return b;}
+  for(var i=0;i<n;i++)b[i]=Math.floor(Math.random()*256);
+  return b;
+}
+function bytesToUuid(b){
+  var h=[];for(var i=0;i<16;i++)h.push((b[i]+0x100).toString(16).slice(1));
+  return h.slice(0,4).join('')+'-'+h.slice(4,6).join('')+'-'+h.slice(6,8).join('')+'-'+h.slice(8,10).join('')+'-'+h.slice(10,16).join('');
+}
+function makeV4(){
+  if(window.crypto&&typeof window.crypto.randomUUID==='function')return window.crypto.randomUUID();
+  var b=randBytes(16);b[6]=(b[6]&0x0f)|0x40;b[8]=(b[8]&0x3f)|0x80;return bytesToUuid(b);
+}
+function makeV7(msOffset){
+  var b=randBytes(16);var ms=Date.now()+(msOffset||0);
+  b[0]=Math.floor(ms/2**40)&0xff;b[1]=Math.floor(ms/2**32)&0xff;
+  b[2]=(ms>>>24)&0xff;b[3]=(ms>>>16)&0xff;b[4]=(ms>>>8)&0xff;b[5]=ms&0xff;
+  b[6]=(b[6]&0x0f)|0x70;b[8]=(b[8]&0x3f)|0x80;
+  return bytesToUuid(b);
+}
+function generate(){
+  var ver=document.getElementById('uuidVersion').value;
+  var count=Math.min(500,Math.max(1,parseInt(document.getElementById('uuidCount').value,10)||1));
+  var upper=document.getElementById('uppercaseUUID').checked;
+  var noDash=document.getElementById('removeDashes').checked;
+  var urn=document.getElementById('wrapUrn').checked;
+  lastList=[];
+  for(var i=0;i<count;i++){
+    var u=ver==='v7'?makeV7(i):ver==='nil'?'00000000-0000-0000-0000-000000000000':makeV4();
+    if(noDash)u=u.replace(/-/g,'');
+    if(upper)u=u.toUpperCase();
+    if(urn)u='urn:uuid:'+u;
+    lastList.push(u);
+  }
+  document.getElementById('result').textContent=lastList.join('\n');
+  document.getElementById('uuidMeta').textContent=count+' × '+ver.toUpperCase()+(window.crypto&&window.crypto.getRandomValues?' · CSPRNG':'');
+}
+function copyText(txt,btn,label){
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).catch(function(){});}
+  if(btn){var prev=btn.textContent;btn.textContent='Copied!';setTimeout(function(){btn.textContent=label;},1200);}
+}
+document.addEventListener('DOMContentLoaded',function(){
+  document.querySelectorAll('#uuidCount,#uppercaseUUID,#removeDashes,#wrapUrn,#uuidVersion').forEach(function(el){
+    el.addEventListener('input',generate);el.addEventListener('change',generate);
+  });
+  document.getElementById('uuidGenBtn').addEventListener('click',generate);
+  document.getElementById('uuidCopyBtn').addEventListener('click',function(){copyText(lastList.join('\n'),this,'COPY ALL');});
+  document.getElementById('uuidCopyJsonBtn').addEventListener('click',function(){copyText(JSON.stringify(lastList,null,2),this,'COPY JSON');});
+  document.getElementById('uuidDownloadBtn').addEventListener('click',function(){
+    var blob=new Blob([lastList.join('\n')+'\n'],{type:'text/plain'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='uuids-'+document.getElementById('uuidVersion').value+'.txt';a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+  });
+  generate();
+});})();
 </script>
 
 

@@ -8,6 +8,10 @@
     <div class="feature-card p-6 md:p-8">
       <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5",20) | safe }} Your Numbers</h2>
       <form class="flex flex-col gap-5" id="rateForm">
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="text-xs font-semibold text-base-content/70" for="currencySym">Currency</label><select id="currencySym" class="select w-full cal-input font-bold rounded-xl" aria-label="Currency"><option value="$">USD ($)</option><option value="₹">INR (₹)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option></select></div>
+          <div><label class="text-xs font-semibold text-base-content/70" for="ptoWeeks">Unpaid weeks / yr</label><input aria-label="Unpaid vacation or sick weeks per year" type="number" id="ptoWeeks" class="input w-full cal-input font-bold rounded-xl" value="4" min="0" max="26"></div>
+        </div>
         <div><label class="text-xs font-semibold text-base-content/70" for="goal">Monthly take-home goal</label><input aria-label="Monthly income goal" type="number" id="goal" class="input w-full cal-input font-bold rounded-xl" value="5000" min="0"></div>
         <div><label class="text-xs font-semibold text-base-content/70" for="hours">Billable hours / week</label><input aria-label="Billable hours per week" type="number" id="hours" class="input w-full cal-input font-bold rounded-xl" value="25" min="1" max="100"></div>
         <div><label class="text-xs font-semibold text-base-content/70" for="expenses">Monthly expenses</label><input aria-label="Monthly business expenses" type="number" id="expenses" class="input w-full cal-input font-bold rounded-xl" value="300" min="0"></div>
@@ -40,18 +44,21 @@
 <script nonce="{{ nonce }}">
 (function(){'use strict';
 function val(id){return parseFloat(document.getElementById(id).value)||0;}
-function money(n){return '$'+n.toLocaleString('en-US',{maximumFractionDigits:0});}
+function sym(){return document.getElementById('currencySym').value||'$';}
+function money(n,dec){var s=sym();return s+n.toLocaleString(s==='₹'?'en-IN':'en-US',{minimumFractionDigits:dec||0,maximumFractionDigits:dec||0});}
 function calc(){
-  var goal=val('goal'),hrs=Math.max(1,val('hours')),exp=val('expenses');
+  var goal=val('goal'),hrs=Math.max(1,val('hours')),exp=val('expenses'),pto=Math.min(26,Math.max(0,val('ptoWeeks')));
   var tax=Math.min(90,val('tax'))/100,fee=Math.min(90,val('fee'))/100,disc=Math.min(90,val('discount'))/100;
   var denom=(1-tax)*(1-fee);
   if(denom<=0)return;
+  var activeMonths=Math.max(1,(52-pto)/4.33);
+  var annualGrossNeed=(goal+exp)*12/denom;
   var monthlyHrs=hrs*4.33;
-  var hourly=(goal+exp)/denom/monthlyHrs;
-  document.getElementById('hourly').textContent='$'+hourly.toFixed(2);
+  var hourly=annualGrossNeed/(hrs*(52-pto));
+  document.getElementById('hourly').textContent=money(hourly,2);
   document.getElementById('day').textContent=money(hourly*8);
   document.getElementById('week').textContent=money(hourly*hrs);
-  document.getElementById('month').textContent=money(hourly*monthlyHrs);
+  document.getElementById('month').textContent=money(hourly*monthlyHrs*(52-pto)/52);
   var sizes=[5,10,20,40,80];
   var html='';
   sizes.forEach(function(h){
@@ -59,11 +66,10 @@ function calc(){
     html+='<tr class="border-t border-base-300/20"><td class="py-2 pr-4 font-bold">'+h+'h project</td><td class="py-2 pr-4 font-mono">'+money(std)+'</td><td class="py-2 font-mono text-success">'+money(cut)+'</td></tr>';
   });
   document.getElementById('projectTable').innerHTML=html;
-  var w2=hourly*2080;
-  document.getElementById('raiseNote').textContent='Full-time equivalent at this rate: '+money(w2)+'/year. Raise your goal by 10% any time to model your next rate increase.';
+  document.getElementById('raiseNote').textContent='Required annual gross billing across '+(52-pto)+' billable weeks: '+money(annualGrossNeed)+'/yr (~'+money(annualGrossNeed/activeMonths)+'/active month).';
 }
 document.addEventListener('DOMContentLoaded',function(){
-  document.querySelectorAll('#rateForm input').forEach(function(el){el.addEventListener('input',calc);});
+  document.querySelectorAll('#rateForm input,#rateForm select').forEach(function(el){el.addEventListener('input',calc);el.addEventListener('change',calc);});
   calc();
 });})();
 </script>

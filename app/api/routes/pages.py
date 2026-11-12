@@ -88,6 +88,8 @@ templates.env.filters["sanitize"] = sanitize_html
 
 templates.env.globals["app_version"] = APP_VERSION
 templates.env.globals["app_css_href"] = APP_CSS_HREF
+templates.env.globals["adsense_blog_slot_id"] = settings.ADSENSE_BLOG_SLOT_ID.strip()
+templates.env.globals["adsense_tool_slot_id"] = settings.ADSENSE_TOOL_SLOT_ID.strip()
 
 _PAGE_CACHE_HEADERS = {"Cache-Control": "private, no-cache, no-store, must-revalidate"}
 

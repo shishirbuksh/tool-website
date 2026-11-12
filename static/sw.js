@@ -1,13 +1,13 @@
 // StoryBrain AI Service Worker (cache version & hashed CSS synced by scripts/compress.js)
-const CACHE_NAME = 'storybrain-v47-c2d99026';
-const STATIC_CACHE = 'storybrain-static-v47-c2d99026';
+const CACHE_NAME = 'storybrain-v47-f52fc599';
+const STATIC_CACHE = 'storybrain-static-v47-f52fc599';
 const PAGE_CACHE_MAX_ENTRIES = 50;
 
 // Assets to pre-cache on install (app-shell only; OG/screenshots lazy via runtime cache)
 // NOTE: '/' intentionally NOT precached — network-first pages + /offline fallback
 // cover it, and precaching '/' pins a stale HTML shell across deploys.
 const PRECACHE_URLS = [
-  '/static/css/app.cb771ff8.css',
+  '/static/css/app.218295f8.css',
   '/static/css/fonts.css',
   '/static/favicon.svg',
   '/static/favicon.ico',
