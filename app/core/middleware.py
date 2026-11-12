@@ -490,6 +490,22 @@ class CaseSensitiveRedirectMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class CanonicalHostMiddleware(BaseHTTPMiddleware):
+    """Redirect bare apex domain (storybrainai.com) permanently to canonical www host."""
+
+    _APEX_HOSTS = {"storybrainai.com"}
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        if request.method in ("GET", "HEAD"):
+            host = (request.headers.get("host") or "").split(":")[0].strip().lower()
+            if host in self._APEX_HOSTS:
+                target = f"https://www.{host}{request.url.path}"
+                if request.url.query:
+                    target = f"{target}?{request.url.query}"
+                return RedirectResponse(url=target, status_code=301)
+        return await call_next(request)
+
+
 class NoIndexAPIMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         response = await call_next(request)

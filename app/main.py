@@ -30,6 +30,7 @@ from app.core.exceptions import register_exception_handlers
 from app.core.log import get_logger, setup_logging
 from app.core.metrics import MetricsMiddleware
 from app.core.middleware import (
+    CanonicalHostMiddleware,
     CaseSensitiveRedirectMiddleware,
     CleanQueryMiddleware,
     MaxBodySizeMiddleware,
@@ -153,6 +154,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 # CleanQuery just inside TrustedHost so junk params are stripped before redirects.
 app.add_middleware(CleanQueryMiddleware)
+app.add_middleware(CanonicalHostMiddleware)
 # TrustedHost outermost (added last) so Host validation runs first.
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=hosts or ["127.0.0.1", "localhost"])
 

@@ -75,6 +75,21 @@ def test_all_tools_meet_depth_eeat_and_unique_faq_standards():
     assert not dups, f"Duplicate FAQ questions across tools: {dups}"
 
 
+def test_apex_host_redirects_to_www_and_mobile_nav_has_blog():
+    """Verify bare apex storybrainai.com 301-redirects to www, and mobile drawer exposes /blog."""
+    apex_client = TestClient(app, base_url="https://storybrainai.com")
+    res = apex_client.get("/tool/text-case-converter?ref=gsc", follow_redirects=False)
+    assert res.status_code == 301
+    assert res.headers.get("location") == "https://www.storybrainai.com/tool/text-case-converter?ref=gsc"
+
+    home = client.get("/")
+    assert home.status_code == 200
+    assert 'href="/blog"' in home.text
+    assert "Guides &amp; Blog" in home.text
+    # Ensure Consent Mode v2 initializes Google scripts cleanly on default visit (still gated by GPC/reject)
+    assert "loadGoogleScripts();" in home.text
+
+
 def test_all_blog_posts_free_of_boilerplate_and_eeat_complete():
     """All 99 blog posts carry >=950 words, E-E-A-T fields, unique H2s, and zero boilerplate."""
     with open(ROOT / "data" / "blog.yaml", encoding="utf-8") as f:
