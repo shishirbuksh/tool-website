@@ -246,7 +246,7 @@
         seed + ' vs alternative comparison',
         seed + ' for beginners step by step',
         'free ' + seed + ' tool no signup',
-        seed + ' india price calculator hindi',
+        seed + ' pricing calculator and guide',
         'what is ' + seed + ' and how it works',
         seed + ' common mistakes to avoid'
       ];

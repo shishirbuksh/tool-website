@@ -139,3 +139,80 @@ class TestCleanQueryMiddleware:
 
         # Must not redirect; passes through to call_next
         assert response.status_code == 200
+
+
+class TestTrailingSlashRedirectMiddleware:
+    @pytest.mark.asyncio
+    async def test_trailing_slash_redirects_301_relative(self):
+        from app.core.middleware import TrailingSlashRedirectMiddleware
+
+        mock_url = type("Url", (), {"path": "/tools/", "query": ""})()
+        mock_request = AsyncMock(spec=Request)
+        mock_request.method = "GET"
+        mock_request.url = mock_url
+        mock_call_next = AsyncMock(return_value=Response(content="ok", status_code=200))
+
+        middleware = TrailingSlashRedirectMiddleware(lambda: None)
+        response = await middleware.dispatch(mock_request, mock_call_next)
+
+        assert response.status_code == 301
+        assert response.headers["location"] == "/tools"
+        mock_call_next.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_trailing_slash_lowercases_and_preserves_query(self):
+        from app.core.middleware import TrailingSlashRedirectMiddleware
+
+        mock_url = type("Url", (), {"path": "/TOOL/Image-Compressor/", "query": "q=webp&ref=nav"})()
+        mock_request = AsyncMock(spec=Request)
+        mock_request.method = "HEAD"
+        mock_request.url = mock_url
+        mock_call_next = AsyncMock(return_value=Response())
+
+        middleware = TrailingSlashRedirectMiddleware(lambda: None)
+        response = await middleware.dispatch(mock_request, mock_call_next)
+
+        assert response.status_code == 301
+        assert response.headers["location"] == "/tool/image-compressor?q=webp&ref=nav"
+        mock_call_next.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_root_and_static_do_not_redirect(self):
+        from app.core.middleware import TrailingSlashRedirectMiddleware
+
+        middleware = TrailingSlashRedirectMiddleware(lambda: None)
+        for path in ("/", "/static/css/"):
+            mock_url = type("Url", (), {"path": path, "query": ""})()
+            mock_request = AsyncMock(spec=Request)
+            mock_request.method = "GET"
+            mock_request.url = mock_url
+            mock_call_next = AsyncMock(return_value=Response(content="ok", status_code=200))
+
+            response = await middleware.dispatch(mock_request, mock_call_next)
+            assert response.status_code == 200
+            mock_call_next.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_trailing_slash_strips_legacy_locale_single_hop(self):
+        from app.core.middleware import TrailingSlashRedirectMiddleware
+
+        middleware = TrailingSlashRedirectMiddleware(lambda: None)
+        cases = [
+            ("/hi/", "/", None),
+            ("/es/tools/", "/tools", None),
+            ("/hi/tool/fd-calculator/", "/tool/fd-calculator?foo=1", "foo=1"),
+            ("/history/", "/history", None),
+        ]
+        for path, expected, query in cases:
+            mock_url = type("Url", (), {"path": path, "query": query or ""})()
+            mock_request = AsyncMock(spec=Request)
+            mock_request.method = "GET"
+            mock_request.url = mock_url
+            mock_call_next = AsyncMock(return_value=Response(content="ok", status_code=200))
+
+            response = await middleware.dispatch(mock_request, mock_call_next)
+            assert response.status_code == 301
+            assert response.headers["location"] == expected
+            mock_call_next.assert_not_called()
+
+

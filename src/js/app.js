@@ -30,7 +30,7 @@ function oS(){
   dia.showModal();
   if(si)si.focus();
   if(!toolCache){
-    fetch('/api/tools/catalog?lang='+encodeURIComponent(document.documentElement.lang||'en')).then(function(r){if(!r.ok)throw new Error('catalog '+r.status);return r.json()}).then(function(d){toolCache=Array.isArray(d)?d:(d&&Array.isArray(d.tools)?d.tools:[]);filterTools()}).catch(function(){toolCache=[];if(sr)_msg(_msgText('error','Could not load tools. Try again later.'))})
+    fetch('/api/tools/catalog').then(function(r){if(!r.ok)throw new Error('catalog '+r.status);return r.json()}).then(function(d){toolCache=Array.isArray(d)?d:(d&&Array.isArray(d.tools)?d.tools:[]);filterTools()}).catch(function(){toolCache=[];if(sr)_msg(_msgText('error','Could not load tools. Try again later.'))})
   }
 }
 function normQ(s){s=String(s==null?'':s);try{s=s.normalize('NFC')}catch(e){}s=s.toLowerCase();try{s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}catch(e){}return s}

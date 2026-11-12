@@ -487,10 +487,30 @@
     });
   }
 
-  // Initialize tool cache on DOMContentLoaded
-  document.addEventListener('DOMContentLoaded', function () {
+  function initFromQuery() {
     getCachedTools();
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const catParam = params.get('category');
+      const qParam = params.get('q');
+      if (catParam) {
+        const selector = '.category-card[data-filter="' + (window.CSS && CSS.escape ? CSS.escape(catParam) : catParam.replace(/["\\]/g, '')) + '"]';
+        const catTab = document.querySelector(selector);
+        if (catTab) catTab.click();
+      }
+      if (qParam && searchInput) {
+        searchInput.value = qParam.trim();
+        filterTools();
+      }
+    } catch {}
     updateClearButtonState();
-  });
+  }
+
+  // Initialize tool cache & query filters on DOMContentLoaded (or immediately if ready)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFromQuery);
+  } else {
+    initFromQuery();
+  }
 
 })();

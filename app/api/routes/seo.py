@@ -33,47 +33,18 @@ async def sitemap() -> Response:
 
 @router.api_route("/sitemap-index.xml", methods=["GET", "HEAD"], response_class=Response, include_in_schema=False)
 async def sitemap_index() -> Response:
-    try:
-        content = await asyncio.to_thread(sitemap_service.build_sitemap_index)
-        return Response(
-            content=content,
-            media_type="application/xml",
-            headers={"Cache-Control": "public, max-age=3600"},
-        )
-    except Exception as e:
-        logger.exception("Failed to build sitemap-index.xml")
-        raise HTTPException(status_code=500, detail="Failed to generate sitemap-index.xml") from e
+    from fastapi.responses import RedirectResponse  # noqa: PLC0415
+
+    return RedirectResponse(url="/sitemap.xml", status_code=301)
 
 
 @router.api_route("/sitemap-{locale}.xml", methods=["GET", "HEAD"], response_class=Response, include_in_schema=False)
 async def sitemap_locale(locale: str) -> Response:
     from fastapi.responses import RedirectResponse  # noqa: PLC0415
 
-    from app.core.i18n import is_supported_locale, normalize_locale  # noqa: PLC0415
-    from app.core.locale_policy import is_locale_released  # noqa: PLC0415
-
-    if not is_supported_locale(locale):
-        raise HTTPException(status_code=404, detail="Not found")
-    if normalize_locale(locale) == "en":
-        # EN canonical lives at /sitemap.xml (e.g. /sitemap-en.xml requested).
+    if locale.strip().lower() == "en":
         return RedirectResponse(url="/sitemap.xml", status_code=301)
-    if not is_locale_released(locale):
-        # A quarantined locale has no public sitemap. 404 (not an empty sitemap)
-        # tells search engines to drop the previously submitted file.
-        raise HTTPException(status_code=404, detail="Not found")
-    try:
-        loc = normalize_locale(locale)
-        content = await asyncio.to_thread(sitemap_service.build_sitemap_xml_for_locale, loc)
-        return Response(
-            content=content,
-            media_type="application/xml",
-            headers={"Cache-Control": "public, max-age=3600", "Content-Language": loc},
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception("Failed to build sitemap locale xml")
-        raise HTTPException(status_code=500, detail="Failed to generate sitemap locale xml") from e
+    raise HTTPException(status_code=404, detail="Not found")
 
 
 @router.api_route("/robots.txt", methods=["GET", "HEAD"], response_class=Response, include_in_schema=False)

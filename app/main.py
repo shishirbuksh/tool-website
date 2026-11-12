@@ -38,6 +38,7 @@ from app.core.middleware import (
     RateLimitMiddleware,
     RequestIDMiddleware,
     SecurityHeadersMiddleware,
+    TrailingSlashRedirectMiddleware,
 )
 
 _startup_logger = get_logger("app.main")
@@ -119,6 +120,7 @@ app.add_middleware(OriginCheckMiddleware)
 app.add_middleware(MetricsMiddleware)
 app.add_middleware(NoIndexAPIMiddleware)
 app.add_middleware(CaseSensitiveRedirectMiddleware)
+app.add_middleware(TrailingSlashRedirectMiddleware)
 
 app.add_middleware(RequestIDMiddleware)
 # ROUND-2 perf: GZip for dynamic responses only; Caddy serves precompressed

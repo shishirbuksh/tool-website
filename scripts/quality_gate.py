@@ -38,19 +38,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 import yaml  # noqa: E402
 
-from app.core.i18n import SUPPORTED_LOCALES, normalize_locale, split_locale_path  # noqa: E402
-from app.core.locale_policy import (  # noqa: E402
-    INDIA_ONLY_TOOL_SLUGS,
-    WESTERN_LOCALES,
-    is_path_indexable,
-    is_surface_indexable,
-    path_surface,
-    published_locales,
-    static_pages_for,
-    translation_decision,
-)
-
-INDIA_ONLY_TOOLS = INDIA_ONLY_TOOL_SLUGS
+LEGACY_LOCALE_PREFIXES = frozenset({"hi", "es", "fr", "de"})
 
 VALID_STATUSES = frozenset({"draft", "review", "published"})
 DEFAULT_STATUSES = ("published", "review")
@@ -489,20 +477,15 @@ class QualityGate:
 
         self.tools = _load_yaml(_REPO_ROOT / "data" / "tools.yaml").get("tools", {}) or {}
         self.posts = _load_yaml(_REPO_ROOT / "data" / "blog.yaml").get("posts", {}) or {}
-        self.released = set(published_locales())
+        self.released = {"en"}
 
         self._bodies: dict[tuple[str, str, str], str] = {}
         self._meta_titles: dict[tuple[str, str], dict[str, str]] = defaultdict(dict)
         self._descriptions: dict[tuple[str, str], dict[str, str]] = defaultdict(dict)
 
     def run(self) -> GateReport:
-        for loc in self.report.locales:
-            if loc == "en":
-                self._check_en()
-            else:
-                self._check_locale(loc)
+        self._check_en()
         self._check_duplicates()
-        self._check_cross_locale_bodies()
         if self.check_sitemaps:
             self._check_sitemaps()
         return self.report
@@ -521,79 +504,6 @@ class QualityGate:
             if self._selected(slug):
                 source = {key: value for key, value in raw.items() if key != "i18n"}
                 self._check_blog("en", slug, raw, source)
-
-    def _check_locale(self, loc: str) -> None:
-        for slug, raw in sorted(self.tools.items()):
-            if not self._selected(slug):
-                continue
-            overrides = raw.get("i18n") or {}
-            over = overrides.get(loc) if isinstance(overrides, dict) else None
-            if not isinstance(over, dict) or not over:
-                continue
-            if not self._translation_selected(loc, "tool", slug, over):
-                continue
-            self._check_tool(loc, slug, raw, over)
-
-        for slug, raw in sorted(self.posts.items()):
-            if not self._selected(slug):
-                continue
-            overrides = raw.get("i18n") or {}
-            over = overrides.get(loc) if isinstance(overrides, dict) else None
-            if not isinstance(over, dict) or not over:
-                continue
-            if not self._translation_selected(loc, "blog", slug, over):
-                continue
-            self._check_blog(loc, slug, raw, over)
-
-    def _translation_selected(self, loc: str, kind: str, slug: str, over: dict[str, Any]) -> bool:
-        raw_status = str(over.get("translation_status") or "").strip().lower()
-        if raw_status and raw_status not in VALID_STATUSES:
-            self.report.add(
-                "error", loc, kind, slug, "invalid_translation_status", f"unknown translation_status={raw_status!r}"
-            )
-            return False
-        status = raw_status or "review"
-        if status not in self.statuses:
-            return False
-        if status == "published" and kind == "tool" and slug in INDIA_ONLY_TOOL_SLUGS and loc in WESTERN_LOCALES:
-            self.report.add(
-                "error",
-                loc,
-                kind,
-                slug,
-                "india_only_tool_localized",
-                "India-only tool must not be published for DE/ES/FR (HI only)",
-            )
-        if not raw_status:
-            severity = "error" if loc in self.released else "warning"
-            self.report.add(
-                severity,
-                loc,
-                kind,
-                slug,
-                "translation_status_missing",
-                "localized override has no translation_status; treat as unreviewed",
-            )
-        if status == "published" and over.get("noindex") is True:
-            severity = "error" if loc in self.released else "warning"
-            self.report.add(
-                severity,
-                loc,
-                kind,
-                slug,
-                "published_item_noindex",
-                "translation_status=published conflicts with noindex: true",
-            )
-        if loc in self.released and status != "published":
-            self.report.add(
-                "error",
-                loc,
-                kind,
-                slug,
-                "released_locale_unpublished_item",
-                f"locale is released but item status is {status!r} (would stay noindex)",
-            )
-        return True
 
     def _check_tool(self, loc: str, slug: str, raw: dict[str, Any], over: dict[str, Any]) -> None:
         self.report.items_checked += 1
@@ -939,58 +849,6 @@ class QualityGate:
                     f"FAQ #{index} answer has {answer_words} words (target {thresholds.faq_answer_warn}+)",
                 )
 
-    def _check_same_as_source(self, loc: str, kind: str, slug: str, localized: Any, source: Any) -> None:
-        left = normalize_text(localized)
-        right = normalize_text(source)
-        if len(left.split()) >= 30 and left == right:
-            self.report.add(
-                "error", loc, kind, slug, "identical_to_english", "localized body is identical to the English source"
-            )
-
-    def _check_language_signal(self, loc: str, kind: str, slug: str, text: Any) -> None:
-        plain = html_to_text(text)
-        tokens = [token.lower() for token in _TOKEN_RE.findall(plain)]
-        if len(tokens) < 40:
-            return
-        if loc == "hi":
-            compact = re.sub(r"\s+", "", plain)
-            devanagari = sum(1 for char in compact if "\u0900" <= char <= "\u097f")
-            ratio = devanagari / max(1, len(compact))
-            if ratio < 0.10:
-                self.report.add(
-                    "warning",
-                    loc,
-                    kind,
-                    slug,
-                    "low_devanagari",
-                    f"only {ratio:.0%} Devanagari characters; check this is intentional Hinglish",
-                )
-            return
-
-        target = TARGET_STOPWORDS.get(loc)
-        if not target:
-            return
-        target_ratio = sum(1 for token in tokens if token in target) / len(tokens)
-        english_ratio = sum(1 for token in tokens if token in EN_STOPWORDS) / len(tokens)
-        if english_ratio >= 0.05 and english_ratio > target_ratio * 1.5:
-            self.report.add(
-                "error",
-                loc,
-                kind,
-                slug,
-                "likely_english",
-                f"English stopword rate {english_ratio:.0%} exceeds {loc} rate {target_ratio:.0%}",
-            )
-        elif target_ratio < 0.02:
-            self.report.add(
-                "warning",
-                loc,
-                kind,
-                slug,
-                "weak_target_language",
-                f"only {target_ratio:.0%} {loc} stopwords; verify native language quality",
-            )
-
     def _remember_body(self, loc: str, kind: str, slug: str, body: Any) -> None:
         normalized = normalize_text(body)
         if len(normalized.split()) >= 50:
@@ -1001,209 +859,45 @@ class QualityGate:
         # keeps the run order explicit for future keyword/slug checks.
         return None
 
-    def _check_cross_locale_bodies(self) -> None:
-        groups: dict[tuple[str, str], list[tuple[str, str]]] = defaultdict(list)
-        for (loc, kind, slug), body in self._bodies.items():
-            groups[(kind, body)].append((loc, slug))
-        for (kind, _body), members in groups.items():
-            locales = {loc for loc, _slug in members}
-            if len(locales) > 1:
-                slugs = ", ".join(f"{loc}:{slug}" for loc, slug in members[:4])
-                for loc, slug in members:
-                    self.report.add(
-                        "error",
-                        loc,
-                        kind,
-                        slug,
-                        "duplicate_across_locales",
-                        f"identical body reused across locales ({slugs})",
-                    )
-
-    # --------------------------------------------------------------- sitemaps
-
     def _check_sitemaps(self) -> None:
         from app.core.config import settings
+        from app.services.blog_service import BlogService
         from app.services.sitemap_service import SitemapService
 
         service = SitemapService(settings)
-        released = sorted(self.released)
         base = settings.SITE_URL.rstrip("/")
-
-        index_locs = self._xml_locs(service.build_sitemap_index())
         robots = service.build_robots_txt()
-        for loc in SUPPORTED_LOCALES:
-            if loc == "en":
-                continue
-            marker = f"{base}/sitemap-{loc}.xml"
-            if loc in released:
-                if marker not in index_locs:
-                    self.report.add(
-                        "error", loc, "sitemap", "-", "released_locale_missing_sitemap", "released locale absent from index"
-                    )
-                if marker not in robots:
-                    self.report.add(
-                        "error", loc, "sitemap", "-", "released_locale_missing_robots", "released locale absent from robots.txt"
-                    )
-            else:
-                if marker in index_locs:
-                    self.report.add(
-                        "error", loc, "sitemap", "-", "quarantined_locale_in_sitemap_index", "quarantined locale advertised"
-                    )
-                if marker in robots:
-                    self.report.add(
-                        "error", loc, "sitemap", "-", "quarantined_locale_in_robots", "quarantined locale advertised"
-                    )
-                empty = service.build_sitemap_xml_for_locale(loc)
-                if self._xml_urls(empty):
-                    self.report.add(
-                        "error", loc, "sitemap", "-", "quarantined_locale_sitemap_not_empty", "quarantined sitemap has URLs"
-                    )
+        if f"{base}/sitemap.xml" not in robots:
+            self.report.add("error", "en", "sitemap", "-", "robots_missing_sitemap", "robots.txt missing /sitemap.xml")
+        if "sitemap-index.xml" in robots:
+            self.report.add("error", "en", "sitemap", "-", "legacy_sitemap_index_in_robots", "robots.txt still advertises sitemap-index.xml")
 
-        en_rows = self._xml_rows(service.build_sitemap_xml())
-        for loc_url, alternates in en_rows:
-            _loc, bare = split_locale_path(urllib.parse.urlparse(loc_url).path)
-            self._check_alternates("en", bare, alternates)
+        xml = service.build_sitemap_xml()
+        if "xhtml:link" in xml or "hreflang=" in xml:
+            self.report.add("error", "en", "sitemap", "-", "legacy_hreflang_in_sitemap", "sitemap.xml contains hreflang alternates")
+        listed: set[str] = set()
+        for loc_url, _alts in self._xml_rows(xml):
+            path = urllib.parse.urlparse(loc_url).path or "/"
+            seg = path.strip("/").split("/", 1)[0].lower()
+            if seg in LEGACY_LOCALE_PREFIXES:
+                self.report.add("error", "en", "sitemap", path, "legacy_locale_url_in_sitemap", "sitemap.xml contains legacy locale path")
+            listed.add(path)
 
-        for loc in released:
-            if loc == "en":
-                continue
-            rows = self._xml_rows(service.build_sitemap_xml_for_locale(loc))
-            listed: set[str] = set()
-            for loc_url, alternates in rows:
-                url_loc, bare = split_locale_path(urllib.parse.urlparse(loc_url).path)
-                if url_loc != loc:
-                    self.report.add(
-                        "error",
-                        loc,
-                        "sitemap",
-                        bare,
-                        "locale_sitemap_wrong_locale",
-                        f"locale sitemap contains {url_loc} URL",
-                    )
-                    continue
-                listed.add(bare)
-                self._check_alternates(loc, bare, alternates)
-                if not is_path_indexable(loc, bare):
-                    self.report.add(
-                        "error",
-                        loc,
-                        "sitemap",
-                        bare,
-                        "sitemap_contains_noindex_url",
-                        "URL is in the locale sitemap but the policy marks it non-indexable",
-                    )
-            if not listed:
-                self.report.add(
-                    "warning",
-                    loc,
-                    "sitemap",
-                    "-",
-                    "released_locale_sitemap_empty",
-                    "released locale sitemap has no URLs",
-                )
-            self._check_reverse_sitemap(loc, listed, service)
-            self._check_surface_sitemap(loc, listed)
+        required_surfaces = ["/", "/tools", "/student-tools", "/blog"]
+        required_surfaces += [f"/blog/{p}" for p in BlogService(settings).get_pillars()]
+        required_surfaces += [f"/{h}" for h in settings.HUB_CATEGORIES if h != "pdf-tools"]
+        for path in required_surfaces:
+            if path not in listed:
+                self.report.add("error", "en", "sitemap", path, "surface_missing_from_sitemap", "surface missing from sitemap.xml")
 
-    def _check_alternates(self, locale: str, bare: str, alternates: list[tuple[str, str]]) -> None:
-        expected = set(indexable_locales_for_path_safe(bare))
-        advertised = {code for code, _href in alternates if code != "x-default"}
-        if not advertised:
-            return
-        if advertised != expected:
-            self.report.add(
-                "error",
-                locale,
-                "sitemap",
-                bare,
-                "hreflang_cluster_mismatch",
-                f"advertised {sorted(advertised)} but policy allows {sorted(expected)}",
-            )
-        if any(code == "x-default" for code, _href in alternates) and "en" not in advertised:
-            self.report.add(
-                "error",
-                locale,
-                "sitemap",
-                bare,
-                "x_default_without_en",
-                "x-default present without an EN alternate",
-            )
-
-    def _check_surface_sitemap(self, loc: str, listed: set[str]) -> None:
-        from app.core.config import settings
-
-        candidates = ["/", "/tools", "/blog"]
-        try:
-            from app.services.blog_service import BlogService
-
-            candidates += [f"/blog/{pillar}" for pillar in BlogService(settings).get_pillars()]
-        except Exception:
-            pass
-        candidates += [f"/{hub}" for hub in settings.HUB_CATEGORIES if hub != "pdf-tools"]
-        for bare in candidates:
-            if is_surface_indexable(loc, path_surface(bare)) and bare not in listed:
-                self.report.add(
-                    "error",
-                    loc,
-                    "sitemap",
-                    bare,
-                    "released_surface_missing_from_sitemap",
-                    "released surface page is missing from the locale sitemap",
-                )
-
-        # Per-page static allowlist: every released static page must appear in
-        # the locale sitemap, and every configured path must actually be
-        # indexable (catches `static_pages` without the `static` surface, or a
-        # path still blocked by the English-fallback safety net).
-        for bare in static_pages_for(loc):
-            if not is_path_indexable(loc, bare):
-                self.report.add(
-                    "error",
-                    loc,
-                    "static",
-                    bare,
-                    "released_static_page_not_indexable",
-                    "static page is allowlisted but the policy still marks it noindex",
-                )
-            elif bare not in listed:
-                self.report.add(
-                    "error",
-                    loc,
-                    "static",
-                    bare,
-                    "released_static_page_missing_from_sitemap",
-                    "released static page is missing from the locale sitemap",
-                )
-
-
-    def _check_reverse_sitemap(self, loc: str, listed: set[str], service: Any) -> None:
         for slug, raw in self.tools.items():
-            overrides = raw.get("i18n") or {}
-            over = overrides.get(loc) if isinstance(overrides, dict) else None
-            decision = translation_decision(over, loc)
-            if decision.indexable and f"/tool/{slug}" not in listed:
-                self.report.add(
-                    "error",
-                    loc,
-                    "tool",
-                    slug,
-                    "published_item_missing_from_sitemap",
-                    "published tool is not listed in the locale sitemap",
-                )
+            if not raw.get("noindex") and f"/tool/{slug}" not in listed:
+                self.report.add("error", "en", "tool", slug, "tool_missing_from_sitemap", "tool missing from sitemap.xml")
         for slug, raw in self.posts.items():
-            overrides = raw.get("i18n") or {}
-            over = overrides.get(loc) if isinstance(overrides, dict) else None
-            decision = translation_decision(over, loc)
             pillar = str(raw.get("pillar") or "")
             bare = f"/blog/{pillar}/{slug}"
-            if decision.indexable and bare not in listed:
-                self.report.add(
-                    "error",
-                    loc,
-                    "blog",
-                    slug,
-                    "published_item_missing_from_sitemap",
-                    "published post is not listed in the locale sitemap",
-                )
+            if pillar and not raw.get("noindex") and bare not in listed:
+                self.report.add("error", "en", "blog", slug, "post_missing_from_sitemap", "post missing from sitemap.xml")
 
     @staticmethod
     def _xml_rows(xml: str) -> list[tuple[str, list[tuple[str, str]]]]:
@@ -1235,34 +929,10 @@ class QualityGate:
         return [loc for loc, _alternates in cls._xml_rows(xml) if loc]
 
 
-def indexable_locales_for_path_safe(bare: str) -> list[str]:
-    """Import shim kept separate so tests can monkeypatch one obvious seam."""
-    from app.core.locale_policy import indexable_locales_for_path
-
-    return indexable_locales_for_path(bare)
-
-
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Quality gate for localized content packs.")
-    parser.add_argument("--locale", action="append", dest="locales", default=[], help="locale to audit (repeatable)")
-    parser.add_argument("--all-locales", action="store_true", help="audit all supported locales, including quarantined")
+    parser = argparse.ArgumentParser(description="English SEO and sitemap quality gate.")
     parser.add_argument("--slug", action="append", dest="slugs", default=[], help="only audit these tool/blog slugs")
-    parser.add_argument(
-        "--pack",
-        action="append",
-        dest="packs",
-        default=[],
-        help="content pack YAML; audit only its slugs and infer its locale (repeatable)",
-    )
-    parser.add_argument(
-        "--status",
-        action="append",
-        dest="statuses",
-        default=[],
-        choices=sorted(VALID_STATUSES),
-        help="translation_status values to audit (default: review,published)",
-    )
-    parser.add_argument("--no-sitemap", action="store_true", help="skip sitemap/hreflang consistency checks")
+    parser.add_argument("--no-sitemap", action="store_true", help="skip sitemap consistency checks")
     parser.add_argument("--strict", action="store_true", help="treat warnings as failures")
     parser.add_argument("--json", action="store_true", help="emit a JSON report")
     parser.add_argument("--max-issues", type=int, default=80, help="max human-readable issues to print (default 80)")
@@ -1270,59 +940,10 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _pack_selection(paths: list[str]) -> tuple[set[str], set[str]]:
-    """Return (slugs, locales) for the given content packs."""
-    from scripts.apply_content_pack import PackError, load_pack
-
-    slugs: set[str] = set()
-    locales: set[str] = set()
-    for raw in paths:
-        try:
-            pack = load_pack(Path(raw))
-        except PackError as exc:
-            print(f"error: {exc}", file=sys.stderr)
-            raise SystemExit(2) from exc
-        slugs.update(pack.tools)
-        slugs.update(pack.posts)
-        locales.add(pack.locale)
-    return slugs, locales
-
-
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-
-    pack_slugs: set[str] = set()
-    pack_locales: set[str] = set()
-    if args.packs:
-        pack_slugs, pack_locales = _pack_selection(args.packs)
-        args.slugs = sorted(pack_slugs | set(args.slugs))
-
-    if args.locales:
-        locales = [normalize_locale(loc) for loc in args.locales]
-        unknown = [loc for loc in args.locales if normalize_locale(loc) != loc.strip().lower()]
-        if unknown:
-            print(f"error: unknown locale(s): {', '.join(unknown)}", file=sys.stderr)
-            return 2
-        if pack_locales and not pack_locales <= set(locales):
-            print(
-                f"error: pack locale(s) {sorted(pack_locales)} not selected by --locale {sorted(set(locales))}",
-                file=sys.stderr,
-            )
-            return 2
-    elif args.all_locales:
-        locales = list(SUPPORTED_LOCALES)
-    elif pack_locales:
-        locales = sorted(pack_locales)
-    else:
-        locales = published_locales()
-
-    if not locales:
-        print("error: no locales selected", file=sys.stderr)
-        return 2
-
     gate = QualityGate(
-        locales=locales,
-        statuses=set(args.statuses or DEFAULT_STATUSES),
+        locales=["en"],
         slugs=set(args.slugs) if args.slugs else None,
         check_sitemaps=not args.no_sitemap,
     )

@@ -198,7 +198,7 @@ class _FileHashCache:
             self._cached_sig = sig_tuple
             return ""
         hasher = hashlib.sha256()
-        for path, sig in zip(self._paths, sig_tuple):
+        for path, sig in zip(self._paths, sig_tuple, strict=True):
             if sig is None:
                 continue
             try:

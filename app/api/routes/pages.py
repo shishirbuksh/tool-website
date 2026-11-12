@@ -12,20 +12,8 @@ from fastapi.templating import Jinja2Templates
 from jinja2.exceptions import TemplateNotFound
 from pydantic import BaseModel, Field, ValidationError
 
-from app.core.i18n import (
-    LOCALE_META,
-    SUPPORTED_LOCALES,
-    category_label,
-    hreflang_links,
-    html_lang_for,
-    localize_path,
-    normalize_locale,
-    og_locale_for,
-)
-from app.core.i18n import (
-    t as tr,
-)
 from app.core.sanitize import sanitize_html
+from app.core.tool_data import ToolDataLoader
 
 try:
     import email_validator  # noqa: F401
@@ -55,6 +43,7 @@ class NonceJinja2Templates(Jinja2Templates):
         if context is None:
             context = {}
         context.setdefault("nonce", getattr(request.state, "nonce", ""))
+        context.setdefault("tool_count", len(ToolDataLoader.get_slugs()))
         return super().TemplateResponse(request, name, context, status_code, headers, media_type, background)
 
 
@@ -96,16 +85,6 @@ templates.env.globals["today"] = lambda: datetime.now(UTC).strftime("%Y-%m-%d")
 templates.env.globals["SITE_URL"] = settings.SITE_URL.rstrip("/")
 templates.env.globals["site_url"] = settings.SITE_URL.rstrip("/")
 templates.env.filters["sanitize"] = sanitize_html
-templates.env.globals["hreflang_links"] = hreflang_links
-templates.env.globals["html_lang_for"] = html_lang_for
-templates.env.globals["og_locale_for"] = og_locale_for
-templates.env.globals["tr"] = tr
-templates.env.globals["t"] = tr
-templates.env.globals["category_label"] = category_label
-templates.env.globals["normalize_locale"] = normalize_locale
-templates.env.globals["supported_locales"] = SUPPORTED_LOCALES
-templates.env.globals["locale_meta"] = LOCALE_META
-templates.env.globals["localize_path"] = localize_path
 
 templates.env.globals["app_version"] = APP_VERSION
 templates.env.globals["app_css_href"] = APP_CSS_HREF
@@ -140,6 +119,8 @@ def _get_cached_page_names() -> list[str]:
 @router.api_route("/de/{rest_path:path}", methods=["GET", "HEAD"], response_class=RedirectResponse)
 async def legacy_locale_redirect(request: Request, rest_path: str = "") -> RedirectResponse:
     clean = "/" + rest_path.lstrip("/")
+    if request.url.query:
+        clean = f"{clean}?{request.url.query}"
     return RedirectResponse(url=clean, status_code=301)
 
 
@@ -148,7 +129,8 @@ async def legacy_locale_redirect(request: Request, rest_path: str = "") -> Redir
 @router.api_route("/fr", methods=["GET", "HEAD"], response_class=RedirectResponse)
 @router.api_route("/de", methods=["GET", "HEAD"], response_class=RedirectResponse)
 async def legacy_locale_root_redirect(request: Request) -> RedirectResponse:
-    return RedirectResponse(url="/", status_code=301)
+    target = f"/?{request.url.query}" if request.url.query else "/"
+    return RedirectResponse(url=target, status_code=301)
 
 
 @router.api_route("/", methods=["GET", "HEAD"], response_class=HTMLResponse)
@@ -166,7 +148,7 @@ async def home(request: Request) -> HTMLResponse:
         "popular_posts": popular_posts,
         "pillars": pillars,
     }
-    ctx.update(_i18n_context("/", "en"))
+    ctx.update(_page_context("/"))
     resp = templates.TemplateResponse(request=request, name="index.html", context=ctx)
     resp.headers.update(_PAGE_CACHE_HEADERS)
     resp.headers["Content-Language"] = "en"
@@ -177,7 +159,7 @@ async def home(request: Request) -> HTMLResponse:
 async def tools_page(request: Request) -> HTMLResponse:
     categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools)
     ctx = {"categories": categories, "static_pages": static_pages}
-    ctx.update(_i18n_context("/tools", "en"))
+    ctx.update(_page_context("/tools"))
     resp = templates.TemplateResponse(request=request, name="pages/tools.html", context=ctx)
     resp.headers.update(_PAGE_CACHE_HEADERS)
     resp.headers["Content-Language"] = "en"
@@ -193,7 +175,7 @@ async def directory_redirect(request: Request) -> RedirectResponse:
 async def offline_page(request: Request) -> HTMLResponse:
     categories, _ = await asyncio.to_thread(catalog_service.get_categorized_tools)
     ctx = {"categories": categories}
-    ctx.update(_i18n_context("/offline", "en"))
+    ctx.update(_page_context("/offline"))
     ctx["robots_noindex"] = True
     resp = templates.TemplateResponse(request=request, name="pages/offline.html", context=ctx)
     resp.headers.update(_PAGE_CACHE_HEADERS)
@@ -216,7 +198,7 @@ async def html_sitemap(request: Request) -> HTMLResponse:
         "pillars": pillars,
         "blog_posts": blog_posts,
     }
-    ctx.update(_i18n_context("/sitemap", "en"))
+    ctx.update(_page_context("/sitemap"))
     resp = templates.TemplateResponse(request=request, name="pages/sitemap.html", context=ctx)
     resp.headers.update(_PAGE_CACHE_HEADERS)
     resp.headers["Content-Language"] = "en"
@@ -344,14 +326,12 @@ async def contact_submission(request: Request) -> ContactResponse:
     return ContactResponse(status="ok")
 
 
-def _i18n_context(bare_path: str, locale: str = "en", hreflang_locales: list[str] | None = None) -> dict:
+def _page_context(bare_path: str) -> dict:
     return {
         "locale": "en",
         "html_lang": "en",
         "og_locale": "en_US",
-        "hreflangs": hreflang_links(settings.SITE_URL, bare_path),
         "bare_path": bare_path,
-        "locale_urls": {"en": bare_path},
         "robots_noindex": False,
     }
 
@@ -374,7 +354,7 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
         "categories": categories,
         "seo_data": seo_data,
     }
-    ctx.update(_i18n_context(bare_path, "en"))
+    ctx.update(_page_context(bare_path))
     try:
         resp = templates.TemplateResponse(request=request, name=template_name, context=ctx)
     except TemplateNotFound:
@@ -413,7 +393,7 @@ async def get_page(request: Request, page_name: str) -> HTMLResponse:
                 "categories": categories,
                 "static_pages": static_pages,
             }
-            ctx.update(_i18n_context(f"/{page_name}", "en"))
+            ctx.update(_page_context(f"/{page_name}"))
             resp = templates.TemplateResponse(request=request, name="hub.html", context=ctx)
             resp.headers.update(_PAGE_CACHE_HEADERS)
             resp.headers["Content-Language"] = "en"
@@ -430,7 +410,7 @@ async def get_page(request: Request, page_name: str) -> HTMLResponse:
                 "categories": categories,
                 "static_pages": static_pages,
             }
-            ctx.update(_i18n_context(f"/{page_name}", "en"))
+            ctx.update(_page_context(f"/{page_name}"))
             resp = templates.TemplateResponse(request=request, name=f"pages/{page_name}.html", context=ctx)
             resp.headers.update(_PAGE_CACHE_HEADERS)
             resp.headers["Content-Language"] = "en"

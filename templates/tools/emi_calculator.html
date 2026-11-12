@@ -48,110 +48,98 @@
 </style>
 {% endblock %}
 {% block content %}
-{% set loc = locale | default('en', true) %}
-{% set cur_sym = '₹' if loc == 'hi' else ('€' if loc in ['es', 'fr', 'de'] else '$') %}
-{% set zero = ('0 ' ~ cur_sym) if loc in ['es', 'fr', 'de'] else (cur_sym ~ '0') %}
-{% set zero_mo = '0 ' ~ tr('tool.common.month_short', loc) %}
-{% if loc == 'de' %}
-  {% set d_amount, d_rate, d_tenure, d_extra, d_income = '20000', '5.9', '5', '100', '3200' %}
-  {% set d_c_amount, d_c_rate, d_c_tenure = '15000', '5.5', '5' %}
-{% elif loc == 'es' %}
-  {% set d_amount, d_rate, d_tenure, d_extra, d_income = '15000', '7.5', '5', '100', '2400' %}
-  {% set d_c_amount, d_c_rate, d_c_tenure = '12000', '6.5', '5' %}
-{% elif loc == 'fr' %}
-  {% set d_amount, d_rate, d_tenure, d_extra, d_income = '20000', '4.5', '5', '100', '2800' %}
-  {% set d_c_amount, d_c_rate, d_c_tenure = '15000', '4.0', '5' %}
-{% else %}
-  {% set d_amount, d_rate, d_tenure, d_extra, d_income = '500000', '8.5', '5', '200', '8000' %}
-  {% set d_c_amount, d_c_rate, d_c_tenure = '500000', '7.5', '5' %}
-{% endif %}
-{{ tool_hero_section("banknote", tr('tool.emi.badge', loc), "EMI", "CALCULATOR", "Compare loans, check affordability, view monthly or yearly amortization, and explore rate-tenure trade-offs.") }}
+{% set cur_sym = '$' %}
+{% set zero = '$0' %}
+{% set zero_mo = '0 ' ~ 'mo' %}
+{% set d_amount, d_rate, d_tenure, d_extra, d_income = '500000', '8.5', '5', '200', '8000' %}
+{% set d_c_amount, d_c_rate, d_c_tenure = '500000', '7.5', '5' %}
+{{ tool_hero_section("banknote", 'Calculators', "EMI", "CALCULATOR", "Compare loans, check affordability, view monthly or yearly amortization, and explore rate-tenure trade-offs.") }}
 <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="em-card">
-      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("wallet","w-4 h-4",16) | safe }} {{ tr('tool.emi.loan_details', loc) }}</h2>
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("wallet","w-4 h-4",16) | safe }} Loan Details</h2>
       <div class="flex flex-col gap-3">
-        <div><label class="em-label" for="emAmount">{{ tr('tool.emi.amount_label', loc) }} ({{ cur_sym }})</label><input type="text" id="emAmount" class="em-input" value="{{ d_amount }}" inputmode="decimal" aria-label="{{ tr('tool.emi.amount_label', loc) }}"></div>
-        <div><label class="em-label" for="emRate">{{ tr('tool.emi.rate_label', loc) }}</label><input type="text" id="emRate" class="em-input" value="{{ d_rate }}" inputmode="decimal" aria-label="{{ tr('tool.emi.rate_label', loc) }}"></div>
-        <div><label class="em-label" for="emTenure">{{ tr('tool.emi.tenure_label', loc) }}</label><input type="text" id="emTenure" class="em-input" value="{{ d_tenure }}" inputmode="numeric" aria-label="{{ tr('tool.emi.tenure_label', loc) }}"></div>
+        <div><label class="em-label" for="emAmount">Loan Amount ({{ cur_sym }})</label><input type="text" id="emAmount" class="em-input" value="{{ d_amount }}" inputmode="decimal" aria-label="Loan Amount"></div>
+        <div><label class="em-label" for="emRate">Annual Interest Rate (%)</label><input type="text" id="emRate" class="em-input" value="{{ d_rate }}" inputmode="decimal" aria-label="Annual Interest Rate (%)"></div>
+        <div><label class="em-label" for="emTenure">Loan Tenure (years)</label><input type="text" id="emTenure" class="em-input" value="{{ d_tenure }}" inputmode="numeric" aria-label="Loan Tenure (years)"></div>
       </div>
       <div class="flex gap-2 mt-3">
-        <button type="button" id="emCalcBtn" class="em-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} {{ tr('btn.calculate', loc) }}</button>
-        <button type="button" id="emCopyBtn" class="em-sec" aria-label="{{ tr('tool.common.copy_results', loc) }}">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
-        <button type="button" id="emDlBtn" class="em-sec" aria-label="{{ tr('tool.common.download_report', loc) }}">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="emCalcBtn" class="em-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
+        <button type="button" id="emCopyBtn" class="em-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="emDlBtn" class="em-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
       </div>
     </div>
     <div class="em-card mt-4">
-      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("zap","w-3 h-3",12) | safe }} {{ tr('tool.emi.whatif_title', loc) }}</h2>
-      <p class="text-[11px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">{{ tr('tool.emi.whatif_desc', loc) }}</p>
-      <div class="em-whatif" id="emWhatIf"><button type="button" class="on" data-wi="current">{{ tr('tool.common.current', loc) }}</button><button type="button" data-wi="higher-rate">{{ tr('tool.emi.whatif_higher_rate', loc) }}</button><button type="button" data-wi="longer-term">{{ tr('tool.emi.whatif_longer_term', loc) }}</button><button type="button" data-wi="double-loan">{{ tr('tool.emi.whatif_double_loan', loc) }}</button><button type="button" data-wi="lower-rate">{{ tr('tool.emi.whatif_lower_rate', loc) }}</button><button type="button" data-wi="best-case">{{ tr('tool.emi.whatif_best_case', loc) }}</button></div>
+      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("zap","w-3 h-3",12) | safe }} What-If</h2>
+      <p class="text-[11px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">Test different loan scenarios</p>
+      <div class="em-whatif" id="emWhatIf"><button type="button" class="on" data-wi="current">Current</button><button type="button" data-wi="higher-rate">+2% Rate</button><button type="button" data-wi="longer-term">+5 Years</button><button type="button" data-wi="double-loan">x2 Loan</button><button type="button" data-wi="lower-rate">-2% Rate</button><button type="button" data-wi="best-case">Best Case</button></div>
     </div>
     <div class="em-card mt-4">
-      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("trending-up","w-4 h-4",16) | safe }} {{ tr('tool.emi.prepayment_title', loc) }}</h2>
-      <p class="text-[11px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">{{ tr('tool.emi.prepayment_desc', loc) }}</p>
+      <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("trending-up","w-4 h-4",16) | safe }} Prepayment Plan</h2>
+      <p class="text-[11px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">See savings from extra monthly payments</p>
       <div class="flex flex-col gap-2">
-        <div><label class="em-label" for="emExtra">{{ tr('tool.emi.extra_payment', loc) }} ({{ cur_sym }})</label><input type="text" id="emExtra" class="em-input" value="{{ d_extra }}" inputmode="decimal" aria-label="{{ tr('tool.emi.extra_payment', loc) }}"></div>
+        <div><label class="em-label" for="emExtra">Extra Monthly Payment ({{ cur_sym }})</label><input type="text" id="emExtra" class="em-input" value="{{ d_extra }}" inputmode="decimal" aria-label="Extra Monthly Payment"></div>
       </div>
       <div class="em-grid mt-2">
-        <div class="em-result" style="padding:8px"><div class="iv" id="emSavedInt" style="font-size:14px">{{ zero }}</div><div class="il">{{ tr('tool.emi.interest_saved', loc) }}</div></div>
-        <div class="em-result" style="padding:8px"><div class="iv" id="emReducedMonths" style="font-size:14px">{{ zero_mo }}</div><div class="il">{{ tr('tool.emi.time_reduced', loc) }}</div></div>
+        <div class="em-result" style="padding:8px"><div class="iv" id="emSavedInt" style="font-size:14px">{{ zero }}</div><div class="il">Interest Saved</div></div>
+        <div class="em-result" style="padding:8px"><div class="iv" id="emReducedMonths" style="font-size:14px">{{ zero_mo }}</div><div class="il">Time Reduced</div></div>
       </div>
     </div>
     <div class="em-card mt-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} {{ tr('tool.emi.history_title', loc) }}</h2>
-        <div class="flex items-center gap-2"><button type="button" id="emHiToggle" class="em-toggle" aria-expanded="false" aria-controls="emHiWrap" aria-label="{{ tr('tool.emi.history_title', loc) }}">{{ tr('tool.emi.history_title', loc) }} <span id="emHiCount"></span></button><button type="button" id="emHiClear" class="em-sec" hidden aria-label="{{ tr('tool.common.delete', loc) }}">{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
+        <div class="flex items-center gap-2"><button type="button" id="emHiToggle" class="em-toggle" aria-expanded="false" aria-controls="emHiWrap" aria-label="History">History <span id="emHiCount"></span></button><button type="button" id="emHiClear" class="em-sec" hidden aria-label="Delete">{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
       </div>
       <div id="emHiWrap" hidden class="mt-2"><div id="emHiList" class="em-hist"></div></div>
     </div>
   </div>
   <div class="lg:w-7/12">
     <div class="em-card">
-      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} {{ tr('tool.emi.summary_title', loc) }}</h2>
+      <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} Payment Summary</h2>
       {% include "components/ymyl_disclaimer.html" %}
       <div class="em-grid" id="emResults">
-        <div class="em-result full"><div class="iv" id="emMonthly" style="color:var(--color-primary)">{{ zero }}</div><div class="il">{{ tr('tool.emi.monthly_emi', loc) }}</div></div>
-        <div class="em-result"><div class="iv" id="emTotalPay">{{ zero }}</div><div class="il">{{ tr('tool.emi.total_payment', loc) }}</div></div>
-        <div class="em-result"><div class="iv" id="emTotalInt" style="color:var(--color-warning)">{{ zero }}</div><div class="il">{{ tr('tool.emi.total_interest', loc) }}</div></div>
-        <div class="em-result"><div class="iv" id="emMonths">0</div><div class="il">{{ tr('tool.emi.total_months', loc) }}</div></div>
+        <div class="em-result full"><div class="iv" id="emMonthly" style="color:var(--color-primary)">{{ zero }}</div><div class="il">Monthly EMI</div></div>
+        <div class="em-result"><div class="iv" id="emTotalPay">{{ zero }}</div><div class="il">Total Payment</div></div>
+        <div class="em-result"><div class="iv" id="emTotalInt" style="color:var(--color-warning)">{{ zero }}</div><div class="il">Total Interest</div></div>
+        <div class="em-result"><div class="iv" id="emMonths">0</div><div class="il">Total Months</div></div>
       </div>
-      <div><label class="em-label mt-2" for="emIncome">{{ tr('tool.emi.income_label', loc) }} ({{ cur_sym }})</label><input type="text" id="emIncome" class="em-input" value="{{ d_income }}" inputmode="decimal" aria-label="{{ tr('tool.emi.income_label', loc) }}"></div>
-      <div class="em-inline mt-1 justify-center"><span class="il">{{ tr('tool.emi.income_ratio', loc) }}</span><span class="iv" id="emIncomeRatio" style="font-size:13px;font-weight:900">—</span></div>
+      <div><label class="em-label mt-2" for="emIncome">Monthly Income ({{ cur_sym }})</label><input type="text" id="emIncome" class="em-input" value="{{ d_income }}" inputmode="decimal" aria-label="Monthly Income"></div>
+      <div class="em-inline mt-1 justify-center"><span class="il">EMI / Income:</span><span class="iv" id="emIncomeRatio" style="font-size:13px;font-weight:900">—</span></div>
       <div id="emRatioBar" class="em-inline mt-2 justify-center" style="gap:2px"></div>
       <p class="text-[11px] font-bold opacity-25 uppercase tracking-wider text-center mt-1" id="emRatioLabel"></p>
     </div>
     <div class="em-card mt-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("arrow-left-right","w-4 h-4",16) | safe }} {{ tr('tool.emi.loan_comparison', loc) }}</h2>
-        <button type="button" id="emCompTog" class="em-toggle on" aria-expanded="true" aria-controls="emCompWrap" aria-label="{{ tr('tool.emi.loan_comparison', loc) }}">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("arrow-left-right","w-4 h-4",16) | safe }} Loan Comparison</h2>
+        <button type="button" id="emCompTog" class="em-toggle on" aria-expanded="true" aria-controls="emCompWrap" aria-label="Loan Comparison">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
       </div>
       <div id="emCompWrap">
         <div class="flex gap-2 mt-2">
-          <div class="flex-1"><label class="em-label" for="emCAmt">{{ tr('tool.emi.amount_b', loc) }} ({{ cur_sym }})</label><input type="text" id="emCAmt" class="em-input" value="{{ d_c_amount }}" inputmode="decimal" aria-label="{{ tr('tool.emi.amount_b', loc) }}"></div>
-          <div class="flex-1"><label class="em-label" for="emCRate">{{ tr('tool.emi.rate_b', loc) }}</label><input type="text" id="emCRate" class="em-input" value="{{ d_c_rate }}" inputmode="decimal" aria-label="{{ tr('tool.emi.rate_b', loc) }}"></div>
-          <div class="flex-1"><label class="em-label" for="emCTenure">{{ tr('tool.emi.tenure_b', loc) }}</label><input type="text" id="emCTenure" class="em-input" value="{{ d_c_tenure }}" inputmode="numeric" aria-label="{{ tr('tool.emi.tenure_b', loc) }}"></div>
+          <div class="flex-1"><label class="em-label" for="emCAmt">Amount B ({{ cur_sym }})</label><input type="text" id="emCAmt" class="em-input" value="{{ d_c_amount }}" inputmode="decimal" aria-label="Amount B"></div>
+          <div class="flex-1"><label class="em-label" for="emCRate">Rate B (%)</label><input type="text" id="emCRate" class="em-input" value="{{ d_c_rate }}" inputmode="decimal" aria-label="Rate B (%)"></div>
+          <div class="flex-1"><label class="em-label" for="emCTenure">Tenure B (yr)</label><input type="text" id="emCTenure" class="em-input" value="{{ d_c_tenure }}" inputmode="numeric" aria-label="Tenure B (yr)"></div>
         </div>
         <div class="em-grid mt-2">
-          <div class="em-result" style="padding:8px"><div class="iv" id="emCEmi" style="font-size:14px">{{ zero }}</div><div class="il">{{ tr('tool.emi.emi_b', loc) }}</div></div>
-          <div class="em-result" style="padding:8px"><div class="iv" id="emCInt" style="font-size:14px">{{ zero }}</div><div class="il">{{ tr('tool.emi.interest_b', loc) }}</div></div>
-          <div class="em-result" style="padding:8px"><div class="iv" id="emCDiff" style="font-size:14px">{{ zero }}</div><div class="il">{{ tr('tool.emi.vs_your_emi', loc) }}</div></div>
-          <div class="em-result" style="padding:8px"><div class="iv" id="emCSave" style="font-size:14px">{{ zero }}</div><div class="il">{{ tr('tool.emi.interest_saved', loc) }}</div></div>
+          <div class="em-result" style="padding:8px"><div class="iv" id="emCEmi" style="font-size:14px">{{ zero }}</div><div class="il">EMI B</div></div>
+          <div class="em-result" style="padding:8px"><div class="iv" id="emCInt" style="font-size:14px">{{ zero }}</div><div class="il">Interest B</div></div>
+          <div class="em-result" style="padding:8px"><div class="iv" id="emCDiff" style="font-size:14px">{{ zero }}</div><div class="il">vs Your EMI</div></div>
+          <div class="em-result" style="padding:8px"><div class="iv" id="emCSave" style="font-size:14px">{{ zero }}</div><div class="il">Interest Saved</div></div>
         </div>
       </div>
     </div>
     <div class="em-card mt-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("calendar","w-4 h-4",16) | safe }} {{ tr('tool.emi.amortization', loc) }}</h2>
-        <div class="flex items-center gap-2"><button type="button" id="emAmoView" class="em-toggle on" aria-label="{{ tr('tool.common.monthly', loc) }}">{{ tr('tool.common.monthly', loc) }}</button><button type="button" id="emAmoTog" class="em-toggle on" aria-expanded="true" aria-controls="emAmoWrap" aria-label="{{ tr('tool.emi.amortization', loc) }}">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button></div>
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("calendar","w-4 h-4",16) | safe }} Amortization</h2>
+        <div class="flex items-center gap-2"><button type="button" id="emAmoView" class="em-toggle on" aria-label="Monthly">Monthly</button><button type="button" id="emAmoTog" class="em-toggle on" aria-expanded="true" aria-controls="emAmoWrap" aria-label="Amortization">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button></div>
       </div>
-      <div id="emAmoWrap"><div class="em-table-wrap mt-2"><table class="em-table"><thead><tr><th id="emAmoHCol">{{ tr('tool.common.year', loc) }}</th><th>{{ tr('tool.emi.emi_paid', loc) }}</th><th>{{ tr('tool.common.principal', loc) }}</th><th>{{ tr('tool.common.interest', loc) }}</th><th>{{ tr('tool.common.balance', loc) }}</th></tr></thead><tbody id="emAmoBody"></tbody></table></div></div>
+      <div id="emAmoWrap"><div class="em-table-wrap mt-2"><table class="em-table"><thead><tr><th id="emAmoHCol">Year</th><th>EMI Paid</th><th>Principal</th><th>Interest</th><th>Balance</th></tr></thead><tbody id="emAmoBody"></tbody></table></div></div>
     </div>
     <div class="em-card mt-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("grid","w-4 h-4",16) | safe }} {{ tr('tool.emi.rate_vs_tenure', loc) }}</h2>
-        <button type="button" id="emMatTog" class="em-toggle on" aria-expanded="true" aria-controls="emMatWrap" aria-label="{{ tr('tool.emi.rate_vs_tenure', loc) }}">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("grid","w-4 h-4",16) | safe }} Rate vs Tenure</h2>
+        <button type="button" id="emMatTog" class="em-toggle on" aria-expanded="true" aria-controls="emMatWrap" aria-label="Rate vs Tenure">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
       </div>
-      <div id="emMatWrap"><p class="text-[11px] font-bold opacity-25 uppercase tracking-wider mt-1 mb-2">{{ tr('tool.emi.rate_tenure_hint', loc) }}</p><div class="em-table-wrap"><table class="em-table em-matrix" id="emMatrix"><thead id="emMatHead"></thead><tbody id="emMatBody"></tbody></table></div></div>
+      <div id="emMatWrap"><p class="text-[11px] font-bold opacity-25 uppercase tracking-wider mt-1 mb-2">EMI at different rate & tenure combos</p><div class="em-table-wrap"><table class="em-table em-matrix" id="emMatrix"><thead id="emMatHead"></thead><tbody id="emMatBody"></tbody></table></div></div>
     </div>
   </div>
 </div>
@@ -159,61 +147,61 @@
 <script nonce="{{ nonce }}">
 (function(){'use strict';
 var T = {{ {
-  'copied': tr('tool.common.copied', loc),
-  'copy_failed': tr('tool.common.copy_failed', loc),
-  'downloaded': tr('tool.common.downloaded', loc),
-  'history_empty': tr('tool.emi.history_empty', loc),
-  'history_cleared': tr('tool.emi.history_cleared', loc),
-  'delete': tr('tool.emi.delete', loc),
-  'no_data': tr('tool.common.no_data', loc),
-  'month': tr('tool.common.month', loc),
-  'year': tr('tool.common.year', loc),
-  'months_short': tr('tool.common.month_short', loc),
-  'per_month': tr('tool.common.per_month', loc),
-  'monthly': tr('tool.common.monthly', loc),
-  'yearly': tr('tool.common.yearly', loc),
-  'principal_pct': tr('tool.emi.principal_pct', loc),
-  'interest_pct': tr('tool.emi.interest_pct', loc),
-  'rate_down_tenure': tr('tool.emi.rate_down_tenure', loc),
-  'yr': tr('tool.emi.yr', loc),
-  'report_title': tr('tool.emi.report_title', loc),
-  'scenario': tr('tool.common.scenario', loc),
-  'loan_amount': tr('tool.emi.amount_label', loc),
-  'rate': tr('tool.common.rate', loc),
-  'tenure': tr('tool.common.term', loc),
-  'years': tr('tool.common.years', loc),
-  'monthly_emi': tr('tool.emi.monthly_emi', loc),
-  'total_payment': tr('tool.emi.total_payment', loc),
-  'total_interest': tr('tool.emi.total_interest', loc),
-  'total_months': tr('tool.emi.total_months', loc),
-  'report_ratio': tr('tool.emi.report_ratio', loc),
-  'prepayment': tr('tool.emi.prepayment_title', loc),
-  'extra': tr('tool.common.extra', loc),
-  'saved': tr('tool.common.saved', loc),
-  'reduced': tr('tool.common.reduced', loc),
-  'loan_b': tr('tool.emi.report_loan_b', loc),
-  'amount': tr('tool.common.amount', loc),
-  'emi_b': tr('tool.emi.emi_b', loc),
-  'interest_b': tr('tool.emi.interest_b', loc),
-  'amortization': tr('tool.emi.report_amortization', loc),
-  'paid': tr('tool.emi.report_paid', loc),
-  'prin': tr('tool.emi.report_prin', loc),
-  'int': tr('tool.emi.report_int', loc),
-  'bal': tr('tool.emi.report_bal', loc)
+  'copied': 'Copied!',
+  'copy_failed': 'Copy failed',
+  'downloaded': 'Downloaded',
+  'history_empty': 'No calculations yet',
+  'history_cleared': 'History cleared',
+  'delete': 'Delete',
+  'no_data': 'No data',
+  'month': 'Month',
+  'year': 'Year',
+  'months_short': 'mo',
+  'per_month': '/mo',
+  'monthly': 'Monthly',
+  'yearly': 'Yearly',
+  'principal_pct': 'Principal:',
+  'interest_pct': 'Interest:',
+  'rate_down_tenure': 'Rate ↓ Tenure →',
+  'yr': 'yr',
+  'report_title': 'EMI Report',
+  'scenario': 'Scenario',
+  'loan_amount': 'Loan Amount',
+  'rate': 'Rate',
+  'tenure': 'Term',
+  'years': 'years',
+  'monthly_emi': 'Monthly EMI',
+  'total_payment': 'Total Payment',
+  'total_interest': 'Total Interest',
+  'total_months': 'Total Months',
+  'report_ratio': 'EMI/Income Ratio',
+  'prepayment': 'Prepayment Plan',
+  'extra': 'Extra',
+  'saved': 'Saved',
+  'reduced': 'Reduced',
+  'loan_b': 'Loan B',
+  'amount': 'Amount',
+  'emi_b': 'EMI B',
+  'interest_b': 'Interest B',
+  'amortization': 'Amortization',
+  'paid': 'Paid',
+  'prin': 'Prin',
+  'int': 'Int',
+  'bal': 'Bal'
 } | tojson }};
 var WI_LABELS = {{ {
-  'current': tr('tool.common.current', loc),
-  'higher-rate': tr('tool.emi.whatif_higher_rate', loc),
-  'longer-term': tr('tool.emi.whatif_longer_term', loc),
-  'double-loan': tr('tool.emi.whatif_double_loan', loc),
-  'lower-rate': tr('tool.emi.whatif_lower_rate', loc),
-  'best-case': tr('tool.emi.whatif_best_case', loc)
+  'current': 'Current',
+  'higher-rate': '+2% Rate',
+  'longer-term': '+5 Years',
+  'double-loan': 'x2 Loan',
+  'lower-rate': '-2% Rate',
+  'best-case': 'Best Case'
 } | tojson }};
 var D = {{ {
   'amount': d_amount, 'rate': d_rate, 'tenure': d_tenure, 'extra': d_extra, 'income': d_income,
   'c_amount': d_c_amount, 'c_rate': d_c_rate, 'c_tenure': d_c_tenure
 } | tojson }};
-var INTL_LOCALE = {{ {'hi':'en-IN','es':'es-ES','fr':'fr-FR','de':'de-DE','en':'en-US'}[loc] | tojson }};
+var INTL_LOCALE = "en-US";
 var FALLBACK_SYM = {{ cur_sym | tojson }};
 var ZERO = {{ zero | tojson }};
 var ZERO_MO = {{ zero_mo | tojson }};

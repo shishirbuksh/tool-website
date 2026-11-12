@@ -110,7 +110,7 @@ class TestSitemapService:
             },
         ]
 
-        result = svc._render_urlset(pages, locale="en")
+        result = svc._render_urlset(pages)
 
         tool_url = "https://www.storybrainai.com/tool/emi-calculator"
         blog_url = "https://www.storybrainai.com/blog/calculators/compound-interest-formula"

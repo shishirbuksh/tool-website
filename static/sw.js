@@ -2,8 +2,8 @@
 // CACHE version: bump v40 -> v41 on breaking shell changes.
 // TODO: inject app_version at build time (e.g. __APP_VERSION__) so SW cache
 // busts automatically with each deploy instead of manual version bumps.
-const CACHE_NAME = 'storybrain-v45';
-const STATIC_CACHE = 'storybrain-static-v45';
+const CACHE_NAME = 'storybrain-v46';
+const STATIC_CACHE = 'storybrain-static-v46';
 const PAGE_CACHE_MAX_ENTRIES = 50;
 
 // Assets to pre-cache on install (app-shell only; OG/screenshots lazy via runtime cache)
@@ -125,9 +125,7 @@ self.addEventListener('fetch', (event) => {
       .catch(() => {
         return caches.match(request).then((cached) => {
           if (cached) return cached;
-          const locMatch = url.pathname.match(/^\/(hi|es|fr|de)\//);
-          const offlinePath = locMatch ? `/${locMatch[1]}/offline` : '/offline';
-          return caches.match(offlinePath).then((locCached) => locCached || caches.match('/offline'));
+          return caches.match('/offline');
         });
       })
   );

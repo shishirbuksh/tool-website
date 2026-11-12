@@ -46,9 +46,3 @@ class CatalogService:
 
     def get_valid_tools(self) -> list[str]:
         return ToolDataLoader.get_slugs()
-
-    def get_categorized_tools_localized(
-        self, locale: str = "en"
-    ) -> tuple[dict[str, list[dict[str, str]]], list[dict[str, str]]]:
-        """In English-only mode, delegates directly to get_categorized_tools."""
-        return self.get_categorized_tools()

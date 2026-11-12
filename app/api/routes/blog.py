@@ -1,7 +1,6 @@
 """Blog HTML endpoints: index, pillar hub, and post pages (mounted BEFORE pages catch-all)."""
 
 import asyncio
-import os
 import re
 from datetime import UTC, datetime
 
@@ -10,20 +9,6 @@ from fastapi.responses import HTMLResponse, Response
 
 from app.api.routes.pages import NonceJinja2Templates
 from app.core.config import APP_CSS_HREF, APP_VERSION, settings
-from app.core.i18n import (
-    LOCALE_META,
-    SUPPORTED_LOCALES,
-    category_label,
-    hreflang_links,
-    html_lang_for,
-    localize_path,
-    normalize_locale,
-    og_locale_for,
-    pillar_label,
-)
-from app.core.i18n import (
-    t as _tr,
-)
 from app.core.icons import lucide_icon
 from app.core.log import get_logger
 from app.core.sanitize import enhance_tables, sanitize_html
@@ -45,15 +30,6 @@ templates.env.globals["SITE_URL"] = settings.SITE_URL.rstrip("/")
 templates.env.globals["site_url"] = settings.SITE_URL.rstrip("/")
 templates.env.filters["sanitize"] = sanitize_html
 templates.env.filters["tables"] = enhance_tables
-templates.env.globals["hreflang_links"] = hreflang_links
-templates.env.globals["html_lang_for"] = html_lang_for
-templates.env.globals["og_locale_for"] = og_locale_for
-templates.env.globals["tr"] = _tr
-templates.env.globals["category_label"] = category_label
-templates.env.globals["normalize_locale"] = normalize_locale
-templates.env.globals["supported_locales"] = SUPPORTED_LOCALES
-templates.env.globals["locale_meta"] = LOCALE_META
-templates.env.globals["localize_path"] = localize_path
 
 templates.env.globals["app_version"] = APP_VERSION
 templates.env.globals["app_css_href"] = APP_CSS_HREF
@@ -97,19 +73,17 @@ def _assert_safe(value: str) -> str:
     return value
 
 
-def _i18n_ctx(bare_path: str, locale: str = "en") -> dict:
+def _page_ctx(bare_path: str) -> dict:
     return {
         "locale": "en",
         "html_lang": "en",
         "og_locale": "en_US",
-        "hreflangs": hreflang_links(settings.SITE_URL, bare_path),
         "bare_path": bare_path,
-        "locale_urls": {"en": bare_path},
         "robots_noindex": False,
     }
 
 
-def _page_canonical(bare_path: str, locale: str, page: int) -> str:
+def _page_canonical(bare_path: str, page: int) -> str:
     base = settings.SITE_URL.rstrip("/")
     url = base + bare_path
     return f"{url}?page={page}" if page > 1 else url
@@ -144,7 +118,7 @@ async def blog_index(request: Request) -> HTMLResponse:
 
     ctx = {
         "title": "Blog",
-        "blog_title": _tr("blog.title", "en"),
+        "blog_title": "Blog",
         "categories": categories,
         "static_pages": static_pages,
         "pillars": pillars,
@@ -156,10 +130,10 @@ async def blog_index(request: Request) -> HTMLResponse:
         "recent_posts": recent,
         "popular_posts": popular,
         "pillar_counts": pillar_counts,
-        "pillar_labels": {p: pillar_label(p, "en") for p in pillars},
+        "pillar_labels": {p: p.replace("-", " ").title() for p in pillars},
     }
-    ctx.update(_i18n_ctx("/blog", "en"))
-    ctx["page_canonical"] = _page_canonical("/blog", "en", page)
+    ctx.update(_page_ctx("/blog"))
+    ctx["page_canonical"] = _page_canonical("/blog", page)
     resp = templates.TemplateResponse(request=request, name="blog/index.html", context=ctx)
     resp.headers.update(_INDEX_CACHE_HEADERS)
     resp.headers["Content-Language"] = "en"
@@ -189,7 +163,7 @@ async def blog_pillar(request: Request, pillar: str) -> HTMLResponse:
     ctx = {
         "title": pillar.replace("-", " ").title(),
         "plabel": pillar.replace("-", " ").title(),
-        "blog_title": _tr("blog.title", "en"),
+        "blog_title": "Blog",
         "pillar": pillar,
         "posts": posts,
         "pillars": pillars,
@@ -197,7 +171,7 @@ async def blog_pillar(request: Request, pillar: str) -> HTMLResponse:
         "categories": categories,
         "static_pages": static_pages,
     }
-    ctx.update(_i18n_ctx(f"/blog/{pillar}", "en"))
+    ctx.update(_page_ctx(f"/blog/{pillar}"))
     resp = templates.TemplateResponse(request=request, name="blog/pillar.html", context=ctx)
     resp.headers.update(_PAGE_CACHE_HEADERS)
     resp.headers["Content-Language"] = "en"
@@ -238,7 +212,7 @@ async def _render_blog_post(request: Request, pillar: str, cluster: str, locale:
         "static_pages": static_pages,
     }
     bare = f"/blog/{pillar}/{cluster}"
-    ctx.update(_i18n_ctx(bare, "en"))
+    ctx.update(_page_ctx(bare))
     resp = templates.TemplateResponse(request=request, name="blog/post.html", context=ctx)
     resp.headers.update(_POST_CACHE_HEADERS)
     etag = _post_etag(pillar, post.slug, post.date_modified or "")

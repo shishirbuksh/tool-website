@@ -16,98 +16,83 @@
 </style>
 {% endblock %}
 {% block content %}
-{% set loc = locale | default('en', true) %}
-{% set def_sym = "₹" if loc == "hi" else ("€" if loc in ("es", "fr", "de") else "$") %}
-{% set zero = ('0 ' ~ def_sym) if loc in ('es', 'fr', 'de') else (def_sym ~ '0') %}
-{% if loc == 'de' %}
-  {% set d_balance, d_rate, d_term, d_extra = '300000', '4.0', '25', '200' %}
-{% elif loc == 'es' %}
-  {% set d_balance, d_rate, d_term, d_extra = '200000', '3.0', '25', '200' %}
-{% elif loc == 'fr' %}
-  {% set d_balance, d_rate, d_term, d_extra = '220000', '3.5', '25', '200' %}
-{% else %}
-  {% set d_balance, d_rate, d_term, d_extra = '250000', '4.5', '25', '200' %}
-{% endif %}
-{% set per_month = tr('tool.common.per_month', loc) %}
-{{ tool_hero_section("home", tr('tool.mortgage.badge', loc), "OVERPAYMENT", "CALCULATOR", seo.description if seo else "See exactly how much interest you save and how early you become debt-free. Compare scenarios, view your full amortization schedule, and find the best overpayment strategy.") }}
+{% set def_sym = "$" %}
+{% set zero = "$0" %}
+{% set d_balance, d_rate, d_term, d_extra = '250000', '4.5', '25', '200' %}
+{% set per_month = '/mo' %}
+{{ tool_hero_section("home", "Mortgage Calculator", "MORTGAGE OVERPAYMENT", "CALCULATOR", seo_data.description if seo_data else "Calculate how extra monthly or lump-sum mortgage payments cut total interest and shorten your loan payoff timeline.") }}
 
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 reveal" style="animation-delay:0.15s">
 
   <!-- ─── LEFT COLUMN: INPUTS ─── -->
   <div class="lg:col-span-5">
     <div class="feature-card p-6 md:p-8">
-      <h2 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} {{ tr('tool.mortgage.your_mortgage', loc) }}</h2>
+      <h2 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Your Mortgage</h2>
 
       <!-- Currency selector -->
       <div class="mb-5 pb-5 border-b border-base-content/10">
-        <label class="text-xs font-semibold text-base-content/70 font-semibold" for="currencySelect">{{ tr('tool.common.currency', loc) }}</label>
-        <select aria-label="{{ tr('tool.mortgage.select_currency', loc) }}" id="currencySelect" class="input input-visible w-full mt-1 rounded-xl">
+        <label class="text-xs font-semibold text-base-content/70 font-semibold" for="currencySelect">Currency</label>
+        <select aria-label="Select currency" id="currencySelect" class="input input-visible w-full mt-1 rounded-xl">
           {% set currency_flags = {'USD':'🇺🇸','EUR':'🇪🇺','GBP':'🇬🇧','JPY':'🇯🇵','INR':'🇮🇳','CAD':'🇨🇦','AUD':'🇦🇺','CHF':'🇨🇭','CNY':'🇨🇳','BRL':'🇧🇷','KRW':'🇰🇷','SEK':'🇸🇪','NZD':'🇳🇿','SGD':'🇸🇬','HKD':'🇭🇰','ZAR':'🇿🇦'} %}
-          {% if loc == 'hi' %}
-            {% set currency_order = ['INR','USD','EUR','GBP','JPY','CHF','CAD','AUD','CNY','BRL','KRW','SEK','NZD','SGD','HKD','ZAR'] %}
-          {% elif loc in ('es', 'fr', 'de') %}
-            {% set currency_order = ['EUR','CHF','USD','GBP','JPY','CAD','AUD','CNY','BRL','KRW','SEK','NZD','SGD','HKD','ZAR','INR'] %}
-          {% else %}
-            {% set currency_order = ['USD','EUR','GBP','JPY','CAD','AUD','CHF','INR','CNY','BRL','KRW','SEK','NZD','SGD','HKD','ZAR'] %}
-          {% endif %}
+          {% set currency_names = {'USD': 'US Dollar', 'EUR': 'Euro', 'GBP': 'British Pound', 'JPY': 'Japanese Yen', 'INR': 'Indian Rupee', 'CAD': 'Canadian Dollar', 'AUD': 'Australian Dollar', 'CHF': 'Swiss Franc', 'CNY': 'Chinese Yuan', 'BRL': 'Brazilian Real', 'KRW': 'South Korean Won', 'SEK': 'Swedish Krona', 'NZD': 'New Zealand Dollar', 'SGD': 'Singapore Dollar', 'HKD': 'Hong Kong Dollar', 'ZAR': 'South African Rand'} %}
+          {% set currency_order = ['USD','EUR','GBP','JPY','CAD','AUD','CHF','INR','CNY','BRL','KRW','SEK','NZD','SGD','HKD','ZAR'] %}
           {% for code in currency_order %}
-          {% set is_default = (code == 'USD' and loc not in ('hi', 'es', 'fr', 'de')) or (code == 'EUR' and loc in ('es', 'fr', 'de')) or (code == 'INR' and loc == 'hi') %}
-          <option value="{{ code }}" {% if is_default %}selected{% endif %}>{{ currency_flags[code] }} {{ code }} — {{ tr('tool.currency.' ~ (code | lower), loc) }}</option>
+          <option value="{{ code }}" {% if code == 'USD' %}selected{% endif %}>{{ currency_flags[code] }} {{ code }} — {{ currency_names[code] }}</option>
           {% endfor %}
         </select>
       </div>
 
       <div class="flex flex-col gap-4">
         <div>
-          <label class="text-xs font-semibold text-base-content/70 font-semibold" for="loanBalance">{{ tr('tool.mortgage.loan_balance', loc) }}</label>
+          <label class="text-xs font-semibold text-base-content/70 font-semibold" for="loanBalance">Loan Balance</label>
           <div class="relative mt-1">
             <span id="symLoan" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">{{ def_sym }}</span>
-            <input aria-label="{{ tr('tool.mortgage.loan_balance', loc) }}" type="number" id="loanBalance" class="input input-visible w-full pl-8 rounded-xl" value="{{ d_balance }}" min="0" step="1000">
+            <input aria-label="Loan Balance" type="number" id="loanBalance" class="input input-visible w-full pl-8 rounded-xl" value="{{ d_balance }}" min="0" step="1000">
           </div>
         </div>
         <div>
-          <label class="text-xs font-semibold text-base-content/70 font-semibold" for="interestRate">{{ tr('tool.mortgage.annual_rate', loc) }}</label>
+          <label class="text-xs font-semibold text-base-content/70 font-semibold" for="interestRate">Annual Interest Rate</label>
           <div class="relative mt-1">
-            <input aria-label="{{ tr('tool.mortgage.annual_rate', loc) }}" type="number" id="interestRate" class="input input-visible w-full rounded-xl" value="{{ d_rate }}" min="0" max="30" step="0.1">
+            <input aria-label="Annual Interest Rate" type="number" id="interestRate" class="input input-visible w-full rounded-xl" value="{{ d_rate }}" min="0" max="30" step="0.1">
             <span class="absolute inset-y-0 right-0 flex items-center pr-3 font-bold opacity-80" style="color:var(--color-base-content)">%</span>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-semibold text-base-content/70 font-semibold" for="loanTerm">{{ tr('tool.mortgage.term_years', loc) }}</label>
-            <input aria-label="{{ tr('tool.mortgage.term_years', loc) }}" type="number" id="loanTerm" class="input input-visible w-full mt-1 rounded-xl" value="{{ d_term }}" min="1" max="50">
+            <label class="text-xs font-semibold text-base-content/70 font-semibold" for="loanTerm">Term (years)</label>
+            <input aria-label="Term (years)" type="number" id="loanTerm" class="input input-visible w-full mt-1 rounded-xl" value="{{ d_term }}" min="1" max="50">
           </div>
           <div>
-            <label class="text-xs font-semibold text-base-content/70 font-semibold" for="extraPayment">{{ tr('tool.mortgage.extra_payment', loc) }}</label>
+            <label class="text-xs font-semibold text-base-content/70 font-semibold" for="extraPayment">Extra Payment</label>
             <div class="relative mt-1">
               <span id="symExtra" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">{{ def_sym }}</span>
-              <input aria-label="{{ tr('tool.mortgage.extra_payment', loc) }}" type="number" id="extraPayment" class="input input-visible w-full pl-8 rounded-xl" value="{{ d_extra }}" min="0" step="50">
+              <input aria-label="Extra Payment" type="number" id="extraPayment" class="input input-visible w-full pl-8 rounded-xl" value="{{ d_extra }}" min="0" step="50">
             </div>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="text-xs font-semibold text-base-content/70 font-semibold" for="extraFreq">{{ tr('tool.mortgage.pay_extra', loc) }}</label>
-            <select aria-label="{{ tr('tool.mortgage.pay_extra', loc) }}" id="extraFreq" class="input input-visible w-full mt-1 rounded-xl">
-              <option value="monthly">{{ tr('tool.mortgage.each_month', loc) }}</option>
-              <option value="yearly">{{ tr('tool.mortgage.once_a_year', loc) }}</option>
-              <option value="onetime">{{ tr('tool.mortgage.just_once', loc) }}</option>
+            <label class="text-xs font-semibold text-base-content/70 font-semibold" for="extraFreq">Pay Extra</label>
+            <select aria-label="Pay Extra" id="extraFreq" class="input input-visible w-full mt-1 rounded-xl">
+              <option value="monthly">Each Month</option>
+              <option value="yearly">Once a Year</option>
+              <option value="onetime">Just Once</option>
             </select>
           </div>
           <div>
-            <label class="text-xs font-semibold text-base-content/70 font-semibold" for="lumpSum">{{ tr('tool.mortgage.lump_sum', loc) }}</label>
+            <label class="text-xs font-semibold text-base-content/70 font-semibold" for="lumpSum">Lump Sum (one-time)</label>
             <div class="relative mt-1">
               <span id="symLump" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">{{ def_sym }}</span>
-              <input aria-label="{{ tr('tool.mortgage.lump_sum', loc) }}" type="number" id="lumpSum" class="input input-visible w-full pl-8 rounded-xl" value="0" min="0" step="1000">
+              <input aria-label="Lump Sum (one-time)" type="number" id="lumpSum" class="input input-visible w-full pl-8 rounded-xl" value="0" min="0" step="1000">
             </div>
           </div>
         </div>
-        <button type="button" id="mortCalcBtn" class="btn w-full py-3.5 font-bold tracking-widest uppercase text-sm rounded-xl mt-2 text-white border-none" style="background:linear-gradient(135deg,var(--color-primary),var(--color-secondary));box-shadow:0 4px 15px color-mix(in oklab,var(--color-primary) 40%,transparent);transition:transform 0.15s,box-shadow 0.15s">{{ lucide_icon("calculator","w-5 h-5", 20) | safe }} {{ tr("btn.calculate", loc) | upper }}</button>
+        <button type="button" id="mortCalcBtn" class="btn w-full py-3.5 font-bold tracking-widest uppercase text-sm rounded-xl mt-2 text-white border-none" style="background:linear-gradient(135deg,var(--color-primary),var(--color-secondary));box-shadow:0 4px 15px color-mix(in oklab,var(--color-primary) 40%,transparent);transition:transform 0.15s,box-shadow 0.15s">{{ lucide_icon("calculator","w-5 h-5", 20) | safe }} {{ 'Calculate' | upper }}</button>
       </div>
 
       <!-- ─── SCENARIO QUICK PICKS ─── -->
       <div class="mt-6 pt-6 border-t border-base-content/10">
-        <p class="text-xs font-semibold text-base-content/70 font-semibold mb-3">{{ tr('tool.mortgage.quick_picks', loc) }}</p>
+        <p class="text-xs font-semibold text-base-content/70 font-semibold mb-3">Quick Scenario Picks</p>
         <div class="flex flex-wrap gap-2" id="scenarioBtns">
           <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-success);background-color:color-mix(in oklab,var(--color-success) 15%,transparent);color:var(--color-success)">+200{{ per_month }}</button>
           <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-primary);background-color:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary)">+500{{ per_month }}</button>
@@ -123,23 +108,23 @@
 
     <!-- ═══════ TOP-LEVEL METRICS ═══════ -->
     <div class="feature-card p-6 md:p-8">
-      <h3 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("gauge","w-5 h-5", 20) | safe }} {{ tr('tool.mortgage.impact_title', loc) }}</h3>
+      <h3 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("gauge","w-5 h-5", 20) | safe }} Your Overpayment Impact</h3>
       {% include "components/ymyl_disclaimer.html" %}
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="rounded-xl bg-base-content/5 p-4 text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">{{ tr('tool.mortgage.interest_saved', loc) }}</p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Interest Saved</p>
           <output id="resInterestSaved" class="text-2xl font-black text-success" aria-live="polite">{{ zero }}</output>
         </div>
         <div class="rounded-xl bg-base-content/5 p-4 text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">{{ tr('tool.mortgage.years_early', loc) }}</p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Years Early</p>
           <output id="resYearsEarly" class="text-2xl font-black text-primary" aria-live="polite">0</output>
         </div>
         <div class="rounded-xl bg-base-content/5 p-4 text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">{{ tr('tool.mortgage.months_early', loc) }}</p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Months Early</p>
           <output id="resMonthsSaved" class="text-2xl font-black text-secondary" aria-live="polite">0</output>
         </div>
         <div class="rounded-xl bg-base-content/5 p-4 text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">{{ tr('tool.mortgage.new_payoff', loc) }}</p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">New Payoff</p>
           <output id="resPayoffDate" class="text-lg font-black font-mono" aria-live="polite">—</output>
         </div>
       </div>
@@ -147,22 +132,22 @@
       <!-- ─── SIDE-BY-SIDE COMPARISON BARS ─── -->
       <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="card-compare scenario-base rounded-xl bg-base-content/5 p-4">
-          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">{{ tr('tool.mortgage.without_overpayment', loc) }}</p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Without Overpayment</p>
           <p class="text-lg font-black"><output id="resStdTotalCost" class="font-mono">{{ zero }}</output></p>
-          <p class="text-xs text-base-content/40 mt-1">{{ tr('tool.mortgage.total_interest', loc) }}: <output id="resStdInterest" class="font-mono">{{ zero }}</output></p>
+          <p class="text-xs text-base-content/40 mt-1">Total interest: <output id="resStdInterest" class="font-mono">{{ zero }}</output></p>
         </div>
         <div class="card-compare scenario-current rounded-xl bg-primary/5 p-4">
-          <p class="text-xs font-semibold tracking-widest uppercase text-primary/70 mb-1">{{ tr('tool.mortgage.with_overpayment', loc) }}</p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-primary/70 mb-1">With Overpayment</p>
           <p class="text-lg font-black"><output id="resNewTotalCost" class="font-mono">{{ zero }}</output></p>
-          <p class="text-xs text-base-content/40 mt-1">{{ tr('tool.mortgage.total_interest', loc) }}: <output id="resNewInterest" class="font-mono">{{ zero }}</output></p>
+          <p class="text-xs text-base-content/40 mt-1">Total interest: <output id="resNewInterest" class="font-mono">{{ zero }}</output></p>
         </div>
       </div>
 
       <!-- ─── INTEREST SAVED BAR ─── -->
       <div class="mt-5">
         <div class="flex justify-between text-xs text-base-content/50 mb-1">
-          <span>{{ tr('tool.mortgage.interest_paid', loc) }}: <output id="resNewInterestBar" class="font-bold font-mono">{{ zero }}</output></span>
-          <span>{{ tr('tool.mortgage.interest_saved_bar', loc) }}: <output id="resSavedBar" class="font-bold font-mono text-success">{{ zero }}</output></span>
+          <span>Interest paid: <output id="resNewInterestBar" class="font-bold font-mono">{{ zero }}</output></span>
+          <span>Interest saved: <output id="resSavedBar" class="font-bold font-mono text-success">{{ zero }}</output></span>
         </div>
         <div class="w-full bg-base-content/10 rounded-full h-2 overflow-hidden">
           <div id="interestBarFill" class="bar-fill bg-success h-full rounded-full" style="width:0%"></div>
@@ -172,18 +157,18 @@
 
     <!-- ═══════ PAYMENT BREAKDOWN ═══════ -->
     <div class="feature-card p-6 md:p-8">
-      <h3 class="text-lg font-black mb-4 tracking-tight flex items-center gap-2">{{ lucide_icon("wallet","w-5 h-5", 20) | safe }} {{ tr('tool.mortgage.monthly_payment', loc) }}</h3>
+      <h3 class="text-lg font-black mb-4 tracking-tight flex items-center gap-2">{{ lucide_icon("wallet","w-5 h-5", 20) | safe }} Monthly Payment</h3>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">{{ tr('tool.mortgage.standard', loc) }}</p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Standard</p>
           <p class="text-2xl font-black"><output id="resStdPayment" class="font-mono" aria-live="polite">{{ zero }}</output></p>
         </div>
         <div class="text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-primary/70 mb-1">{{ tr('tool.mortgage.with_overpayment', loc) }}</p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-primary/70 mb-1">With Overpayment</p>
           <p class="text-2xl font-black text-primary"><output id="resNewPayment" class="font-mono" aria-live="polite">{{ zero }}</output></p>
         </div>
         <div class="text-center">
-          <p class="text-xs font-semibold tracking-widest uppercase text-secondary/70 mb-1">{{ tr('tool.mortgage.extra_per_month', loc) }}</p>
+          <p class="text-xs font-semibold tracking-widest uppercase text-secondary/70 mb-1">Extra Per Month</p>
           <p class="text-2xl font-black text-secondary"><output id="resExtraMo" class="font-mono" aria-live="polite">{{ zero }}</output></p>
         </div>
       </div>
@@ -191,24 +176,24 @@
 
     <!-- ═══════ AMORTIZATION SCHEDULE ═══════ -->
     <div class="feature-card p-6 md:p-8">
-      <h3 class="text-lg font-black mb-4 tracking-tight flex items-center gap-2">{{ lucide_icon("table-2","w-5 h-5", 20) | safe }} {{ tr('tool.mortgage.amortization', loc) }} <span class="text-xs font-normal text-base-content/40 normal-case">{{ tr('tool.mortgage.accelerated', loc) }}</span></h3>
+      <h3 class="text-lg font-black mb-4 tracking-tight flex items-center gap-2">{{ lucide_icon("table-2","w-5 h-5", 20) | safe }} Amortization Schedule <span class="text-xs font-normal text-base-content/40 normal-case">(accelerated payoff)</span></h3>
       <div class="overflow-x-auto -mx-2">
-        <table class="w-full text-sm" role="table" aria-label="{{ tr('tool.mortgage.amortization', loc) }}">
+        <table class="w-full text-sm" role="table" aria-label="Amortization Schedule">
           <thead>
             <tr class="text-base-content/50 border-b border-base-content/10 text-xs font-bold tracking-wider uppercase">
-              <th class="text-left py-3 pr-2">{{ tr('tool.common.year', loc) }}</th>
-              <th class="text-right px-2 py-3">{{ tr('tool.mortgage.start_balance', loc) }}</th>
-              <th class="text-right px-2 py-3">{{ tr('tool.mortgage.payment', loc) }}</th>
-              <th class="text-right px-2 py-3">{{ tr('tool.mortgage.extra_per_year', loc) }}</th>
-              <th class="text-right px-2 py-3">{{ tr('tool.mortgage.interest', loc) }}</th>
-              <th class="text-right px-2 py-3">{{ tr('tool.mortgage.principal', loc) }}</th>
-              <th class="text-right pl-2 py-3">{{ tr('tool.mortgage.end_balance', loc) }}</th>
+              <th class="text-left py-3 pr-2">Year</th>
+              <th class="text-right px-2 py-3">Start Balance</th>
+              <th class="text-right px-2 py-3">Payment</th>
+              <th class="text-right px-2 py-3">Extra/Year</th>
+              <th class="text-right px-2 py-3">Interest</th>
+              <th class="text-right px-2 py-3">Principal</th>
+              <th class="text-right pl-2 py-3">End Balance</th>
             </tr>
           </thead>
           <tbody id="amortTableBody"></tbody>
         </table>
       </div>
-      <p class="text-xs text-base-content/30 text-center mt-4">{{ tr('tool.mortgage.rounding_note', loc) }}</p>
+      <p class="text-xs text-base-content/30 text-center mt-4">Values rounded to nearest whole unit. Schedule shows accelerated payoff with extra payments applied.</p>
     </div>
 
   </div>
@@ -217,11 +202,9 @@
 <script nonce="{{ nonce }}">
 (function(){'use strict';
 var activeScenario=null;
-var INTL_LOCALE = {{ {'hi':'en-IN','es':'es-ES','fr':'fr-FR','de':'de-DE','en':'en-US'}[loc] | tojson }};
-var T = {{ {
-  'per_month': tr('tool.common.per_month', loc)
-} | tojson }};
-var currentCurrency = {{ ('INR' if loc == 'hi' else ('EUR' if loc in ('es', 'fr', 'de') else 'USD')) | tojson }};
+var INTL_LOCALE = "en-US";
+var T = {"per_month": "/mo"};
+var currentCurrency = "USD";
 
 var currencies={
   USD:{sym:'$',scAmt:200},

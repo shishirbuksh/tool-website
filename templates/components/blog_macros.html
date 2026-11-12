@@ -7,7 +7,7 @@
       <span class="text-[11px] text-base-content/50 font-medium">{{ ((post.body_html | striptags | length) // 1500 + 1) }} min read</span>
     </div>
     <h3 class="font-display text-base sm:text-lg font-semibold mb-2 leading-snug">
-      <a href="{{ localize_path('/blog/' ~ post.pillar ~ '/' ~ post.slug, locale | default('en', true)) }}" class="text-base-content hover:underline" title="{{ post.title }}">{{ post.title }}</a>
+      <a href="/blog/{{ post.pillar }}/{{ post.slug }}" class="text-base-content hover:underline" title="{{ post.title }}">{{ post.title }}</a>
     </h3>
     {% if post.description %}<p class="text-xs sm:text-[13px] text-base-content/70 leading-relaxed mb-4">{{ post.description | truncate(140) }}</p>{% endif %}
   </div>
@@ -72,17 +72,15 @@
 {% endif %}
 {% endmacro %}
 
-{% macro blog_schema(post, site_url, locale='en') %}
+{% macro blog_schema(post, site_url) %}
 {% set base = site_url | default('https://www.storybrainai.com', true) %}
-{% set _lang = ({'hi': 'hi', 'es': 'es', 'fr': 'fr'}[locale] | default('en', true)) %}
-{% set _pfx = ('/' + locale) if (locale and locale != 'en') else '' %}
 <script type="application/ld+json" nonce="{{ nonce }}">
 {
   "@context": "https://schema.org",
   "@graph": [
     {
       "@type": "BlogPosting",
-      "inLanguage": {{ _lang | tojson }},
+      "inLanguage": "en",
       "headline": {{ post.title | tojson }},
       "description": {{ post.description | default('', true) | tojson }},
       "image": {{ ((base + post.image) if (post.image or '').startswith('/') else (post.image or (base + '/static/og-image.webp'))) | tojson }},
@@ -90,7 +88,7 @@
       "publisher": {"@type": "Organization", "name": "StoryBrain AI", "logo": {"@type": "ImageObject", "url": {{ (base + '/static/og-image.webp') | tojson }}, "width": 1200, "height": 630}},
       {% if post.date_published %}"datePublished": {{ post.date_published | tojson }},{% endif %}
       {% if post.date_modified %}"dateModified": {{ post.date_modified | tojson }},{% endif %}
-      "mainEntityOfPage": {"@type": "WebPage", "@id": {{ (base + _pfx + '/blog/' + post.pillar + '/' + post.slug) | tojson }}},
+      "mainEntityOfPage": {"@type": "WebPage", "@id": {{ (base + '/blog/' + post.pillar + '/' + post.slug) | tojson }}},
       "wordCount": {{ (post.body_html | striptags | length) // 5 }}
     }
     {% if post.faqs %},{
@@ -117,10 +115,10 @@
     ,{
       "@type": "BreadcrumbList",
       "itemListElement": [
-        {"@type": "ListItem", "position": 1, "name": "Home", "item": {{ (base + _pfx + '/') | tojson }}},
-        {"@type": "ListItem", "position": 2, "name": "Blog", "item": {{ (base + _pfx + '/blog') | tojson }}},
-        {"@type": "ListItem", "position": 3, "name": {{ post.pillar | tojson }}, "item": {{ (base + _pfx + '/blog/' + post.pillar) | tojson }}},
-        {"@type": "ListItem", "position": 4, "name": {{ post.title | tojson }}, "item": {{ (base + _pfx + '/blog/' + post.pillar + '/' + post.slug) | tojson }}}
+        {"@type": "ListItem", "position": 1, "name": "Home", "item": {{ (base + '/') | tojson }}},
+        {"@type": "ListItem", "position": 2, "name": "Blog", "item": {{ (base + '/blog') | tojson }}},
+        {"@type": "ListItem", "position": 3, "name": {{ post.pillar | tojson }}, "item": {{ (base + '/blog/' + post.pillar) | tojson }}},
+        {"@type": "ListItem", "position": 4, "name": {{ post.title | tojson }}, "item": {{ (base + '/blog/' + post.pillar + '/' + post.slug) | tojson }}}
       ]
     }
   ]
