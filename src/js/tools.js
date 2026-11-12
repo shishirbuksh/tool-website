@@ -488,11 +488,11 @@
   }
 
   function initFromQuery() {
-    getCachedTools();
     try {
       const params = new URLSearchParams(window.location.search);
       const catParam = params.get('category');
       const qParam = params.get('q');
+      if (catParam || qParam) getCachedTools();
       if (catParam) {
         const selector = '.category-card[data-filter="' + (window.CSS && CSS.escape ? CSS.escape(catParam) : catParam.replace(/["\\]/g, '')) + '"]';
         const catTab = document.querySelector(selector);

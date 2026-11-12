@@ -131,3 +131,15 @@ def test_all_tools_non_empty_nonce_and_no_unused_font_preload():
     assert res2.status_code == 200
     assert 'nonce=""' not in res2.text
     assert "data-helpful-box" in res2.text
+
+
+def test_homepage_accessibility_and_perf_fixes():
+    """Verify accessible drawer buttons, native FAQ details, and inlined font CSS."""
+    res = client.get("/")
+    assert res.status_code == 200
+    assert "/static/css/fonts.css" not in res.text
+    assert 'id="mobileDrawer"' not in res.text
+    assert 'id="mobileDrawerSidebar"' in res.text
+    assert 'name="home-accordion"' in res.text
+    assert 'type="radio" name="home-accordion"' not in res.text
+    assert res.text.count("<main") == 1

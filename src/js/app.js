@@ -4,7 +4,7 @@
 document.querySelectorAll('.theme-toggle').forEach(function(b){b.addEventListener('click',function(){var c=html.getAttribute('data-theme')||'night';setTheme(c==='night'?'light':'night')})})
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(e){if(!store.get('sb-theme')){setTheme(e.matches?'night':'light')}})
 var nav=document.getElementById('siteNavbar'),sh=document.getElementById('siteHeader');function hS(){var s=window.scrollY>20;if(nav)nav.classList.toggle('shadow-sm',s);if(sh)sh.classList.toggle('scrolled',s)}
-window.addEventListener('scroll',hS,{passive:true});hS()
+window.addEventListener('scroll',hS,{passive:true});if(typeof requestAnimationFrame==='function')requestAnimationFrame(hS);
 
 /* ── Nav active state for tool pages ── */
 if(window.location.pathname.indexOf('/tool/')===0){document.querySelectorAll('.nav-link').forEach(function(l){if(l.getAttribute('href')==='/#tools')l.classList.add('active')})}
