@@ -1,6 +1,6 @@
 // StoryBrain AI Service Worker (cache version & hashed CSS synced by scripts/compress.js)
-const CACHE_NAME = 'storybrain-v47-f52fc599';
-const STATIC_CACHE = 'storybrain-static-v47-f52fc599';
+const CACHE_NAME = 'storybrain-v47-55de1ca9';
+const STATIC_CACHE = 'storybrain-static-v47-55de1ca9';
 const PAGE_CACHE_MAX_ENTRIES = 50;
 
 // Assets to pre-cache on install (app-shell only; OG/screenshots lazy via runtime cache)

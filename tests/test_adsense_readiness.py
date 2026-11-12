@@ -119,3 +119,15 @@ def test_all_blog_posts_free_of_boilerplate_and_eeat_complete():
 
     dup_h2s = [h for h, count in h2_counts.items() if count > 1]
     assert not dup_h2s, f"Duplicate H2 headings across blog posts: {dup_h2s}"
+
+
+def test_all_tools_non_empty_nonce_and_no_unused_font_preload():
+    """Every inline script & JSON-LD block on representative/all tools has a non-empty nonce."""
+    res = client.get("/tool/exam-photo-signature-resizer")
+    assert res.status_code == 200
+    assert 'nonce=""' not in res.text
+    assert "/static/fonts/QGYvz_MVcBeNP4NJtEtq.woff2" not in res.text
+    res2 = client.get("/tool/crypto-password-generator")
+    assert res2.status_code == 200
+    assert 'nonce=""' not in res2.text
+    assert "data-helpful-box" in res2.text

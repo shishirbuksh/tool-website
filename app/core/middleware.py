@@ -36,7 +36,7 @@ _CSP_BASE = (
     "https://googleads.g.doubleclick.net https://*.doubleclick.net "
     "https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://*.adtrafficquality.google "
     "https://fundingchoicesmessages.google.com https://adservice.google.com https://csi.gstatic.com "
-    "https://www.google.com https://cdn.jsdelivr.net; "
+    "https://www.google.com https://cdn.jsdelivr.net https://tessdata.projectnaptha.com; "
     "frame-src 'self' https://googleads.g.doubleclick.net https://*.doubleclick.net "
     "https://tpc.googlesyndication.com https://*.googlesyndication.com https://www.google.com "
     "https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://*.adtrafficquality.google "
