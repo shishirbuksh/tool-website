@@ -5,6 +5,7 @@ import os
 import re
 import time
 from datetime import UTC, datetime
+from email.utils import formatdate, parsedate_to_datetime
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -342,13 +343,37 @@ def _normalize_etag(v: str) -> str:
     return v.strip('"').strip("'")
 
 
-def _not_modified(request: Request, etag: str) -> bool:
+def _format_http_date(dt_str: str | None) -> str | None:
+    if not dt_str:
+        return None
+    try:
+        dt = datetime.strptime(dt_str.strip(), "%Y-%m-%d").replace(tzinfo=UTC)
+        return formatdate(dt.timestamp(), usegmt=True)
+    except Exception:
+        return None
+
+
+def _not_modified(request: Request, etag: str, last_modified_http: str | None = None) -> bool:
+    # 1. Check If-None-Match (ETag)
     raw = request.headers.get("if-none-match", "")
-    if not raw:
-        return False
-    candidates = {_normalize_etag(v) for v in raw.split(",") if v.strip()}
-    clean = _normalize_etag(etag)
-    return clean in candidates or raw.strip() == etag
+    if raw:
+        candidates = {_normalize_etag(v) for v in raw.split(",") if v.strip()}
+        clean = _normalize_etag(etag)
+        if clean in candidates or raw.strip() == etag:
+            return True
+
+    # 2. Check If-Modified-Since (HTTP date)
+    raw_ims = request.headers.get("if-modified-since", "")
+    if raw_ims and last_modified_http:
+        try:
+            ims_dt = parsedate_to_datetime(raw_ims.strip())
+            lm_dt = parsedate_to_datetime(last_modified_http.strip())
+            if lm_dt <= ims_dt:
+                return True
+        except Exception:
+            pass
+
+    return False
 
 
 def _page_context(bare_path: str) -> dict:
@@ -373,9 +398,12 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
     seo_data = seo_service.get_seo(tool_name)
     dmod = seo_data.date_modified if seo_data else None
     etag = _tool_etag(tool_name, dmod)
+    lm_http = _format_http_date(dmod)
     tool_cache_control = "public, max-age=0, must-revalidate"
-    if _not_modified(request, etag):
+    if _not_modified(request, etag, lm_http):
         _h304 = {"ETag": etag, "Cache-Control": tool_cache_control, "Content-Language": "en"}
+        if lm_http:
+            _h304["Last-Modified"] = lm_http
         return Response(status_code=304, headers=_h304)
 
     categories, _ = await asyncio.to_thread(catalog_service.get_categorized_tools)
@@ -396,6 +424,8 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
         raise HTTPException(status_code=404, detail="Tool not found") from None
     resp.headers["Cache-Control"] = tool_cache_control
     resp.headers["ETag"] = etag
+    if lm_http:
+        resp.headers["Last-Modified"] = lm_http
     resp.headers["Content-Language"] = "en"
     return resp
 
