@@ -45,6 +45,8 @@ from app.core.middleware import (
 _startup_logger = get_logger("app.main")
 setup_logging()
 
+_BASE_DIR = os.path.dirname(settings.static_dir)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -243,14 +245,22 @@ async def favicon():
 
 @app.get("/ads.txt", include_in_schema=False)
 async def ads_txt():
-    ads_path = os.path.join(settings.static_dir, "ads.txt")
-    if not os.path.isfile(ads_path):
-        raise HTTPException(status_code=404, detail="ads.txt not found")
-    return FileResponse(
-        ads_path,
-        media_type="text/plain",
-        headers={"Cache-Control": "public, max-age=86400, stale-while-revalidate=3600"},
-    )
+    candidates = [
+        os.path.join(settings.static_dir, "ads.txt"),
+        os.path.join(_BASE_DIR, "public", "ads.txt"),
+        os.path.join(_BASE_DIR, "ads.txt"),
+    ]
+    for ads_path in candidates:
+        if os.path.isfile(ads_path):
+            return FileResponse(
+                ads_path,
+                media_type="text/plain; charset=utf-8",
+                headers={
+                    "Cache-Control": "public, max-age=86400, stale-while-revalidate=3600",
+                    "Content-Type": "text/plain; charset=utf-8",
+                },
+            )
+    raise HTTPException(status_code=404, detail="ads.txt not found")
 
 
 @app.get("/service-worker", include_in_schema=False)

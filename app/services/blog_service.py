@@ -32,6 +32,7 @@ class BlogPost(BaseModel):
     body_html: str = ""
     tools: list[str] = Field(default_factory=list)
     related_posts: list[str] = Field(default_factory=list)
+    noindex: bool = False
     locale: str = "en"
 
     @property
@@ -119,6 +120,7 @@ class BlogService:
             body_html=str(raw.get("body_html", "") or ""),
             tools=list(raw.get("tools", []) or []),
             related_posts=list(raw.get("related_posts", []) or []),
+            noindex=bool(raw.get("noindex", False)),
             locale="en",
         )
 

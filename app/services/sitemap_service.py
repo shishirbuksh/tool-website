@@ -96,6 +96,12 @@ class SitemapService:
             pages.append({"loc": f"/{hub}", "priority": "0.6", "changefreq": "weekly", "filepath": hub_filepath})
 
         tools_dir = os.path.join(self.settings.templates_dir, "tools")
+        excluded_tools = {
+            "love-calculator",
+            "crypto-price-prediction",
+            "meme-coin-detector",
+            "airdrop-finder",
+        }
         if os.path.exists(tools_dir):
             # YAML is source of truth; filesystem verified to avoid indexing orphans.
             try:
@@ -104,6 +110,8 @@ class SitemapService:
                 yaml_slugs = []
             template_files = set(self._get_cached_dir_listing(tools_dir))
             for slug in sorted(yaml_slugs):
+                if slug in excluded_tools:
+                    continue  # Novelty / speculative YMYL tool quarantined from sitemap for AdSense review
                 fname = f"{slug.replace('-', '_')}.html"
                 if fname not in template_files:
                     continue  # YAML without template — do not index
@@ -145,6 +153,13 @@ class SitemapService:
                                     "filepath": os.path.join(pages_dir, f),
                                 }
                             )
+            # Explicitly include canonical legal aliases for crawler clarity
+            privacy_path = os.path.join(pages_dir, "privacy.html")
+            terms_path = os.path.join(pages_dir, "terms.html")
+            if os.path.exists(privacy_path):
+                pages.append({"loc": "/privacy-policy", "priority": "0.4", "changefreq": "monthly", "filepath": privacy_path})
+            if os.path.exists(terms_path):
+                pages.append({"loc": "/terms-of-service", "priority": "0.4", "changefreq": "monthly", "filepath": terms_path})
 
         try:
             from app.services.blog_service import BlogService  # noqa: PLC0415
@@ -168,7 +183,16 @@ class SitemapService:
                         "filepath": os.path.join(blog_tpl_dir, "pillar.html"),
                     }
                 )
+            excluded_blog_posts = {
+                "love-calculator-explained-fun",
+                "crypto-price-prediction-how-it-works",
+                "meme-coin-detector-guide",
+                "meme-coin-red-flags-learn-guide",
+                "airdrop-finder-guide",
+            }
             for post in blog_svc.get_all():
+                if post.slug in excluded_blog_posts:
+                    continue  # Novelty / speculative guide quarantined from sitemap for AdSense review
                 pages.append(
                     {
                         "loc": f"/blog/{post.pillar}/{post.slug}",
@@ -200,12 +224,12 @@ class SitemapService:
             yaml_date = page.get("yaml_date")
             filepath = page.get("filepath")
             lastmod = None
-            if yaml_date and self._is_valid_yaml_date(str(yaml_date)):
+            # For dedicated files (tools, static/legal pages, index), use actual file mtime
+            if filepath and os.path.isfile(filepath) and not filepath.endswith(("hub.html", "pillar.html", "post.html")):
+                lastmod = self._get_lastmod(filepath)
+            elif yaml_date and self._is_valid_yaml_date(str(yaml_date)):
                 lastmod = str(yaml_date)
-            if not lastmod and filepath and page.get("loc") in ("/", "/sitemap", "/tools", "/about", "/privacy", "/terms", "/disclaimer", "/contact"):
-                # Dedicated templates have their own mtime.
-                # Shared templates (hub.html, pillar.html, post.html, tool pages)
-                # share one mtime across hundreds of URLs — omit instead to avoid fake freshness.
+            elif filepath and os.path.isfile(filepath):
                 lastmod = self._get_lastmod(filepath)
 
             if lastmod:
@@ -237,6 +261,7 @@ class SitemapService:
             site_url = self.settings.SITE_URL.rstrip("/")
             content = (
                 f"User-agent: *\n"
+                f"Allow: /ads.txt\n"
                 f"Allow: /sitemap.xml\n"
                 f"Allow: /llms.txt\n"
                 f"Allow: /static/\n"

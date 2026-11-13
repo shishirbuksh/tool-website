@@ -173,3 +173,98 @@ def test_blog_post_etag_and_304_conditional_caching():
     assert res304.headers.get("etag") == etag
     res304_ims = client.get("/blog/calculators/emi-calculator-guide", headers={"if-modified-since": lm})
     assert res304_ims.status_code == 304
+
+
+def test_ads_txt_and_public_static_routes():
+    """Verify /ads.txt and all legal static routes serve 200 OK with proper headers."""
+    ads_res = client.get("/ads.txt")
+    assert ads_res.status_code == 200
+    assert "text/plain" in ads_res.headers.get("content-type", "")
+    assert "pub-6310719489589992" in ads_res.text
+    assert "google.com, pub-6310719489589992, DIRECT, f08c47fec0942fa0" in ads_res.text
+
+    robots_res = client.get("/robots.txt")
+    assert robots_res.status_code == 200
+    assert "Allow: /ads.txt" in robots_res.text
+    assert "Allow: /sitemap.xml" in robots_res.text
+
+    sitemap_res = client.get("/sitemap.xml")
+    assert sitemap_res.status_code == 200
+    assert "application/xml" in sitemap_res.headers.get("content-type", "")
+    assert "/privacy-policy" in sitemap_res.text
+    assert "/terms-of-service" in sitemap_res.text
+    assert "love-calculator" not in sitemap_res.text
+    assert "crypto-price-prediction" not in sitemap_res.text
+
+    for route in (
+        "/privacy-policy",
+        "/terms-of-service",
+        "/privacy",
+        "/terms",
+        "/disclaimer",
+        "/about",
+        "/contact",
+    ):
+        res = client.get(route)
+        assert res.status_code == 200, f"{route} returned {res.status_code}"
+        assert "text/html" in res.headers.get("content-type", "")
+        assert "Please click here if you are not redirected" not in res.text
+
+
+def test_calculator_default_states_and_prepayment_math():
+    """Verify EMI Calculator and Crypto Predictor render valid initial metrics without stuck/negative states."""
+    emi_res = client.get("/tool/emi-calculator")
+    assert emi_res.status_code == 200
+    assert "$-1,542" not in emi_res.text
+    assert "128.2%" not in emi_res.text
+    assert "$1,240" in emi_res.text
+    assert "$8,460" in emi_res.text
+    assert "19 mo" in emi_res.text
+    assert "20.7%" in emi_res.text
+
+    crypto_res = client.get("/tool/crypto-price-prediction")
+    assert crypto_res.status_code == 200
+    assert "Awaiting Data..." not in crypto_res.text
+    assert "$96,450.00" in crypto_res.text
+    assert "$98,820.00" in crypto_res.text
+    assert "Uptrend" in crypto_res.text
+
+
+def test_quarantined_ymyl_and_novelty_tools_have_noindex():
+    """High-risk/speculative tools and guides must carry noindex, follow until AdSense approval."""
+    for tool_slug in (
+        "love-calculator",
+        "crypto-price-prediction",
+        "meme-coin-detector",
+        "airdrop-finder",
+    ):
+        res = client.get(f"/tool/{tool_slug}")
+        assert res.status_code == 200
+        assert '<meta name="robots" content="noindex, follow">' in res.text
+
+    for blog_path in (
+        "/blog/ai-crypto/crypto-price-prediction-how-it-works",
+        "/blog/ai-crypto/meme-coin-detector-guide",
+        "/blog/productivity-utilities/love-calculator-explained-fun",
+    ):
+        res = client.get(blog_path)
+        assert res.status_code == 200
+        assert '<meta name="robots" content="noindex, follow">' in res.text
+
+    normal_tool = client.get("/tool/emi-calculator")
+    assert '<meta name="robots" content="index, follow">' in normal_tool.text
+
+
+def test_copy_free_of_keyword_stuffing_and_desk_attributions():
+    """Verify zero synthetic keyword stuffing or fictional desk attributions."""
+    with open(ROOT / "data" / "tools.yaml", encoding="utf-8") as f:
+        tools_raw = f.read()
+    with open(ROOT / "data" / "blog.yaml", encoding="utf-8") as f:
+        blog_raw = f.read()
+
+    assert "Research Desk" not in tools_raw
+    assert "Research Desk" not in blog_raw
+    assert "no signup free" not in tools_raw
+    assert "15 vs 20 year emi amount with amortization table" not in tools_raw
+    assert "what is safe emi for my salary 2026" not in tools_raw
+    assert "operates as an instant" not in tools_raw

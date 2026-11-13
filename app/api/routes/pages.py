@@ -411,6 +411,12 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
 
     template_name = f"tools/{tool_name.replace('-', '_')}.html"
     bare_path = f"/tool/{tool_name}"
+    _is_quarantined = tool_name in {
+        "love-calculator",
+        "crypto-price-prediction",
+        "meme-coin-detector",
+        "airdrop-finder",
+    }
     ctx = {
         "tool_name": seo_data.name if seo_data else tool_name.replace("-", " ").title(),
         "categories": categories,
@@ -418,6 +424,8 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
         "related_guides": related_guides,
     }
     ctx.update(_page_context(bare_path))
+    if _is_quarantined:
+        ctx["robots_noindex"] = True
     try:
         resp = templates.TemplateResponse(request=request, name=template_name, context=ctx)
     except TemplateNotFound:
@@ -468,7 +476,12 @@ async def get_page(request: Request, page_name: str) -> HTMLResponse:
             logger.exception("Failed to render hub template for %s", page_name)
             raise HTTPException(status_code=500, detail="Failed to render hub page") from e
 
-    if page_name in _get_cached_page_names():
+    _page_aliases = {
+        "privacy-policy": "privacy",
+        "terms-of-service": "terms",
+    }
+    resolved_name = _page_aliases.get(page_name, page_name)
+    if resolved_name in _get_cached_page_names():
         categories, static_pages = await asyncio.to_thread(catalog_service.get_categorized_tools)
         try:
             ctx = {
@@ -477,7 +490,7 @@ async def get_page(request: Request, page_name: str) -> HTMLResponse:
                 "static_pages": static_pages,
             }
             ctx.update(_page_context(f"/{page_name}"))
-            resp = templates.TemplateResponse(request=request, name=f"pages/{page_name}.html", context=ctx)
+            resp = templates.TemplateResponse(request=request, name=f"pages/{resolved_name}.html", context=ctx)
             resp.headers.update(_PAGE_CACHE_HEADERS)
             resp.headers["Content-Language"] = "en"
             return resp

@@ -31,6 +31,7 @@ class ToolSEO(BaseModel):
     reviewed_by: str = ""
     sources: list[dict[str, str]] = Field(default_factory=list)
     wikidata_id: str = ""
+    noindex: bool = False
     related_slugs: list[str] = Field(default_factory=list)
     related: list[dict[str, Any]] = Field(default_factory=list)
     site_url: str = ""
@@ -180,6 +181,7 @@ class SeoService:
                 if isinstance(src, dict) and src.get("url")
             ],
             wikidata_id=str(raw.get("wikidata_id", "") or ""),
+            noindex=bool(raw.get("noindex", False)),
             related_slugs=related_slugs,
             related=related,
             site_url=self.settings.SITE_URL,

@@ -53,7 +53,7 @@ async def robots_txt() -> Response:
         content = await asyncio.to_thread(sitemap_service.build_robots_txt)
         return Response(
             content=content,
-            media_type="text/plain",
+            media_type="text/plain; charset=utf-8",
             headers={"Cache-Control": "public, max-age=60, s-maxage=10, must-revalidate"},
         )
     except Exception as e:
@@ -67,7 +67,7 @@ async def llms_txt() -> Response:
         content = await asyncio.to_thread(sitemap_service.build_llms_txt)
         return Response(
             content=content,
-            media_type="text/plain",
+            media_type="text/plain; charset=utf-8",
             headers={"Cache-Control": "public, max-age=3600"},
         )
     except Exception as e:

@@ -249,6 +249,15 @@ async def _render_blog_post(request: Request, pillar: str, cluster: str, locale:
     }
     bare = f"/blog/{pillar}/{cluster}"
     ctx.update(_page_ctx(bare))
+    _quarantined_posts = {
+        "love-calculator-explained-fun",
+        "crypto-price-prediction-how-it-works",
+        "meme-coin-detector-guide",
+        "meme-coin-red-flags-learn-guide",
+        "airdrop-finder-guide",
+    }
+    if post.slug in _quarantined_posts:
+        ctx["robots_noindex"] = True
     resp = templates.TemplateResponse(request=request, name="blog/post.html", context=ctx)
     resp.headers.update(_POST_CACHE_HEADERS)
     resp.headers["ETag"] = etag

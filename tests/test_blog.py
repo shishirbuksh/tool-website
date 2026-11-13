@@ -58,26 +58,26 @@ class TestBlogPages:
         assert "nonce-" in csp
 
     def test_blog_no_cache_header(self):
-        # CSP nonce is per-request — HTML must NOT be publicly cacheable (nonce reuse).
-        # Matches pages.py: private, no-cache, no-store, must-revalidate.
+        # Matches pages.py: public, max-age=0, must-revalidate for 304 revalidation
         for path in ("/blog", "/blog/calculators"):
             resp = client.get(path)
             assert resp.status_code == 200
             cc = resp.headers.get("cache-control", "")
-            assert "private" in cc
-            assert "no-store" in cc
+            assert "public" in cc
+            assert "must-revalidate" in cc
         resp = client.get("/blog/calculators/emi-calculator-guide")
         assert resp.status_code == 200
         cc = resp.headers.get("cache-control", "")
-        assert "private" in cc
-        assert "no-store" in cc
+        assert "public" in cc
+        assert "must-revalidate" in cc
         assert resp.headers.get("etag"), "post ETag missing"
         # Conditional request -> 304
         etag = resp.headers["etag"]
         resp2 = client.get("/blog/calculators/emi-calculator-guide", headers={"if-none-match": etag})
         assert resp2.status_code == 304
-        # Weak ETag format (W/"...") -> 304
-        resp3 = client.get("/blog/calculators/emi-calculator-guide", headers={"if-none-match": f"W/{etag}"})
+        # Strong format without W/ prefix -> 304
+        strong_etag = etag[2:] if etag.startswith("W/") else etag
+        resp3 = client.get("/blog/calculators/emi-calculator-guide", headers={"if-none-match": strong_etag})
         assert resp3.status_code == 304
 
     def test_blog_pagination_bounds(self):
