@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import (
@@ -243,7 +243,10 @@ async def favicon():
     )
 
 
-@app.get("/ads.txt", include_in_schema=False)
+_ADS_TXT_CONTENT = "google.com, pub-6310719489589992, DIRECT, f08c47fec0942fa0\n"
+
+
+@app.api_route("/ads.txt", methods=["GET", "HEAD"], include_in_schema=False)
 async def ads_txt():
     candidates = [
         os.path.join(settings.static_dir, "ads.txt"),
@@ -260,7 +263,14 @@ async def ads_txt():
                     "Content-Type": "text/plain; charset=utf-8",
                 },
             )
-    raise HTTPException(status_code=404, detail="ads.txt not found")
+    return Response(
+        content=_ADS_TXT_CONTENT,
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Cache-Control": "public, max-age=86400, stale-while-revalidate=3600",
+            "Content-Type": "text/plain; charset=utf-8",
+        },
+    )
 
 
 @app.get("/service-worker", include_in_schema=False)

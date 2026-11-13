@@ -293,6 +293,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return path.startswith(cls._HEAVY_GET_PREFIXES)
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        # Explicitly allow Google crawlers and AdSense reviewers to index and review without 429
+        ua = request.headers.get("user-agent", "").lower()
+        if any(bot in ua for bot in ("mediapartners-google", "googlebot", "google-adsense", "adsense")):
+            return await call_next(request)
+
         path = request.url.path
         limit = self.requests_per_minute
         if request.method in ("GET", "HEAD", "OPTIONS"):

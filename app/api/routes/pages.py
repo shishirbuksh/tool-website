@@ -194,12 +194,34 @@ async def html_sitemap(request: Request) -> HTMLResponse:
         asyncio.to_thread(blog_service.get_pillars),
         asyncio.to_thread(blog_service.get_all),
     )
+    _quarantined_tools = {
+        "love-calculator",
+        "crypto-price-prediction",
+        "meme-coin-detector",
+        "airdrop-finder",
+        "crypto-scam-checker",
+        "crypto-red-flag-self-assessment-tool",
+    }
+    _quarantined_posts = {
+        "love-calculator-explained-fun",
+        "crypto-price-prediction-how-it-works",
+        "meme-coin-detector-guide",
+        "meme-coin-red-flags-learn-guide",
+        "airdrop-finder-guide",
+    }
+    filtered_categories = {}
+    for cat, tools in categories.items():
+        filtered = [t for t in tools if t.get("slug") not in _quarantined_tools and str(t.get("url", "")).split("/")[-1] not in _quarantined_tools]
+        if filtered:
+            filtered_categories[cat] = filtered
+    filtered_posts = [p for p in blog_posts if p.slug not in _quarantined_posts]
+
     ctx = {
         "title": "HTML Sitemap — StoryBrain AI",
-        "categories": categories,
+        "categories": filtered_categories,
         "static_pages": static_pages,
         "pillars": pillars,
-        "blog_posts": blog_posts,
+        "blog_posts": filtered_posts,
     }
     ctx.update(_page_context("/sitemap"))
     resp = templates.TemplateResponse(request=request, name="pages/sitemap.html", context=ctx)
@@ -387,6 +409,9 @@ def _page_context(bare_path: str) -> dict:
 
 
 async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> Response:
+    if tool_name == "crypto-red-flag-self-assessment-tool":
+        tool_name = "crypto-scam-checker"
+
     if ".." in tool_name or "/" in tool_name or "\\" in tool_name:
         raise HTTPException(status_code=404, detail="Not found")
     if tool_name in ("tools", "sitemap", "offline"):
@@ -416,6 +441,8 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
         "crypto-price-prediction",
         "meme-coin-detector",
         "airdrop-finder",
+        "crypto-scam-checker",
+        "crypto-red-flag-self-assessment-tool",
     }
     ctx = {
         "tool_name": seo_data.name if seo_data else tool_name.replace("-", " ").title(),
@@ -479,6 +506,7 @@ async def get_page(request: Request, page_name: str) -> HTMLResponse:
     _page_aliases = {
         "privacy-policy": "privacy",
         "terms-of-service": "terms",
+        "student-hub": "student-tools",
     }
     resolved_name = _page_aliases.get(page_name, page_name)
     if resolved_name in _get_cached_page_names():

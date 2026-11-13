@@ -196,6 +196,11 @@ def test_ads_txt_and_public_static_routes():
     assert "love-calculator" not in sitemap_res.text
     assert "crypto-price-prediction" not in sitemap_res.text
 
+    # HEAD /ads.txt
+    ads_head = client.head("/ads.txt")
+    assert ads_head.status_code == 200
+    assert "text/plain" in ads_head.headers.get("content-type", "")
+
     for route in (
         "/privacy-policy",
         "/terms-of-service",
@@ -204,6 +209,7 @@ def test_ads_txt_and_public_static_routes():
         "/disclaimer",
         "/about",
         "/contact",
+        "/student-hub",
     ):
         res = client.get(route)
         assert res.status_code == 200, f"{route} returned {res.status_code}"
@@ -217,10 +223,10 @@ def test_calculator_default_states_and_prepayment_math():
     assert emi_res.status_code == 200
     assert "$-1,542" not in emi_res.text
     assert "128.2%" not in emi_res.text
-    assert "$1,240" in emi_res.text
-    assert "$8,460" in emi_res.text
-    assert "19 mo" in emi_res.text
-    assert "20.7%" in emi_res.text
+    assert "$2,318" in emi_res.text
+    assert "$35,415" in emi_res.text
+    assert "34 mo" in emi_res.text
+    assert "29.0%" in emi_res.text
 
     crypto_res = client.get("/tool/crypto-price-prediction")
     assert crypto_res.status_code == 200
@@ -237,6 +243,8 @@ def test_quarantined_ymyl_and_novelty_tools_have_noindex():
         "crypto-price-prediction",
         "meme-coin-detector",
         "airdrop-finder",
+        "crypto-scam-checker",
+        "crypto-red-flag-self-assessment-tool",
     ):
         res = client.get(f"/tool/{tool_slug}")
         assert res.status_code == 200

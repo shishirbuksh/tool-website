@@ -101,6 +101,8 @@ class SitemapService:
             "crypto-price-prediction",
             "meme-coin-detector",
             "airdrop-finder",
+            "crypto-scam-checker",
+            "crypto-red-flag-self-assessment-tool",
         }
         if os.path.exists(tools_dir):
             # YAML is source of truth; filesystem verified to avoid indexing orphans.
@@ -284,12 +286,22 @@ class SitemapService:
                 f"Disallow: /versionz\n"
                 f"Disallow: /metrics\n"
                 f"\n"
-                f"# Google AdSense Crawlers\n"
+                f"# Google & AdSense Crawlers\n"
+                f"User-agent: Googlebot\n"
+                f"Allow: /\n"
+                f"Allow: /ads.txt\n"
+                f"\n"
                 f"User-agent: Mediapartners-Google\n"
                 f"Allow: /\n"
+                f"Allow: /ads.txt\n"
+                f"\n"
+                f"User-agent: Google-AdSense\n"
+                f"Allow: /\n"
+                f"Allow: /ads.txt\n"
                 f"\n"
                 f"User-agent: Google-AdSense-Review\n"
                 f"Allow: /\n"
+                f"Allow: /ads.txt\n"
                 f"\n"
                 f"# AI Crawlers & Answer Engines (AEO)\n"
                 f"User-agent: GPTBot\n"
