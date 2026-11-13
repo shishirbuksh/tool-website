@@ -30,6 +30,7 @@ class ToolSEO(BaseModel):
     author: str = ""
     reviewed_by: str = ""
     sources: list[dict[str, str]] = Field(default_factory=list)
+    wikidata_id: str = ""
     related_slugs: list[str] = Field(default_factory=list)
     related: list[dict[str, Any]] = Field(default_factory=list)
     site_url: str = ""
@@ -178,6 +179,7 @@ class SeoService:
                 for src in (raw.get("sources") or [])
                 if isinstance(src, dict) and src.get("url")
             ],
+            wikidata_id=str(raw.get("wikidata_id", "") or ""),
             related_slugs=related_slugs,
             related=related,
             site_url=self.settings.SITE_URL,

@@ -373,8 +373,9 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
     seo_data = seo_service.get_seo(tool_name)
     dmod = seo_data.date_modified if seo_data else None
     etag = _tool_etag(tool_name, dmod)
+    tool_cache_control = "public, max-age=0, must-revalidate"
     if _not_modified(request, etag):
-        _h304 = {"ETag": etag, "Content-Language": "en", **_PAGE_CACHE_HEADERS}
+        _h304 = {"ETag": etag, "Cache-Control": tool_cache_control, "Content-Language": "en"}
         return Response(status_code=304, headers=_h304)
 
     categories, _ = await asyncio.to_thread(catalog_service.get_categorized_tools)
@@ -393,7 +394,7 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
         resp = templates.TemplateResponse(request=request, name=template_name, context=ctx)
     except TemplateNotFound:
         raise HTTPException(status_code=404, detail="Tool not found") from None
-    resp.headers.update(_PAGE_CACHE_HEADERS)
+    resp.headers["Cache-Control"] = tool_cache_control
     resp.headers["ETag"] = etag
     resp.headers["Content-Language"] = "en"
     return resp
