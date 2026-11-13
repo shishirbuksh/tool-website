@@ -332,7 +332,7 @@ def _tool_etag(tool_name: str, date_modified: str | None) -> str:
     import hashlib
 
     raw = f"tool/{tool_name}:{date_modified or ''}:{APP_VERSION}".encode()
-    return '"' + hashlib.sha1(raw).hexdigest()[:32] + '"'
+    return 'W/"' + hashlib.sha1(raw).hexdigest()[:32] + '"'
 
 
 def _normalize_etag(v: str) -> str:
