@@ -158,3 +158,18 @@ def test_tool_etag_and_304_conditional_caching():
     assert res304.headers.get("etag") == etag
     res304_ims = client.get("/tool/emi-calculator", headers={"if-modified-since": lm})
     assert res304_ims.status_code == 304
+
+
+def test_blog_post_etag_and_304_conditional_caching():
+    """Verify blog post pages return ETags and respond with 304 Not Modified on conditional requests."""
+    res = client.get("/blog/calculators/emi-calculator-guide")
+    assert res.status_code == 200
+    etag = res.headers.get("etag")
+    lm = res.headers.get("last-modified")
+    assert etag, "Blog post must return an ETag header"
+    assert lm, "Blog post must return a Last-Modified header"
+    res304 = client.get("/blog/calculators/emi-calculator-guide", headers={"if-none-match": etag})
+    assert res304.status_code == 304
+    assert res304.headers.get("etag") == etag
+    res304_ims = client.get("/blog/calculators/emi-calculator-guide", headers={"if-modified-since": lm})
+    assert res304_ims.status_code == 304

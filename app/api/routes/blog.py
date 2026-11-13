@@ -3,6 +3,7 @@
 import asyncio
 import re
 from datetime import UTC, datetime
+from email.utils import formatdate, parsedate_to_datetime
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
@@ -36,8 +37,8 @@ templates.env.globals["app_css_href"] = APP_CSS_HREF
 templates.env.globals["adsense_blog_slot_id"] = settings.ADSENSE_BLOG_SLOT_ID.strip()
 templates.env.globals["adsense_tool_slot_id"] = settings.ADSENSE_TOOL_SLOT_ID.strip()
 
-_INDEX_CACHE_HEADERS = {"Cache-Control": "private, no-cache, no-store, must-revalidate"}
-_POST_CACHE_HEADERS = {"Cache-Control": "private, no-cache, no-store, must-revalidate"}
+_INDEX_CACHE_HEADERS = {"Cache-Control": "public, max-age=0, must-revalidate"}
+_POST_CACHE_HEADERS = {"Cache-Control": "public, max-age=0, must-revalidate"}
 _PAGE_CACHE_HEADERS = _INDEX_CACHE_HEADERS
 
 
@@ -45,7 +46,17 @@ def _post_etag(pillar: str, slug: str, date_modified: str | None) -> str:
     import hashlib
 
     raw = f"{pillar}/{slug}:{date_modified or ''}:{APP_VERSION}".encode()
-    return '"' + hashlib.sha1(raw).hexdigest()[:32] + '"'
+    return 'W/"' + hashlib.sha1(raw).hexdigest()[:32] + '"'
+
+
+def _format_http_date(dt_str: str | None) -> str | None:
+    if not dt_str:
+        return None
+    try:
+        dt = datetime.strptime(dt_str.strip(), "%Y-%m-%d").replace(tzinfo=UTC)
+        return formatdate(dt.timestamp(), usegmt=True)
+    except Exception:
+        return None
 
 
 def _normalize_etag(v: str) -> str:
@@ -55,13 +66,27 @@ def _normalize_etag(v: str) -> str:
     return v.strip('"').strip("'")
 
 
-def _not_modified(request: Request, etag: str) -> bool:
+def _not_modified(request: Request, etag: str, last_modified_http: str | None = None) -> bool:
+    # 1. Check If-None-Match (ETag)
     raw = request.headers.get("if-none-match", "")
-    if not raw:
-        return False
-    candidates = {_normalize_etag(v) for v in raw.split(",") if v.strip()}
-    clean = _normalize_etag(etag)
-    return clean in candidates or raw.strip() == etag
+    if raw:
+        candidates = {_normalize_etag(v) for v in raw.split(",") if v.strip()}
+        clean = _normalize_etag(etag)
+        if clean in candidates or raw.strip() == etag:
+            return True
+
+    # 2. Check If-Modified-Since (HTTP date)
+    raw_ims = request.headers.get("if-modified-since", "")
+    if raw_ims and last_modified_http:
+        try:
+            ims_dt = parsedate_to_datetime(raw_ims.strip())
+            lm_dt = parsedate_to_datetime(last_modified_http.strip())
+            if lm_dt <= ims_dt:
+                return True
+        except Exception:
+            pass
+
+    return False
 
 
 _SLUG_RE = re.compile(r"^[a-z0-9-]{1,80}$")
@@ -183,13 +208,22 @@ async def blog_pillar(request: Request, pillar: str) -> HTMLResponse:
 async def _render_blog_post(request: Request, pillar: str, cluster: str, locale: str = "en") -> HTMLResponse:
     _assert_safe(pillar)
     _assert_safe(cluster)
-    post, cat_static, pillars = await asyncio.gather(
-        asyncio.to_thread(blog_service.get, cluster),
+    post = await asyncio.to_thread(blog_service.get, cluster)
+    if post is None or post.pillar != pillar:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    etag = _post_etag(pillar, post.slug, post.date_modified or "")
+    lm_http = _format_http_date(post.date_modified)
+    if _not_modified(request, etag, lm_http):
+        _h304 = {"ETag": etag, "Content-Language": "en", **_POST_CACHE_HEADERS}
+        if lm_http:
+            _h304["Last-Modified"] = lm_http
+        return Response(status_code=304, headers=_h304)
+
+    cat_static, pillars = await asyncio.gather(
         asyncio.to_thread(catalog_service.get_categorized_tools),
         asyncio.to_thread(blog_service.get_pillars),
     )
-    if post is None or post.pillar != pillar:
-        raise HTTPException(status_code=404, detail="Post not found")
     categories, static_pages = cat_static
     sibling_posts = await asyncio.to_thread(blog_service.get_by_pillar, pillar)
     related = await asyncio.to_thread(_related_for_post, post, sibling_posts)
@@ -217,12 +251,10 @@ async def _render_blog_post(request: Request, pillar: str, cluster: str, locale:
     ctx.update(_page_ctx(bare))
     resp = templates.TemplateResponse(request=request, name="blog/post.html", context=ctx)
     resp.headers.update(_POST_CACHE_HEADERS)
-    etag = _post_etag(pillar, post.slug, post.date_modified or "")
     resp.headers["ETag"] = etag
+    if lm_http:
+        resp.headers["Last-Modified"] = lm_http
     resp.headers["Content-Language"] = "en"
-    if _not_modified(request, etag):
-        _h304: dict[str, str] = {"ETag": etag, "Content-Language": "en", **_POST_CACHE_HEADERS}
-        return Response(status_code=304, headers=_h304)
     return resp
 
 
