@@ -182,5 +182,20 @@ class BlogService:
         _, _, popular = self._get_parsed_bundle("en")
         return popular[: max(0, limit)]
 
+    def get_posts_for_tool(self, tool_slug: str, limit: int = 3, locale: str = "en") -> list[BlogPost]:
+        all_posts = self.get_all(locale)
+        # Direct tool matches first
+        matching = [p for p in all_posts if tool_slug in p.tools]
+        if len(matching) < limit:
+            seen = {p.slug for p in matching}
+            token = tool_slug.replace("-", " ").lower()
+            for p in all_posts:
+                if p.slug not in seen and (token in p.title.lower() or tool_slug in p.slug):
+                    matching.append(p)
+                    seen.add(p.slug)
+                    if len(matching) >= limit:
+                        break
+        return matching[:limit]
+
 
 BlogEngineService = BlogService

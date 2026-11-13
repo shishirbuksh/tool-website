@@ -143,3 +143,14 @@ def test_homepage_accessibility_and_perf_fixes():
     assert 'name="home-accordion"' in res.text
     assert 'type="radio" name="home-accordion"' not in res.text
     assert res.text.count("<main") == 1
+
+
+def test_tool_etag_and_304_conditional_caching():
+    """Verify tool pages return ETags and respond with 304 Not Modified on If-None-Match."""
+    res = client.get("/tool/emi-calculator")
+    assert res.status_code == 200
+    etag = res.headers.get("etag")
+    assert etag, "Tool page must return an ETag header"
+    res304 = client.get("/tool/emi-calculator", headers={"if-none-match": etag})
+    assert res304.status_code == 304
+    assert res304.headers.get("etag") == etag

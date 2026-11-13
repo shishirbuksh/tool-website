@@ -94,6 +94,38 @@
 {% endif %}
 {% endmacro %}
 
+{% macro tool_seo_guides(guides) %}
+{% if guides %}
+<div class="mt-12 pt-10 border-t border-base-300 reveal">
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h2 class="font-display font-semibold text-xl sm:text-2xl text-base-content tracking-tight">Practical Guides &amp; Tutorials</h2>
+      <p class="text-xs text-base-content/70 mt-0.5">Learn how to maximize this utility with detailed, step-by-step walkthroughs</p>
+    </div>
+    <a href="/blog" class="text-xs font-semibold text-base-content/70 hover:text-base-content flex items-center gap-1 group">
+      <span>All Guides</span>
+      <span class="transition-transform group-hover:translate-x-0.5">→</span>
+    </a>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {% for g in guides %}
+    <a href="{{ g.url }}" class="feature-card p-5 group h-full transition-all flex flex-col justify-between hover:border-base-content/30">
+      <div>
+        <div class="text-[11px] font-semibold uppercase tracking-wider text-primary mb-1.5">{{ g.pillar | replace("-", " ") }}</div>
+        <h3 class="font-display font-semibold text-sm text-base-content group-hover:underline leading-snug mb-2">{{ g.title }}</h3>
+        {% if g.description %}<p class="text-xs text-base-content/70 line-clamp-2 leading-relaxed">{{ g.description }}</p>{% endif %}
+      </div>
+      <div class="mt-3 pt-2 border-t border-base-300/60 flex items-center justify-between text-xs text-base-content/60">
+        <span>Read Guide</span>
+        <span class="group-hover:translate-x-1 transition-transform text-primary font-semibold">→</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endmacro %}
+
 {% macro tool_seo_schema(seo, loc='en') %}
 <script type="application/ld+json" nonce="{{ nonce }}">
 {
@@ -101,6 +133,7 @@
   "@graph": [
     {
       "@type": "SoftwareApplication",
+      "@id": {{ ((seo.url or ('https://www.storybrainai.com/tool/' ~ seo.slug)) ~ '#software') | tojson }},
       "name": {{ seo.name | default('StoryBrain AI Tool', true) | tojson }},
       {% if seo.url %}"url": {{ seo.url | tojson }},{% endif %}
       "inLanguage": "en",
@@ -110,6 +143,16 @@
       {% if seo.app_sub_category %}"applicationSubCategory": {{ seo.app_sub_category | tojson }},{% endif %}
       "operatingSystem": "Web browser",
       "browserRequirements": "Requires JavaScript",
+      {% if seo.wikidata_id or seo.wikidata_url %}
+      "about": {
+        "@type": "Thing",
+        "name": {{ seo.name | tojson }},
+        "sameAs": {{ (seo.wikidata_url if seo.wikidata_url else ('https://www.wikidata.org/wiki/' ~ seo.wikidata_id)) | tojson }}
+      },
+      {% endif %}
+      {% if seo.keywords %}
+      "featureList": [{% for k in seo.keywords[:4] %}{{ k | tojson }}{% if not loop.last %},{% endif %}{% endfor %}],
+      {% endif %}
       {% set dmod = seo.date_modified | default('', true) %}
       {% if dmod %}"datePublished": "{{ dmod }}",{% endif %}
       {% if dmod %}"dateModified": "{{ dmod }}",{% endif %}
@@ -154,6 +197,7 @@
   {% if seo.howto_steps %}{{ tool_seo_howto(seo.howto_steps) }}{% endif %}
   {% if seo.howto_calculate %}{{ tool_seo_howtocalculate(seo.howto_calculate) }}{% endif %}
   {% if seo.about_title %}{{ tool_seo_about(seo.about_title, seo.about_body) }}{% endif %}
+  {% if related_guides %}{{ tool_seo_guides(related_guides) }}{% endif %}
   {% if seo.related %}{{ tool_seo_related(seo.related) }}{% endif %}
   {% set disclaimer_link = '<a href="/disclaimer" class="underline hover:text-primary">' ~ 'Disclaimer' ~ '</a>' %}
   {% set contact_link = '<a href="/contact" class="underline hover:text-primary">' ~ 'Report it via contact' ~ '</a>' %}

@@ -328,6 +328,29 @@ async def contact_submission(request: Request) -> ContactResponse:
     return ContactResponse(status="ok")
 
 
+def _tool_etag(tool_name: str, date_modified: str | None) -> str:
+    import hashlib
+
+    raw = f"tool/{tool_name}:{date_modified or ''}:{APP_VERSION}".encode()
+    return '"' + hashlib.sha1(raw).hexdigest()[:32] + '"'
+
+
+def _normalize_etag(v: str) -> str:
+    v = v.strip()
+    if v.startswith(("W/", "w/")):
+        v = v[2:].strip()
+    return v.strip('"').strip("'")
+
+
+def _not_modified(request: Request, etag: str) -> bool:
+    raw = request.headers.get("if-none-match", "")
+    if not raw:
+        return False
+    candidates = {_normalize_etag(v) for v in raw.split(",") if v.strip()}
+    clean = _normalize_etag(etag)
+    return clean in candidates or raw.strip() == etag
+
+
 def _page_context(bare_path: str) -> dict:
     return {
         "locale": "en",
@@ -338,7 +361,7 @@ def _page_context(bare_path: str) -> dict:
     }
 
 
-async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> HTMLResponse:
+async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> Response:
     if ".." in tool_name or "/" in tool_name or "\\" in tool_name:
         raise HTTPException(status_code=404, detail="Not found")
     if tool_name in ("tools", "sitemap", "offline"):
@@ -346,15 +369,24 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
     valid_tools = catalog_service.get_valid_tools()
     if tool_name not in valid_tools:
         raise HTTPException(status_code=404, detail="Tool not found")
-    categories, _ = await asyncio.to_thread(catalog_service.get_categorized_tools)
 
     seo_data = seo_service.get_seo(tool_name)
+    dmod = seo_data.date_modified if seo_data else None
+    etag = _tool_etag(tool_name, dmod)
+    if _not_modified(request, etag):
+        _h304 = {"ETag": etag, "Content-Language": "en", **_PAGE_CACHE_HEADERS}
+        return Response(status_code=304, headers=_h304)
+
+    categories, _ = await asyncio.to_thread(catalog_service.get_categorized_tools)
+    related_guides = await asyncio.to_thread(blog_service.get_posts_for_tool, tool_name, 3)
+
     template_name = f"tools/{tool_name.replace('-', '_')}.html"
     bare_path = f"/tool/{tool_name}"
     ctx = {
-        "tool_name": seo_data.name,
+        "tool_name": seo_data.name if seo_data else tool_name.replace("-", " ").title(),
         "categories": categories,
         "seo_data": seo_data,
+        "related_guides": related_guides,
     }
     ctx.update(_page_context(bare_path))
     try:
@@ -362,6 +394,7 @@ async def _render_tool(request: Request, tool_name: str, locale: str = "en") -> 
     except TemplateNotFound:
         raise HTTPException(status_code=404, detail="Tool not found") from None
     resp.headers.update(_PAGE_CACHE_HEADERS)
+    resp.headers["ETag"] = etag
     resp.headers["Content-Language"] = "en"
     return resp
 
