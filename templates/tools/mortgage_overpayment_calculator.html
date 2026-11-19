@@ -11,7 +11,6 @@
   .input-visible:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 25%, transparent); outline: none; }
   .input-visible option { background-color: var(--color-base-100); color: var(--color-base-content); font-weight: 600; padding: 8px; }
   .currency-sym { color: var(--color-base-content); font-weight: 700; opacity: 0.85; }
-/* CSP-safe hover state (replaces inline onmouseover/onmouseout) */
 #mortCalcBtn:hover{transform:translateY(-1px)!important;box-shadow:0 6px 20px color-mix(in oklab,var(--color-primary) 50%,transparent)!important}
 </style>
 {% endblock %}
@@ -22,7 +21,7 @@
 {% set per_month = '/mo' %}
 {{ tool_hero_section("home", "Mortgage Calculator", "MORTGAGE OVERPAYMENT", "CALCULATOR", seo_data.description if seo_data else "Calculate how extra monthly or lump-sum mortgage payments cut total interest and shorten your loan payoff timeline.") }}
 
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 reveal" style="animation-delay:0.15s">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 reveal" style="animation-delay:0.15s" x-data="mortgageCalculator()">
 
   <!-- ─── LEFT COLUMN: INPUTS ─── -->
   <div class="lg:col-span-5">
@@ -32,7 +31,7 @@
       <!-- Currency selector -->
       <div class="mb-5 pb-5 border-b border-base-content/10">
         <label class="text-xs font-semibold text-base-content/70 font-semibold" for="currencySelect">Currency</label>
-        <select aria-label="Select currency" id="currencySelect" class="input input-visible w-full mt-1 rounded-xl">
+        <select aria-label="Select currency" id="currencySelect" x-model="currency" class="input input-visible w-full mt-1 rounded-xl">
           {% set currency_flags = {'USD':'🇺🇸','EUR':'🇪🇺','GBP':'🇬🇧','JPY':'🇯🇵','INR':'🇮🇳','CAD':'🇨🇦','AUD':'🇦🇺','CHF':'🇨🇭','CNY':'🇨🇳','BRL':'🇧🇷','KRW':'🇰🇷','SEK':'🇸🇪','NZD':'🇳🇿','SGD':'🇸🇬','HKD':'🇭🇰','ZAR':'🇿🇦'} %}
           {% set currency_names = {'USD': 'US Dollar', 'EUR': 'Euro', 'GBP': 'British Pound', 'JPY': 'Japanese Yen', 'INR': 'Indian Rupee', 'CAD': 'Canadian Dollar', 'AUD': 'Australian Dollar', 'CHF': 'Swiss Franc', 'CNY': 'Chinese Yuan', 'BRL': 'Brazilian Real', 'KRW': 'South Korean Won', 'SEK': 'Swedish Krona', 'NZD': 'New Zealand Dollar', 'SGD': 'Singapore Dollar', 'HKD': 'Hong Kong Dollar', 'ZAR': 'South African Rand'} %}
           {% set currency_order = ['USD','EUR','GBP','JPY','CAD','AUD','CHF','INR','CNY','BRL','KRW','SEK','NZD','SGD','HKD','ZAR'] %}
@@ -46,34 +45,34 @@
         <div>
           <label class="text-xs font-semibold text-base-content/70 font-semibold" for="loanBalance">Loan Balance</label>
           <div class="relative mt-1">
-            <span id="symLoan" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">{{ def_sym }}</span>
-            <input aria-label="Loan Balance" type="number" id="loanBalance" class="input input-visible w-full pl-8 rounded-xl" value="{{ d_balance }}" min="0" step="1000">
+            <span id="symLoan" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg" x-text="currSym">{{ def_sym }}</span>
+            <input aria-label="Loan Balance" type="number" id="loanBalance" class="input input-visible w-full pl-8 rounded-xl" x-model.number="balance" value="{{ d_balance }}" min="0" step="1000">
           </div>
         </div>
         <div>
           <label class="text-xs font-semibold text-base-content/70 font-semibold" for="interestRate">Annual Interest Rate</label>
           <div class="relative mt-1">
-            <input aria-label="Annual Interest Rate" type="number" id="interestRate" class="input input-visible w-full rounded-xl" value="{{ d_rate }}" min="0" max="30" step="0.1">
+            <input aria-label="Annual Interest Rate" type="number" id="interestRate" class="input input-visible w-full rounded-xl" x-model.number="rate" value="{{ d_rate }}" min="0" max="30" step="0.1">
             <span class="absolute inset-y-0 right-0 flex items-center pr-3 font-bold opacity-80" style="color:var(--color-base-content)">%</span>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-xs font-semibold text-base-content/70 font-semibold" for="loanTerm">Term (years)</label>
-            <input aria-label="Term (years)" type="number" id="loanTerm" class="input input-visible w-full mt-1 rounded-xl" value="{{ d_term }}" min="1" max="50">
+            <input aria-label="Term (years)" type="number" id="loanTerm" class="input input-visible w-full mt-1 rounded-xl" x-model.number="term" value="{{ d_term }}" min="1" max="50">
           </div>
           <div>
             <label class="text-xs font-semibold text-base-content/70 font-semibold" for="extraPayment">Extra Payment</label>
             <div class="relative mt-1">
-              <span id="symExtra" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">{{ def_sym }}</span>
-              <input aria-label="Extra Payment" type="number" id="extraPayment" class="input input-visible w-full pl-8 rounded-xl" value="{{ d_extra }}" min="0" step="50">
+              <span id="symExtra" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg" x-text="currSym">{{ def_sym }}</span>
+              <input aria-label="Extra Payment" type="number" id="extraPayment" class="input input-visible w-full pl-8 rounded-xl" x-model.number="extra" value="{{ d_extra }}" min="0" step="50">
             </div>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-xs font-semibold text-base-content/70 font-semibold" for="extraFreq">Pay Extra</label>
-            <select aria-label="Pay Extra" id="extraFreq" class="input input-visible w-full mt-1 rounded-xl">
+            <select aria-label="Pay Extra" id="extraFreq" class="input input-visible w-full mt-1 rounded-xl" x-model="freq">
               <option value="monthly">Each Month</option>
               <option value="yearly">Once a Year</option>
               <option value="onetime">Just Once</option>
@@ -82,22 +81,21 @@
           <div>
             <label class="text-xs font-semibold text-base-content/70 font-semibold" for="lumpSum">Lump Sum (one-time)</label>
             <div class="relative mt-1">
-              <span id="symLump" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg">{{ def_sym }}</span>
-              <input aria-label="Lump Sum (one-time)" type="number" id="lumpSum" class="input input-visible w-full pl-8 rounded-xl" value="0" min="0" step="1000">
+              <span id="symLump" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3 text-lg" x-text="currSym">{{ def_sym }}</span>
+              <input aria-label="Lump Sum (one-time)" type="number" id="lumpSum" class="input input-visible w-full pl-8 rounded-xl" x-model.number="lumpSum" value="0" min="0" step="1000">
             </div>
           </div>
         </div>
-        <button type="button" id="mortCalcBtn" class="btn w-full py-3.5 font-bold tracking-widest uppercase text-sm rounded-xl mt-2 text-white border-none" style="background:linear-gradient(135deg,var(--color-primary),var(--color-secondary));box-shadow:0 4px 15px color-mix(in oklab,var(--color-primary) 40%,transparent);transition:transform 0.15s,box-shadow 0.15s">{{ lucide_icon("calculator","w-5 h-5", 20) | safe }} {{ 'Calculate' | upper }}</button>
       </div>
 
       <!-- ─── SCENARIO QUICK PICKS ─── -->
       <div class="mt-6 pt-6 border-t border-base-content/10">
         <p class="text-xs font-semibold text-base-content/70 font-semibold mb-3">Quick Scenario Picks</p>
         <div class="flex flex-wrap gap-2" id="scenarioBtns">
-          <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-success);background-color:color-mix(in oklab,var(--color-success) 15%,transparent);color:var(--color-success)">+200{{ per_month }}</button>
-          <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-primary);background-color:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary)">+500{{ per_month }}</button>
-          <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-secondary);background-color:color-mix(in oklab,var(--color-secondary) 12%,transparent);color:var(--color-secondary)">+1000{{ per_month }}</button>
-          <button type="button" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:#f97316;background-color:color-mix(in oklab,#f97316 12%,transparent);color:#f97316">+2500{{ per_month }}</button>
+          <button type="button" @click="extra = 200" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-success);background-color:color-mix(in oklab,var(--color-success) 15%,transparent);color:var(--color-success)">+200{{ per_month }}</button>
+          <button type="button" @click="extra = 500" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-primary);background-color:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary)">+500{{ per_month }}</button>
+          <button type="button" @click="extra = 1000" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:var(--color-secondary);background-color:color-mix(in oklab,var(--color-secondary) 12%,transparent);color:var(--color-secondary)">+1000{{ per_month }}</button>
+          <button type="button" @click="extra = 2500" class="scenario-btn btn btn-sm rounded-xl px-3 py-2 text-sm font-bold transition-all border-2" style="border-color:#f97316;background-color:color-mix(in oklab,#f97316 12%,transparent);color:#f97316">+2500{{ per_month }}</button>
         </div>
       </div>
     </div>
@@ -113,19 +111,19 @@
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="rounded-xl bg-base-content/5 p-4 text-center">
           <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Interest Saved</p>
-          <output id="resInterestSaved" class="text-2xl font-black text-success" aria-live="polite">{{ zero }}</output>
+          <output id="resInterestSaved" class="text-2xl font-black text-success" aria-live="polite" x-text="format(calc.intSaved)">$38,458</output>
         </div>
         <div class="rounded-xl bg-base-content/5 p-4 text-center">
           <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Years Early</p>
-          <output id="resYearsEarly" class="text-2xl font-black text-primary" aria-live="polite">0</output>
+          <output id="resYearsEarly" class="text-2xl font-black text-primary" aria-live="polite" x-text="calc.yearsEarly">5</output>
         </div>
         <div class="rounded-xl bg-base-content/5 p-4 text-center">
           <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Months Early</p>
-          <output id="resMonthsSaved" class="text-2xl font-black text-secondary" aria-live="polite">0</output>
+          <output id="resMonthsSaved" class="text-2xl font-black text-secondary" aria-live="polite" x-text="calc.remMonthsEarly">1</output>
         </div>
         <div class="rounded-xl bg-base-content/5 p-4 text-center">
           <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">New Payoff</p>
-          <output id="resPayoffDate" class="text-lg font-black font-mono" aria-live="polite">—</output>
+          <output id="resPayoffDate" class="text-lg font-black font-mono" aria-live="polite" x-text="calc.payoffDateStr">Oct 2046</output>
         </div>
       </div>
 
@@ -133,24 +131,24 @@
       <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div class="card-compare scenario-base rounded-xl bg-base-content/5 p-4">
           <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Without Overpayment</p>
-          <p class="text-lg font-black"><output id="resStdTotalCost" class="font-mono">{{ zero }}</output></p>
-          <p class="text-xs text-base-content/40 mt-1">Total interest: <output id="resStdInterest" class="font-mono">{{ zero }}</output></p>
+          <p class="text-lg font-black"><output id="resStdTotalCost" class="font-mono" x-text="format(calc.totalStd)">$416,874</output></p>
+          <p class="text-xs text-base-content/40 mt-1">Total interest: <output id="resStdInterest" class="font-mono" x-text="format(calc.totalIntStd)">$166,874</output></p>
         </div>
         <div class="card-compare scenario-current rounded-xl bg-primary/5 p-4">
           <p class="text-xs font-semibold tracking-widest uppercase text-primary/70 mb-1">With Overpayment</p>
-          <p class="text-lg font-black"><output id="resNewTotalCost" class="font-mono">{{ zero }}</output></p>
-          <p class="text-xs text-base-content/40 mt-1">Total interest: <output id="resNewInterest" class="font-mono">{{ zero }}</output></p>
+          <p class="text-lg font-black"><output id="resNewTotalCost" class="font-mono" x-text="format(calc.totalNew)">$378,416</output></p>
+          <p class="text-xs text-base-content/40 mt-1">Total interest: <output id="resNewInterest" class="font-mono" x-text="format(calc.totalIntNew)">$128,416</output></p>
         </div>
       </div>
 
       <!-- ─── INTEREST SAVED BAR ─── -->
       <div class="mt-5">
         <div class="flex justify-between text-xs text-base-content/50 mb-1">
-          <span>Interest paid: <output id="resNewInterestBar" class="font-bold font-mono">{{ zero }}</output></span>
-          <span>Interest saved: <output id="resSavedBar" class="font-bold font-mono text-success">{{ zero }}</output></span>
+          <span>Interest paid: <output id="resNewInterestBar" class="font-bold font-mono" x-text="format(calc.totalIntNew)">$128,416</output></span>
+          <span>Interest saved: <output id="resSavedBar" class="font-bold font-mono text-success" x-text="format(calc.intSaved)">$38,458</output></span>
         </div>
         <div class="w-full bg-base-content/10 rounded-full h-2 overflow-hidden">
-          <div id="interestBarFill" class="bar-fill bg-success h-full rounded-full" style="width:0%"></div>
+          <div id="interestBarFill" class="bar-fill bg-success h-full rounded-full" :style="'width: ' + calc.savedPct + '%'" style="width:23%"></div>
         </div>
       </div>
     </div>
@@ -161,15 +159,15 @@
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="text-center">
           <p class="text-xs font-semibold tracking-widest uppercase text-base-content/40 mb-1">Standard</p>
-          <p class="text-2xl font-black"><output id="resStdPayment" class="font-mono" aria-live="polite">{{ zero }}</output></p>
+          <p class="text-2xl font-black"><output id="resStdPayment" class="font-mono" aria-live="polite" x-text="format2(calc.stdPay)">$1,389.58</output></p>
         </div>
         <div class="text-center">
           <p class="text-xs font-semibold tracking-widest uppercase text-primary/70 mb-1">With Overpayment</p>
-          <p class="text-2xl font-black text-primary"><output id="resNewPayment" class="font-mono" aria-live="polite">{{ zero }}</output></p>
+          <p class="text-2xl font-black text-primary"><output id="resNewPayment" class="font-mono" aria-live="polite" x-text="format2(calc.stdPay + (freq === 'monthly' ? extra : 0))">$1,589.58</output></p>
         </div>
         <div class="text-center">
           <p class="text-xs font-semibold tracking-widest uppercase text-secondary/70 mb-1">Extra Per Month</p>
-          <p class="text-2xl font-black text-secondary"><output id="resExtraMo" class="font-mono" aria-live="polite">{{ zero }}</output></p>
+          <p class="text-2xl font-black text-secondary"><output id="resExtraMo" class="font-mono" aria-live="polite" x-text="format2(freq === 'monthly' ? extra : 0)">$200.00</output></p>
         </div>
       </div>
     </div>
@@ -190,7 +188,28 @@
               <th class="text-right pl-2 py-3">End Balance</th>
             </tr>
           </thead>
-          <tbody id="amortTableBody"></tbody>
+          <tbody id="amortTableBody">
+            <template x-for="s in calc.sched" :key="s.y">
+              <tr class="border-b border-base-content/5 hover:bg-base-content/5 transition-colors">
+                <td class="py-2.5 pr-2 font-bold" x-text="s.y"></td>
+                <td class="text-right px-2 py-2.5 font-mono" x-text="format(s.b)"></td>
+                <td class="text-right px-2 py-2.5 font-mono" x-text="format(s.pm * 12)"></td>
+                <td class="text-right px-2 py-2.5 font-mono text-primary font-semibold" x-text="format(s.ex)"></td>
+                <td class="text-right px-2 py-2.5 font-mono text-base-content/70" x-text="format(s.i)"></td>
+                <td class="text-right px-2 py-2.5 font-mono" x-text="format(s.p)"></td>
+                <td class="text-right pl-2 py-2.5 font-mono font-bold" x-text="format(s.e)"></td>
+              </tr>
+            </template>
+            <tr x-show="!mounted" class="border-b border-base-content/5 hover:bg-base-content/5 transition-colors">
+              <td class="py-2.5 pr-2 font-bold">1</td>
+              <td class="text-right px-2 py-2.5 font-mono">$250,000</td>
+              <td class="text-right px-2 py-2.5 font-mono">$16,675</td>
+              <td class="text-right px-2 py-2.5 font-mono text-primary font-semibold">$2,400</td>
+              <td class="text-right px-2 py-2.5 font-mono text-base-content/70">$11,142</td>
+              <td class="text-right px-2 py-2.5 font-mono">$7,933</td>
+              <td class="text-right pl-2 py-2.5 font-mono font-bold">$242,067</td>
+            </tr>
+          </tbody>
         </table>
       </div>
       <p class="text-xs text-base-content/30 text-center mt-4">Values rounded to nearest whole unit. Schedule shows accelerated payoff with extra payments applied.</p>
@@ -200,205 +219,114 @@
 </div>
 
 <script nonce="{{ nonce }}">
-(function(){'use strict';
-var activeScenario=null;
-var INTL_LOCALE = "en-US";
-var T = {"per_month": "/mo"};
-var currentCurrency = "USD";
+window.mortgageCalculator = function() {
+  var INTL_LOCALE = "en-US";
+  var currentCurrency = "USD";
+  return {
+    mounted: false,
+    currency: 'USD',
+    balance: 250000,
+    rate: 4.5,
+    term: 25,
+    extra: 200,
+    freq: 'monthly',
+    lumpSum: 0,
+    init: function() {
+      this.mounted = true;
+    },
+      get currSym() {
+        var syms = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', INR: '₹', CAD: 'CA$', AUD: 'AU$', CHF: 'CHF ', CNY: '¥', BRL: 'R$', KRW: '₩', SEK: 'kr ', NZD: 'NZ$', SGD: 'S$', HKD: 'HK$', ZAR: 'R ' };
+        return syms[this.currency] || '$';
+      },
+      format: function(n) {
+        var sym = this.currSym;
+        return sym + Math.round(n || 0).toLocaleString('en-US');
+      },
+      format2: function(n) {
+        var sym = this.currSym;
+        return sym + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      },
+      get calc() {
+        var P = parseFloat(this.balance) || 0;
+        var r = (parseFloat(this.rate) || 0) / 100 / 12;
+        var n = (parseFloat(this.term) || 1) * 12;
+        var extra = parseFloat(this.extra) || 0;
+        var lump = parseFloat(this.lumpSum) || 0;
+        var freq = this.freq;
 
-var currencies={
-  USD:{sym:'$',scAmt:200},
-  EUR:{sym:'\u20AC',scAmt:200},
-  GBP:{sym:'\u00A3',scAmt:150},
-  JPY:{sym:'\u00A5',scAmt:20000},
-  INR:{sym:'\u20B9',scAmt:15000},
-  CAD:{sym:'CA$',scAmt:250},
-  AUD:{sym:'AU$',scAmt:300},
-  CHF:{sym:'CHF ',scAmt:200},
-  CNY:{sym:'\u00A5',scAmt:1500},
-  BRL:{sym:'R$',scAmt:1000},
-  KRW:{sym:'\u20A9',scAmt:250000},
-  SEK:{sym:'kr ',scAmt:2000},
-  NZD:{sym:'NZ$',scAmt:300},
-  SGD:{sym:'S$',scAmt:300},
-  HKD:{sym:'HK$',scAmt:1500},
-  ZAR:{sym:'R ',scAmt:3500}
-};
-var scenarioAmounts=[200,500,1000,2500];
+        if (P <= 0 || n < 1) {
+          return {
+            stdPay: 0, totalStd: 0, totalIntStd: 0, totalNew: 0, totalIntNew: 0, intSaved: 0,
+            yearsEarly: 0, remMonthsEarly: 0, payoffDateStr: '—', savedPct: 0, sched: []
+          };
+        }
 
-function getCurr(){return currencies[currentCurrency]||currencies.USD;}
+        var stdPay = 0;
+        if (r > 0) {
+          var f = Math.pow(1 + r, n);
+          stdPay = P * r * f / (f - 1);
+        } else {
+          stdPay = P / n;
+        }
 
-function fmt(n){
-  var c=getCurr();
-  try{return new Intl.NumberFormat(INTL_LOCALE,{style:'currency',currency:currentCurrency,maximumFractionDigits:0}).format(Math.round(n));}catch(e){return c.sym+Math.round(n).toLocaleString(INTL_LOCALE);}
-}
-function fmt2(n){
-  var c=getCurr();
-  try{return new Intl.NumberFormat(INTL_LOCALE,{style:'currency',currency:currentCurrency,minimumFractionDigits:2,maximumFractionDigits:2}).format(n);}catch(e){return c.sym+n.toFixed(2);}
-}
+        var totalStd = stdPay * n;
+        var totalIntStd = totalStd - P;
+        var bal = P;
+        if (lump > 0) { bal -= lump; if (bal < 0) bal = 0; }
+        var sched = [];
+        var yr = 1;
 
-function setCurrency(curr){
-  currentCurrency=curr;
-  var c=currencies[curr]||currencies.USD;
-  document.querySelectorAll('#symLoan,#symExtra,#symLump').forEach(function(el){el.textContent=c.sym;});
-  document.querySelectorAll('[id^=res]').forEach(function(el){
-    if(el.id!=='resYearsEarly'&&el.id!=='resMonthsSaved'&&el.id!=='resPayoffDate'){el.textContent=fmt(0);}
-  });
-  updateScenarioLabels();
-  render();
-}
+        while (bal > 0.005 && yr <= 60) {
+          var yStart = bal, yInt = 0, yPrin = 0;
+          var mths = Math.min(12, n - (yr - 1) * 12);
+          for (var m = 0; m < mths; m++) {
+            var intP = bal * r;
+            var e = 0;
+            if (freq === 'monthly') { e = extra; }
+            else if (freq === 'yearly' && m === 0) { e = extra; }
+            else if (freq === 'onetime' && yr === 1 && m === 0) { e = extra; }
+            var pm = stdPay + e;
+            var pP = pm - intP;
+            if (pP <= 0) { bal = 0; break; }
+            yInt += intP;
+            yPrin += pP;
+            bal -= pP;
+            if (bal < 0) { yPrin += bal; bal = 0; break; }
+          }
+          sched.push({ y: yr, b: yStart, pm: stdPay, ex: e > 0 ? (freq === 'monthly' ? e * mths : e) : 0, i: yInt, p: yPrin, e: bal });
+          if (bal <= 0.005) break;
+          yr++;
+        }
 
-function updateScenarioLabels(){
-  document.querySelectorAll('#scenarioBtns button').forEach(function(btn,i){
-    if(i<scenarioAmounts.length){
-      var amt=scenarioAmounts[i];
-      try{btn.textContent='+'+amt.toLocaleString(INTL_LOCALE)+T.per_month;}catch(e){btn.textContent='+'+amt+T.per_month;}
-    }
-  });
-}
+        var totalIntNew = 0;
+        for (var i = 0; i < sched.length; i++) totalIntNew += sched[i].i;
+        var intSaved = Math.max(0, totalIntStd - totalIntNew);
+        var totalNew = stdPay * n - intSaved;
+        var monthsEarly = sched.length < Math.ceil(n / 12) ? n - (sched.length * 12) : 0;
+        var yEarly = Math.floor(monthsEarly / 12);
+        var remMonths = monthsEarly % 12;
 
-function calcAll(P,r,n,extra,freq,lumpSum){
-  if(P<=0||n<1)return null;
-  var stdPay;
-  if(r>0){var f=Math.pow(1+r,n);stdPay=P*r*f/(f-1);}else{stdPay=P/n;}
-  var totalStd=stdPay*n;
-  var totalIntStd=totalStd-P;
-  var bal=P;
-  if(lumpSum>0){bal-=lumpSum;if(bal<0)bal=0;}
-  var sched=[];
-  var yr=1;
-  while(bal>0.005&&yr<=60){
-    var yStart=bal,yInt=0,yPrin=0;
-    var mths=Math.min(12,n-(yr-1)*12);
-    for(var m=0;m<mths;m++){
-      var intP=bal*r;
-      var e=0;
-      if(freq==='monthly'){e=extra;}
-      else if(freq==='yearly'&&m===0){e=extra;}
-      else if(freq==='onetime'&&yr===1&&m===0){e=extra;}
-      var pm=stdPay+e;
-      var pP=pm-intP;
-      if(pP<=0){bal=0;break;}
-      yInt+=intP;yPrin+=pP;bal-=pP;
-      if(bal<0){yPrin+=bal;bal=0;break;}
-    }
-    sched.push({y:yr,b:yStart,pm:stdPay,ex:e>0?(freq==='monthly'?e*mths:e):0,i:yInt,p:yPrin,e:bal});
-    if(bal<=0.005)break;yr++;
-  }
-  var totalIntNew=0;
-  for(var i=0;i<sched.length;i++)totalIntNew+=sched[i].i;
-  var intSaved=totalIntStd-totalIntNew;
-  var totalNew=stdPay*n-intSaved;
-  var monthsEarly=sched.length<Math.ceil(n/12)?n-sched.length*12:0;
-  return{
-    stdPay:stdPay,totalStd:totalStd,totalIntStd:totalIntStd,
-    totalNew:totalNew,totalIntNew:totalIntNew,intSaved:intSaved,
-    monthsEarly:monthsEarly,sched:sched
-  };
-}
+        var today = new Date();
+        var payoff = new Date(today.getFullYear(), today.getMonth() + n - monthsEarly, today.getDate());
+        var dateStr = payoff.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        var savedPct = totalIntStd > 0 ? Math.round((intSaved / totalIntStd) * 100) : 0;
 
-function render(){
-  var P=parseFloat(document.getElementById('loanBalance').value)||0;
-  var r=parseFloat(document.getElementById('interestRate').value)/100/12||0;
-  var n=parseFloat(document.getElementById('loanTerm').value)*12||1;
-  var extra=parseFloat(document.getElementById('extraPayment').value)||0;
-  var lump=parseFloat(document.getElementById('lumpSum').value)||0;
-  var freq=document.getElementById('extraFreq').value;
-  var res=calcAll(P,r,n,extra,freq,lump);
-  if(!res)return;
-
-  var mEarly=res.monthsEarly;
-  var yEarly=Math.floor(mEarly/12);
-  var remMonths=mEarly%12;
-
-  document.getElementById('resStdPayment').innerText=fmt2(res.stdPay);
-  document.getElementById('resNewPayment').innerText=fmt2(res.stdPay+(freq==='monthly'?extra:0));
-  document.getElementById('resExtraMo').innerText=fmt2(freq==='monthly'?extra:0);
-  document.getElementById('resInterestSaved').innerText=fmt(res.intSaved);
-  document.getElementById('resYearsEarly').innerText=yEarly;
-  document.getElementById('resMonthsSaved').innerText=remMonths;
-  document.getElementById('resStdTotalCost').innerText=fmt(res.totalStd);
-  document.getElementById('resStdInterest').innerText=fmt(res.totalIntStd);
-  document.getElementById('resNewTotalCost').innerText=fmt(res.totalNew);
-  document.getElementById('resNewInterest').innerText=fmt(res.totalIntNew);
-
-  var today=new Date();
-  var payoff=new Date(today.getFullYear(),today.getMonth()+n-mEarly,today.getDate());
-  try{document.getElementById('resPayoffDate').innerText=payoff.toLocaleDateString(INTL_LOCALE,{month:'short',year:'numeric'});}
-  catch(e){document.getElementById('resPayoffDate').innerText=payoff.getMonth()+1+'/'+payoff.getFullYear();}
-
-  var pct=res.totalIntStd>0?(res.intSaved/res.totalIntStd)*100:0;
-  document.getElementById('resNewInterestBar').innerText=fmt(res.totalIntNew);
-  document.getElementById('resSavedBar').innerText=fmt(res.intSaved);
-  document.getElementById('interestBarFill').style.width=Math.min(pct,100)+'%';
-
-  var tb=document.getElementById('amortTableBody');
-  tb.innerHTML='';
-  for(var i=0;i<res.sched.length;i++){
-    var s=res.sched[i];
-    var tr=document.createElement('tr');
-    tr.className='border-b border-base-content/5 hover:bg-base-content/5 transition-colors';
-    tr.innerHTML='<td class="py-2.5 pr-2 font-bold">'+s.y+'</td>'+
-      '<td class="text-right px-2 py-2.5 font-mono text-sm">'+fmt(s.b)+'</td>'+
-      '<td class="text-right px-2 py-2.5 font-mono text-sm">'+fmt2(s.pm)+'</td>'+
-      '<td class="text-right px-2 py-2.5 font-mono text-sm">'+(s.ex>0?fmt(s.ex):'<span class="text-base-content/20">\u2014</span>')+'</td>'+
-      '<td class="text-right px-2 py-2.5 font-mono text-sm text-error/70">'+fmt(s.i)+'</td>'+
-      '<td class="text-right px-2 py-2.5 font-mono text-sm text-success/70">'+fmt(s.p)+'</td>'+
-      '<td class="text-right pl-2 py-2.5 font-mono text-sm font-bold">'+(s.e>0?fmt(s.e):'<span class="text-success">'+fmt(0)+'</span>')+'</td>';
-    tb.appendChild(tr);
-  }
-}
-
-document.addEventListener('DOMContentLoaded',function(){
-  var initCurr = document.getElementById('currencySelect').value;
-  if(initCurr && initCurr !== 'USD'){
-    setCurrency(initCurr);
-  } else {
-    updateScenarioLabels();
-    render();
-  }
-  document.getElementById('mortCalcBtn').addEventListener('click',render);
-  document.querySelectorAll('#loanBalance,#interestRate,#loanTerm,#extraPayment,#extraFreq,#lumpSum').forEach(function(el){
-    el.addEventListener('input',render);
-  });
-
-  document.getElementById('currencySelect').addEventListener('change',function(){
-    setCurrency(this.value);
-  });
-
-  document.querySelectorAll('#scenarioBtns button').forEach(function(btn,i){
-    var origBorder=btn.style.borderColor;
-    var origBg=btn.style.backgroundColor;
-    var origColor=btn.style.color;
-    btn.addEventListener('click',function(){
-      document.querySelectorAll('#scenarioBtns button').forEach(function(b){
-        b.classList.remove('active');
-        b.style.borderColor=origBorder;
-        b.style.backgroundColor=origBg;
-        b.style.color=origColor;
-      });
-      this.classList.add('active');
-      this.style.borderColor=origBorder;
-      this.style.backgroundColor=origBg;
-      this.style.color=origColor;
-      if(i<scenarioAmounts.length){
-        document.getElementById('extraPayment').value=scenarioAmounts[i];
+        return {
+          stdPay: stdPay,
+          totalStd: totalStd,
+          totalIntStd: totalIntStd,
+          totalNew: totalNew,
+          totalIntNew: totalIntNew,
+          intSaved: intSaved,
+          yearsEarly: yEarly,
+          remMonthsEarly: remMonths,
+          payoffDateStr: dateStr,
+          savedPct: savedPct,
+          sched: sched
+        };
       }
-      document.getElementById('extraFreq').value='monthly';
-      activeScenario=scenarioAmounts[i];
-      render();
-    });
-  });
-
-  document.getElementById('extraPayment').addEventListener('input',function(){
-    var val=parseFloat(this.value)||0;
-    if(activeScenario!==null&&val!==activeScenario){
-      document.querySelectorAll('#scenarioBtns button').forEach(function(b){b.classList.remove('active');});
-      activeScenario=null;
-    }
-  });
-});
-})();
+    };
+  };
 </script>
 
 {{ tool_section_end() }}

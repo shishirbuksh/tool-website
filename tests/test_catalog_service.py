@@ -1,6 +1,6 @@
 """Tests for CatalogService: categorization, sorting, deduplication, and caching."""
 
-from app.services.catalog_service import CatalogService
+from apps.catalog.services import CatalogService
 
 
 class TestCatalogService:

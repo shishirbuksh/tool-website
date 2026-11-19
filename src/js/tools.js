@@ -265,7 +265,7 @@
     const catBanner = $('#categoryActiveBanner');
     if (catBanner) {
       if (activeFilter !== 'all' && activeBtn && query === '') {
-        const catName = activeBtn.querySelector('.category-card-name')?.textContent || '';
+        const catName = activeBtn.getAttribute('data-category-name') || activeBtn.querySelector('.category-card-name')?.textContent || '';
         const catCount = activeBtn.querySelector('.category-card-count')?.textContent || '';
         const catIconSvg = activeBtn.querySelector('.category-card-icon')?.innerHTML || '';
         const bannerTitle = $('#activeBannerTitle');
@@ -485,6 +485,55 @@
       if (allTab) allTab.click();
       else filterTools();
     });
+  }
+
+  // Category Bar Left/Right Scroll Chevrons & Overflow Indicators
+  const catScrollContainer = document.getElementById('categoryScrollContainer');
+  const catScrollLeft = document.getElementById('catScrollLeft');
+  const catScrollRight = document.getElementById('catScrollRight');
+
+  function updateCategoryScrollButtons() {
+    if (!catScrollContainer) return;
+    const scrollLeft = catScrollContainer.scrollLeft;
+    const maxScroll = catScrollContainer.scrollWidth - catScrollContainer.clientWidth;
+    const hasOverflow = maxScroll > 8;
+
+    if (!hasOverflow) {
+      if (catScrollLeft) { catScrollLeft.classList.add('hidden'); catScrollLeft.classList.remove('sm:flex'); }
+      if (catScrollRight) { catScrollRight.classList.add('hidden'); catScrollRight.classList.remove('sm:flex'); }
+      catScrollContainer.classList.remove('has-left-fade', 'has-right-fade');
+      return;
+    }
+
+    const canScrollLeft = scrollLeft > 8;
+    const canScrollRight = scrollLeft < maxScroll - 8;
+
+    if (catScrollLeft) {
+      catScrollLeft.classList.toggle('hidden', !canScrollLeft);
+      catScrollLeft.classList.toggle('sm:flex', canScrollLeft);
+    }
+    if (catScrollRight) {
+      catScrollRight.classList.toggle('hidden', !canScrollRight);
+      catScrollRight.classList.toggle('sm:flex', canScrollRight);
+    }
+    catScrollContainer.classList.toggle('has-left-fade', canScrollLeft);
+    catScrollContainer.classList.toggle('has-right-fade', canScrollRight);
+  }
+
+  if (catScrollContainer) {
+    if (catScrollLeft) {
+      catScrollLeft.addEventListener('click', function () {
+        catScrollContainer.scrollBy({ left: -240, behavior: 'smooth' });
+      });
+    }
+    if (catScrollRight) {
+      catScrollRight.addEventListener('click', function () {
+        catScrollContainer.scrollBy({ left: 240, behavior: 'smooth' });
+      });
+    }
+    catScrollContainer.addEventListener('scroll', updateCategoryScrollButtons, { passive: true });
+    window.addEventListener('resize', updateCategoryScrollButtons, { passive: true });
+    setTimeout(updateCategoryScrollButtons, 150);
   }
 
   function initFromQuery() {

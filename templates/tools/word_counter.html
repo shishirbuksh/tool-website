@@ -52,46 +52,47 @@
 {% endblock %}
 {% block content %}
 {{ tool_hero_section("type", "Writer", "WORD", "COUNTER", seo_data.description if seo_data else "Paste or type text for live words, characters, sentences, reading time and keyword density. Check post limits in one click.") }}
-<div class="container-site px-4 pb-24">
+
+<div x-data="wordCounter()" class="container-site px-4 pb-24">
   <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
     <div class="lg:col-span-3 space-y-6">
       <div class="wdc-card">
         <div class="flex items-center justify-between mb-2" style="flex-wrap:wrap;gap:8px">
           <label class="wdc-label" for="wdcInput" style="margin:0">Your Text</label>
-          <span class="wdc-meta" id="wdcLiveMeta">0 words</span>
+          <span class="wdc-meta" id="wdcLiveMeta" x-text="counts.words + ' words · ' + counts.chars + ' chars'">0 words · 0 chars</span>
         </div>
-        <textarea class="wdc-textarea" id="wdcInput" placeholder="Type or paste your text here..." aria-label="Text to count"></textarea>
+        <textarea class="wdc-textarea" id="wdcInput" x-model="text" @keydown.ctrl.enter.prevent="copy()" @keydown.meta.enter.prevent="copy()" placeholder="Type or paste your text here..." aria-label="Text to count"></textarea>
         <div class="flex gap-2 mt-2" style="flex-wrap:wrap">
-          <button class="wdc-btn wdc-btn-primary" data-action="copy" id="wdcCopyBtn" type="button">Copy</button>
-          <button class="wdc-btn wdc-btn-ghost" data-action="sample" id="wdcSampleBtn" type="button">Sample</button>
-          <button class="wdc-btn wdc-btn-ghost" data-action="clear" id="wdcClearBtn" type="button">Clear</button>
-          <button class="wdc-btn wdc-btn-ghost" data-action="share" id="wdcShareBtn" type="button">Copy Share Link</button>
+          <button class="wdc-btn wdc-btn-primary" @click="copy()" id="wdcCopyBtn" type="button">Copy</button>
+          <button class="wdc-btn wdc-btn-ghost" @click="sample()" id="wdcSampleBtn" type="button">Sample</button>
+          <button class="wdc-btn wdc-btn-ghost" @click="clear()" id="wdcClearBtn" type="button">Clear</button>
+          <button class="wdc-btn wdc-btn-ghost" @click="share()" id="wdcShareBtn" type="button">Copy Share Link</button>
         </div>
       </div>
       <div class="wdc-card">
         <label class="wdc-label">Length Limit Presets</label>
         <div class="wdc-pill-wrap" id="wdcLimitWrap">
-          <button class="wdc-pill on" data-action="preset" data-preset="none" type="button">No Limit</button>
-          <button class="wdc-pill" data-action="preset" data-preset="twitter" type="button">Twitter 280</button>
-          <button class="wdc-pill" data-action="preset" data-preset="meta" type="button">Meta 160</button>
-          <button class="wdc-pill" data-action="preset" data-preset="seo" type="button">SEO 1500</button>
-          <button class="wdc-pill" data-action="preset" data-preset="essay" type="button">Essay 500</button>
+          <button class="wdc-pill" :class="{ 'on': preset === 'none' }" @click="preset = 'none'" data-preset="none" type="button">No Limit</button>
+          <button class="wdc-pill" :class="{ 'on': preset === 'twitter' }" @click="preset = 'twitter'" data-preset="twitter" type="button">Twitter 280</button>
+          <button class="wdc-pill" :class="{ 'on': preset === 'meta' }" @click="preset = 'meta'" data-preset="meta" type="button">Meta 160</button>
+          <button class="wdc-pill" :class="{ 'on': preset === 'seo' }" @click="preset = 'seo'" data-preset="seo" type="button">SEO 1500</button>
+          <button class="wdc-pill" :class="{ 'on': preset === 'essay' }" @click="preset = 'essay'" data-preset="essay" type="button">Essay 500</button>
         </div>
         <div class="mt-2 space-y-1.5">
-          <div class="wdc-progress" role="progressbar" aria-label="Limit progress" aria-valuemin="0" aria-valuemax="100" id="wdcProgressBar">
-            <div class="wdc-progress-fill" id="wdcProgressFill"></div>
+          <div class="wdc-progress" role="progressbar" aria-label="Limit progress" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="limit.pct" id="wdcProgressBar">
+            <div class="wdc-progress-fill" :class="{ 'over': limit.isOver, 'warn': limit.isWarn }" :style="{ width: limit.pct + '%' }" id="wdcProgressFill"></div>
           </div>
           <div class="flex items-center justify-between" style="gap:8px">
-            <span class="wdc-meta" id="wdcProgressLabel">No limit set</span>
-            <span class="wdc-meta" id="wdcProgressLeft"></span>
+            <span class="wdc-meta" id="wdcProgressLabel" x-text="limit.label">No limit set</span>
+            <span class="wdc-meta" id="wdcProgressLeft" x-text="limit.leftText"></span>
           </div>
         </div>
       </div>
       <div class="wdc-card">
         <label class="wdc-label" for="wdcWpm">Reading Speed</label>
         <div class="wdc-slider-row">
-          <input type="range" id="wdcWpm" min="100" max="400" step="10" value="200" aria-label="Words per minute">
-          <span class="wdc-meta" id="wdcWpmVal" style="min-width:70px;text-align:right">200 WPM</span>
+          <input type="range" id="wdcWpm" x-model.number="wpm" min="100" max="400" step="10" aria-label="Words per minute">
+          <span class="wdc-meta" id="wdcWpmVal" style="min-width:70px;text-align:right" x-text="wpm + ' WPM'">200 WPM</span>
         </div>
         <p class="wdc-meta mt-2" style="opacity:.45">Speaking time uses 130 WPM average. Reading time uses your slider value.</p>
         <p class="wdc-hint mt-2">Tip: press <span class="wdc-kbd">Ctrl + Enter</span> inside the text box to copy your text instantly. Drafts auto-save locally.</p>
@@ -101,36 +102,44 @@
       <div class="wdc-card">
         <label class="wdc-label">Live Counts</label>
         <div class="wdc-stat-grid">
-          <div class="wdc-stat"><div class="v" id="wdcWords">0</div><div class="l">Words</div></div>
-          <div class="wdc-stat"><div class="v" id="wdcChars">0</div><div class="l">Characters</div></div>
-          <div class="wdc-stat"><div class="v" id="wdcNoSpaces">0</div><div class="l">No Spaces</div></div>
-          <div class="wdc-stat"><div class="v" id="wdcSentences">0</div><div class="l">Sentences</div></div>
-          <div class="wdc-stat"><div class="v" id="wdcParas">0</div><div class="l">Paragraphs</div></div>
-          <div class="wdc-stat"><div class="v" id="wdcUnique">0</div><div class="l">Unique Words</div></div>
-          <div class="wdc-stat"><div class="v" id="wdcReading" style="font-size:14px;padding-top:4px">0s</div><div class="l">Reading Time</div></div>
-          <div class="wdc-stat"><div class="v" id="wdcSpeaking" style="font-size:14px;padding-top:4px">0s</div><div class="l">Speaking Time</div></div>
-          <div class="wdc-stat"><div class="v" id="wdcLines">0</div><div class="l">Lines</div></div>
+          <div class="wdc-stat"><div class="v" id="wdcWords" x-text="counts.words">0</div><div class="l">Words</div></div>
+          <div class="wdc-stat"><div class="v" id="wdcChars" x-text="counts.chars">0</div><div class="l">Characters</div></div>
+          <div class="wdc-stat"><div class="v" id="wdcNoSpaces" x-text="counts.noSp">0</div><div class="l">No Spaces</div></div>
+          <div class="wdc-stat"><div class="v" id="wdcSentences" x-text="counts.sentences">0</div><div class="l">Sentences</div></div>
+          <div class="wdc-stat"><div class="v" id="wdcParas" x-text="counts.paras">0</div><div class="l">Paragraphs</div></div>
+          <div class="wdc-stat"><div class="v" id="wdcUnique" x-text="counts.unique">0</div><div class="l">Unique Words</div></div>
+          <div class="wdc-stat"><div class="v" id="wdcReading" style="font-size:14px;padding-top:4px" x-text="readingTime">0s</div><div class="l">Reading Time</div></div>
+          <div class="wdc-stat"><div class="v" id="wdcSpeaking" style="font-size:14px;padding-top:4px" x-text="speakingTime">0s</div><div class="l">Speaking Time</div></div>
+          <div class="wdc-stat"><div class="v" id="wdcLines" x-text="counts.lines">0</div><div class="l">Lines</div></div>
         </div>
       </div>
       <div class="wdc-card">
         <div class="flex items-center justify-between mb-2">
           <label class="wdc-label" style="margin:0">Top Words Density</label>
-          <button class="wdc-btn wdc-btn-ghost wdc-btn-sm" data-action="toggle-stopwords" id="wdcStopBtn" type="button">Hide common: ON</button>
+          <button class="wdc-btn wdc-btn-ghost wdc-btn-sm" @click="hideCommon = !hideCommon" id="wdcStopBtn" type="button" x-text="'Hide common: ' + (hideCommon ? 'ON' : 'OFF')">Hide common: ON</button>
         </div>
         <div style="overflow-x:auto">
           <table class="wdc-table" aria-label="Keyword density table">
             <thead><tr><th>Word</th><th class="num">Count</th><th class="num">Density</th></tr></thead>
-            <tbody id="wdcDensityBody"></tbody>
+            <tbody id="wdcDensityBody">
+              <template x-for="r in densityList" :key="r.w">
+                <tr>
+                  <td x-text="r.w"></td>
+                  <td class="num" x-text="r.c"></td>
+                  <td class="num" x-text="r.density"></td>
+                </tr>
+              </template>
+            </tbody>
           </table>
         </div>
-        <div class="wdc-empty" id="wdcDensityEmpty">Start typing to see top words</div>
+        <div class="wdc-empty" id="wdcDensityEmpty" x-show="!densityList.length">Start typing to see top words</div>
       </div>
       <div class="wdc-card">
         <label class="wdc-label">Details</label>
         <div class="space-y-1.5 wdc-meta" style="line-height:1.7">
-          <div>Avg word length: <span id="wdcAvgLen">0</span> chars</div>
-          <div>Longest word: <span id="wdcLongest">—</span></div>
-          <div>Characters (no spaces): <span id="wdcDetailNoSp">0</span></div>
+          <div>Avg word length: <span id="wdcAvgLen" x-text="counts.avgLen">0</span> chars</div>
+          <div>Longest word: <span id="wdcLongest" x-text="counts.longest">—</span></div>
+          <div>Characters (no spaces): <span id="wdcDetailNoSp" x-text="counts.noSp">0</span></div>
         </div>
       </div>
     </div>
@@ -167,125 +176,191 @@
       <p class="wdc-faq">No. All counting happens locally in your browser. Share links only store text in the URL hash.</p>
     </div>
   </div>
+  <div id="wdcToast" class="wdc-toast" :class="{ 'show': toastShow }" role="status" aria-live="polite" x-text="toastMsg"></div>
 </div>
-<div id="wdcToast" class="wdc-toast" role="status" aria-live="polite"></div>
+
 {{ tool_section_end() }}
 {% endblock %}
+
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
-var input=document.getElementById('wdcInput');
-var toastEl=document.getElementById('wdcToast');
-var wpmEl=document.getElementById('wdcWpm');
-var wpmVal=document.getElementById('wdcWpmVal');
-var fill=document.getElementById('wdcProgressFill');
-var bar=document.getElementById('wdcProgressBar');
-var plabel=document.getElementById('wdcProgressLabel');
-var pleft=document.getElementById('wdcProgressLeft');
-var tbody=document.getElementById('wdcDensityBody');
-var dempty=document.getElementById('wdcDensityEmpty');
-var state={preset:'none',wpm:200,hideCommon:true};
-var PRESETS={none:null,twitter:{limit:280,unit:'chars',label:'Twitter'},meta:{limit:160,unit:'chars',label:'Meta'},seo:{limit:1500,unit:'words',label:'SEO'},essay:{limit:500,unit:'words',label:'Essay'}};
-var STOP=new Set(['the','be','to','of','and','a','in','that','have','i','it','for','not','on','with','he','as','you','do','at','this','but','his','by','from','they','we','say','her','she','or','an','will','my','one','all','would','there','their','what','so','up','out','if','about','who','get','which','go','me','when','make','can','like','time','no','just','him','know','take','people','into','year','your','good','some','could','them','see','other','than','then','now','look','only','come','its','over','think','also','back','after','use','two','how','our','work','first','well','way','even','new','want','because','any','these','give','day','most','us','is','are','was','were','been','has','had','did','does']);
-var SAMPLE='The quick brown fox jumps over the lazy dog. Good writing is clear, concise, and powerful.\n\nPaste your essay, tweet, or meta description here to check lengths instantly. This counter tracks words, characters, sentences, paragraphs, reading time, and keyword density as you type.';
-function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},2200)}
-function fmtTime(words,wpm){if(!words)return'0s';var secs=Math.round(words/wpm*60);if(secs<60)return secs+'s';var m=Math.floor(secs/60);var s=secs%60;if(m<60)return m+'m '+s+'s';return Math.floor(m/60)+'h '+(m%60)+'m'}
-function counts(text){
-var chars=text.length;
-var noSp=text.replace(/\s/g,'').length;
-var t=text.trim();
-var words=t? t.split(/\s+/).filter(Boolean).length:0;
-var sentences=0;
-if(words){var m=text.match(/[^.!?]+[.!?]+(\s|$)/g);sentences=m?m.length:1;if(!/[.!?]$/.test(t.trim())&&m&&text.trim().length){sentences=m.length}}
-if(!words)sentences=0;
-var paras=t?t.split(/\n+/).filter(function(p){return p.trim().length>0}).length:0;
-var lines=text.length?text.split('\n').length:0;
-return{chars:chars,noSp:noSp,words:words,sentences:sentences,paras:paras,lines:lines}}
-function topWords(text){
-var cleaned=text.toLowerCase().replace(/[^a-z0-9'\s-]/g,' ').split(/\s+/).filter(function(w){return w.length>=3});
-if(state.hideCommon)cleaned=cleaned.filter(function(w){return!STOP.has(w)});
-var freq={};var total=text.trim()?text.trim().split(/\s+/).filter(Boolean).length:0;
-cleaned.forEach(function(w){freq[w]=(freq[w]||0)+1});
-var arr=Object.keys(freq).map(function(k){return{w:k,c:freq[k]}});
-arr.sort(function(a,b){return b.c-a.c});
-return{list:arr.slice(0,10),total:total,freq:freq}}
-function render(){
-var text=input.value;
-var c=counts(text);
-document.getElementById('wdcWords').textContent=c.words;
-document.getElementById('wdcChars').textContent=c.chars;
-document.getElementById('wdcNoSpaces').textContent=c.noSp;
-document.getElementById('wdcSentences').textContent=c.sentences;
-document.getElementById('wdcParas').textContent=c.paras;
-document.getElementById('wdcLines').textContent=c.lines;
-document.getElementById('wdcReading').textContent=fmtTime(c.words,state.wpm);
-document.getElementById('wdcSpeaking').textContent=fmtTime(c.words,130);
-document.getElementById('wdcLiveMeta').textContent=c.words+' words · '+c.chars+' chars';
-var tw=topWords(text);
-var uniq=Object.keys(tw.freq).length;
-document.getElementById('wdcUnique').textContent=uniq;
-if(!tw.list.length){tbody.innerHTML='';dempty.style.display='';}
-else{dempty.style.display='none';var html='';tw.list.forEach(function(r){var d=tw.total?((r.c/tw.total*100).toFixed(1)+'%'):'0%';var st='';try{if(window.sbr&&window.sbr.audit)st=' · '+window.sbr.audit.densityStatus(parseFloat(d)||0).level;}catch(e){st='';}html+='<tr><td>'+esc(r.w)+'</td><td class="num">'+r.c+'</td><td class="num">'+d+esc(st)+'</td></tr>'});tbody.innerHTML=html}
-var toks=text.trim()?text.trim().split(/\s+/).filter(Boolean):[];
-if(toks.length){var sum=toks.reduce(function(a,w){return a+w.length},0);document.getElementById('wdcAvgLen').textContent=(sum/toks.length).toFixed(1);var longest=toks.reduce(function(a,b){return b.length>a.length?b:a},toks[0]);document.getElementById('wdcLongest').textContent=longest.slice(0,24)}else{document.getElementById('wdcAvgLen').textContent='0';document.getElementById('wdcLongest').textContent='—'}
-document.getElementById('wdcDetailNoSp').textContent=c.noSp;
-renderLimit(c)}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function renderLimit(c){
-var p=PRESETS[state.preset];
-if(!p){plabel.textContent='No limit set';pleft.textContent='';fill.style.width='0%';fill.className='wdc-progress-fill';bar.setAttribute('aria-valuenow','0');return}
-var cur=p.unit==='chars'?c.chars:c.words;
-var pct=Math.min(100,Math.round(cur/p.limit*100));
-fill.style.width=pct+'%';
-bar.setAttribute('aria-valuenow',String(pct));
-fill.className='wdc-progress-fill'+(cur>p.limit?' over':pct>=90?' warn':'');
-plabel.textContent=p.label+': '+cur+' / '+p.limit+' '+p.unit+' ('+pct+'%)';
-var left=p.limit-cur;
-pleft.textContent=left>=0?left+' left':(-left)+' over'}
-function setPreset(name){
-state.preset=PRESETS[name]?name:'none';
-var pills=document.querySelectorAll('#wdcLimitWrap .wdc-pill');
-for(var i=0;i<pills.length;i++){pills[i].classList.toggle('on',pills[i].dataset.preset===state.preset)}
-render()}
-function encodeState(){return encodeURIComponent(input.value).slice(0,4000)}
-function restoreFromHash(){
-var h=window.location.hash;
-if(!h||h.length<3)return false;
-try{if(h.indexOf('#t=')===0){input.value=decodeURIComponent(h.slice(3));return true}}catch(e){return false}
-return false}
-function copyText(str,msg){
-if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(str).then(function(){toast(msg)},function(){fallbackCopy(msg)})}
-else{fallbackCopy(msg)}}
-function fallbackCopy(msg){
-input.focus();input.select();
-try{document.execCommand('copy');toast(msg)}catch(e){toast('Copy failed')}}
-document.addEventListener('click',function(e){
-var btn=e.target.closest('[data-action]');
-if(!btn)return;
-var a=btn.dataset.action;
-if(a==='copy'){if(!input.value){toast('Nothing to copy');return}copyText(input.value,'Text copied!')}
-else if(a==='clear'){input.value='';render();toast('Cleared')}
-else if(a==='sample'){input.value=SAMPLE;render();toast('Sample loaded')}
-else if(a==='share'){window.location.hash='t='+encodeState();var url=window.location.href;copyText(url,'Share link copied!')}
-else if(a==='preset'){setPreset(btn.dataset.preset)}
-else if(a==='toggle-stopwords'){state.hideCommon=!state.hideCommon;btn.textContent='Hide common: '+(state.hideCommon?'ON':'OFF');render()}});
-input.addEventListener('input',render);
-wpmEl.addEventListener('input',function(){state.wpm=parseInt(this.value,10)||200;wpmVal.textContent=state.wpm+' WPM';render()});
-input.addEventListener('input',function(){
-try{localStorage.setItem('wdc_draft',input.value.slice(0,20000))}catch(e){}});
-function restoreDraft(){
-try{
-var d=localStorage.getItem('wdc_draft');
-if(d&&!input.value&&!window.location.hash){input.value=d}
-}catch(e){}}
-document.addEventListener('keydown',function(e){
-if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='enter'){
-var ta=e.target&&e.target.closest?e.target.closest('#wdcInput'):null;
-if(ta){copyText(input.value,'Text copied!')}}});
-(function init(){
-if(restoreFromHash()){toast('Shared text loaded')}
-else{restoreDraft()}
-render()})();
-})();
+window.wordCounter = function() {
+  var STOP = new Set(['the','be','to','of','and','a','in','that','have','i','it','for','not','on','with','he','as','you','do','at','this','but','his','by','from','they','we','say','her','she','or','an','will','my','one','all','would','there','their','what','so','up','out','if','about','who','get','which','go','me','when','make','can','like','time','no','just','him','know','take','people','into','year','your','good','some','could','them','see','other','than','then','now','look','only','come','its','over','think','also','back','after','use','two','how','our','work','first','well','way','even','new','want','because','any','these','give','day','most','us','is','are','was','were','been','has','had','did','does']);
+  var PRESETS = {
+    none: null,
+    twitter: { limit: 280, unit: 'chars', label: 'Twitter' },
+    meta: { limit: 160, unit: 'chars', label: 'Meta' },
+    seo: { limit: 1500, unit: 'words', label: 'SEO' },
+    essay: { limit: 500, unit: 'words', label: 'Essay' }
+  };
+  var SAMPLE = 'The quick brown fox jumps over the lazy dog. Good writing is clear, concise, and powerful.\n\nPaste your essay, tweet, or meta description here to check lengths instantly. This counter tracks words, characters, sentences, paragraphs, reading time, and keyword density as you type.';
+
+  return {
+    mounted: false,
+    text: '',
+    wpm: 200,
+    preset: 'none',
+    hideCommon: true,
+    toastMsg: '',
+    toastShow: false,
+
+    init: function() {
+      this.mounted = true;
+      var h = window.location.hash;
+      if (h && h.indexOf('#t=') === 0) {
+        try {
+          this.text = decodeURIComponent(h.slice(3));
+          this.toast('Shared text loaded');
+          return;
+        } catch (e) {}
+      }
+      try {
+        var d = localStorage.getItem('wdc_draft');
+        if (d && !this.text) this.text = d;
+      } catch (e) {}
+
+      this.$watch('text', function(val) {
+        try { localStorage.setItem('wdc_draft', (val || '').slice(0, 20000)); } catch (e) {}
+      });
+    },
+
+    toast: function(msg) {
+      this.toastMsg = msg;
+      this.toastShow = true;
+      var self = this;
+      setTimeout(function() { self.toastShow = false; }, 2200);
+    },
+
+    fmtTime: function(words, wpmRate) {
+      if (!words) return '0s';
+      var secs = Math.round(words / wpmRate * 60);
+      if (secs < 60) return secs + 's';
+      var m = Math.floor(secs / 60);
+      var s = secs % 60;
+      if (m < 60) return m + 'm ' + s + 's';
+      return Math.floor(m / 60) + 'h ' + (m % 60) + 'm';
+    },
+
+    get counts() {
+      var txt = this.text || '';
+      var chars = txt.length;
+      var noSp = txt.replace(/\s/g, '').length;
+      var t = txt.trim();
+      var toks = t ? t.split(/\s+/).filter(Boolean) : [];
+      var words = toks.length;
+      var sentences = 0;
+      if (words) {
+        var m = txt.match(/[^.!?]+[.!?]+(\s|$)/g);
+        sentences = m ? m.length : 1;
+        if (!/[.!?]$/.test(t) && m && t.length) {
+          sentences = m.length;
+        }
+      }
+      var paras = t ? t.split(/\n+/).filter(function(p) { return p.trim().length > 0; }).length : 0;
+      var lines = txt.length ? txt.split('\n').length : 0;
+
+      var cleaned = txt.toLowerCase().replace(/[^a-z0-9'\s-]/g, ' ').split(/\s+/).filter(function(w) { return w.length >= 3; });
+      var freq = {};
+      cleaned.forEach(function(w) { freq[w] = (freq[w] || 0) + 1; });
+      var unique = Object.keys(freq).length;
+
+      var avgLen = '0';
+      var longest = '—';
+      if (toks.length) {
+        var sum = toks.reduce(function(a, w) { return a + w.length; }, 0);
+        avgLen = (sum / toks.length).toFixed(1);
+        longest = toks.reduce(function(a, b) { return b.length > a.length ? b : a; }, toks[0]).slice(0, 24);
+      }
+
+      return {
+        chars: chars,
+        noSp: noSp,
+        words: words,
+        sentences: sentences,
+        paras: paras,
+        lines: lines,
+        unique: unique,
+        avgLen: avgLen,
+        longest: longest
+      };
+    },
+
+    get readingTime() {
+      return this.fmtTime(this.counts.words, this.wpm || 200);
+    },
+
+    get speakingTime() {
+      return this.fmtTime(this.counts.words, 130);
+    },
+
+    get densityList() {
+      var txt = this.text || '';
+      var t = txt.trim();
+      if (!t) return [];
+      var cleaned = txt.toLowerCase().replace(/[^a-z0-9'\s-]/g, ' ').split(/\s+/).filter(function(w) { return w.length >= 3; });
+      if (this.hideCommon) {
+        cleaned = cleaned.filter(function(w) { return !STOP.has(w); });
+      }
+      var freq = {};
+      var total = t.split(/\s+/).filter(Boolean).length;
+      cleaned.forEach(function(w) { freq[w] = (freq[w] || 0) + 1; });
+      var arr = Object.keys(freq).map(function(k) { return { w: k, c: freq[k] }; });
+      arr.sort(function(a, b) { return b.c - a.c; });
+      return arr.slice(0, 10).map(function(item) {
+        var pct = total ? ((item.c / total * 100).toFixed(1) + '%') : '0%';
+        return { w: item.w, c: item.c, density: pct };
+      });
+    },
+
+    get limit() {
+      var p = PRESETS[this.preset];
+      if (!p) {
+        return { label: 'No limit set', leftText: '', pct: 0, isOver: false, isWarn: false };
+      }
+      var cur = p.unit === 'chars' ? this.counts.chars : this.counts.words;
+      var pct = Math.min(100, Math.round(cur / p.limit * 100));
+      var left = p.limit - cur;
+      return {
+        label: p.label + ': ' + cur + ' / ' + p.limit + ' ' + p.unit + ' (' + pct + '%)',
+        leftText: left >= 0 ? left + ' left' : (-left) + ' over',
+        pct: pct,
+        isOver: cur > p.limit,
+        isWarn: pct >= 90 && cur <= p.limit
+      };
+    },
+
+    copy: function() {
+      if (!this.text) { this.toast('Nothing to copy'); return; }
+      var self = this;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(this.text).then(function() {
+          self.toast('Text copied!');
+        }).catch(function() {
+          self.toast('Copy failed');
+        });
+      }
+    },
+
+    sample: function() {
+      this.text = SAMPLE;
+      this.toast('Sample loaded');
+    },
+
+    clear: function() {
+      this.text = '';
+      this.toast('Cleared');
+    },
+
+    share: function() {
+      window.location.hash = 't=' + encodeURIComponent(this.text).slice(0, 4000);
+      var self = this;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(window.location.href).then(function() {
+          self.toast('Share link copied!');
+        }).catch(function() {});
+      }
+    }
+  };
+};
 </script>
 {% endblock %}

@@ -21,7 +21,7 @@
 {% block content %}
 {{ tool_hero_section("trending-up", "Ad Performance Tool", "AD PERFORMANCE", "ANALYZER", seo_data.description if seo_data else "Analyze paid ad campaigns with ROAS, CTR, CPC, CPA, CPM, conversion rate benchmarks, and a budget what-if simulator.") }}
 
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="adPerformanceAnalyzer()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
 
   <!-- ===== LEFT COLUMN ===== -->
   <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
@@ -29,18 +29,18 @@
     <!-- Campaign Data -->
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-4 h-4",16)|safe }} Campaign Data</h2>
-      <form class="flex flex-col gap-3" id="adForm">
+      <form class="flex flex-col gap-3" id="adForm" @submit.prevent>
         <div>
           <label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="adSpend">Ad Spend ($)</label>
-          <input aria-label="Ad Spend" type="number" id="adSpend" class="cal-input w-full text-sm font-mono font-bold hide-spinner" value="5000" min="0">
+          <input aria-label="Ad Spend" type="number" id="adSpend" x-model.number="spend" class="cal-input w-full text-sm font-mono font-bold hide-spinner" value="5000" min="0">
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="adImpressions">Impressions</label><input aria-label="Ad Impressions" type="number" id="adImpressions" class="cal-input w-full text-sm font-mono font-bold hide-spinner" value="200000" min="0"></div>
-          <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="adClicks">Clicks</label><input aria-label="Ad Clicks" type="number" id="adClicks" class="cal-input w-full text-sm font-mono font-bold hide-spinner" value="4500" min="0"></div>
+          <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="adImpressions">Impressions</label><input aria-label="Ad Impressions" type="number" id="adImpressions" x-model.number="impressions" class="cal-input w-full text-sm font-mono font-bold hide-spinner" value="200000" min="0"></div>
+          <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="adClicks">Clicks</label><input aria-label="Ad Clicks" type="number" id="adClicks" x-model.number="clicks" class="cal-input w-full text-sm font-mono font-bold hide-spinner" value="4500" min="0"></div>
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="adConversions">Conversions</label><input aria-label="Ad Conversions" type="number" id="adConversions" class="cal-input w-full text-sm font-mono font-bold hide-spinner" value="180" min="0"></div>
-          <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="adRevenue">Revenue ($)</label><input aria-label="Ad Revenue" type="number" id="adRevenue" class="cal-input w-full text-sm font-mono font-bold hide-spinner" value="25000" min="0"></div>
+          <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="adConversions">Conversions</label><input aria-label="Ad Conversions" type="number" id="adConversions" x-model.number="conversions" class="cal-input w-full text-sm font-mono font-bold hide-spinner" value="180" min="0"></div>
+          <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="adRevenue">Revenue ($)</label><input aria-label="Ad Revenue" type="number" id="adRevenue" x-model.number="revenue" class="cal-input w-full text-sm font-mono font-bold hide-spinner" value="25000" min="0"></div>
         </div>
       </form>
     </div>
@@ -49,13 +49,13 @@
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("wand-2","w-4 h-4",16)|safe }} What-If Simulator</h2>
       <p class="text-[10px] text-base-content/70 mb-4 uppercase tracking-wider">Adjust budget to see projected impact on your metrics</p>
-      <div class="flex items-center gap-3 mb-1"><label for="simBudget" class="text-xs font-bold text-base-content/60">Budget</label><span class="text-xs font-mono font-bold text-base-content/60">$<span id="simBudgetDisplay">5000</span></span></div>
-      <input aria-label="Simulated Budget" type="range" id="simBudget" class="range range-sm range-neutral" min="0" max="30000" step="100" value="5000">
+      <div class="flex items-center gap-3 mb-1"><label for="simBudget" class="text-xs font-bold text-base-content/60">Budget</label><span class="text-xs font-mono font-bold text-base-content/60">$<span id="simBudgetDisplay" x-text="formatNumber(simBudget)">5,000</span></span></div>
+      <input aria-label="Simulated Budget" type="range" id="simBudget" x-model.number="simBudget" class="range range-sm range-neutral" min="0" max="30000" step="100" value="5000">
       <div class="flex justify-between text-[11px] text-base-content/40 font-bold mt-1"><span>$0</span><span>$30k</span></div>
       <div class="mt-4 space-y-1">
-        <div class="whatif-row"><span class="whatif-label">Projected ROAS</span><span class="whatif-value" id="simROAS">5.00x</span></div>
-        <div class="whatif-row"><span class="whatif-label">Projected CPA</span><span class="whatif-value" id="simCPA">$27.78</span></div>
-        <div class="whatif-row"><span class="whatif-label">Projected CPC</span><span class="whatif-value" id="simCPC">$1.11</span></div>
+        <div class="whatif-row"><span class="whatif-label">Projected ROAS</span><span class="whatif-value" id="simROAS" x-text="simProjectedROAS">5.00x</span></div>
+        <div class="whatif-row"><span class="whatif-label">Projected CPA</span><span class="whatif-value" id="simCPA" x-text="simProjectedCPA">$27.78</span></div>
+        <div class="whatif-row"><span class="whatif-label">Projected CPC</span><span class="whatif-value" id="simCPC" x-text="simProjectedCPC">$1.11</span></div>
       </div>
     </div>
 
@@ -67,10 +67,13 @@
     <!-- Health Score -->
     <div class="feature-card p-5">
       <div class="flex items-center gap-4">
-        <div class="health-ring" id="healthRing" style="--_pct:0deg">—</div>
+        <div class="health-ring health-fair" id="healthRing" :class="healthRingClass" :style="'--_pct:' + healthRingPct + 'deg'" x-text="healthRingText">65%</div>
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-1"><span class="text-xs font-black">Campaign Health</span><span class="health-badge" id="healthBadge" style="background:color-mix(in oklab,var(--color-base-content) 8%,transparent);color:var(--color-base-content)">CALCULATING</span></div>
-          <p class="text-[10px] text-base-content/70 leading-relaxed" id="healthSummary">Enter your campaign data to see an overall health score based on your ROAS, CTR, CPA, and conversion rate.</p>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs font-black">Campaign Health</span>
+            <span class="health-badge health-fair" id="healthBadge" :class="healthBadgeClass" :style="healthBadgeStyle" x-text="healthBadgeText">Fair</span>
+          </div>
+          <p class="text-[10px] text-base-content/70 leading-relaxed" id="healthSummary" x-text="healthSummaryText">All key metrics are in a healthy range. Keep up the good work!</p>
         </div>
       </div>
     </div>
@@ -79,23 +82,23 @@
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
       <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
         <span class="text-[10px] font-bold text-base-content/70 block mb-1 uppercase tracking-wider">ROAS</span>
-        <output id="resROAS" class="font-display font-semibold text-base-content text-2xl leading-tight font-mono" style="font-size:clamp(1rem,2vw,1.5rem);color:var(--color-success)">—</output>
-        <span class="health-badge" id="roasBadge" style="margin-top:6px">—</span>
+        <output id="resROAS" x-text="roasText" class="font-display font-semibold text-base-content text-2xl leading-tight font-mono text-emerald-500">5.00x</output>
+        <span class="health-badge health-good" id="roasBadge" :class="roasBadgeClass" :style="roasBadgeStyle" x-text="roasBadgeText" style="margin-top:6px;background:color-mix(in oklab,var(--color-success) 12%,transparent);color:var(--color-success)">Good</span>
       </div>
       <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
         <span class="text-[10px] font-bold text-base-content/70 block mb-1 uppercase tracking-wider">CTR</span>
-        <output id="resCTR" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-primary)">—</output>
-        <span class="health-badge" id="ctrBadge" style="margin-top:6px">—</span>
+        <output id="resCTR" x-text="ctrText" class="font-display font-semibold text-base-content text-lg leading-tight font-mono text-primary">2.25%</output>
+        <span class="health-badge health-fair" id="ctrBadge" :class="ctrBadgeClass" :style="ctrBadgeStyle" x-text="ctrBadgeText" style="margin-top:6px;background:color-mix(in oklab,var(--color-warning) 12%,transparent);color:var(--color-warning)">Fair</span>
       </div>
       <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
         <span class="text-[10px] font-bold text-base-content/70 block mb-1 uppercase tracking-wider">CPC</span>
-        <output id="resCPC" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-warning)">—</output>
-        <span class="health-badge" id="cpcBadge" style="margin-top:6px">—</span>
+        <output id="resCPC" x-text="cpcText" class="font-display font-semibold text-base-content text-lg leading-tight font-mono text-amber-500">$1.11</output>
+        <span class="health-badge health-fair" id="cpcBadge" :class="cpcBadgeClass" :style="cpcBadgeStyle" x-text="cpcBadgeText" style="margin-top:6px;background:color-mix(in oklab,var(--color-warning) 12%,transparent);color:var(--color-warning)">Fair</span>
       </div>
       <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
         <span class="text-[10px] font-bold text-base-content/70 block mb-1 uppercase tracking-wider">CPM</span>
-        <output id="resCPM" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">—</output>
-        <span class="health-badge" id="cpmBadge" style="margin-top:6px">—</span>
+        <output id="resCPM" x-text="cpmText" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$25.00</output>
+        <span class="health-badge health-fair" id="cpmBadge" :class="cpmBadgeClass" :style="cpmBadgeStyle" x-text="cpmBadgeText" style="margin-top:6px;background:color-mix(in oklab,var(--color-warning) 12%,transparent);color:var(--color-warning)">Fair</span>
       </div>
     </div>
 
@@ -103,18 +106,18 @@
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
       <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
         <span class="text-[10px] font-bold text-base-content/70 block mb-1 uppercase tracking-wider">CPA</span>
-        <output id="resCPA" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-error)">—</output>
-        <span class="health-badge" id="cpaBadge" style="margin-top:6px">—</span>
+        <output id="resCPA" x-text="cpaText" class="font-display font-semibold text-base-content text-lg leading-tight font-mono text-rose-500">$27.78</output>
+        <span class="health-badge health-fair" id="cpaBadge" :class="cpaBadgeClass" :style="cpaBadgeStyle" x-text="cpaBadgeText" style="margin-top:6px;background:color-mix(in oklab,var(--color-warning) 12%,transparent);color:var(--color-warning)">Fair</span>
       </div>
       <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
         <span class="text-[10px] font-bold text-base-content/70 block mb-1 uppercase tracking-wider">Conversion Rate</span>
-        <output id="resConvRate" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">—</output>
-        <span class="health-badge" id="convBadge" style="margin-top:6px">—</span>
+        <output id="resConvRate" x-text="convRateText" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">4.00%</output>
+        <span class="health-badge health-good" id="convBadge" :class="convBadgeClass" :style="convBadgeStyle" x-text="convBadgeText" style="margin-top:6px;background:color-mix(in oklab,var(--color-success) 12%,transparent);color:var(--color-success)">Good</span>
       </div>
       <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
         <span class="text-[10px] font-bold text-base-content/70 block mb-1 uppercase tracking-wider">Cost / Result</span>
-        <output id="resCostResult" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">—</output>
-        <span class="health-badge" id="costBadge" style="margin-top:6px">—</span>
+        <output id="resCostResult" x-text="costResultText" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$5,000.00 / $25,000</output>
+        <span class="health-badge health-good" id="costBadge" :class="costBadgeClass" :style="costBadgeStyle" x-text="costBadgeText" style="margin-top:6px;background:color-mix(in oklab,var(--color-success) 12%,transparent);color:var(--color-success)">Good</span>
       </div>
     </div>
 
@@ -127,159 +130,233 @@
 
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
-  'use strict';
-  const $ = id => document.getElementById(id);
-  const F2 = v => v.toFixed(2);
-  const F1 = v => v.toFixed(1);
-  const F0 = v => Math.round(v).toLocaleString('en-US');
-
-  function badge(text, cls){
-    const el = document.createElement('span');
-    el.className = 'health-badge ' + cls;
-    el.innerText = text;
-    return el;
+window.adPerformanceAnalyzer = function() {
+  function scoreBadge(score) {
+    if (score >= 70) return { text: 'Good', cls: 'health-good', style: 'background:color-mix(in oklab,var(--color-success) 12%,transparent);color:var(--color-success)' };
+    if (score >= 40) return { text: 'Fair', cls: 'health-fair', style: 'background:color-mix(in oklab,var(--color-warning) 12%,transparent);color:var(--color-warning)' };
+    return { text: 'Poor', cls: 'health-poor', style: 'background:color-mix(in oklab,var(--color-error) 12%,transparent);color:var(--color-error)' };
   }
 
-  function scoreBadge(score, label){
-    if(score >= 70) return ['Good', 'health-good', 'background:color-mix(in oklab,var(--color-success) 12%,transparent);color:var(--color-success)'];
-    if(score >= 40) return ['Fair', 'health-fair', 'background:color-mix(in oklab,var(--color-warning) 12%,transparent);color:var(--color-warning)'];
-    return ['Poor', 'health-poor', 'background:color-mix(in oklab,var(--color-error) 12%,transparent);color:var(--color-error)'];
-  }
+  return {
+    spend: 5000,
+    impressions: 200000,
+    clicks: 4500,
+    conversions: 180,
+    revenue: 25000,
+    simBudget: 5000,
 
-  function healthValue(val, isGood, isCpc=false){
-    if(val === null || val === undefined || isNaN(val)) return ['—', '—', 0];
-    let t, l, s;
-    if(isGood(val)){
-      t = 'Good'; l = 'health-good'; s = 90 - Math.random() * 10;
-    } else if(isCpc ? val > 2 : val > 4){
-      t = 'Poor'; l = 'health-poor'; s = 15 + Math.random() * 20;
-    } else {
-      t = 'Fair'; l = 'health-fair'; s = 45 + Math.random() * 20;
-    }
-    return [t, l, s];
-  }
+    formatNumber: function(v) {
+      return (Number(v) || 0).toLocaleString('en-US');
+    },
 
-  function calculate(){
-    const spend = parseFloat($('adSpend').value) || 0;
-    const impressions = parseFloat($('adImpressions').value) || 0;
-    const clicks = parseFloat($('adClicks').value) || 0;
-    const conversions = parseFloat($('adConversions').value) || 0;
-    const revenue = parseFloat($('adRevenue').value) || 0;
-    const simBudget = parseFloat($('simBudget').value) || 0;
-    $('simBudgetDisplay').innerText = F0(simBudget);
+    get hasData() {
+      return (Number(this.spend) > 0) && (Number(this.impressions) > 0) && (Number(this.clicks) > 0);
+    },
 
-    const hasData = spend > 0 && impressions > 0 && clicks > 0;
+    get ctr() {
+      if (!this.hasData) return 0;
+      return (Number(this.clicks) / Number(this.impressions)) * 100;
+    },
+    get ctrText() {
+      return this.hasData ? this.ctr.toFixed(2) + '%' : '—';
+    },
 
-    if(hasData){
-      const ctr = (clicks / impressions) * 100;
-      const cpc = spend / clicks;
-      const cpm = (spend / impressions) * 1000;
-      const roas = revenue / spend;
-      const cpa = conversions > 0 ? spend / conversions : 0;
-      const convRate = conversions > 0 ? (conversions / clicks) * 100 : 0;
-      const costResult = (revenue > 0 && spend > 0) ? (spend / revenue) : 0;
+    get cpc() {
+      if (!this.hasData) return 0;
+      return Number(this.spend) / Number(this.clicks);
+    },
+    get cpcText() {
+      return this.hasData ? '$' + this.cpc.toFixed(2) : '—';
+    },
 
-      $('resCTR').innerText = F2(ctr) + '%';
-      $('resCPC').innerText = '$' + F2(cpc);
-      $('resCPM').innerText = '$' + F2(cpm);
-      $('resROAS').innerText = F2(roas) + 'x';
+    get cpm() {
+      if (!this.hasData) return 0;
+      return (Number(this.spend) / Number(this.impressions)) * 1000;
+    },
+    get cpmText() {
+      return this.hasData ? '$' + this.cpm.toFixed(2) : '—';
+    },
 
-      // CPA & Conv
-      $('resCPA').innerText = conversions > 0 ? '$' + F2(cpa) : '—';
-      $('resConvRate').innerText = conversions > 0 ? F2(convRate) + '%' : '0%';
-      $('resCostResult').innerText = costResult > 0 ? '$' + F2(spend) + ' / $' + F0(revenue) : '—';
+    get roas() {
+      if (!this.hasData || Number(this.spend) <= 0) return 0;
+      return Number(this.revenue) / Number(this.spend);
+    },
+    get roasText() {
+      return this.hasData ? this.roas.toFixed(2) + 'x' : '—';
+    },
 
-      // Health scoring
-      const roasScore = roas >= 4 ? 90 : roas >= 2 ? 55 : 20;
-      const ctrScore = ctr >= 3 ? 85 : ctr >= 1 ? 50 : 20;
-      const cpcScore = cpc <= 1 ? 85 : cpc <= 3 ? 50 : 20;
-      const cpaScore = conversions > 0 ? (cpa <= 20 ? 85 : cpa <= 50 ? 50 : 20) : 0;
-      const convScore = conversions > 0 ? (convRate >= 4 ? 85 : convRate >= 1.5 ? 50 : 20) : 0;
-      const overall = Math.round((roasScore + ctrScore + cpcScore + cpaScore + convScore) / 5);
+    get cpa() {
+      if (!this.hasData || Number(this.conversions) <= 0) return 0;
+      return Number(this.spend) / Number(this.conversions);
+    },
+    get cpaText() {
+      return (this.hasData && Number(this.conversions) > 0) ? '$' + this.cpa.toFixed(2) : '—';
+    },
 
-      // Badges
-      const setBadge = (id, score, label) => {
-        const [t, cls, style] = scoreBadge(score);
-        $(id).innerHTML = ''; $(id).appendChild(badge(t, cls));
-        $(id).setAttribute('style', style);
-      };
-      setBadge('roasBadge', roasScore);
-      setBadge('ctrBadge', ctrScore);
-      setBadge('cpcBadge', cpcScore);
-      if(conversions > 0){ setBadge('cpaBadge', cpaScore); setBadge('convBadge', convScore); } else {
-        const na = badge('N/A', '');
-        ['cpaBadge','convBadge'].forEach(id => { $(id).innerHTML = ''; $(id).appendChild(na.cloneNode(true)); $(id).style = 'background:color-mix(in oklab,var(--color-base-content) 8%,transparent);color:var(--color-base-content);opacity:.4'; });
-      }
+    get convRate() {
+      if (!this.hasData || Number(this.clicks) <= 0) return 0;
+      return (Number(this.conversions) / Number(this.clicks)) * 100;
+    },
+    get convRateText() {
+      return (this.hasData && Number(this.conversions) > 0) ? this.convRate.toFixed(2) + '%' : (this.hasData ? '0%' : '—');
+    },
 
-      // Cost efficiency badge
-      const costScore = costResult <= 0.3 ? 85 : costResult <= 0.6 ? 50 : 20;
-      setBadge('costBadge', costScore);
+    get costResultText() {
+      if (!this.hasData || Number(this.revenue) <= 0) return '—';
+      return '$' + Number(this.spend).toFixed(2) + ' / $' + Math.round(Number(this.revenue)).toLocaleString('en-US');
+    },
 
-      // Overall health
-      const healthRing = $('healthRing');
-      const pct = Math.min(overall, 100);
-      healthRing.style.setProperty('--_pct', (pct / 100 * 360) + 'deg');
-      healthRing.innerText = pct + '%';
-      healthRing.className = 'health-ring ' + (pct >= 70 ? 'health-good' : pct >= 40 ? 'health-fair' : 'health-poor');
-      const [t2, cls2, style2] = scoreBadge(pct);
-      $('healthBadge').innerHTML = ''; $('healthBadge').appendChild(badge(t2, cls2));
-      $('healthBadge').setAttribute('style', style2);
+    get roasScore() {
+      return this.roas >= 4 ? 90 : (this.roas >= 2 ? 55 : 20);
+    },
+    get roasBadge() {
+      return this.hasData ? scoreBadge(this.roasScore) : { text: '—', cls: '', style: 'opacity:.4' };
+    },
+    get roasBadgeText() { return this.roasBadge.text; },
+    get roasBadgeClass() { return this.roasBadge.cls; },
+    get roasBadgeStyle() { return this.roasBadge.style; },
 
-      // Health summary text
-      const weak = [];
-      if(roasScore < 40) weak.push('ROAS');
-      if(ctrScore < 40) weak.push('CTR');
-      if(cpcScore < 40) weak.push('CPC');
-      if(cpaScore < 40 && conversions > 0) weak.push('CPA');
-      if(convScore < 40 && conversions > 0) weak.push('conversion rate');
-      $('healthSummary').innerText = weak.length > 0
+    get ctrScore() {
+      return this.ctr >= 3 ? 85 : (this.ctr >= 1 ? 50 : 20);
+    },
+    get ctrBadge() {
+      return this.hasData ? scoreBadge(this.ctrScore) : { text: '—', cls: '', style: 'opacity:.4' };
+    },
+    get ctrBadgeText() { return this.ctrBadge.text; },
+    get ctrBadgeClass() { return this.ctrBadge.cls; },
+    get ctrBadgeStyle() { return this.ctrBadge.style; },
+
+    get cpcScore() {
+      return this.cpc <= 1 ? 85 : (this.cpc <= 3 ? 50 : 20);
+    },
+    get cpcBadge() {
+      return this.hasData ? scoreBadge(this.cpcScore) : { text: '—', cls: '', style: 'opacity:.4' };
+    },
+    get cpcBadgeText() { return this.cpcBadge.text; },
+    get cpcBadgeClass() { return this.cpcBadge.cls; },
+    get cpcBadgeStyle() { return this.cpcBadge.style; },
+
+    get cpmBadge() {
+      return this.hasData ? scoreBadge(50) : { text: '—', cls: '', style: 'opacity:.4' };
+    },
+    get cpmBadgeText() { return this.cpmBadge.text; },
+    get cpmBadgeClass() { return this.cpmBadge.cls; },
+    get cpmBadgeStyle() { return this.cpmBadge.style; },
+
+    get cpaScore() {
+      if (Number(this.conversions) <= 0) return 0;
+      return this.cpa <= 20 ? 85 : (this.cpa <= 50 ? 50 : 20);
+    },
+    get cpaBadge() {
+      if (!this.hasData) return { text: '—', cls: '', style: 'opacity:.4' };
+      if (Number(this.conversions) <= 0) return { text: 'N/A', cls: '', style: 'opacity:.4' };
+      return scoreBadge(this.cpaScore);
+    },
+    get cpaBadgeText() { return this.cpaBadge.text; },
+    get cpaBadgeClass() { return this.cpaBadge.cls; },
+    get cpaBadgeStyle() { return this.cpaBadge.style; },
+
+    get convScore() {
+      if (Number(this.conversions) <= 0) return 0;
+      return this.convRate >= 4 ? 85 : (this.convRate >= 1.5 ? 50 : 20);
+    },
+    get convBadge() {
+      if (!this.hasData) return { text: '—', cls: '', style: 'opacity:.4' };
+      if (Number(this.conversions) <= 0) return { text: 'N/A', cls: '', style: 'opacity:.4' };
+      return scoreBadge(this.convScore);
+    },
+    get convBadgeText() { return this.convBadge.text; },
+    get convBadgeClass() { return this.convBadge.cls; },
+    get convBadgeStyle() { return this.convBadge.style; },
+
+    get costScore() {
+      var costResult = (Number(this.revenue) > 0 && Number(this.spend) > 0) ? (Number(this.spend) / Number(this.revenue)) : 0;
+      return costResult <= 0.3 ? 85 : (costResult <= 0.6 ? 50 : 20);
+    },
+    get costBadge() {
+      return this.hasData ? scoreBadge(this.costScore) : { text: '—', cls: '', style: 'opacity:.4' };
+    },
+    get costBadgeText() { return this.costBadge.text; },
+    get costBadgeClass() { return this.costBadge.cls; },
+    get costBadgeStyle() { return this.costBadge.style; },
+
+    get overallHealth() {
+      if (!this.hasData) return 0;
+      return Math.round((this.roasScore + this.ctrScore + this.cpcScore + this.cpaScore + this.convScore) / 5);
+    },
+
+    get healthRingPct() {
+      return (Math.min(this.overallHealth, 100) / 100) * 360;
+    },
+    get healthRingText() {
+      return this.hasData ? this.overallHealth + '%' : '—';
+    },
+    get healthRingClass() {
+      if (!this.hasData) return '';
+      return this.overallHealth >= 70 ? 'health-good' : (this.overallHealth >= 40 ? 'health-fair' : 'health-poor');
+    },
+
+    get healthBadge() {
+      if (!this.hasData) return { text: 'NO DATA', cls: '', style: 'opacity:.4' };
+      return scoreBadge(this.overallHealth);
+    },
+    get healthBadgeText() { return this.healthBadge.text; },
+    get healthBadgeClass() { return this.healthBadge.cls; },
+    get healthBadgeStyle() { return this.healthBadge.style; },
+
+    get healthSummaryText() {
+      if (!this.hasData) return 'Enter your campaign data to see an overall health score.';
+      var weak = [];
+      if (this.roasScore < 40) weak.push('ROAS');
+      if (this.ctrScore < 40) weak.push('CTR');
+      if (this.cpcScore < 40) weak.push('CPC');
+      if (this.cpaScore < 40 && Number(this.conversions) > 0) weak.push('CPA');
+      if (this.convScore < 40 && Number(this.conversions) > 0) weak.push('conversion rate');
+      return weak.length > 0
         ? 'Focus on improving: ' + weak.join(', ') + '. These metrics are below industry benchmarks.'
         : 'All key metrics are in a healthy range. Keep up the good work!';
+    },
 
-      // What-If simulation
-      if(simBudget > 0 && simBudget !== spend){
-        const ratio = simBudget / spend;
-        const projectedImpressions = ratio < 1 ? impressions * Math.pow(ratio, 0.85) : impressions * Math.pow(ratio, 0.95);
-        const projectedClicks = projectedImpressions * (ctr / 100);
-        const projectedConversions = projectedClicks * (convRate / 100);
-        const projectedRevenue = ratio < 1 ? revenue * Math.pow(ratio, 0.8) : revenue * Math.pow(ratio, 0.9);
-        const pROAS = projectedRevenue / simBudget;
-        const pCPA = projectedConversions > 0 ? simBudget / projectedConversions : 0;
-        const pCPC = projectedClicks > 0 ? simBudget / projectedClicks : 0;
-        $('simROAS').innerText = F2(pROAS) + 'x';
-        $('simCPA').innerText = '$' + F2(pCPA);
-        $('simCPC').innerText = '$' + F2(pCPC);
-      } else {
-        $('simROAS').innerText = F2(roas) + 'x';
-        $('simCPA').innerText = conversions > 0 ? '$' + F2(cpa) : '—';
-        $('simCPC').innerText = '$' + F2(cpc);
+    get simProjectedROAS() {
+      if (!this.hasData) return '—';
+      var sim = Number(this.simBudget);
+      var sp = Number(this.spend);
+      if (sim > 0 && sim !== sp) {
+        var ratio = sim / sp;
+        var projRev = ratio < 1 ? Number(this.revenue) * Math.pow(ratio, 0.8) : Number(this.revenue) * Math.pow(ratio, 0.9);
+        return (projRev / sim).toFixed(2) + 'x';
       }
-    } else {
-      ['resCTR','resCPC','resCPM','resCPA','resCostResult'].forEach(id => $(id).innerText = '—');
-      $('resROAS').innerText = '—';
-      $('resConvRate').innerText = '—';
-      ['roasBadge','ctrBadge','cpcBadge','cpaBadge','convBadge','cpmBadge','costBadge'].forEach(id => {
-        $(id).innerHTML = ''; $(id).appendChild(badge('—', ''));
-        $(id).style = 'background:color-mix(in oklab,var(--color-base-content) 8%,transparent);color:var(--color-base-content);opacity:.4';
-      });
-      $('healthRing').innerText = '—'; $('healthRing').style.setProperty('--_pct', '0deg');
-      $('healthRing').className = 'health-ring';
-      $('healthBadge').innerHTML = ''; $('healthBadge').appendChild(badge('NO DATA', ''));
-      $('healthBadge').style = 'background:color-mix(in oklab,var(--color-base-content) 8%,transparent);color:var(--color-base-content);opacity:.4';
-      $('healthSummary').innerText = 'Enter your campaign data to see an overall health score.';
-      $('simBudgetDisplay').innerText = F0(simBudget);
-      $('simROAS').innerText = '—';
-      $('simCPA').innerText = '—';
-      $('simCPC').innerText = '—';
-    }
-  }
+      return this.roas.toFixed(2) + 'x';
+    },
 
-  document.addEventListener('DOMContentLoaded', function(){
-    calculate();
-    document.querySelectorAll('#adForm input').forEach(el => el.addEventListener('input', calculate));
-    $('simBudget').addEventListener('input', calculate);
-  });
-})();
+    get simProjectedCPA() {
+      if (!this.hasData) return '—';
+      var sim = Number(this.simBudget);
+      var sp = Number(this.spend);
+      if (Number(this.conversions) <= 0) return '—';
+      if (sim > 0 && sim !== sp) {
+        var ratio = sim / sp;
+        var projImp = ratio < 1 ? Number(this.impressions) * Math.pow(ratio, 0.85) : Number(this.impressions) * Math.pow(ratio, 0.95);
+        var projClicks = projImp * (this.ctr / 100);
+        var projConv = projClicks * (this.convRate / 100);
+        return projConv > 0 ? '$' + (sim / projConv).toFixed(2) : '—';
+      }
+      return '$' + this.cpa.toFixed(2);
+    },
+
+    get simProjectedCPC() {
+      if (!this.hasData) return '—';
+      var sim = Number(this.simBudget);
+      var sp = Number(this.spend);
+      if (sim > 0 && sim !== sp) {
+        var ratio = sim / sp;
+        var projImp = ratio < 1 ? Number(this.impressions) * Math.pow(ratio, 0.85) : Number(this.impressions) * Math.pow(ratio, 0.95);
+        var projClicks = projImp * (this.ctr / 100);
+        return projClicks > 0 ? '$' + (sim / projClicks).toFixed(2) : '—';
+      }
+      return '$' + this.cpc.toFixed(2);
+    }
+  };
+};
 </script>
 {% endblock %}

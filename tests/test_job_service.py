@@ -2,8 +2,8 @@
 
 import pytest
 
-from app.models.job import JobStatus
-from app.services.job_service import JobService
+from apps.tools_api.models import JobStatus
+from apps.tools_api.services.job_service import JobService
 
 
 class TestJobService:

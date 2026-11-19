@@ -65,7 +65,7 @@
 {% endblock %}
 {% block content %}
 {{ tool_hero_section("file-text", "Sales Quote Builder", "QUOTATION", "GENERATOR", seo_data.description if seo_data else "Create branded quotations with GST line items, logo, live totals and validity dates. Print to PDF or share via link.") }}
-<div class="container-site px-4 pb-24">
+<div x-data="quotationGenerator()" class="container-site px-4 pb-24">
   <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
     <div class="lg:col-span-2 space-y-6 no-print">
       <div class="qtg-card">
@@ -143,7 +143,29 @@
           <label class="qtg-label" style="margin:0">Line Items (desc / qty / rate / tax%)</label>
           <button class="qtg-btn qtg-btn-ghost qtg-btn-sm" type="button" data-action="add-item" aria-label="Add line item">+ Add</button>
         </div>
-        <div id="qtgItems" aria-live="polite"></div>
+        <div id="qtgItems" aria-live="polite">
+          <div class="qtg-item-row" data-idx="0">
+            <input type="text" value="Website design" data-idx="0" data-field="desc" maxlength="60" aria-label="Item description">
+            <input type="number" value="1" min="0" step="1" data-idx="0" data-field="qty" aria-label="Quantity">
+            <input type="number" value="25000" min="0" step="10" data-idx="0" data-field="rate" aria-label="Unit rate">
+            <input type="number" value="18" min="0" max="100" step="1" data-idx="0" data-field="tax" aria-label="Tax rate percent">
+            <button class="qtg-rm" type="button" data-action="remove-item" data-idx="0" aria-label="Remove item">&times;</button>
+          </div>
+          <div class="qtg-item-row" data-idx="1">
+            <input type="text" value="Logo pack (3 concepts)" data-idx="1" data-field="desc" maxlength="60" aria-label="Item description">
+            <input type="number" value="1" min="0" step="1" data-idx="1" data-field="qty" aria-label="Quantity">
+            <input type="number" value="8000" min="0" step="10" data-idx="1" data-field="rate" aria-label="Unit rate">
+            <input type="number" value="18" min="0" max="100" step="1" data-idx="1" data-field="tax" aria-label="Tax rate percent">
+            <button class="qtg-rm" type="button" data-action="remove-item" data-idx="1" aria-label="Remove item">&times;</button>
+          </div>
+          <div class="qtg-item-row" data-idx="2">
+            <input type="text" value="Annual maintenance" data-idx="2" data-field="desc" maxlength="60" aria-label="Item description">
+            <input type="number" value="12" min="0" step="1" data-idx="2" data-field="qty" aria-label="Quantity">
+            <input type="number" value="1500" min="0" step="10" data-idx="2" data-field="rate" aria-label="Unit rate">
+            <input type="number" value="18" min="0" max="100" step="1" data-idx="2" data-field="tax" aria-label="Tax rate percent">
+            <button class="qtg-rm" type="button" data-action="remove-item" data-idx="2" aria-label="Remove item">&times;</button>
+          </div>
+        </div>
         <p class="qtg-hint mt-2">Tax % applies per row. Totals update live in the preview and summary below.</p>
       </div>
     </div>
@@ -169,14 +191,18 @@
           <div class="overflow-x-auto">
           <table class="qtg-table" role="table" aria-label="Quotation line items">
             <thead><tr><th scope="col">Description</th><th scope="col">Qty</th><th scope="col">Rate</th><th scope="col">Tax%</th><th scope="col">Amount</th></tr></thead>
-            <tbody id="qtgPvRows"></tbody>
+            <tbody id="qtgPvRows">
+              <tr><td>Website design</td><td>1</td><td>₹25,000.00</td><td>18%</td><td>₹25,000.00</td></tr>
+              <tr><td>Logo pack (3 concepts)</td><td>1</td><td>₹8,000.00</td><td>18%</td><td>₹8,000.00</td></tr>
+              <tr><td>Annual maintenance</td><td>12</td><td>₹1,500.00</td><td>18%</td><td>₹18,000.00</td></tr>
+            </tbody>
           </table>
           </div>
           <div class="qtg-totals">
-            <div class="qtg-tr"><span>Subtotal</span><span id="qtgPvSub">₹0.00</span></div>
-            <div class="qtg-tr"><span id="qtgPvTaxLabel">Tax (GST)</span><span id="qtgPvTax">₹0.00</span></div>
-            <div class="qtg-tax-split" id="qtgPvSplit"></div>
-            <div class="qtg-tr qtg-gt"><span>Grand Total</span><span id="qtgPvGrand">₹0.00</span></div>
+            <div class="qtg-tr"><span>Subtotal</span><span id="qtgPvSub">₹51,000.00</span></div>
+            <div class="qtg-tr"><span id="qtgPvTaxLabel">Tax (GST)</span><span id="qtgPvTax">₹9,180.00</span></div>
+            <div class="qtg-tax-split" id="qtgPvSplit"><div style="display:flex;justify-content:space-between;font-size:10px;opacity:.7;padding:2px 0"><span>CGST (9.0%)</span><span>₹4,590.00</span></div><div style="display:flex;justify-content:space-between;font-size:10px;opacity:.7;padding:2px 0"><span>SGST (9.0%)</span><span>₹4,590.00</span></div></div>
+            <div class="qtg-tr qtg-gt"><span>Grand Total</span><span id="qtgPvGrand">₹60,180.00</span></div>
           </div>
           <div class="qtg-notes"><strong>Notes:</strong> <span id="qtgPvNotes">Prices valid 15 days.</span></div>
         </div>
@@ -226,7 +252,8 @@
 {% endblock %}
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
+window.quotationGenerator = function() {
+
 'use strict';
 var toastEl=document.getElementById('qtgToast');
 var itemsEl=document.getElementById('qtgItems');
@@ -482,6 +509,19 @@ r.readAsDataURL(f);
 setDefaults();
 if(!decodeHash()){renderItems();render()}
 else{renderItems();render()}
-})();
+
+
+  return {
+    init: function() {
+      if (typeof calc === 'function') calc();
+      else if (typeof generate === 'function') generate();
+      else if (typeof gen === 'function') gen();
+      else if (typeof render === 'function') render();
+      else if (typeof update === 'function') update();
+      else if (typeof calculate === 'function') calculate();
+      else if (typeof build === 'function') build();
+    }
+  };
+};
 </script>
 {% endblock %}

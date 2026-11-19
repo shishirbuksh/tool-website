@@ -6,10 +6,11 @@
 
 **[StoryBrain AI](https://www.storybrainai.com/)** is a production-grade, lightning-fast SaaS platform offering 126 free browser-based tools. It includes AI utilities, crypto calculators, image processors, PDF generators, and business calculators.
 
-The platform is engineered for absolute maximum performance (100/100 Core Web Vitals) featuring an enterprise architecture built on FastAPI, Jinja2, and TailwindCSS.
+The platform is engineered for absolute maximum performance (100/100 Core Web Vitals) featuring an enterprise full-stack architecture built on modern Django, Jinja2, DaisyUI v5, and TailwindCSS v4 with DataFast conversion-focused UI design.
 
 ## 🚀 Enterprise Performance Architecture
 - **Speculation Rules API:** Zero-millisecond (0ms) predictive prerendering on hover.
+- **DataFast SaaS Conversion UI:** Dark-first `#1A1A1A` high-contrast aesthetic with Action Coral `#E86A4A` accents.
 - **Zero-Byte CSS:** Tailwind `app.css` is strictly cached and version-busted on the backend for minimal TTFB.
 - **Hydration-Free Frontend:** No heavy JS frameworks (React/Vue/Angular). Vanilla JS ensures zero main-thread blocking.
 - **Lazy Loading:** Analytics and ads are debounced to guarantee 100/100 Lighthouse performance.
@@ -17,16 +18,17 @@ The platform is engineered for absolute maximum performance (100/100 Core Web Vi
 ## 🛠️ Tech Stack
 
 ### Backend
-- **Python 3.11+**
-- **FastAPI** (High-performance API routing and middleware)
-- **Jinja2** (Server-side HTML rendering)
-- **Uvicorn & Gunicorn** (ASGI server and process manager)
-- **SQLite** (Analytics tracking and storage)
+- **Python 3.11+ / 3.14**
+- **Django 6** (Modern decoupled domain architecture: `apps.core`, `apps.catalog`, `apps.blog`, `apps.seo`, `apps.tools_api`, `apps.analytics`)
+- **Jinja2 & Django Templates** (Server-side HTML rendering)
+- **Gunicorn** (WSGI server with gthread workers)
+- **SQLite / Redis** (Analytics tracking and high-throughput caching)
 
 ### Frontend
 - **HTML5 & Vanilla JavaScript**
 - **TailwindCSS v4**
 - **DaisyUI v5**
+- **DataFast Design System** (Dark surface layers, coral action buttons, accessible typography)
 
 ### Infrastructure
 - **Hostinger VPS** (Ubuntu OS)
@@ -40,7 +42,7 @@ The platform is engineered for absolute maximum performance (100/100 Core Web Vi
 
 ### Prerequisites
 - Python 3.11+
-- Node.js (for TailwindCSS building)
+- Node.js (for TailwindCSS & DaisyUI bundling)
 - GNU Make (optional, for automation)
 
 ### Quick Start
@@ -66,9 +68,13 @@ The platform is engineered for absolute maximum performance (100/100 Core Web Vi
    npm ci
    npm run build
    ```
-3. **Start the FastAPI server:**
+3. **Start the Django development server:**
    ```bash
-   python -m uvicorn app.main:app --host 127.0.0.1 --port 8090 --reload
+   python manage.py runserver 127.0.0.1:8090
+   ```
+   *Or for production WSGI test:*
+   ```bash
+   gunicorn -c gunicorn_conf.py config.wsgi:application
    ```
 
 ---

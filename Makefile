@@ -18,7 +18,11 @@ build:
 
 start:
 	@echo "=== Starting production server ==="
-	HOST=$${HOST:-127.0.0.1} PORT=$${PORT:-8090} gunicorn app.main:app -c gunicorn_conf.py
+	HOST=$${HOST:-127.0.0.1} PORT=$${PORT:-8090} gunicorn config.wsgi:application -c gunicorn_conf.py
+
+dev:
+	@echo "=== Starting Django development server ==="
+	python manage.py runserver $${HOST:-127.0.0.1}:$${PORT:-8090}
 
 run: install build start
 
@@ -32,7 +36,7 @@ setup-vps:
 
 test:
 	@echo "=== Running tests ==="
-	ENV=test python -m pytest tests/ -v --tb=short --cov=app --cov-branch --cov-fail-under=80
+	ENV=test python -m pytest tests/ -v --tb=short --cov=apps --cov-branch --cov-fail-under=80
 
 coverage:
 	@echo "=== Running tests with branch coverage ==="

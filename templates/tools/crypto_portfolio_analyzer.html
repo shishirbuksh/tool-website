@@ -19,17 +19,73 @@
 {% block content %}
 {{ tool_hero_section("pie-chart", "Portfolio Tool", "CRYPTO PORTFOLIO", "ANALYZER", seo_data.description if seo_data else "Track your crypto holdings. Enter amounts, buy prices, and current prices to see total value, P&L, and allocation breakdown.") }}
 
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s" x-data="cryptoPortfolio()">
 
   <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
 
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("plus-circle","w-4 h-4",16)|safe }} Add Asset</h2>
       <p class="text-xs text-base-content/60 mb-4">Enter each crypto you hold with amount, buy price, and current price.</p>
-      <div id="assetContainer" class="space-y-3"></div>
+      
+      <div id="assetContainer" class="space-y-3">
+        <template x-for="(asset, idx) in assets" :key="asset.id">
+          <div class="asset-row rounded-xl p-3 border" style="border-color:color-mix(in oklab,var(--color-base-content) 8%,transparent)">
+            <div class="grid grid-cols-2 gap-2">
+              <div class="col-span-2">
+                <label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" :for="'an' + asset.id">Asset</label>
+                <input aria-label="Asset Name" type="text" :id="'an' + asset.id" x-model="asset.name" class="cal-input w-full text-xs font-bold">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" :for="'aa' + asset.id">Amount</label>
+                <input aria-label="Asset Ticker or Symbol" type="number" :id="'aa' + asset.id" x-model.number="asset.amt" class="cal-input w-full text-xs font-mono font-bold hide-spinner" min="0" step="any">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" :for="'ab' + asset.id">Buy Price ($)</label>
+                <input aria-label="Quantity Held" type="number" :id="'ab' + asset.id" x-model.number="asset.buyP" class="cal-input w-full text-xs font-mono font-bold hide-spinner" min="0" step="any">
+              </div>
+              <div class="col-span-2">
+                <label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" :for="'ac' + asset.id">Current Price ($)</label>
+                <div class="flex gap-2">
+                  <input aria-label="Average Cost Basis ($)" type="number" :id="'ac' + asset.id" x-model.number="asset.curP" class="cal-input flex-1 text-xs font-mono font-bold hide-spinner" min="0" step="any">
+                  <button type="button" @click="removeAsset(asset.id)" class="text-error font-bold text-xs px-1.5 py-1 rounded-lg hover:bg-error/10 transition-colors" aria-label="Remove asset">✕</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- SSR Pre-rendered Assets for Crawlers & Initial View -->
+        <div x-show="!mounted" class="space-y-3">
+          <div class="asset-row rounded-xl p-3 border" style="border-color:color-mix(in oklab,var(--color-base-content) 8%,transparent)">
+            <div class="grid grid-cols-2 gap-2">
+              <div class="col-span-2"><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Asset</label><input type="text" class="cal-input w-full text-xs font-bold" value="BTC" readonly></div>
+              <div><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Amount</label><input type="number" class="cal-input w-full text-xs font-mono font-bold" value="0.5" readonly></div>
+              <div><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Buy Price ($)</label><input type="number" class="cal-input w-full text-xs font-mono font-bold" value="42000" readonly></div>
+              <div class="col-span-2"><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Current Price ($)</label><input type="number" class="cal-input w-full text-xs font-mono font-bold" value="67500" readonly></div>
+            </div>
+          </div>
+          <div class="asset-row rounded-xl p-3 border" style="border-color:color-mix(in oklab,var(--color-base-content) 8%,transparent)">
+            <div class="grid grid-cols-2 gap-2">
+              <div class="col-span-2"><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Asset</label><input type="text" class="cal-input w-full text-xs font-bold" value="ETH" readonly></div>
+              <div><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Amount</label><input type="number" class="cal-input w-full text-xs font-mono font-bold" value="5" readonly></div>
+              <div><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Buy Price ($)</label><input type="number" class="cal-input w-full text-xs font-mono font-bold" value="2200" readonly></div>
+              <div class="col-span-2"><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Current Price ($)</label><input type="number" class="cal-input w-full text-xs font-mono font-bold" value="3450" readonly></div>
+            </div>
+          </div>
+          <div class="asset-row rounded-xl p-3 border" style="border-color:color-mix(in oklab,var(--color-base-content) 8%,transparent)">
+            <div class="grid grid-cols-2 gap-2">
+              <div class="col-span-2"><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Asset</label><input type="text" class="cal-input w-full text-xs font-bold" value="SOL" readonly></div>
+              <div><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Amount</label><input type="number" class="cal-input w-full text-xs font-mono font-bold" value="20" readonly></div>
+              <div><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Buy Price ($)</label><input type="number" class="cal-input w-full text-xs font-mono font-bold" value="95" readonly></div>
+              <div class="col-span-2"><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Current Price ($)</label><input type="number" class="cal-input w-full text-xs font-mono font-bold" value="145" readonly></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="flex gap-3 mt-4">
-        <button type="button" id="addAssetBtn" style="background:var(--color-primary);color:var(--color-primary-content);display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1.5rem;border-radius:9999px;font-size:.75rem;font-weight:900;letter-spacing:.1em;border:none;cursor:pointer;transition:all .2s ease;line-height:1;flex:1">{{ lucide_icon("plus","w-3.5 h-3.5",14)|safe }} Add Asset</button>
-        <button type="button" id="resetBtn" class="btn btn-primary" aria-label="Reset to defaults" style="padding:.75rem 1rem;border-radius:9999px;font-size:.75rem;font-weight:900;letter-spacing:.1em;border:none;cursor:pointer;transition:all .2s ease;line-height:1">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }}</button>
+        <button type="button" id="addAssetBtn" @click="addAsset()" style="background:var(--color-primary);color:var(--color-primary-content);display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1.5rem;border-radius:9999px;font-size:.75rem;font-weight:900;letter-spacing:.1em;border:none;cursor:pointer;transition:all .2s ease;line-height:1;flex:1">{{ lucide_icon("plus","w-3.5 h-3.5",14)|safe }} Add Asset</button>
+        <button type="button" id="resetBtn" @click="resetAssets()" class="btn btn-primary" aria-label="Reset to defaults" style="padding:.75rem 1rem;border-radius:9999px;font-size:.75rem;font-weight:900;letter-spacing:.1em;border:none;cursor:pointer;transition:all .2s ease;line-height:1">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }}</button>
       </div>
     </div>
 
@@ -41,10 +97,22 @@
       <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Portfolio Summary</h2>
       {% include "components/ymyl_disclaimer.html" %}
       <div class="grid grid-cols-2 gap-4">
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Invested</span><output id="resInvested" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-base-content)">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Current Value</span><output id="resValue" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total P&L</span><output id="resPL" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Return</span><output id="resRet" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">0%</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
+          <span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Invested</span>
+          <output id="resInvested" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-base-content)" x-text="'$' + fmtInt(totalInvested)">$33,900</output>
+        </div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
+          <span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Current Value</span>
+          <output id="resValue" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)" x-text="'$' + fmtInt(totalValue)">$53,900</output>
+        </div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
+          <span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total P&L</span>
+          <output id="resPL" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" :style="{ color: totalPL >= 0 ? 'var(--color-success)' : 'var(--color-error)' }" style="color:var(--color-success)" x-text="(totalPL >= 0 ? '+' : '-') + '$' + fmtInt(Math.abs(totalPL))">+$20,000</output>
+        </div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
+          <span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Return</span>
+          <output id="resRet" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" :style="{ color: totalPL >= 0 ? 'var(--color-success)' : 'var(--color-error)' }" style="color:var(--color-success)" x-text="(totalPL >= 0 ? '+' : '') + totalRet.toFixed(1) + '%'">+59.0%</output>
+        </div>
       </div>
     </div>
 
@@ -53,10 +121,66 @@
       <div class="overflow-x-auto">
         <table class="port-table" role="table">
           <thead><tr><th scope="col">Asset</th><th scope="col">Amount</th><th scope="col">Invested</th><th scope="col">Value</th><th scope="col">P&L</th><th scope="col">Alloc</th></tr></thead>
-          <tbody id="tableBody"></tbody>
+          <tbody id="tableBody">
+            <template x-for="(row, i) in breakdownRows" :key="row.id">
+              <tr>
+                <td style="font-weight:800;" :style="'color:' + getColor(i)" x-text="row.name"></td>
+                <td x-text="row.amt.toLocaleString('en-US', {maximumFractionDigits:4})"></td>
+                <td x-text="'$' + fmtInt(row.invested)"></td>
+                <td x-text="'$' + fmtInt(row.value)"></td>
+                <td :style="'color:' + (row.pl >= 0 ? 'var(--color-success)' : 'var(--color-error)')" x-text="(row.pl >= 0 ? '+' : '-') + '$' + fmtInt(Math.abs(row.pl))"></td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div class="allo-bar"><div class="allo-fill" :style="'width:' + row.allo.toFixed(1) + '%;background:' + getColor(i)"></div></div>
+                    <span class="text-[10px] font-mono font-bold" x-text="row.allo.toFixed(1) + '%'"></span>
+                  </div>
+                </td>
+              </tr>
+            </template>
+            <!-- SSR Pre-rendered Table Rows -->
+            <tr x-show="!mounted">
+              <td style="font-weight:800;color:var(--color-primary)">BTC</td>
+              <td>0.5</td>
+              <td>$21,000</td>
+              <td>$33,750</td>
+              <td style="color:var(--color-success)">+$12,750</td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="allo-bar"><div class="allo-fill" style="width:62.6%;background:var(--color-primary)"></div></div>
+                  <span class="text-[10px] font-mono font-bold">62.6%</span>
+                </div>
+              </td>
+            </tr>
+            <tr x-show="!mounted">
+              <td style="font-weight:800;color:var(--color-secondary)">ETH</td>
+              <td>5</td>
+              <td>$11,000</td>
+              <td>$17,250</td>
+              <td style="color:var(--color-success)">+$6,250</td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="allo-bar"><div class="allo-fill" style="width:32.0%;background:var(--color-secondary)"></div></div>
+                  <span class="text-[10px] font-mono font-bold">32.0%</span>
+                </div>
+              </td>
+            </tr>
+            <tr x-show="!mounted">
+              <td style="font-weight:800;color:var(--color-success)">SOL</td>
+              <td>20</td>
+              <td>$1,900</td>
+              <td>$2,900</td>
+              <td style="color:var(--color-success)">+$1,000</td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="allo-bar"><div class="allo-fill" style="width:5.4%;background:var(--color-success)"></div></div>
+                  <span class="text-[10px] font-mono font-bold">5.4%</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
         </table>
       </div>
-      <div id="emptyMsg" class="text-center py-8 text-xs text-base-content/30">Add assets to see your portfolio breakdown.</div>
+      <div id="emptyMsg" x-show="breakdownRows.length === 0" class="text-center py-8 text-xs text-base-content/30" style="display:none">Add assets to see your portfolio breakdown.</div>
     </div>
 
     <div class="feature-card p-6">
@@ -77,117 +201,92 @@
 
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
-  'use strict';
-  const $ = id => document.getElementById(id);
-  const F = v => (v >= 0 ? '' : '') + '$' + Math.round(v).toLocaleString('en-US');
-  const FP = v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
-  function esc(v){ return String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  let assetId = 0;
+window.cryptoPortfolio = function() {
+  var colors = ['var(--color-primary)', 'var(--color-secondary)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-error)', 'var(--color-info)', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'];
+  var nextId = 4;
 
-  function assetRow(id, name, amt, buyP, curP){
-    return '<div class="asset-row rounded-xl p-3 border" style="border-color:color-mix(in oklab,var(--color-base-content) 8%,transparent)" data-id="' + id + '">' +
-      '<div class="grid grid-cols-2 gap-2">' +
-      '<div class="col-span-2"><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="an' + id + '">Asset</label><input aria-label="Asset Name" type="text" id="an' + id + '" class="cal-input w-full text-xs font-bold" value="' + esc(name) + '"></div>' +
-      '<div><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="aa' + id + '">Amount</label><input aria-label="Asset Ticker or Symbol" type="number" id="aa' + id + '" class="cal-input w-full text-xs font-mono font-bold hide-spinner" value="' + amt + '" min="0" step="any"></div>' +
-      '<div><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="ab' + id + '">Buy Price ($)</label><input aria-label="Quantity Held" type="number" id="ab' + id + '" class="cal-input w-full text-xs font-mono font-bold hide-spinner" value="' + buyP + '" min="0" step="any"></div>' +
-      '<div class="col-span-2"><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="ac' + id + '">Current Price ($)</label><div class="flex gap-2"><input aria-label="Average Cost Basis ($)" type="number" id="ac' + id + '" class="cal-input flex-1 text-xs font-mono font-bold hide-spinner" value="' + curP + '" min="0" step="any"><button type="button" class="text-error font-bold text-xs px-1.5 py-1 rounded-lg hover:bg-error/10 transition-colors remove-asset-btn" data-rid="' + id + '" aria-label="Remove asset">✕</button></div></div>' +
-      '</div></div>';
-  }
+  return {
+    mounted: false,
+    assets: [
+      { id: 1, name: 'BTC', amt: 0.5, buyP: 42000, curP: 67500 },
+      { id: 2, name: 'ETH', amt: 5, buyP: 2200, curP: 3450 },
+      { id: 3, name: 'SOL', amt: 20, buyP: 95, curP: 145 }
+    ],
 
-  function getAssets(){
-    const rows = document.querySelectorAll('#assetContainer > div');
-    const assets = [];
-    rows.forEach(function(r){
-      const id = r.getAttribute('data-id');
-      const name = $('an' + id)?.value.trim() || '';
-      const amt = parseFloat($('aa' + id)?.value) || 0;
-      const buyP = parseFloat($('ab' + id)?.value) || 0;
-      const curP = parseFloat($('ac' + id)?.value) || 0;
-      if(name && amt > 0 && buyP > 0 && curP > 0) assets.push({name, amt, buyP, curP});
-    });
-    return assets;
-  }
+    init: function() {
+      this.mounted = true;
+    },
 
-  function calculate(){
-    const assets = getAssets();
-    const tbody = $('tableBody');
-    const emptyMsg = $('emptyMsg');
+    fmtInt: function(v) {
+      return Math.round(Number(v) || 0).toLocaleString('en-US');
+    },
 
-    if(assets.length === 0){
-      emptyMsg.style.display = 'block';
-      tbody.innerHTML = '';
-      $('resInvested').textContent = '$0';
-      $('resValue').textContent = '$0';
-      $('resPL').textContent = '$0';
-      $('resRet').textContent = '0%';
-      $('resInvested').style.color = 'var(--color-base-content)';
-      $('resValue').style.color = 'var(--color-base-content)';
-      $('resPL').style.color = 'var(--color-base-content)';
-      $('resRet').style.color = 'var(--color-base-content)';
-      return;
+    getColor: function(idx) {
+      return colors[idx % colors.length];
+    },
+
+    addAsset: function() {
+      this.assets.push({ id: nextId++, name: '', amt: 0, buyP: 0, curP: 0 });
+    },
+
+    removeAsset: function(id) {
+      this.assets = this.assets.filter(function(a) { return a.id !== id; });
+    },
+
+    resetAssets: function() {
+      nextId = 4;
+      this.assets = [
+        { id: 1, name: 'BTC', amt: 0.5, buyP: 42000, curP: 67500 },
+        { id: 2, name: 'ETH', amt: 5, buyP: 2200, curP: 3450 },
+        { id: 3, name: 'SOL', amt: 20, buyP: 95, curP: 145 }
+      ];
+    },
+
+    get validAssets() {
+      return this.assets.filter(function(a) {
+        return a.name && (Number(a.amt) || 0) > 0 && (Number(a.buyP) || 0) > 0 && (Number(a.curP) || 0) > 0;
+      });
+    },
+
+    get totalInvested() {
+      return this.validAssets.reduce(function(acc, a) {
+        return acc + (Number(a.amt) * Number(a.buyP));
+      }, 0);
+    },
+
+    get totalValue() {
+      return this.validAssets.reduce(function(acc, a) {
+        return acc + (Number(a.amt) * Number(a.curP));
+      }, 0);
+    },
+
+    get totalPL() {
+      return this.totalValue - this.totalInvested;
+    },
+
+    get totalRet() {
+      return this.totalInvested > 0 ? (this.totalPL / this.totalInvested * 100) : 0;
+    },
+
+    get breakdownRows() {
+      var tv = this.totalValue;
+      return this.validAssets.map(function(a) {
+        var inv = Number(a.amt) * Number(a.buyP);
+        var val = Number(a.amt) * Number(a.curP);
+        var pl = val - inv;
+        var allo = tv > 0 ? (val / tv * 100) : 0;
+        return {
+          id: a.id,
+          name: a.name,
+          amt: Number(a.amt),
+          invested: inv,
+          value: val,
+          pl: pl,
+          allo: allo
+        };
+      });
     }
-    emptyMsg.style.display = 'none';
-
-    let totalInvested = 0, totalValue = 0;
-    const rows = assets.map(function(a){
-      const invested = a.amt * a.buyP;
-      const value = a.amt * a.curP;
-      totalInvested += invested;
-      totalValue += value;
-      return {name: a.name, amt: a.amt, invested: invested, value: value, pl: value - invested};
-    });
-
-    const totalPL = totalValue - totalInvested;
-    const totalRet = totalInvested > 0 ? (totalPL / totalInvested) * 100 : 0;
-
-    $('resInvested').textContent = F(totalInvested);
-    $('resInvested').style.color = 'var(--color-base-content)';
-    $('resValue').textContent = F(totalValue);
-    $('resValue').style.color = 'var(--color-success)';
-    $('resPL').textContent = (totalPL >= 0 ? '+' : '') + F(Math.abs(totalPL));
-    $('resPL').style.color = totalPL >= 0 ? 'var(--color-success)' : 'var(--color-error)';
-    $('resRet').textContent = FP(totalRet);
-    $('resRet').style.color = totalPL >= 0 ? 'var(--color-success)' : 'var(--color-error)';
-
-    const colors = ['var(--color-primary)','var(--color-secondary)','var(--color-success)','var(--color-warning)','var(--color-error)','var(--color-info)','#8b5cf6','#ec4899','#14b8a6','#f97316'];
-    tbody.innerHTML = rows.map(function(r, i){
-      const c = colors[i % colors.length];
-      const alloPct = totalValue > 0 ? (r.value / totalValue) * 100 : 0;
-      const plColor = r.pl >= 0 ? 'var(--color-success)' : 'var(--color-error)';
-      return '<tr><td style="font-weight:800;color:' + c + '">' + esc(r.name) + '</td><td>' + r.amt.toLocaleString('en-US', {maximumFractionDigits:4}) + '</td><td>' + F(r.invested) + '</td><td>' + F(r.value) + '</td><td style="color:' + plColor + '">' + (r.pl >= 0 ? '+' : '') + F(Math.abs(r.pl)) + '</td><td><div class="flex items-center gap-2"><div class="allo-bar"><div class="allo-fill" style="width:' + alloPct + '%;background:' + c + '"></div></div><span class="text-[10px] font-mono font-bold">' + alloPct.toFixed(1) + '%</span></div></td></tr>';
-    }).join('');
-  }
-
-  function addAsset(name, amt, buyP, curP){
-    const id = ++assetId;
-    const container = $('assetContainer');
-    const div = document.createElement('div');
-    div.innerHTML = assetRow(id, name, amt, buyP, curP);
-    while(div.children.length > 0) container.appendChild(div.firstChild);
-    const row = container.querySelector('[data-id="' + id + '"]');
-    row.querySelectorAll('input').forEach(function(el){ el.addEventListener('input', calculate); });
-    row.querySelector('.remove-asset-btn').addEventListener('click', function(){
-      this.closest('[data-id]').remove();
-      calculate();
-    });
-    calculate();
-  }
-
-  function resetAssets(){
-    $('assetContainer').innerHTML = '';
-    assetId = 0;
-    addAsset('BTC', 0.5, 42000, 67500);
-    addAsset('ETH', 5, 2200, 3450);
-    addAsset('SOL', 20, 95, 145);
-    calculate();
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){
-    resetAssets();
-    $('addAssetBtn').addEventListener('click', function(){ addAsset('', 0, 0, 0); });
-    $('resetBtn').addEventListener('click', resetAssets);
-  });
-})();
+  };
+};
 </script>
 {% endblock %}

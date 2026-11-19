@@ -1,6 +1,6 @@
 """Tests for the IndexNow key file endpoint and English-only submission script."""
 
-from app.api.routes import seo as seo_routes
+from apps.seo import views as seo_routes
 
 TEST_KEY = "0123456789abcdef0123456789abcdef"
 

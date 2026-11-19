@@ -3,16 +3,28 @@
 from unittest.mock import AsyncMock
 
 import pytest
-from starlette.requests import Request
-from starlette.responses import Response
+class Request:
+    url = None
+    headers = None
+    method = "GET"
+    state = None
+    query_params = None
 
-from app.core.log import _request_id_var, reset_request_id, set_request_id
+
+class Response:
+    def __init__(self, content="", status_code=200, headers=None):
+        self.content = content
+        self.status_code = status_code
+        self.headers = headers or {}
+
+
+from apps.core.log import _request_id_var, reset_request_id, set_request_id
 
 
 class TestRequestIDMiddleware:
     @pytest.mark.asyncio
     async def test_adds_request_id_header(self):
-        from app.core.middleware import RequestIDMiddleware
+        from apps.core.middleware import RequestIDMiddleware
 
         mock_request = AsyncMock(spec=Request)
         mock_request.headers = {"X-Request-ID": "test-id-123"}
@@ -29,7 +41,7 @@ class TestRequestIDMiddleware:
 
     @pytest.mark.asyncio
     async def test_generates_request_id_if_missing(self):
-        from app.core.middleware import RequestIDMiddleware
+        from apps.core.middleware import RequestIDMiddleware
 
         mock_request = AsyncMock(spec=Request)
         mock_request.headers = {}
@@ -55,7 +67,7 @@ class TestRequestIDMiddleware:
 class TestSecurityHeadersMiddleware:
     @pytest.mark.asyncio
     async def test_security_headers_present(self):
-        from app.core.middleware import SecurityHeadersMiddleware
+        from apps.core.middleware import SecurityHeadersMiddleware
 
         mock_request = AsyncMock(spec=Request)
         mock_request.state = type("State", (), {})()
@@ -75,7 +87,7 @@ class TestSecurityHeadersMiddleware:
 class TestCaseSensitiveRedirectMiddleware:
     @pytest.mark.asyncio
     async def test_relative_redirect_preserves_query(self):
-        from app.core.middleware import CaseSensitiveRedirectMiddleware
+        from apps.core.middleware import CaseSensitiveRedirectMiddleware
 
         mock_url = type("Url", (), {"path": "/TOOL/Image-Compressor", "query": "source=header&ref=test"})()
         mock_request = AsyncMock(spec=Request)
@@ -92,7 +104,7 @@ class TestCaseSensitiveRedirectMiddleware:
 class TestOriginCheckMiddleware:
     @pytest.mark.asyncio
     async def test_blocks_unauthorized_cross_origin_post(self):
-        from app.core.middleware import OriginCheckMiddleware
+        from apps.core.middleware import OriginCheckMiddleware
 
         mock_request = AsyncMock(spec=Request)
         mock_request.method = "POST"
@@ -108,7 +120,7 @@ class TestOriginCheckMiddleware:
 class TestCleanQueryMiddleware:
     @pytest.mark.asyncio
     async def test_strips_pagespeed_junk(self):
-        from app.core.middleware import CleanQueryMiddleware
+        from apps.core.middleware import CleanQueryMiddleware
 
         mock_url = type("Url", (), {"path": "/tool/calculator", "query": "pagespeed=noscript&valid=1"})()
         mock_request = AsyncMock(spec=Request)
@@ -125,7 +137,7 @@ class TestCleanQueryMiddleware:
 
     @pytest.mark.asyncio
     async def test_preserves_marketing_utm_and_gclid_by_default(self):
-        from app.core.middleware import CleanQueryMiddleware
+        from apps.core.middleware import CleanQueryMiddleware
 
         mock_url = type("Url", (), {"path": "/tool/calculator", "query": "utm_source=twitter&gclid=123"})()
         mock_request = AsyncMock(spec=Request)
@@ -144,7 +156,7 @@ class TestCleanQueryMiddleware:
 class TestTrailingSlashRedirectMiddleware:
     @pytest.mark.asyncio
     async def test_trailing_slash_redirects_301_relative(self):
-        from app.core.middleware import TrailingSlashRedirectMiddleware
+        from apps.core.middleware import TrailingSlashRedirectMiddleware
 
         mock_url = type("Url", (), {"path": "/tools/", "query": ""})()
         mock_request = AsyncMock(spec=Request)
@@ -161,7 +173,7 @@ class TestTrailingSlashRedirectMiddleware:
 
     @pytest.mark.asyncio
     async def test_trailing_slash_lowercases_and_preserves_query(self):
-        from app.core.middleware import TrailingSlashRedirectMiddleware
+        from apps.core.middleware import TrailingSlashRedirectMiddleware
 
         mock_url = type("Url", (), {"path": "/TOOL/Image-Compressor/", "query": "q=webp&ref=nav"})()
         mock_request = AsyncMock(spec=Request)
@@ -178,7 +190,7 @@ class TestTrailingSlashRedirectMiddleware:
 
     @pytest.mark.asyncio
     async def test_root_and_static_do_not_redirect(self):
-        from app.core.middleware import TrailingSlashRedirectMiddleware
+        from apps.core.middleware import TrailingSlashRedirectMiddleware
 
         middleware = TrailingSlashRedirectMiddleware(lambda: None)
         for path in ("/", "/static/css/"):
@@ -194,7 +206,7 @@ class TestTrailingSlashRedirectMiddleware:
 
     @pytest.mark.asyncio
     async def test_trailing_slash_strips_legacy_locale_single_hop(self):
-        from app.core.middleware import TrailingSlashRedirectMiddleware
+        from apps.core.middleware import TrailingSlashRedirectMiddleware
 
         middleware = TrailingSlashRedirectMiddleware(lambda: None)
         cases = [

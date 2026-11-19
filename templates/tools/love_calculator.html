@@ -41,16 +41,16 @@
 {% endblock %}
 {% block content %}
 {{ tool_hero_section("heart", "Entertainment & Folklore Toy", "LOVE", "CALCULATOR", seo_data.description if seo_data else "Playful name-letter numerology, classic FLAMES game, and zodiac element matching for fun — 100% private in your browser, entertainment only.") }}
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="loveCalculator()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="lc-card">
       <div class="tab-bar">
         <button type="button" class="tab-btn on" data-mode="names" aria-label="Name compatibility mode">Names</button>
-        <button type="button" class="tab-btn" data-mode="flames" aria-label="FLAMES game mode">FLAMES</button>
-        <button type="button" class="tab-btn" data-mode="zodiac" aria-label="Zodiac compatibility mode">Zodiac</button>
+        <button type="button" class="tab-btn" :class="{ 'on': mode === 'flames' }" @click="setMode('flames')" aria-label="FLAMES game mode">FLAMES</button>
+        <button type="button" class="tab-btn" :class="{ 'on': mode === 'zodiac' }" @click="setMode('zodiac')" aria-label="Zodiac compatibility mode">Zodiac</button>
       </div>
       <div class="space-y-4">
-        <div id="inputsNames">
+        <div id="inputsNames" x-show="mode === 'names'">
           <div>
             <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/60 block mb-1.5" for="name1">First name</label>
             <input type="text" id="name1" class="w-full rounded-xl px-4 py-3 font-bold text-sm" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content)" placeholder="Your name" maxlength="50" aria-label="First name for love calculation">
@@ -60,7 +60,7 @@
             <input type="text" id="name2" class="w-full rounded-xl px-4 py-3 font-bold text-sm" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content)" placeholder="Their name" maxlength="50" aria-label="Second name for love calculation">
           </div>
         </div>
-        <div id="inputsFlames" class="hidden">
+        <div id="inputsFlames" x-show="mode === 'flames'">
           <div>
             <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/60 block mb-1.5" for="fname1">Your name</label>
             <input type="text" id="fname1" class="w-full rounded-xl px-4 py-3 font-bold text-sm" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content)" placeholder="Your name" maxlength="50" aria-label="Your name for FLAMES">
@@ -70,7 +70,7 @@
             <input type="text" id="fname2" class="w-full rounded-xl px-4 py-3 font-bold text-sm" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content)" placeholder="Their name" maxlength="50" aria-label="Their name for FLAMES">
           </div>
         </div>
-        <div id="inputsZodiac" class="hidden">
+        <div id="inputsZodiac" x-show="mode === 'zodiac'">
           <div>
             <label class="text-[11px] uppercase tracking-wider font-bold text-base-content/60 block mb-1.5" for="zodiac1">First sign</label>
             <select id="zodiac1" class="w-full rounded-xl px-4 py-3 font-bold text-sm" style="background:var(--color-base-100);border:2px solid var(--color-base-300);color:var(--color-base-content);appearance:auto" aria-label="First zodiac sign">
@@ -125,7 +125,36 @@
   </div>
 </div>
 <script nonce="{{ nonce }}">
-(function(){'use strict';
+window.loveCalculator = function() {
+  return {
+    mode: 'names',
+
+    setMode: function(m) {
+      this.mode = m;
+      var cl = document.getElementById('calcLabel');
+      if (cl) {
+        cl.textContent = m === 'names' ? 'Calculate Love Score' : m === 'flames' ? 'Find FLAMES Result' : 'Check Zodiac Match';
+      }
+    },
+
+    calc: function() {
+      if (window._lcDoCalc) window._lcDoCalc();
+    },
+
+    reset: function() {
+      if (window._lcDoReset) window._lcDoReset();
+    },
+
+    init: function() {
+      var self = this;
+      // Initialize underlying logic
+      initLoveLogic();
+    }
+  };
+};
+
+function initLoveLogic() {
+
 var mode='names';
 var n1=document.getElementById('name1'),n2=document.getElementById('name2');
 var fn1=document.getElementById('fname1'),fn2=document.getElementById('fname2');
@@ -202,6 +231,7 @@ n1.addEventListener('keydown',function(e){if(e.key==='Enter'&&!cb.disabled)calc(
 n2.addEventListener('keydown',function(e){if(e.key==='Enter'&&!cb.disabled)calc()});
 fn1.addEventListener('keydown',function(e){if(e.key==='Enter'&&!cb.disabled)calc()});
 fn2.addEventListener('keydown',function(e){if(e.key==='Enter'&&!cb.disabled)calc()});
+window._lcDoCalc = calc;
 cb.addEventListener('click',calc);
 
 function calcNames(a,b){
@@ -406,7 +436,7 @@ rb.addEventListener('click',function(){
 });
 
 renderHistory();
-})();
+}
 </script>
 {{ tool_section_end() }}
 {% endblock %}

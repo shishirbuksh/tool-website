@@ -51,35 +51,66 @@
 {% endblock %}
 {% block content %}
 {{ tool_hero_section("layers", "Calculators", "Compound Interest", "CALCULATOR", seo_data.description if seo_data else "See how your money grows with compound interest. Add monthly contributions and choose your compounding frequency.") }}
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+
+<div x-data="compoundCalculator()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="cp-card">
       <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("dollar-sign","w-4 h-4",16) | safe }} Investment Details</h2>
       <div class="flex flex-col gap-3">
-        <div><label class="cp-label" for="cpPrincipal">Principal Amount ($)</label><input type="text" id="cpPrincipal" class="cp-input" value="10000" inputmode="numeric" aria-label="Initial investment amount"></div>
-        <div><label class="cp-label" for="cpContribution">Monthly Contribution ($)</label><input type="text" id="cpContribution" class="cp-input" value="500" inputmode="numeric" aria-label="Monthly contribution amount"></div>
+        <div><label class="cp-label" for="cpPrincipal">Principal Amount ($)</label><input type="number" id="cpPrincipal" x-model.number="principal" class="cp-input" value="10000" inputmode="numeric" aria-label="Initial investment amount"></div>
+        <div><label class="cp-label" for="cpContribution">Monthly Contribution ($)</label><input type="number" id="cpContribution" x-model.number="contribution" class="cp-input" value="500" inputmode="numeric" aria-label="Monthly contribution amount"></div>
         <hr style="border:none;border-top:1px solid var(--color-base-300);margin:4px 0">
-        <div><label class="cp-label" for="cpRate">Annual Interest Rate (%)</label><input type="text" id="cpRate" class="cp-input" value="8" inputmode="decimal" aria-label="Annual interest rate as percentage"></div>
-        <div><label class="cp-label" for="cpYears">Time Period (years)</label><input type="text" id="cpYears" class="cp-input" value="10" inputmode="numeric" aria-label="Investment time period in years"></div>
-        <div><label class="cp-label" for="cpFreq">Compound Frequency</label><select id="cpFreq" class="cp-select" aria-label="How often interest compounds"><option value="1">Annually</option><option value="2">Semi-Annually</option><option value="4" selected>Quarterly</option><option value="12">Monthly</option></select></div>
+        <div><label class="cp-label" for="cpRate">Annual Interest Rate (%)</label><input type="number" id="cpRate" x-model.number="rate" step="0.1" class="cp-input" value="8" inputmode="decimal" aria-label="Annual interest rate as percentage"></div>
+        <div><label class="cp-label" for="cpYears">Time Period (years)</label><input type="number" id="cpYears" x-model.number="years" class="cp-input" value="10" inputmode="numeric" aria-label="Investment time period in years"></div>
+        <div><label class="cp-label" for="cpFreq">Compound Frequency</label>
+          <select id="cpFreq" x-model.number="freq" class="cp-select" aria-label="How often interest compounds">
+            <option value="1">Annually</option>
+            <option value="2">Semi-Annually</option>
+            <option value="4" selected>Quarterly</option>
+            <option value="12">Monthly</option>
+          </select>
+        </div>
       </div>
       <div class="flex gap-2 mt-3">
-        <button type="button" id="cpCalcBtn" class="cp-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
-        <button type="button" id="cpCopyBtn" class="cp-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
-        <button type="button" id="cpDlBtn" class="cp-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="cpCalcBtn" @click="saveHistory()" class="cp-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
+        <button type="button" id="cpCopyBtn" @click="copyAll()" class="cp-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="cpDlBtn" @click="dlReport()" class="cp-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
       </div>
     </div>
     <div class="cp-card mt-4">
       <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("zap","w-3 h-3",12) | safe }} What-If</h2>
       <p class="text-[11px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">Test different scenarios instantly</p>
-      <div class="cp-whatif" id="cpWhatIf"><button type="button" class="on" data-wi="current">Current</button><button type="button" data-wi="x2-contrib">x2 Contribution</button><button type="button" data-wi="higher-rate">+2% Rate</button><button type="button" data-wi="longer">+5 Years</button><button type="button" data-wi="no-contrib">No Contributions</button><button type="button" data-wi="best-case">Best Case</button></div>
+      <div class="cp-whatif" id="cpWhatIf">
+        <button type="button" :class="{ 'on': wi === 'current' }" @click="wi = 'current'" data-wi="current">Current</button>
+        <button type="button" :class="{ 'on': wi === 'x2-contrib' }" @click="wi = 'x2-contrib'" data-wi="x2-contrib">x2 Contribution</button>
+        <button type="button" :class="{ 'on': wi === 'higher-rate' }" @click="wi = 'higher-rate'" data-wi="higher-rate">+2% Rate</button>
+        <button type="button" :class="{ 'on': wi === 'longer' }" @click="wi = 'longer'" data-wi="longer">+5 Years</button>
+        <button type="button" :class="{ 'on': wi === 'no-contrib' }" @click="wi = 'no-contrib'" data-wi="no-contrib">No Contributions</button>
+        <button type="button" :class="{ 'on': wi === 'best-case' }" @click="wi = 'best-case'" data-wi="best-case">Best Case</button>
+      </div>
     </div>
     <div class="cp-card mt-4">
       <div class="flex items-center justify-between">
         <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
-        <div class="flex items-center gap-2"><button type="button" id="cpHiToggle" class="cp-toggle" aria-expanded="false" aria-controls="cpHiWrap">History <span id="cpHiCount"></span></button><button type="button" id="cpHiClear" class="cp-sec" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="cpHiToggle" class="cp-toggle" :class="{ 'on': showHist }" :aria-expanded="showHist" @click="showHist = !showHist" aria-controls="cpHiWrap">
+            History <span id="cpHiCount" x-show="history.length" x-text="'(' + history.length + ')'"></span>
+          </button>
+          <button type="button" id="cpHiClear" class="cp-sec" x-show="history.length" @click="clearHistory()">{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button>
+        </div>
       </div>
-      <div id="cpHiWrap" hidden class="mt-2"><div id="cpHiList" class="cp-hist"></div></div>
+      <div id="cpHiWrap" x-show="showHist" class="mt-2">
+        <div id="cpHiList" class="cp-hist">
+          <template x-for="(item, idx) in history" :key="idx">
+            <div class="cp-hist-item" @click="loadHistory(idx)">
+              <span class="preview" x-text="item.label"></span>
+              <span class="meta" x-text="relTime(item.ts)"></span>
+              <button type="button" class="hdel" @click.stop="deleteHistory(idx)" aria-label="Delete">✕</button>
+            </div>
+          </template>
+          <div x-show="!history.length" class="cp-empty">No calculations yet</div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="lg:w-7/12">
@@ -87,230 +118,253 @@
       <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("trending-up","w-4 h-4",16) | safe }} Growth Results</h2>
       {% include "components/ymyl_disclaimer.html" %}
       <div class="cp-grid" id="cpResults">
-        <div class="cp-result full"><div class="iv" id="cpTotalValue" style="color:var(--color-primary)">$0.00</div><div class="il">Total Value</div></div>
-        <div class="cp-result"><div class="iv" id="cpContributions">$0.00</div><div class="il">Total Contributions</div></div>
-        <div class="cp-result"><div class="iv" id="cpInterest" style="color:var(--color-success)">$0.00</div><div class="il">Total Interest Earned</div></div>
-        <div class="cp-result"><div class="iv" id="cpEar">0.00%</div><div class="il">Effective Annual Rate</div></div>
+        <div class="cp-result full"><div class="iv" id="cpTotalValue" style="color:var(--color-primary)" x-text="formatCurrency(results.finalBalance)">$114,495.43</div><div class="il">Total Value</div></div>
+        <div class="cp-result"><div class="iv" id="cpContributions" x-text="formatCurrency(results.totalContribs)">$70,000.00</div><div class="il">Total Contributions</div></div>
+        <div class="cp-result"><div class="iv" id="cpInterest" style="color:var(--color-success)" x-text="formatCurrency(results.totalInterest)">$44,495.43</div><div class="il">Total Interest Earned</div></div>
+        <div class="cp-result"><div class="iv" id="cpEar" x-text="results.earText">8.24%</div><div class="il">Effective Annual Rate</div></div>
       </div>
-      <div class="cp-ratio" id="cpRatioBar" aria-label="Contributions vs interest breakdown"></div>
-      <p class="text-[11px] font-bold opacity-25 uppercase tracking-wider text-center mt-1" id="cpRatioLabel"></p>
+      <div class="cp-ratio" id="cpRatioBar" aria-label="Contributions vs interest breakdown">
+        <div class="rb" style="background:color-mix(in oklab,var(--color-primary) 50%,transparent)" :style="{ width: results.ratioContrib + '%' }"></div>
+        <div class="rb" style="background:color-mix(in oklab,var(--color-success) 50%,transparent)" :style="{ width: results.ratioInterest + '%' }"></div>
+      </div>
+      <p class="text-[11px] font-bold opacity-25 uppercase tracking-wider text-center mt-1" id="cpRatioLabel" x-text="'Contributions: ' + results.ratioContrib + '%    Interest: ' + results.ratioInterest + '%'">Contributions: 61.1%    Interest: 38.9%</p>
     </div>
     <div class="cp-card mt-4">
       <div class="flex items-center justify-between">
         <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} Year-by-Year Growth</h2>
-        <button type="button" id="cpTableToggle" class="cp-toggle" aria-expanded="true" aria-controls="cpTableWrap">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="cpTableToggle" class="cp-toggle" :class="{ 'on': showTable }" :aria-expanded="showTable" @click="showTable = !showTable" aria-controls="cpTableWrap">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
       </div>
-      <div id="cpTableWrap"><div class="cp-table-wrap mt-2"><table class="cp-table" id="cpYearTable"><thead><tr><th>Year</th><th>Start</th><th>Contributions</th><th>Interest</th><th>End</th></tr></thead><tbody id="cpYearBody"></tbody></table></div></div>
+      <div id="cpTableWrap" x-show="showTable">
+        <div class="cp-table-wrap mt-2">
+          <table class="cp-table" id="cpYearTable">
+            <thead><tr><th>Year</th><th>Start</th><th>Contributions</th><th>Interest</th><th>End</th></tr></thead>
+            <tbody id="cpYearBody">
+              <template x-for="yr in results.yearlyData" :key="yr.y">
+                <tr>
+                  <td x-text="'Year ' + yr.y"></td>
+                  <td x-text="formatCurrency(yr.start)"></td>
+                  <td x-text="formatCurrency(yr.contrib)"></td>
+                  <td style="color:var(--color-success)" x-text="formatCurrency(yr.interest)"></td>
+                  <td style="font-weight:900" x-text="formatCurrency(yr.end)"></td>
+                </tr>
+              </template>
+              <!-- Pre-rendered SSR fallback rows for crawlers -->
+              <tr x-show="!mounted"><td>Year 1</td><td>$10,000.00</td><td>$6,000.00</td><td style="color:var(--color-success)">$1,059.39</td><td style="font-weight:900">$17,059.39</td></tr>
+              <tr x-show="!mounted"><td>Year 2</td><td>$17,059.39</td><td>$6,000.00</td><td style="color:var(--color-success)">$1,642.50</td><td style="font-weight:900">$24,701.89</td></tr>
+              <tr x-show="!mounted"><td>Year 3</td><td>$24,701.89</td><td>$6,000.00</td><td style="color:var(--color-success)">$2,273.74</td><td style="font-weight:900">$32,975.63</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
     <div class="cp-card mt-4">
       <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("flag","w-4 h-4",16) | safe }} Milestones</h2>
       <div class="flex flex-col gap-2">
-        <div class="cp-milestone"><span class="ml">Time to Double</span><span class="mv" id="cpDouble">—</span></div>
-        <div class="cp-milestone"><span class="ml">Value at End</span><span class="mv" id="cpFinalVal">—</span></div>
+        <div class="cp-milestone"><span class="ml">Time to Double</span><span class="mv" id="cpDouble" style="color:var(--color-success)" x-text="results.doubleText">Year 2</span></div>
+        <div class="cp-milestone"><span class="ml">Value at End</span><span class="mv" id="cpFinalVal" x-text="formatCurrency(results.finalBalance)">$114,495.43</span></div>
       </div>
     </div>
   </div>
+  <div id="cpToast" class="cp-toast" :class="{ 'show': toastShow }" role="status" aria-live="polite" x-text="toastMsg"></div>
 </div>
-<div id="cpToast" class="cp-toast" role="status" aria-live="polite"></div>
+
+{% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){'use strict';
-var wi='current',tableOn=true;
-var history=[];try{var h=JSON.parse(localStorage.getItem('sb_cp')||'[]');if(Array.isArray(h))history=h}catch(e){}
-var saved=null;try{var s=JSON.parse(localStorage.getItem('sb_cp_i')||'null');if(s&&typeof s==='object')saved=s}catch(e){}
+window.compoundCalculator = function() {
+  return {
+    mounted: false,
+    principal: 10000,
+    contribution: 500,
+    rate: 8,
+    years: 10,
+    freq: 4,
+    wi: 'current',
+    showTable: true,
+    showHist: false,
+    toastMsg: '',
+    toastShow: false,
+    history: [],
 
-function el(id){return document.getElementById(id)}
-var principal=el('cpPrincipal'),contribution=el('cpContribution'),rate=el('cpRate'),years=el('cpYears'),freq=el('cpFreq');
-var calcBtn=el('cpCalcBtn'),copyBtn=el('cpCopyBtn'),dlBtn=el('cpDlBtn'),whatifEl=el('cpWhatIf');
-var totalValue=el('cpTotalValue'),contributions=el('cpContributions'),interest=el('cpInterest'),ear=el('cpEar');
-var ratioBar=el('cpRatioBar'),ratioLabel=el('cpRatioLabel');
-var yearBody=el('cpYearBody'),doubleV=el('cpDouble'),finalV=el('cpFinalVal');
-var hiToggle=el('cpHiToggle'),hiCount=el('cpHiCount'),hiClear=el('cpHiClear'),hiWrap=el('cpHiWrap'),hiList=el('cpHiList');
-var tableToggle=el('cpTableToggle'),tableWrap=el('cpTableWrap');
-var toastEl=el('cpToast'),tt;
-var yearlyData=[],finalBalance=0,totalContribs=0,totalInterest=0,earVal=0;
+    init: function() {
+      this.mounted = true;
+      try {
+        var h = JSON.parse(localStorage.getItem('sb_cp') || '[]');
+        if (Array.isArray(h)) this.history = h;
+      } catch (e) {}
+      try {
+        var s = JSON.parse(localStorage.getItem('sb_cp_i') || 'null');
+        if (s && typeof s === 'object') {
+          if (s.p !== undefined) this.principal = Number(s.p);
+          if (s.m !== undefined) this.contribution = Number(s.m);
+          if (s.r !== undefined) this.rate = Number(s.r);
+          if (s.t !== undefined) this.years = Number(s.t);
+          if (s.n !== undefined) this.freq = Number(s.n);
+          if (s.wi) this.wi = s.wi;
+        }
+      } catch (e) {}
+    },
 
-function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show')},2200)}
-function v(e){var n=parseFloat(e.value.replace(/,/g,''));return isNaN(n)?0:n}
-function fmtCurrency(n){if(isNaN(n)||n===0)return'$0.00';return'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
-function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+    toast: function(msg) {
+      this.toastMsg = msg;
+      this.toastShow = true;
+      var self = this;
+      setTimeout(function() { self.toastShow = false; }, 2200);
+    },
 
-function applyWI(){
-var p=v(principal),m=v(contribution),r=v(rate)/100,t=v(years),n=parseInt(freq.value);
-if(wi==='x2-contrib'){m*=2}
-else if(wi==='higher-rate'){r+=0.02}
-else if(wi==='longer'){t+=5}
-else if(wi==='no-contrib'){m=0}
-else if(wi==='best-case'){m*=2;r+=0.02;t+=5}
-return{p:p,m:m,r:r,t:t,n:n}
-}
+    get wiParams() {
+      var p = Number(this.principal) || 0;
+      var m = Number(this.contribution) || 0;
+      var r = (Number(this.rate) || 0) / 100;
+      var t = Number(this.years) || 1;
+      var n = Number(this.freq) || 4;
+      if (this.wi === 'x2-contrib') m *= 2;
+      else if (this.wi === 'higher-rate') r += 0.02;
+      else if (this.wi === 'longer') t += 5;
+      else if (this.wi === 'no-contrib') m = 0;
+      else if (this.wi === 'best-case') { m *= 2; r += 0.02; t += 5; }
+      return { p: p, m: m, r: r, t: t, n: n };
+    },
 
-function calc(){
-var d=applyWI();
-var p=d.p,m=d.m,r=d.r,t=d.t,n=d.n;
-if(t<=0){t=1}
-var balance=p,_totalContribs=p;
-var monthsPerPeriod=12/n;
-if(monthsPerPeriod<1)monthsPerPeriod=1;
-var periodicRate=r/n;
-var totalMonths=Math.round(t*12);
-var yearlySnapshots=[];var year=0;var yearEndBal=balance;var yearStart=p;var yearContrib=p;var yearInterest=0;var monthsThisYear=0;
-yearlySnapshots.push({y:0,start:0,contrib:p,interest:0,end:p});
+    get results() {
+      var d = this.wiParams;
+      var p = d.p, m = d.m, r = d.r, t = Math.max(1, d.t), n = d.n;
+      var balance = p, _totalContribs = p;
+      var monthsPerPeriod = Math.max(1, Math.round(12 / n));
+      var periodicRate = r / n;
+      var totalMonths = Math.round(t * 12);
+      var yearlySnapshots = [];
+      var year = 0;
+      var yearStart = p;
+      var yearContrib = 0;
+      var yearInterest = 0;
 
-for(var i=1;i<=totalMonths;i++){
-var prevBal=balance;
-if(m>0){balance+=m;_totalContribs+=m;yearContrib+=m}
-var compApplied=false;
-if(n===12){balance*=(1+periodicRate);compApplied=true}
-else{monthsPerPeriod>=1&&(((i)%monthsPerPeriod===0)||i===totalMonths)?(balance*=(1+periodicRate),compApplied=true):0}
-if(compApplied&&i>0){yearInterest+=balance-prevBal-m}
-monthsThisYear++;
-if(i%12===0||i===totalMonths){
-year++;
-var yEnd=balance;
-yearlySnapshots.push({y:year,start:yearStart,contrib:yearContrib,interest:yearInterest,end:yEnd});
-yearStart=yEnd;yearContrib=0;yearInterest=0;monthsThisYear=0;
-}
-}
+      var doubleYear = null;
+      var targetDouble = p * 2;
 
-finalBalance=balance;
-totalContribs=_totalContribs;
-var _totalInterest=finalBalance-p-totalContribs;
-if(_totalInterest<0)_totalInterest=0;
-totalInterest=_totalInterest;
-earVal=r>0?Math.pow(1+periodicRate,n)-1:0;
-yearlyData=yearlySnapshots;
+      for (var i = 1; i <= totalMonths; i++) {
+        var prevBal = balance;
+        if (m > 0) { balance += m; _totalContribs += m; yearContrib += m; }
+        var compApplied = false;
+        if (n === 12) { balance *= (1 + periodicRate); compApplied = true; }
+        else if ((i % monthsPerPeriod === 0) || i === totalMonths) { balance *= (1 + periodicRate); compApplied = true; }
+        if (compApplied && i > 0) { yearInterest += (balance - prevBal - m); }
 
-totalValue.textContent=fmtCurrency(finalBalance);
-contributions.textContent=fmtCurrency(p+_totalContribs);
-interest.textContent=fmtCurrency(totalInterest);
-interest.style.color=totalInterest>0?'var(--color-success)':'var(--color-base-content)';
-ear.textContent=(earVal*100).toFixed(2)+'%';
+        if (doubleYear === null && balance >= targetDouble) {
+          doubleYear = Math.ceil(i / 12);
+        }
 
-renderRatio(p+_totalContribs,totalInterest);
-renderTable();
-renderMilestones(p,m,r,t,n);
-saveInputs();
-}
+        if (i % 12 === 0 || i === totalMonths) {
+          year++;
+          yearlySnapshots.push({
+            y: year,
+            start: yearStart,
+            contrib: yearContrib,
+            interest: Math.max(0, yearInterest),
+            end: balance
+          });
+          yearStart = balance;
+          yearContrib = 0;
+          yearInterest = 0;
+        }
+      }
 
-function renderRatio(contribAmt,intAmt){
-var total=contribAmt+intAmt;
-if(total<=0){ratioBar.innerHTML='';ratioLabel.textContent='';return}
-var cpct=((contribAmt/total)*100).toFixed(1);
-var ipct=((intAmt/total)*100).toFixed(1);
-ratioBar.innerHTML='<div class="rb" style="width:'+cpct+'%;background:color-mix(in oklab,var(--color-primary) 50%,transparent)" title="Contributions: '+cpct+'%"></div><div class="rb" style="width:'+ipct+'%;background:color-mix(in oklab,var(--color-success) 50%,transparent)" title="Interest: '+ipct+'%"></div>';
-ratioLabel.textContent='Contributions: '+cpct+'%    Interest: '+ipct+'%';
-}
+      var totalInterest = Math.max(0, balance - _totalContribs);
+      var earVal = r > 0 ? (Math.pow(1 + periodicRate, n) - 1) : 0;
+      var totalSum = _totalContribs + totalInterest;
+      var cpct = totalSum > 0 ? ((_totalContribs / totalSum) * 100).toFixed(1) : '50.0';
+      var ipct = totalSum > 0 ? ((totalInterest / totalSum) * 100).toFixed(1) : '50.0';
 
-function renderTable(){
-var h='';
-yearlyData.forEach(function(yr){
-if(yr.y===0)return;
-h+='<tr><td>Year '+yr.y+'</td><td>'+fmtCurrency(yr.start)+'</td><td>'+fmtCurrency(yr.contrib)+'</td><td style="color:'+(yr.interest>0?'var(--color-success)':'')+'">'+fmtCurrency(yr.interest)+'</td><td style="font-weight:900">'+fmtCurrency(yr.end)+'</td></tr>';
-});
-yearBody.innerHTML=h||'<tr><td colspan="5" style="text-align:center;opacity:.3;padding:20px">No data</td></tr>';
-}
+      return {
+        finalBalance: balance,
+        totalContribs: _totalContribs,
+        totalInterest: totalInterest,
+        earText: (earVal * 100).toFixed(2) + '%',
+        ratioContrib: cpct,
+        ratioInterest: ipct,
+        yearlyData: this.mounted ? yearlySnapshots : [],
+        doubleText: doubleYear ? ('Year ' + doubleYear) : 'Not within term'
+      };
+    },
 
-function renderMilestones(p,m,r,t,n){
-var periodsPerYear=n;
-var periodicRate=r/n;
-var totalPeriods=n*t;
-var monthlyContrib=m;
-var target=p*2;
-var found=false;
-for(var yr=1;yr<=t;yr++){
-var bal=p;var _c=p;
-for(var mo=1;mo<=yr*12;mo++){
-_bal:for(var mi=1;mi<=yr*12;mi++){
-if(mi===1){bal=p;_c=p}
-if(mi<=mo){bal+=monthlyContrib;_c+=monthlyContrib}
-if(mi%Math.round(12/periodsPerYear)===0||mi===yr*12){bal*=(1+periodicRate)}
-if(mi===mo&&bal>=target){doubleV.textContent='Year '+yr;found=true;break _bal}
-}
-if(found)break;
-}
-if(found)break;
-}
-if(!found||t<=0){doubleV.textContent='Not within term'}
-doubleV.style.color=found?'var(--color-success)':'var(--color-base-content)';
-finalV.textContent=fmtCurrency(finalBalance);
-}
+    saveInputs: function() {
+      var obj = { p: this.principal, m: this.contribution, r: this.rate, t: this.years, n: this.freq, wi: this.wi };
+      try { localStorage.setItem('sb_cp_i', JSON.stringify(obj)); } catch (e) {}
+    },
 
-function saveHistory(){
-var d=applyWI();
-var label=fmtCurrency(d.p)+' · '+fmtCurrency(finalBalance)+' value';
-history.unshift({p:d.p,m:d.m,r:d.r,t:d.t,n:d.n,wi:wi,label:label,ts:Date.now()});
-if(history.length>30)history.pop();
-try{localStorage.setItem('sb_cp',JSON.stringify(history))}catch(e){}
-renderHistory();
-}
+    saveHistory: function() {
+      this.saveInputs();
+      var label = window.formatCurrency(this.principal, 0) + ' · ' + window.formatCurrency(this.results.finalBalance, 0) + ' value';
+      this.history.unshift({
+        p: this.principal, m: this.contribution, r: this.rate, t: this.years, n: this.freq,
+        wi: this.wi, label: label, ts: Date.now()
+      });
+      if (this.history.length > 30) this.history.pop();
+      try { localStorage.setItem('sb_cp', JSON.stringify(this.history)); } catch (e) {}
+      this.toast('Saved to history');
+    },
 
-function renderHistory(){
-hiCount.textContent=history.length?'('+history.length+')':'';
-hiClear.hidden=!history.length;
-if(!history.length){hiList.innerHTML='<div class="cp-empty">No calculations yet</div>';return}
-var h='';history.forEach(function(item,i){
-var d2=new Date(item.ts);var diff=Math.round((Date.now()-d2)/1000);
-var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
-h+='<div class="cp-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
-});
-hiList.innerHTML=h;
-}
+    clearHistory: function() {
+      this.history = [];
+      try { localStorage.setItem('sb_cp', JSON.stringify(this.history)); } catch (e) {}
+      this.toast('History cleared');
+    },
 
-function saveInputs(){
-var obj={p:v(principal),m:v(contribution),r:v(rate),t:v(years),n:parseInt(freq.value),wi:wi};
-try{localStorage.setItem('sb_cp_i',JSON.stringify(obj))}catch(e){}
-}
+    deleteHistory: function(idx) {
+      this.history.splice(idx, 1);
+      try { localStorage.setItem('sb_cp', JSON.stringify(this.history)); } catch (e) {}
+    },
 
-function copyAll(){
-var d=applyWI();
-var txt='Compound Interest Report\nScenario: '+wi.replace(/-/g,' ')+'\nPrincipal: '+fmtCurrency(d.p)+'\nMonthly Contribution: '+fmtCurrency(d.m)+'\nAnnual Rate: '+(d.r*100).toFixed(2)+'%\nPeriod: '+d.t+' years\nFrequency: '+freq.options[freq.selectedIndex].text+'\n\nTotal Value: '+totalValue.textContent+'\nTotal Contributions: '+contributions.textContent+'\nTotal Interest: '+interest.textContent+'\nEffective Annual Rate: '+ear.textContent+'\nDouble Time: '+doubleV.textContent+'\n\nYear-by-Year:\n';
-yearlyData.forEach(function(yr){
-if(yr.y===0)return;
-txt+='Year '+yr.y+': Start '+fmtCurrency(yr.start)+' +Contrib '+fmtCurrency(yr.contrib)+' +Interest '+fmtCurrency(yr.interest)+' = '+fmtCurrency(yr.end)+'\n';
-});
-navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')});
-}
+    loadHistory: function(idx) {
+      var h = this.history[idx];
+      if (!h) return;
+      if (h.p !== undefined) this.principal = h.p;
+      if (h.m !== undefined) this.contribution = h.m;
+      if (h.r !== undefined) this.rate = h.r;
+      if (h.t !== undefined) this.years = h.t;
+      if (h.n !== undefined) this.freq = h.n;
+      if (h.wi) this.wi = h.wi;
+      this.toast('Loaded from history');
+    },
 
-function dlReport(){
-var d=applyWI();
-var txt='=== Compound Interest Report ===\nDate: '+new Date().toISOString().slice(0,10)+'\nScenario: '+wi.replace(/-/g,' ')+'\n\nInputs\nPrincipal: '+fmtCurrency(d.p)+'\nMonthly Contribution: '+fmtCurrency(d.m)+'\nAnnual Rate: '+(d.r*100).toFixed(2)+'%\nPeriod: '+d.t+' years\nFrequency: '+freq.options[freq.selectedIndex].text+'\n\nResults\nTotal Value: '+totalValue.textContent+'\nTotal Contributions: '+contributions.textContent+'\nTotal Interest: '+interest.textContent+'\nEffective Annual Rate: '+ear.textContent+'\nDouble Time: '+doubleV.textContent+'\n\nYear-by-Year:\n';
-yearlyData.forEach(function(yr){
-if(yr.y===0)return;
-txt+='Year '+yr.y+': Start '+fmtCurrency(yr.start)+' +Contrib '+fmtCurrency(yr.contrib)+' +Interest '+fmtCurrency(yr.interest)+' = '+fmtCurrency(yr.end)+'\n';
-});
-var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='compound-interest-report-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded');
-}
+    relTime: function(ts) {
+      var diff = Math.round((Date.now() - ts) / 1000);
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+      return Math.floor(diff / 86400) + 'd ago';
+    },
 
-whatifEl.addEventListener('click',function(e){
-var b=e.target.closest('button[data-wi]');if(!b)return;
-wi=b.getAttribute('data-wi');whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
-calc();saveHistory();
-});
+    reportText: function() {
+      var d = this.wiParams;
+      var res = this.results;
+      var txt = 'Compound Interest Report\nScenario: ' + this.wi + '\nPrincipal: ' + window.formatCurrency(d.p, 2) + '\nMonthly Contribution: ' + window.formatCurrency(d.m, 2) + '\nAnnual Rate: ' + (d.r * 100).toFixed(2) + '%\nPeriod: ' + d.t + ' years\n\nTotal Value: ' + window.formatCurrency(res.finalBalance, 2) + '\nTotal Contributions: ' + window.formatCurrency(res.totalContribs, 2) + '\nTotal Interest: ' + window.formatCurrency(res.totalInterest, 2) + '\nEffective Annual Rate: ' + res.earText + '\nDouble Time: ' + res.doubleText;
+      return txt;
+    },
 
-calcBtn.addEventListener('click',function(){calc();saveHistory()});
-copyBtn.addEventListener('click',copyAll);
-dlBtn.addEventListener('click',dlReport);
+    copyAll: function() {
+      var txt = this.reportText();
+      var self = this;
+      navigator.clipboard.writeText(txt).then(function() {
+        self.toast('Copied!');
+      }).catch(function() {
+        self.toast('Copy failed');
+      });
+    },
 
-hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
-hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_cp',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});
-hiList.addEventListener('click',function(e){
-var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_cp',JSON.stringify(history))}catch(e){}renderHistory();return}
-var item=e.target.closest('.cp-hist-item');if(!item)return;
-var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
-principal.value=h.p;contribution.value=h.m;rate.value=(h.r*100).toFixed(2);years.value=h.t;freq.value=h.n||4;
-wi=h.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
-history.splice(idx,1);try{localStorage.setItem('sb_cp',JSON.stringify(history))}catch(e){}renderHistory();calc();
-});
-
-tableToggle.addEventListener('click',function(){tableOn=tableToggle.getAttribute('aria-expanded')==='true'?false:true;tableToggle.setAttribute('aria-expanded',tableOn);tableWrap.hidden=!tableOn;tableToggle.classList.toggle('on')});
-
-[principal,contribution,rate,years].forEach(function(el){el.addEventListener('input',calc)});
-freq.addEventListener('change',calc);
-
-if(saved){principal.value=saved.p||10000;contribution.value=saved.m||500;rate.value=saved.r||8;years.value=saved.t||10;freq.value=saved.n||4;wi=saved.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)})}
-calc();
-})();
+    dlReport: function() {
+      var txt = '=== Compound Interest Report ===\nDate: ' + new Date().toISOString().slice(0, 10) + '\n' + this.reportText();
+      var b = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      a.download = 'compound-interest-report-' + Date.now() + '.txt';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      this.toast('Downloaded');
+    }
+  };
+};
 </script>
+{% endblock %}
 
 {{ tool_section_end() }}
 {% endblock %}

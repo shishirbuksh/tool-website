@@ -64,7 +64,7 @@
 {% endblock %}
 {% block content %}
 {{ tool_hero_section("sliders", "CSS Filter Studio", "CSS FILTER", "GENERATOR", seo_data.description if seo_data else "Apply and preview CSS filter and backdrop-filter effects — blur, brightness, contrast, grayscale, hue-rotate, saturate, and drop-shadow.") }}
-<div class="container-site px-4 pb-24">
+<div x-data="filterGenerator()" class="container-site px-4 pb-24">
   <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
     <div class="lg:col-span-2 space-y-6">
       <div class="cfg-card">
@@ -218,9 +218,10 @@
 {% endblock %}
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
+window.filterGenerator = function() {
+
 var toastEl=document.getElementById('cfgToast');
-function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show');},2200);}
 var el=function(id){return document.getElementById(id)};
 var E=function(s){return document.querySelectorAll(s)};
 
@@ -451,13 +452,14 @@ el('cfgResetFilters').addEventListener('click',resetAll);
 el('cfgResetAll').addEventListener('click',resetAll);
 
 function copy(text){
-navigator.clipboard.writeText(text).then(function(){toast('Copied!')})}
+  navigator.clipboard.writeText(text).then(function(){ toast('Copied!'); });
+}
 
 el('cfgCopyCss').addEventListener('click',function(){
 copy(el('cfgCssOutput').textContent)});
 
 /* Split handle drag */
-(function(){
+
 var handle=el('cfgHandle');
 var wrap=el('cfgPreviewWrap');
 var down=0;
@@ -477,7 +479,7 @@ var r=wrap.getBoundingClientRect();
 cfgSplitPct=Math.max(5,Math.min(95,(t.clientX-r.left)/r.width*100));
 syncSplitClips();
 handle.style.left=cfgSplitPct+'%'});
-document.addEventListener('touchend',function(){down=0})})();
+document.addEventListener('touchend',function(){down=0});
 
 /* ---- Filter Library (localStorage) ---- */
 var libKey='cfg_library';
@@ -564,7 +566,7 @@ applyFilterState(s)}
 
 el('cfgCopyLink').addEventListener('click',function(){
 var url=window.location.href.split('#')[0]+'#'+encodeState();
-navigator.clipboard.writeText(url).then(function(){toast('Link copied!')})});
+navigator.clipboard.writeText(url).then(function(){ toast('Link copied!'); });});
 
 /* ---- Animate Preview ---- */
 function stopAnim(){
@@ -588,13 +590,20 @@ box.style[prop]=css==='none'?'none':css;
 if(backdrop){box.style.backdropFilter=css==='none'?'none':css;box.style.webkitBackdropFilter=css==='none'?'none':css}},900)});
 
 /* ---- Init ---- */
-(function init(){
+function init(){
 restoreFromHash();
 renderFilters();
 attachFilterEvents();
 syncDsControls();
 renderLib();
-update()})()
-})()
+update()}
+init();
+
+return {
+  init: function() {
+    init();
+  }
+};
+};
 </script>
 {% endblock %}

@@ -1,6 +1,6 @@
 """XSS sanitization + security header guards."""
 
-from app.core.sanitize import enhance_tables, sanitize_html
+from apps.core.sanitize import enhance_tables, sanitize_html
 
 
 class TestSanitize:

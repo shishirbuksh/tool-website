@@ -4,7 +4,7 @@ import io
 
 from PIL import Image
 
-from app.services.pdf_service import PDFService
+from apps.tools_api.services.pdf_service import PDFService
 
 
 class TestPDFService:

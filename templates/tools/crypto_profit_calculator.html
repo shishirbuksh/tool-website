@@ -15,7 +15,7 @@
 {% block content %}
 {{ tool_hero_section("trending-up", "Profit Tool", "CRYPTO PROFIT", "CALCULATOR", seo_data.description if seo_data else "Calculate your crypto trade profit and ROI. Enter amount, buy price, sell price, and trading fee to see net results.") }}
 
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="cryptoProfit()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
 
   <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
 
@@ -23,11 +23,11 @@
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-4 h-4",16)|safe }} Trade Details</h2>
       <p class="text-xs text-base-content/60 mb-4">Enter your trade specs to calculate profit and ROI.</p>
       <div class="space-y-4">
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="profitAmt">Amount (coins)</label><input aria-label="Investment Amount" type="number" id="profitAmt" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="1" min="0" step="any"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="buyPrice">Buy Price ($)</label><input aria-label="Buy Price" type="number" id="buyPrice" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="42000" min="0" step="any"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="sellPrice">Sell Price ($)</label><input aria-label="Sell Price" type="number" id="sellPrice" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="67500" min="0" step="any"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="tradeFee">Trading Fee (%)</label><input aria-label="Trading Fee (%)" type="number" id="tradeFee" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="0.1" min="0" step="0.05"></div>
-        <button type="button" id="resetBtn" class="btn btn-primary w-full mt-2" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="profitAmt">Amount (coins)</label><input aria-label="Investment Amount" type="number" id="profitAmt" x-model.number="amount" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="1" min="0" step="any"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="buyPrice">Buy Price ($)</label><input aria-label="Buy Price" type="number" id="buyPrice" x-model.number="buyPrice" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="42000" min="0" step="any"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="sellPrice">Sell Price ($)</label><input aria-label="Sell Price" type="number" id="sellPrice" x-model.number="sellPrice" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="67500" min="0" step="any"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="tradeFee">Trading Fee (%)</label><input aria-label="Trading Fee (%)" type="number" id="tradeFee" x-model.number="tradeFee" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="0.1" min="0" step="0.05"></div>
+        <button type="button" @click="reset()" id="resetBtn" class="btn btn-primary w-full mt-2" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
       </div>
     </div>
 
@@ -38,10 +38,10 @@
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Profit Summary</h2>
       <div class="grid grid-cols-2 gap-4">
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Invested</span><output id="resInvested" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-base-content)">$42,000</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Returned</span><output id="resReturned" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">$67,500</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Net Profit</span><output id="resProfit" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">+$25,432.50</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Return (ROI)</span><output id="resROI" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">+60.5%</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Invested</span><output id="resInvested" x-text="formatCurrency(invested)" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-base-content)">$42,000.00</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Returned</span><output id="resReturned" :style="{ color: profitColor }" x-text="formatCurrency(returned)" class="font-display font-semibold text-base-content text-lg leading-tight font-mono text-emerald-500">$67,500.00</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Net Profit</span><output id="resProfit" :style="{ color: profitColor }" x-text="netProfitText" class="font-display font-semibold text-base-content text-lg leading-tight font-mono text-emerald-500">+$25,432.50</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Return (ROI)</span><output id="resROI" :style="{ color: profitColor }" x-text="roiText" class="font-display font-semibold text-base-content text-lg leading-tight font-mono text-emerald-500">+60.55%</output></div>
       </div>
     </div>
 
@@ -51,10 +51,10 @@
         <table class="profit-table" role="table">
           <thead><tr><th scope="col">Metric</th><th scope="col">Value</th></tr></thead>
           <tbody id="tableBody">
-            <tr><td style="font-weight:800">Gross Profit</td><td id="tbGross" style="color:var(--color-success)">+$25,500.00</td></tr>
-            <tr><td style="font-weight:800">Trading Fee</td><td id="tbFee" style="color:var(--color-error)">$67.50</td></tr>
-            <tr><td style="font-weight:800">Net Profit</td><td id="tbNet" style="color:var(--color-success)">+$25,432.50</td></tr>
-            <tr><td style="font-weight:800">ROI</td><td id="tbROI" style="color:var(--color-success)">+60.55%</td></tr>
+            <tr><td style="font-weight:800">Gross Profit</td><td id="tbGross" :style="{ color: grossProfit >= 0 ? 'var(--color-success)' : 'var(--color-error)' }" x-text="grossProfitText" style="color:var(--color-success)">+$25,500.00</td></tr>
+            <tr><td style="font-weight:800">Trading Fee</td><td id="tbFee" x-text="formatCurrency(fee)" style="color:var(--color-error)">$67.50</td></tr>
+            <tr><td style="font-weight:800">Net Profit</td><td id="tbNet" :style="{ color: profitColor }" x-text="netProfitText" style="color:var(--color-success)">+$25,432.50</td></tr>
+            <tr><td style="font-weight:800">ROI</td><td id="tbROI" :style="{ color: profitColor }" x-text="roiText" style="color:var(--color-success)">+60.55%</td></tr>
           </tbody>
         </table>
       </div>
@@ -74,64 +74,74 @@
 </div>
 {% include "components/ymyl_disclaimer.html" %}
 
-
 {{ tool_section_end() }}
 {% endblock %}
 
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
-  'use strict';
-  const $ = id => document.getElementById(id);
-  const F = v => (v >= 0 ? '+' : '') + '$' + Math.abs(v).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  const FP = v => (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+window.cryptoProfit = function() {
+  return {
+    amount: 1,
+    buyPrice: 42000,
+    sellPrice: 67500,
+    tradeFee: 0.1,
 
-  function calculate(){
-    const amt = parseFloat($('profitAmt').value) || 0;
-    const buyP = parseFloat($('buyPrice').value) || 0;
-    const sellP = parseFloat($('sellPrice').value) || 0;
-    const feePct = parseFloat($('tradeFee').value) || 0;
+    reset: function() {
+      this.amount = 1;
+      this.buyPrice = 42000;
+      this.sellPrice = 67500;
+      this.tradeFee = 0.1;
+    },
 
-    const invested = amt * buyP;
-    const returned = amt * sellP;
-    const gross = returned - invested;
-    const fee = returned * (feePct / 100);
-    const net = gross - fee;
-    const roi = invested > 0 ? (net / invested) * 100 : 0;
+    formatCurrency: function(v) {
+      var n = Number(v) || 0;
+      return '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
 
-    const profitColor = net >= 0 ? 'var(--color-success)' : 'var(--color-error)';
+    get invested() {
+      return (Number(this.amount) || 0) * (Number(this.buyPrice) || 0);
+    },
 
-    $('resInvested').textContent = F(invested);
-    $('resInvested').style.color = 'var(--color-base-content)';
-    $('resReturned').textContent = F(returned);
-    $('resReturned').style.color = profitColor;
-    $('resProfit').textContent = F(net);
-    $('resProfit').style.color = profitColor;
-    $('resROI').textContent = FP(roi);
-    $('resROI').style.color = profitColor;
+    get returned() {
+      return (Number(this.amount) || 0) * (Number(this.sellPrice) || 0);
+    },
 
-    $('tbGross').textContent = F(gross);
-    $('tbGross').style.color = gross >= 0 ? 'var(--color-success)' : 'var(--color-error)';
-    $('tbFee').textContent = '$' + fee.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    $('tbNet').textContent = F(net);
-    $('tbNet').style.color = profitColor;
-    $('tbROI').textContent = FP(roi);
-    $('tbROI').style.color = profitColor;
-  }
+    get grossProfit() {
+      return this.returned - this.invested;
+    },
 
-  function reset(){
-    $('profitAmt').value = 1;
-    $('buyPrice').value = 42000;
-    $('sellPrice').value = 67500;
-    $('tradeFee').value = 0.1;
-    calculate();
-  }
+    get grossProfitText() {
+      var g = this.grossProfit;
+      return (g >= 0 ? '+' : '-') + this.formatCurrency(g);
+    },
 
-  document.addEventListener('DOMContentLoaded', function(){
-    calculate();
-    ['profitAmt','buyPrice','sellPrice','tradeFee'].forEach(function(id){ $(id).addEventListener('input', calculate); });
-    $('resetBtn').addEventListener('click', reset);
-  });
-})();
+    get fee() {
+      return this.returned * ((Number(this.tradeFee) || 0) / 100);
+    },
+
+    get netProfit() {
+      return this.grossProfit - this.fee;
+    },
+
+    get netProfitText() {
+      var n = this.netProfit;
+      return (n >= 0 ? '+' : '-') + this.formatCurrency(n);
+    },
+
+    get roi() {
+      var inv = this.invested;
+      return inv > 0 ? (this.netProfit / inv) * 100 : 0;
+    },
+
+    get roiText() {
+      var r = this.roi;
+      return (r >= 0 ? '+' : '') + r.toFixed(2) + '%';
+    },
+
+    get profitColor() {
+      return this.netProfit >= 0 ? 'var(--color-success)' : 'var(--color-error)';
+    }
+  };
+};
 </script>
 {% endblock %}

@@ -10,7 +10,7 @@
 {% block content %}
 {{ tool_hero_section("package", "Business Analytics", "PRODUCT PERFORMANCE", "ANALYZER", seo_data.description if seo_data else "Analyze product performance with revenue, profit margin, sales growth, and profit per unit. Enter your product data to see instant metrics.") }}
 
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s" x-data="productPerformanceAnalyzer()">
 
   <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
 
@@ -18,14 +18,14 @@
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-4 h-4",16)|safe }} Product Data</h2>
       <p class="text-xs text-base-content/60 mb-4">Enter your product sales and cost data to analyze performance.</p>
       <div class="space-y-3">
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="productName">Product Name / SKU</label><input aria-label="Product Name" type="text" id="productName" class="input cal-input w-full text-sm font-bold" value="Premium Widget Pro"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="unitsSold">Units Sold</label><input aria-label="Units Sold" type="number" id="unitsSold" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="1500" min="0" step="1"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="productName">Product Name / SKU</label><input aria-label="Product Name" type="text" id="productName" x-model="productName" class="input cal-input w-full text-sm font-bold" value="Premium Widget Pro"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="unitsSold">Units Sold</label><input aria-label="Units Sold" type="number" id="unitsSold" x-model.number="unitsSold" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="1500" min="0" step="1"></div>
         <div class="grid grid-cols-2 gap-2">
-          <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="unitPrice">Unit Price ($)</label><input aria-label="Selling Price per Unit" type="number" id="unitPrice" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="49.99" min="0" step="any"></div>
-          <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="unitCost">Unit Cost ($)</label><input aria-label="Cost per Unit" type="number" id="unitCost" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="25" min="0" step="any"></div>
+          <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="unitPrice">Unit Price ($)</label><input aria-label="Selling Price per Unit" type="number" id="unitPrice" x-model.number="unitPrice" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="49.99" min="0" step="any"></div>
+          <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="unitCost">Unit Cost ($)</label><input aria-label="Cost per Unit" type="number" id="unitCost" x-model.number="unitCost" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="25" min="0" step="any"></div>
         </div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="prevPeriod">Previous Period Units</label><input aria-label="Previous Period Units Sold" type="number" id="prevPeriod" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="1200" min="0" step="1"></div>
-        <button type="button" id="resetBtn" class="btn btn-primary w-full mt-2" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="prevPeriod">Previous Period Units</label><input aria-label="Previous Period Units Sold" type="number" id="prevPeriod" x-model.number="prevPeriod" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="1200" min="0" step="1"></div>
+        <button type="button" id="resetBtn" @click="reset()" class="btn btn-primary w-full mt-2" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
       </div>
     </div>
 
@@ -36,12 +36,12 @@
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Performance Metrics</h2>
       <div class="grid grid-cols-2 gap-4">
-        <div class="feature-card p-5 text-center" style="border-color:color-mix(in oklab,var(--color-success) 25%,transparent)"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Revenue</span><output id="resRevenue" class="font-display font-semibold text-base-content text-2xl leading-tight font-mono" style="color:var(--color-success)">$0</output></div>
-        <div class="feature-card p-5 text-center" style="border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Profit</span><output id="resProfit" class="font-display font-semibold text-base-content text-2xl leading-tight font-mono" style="color:var(--color-primary)">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Profit Margin</span><output id="resMargin" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">0%</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Sales Growth</span><output id="resGrowth" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">0%</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Revenue Growth</span><output id="resRevGrowth" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">0%</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Profit per Unit</span><output id="resUnitProfit" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$0</output></div>
+        <div class="feature-card p-5 text-center" style="border-color:color-mix(in oklab,var(--color-success) 25%,transparent)"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Revenue</span><output id="resRevenue" class="font-display font-semibold text-base-content text-2xl leading-tight font-mono" style="color:var(--color-success)" x-text="'$' + fmt(revenue)">$74,985.00</output></div>
+        <div class="feature-card p-5 text-center" style="border-color:color-mix(in oklab,var(--color-primary) 25%,transparent)"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Profit</span><output id="resProfit" class="font-display font-semibold text-base-content text-2xl leading-tight font-mono" style="color:var(--color-primary)" x-text="'$' + fmt(profit)">$37,485.00</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Profit Margin</span><output id="resMargin" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" x-text="margin.toFixed(1) + '%'">50.0%</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Sales Growth</span><output id="resGrowth" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" :style="{ color: growth >= 0 ? 'var(--color-success)' : 'var(--color-error)' }" x-text="(growth >= 0 ? '+' : '') + growth.toFixed(1) + '%'" style="color:var(--color-success)">+25.0%</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Revenue Growth</span><output id="resRevGrowth" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" :style="{ color: revGrowth >= 0 ? 'var(--color-success)' : 'var(--color-error)' }" x-text="(revGrowth >= 0 ? '+' : '') + revGrowth.toFixed(1) + '%'" style="color:var(--color-success)">+25.0%</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Profit per Unit</span><output id="resUnitProfit" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" x-text="'$' + fmt(unitProfit)">$24.99</output></div>
       </div>
     </div>
 
@@ -54,63 +54,80 @@
 
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
-  'use strict';
-  const $ = id => document.getElementById(id);
+window.productPerformanceAnalyzer = function() {
+function productPerformanceAnalyzer() {
+  return {
+    productName: 'Premium Widget Pro',
+    unitsSold: 1500,
+    unitPrice: 49.99,
+    unitCost: 25,
+    prevPeriod: 1200,
 
-  function fmt$(n){
-    return '$' + n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-  }
+    fmt: function(n) {
+      var val = Number(n) || 0;
+      return val.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    },
 
-  function calculate(){
-    var units = parseFloat($('unitsSold').value) || 0;
-    var price = parseFloat($('unitPrice').value) || 0;
-    var cost = parseFloat($('unitCost').value) || 0;
-    var prev = parseFloat($('prevPeriod').value) || 0;
+    get revenue() {
+      var u = Number(this.unitsSold) || 0;
+      var p = Number(this.unitPrice) || 0;
+      return u * p;
+    },
 
-    var revenue = units * price;
-    var totalCost = units * cost;
-    var profit = revenue - totalCost;
-    var margin = revenue > 0 ? (profit / revenue * 100) : 0;
-    var growth = prev > 0 ? ((units - prev) / prev * 100) : 0;
-    var prevRev = prev * price;
-    var revGrowth = prevRev > 0 ? ((revenue - prevRev) / prevRev * 100) : 0;
-    var unitProfit = price - cost;
+    get totalCost() {
+      var u = Number(this.unitsSold) || 0;
+      var c = Number(this.unitCost) || 0;
+      return u * c;
+    },
 
-    $('resRevenue').textContent = fmt$(revenue);
-    $('resProfit').textContent = fmt$(profit);
-    $('resMargin').textContent = margin.toFixed(1) + '%';
-    $('resUnitProfit').textContent = fmt$(unitProfit);
+    get profit() {
+      return this.revenue - this.totalCost;
+    },
 
-    var g = $('resGrowth');
-    g.textContent = (growth >= 0 ? '+' : '') + growth.toFixed(1) + '%';
-    g.style.color = growth >= 0 ? 'var(--color-success)' : 'var(--color-error)';
+    get margin() {
+      return this.revenue > 0 ? (this.profit / this.revenue * 100) : 0;
+    },
 
-    var rg = $('resRevGrowth');
-    rg.textContent = (revGrowth >= 0 ? '+' : '') + revGrowth.toFixed(1) + '%';
-    rg.style.color = revGrowth >= 0 ? 'var(--color-success)' : 'var(--color-error)';
-  }
+    get growth() {
+      var u = Number(this.unitsSold) || 0;
+      var prev = Number(this.prevPeriod) || 0;
+      return prev > 0 ? ((u - prev) / prev * 100) : 0;
+    },
 
-  function reset(){
-    $('productName').value = 'Premium Widget Pro';
-    $('unitsSold').value = '1500';
-    $('unitPrice').value = '49.99';
-    $('unitCost').value = '25';
-    $('prevPeriod').value = '1200';
-    calculate();
-  }
+    get revGrowth() {
+      var p = Number(this.unitPrice) || 0;
+      var prev = Number(this.prevPeriod) || 0;
+      var prevRev = prev * p;
+      return prevRev > 0 ? ((this.revenue - prevRev) / prevRev * 100) : 0;
+    },
 
-  document.addEventListener('DOMContentLoaded', function(){
-    reset();
+    get unitProfit() {
+      var p = Number(this.unitPrice) || 0;
+      var c = Number(this.unitCost) || 0;
+      return p - c;
+    },
 
-    $('resetBtn').addEventListener('click', reset);
+    reset: function() {
+      this.productName = 'Premium Widget Pro';
+      this.unitsSold = 1500;
+      this.unitPrice = 49.99;
+      this.unitCost = 25;
+      this.prevPeriod = 1200;
+    }
+  };
+}
 
-    $('productName').addEventListener('input', calculate);
-    $('unitsSold').addEventListener('input', calculate);
-    $('unitPrice').addEventListener('input', calculate);
-    $('unitCost').addEventListener('input', calculate);
-    $('prevPeriod').addEventListener('input', calculate);
-  });
-})();
+  return {
+    init: function() {
+      if (typeof calc === 'function') calc();
+      else if (typeof generate === 'function') generate();
+      else if (typeof gen === 'function') gen();
+      else if (typeof render === 'function') render();
+      else if (typeof update === 'function') update();
+      else if (typeof calculate === 'function') calculate();
+      else if (typeof build === 'function') build();
+    }
+  };
+};
 </script>
 {% endblock %}

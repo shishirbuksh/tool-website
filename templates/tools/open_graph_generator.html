@@ -4,7 +4,7 @@
 {% block content %}
 {{ tool_hero_section("share-2", "Social Tool", "OPEN GRAPH", "GENERATOR", seo_data.description if seo_data else "Generate valid Open Graph and Twitter Card meta tags with live Facebook, LinkedIn, X, WhatsApp, and Slack previews.") }}
 
-<div class="flex flex-wrap gap-2 mb-6 reveal" style="animation-delay:0.15s">
+<div x-data="openGraphGenerator()" class="flex flex-wrap gap-2 mb-6 reveal" style="animation-delay:0.15s">
   <a href="https://developers.facebook.com/tools/debug/" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline gap-1.5">{{ lucide_icon("external-link","w-3 h-3", 12) | safe }} Facebook Debugger</a>
   <a href="https://cards-dev.twitter.com/validator" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline gap-1.5">{{ lucide_icon("external-link","w-3 h-3", 12) | safe }} Twitter Validator</a>
   <a href="https://www.linkedin.com/post-inspector/" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline gap-1.5">{{ lucide_icon("external-link","w-3 h-3", 12) | safe }} LinkedIn Inspector</a>
@@ -266,7 +266,8 @@
   </div>
 </div>
 <script nonce="{{ nonce }}">
-(function(){
+window.openGraphGenerator = function() {
+
   var t=document.getElementById('ogTitle'), d=document.getElementById('ogDesc'), i=document.getElementById('ogImage');
   var u=document.getElementById('ogUrl'), s=document.getElementById('ogSite'), ty=document.getElementById('ogType');
   var tw=document.getElementById('ogTwitter'), o=document.getElementById('ogOutput');
@@ -414,7 +415,7 @@
     navigator.clipboard.writeText(o.textContent);
     cp.innerHTML='{{ lucide_icon("check","w-4 h-4", 16) | safe }} Copied!';
     saveHist();
-    setTimeout(function(){cp.innerHTML='{{ lucide_icon("copy","w-4 h-4", 16) | safe }} Copy';},1500);
+    setTimeout(function(){ cp.innerHTML='{{ lucide_icon("copy","w-4 h-4", 16) | safe }} Copy'; }, 1500);
   };
 
   cpOg.onclick=function(){
@@ -452,14 +453,20 @@
 
   renderHist();
   gen();
-})();
-// CSP-safe image fallback for generated preview HTML (replaces inline onerror attributes blocked by nonce CSP; error events do not bubble, hence capture).
-document.addEventListener('error', function(e) {
-  var t = e.target;
-  if (t && t.tagName === 'IMG' && t.dataset && t.dataset.imgFallbackHtml && t.parentElement) {
-    t.parentElement.innerHTML = t.dataset.imgFallbackHtml;
-  }
-}, true);
+
+  document.addEventListener('error', function(e) {
+    var t = e.target;
+    if (t && t.tagName === 'IMG' && t.dataset && t.dataset.imgFallbackHtml && t.parentElement) {
+      t.parentElement.innerHTML = t.dataset.imgFallbackHtml;
+    }
+  }, true);
+
+  return {
+    init: function() {
+      gen();
+    }
+  };
+};
 </script>
 
 {{ tool_section_end() }}

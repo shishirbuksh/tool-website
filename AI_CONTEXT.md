@@ -1,57 +1,46 @@
 # StoryBrainAI Project Context
 
 ## Tech Stack
-- FastAPI
-- Python 3.11+
-- HTML
-- Tailwind CSS
-- JavaScript
-- Caddy (reverse proxy, automatic HTTPS) + Gunicorn/Systemd on port 8090
+- Django 5.x+ (latest, Python 3.11+)
+- HTML5 (Semantic, Accessible, Mobile-First)
+- Tailwind CSS v4 (@tailwindcss/postcss, @theme)
+- DaisyUI v5 (@plugin "daisyui")
+- JavaScript (Vanilla, client-side execution for 120/126 tools)
+- Caddy (reverse proxy, automatic HTTPS, Brotli/Gzip) + Gunicorn WSGI/ASGI on port 8090
 
 ## Catalog
 - 126 free online tools (slugs defined in `data/tools.yaml`)
-- English-only architecture (canonical English URLs at root/tool/blog; legacy `/hi/`, `/es/`, `/fr/`, `/de/` paths issue HTTP 301 redirects to canonical English URLs; shared audit JS `window.sbr.audit` wired into all 4 SEO tools: `keyword-data-analyzer`, `seo-writing-assistant`, `word-counter`, `page-grader`)
+- 99 in-depth SEO guides across 6 topical pillars (`data/blog.yaml`)
+- English-only architecture (canonical English URLs at root/tool/blog; legacy `/hi/`, `/es/`, `/fr/`, `/de/` paths issue HTTP 301 redirects to canonical English URLs)
 
 ## Project Structure
-- app/api → API routes
-- templates/ → HTML templates (root-level; tool pages: templates/tools/<slug_with_underscores>.html)
-- static/ → CSS, JS, images (root-level)
-- app/core → Configuration
-- app/services → Business logic
-- data/tools.yaml → tool catalog (slugs, FAQs, related_slugs)
-- Caddyfile → Caddy reverse proxy (CADDY_DOMAIN / CADDY_PROXY_UPSTREAM / CADDY_STATIC_ROOT)
-- deploy.sh → VPS deploy engine (writes SECRET_KEY + APP_VERSION to .env)
-- storybrain-ai.service → systemd unit (EnvironmentFile={{APP_DIR}}/.env, U2NET_HOME)
+- `config/` → Django project core (`settings/`, `urls.py`, `wsgi.py`, `asgi.py`)
+- `apps/catalog/` → Tools catalog, hubs, tool detail views
+- `apps/blog/` → Blog articles, pillars, guides
+- `apps/seo/` → Dynamic XML sitemaps, robots.txt, llms.txt, IndexNow verification
+- `apps/tools_api/` → Computation endpoints (rembg, fpdf2, crypto, CORS proxy)
+- `apps/analytics/` → High-throughput SQLite batch analytics
+- `apps/core/` → Shared middleware, sanitize, icons, custom exceptions
+- `templates/` → HTML templates (`templates/tools/<slug_with_underscores>.html`, `templates/blog/`, `templates/pages/`)
+- `static/` → CSS, JS, images, fonts
+- `data/` → `tools.yaml` (126 tools catalog) and `blog.yaml` (99 articles)
+- `Caddyfile` → Reverse proxy configuration
+- `deploy.sh` → VPS deployment engine
+- `storybrain-ai.service` → Systemd unit file
 
-## Env / Caddy / Systemd
-- Copy `.env.example` → `.env`; required: SECRET_KEY, APP_VERSION, ALLOWED_HOSTS,
-  CORS_ORIGINS, CADDY_DOMAIN / CADDY_PROXY_UPSTREAM / CADDY_STATIC_ROOT
-  (CADDY_STATIC_ROOT must equal $APP_DIR/static), FORWARDED_ALLOW_IPS=127.0.0.1,
-  U2NET_HOME, HOST/PORT (defaults 0.0.0.0/8090).
-- Caddy serves /static/* from CADDY_STATIC_ROOT and /sw.js with
-  Service-Worker-Allowed: /; everything else reverse-proxies to 127.0.0.1:8090.
-
-## Rules
-- Mobile-first UI
-- Accessible HTML
-- SEO optimized
-- Type hints
-- Small reusable functions
-- No duplicated code
-
-## Before Changing Code
-- Explain the plan
-- List files to modify
-- Wait for approval
-
-## Design System (Apple × SAP)
-- Synthesizes Apple's museum-gallery minimalism (SF Pro/Inter optical tracking, frosted glassmorphism `apple-glass`, pill action buttons `.apple-pill-btn`) with SAP's enterprise precision (Sapphire Blue `#0057d2`, structured 8px controls `.enterprise-control`, data tables `.sap-band`).
-- Design contracts located in `DESIGN_APPLE.md`, `DESIGN_SAP.md`, and `DESIGN_SYNTHESIS.md`.
-
-## Active Agent Skills (.agents/skills)
-- FastAPI: `fastapi`, `fastapi-templates`, `fastapi-python`, `fastapi-code-review`
-- SEO: `seo-audit`, `programmatic-seo`, `seo-competitor-pages`, `seo-content-writer`, `seo-technical`
-- UI/UX & Web Design: `web-design-guidelines` (Vercel Web Interface Guidelines), `ui-ux-pro-max` (Design systems, micro-interactions, responsive accessibility, WCAG contrast)
+## Design System (DataFast — DESIGN.md)
+- Dark canvas: `#1A1A1A`
+- Surface: `#252525`
+- Surface-elevated: `#2E2E2E`
+- Action (Coral): `#E86A4A`
+- Action Hover: `#D55A3A`
+- Ink: `#F5F5F5`
+- Muted Ink: `#A0A0A0`
+- Border: `#3A3A3A`
+- Chart Line: `#7EC8E3`
+- Chart Bar: `#E86A4A`
+- Typography: `DM Sans` (Display & structural) + `Fuzzy Bubbles` (Handwritten annotations)
+- Layout: Modern SaaS conversion pattern with centered hero, coral action button, URL search box, overlapping avatar social proof, and interactive browser preview chrome.
 
 ## UI/UX Standards
 - Explicit button types: All `<button>` elements must specify `type="button"` (or `type="submit"` in forms).

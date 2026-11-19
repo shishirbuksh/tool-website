@@ -3,7 +3,7 @@
 
 {% block content %}
 {{ tool_hero_section("heart-pulse", "Health Calculator", "BMI", "CALCULATOR", seo_data.description if seo_data else "Check Body Mass Index with ideal-weight range, BMI Prime and waist-to-height ratio.") }}
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s" x-data="bmiCalculator()">
   <div class="lg:w-5/12">
     <div class="feature-card p-6 md:p-8">
       <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5",20) | safe }} Your Details</h2>
@@ -11,26 +11,33 @@
         <div>
           <span class="text-xs font-semibold text-base-content/70">Units</span>
           <div class="flex gap-2" role="group" aria-label="Unit system">
-            <button type="button" id="unitMetric" class="btn btn-cal-primary flex-1 py-2 text-xs font-bold uppercase rounded-xl">Metric</button>
-            <button type="button" id="unitImperial" class="btn btn-ghost flex-1 py-2 text-xs font-bold uppercase rounded-xl">Imperial</button>
+            <button type="button" id="unitMetric" @click="unit = 'metric'" :class="{ 'btn-cal-primary': unit === 'metric', 'btn-ghost': unit !== 'metric' }" class="btn btn-cal-primary flex-1 py-2 text-xs font-bold uppercase rounded-xl">Metric</button>
+            <button type="button" id="unitImperial" @click="unit = 'imperial'" :class="{ 'btn-cal-primary': unit === 'imperial', 'btn-ghost': unit !== 'imperial' }" class="btn btn-ghost flex-1 py-2 text-xs font-bold uppercase rounded-xl">Imperial</button>
           </div>
         </div>
-        <div id="metricFields" class="flex flex-col gap-5">
-          <div><label class="text-xs font-semibold text-base-content/70" for="heightCm">Height (cm)</label><input aria-label="Height in centimeters" type="number" id="heightCm" class="input w-full cal-input font-bold rounded-xl" value="170" min="50" max="250"></div>
-          <div><label class="text-xs font-semibold text-base-content/70" for="weightKg">Weight (kg)</label><input aria-label="Weight in kilograms" type="number" id="weightKg" class="input w-full cal-input font-bold rounded-xl" value="70" min="10" max="400"></div>
+        <div id="metricFields" x-show="unit === 'metric'" class="flex flex-col gap-5">
+          <div><label class="text-xs font-semibold text-base-content/70" for="heightCm">Height (cm)</label><input aria-label="Height in centimeters" type="number" id="heightCm" x-model.number="heightCm" class="input w-full cal-input font-bold rounded-xl" value="170" min="50" max="250"></div>
+          <div><label class="text-xs font-semibold text-base-content/70" for="weightKg">Weight (kg)</label><input aria-label="Weight in kilograms" type="number" id="weightKg" x-model.number="weightKg" class="input w-full cal-input font-bold rounded-xl" value="70" min="10" max="400"></div>
         </div>
-        <div id="imperialFields" class="hidden flex flex-col gap-5">
+        <div id="imperialFields" x-show="unit === 'imperial'" class="flex flex-col gap-5">
           <div class="grid grid-cols-2 gap-3">
-            <div><label class="text-xs font-semibold text-base-content/70" for="heightFt">Feet</label><input aria-label="Height feet" type="number" id="heightFt" class="input w-full cal-input font-bold rounded-xl" value="5" min="1" max="8"></div>
-            <div><label class="text-xs font-semibold text-base-content/70" for="heightIn">Inches</label><input aria-label="Height inches" type="number" id="heightIn" class="input w-full cal-input font-bold rounded-xl" value="7" min="0" max="11"></div>
+            <div><label class="text-xs font-semibold text-base-content/70" for="heightFt">Feet</label><input aria-label="Height feet" type="number" id="heightFt" x-model.number="heightFt" class="input w-full cal-input font-bold rounded-xl" value="5" min="1" max="8"></div>
+            <div><label class="text-xs font-semibold text-base-content/70" for="heightIn">Inches</label><input aria-label="Height inches" type="number" id="heightIn" x-model.number="heightIn" class="input w-full cal-input font-bold rounded-xl" value="7" min="0" max="11"></div>
           </div>
-          <div><label class="text-xs font-semibold text-base-content/70" for="weightLb">Weight (lb)</label><input aria-label="Weight in pounds" type="number" id="weightLb" class="input w-full cal-input font-bold rounded-xl" value="154" min="20" max="900"></div>
+          <div><label class="text-xs font-semibold text-base-content/70" for="weightLb">Weight (lb)</label><input aria-label="Weight in pounds" type="number" id="weightLb" x-model.number="weightLb" class="input w-full cal-input font-bold rounded-xl" value="154" min="20" max="900"></div>
         </div>
         <div class="grid grid-cols-2 gap-3">
-          <div><label class="text-xs font-semibold text-base-content/70" for="age">Age</label><input aria-label="Age" type="number" id="age" class="input w-full cal-input font-bold rounded-xl" value="30" min="2" max="120"></div>
-          <div><label class="text-xs font-semibold text-base-content/70" for="gender">Gender</label><select id="gender" class="select w-full cal-input font-bold rounded-xl" aria-label="Gender"><option value="other">Other</option><option value="male">Male</option><option value="female">Female</option></select></div>
+          <div><label class="text-xs font-semibold text-base-content/70" for="age">Age</label><input aria-label="Age" type="number" id="age" x-model.number="age" class="input w-full cal-input font-bold rounded-xl" value="30" min="2" max="120"></div>
+          <div>
+            <label class="text-xs font-semibold text-base-content/70" for="gender">Gender</label>
+            <select id="gender" x-model="gender" class="select w-full cal-input font-bold rounded-xl" aria-label="Gender">
+              <option value="other">Other</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
         </div>
-        <div><label class="text-xs font-semibold text-base-content/70" for="waist">Waist (cm, optional)</label><input aria-label="Waist circumference in centimeters" type="number" id="waist" class="input w-full cal-input font-bold rounded-xl" placeholder="e.g. 80" min="20" max="250"></div>
+        <div><label class="text-xs font-semibold text-base-content/70" for="waist">Waist (cm, optional)</label><input aria-label="Waist circumference in centimeters" type="number" id="waist" x-model.number="waist" class="input w-full cal-input font-bold rounded-xl" placeholder="e.g. 80" min="20" max="250"></div>
       </form>
     </div>
   </div>
@@ -38,76 +45,129 @@
     <div class="feature-card p-6 md:p-8">
       <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("activity","w-5 h-5",20) | safe }} Your Result</h3>
       <div class="text-center mb-4">
-        <div id="bmiValue" class="font-black font-mono" style="font-size:clamp(2.5rem,6vw,4rem)">—</div>
-        <div id="bmiCat" class="inline-block mt-2 px-4 py-1 rounded-full text-sm font-bold">Enter your details</div>
+        <div id="bmiValue" class="font-black font-mono" style="font-size:clamp(2.5rem,6vw,4rem)" x-text="res.bmi.toFixed(1)">24.2</div>
+        <div id="bmiCat" class="inline-block mt-2 px-4 py-1 rounded-full text-sm font-bold" :style="'background: color-mix(in oklab, ' + res.color + ' 15%, transparent); color: ' + res.color" style="background: color-mix(in oklab, var(--color-success) 15%, transparent); color: var(--color-success)" x-text="res.category">Healthy weight</div>
       </div>
       <svg viewBox="0 0 300 170" class="w-full max-w-sm mx-auto" role="img" aria-label="BMI gauge">
         <path d="M 20 150 A 130 130 0 0 1 280 150" fill="none" stroke="var(--color-base-300)" stroke-width="22" stroke-linecap="round"/>
-        <path id="gaugeArc" d="M 20 150 A 130 130 0 0 1 280 150" fill="none" stroke="var(--color-primary)" stroke-width="22" stroke-linecap="round" stroke-dasharray="408" stroke-dashoffset="408"/>
+        <path id="gaugeArc" d="M 20 150 A 130 130 0 0 1 280 150" fill="none" :stroke="res.color" stroke="var(--color-success)" stroke-width="22" stroke-linecap="round" stroke-dasharray="408" :stroke-dashoffset="(408 * (1 - res.gaugeFrac)).toFixed(0)" stroke-dashoffset="230"/>
         <text x="150" y="150" text-anchor="middle" id="gaugeLabel" font-size="15" font-weight="bold" fill="var(--color-base-content)">BMI</text>
       </svg>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 text-center">
-        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Healthy range</div><div id="idealRange" class="font-bold font-mono text-sm">—</div></div>
-        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">BMI Prime</div><div id="bmiPrime" class="font-bold font-mono text-sm">—</div></div>
-        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Waist / height</div><div id="whtr" class="font-bold font-mono text-sm">—</div></div>
-        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Est. body fat</div><div id="bodyFat" class="font-bold font-mono text-sm">—</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Healthy range</div><div id="idealRange" class="font-bold font-mono text-sm" x-text="res.idealRange">53.5–72.0 kg</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">BMI Prime</div><div id="bmiPrime" class="font-bold font-mono text-sm" x-text="res.bmiPrime">0.97</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Waist / height</div><div id="whtr" class="font-bold font-mono text-sm" x-text="res.whtr">—</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Est. body fat</div><div id="bodyFat" class="font-bold font-mono text-sm" x-text="res.bodyFat">30.5%</div></div>
       </div>
       <p class="text-xs opacity-60 mt-4">BMI is a screening estimate, not a diagnosis. Athletes, children, pregnant users and older adults should interpret results with a clinician.</p>
       {% include "components/ymyl_disclaimer_health.html" %}
     </div>
   </div>
 </div>
+
 <script nonce="{{ nonce }}">
-(function(){'use strict';
-var metric=true;
-function val(id){return parseFloat(document.getElementById(id).value)||0;}
-function setUnit(m){
-  metric=m;
-  document.getElementById('metricFields').classList.toggle('hidden',!m);
-  document.getElementById('imperialFields').classList.toggle('hidden',m);
-  document.getElementById('unitMetric').classList.toggle('btn-cal-primary',m);
-  document.getElementById('unitMetric').classList.toggle('btn-ghost',!m);
-  document.getElementById('unitImperial').classList.toggle('btn-cal-primary',!m);
-  document.getElementById('unitImperial').classList.toggle('btn-ghost',m);
-  calc();
-}
-function catOf(bmi){
-  if(bmi<18.5)return['Underweight','var(--color-warning)'];
-  if(bmi<25)return['Healthy weight','var(--color-success)'];
-  if(bmi<30)return['Overweight','var(--color-warning)'];
-  return['Obesity range','var(--color-error)'];
-}
-function calc(){
-  var hM,wKg;
-  if(metric){hM=val('heightCm')/100;wKg=val('weightKg');}
-  else{hM=((val('heightFt')*12)+val('heightIn'))*0.0254;wKg=val('weightLb')*0.45359237;}
-  var age=val('age'),gender=document.getElementById('gender').value,waist=val('waist');
-  if(!(hM>0&&wKg>0))return;
-  var bmi=wKg/(hM*hM);
-  var c=catOf(bmi);
-  document.getElementById('bmiValue').textContent=bmi.toFixed(1);
-  var badge=document.getElementById('bmiCat');
-  badge.textContent=c[0];
-  badge.style.background='color-mix(in oklab,'+c[1]+' 15%,transparent)';
-  badge.style.color=c[1];
-  var frac=Math.min(1,Math.max(0,(bmi-12)/(40-12)));
-  document.getElementById('gaugeArc').setAttribute('stroke-dashoffset',(408*(1-frac)).toFixed(0));
-  document.getElementById('gaugeArc').setAttribute('stroke',c[1]);
-  var lo=(18.5*hM*hM),hi=(24.9*hM*hM);
-  document.getElementById('idealRange').textContent=lo.toFixed(1)+'–'+hi.toFixed(1)+(metric?' kg':' kg');
-  document.getElementById('bmiPrime').textContent=(bmi/25).toFixed(2);
-  if(waist>0){var hCm=hM*100;document.getElementById('whtr').textContent=(waist/hCm).toFixed(2);}
-  else{document.getElementById('whtr').textContent='—';}
-  var bf=null;
-  if(age>=18){bf=(1.20*bmi)+(0.23*age)-((gender==='male')?16.2:5.4);}
-  document.getElementById('bodyFat').textContent=(bf===null||bf<0)?'—':bf.toFixed(1)+'%';
-}
-document.addEventListener('DOMContentLoaded',function(){
-  document.getElementById('unitMetric').addEventListener('click',function(){setUnit(true);});
-  document.getElementById('unitImperial').addEventListener('click',function(){setUnit(false);});
-  document.querySelectorAll('#bmiForm input,#bmiForm select').forEach(function(el){el.addEventListener('input',calc);el.addEventListener('change',calc);});
-  calc();
-});})();
+window.bmiCalculator = function() {
+document.addEventListener('alpine:init', function() {
+  Alpine.data('bmiCalculator', function() {
+    return {
+      unit: 'metric',
+      heightCm: 170,
+      weightKg: 70,
+      heightFt: 5,
+      heightIn: 7,
+      weightLb: 154,
+      age: 30,
+      gender: 'other',
+      waist: 0,
+      get res() {
+        var hM = 0, wKg = 0;
+        if (this.unit === 'metric') {
+          hM = (parseFloat(this.heightCm) || 0) / 100;
+          wKg = parseFloat(this.weightKg) || 0;
+        } else {
+          var ft = parseFloat(this.heightFt) || 0;
+          var inch = parseFloat(this.heightIn) || 0;
+          hM = ((ft * 12) + inch) * 0.0254;
+          wKg = (parseFloat(this.weightLb) || 0) * 0.45359237;
+        }
+
+        if (hM <= 0 || wKg <= 0) {
+          return {
+            bmi: 0,
+            category: 'Enter details',
+            color: 'var(--color-primary)',
+            gaugeFrac: 0,
+            idealRange: '—',
+            bmiPrime: '—',
+            whtr: '—',
+            bodyFat: '—'
+          };
+        }
+
+        var bmi = wKg / (hM * hM);
+        var cat = 'Healthy weight', col = 'var(--color-success)';
+        if (bmi < 18.5) {
+          cat = 'Underweight';
+          col = 'var(--color-warning)';
+        } else if (bmi < 25) {
+          cat = 'Healthy weight';
+          col = 'var(--color-success)';
+        } else if (bmi < 30) {
+          cat = 'Overweight';
+          col = 'var(--color-warning)';
+        } else {
+          cat = 'Obesity range';
+          col = 'var(--color-error)';
+        }
+
+        var frac = Math.min(1, Math.max(0, (bmi - 12) / (40 - 12)));
+        var lo = 18.5 * hM * hM;
+        var hi = 24.9 * hM * hM;
+        var unitSuffix = this.unit === 'metric' ? ' kg' : ' kg';
+        var ideal = lo.toFixed(1) + '–' + hi.toFixed(1) + unitSuffix;
+        var prime = (bmi / 25).toFixed(2);
+
+        var w = parseFloat(this.waist) || 0;
+        var whtr = '—';
+        if (w > 0) {
+          var hCm = hM * 100;
+          whtr = (w / hCm).toFixed(2);
+        }
+
+        var bf = '—';
+        var a = parseFloat(this.age) || 0;
+        if (a >= 18) {
+          var bfVal = (1.20 * bmi) + (0.23 * a) - (this.gender === 'male' ? 16.2 : 5.4);
+          if (bfVal > 0) bf = bfVal.toFixed(1) + '%';
+        }
+
+        return {
+          bmi: bmi,
+          category: cat,
+          color: col,
+          gaugeFrac: frac,
+          idealRange: ideal,
+          bmiPrime: prime,
+          whtr: whtr,
+          bodyFat: bf
+        };
+      }
+    };
+  });
+});
+
+  return {
+    init: function() {
+      if (typeof calc === 'function') calc();
+      else if (typeof generate === 'function') generate();
+      else if (typeof gen === 'function') gen();
+      else if (typeof render === 'function') render();
+      else if (typeof update === 'function') update();
+      else if (typeof calculate === 'function') calculate();
+      else if (typeof build === 'function') build();
+    }
+  };
+};
 </script>
 {{ tool_section_end() }}
 {% endblock %}

@@ -95,7 +95,7 @@
 {% endblock %}
 {% block content %}
 {{ tool_hero_section("rainbow", "Developer", "CSS GRADIENT", "GENERATOR", seo_data.description if seo_data else "Create, preview, and export CSS linear, radial, and conic gradients. Add and drag color stops, then copy CSS or Tailwind code with one click.") }}
-<div class="container-site px-4 pb-24">
+<div x-data="gradientGenerator()" class="container-site px-4 pb-24">
   <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
     <div class="lg:col-span-2 space-y-6">
       <div class="cgg-card">
@@ -237,9 +237,10 @@
 {% endblock %}
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
+window.gradientGenerator = function() {
+
 var toastEl=document.getElementById('cggToast');
-function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show')},2200)}
+function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show');},2200);}
 
 function hexToRgb(h){h=h.replace(/^#/,'');if(h.length===3){h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2]}var n=parseInt(h,16);return[(n>>16)&255,(n>>8)&255,n&255]}
 
@@ -434,7 +435,7 @@ v=Math.max(0,Math.min(1,v));
 state.stops[parseInt(this.dataset.idx)].opacity=v;
 var opVal=document.getElementById('cggOpVal');if(opVal)opVal.textContent=v.toFixed(2);
 renderBar();updatePreview();updateOutput();updateInfo();
-clearTimeout(_opTimer);_opTimer=setTimeout(function(){pushHistory()},200)})}
+clearTimeout(_opTimer);_opTimer=setTimeout(function(){pushHistory();},200);});
 var delBtn=el.querySelector('.del-btn');
 if(delBtn){
 delBtn.addEventListener('click',function(){removeStop(parseInt(this.dataset.del))})}}
@@ -786,13 +787,13 @@ this.classList.add('on');outputMode=this.dataset.out;updateOutput()})});
 
 /* Copy button */
 document.getElementById('cggCopyBtn').addEventListener('click',function(){
-navigator.clipboard.writeText(outputEl.value).then(function(){toast('Code copied!')})});
+navigator.clipboard.writeText(outputEl.value).then(function(){ toast('Code copied!'); });});
 
 /* Share button */
 document.getElementById('cggShareBtn').addEventListener('click',function(){
 updateHash();
 var url=window.location.href.split('#')[0]+'#'+encodeState();
-navigator.clipboard.writeText(url).then(function(){toast('Share link copied!')})});
+navigator.clipboard.writeText(url).then(function(){toast('Share link copied!');});});
 
 /* Library save */
 document.getElementById('cggLibSaveBtn').addEventListener('click',function(){
@@ -814,7 +815,14 @@ function init(){
 if(!restoreFromHash()){
 fullRender()}
 renderLibrary()}
-init()
-})()
+init();
+
+return {
+  init: function() {
+    init();
+  }
+};
+};
+};
 </script>
 {% endblock %}

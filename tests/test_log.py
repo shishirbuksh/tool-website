@@ -3,7 +3,7 @@
 import json
 import logging
 
-from app.core.log import JSONFormatter, reset_request_id, set_request_id
+from apps.core.log import JSONFormatter, reset_request_id, set_request_id
 
 
 class TestJSONFormatter:

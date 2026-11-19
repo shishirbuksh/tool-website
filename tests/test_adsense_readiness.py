@@ -5,12 +5,10 @@ from collections import Counter
 from pathlib import Path
 
 import yaml
-from fastapi.testclient import TestClient
-
-from app.main import app
+from tests.conftest import DjangoTestClientWrapper
 
 ROOT = Path(__file__).resolve().parent.parent
-client = TestClient(app, base_url="https://www.storybrainai.com")
+client = DjangoTestClientWrapper()
 
 
 def _plain_words(html: str) -> int:
@@ -77,8 +75,7 @@ def test_all_tools_meet_depth_eeat_and_unique_faq_standards():
 
 def test_apex_host_redirects_to_www_and_mobile_nav_has_blog():
     """Verify bare apex storybrainai.com 301-redirects to www, and mobile drawer exposes /blog."""
-    apex_client = TestClient(app, base_url="https://storybrainai.com")
-    res = apex_client.get("/tool/text-case-converter?ref=gsc", follow_redirects=False)
+    res = client.get("/tool/text-case-converter?ref=gsc", headers={"host": "storybrainai.com"}, follow_redirects=False)
     assert res.status_code == 301
     assert res.headers.get("location") == "https://www.storybrainai.com/tool/text-case-converter?ref=gsc"
 

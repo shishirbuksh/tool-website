@@ -49,289 +49,443 @@
 {% endblock %}
 {% block content %}
 {{ tool_hero_section("credit-card", "Calculators", "Credit Utilization", "CALCULATOR", seo_data.description if seo_data else "Track utilization across cards, plan payoff, set goals, and compare to benchmarks.") }}
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="creditUtilizationCalculator()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="cu-card">
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("wallet","w-4 h-4",16) | safe }} Your Credit</h2>
-        <button type="button" id="cuModeTog" class="cu-toggle on" aria-expanded="true" aria-label="Toggle between per-card and simple mode">Per-Card</button>
+        <button type="button" @click="perCard = !perCard" id="cuModeTog" class="cu-toggle" :class="{ 'on': perCard }" :aria-expanded="perCard" x-text="perCard ? 'Per-Card' : 'Simple'">Per-Card</button>
       </div>
-      <div id="cuPerCardMode">
+      <div id="cuPerCardMode" x-show="perCard">
         <div class="flex flex-col gap-2">
-          <div><label class="cu-label" for="cuB1">Card 1 Balance ($)</label><input type="text" id="cuB1" class="cu-input" value="1500" inputmode="numeric" aria-label="Card 1 balance"></div>
-          <div><label class="cu-label" for="cuL1">Card 1 Limit ($)</label><input type="text" id="cuL1" class="cu-input" value="4000" inputmode="numeric" aria-label="Card 1 limit"></div>
-          <div><label class="cu-label" for="cuB2">Card 2 Balance ($)</label><input type="text" id="cuB2" class="cu-input" value="1200" inputmode="numeric" aria-label="Card 2 balance"></div>
-          <div><label class="cu-label" for="cuL2">Card 2 Limit ($)</label><input type="text" id="cuL2" class="cu-input" value="3500" inputmode="numeric" aria-label="Card 2 limit"></div>
-          <div><label class="cu-label" for="cuB3">Card 3 Balance ($)</label><input type="text" id="cuB3" class="cu-input" value="500" inputmode="numeric" aria-label="Card 3 balance"></div>
-          <div><label class="cu-label" for="cuL3">Card 3 Limit ($)</label><input type="text" id="cuL3" class="cu-input" value="2500" inputmode="numeric" aria-label="Card 3 limit"></div>
-          <div><label class="cu-label" for="cuB4">Card 4 Balance ($)</label><input type="text" id="cuB4" class="cu-input" value="0" inputmode="numeric" aria-label="Card 4 balance"></div>
-          <div><label class="cu-label" for="cuL4">Card 4 Limit ($)</label><input type="text" id="cuL4" class="cu-input" value="0" inputmode="numeric" aria-label="Card 4 limit"></div>
-          <div><label class="cu-label" for="cuB5">Card 5 Balance ($)</label><input type="text" id="cuB5" class="cu-input" value="0" inputmode="numeric" aria-label="Card 5 balance"></div>
-          <div><label class="cu-label" for="cuL5">Card 5 Limit ($)</label><input type="text" id="cuL5" class="cu-input" value="0" inputmode="numeric" aria-label="Card 5 limit"></div>
+          <template x-for="(card, i) in cardsInput" :key="i">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="cu-label" :for="'cuB' + (i+1)" x-text="'Card ' + (i+1) + ' Bal ($)'"></label>
+                <input type="number" :id="'cuB' + (i+1)" x-model.number="card.b" class="cu-input" inputmode="numeric">
+              </div>
+              <div>
+                <label class="cu-label" :for="'cuL' + (i+1)" x-text="'Card ' + (i+1) + ' Limit ($)'"></label>
+                <input type="number" :id="'cuL' + (i+1)" x-model.number="card.l" class="cu-input" inputmode="numeric">
+              </div>
+            </div>
+          </template>
         </div>
       </div>
-      <div id="cuSimpleMode" hidden>
+      <div id="cuSimpleMode" x-show="!perCard" x-cloak>
         <div class="flex flex-col gap-3">
-          <div><label class="cu-label" for="cuSTotalB">Total Balance ($)</label><input type="text" id="cuSTotalB" class="cu-input" value="3200" inputmode="numeric" aria-label="Total credit card balance"></div>
-          <div><label class="cu-label" for="cuSTotalL">Total Limit ($)</label><input type="text" id="cuSTotalL" class="cu-input" value="10000" inputmode="numeric" aria-label="Total credit card limit"></div>
+          <div><label class="cu-label" for="cuSTotalB">Total Balance ($)</label><input type="number" id="cuSTotalB" x-model.number="simpleB" class="cu-input" value="3200" inputmode="numeric" aria-label="Total credit card balance"></div>
+          <div><label class="cu-label" for="cuSTotalL">Total Limit ($)</label><input type="number" id="cuSTotalL" x-model.number="simpleL" class="cu-input" value="10000" inputmode="numeric" aria-label="Total credit card limit"></div>
         </div>
       </div>
       <div class="flex gap-2 mt-3">
-        <button type="button" id="cuCalcBtn" class="cu-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
-        <button type="button" id="cuCopyBtn" class="cu-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
-        <button type="button" id="cuDlBtn" class="cu-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
+        <button type="button" @click="saveHistory()" id="cuCalcBtn" class="cu-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
+        <button type="button" @click="copyAll()" id="cuCopyBtn" class="cu-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
+        <button type="button" @click="dlReport()" id="cuDlBtn" class="cu-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
       </div>
     </div>
     <div class="cu-card mt-4">
       <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("calendar","w-4 h-4",16) | safe }} Payment Plan</h2>
       <p class="text-[11px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">See how monthly payments reduce your utilization</p>
       <div class="flex flex-col gap-2">
-        <div><label class="cu-label" for="cuMonthlyPay">Monthly Payment ($)</label><input type="text" id="cuMonthlyPay" class="cu-input" value="500" inputmode="numeric" aria-label="Monthly payment amount"></div>
+        <div><label class="cu-label" for="cuMonthlyPay">Monthly Payment ($)</label><input type="number" id="cuMonthlyPay" x-model.number="monthlyPayment" class="cu-input" value="500" inputmode="numeric" aria-label="Monthly payment amount"></div>
       </div>
-      <div class="cu-inline mt-2"><span class="il">Time to 30%:</span><span class="iv" id="cuTimeToTarget" style="color:var(--color-primary)">—</span></div>
-      <div id="cuPayWrap" class="mt-2"><div class="cu-table-wrap"><table class="cu-table"><thead><tr><th>Month</th><th>Payment</th><th>Balance</th><th>Utilization</th><th>Status</th></tr></thead><tbody id="cuPayBody"></tbody></table></div></div>
+      <div class="cu-inline mt-2"><span class="il">Time to 30%:</span><span class="iv text-primary" id="cuTimeToTarget" x-text="timeToTargetText" style="color:var(--color-primary)">1 mo</span></div>
+      <div id="cuPayWrap" class="mt-2">
+        <div class="cu-table-wrap">
+          <table class="cu-table">
+            <thead><tr><th>Month</th><th>Payment</th><th>Balance</th><th>Utilization</th><th>Status</th></tr></thead>
+            <tbody id="cuPayBody">
+              <template x-for="rw in payRows" :key="rw.m">
+                <tr>
+                  <td x-text="rw.m"></td>
+                  <td x-text="formatCurrency(rw.pay)"></td>
+                  <td x-text="formatCurrency(rw.bal)"></td>
+                  <td :style="{ color: rw.color }" x-text="rw.pct.toFixed(1) + '%'"></td>
+                  <td :style="{ color: rw.color }" style="font-size:11px;font-weight:800" x-text="rw.status"></td>
+                </tr>
+              </template>
+              <!-- Pre-rendered SSR fallback -->
+              <tr x-show="!mounted"><td>1</td><td>$500</td><td>$2,700</td><td style="color:var(--color-primary)">27.0%</td><td style="color:var(--color-primary);font-size:11px;font-weight:800">Good</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
     <div class="cu-card mt-4">
       <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("zap","w-3 h-3",12) | safe }} What-If</h2>
       <p class="text-[11px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">Test different scenarios instantly</p>
-      <div class="cu-whatif" id="cuWhatIf"><button type="button" class="on" data-wi="current">Current</button><button type="button" data-wi="pay-half">Pay Down 50%</button><button type="button" data-wi="double-bal">Double Balance</button><button type="button" data-wi="limit-up">+$5k Limit</button><button type="button" data-wi="pay-to-30">Pay to 30%</button><button type="button" data-wi="best-case">Best Case</button></div>
+      <div class="cu-whatif" id="cuWhatIf">
+        <button type="button" :class="{ 'on': wi === 'current' }" @click="setScenario('current')">Current</button>
+        <button type="button" :class="{ 'on': wi === 'pay-half' }" @click="setScenario('pay-half')">Pay Down 50%</button>
+        <button type="button" :class="{ 'on': wi === 'double-bal' }" @click="setScenario('double-bal')">Double Balance</button>
+        <button type="button" :class="{ 'on': wi === 'limit-up' }" @click="setScenario('limit-up')">+$5k Limit</button>
+        <button type="button" :class="{ 'on': wi === 'pay-to-30' }" @click="setScenario('pay-to-30')">Pay to 30%</button>
+        <button type="button" :class="{ 'on': wi === 'best-case' }" @click="setScenario('best-case')">Best Case</button>
+      </div>
     </div>
     <div class="cu-card mt-4">
       <div class="flex items-center justify-between">
         <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
-        <div class="flex items-center gap-2"><button type="button" id="cuHiToggle" class="cu-toggle" aria-expanded="false" aria-controls="cuHiWrap">History <span id="cuHiCount"></span></button><button type="button" id="cuHiClear" class="cu-sec" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
+        <div class="flex items-center gap-2">
+          <button type="button" @click="showHistory = !showHistory" :class="{ 'on': showHistory }" id="cuHiToggle" class="cc-toggle" :aria-expanded="showHistory">History <span id="cuHiCount" x-text="history.length ? '(' + history.length + ')' : ''"></span></button>
+          <button type="button" @click="clearHistory()" id="cuHiClear" class="cu-sec" x-show="history.length" x-cloak>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button>
+        </div>
       </div>
-      <div id="cuHiWrap" hidden class="mt-2"><div id="cuHiList" class="cu-hist"></div></div>
+      <div id="cuHiWrap" x-show="showHistory" class="mt-2" x-cloak>
+        <div id="cuHiList" class="cu-hist">
+          <template x-for="(item, idx) in history" :key="item.ts">
+            <div class="cu-hist-item" @click="restoreHistory(idx)">
+              <span class="preview" x-text="item.label"></span>
+              <span class="meta" x-text="formatTime(item.ts)"></span>
+              <button type="button" class="hdel" @click.stop="deleteHistory(idx)" aria-label="Delete">✕</button>
+            </div>
+          </template>
+          <div class="cu-empty" x-show="!history.length">No calculations yet</div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="lg:w-7/12">
     <div class="cu-card">
       <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} Utilization Results</h2>
       <div class="cu-grid" id="cuResults">
-        <div class="cu-result full"><div class="iv" id="cuRatio" style="color:var(--color-primary)">0.0%</div><div class="il">Overall Utilization</div></div>
-        <div class="cu-result" style="padding:8px"><span class="cu-badge" id="cuRating">—</span></div>
-        <div class="cu-result" style="padding:8px"><span class="cu-badge" id="cuScoreImpact">—</span></div>
-        <div class="cu-result"><div class="iv" id="cuAvailable">$0</div><div class="il">Available Credit</div></div>
-        <div class="cu-result"><div class="iv" id="cuTargetPay">$0</div><div class="il">Pay Down for 30%</div></div>
-        <div class="cu-result"><div class="iv" id="cuSuggested">$0</div><div class="il">Suggested Limit</div></div>
+        <div class="cu-result full"><div class="iv text-warning" id="cuRatio" :style="{ color: ratioColor }" x-text="overallRatio.toFixed(1) + '%'" style="color:var(--color-warning)">32.0%</div><div class="il">Overall Utilization</div></div>
+        <div class="cu-result" style="padding:8px"><span class="cu-badge" id="cuRating" :style="{ background: 'color-mix(in oklab,' + ratingColor + ' 12%,transparent)', color: ratingColor }" x-text="ratingText" style="background:color-mix(in oklab,var(--color-warning) 12%,transparent);color:var(--color-warning)">Fair</span></div>
+        <div class="cu-result" style="padding:8px"><span class="cu-badge" id="cuScoreImpact" :style="{ background: 'color-mix(in oklab,' + scoreColor + ' 12%,transparent)', color: scoreColor }" x-text="scoreRangeText" style="background:color-mix(in oklab,var(--color-warning) 12%,transparent);color:var(--color-warning)">620-700</span></div>
+        <div class="cu-result"><div class="iv" id="cuAvailable" x-text="formatCurrency(availableCredit)">$6,800</div><div class="il">Available Credit</div></div>
+        <div class="cu-result"><div class="iv" id="cuTargetPay" x-text="formatCurrency(payDownTo30)">$200</div><div class="il">Pay Down for 30%</div></div>
+        <div class="cu-result"><div class="iv" id="cuSuggested" x-text="formatCurrency(suggestedLimit)">$10,667</div><div class="il">Suggested Limit</div></div>
       </div>
-      <p class="text-[11px] font-bold opacity-25 uppercase tracking-wider text-center mt-1" id="cuRatioLabel"></p>
+      <div class="cu-util-bar">
+        <div class="marker" :style="'left:' + Math.min(overallRatio, 100) + '%'" style="left:32%"></div>
+      </div>
+      <p class="text-[11px] font-bold opacity-25 uppercase tracking-wider text-center mt-1" id="cuRatioLabel">Excellent ≤10%   Good ≤30%   Fair ≤50%   Poor >50%</p>
     </div>
     <div class="cu-card mt-4">
       <div class="flex items-center justify-between">
         <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("credit-card","w-4 h-4",16) | safe }} Per-Card Breakdown</h2>
-        <button type="button" id="cuCardTog" class="cu-toggle on" aria-expanded="true" aria-controls="cuCardWrap">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
+        <button type="button" @click="showCards = !showCards" :class="{ 'on': showCards }" id="cuCardTog" class="cu-toggle on" :aria-expanded="showCards">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
       </div>
-      <div id="cuCardWrap"><div class="cu-table-wrap mt-2"><table class="cu-table" id="cuCardTable"><thead><tr><th>Card</th><th>Balance</th><th>Limit</th><th>Utilization</th><th>Status</th></tr></thead><tbody id="cuCardBody"></tbody></table></div></div>
+      <div id="cuCardWrap" x-show="showCards">
+        <div class="cu-table-wrap mt-2">
+          <table class="cu-table" id="cuCardTable">
+            <thead><tr><th>Card</th><th>Balance</th><th>Limit</th><th>Utilization</th><th>Status</th></tr></thead>
+            <tbody id="cuCardBody">
+              <template x-for="(c, i) in perCardRows" :key="i">
+                <tr>
+                  <td x-text="'Card ' + (i + 1)"></td>
+                  <td x-text="formatCurrency(c.b)"></td>
+                  <td x-text="formatCurrency(c.l)"></td>
+                  <td :style="{ color: c.color }" x-text="c.pct.toFixed(1) + '%'"></td>
+                  <td :style="{ color: c.color }" style="font-weight:800;font-size:11px" x-text="c.status"></td>
+                </tr>
+              </template>
+              <!-- SSR Pre-rendered fallback -->
+              <tr x-show="!mounted"><td>Card 1</td><td>$1,500</td><td>$4,000</td><td style="color:var(--color-warning)">37.5%</td><td style="color:var(--color-warning);font-weight:800;font-size:11px">Fair</td></tr>
+              <tr x-show="!mounted"><td>Card 2</td><td>$1,200</td><td>$3,500</td><td style="color:var(--color-warning)">34.3%</td><td style="color:var(--color-warning);font-weight:800;font-size:11px">Fair</td></tr>
+              <tr x-show="!mounted"><td>Card 3</td><td>$500</td><td>$2,500</td><td style="color:var(--color-primary)">20.0%</td><td style="color:var(--color-primary);font-weight:800;font-size:11px">Good</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
     <div class="cu-card mt-4">
       <div class="flex items-center justify-between">
         <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("target","w-4 h-4",16) | safe }} Goal & Benchmark</h2>
-        <button type="button" id="cuGoalTog" class="cu-toggle on" aria-expanded="true" aria-controls="cuGoalWrap">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
+        <button type="button" @click="showGoal = !showGoal" :class="{ 'on': showGoal }" id="cuGoalTog" class="cu-toggle on" :aria-expanded="showGoal">{{ lucide_icon("eye","w-3 h-3",12) | safe }}</button>
       </div>
-      <div id="cuGoalWrap">
+      <div id="cuGoalWrap" x-show="showGoal">
         <div class="flex items-center gap-3 mt-2">
-          <div class="flex-1"><label class="cu-label" for="cuTargetPct">Target Utilization (%)</label><input type="text" id="cuTargetPct" class="cu-input" value="30" inputmode="numeric" aria-label="Target utilization percentage"></div>
+          <div class="flex-1">
+            <label class="cu-label" for="cuTargetPct">Target Utilization (%)</label>
+            <input type="number" id="cuTargetPct" x-model.number="targetPct" class="cu-input" value="30" inputmode="numeric" aria-label="Target utilization percentage">
+          </div>
         </div>
         <div class="cu-grid mt-2">
-          <div class="cu-result"><div class="iv" id="cuGoalPay">$0</div><div class="il">Payment Needed</div></div>
-          <div class="cu-result"><div class="iv" id="cuGoalLimit">$0</div><div class="il">Limit Needed</div></div>
+          <div class="cu-result"><div class="iv" id="cuGoalPay" x-text="formatCurrency(goalPaymentNeeded)">$200</div><div class="il">Payment Needed</div></div>
+          <div class="cu-result"><div class="iv" id="cuGoalLimit" x-text="formatCurrency(goalLimitNeeded)">$10,667</div><div class="il">Limit Needed</div></div>
         </div>
-        <div class="cu-inline mt-2 justify-center"><span class="il">Benchmark:</span><span class="iv" id="cuBenchmark" style="font-size:11px">—</span></div>
+        <div class="cu-inline mt-2 justify-center"><span class="il">Benchmark:</span><span class="iv" id="cuBenchmark" style="font-size:11px">Avg US utilization ~30%</span></div>
       </div>
     </div>
   </div>
 </div>
-<div id="cuToast" class="cu-toast" role="status" aria-live="polite"></div>
 {% include "components/ymyl_disclaimer.html" %}
+
+{% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){'use strict';
-var wi='current',perCard=true,cardTable=true,goalOn=true;
-var history=[];try{var h=JSON.parse(localStorage.getItem('sb_cu')||'[]');if(Array.isArray(h))history=h}catch(e){}
-var saved=null;try{var s=JSON.parse(localStorage.getItem('sb_cu_i')||'null');if(s&&typeof s==='object')saved=s}catch(e){}
+window.creditUtilizationCalculator = function() {
+  var hist = [];
+  try {
+    var h = JSON.parse(localStorage.getItem('sb_cu') || '[]');
+    if (Array.isArray(h)) hist = h;
+  } catch(e) {}
 
-function el(id){return document.getElementById(id)}
-var b1=el('cuB1'),l1=el('cuL1'),b2=el('cuB2'),l2=el('cuL2'),b3=el('cuB3'),l3=el('cuL3'),b4=el('cuB4'),l4=el('cuL4'),b5=el('cuB5'),l5=el('cuL5');
-var sB=el('cuSTotalB'),sL=el('cuSTotalL');
-var calcBtn=el('cuCalcBtn'),copyBtn=el('cuCopyBtn'),dlBtn=el('cuDlBtn'),whatifEl=el('cuWhatIf'),modeTog=el('cuModeTog');
-var ratio=el('cuRatio'),rating=el('cuRating'),scoreImpact=el('cuScoreImpact'),available=el('cuAvailable'),targetPay=el('cuTargetPay'),suggested=el('cuSuggested'),ratioLabel=el('cuRatioLabel');
-var cardBody=el('cuCardBody');
-var mp=el('cuMonthlyPay'),timeToTarget=el('cuTimeToTarget'),payBody=el('cuPayBody');
-var tgtPct=el('cuTargetPct'),goalPay=el('cuGoalPay'),goalLimit=el('cuGoalLimit'),benchmark=el('cuBenchmark');
-var hiToggle=el('cuHiToggle'),hiCount=el('cuHiCount'),hiClear=el('cuHiClear'),hiWrap=el('cuHiWrap'),hiList=el('cuHiList');
-var cardTog=el('cuCardTog'),cardWrap=el('cuCardWrap'),goalTog=el('cuGoalTog'),goalWrap=el('cuGoalWrap');
-var perCardMode=el('cuPerCardMode'),simpleMode=el('cuSimpleMode');
-var toastEl=el('cuToast'),tt;
-var cards=[],payData=[];
+  return {
+    mounted: false,
+    perCard: true,
+    wi: 'current',
+    showHistory: false,
+    showCards: true,
+    showGoal: true,
+    monthlyPayment: 500,
+    targetPct: 30,
+    simpleB: 3200,
+    simpleL: 10000,
+    cardsInput: [
+      { b: 1500, l: 4000 },
+      { b: 1200, l: 3500 },
+      { b: 500, l: 2500 },
+      { b: 0, l: 0 },
+      { b: 0, l: 0 }
+    ],
+    history: hist,
 
-function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show')},2200)}
-function v(e){var n=parseFloat(e.value.replace(/,/g,''));return isNaN(n)?0:n}
-function fmtCurrency(n){if(isNaN(n)||n===0)return'$0';return'$'+Math.round(n).toLocaleString('en-US')}
-function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+    init: function() {
+      this.mounted = true;
+    },
 
-function applyWI(){
-var bl=[v(b1),v(b2),v(b3),v(b4),v(b5)],lm=[v(l1),v(l2),v(l3),v(l4),v(l5)];
-if(!perCard){bl=[v(sB)];lm=[v(sL)]}
-if(wi!=='current'){var totalB=bl.reduce(function(a,b){return a+b},0);var totalL=lm.reduce(function(a,b){return a+b},0);
-if(wi==='pay-half'){totalB*=0.5}
-else if(wi==='double-bal'){totalB*=2}
-else if(wi==='limit-up'){totalL+=5000}
-else if(wi==='pay-to-30'){totalB=totalL*0.3}
-else if(wi==='best-case'){totalB*=0.5;totalL+=5000}
-if(perCard&&totalL>0){var r2=totalB/totalL;if(wi!=='current'){cards.forEach(function(c,i){if(i<5){bl[i]=Math.round(c.b*r2);lm[i]=c.l}});bl[0]=totalB-bl[1]-bl[2]-bl[3]-bl[4];if(bl[0]<0)bl[0]=0}}
-else if(!perCard){bl=[totalB];lm=[totalL]}}
-return{bl:bl,lm:lm}
-}
+    setScenario: function(s) {
+      this.wi = s;
+    },
 
-function calc(){
-var d=applyWI();var nCards=perCard?5:1;
-cards=[];
-for(var i=0;i<nCards;i++){cards.push({b:d.bl[i]||0,l:d.lm[i]||0,pct:(d.lm[i]||0)>0?((d.bl[i]||0)/(d.lm[i]||1)*100):0})}
-var totalB=cards.reduce(function(s,c){return s+c.b},0);
-var totalL=cards.reduce(function(s,c){return s+c.l},0);
-if(totalL<=0){ratio.textContent='0.0%';rating.textContent='—';rating.style.background='transparent';rating.style.color='var(--color-base-content)';scoreImpact.textContent='—';scoreImpact.style.background='transparent';scoreImpact.style.color='var(--color-base-content)';available.textContent='$0';targetPay.textContent='$0';suggested.textContent='$0';ratioLabel.textContent='';cardBody.innerHTML='';payBody.innerHTML='';timeToTarget.textContent='—';goalPay.textContent='$0';goalLimit.textContent='$0';benchmark.textContent='—';return}
-var pct=totalB/totalL*100;
-var r='',rc='';
-if(pct<=10){r='Excellent';rc='var(--color-success)'}
-else if(pct<=30){r='Good';rc='var(--color-primary)'}
-else if(pct<=50){r='Fair';rc='var(--color-warning)'}
-else{r='Poor';rc='var(--color-error)'}
-ratio.textContent=pct.toFixed(1)+'%';ratio.style.color=pct<=30?'var(--color-success)':pct<=50?'var(--color-warning)':'var(--color-error)';
-rating.textContent=r;rating.style.background='color-mix(in oklab,'+rc+' 12%,transparent)';rating.style.color=rc;
-var scoreText='',scoreRc='';
-if(pct<=10){scoreText='750-850';scoreRc='var(--color-success)'}
-else if(pct<=30){scoreText='700-780';scoreRc='var(--color-primary)'}
-else if(pct<=50){scoreText='620-700';scoreRc='var(--color-warning)'}
-else if(pct<=70){scoreText='550-650';scoreRc='var(--color-error)'}
-else{scoreText='450-580';scoreRc='var(--color-error)'}
-scoreImpact.textContent=scoreText;scoreImpact.style.background='color-mix(in oklab,'+scoreRc+' 12%,transparent)';scoreImpact.style.color=scoreRc;
-available.textContent=fmtCurrency(totalL-totalB);
-var target30=totalL*0.3;targetPay.textContent=totalB>target30?fmtCurrency(Math.round(totalB-target30)):'$0';
-suggested.textContent=totalB>0?fmtCurrency(Math.round(totalB/0.3)):fmtCurrency(totalL);
-ratioLabel.textContent='Excellent ≤10%   Good ≤30%   Fair ≤50%   Poor >50%';
-renderUtilBar(pct);renderCards();renderPayPlan(totalB,totalL);renderGoal(totalB,totalL);saveInputs();
-}
+    formatCurrency: function(n) {
+      var num = Number(n) || 0;
+      if (num === 0) return '$0';
+      return '$' + Math.round(num).toLocaleString('en-US');
+    },
 
-function renderUtilBar(pct){
-var existing=document.querySelector('.cu-util-bar');if(existing)existing.remove();
-var bar=document.createElement('div');bar.className='cu-util-bar';
-var marker=document.createElement('div');marker.className='marker';marker.style.left=Math.min(pct,100)+'%';
-bar.appendChild(marker);ratioLabel.parentNode.insertBefore(bar,ratioLabel);
-}
+    formatTime: function(ts) {
+      var diff = Math.round((Date.now() - ts) / 1000);
+      if (diff < 60) return 'now';
+      if (diff < 3600) return Math.floor(diff / 60) + 'm';
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h';
+      return Math.floor(diff / 86400) + 'd';
+    },
 
-function renderCards(){
-if(!perCard){cardBody.innerHTML='<tr><td colspan="5" style="text-align:center;opacity:.3;padding:20px">Switch to per-card mode</td></tr>';return}
-var h='';cards.forEach(function(c,i){
-if(c.l<=0)return;var p=c.pct;var s='',sc='';
-if(p<=10){s='Excellent';sc='var(--color-success)'}
-else if(p<=30){s='Good';sc='var(--color-primary)'}
-else if(p<=50){s='Fair';sc='var(--color-warning)'}
-else{s='Poor';sc='var(--color-error)'}
-h+='<tr><td>Card '+(i+1)+'</td><td>'+fmtCurrency(c.b)+'</td><td>'+fmtCurrency(c.l)+'</td><td style="color:'+sc+'">'+p.toFixed(1)+'%</td><td style="color:'+sc+';font-weight:800;font-size:11px">'+s+'</td></tr>';
-});
-cardBody.innerHTML=h||'<tr><td colspan="5" style="text-align:center;opacity:.3;padding:20px">No cards with limits</td></tr>';
-}
+    get scenarioCards() {
+      var bl = [];
+      var lm = [];
+      if (this.perCard) {
+        for (var i = 0; i < 5; i++) {
+          bl.push(Number(this.cardsInput[i].b) || 0);
+          lm.push(Number(this.cardsInput[i].l) || 0);
+        }
+      } else {
+        bl = [Number(this.simpleB) || 0];
+        lm = [Number(this.simpleL) || 0];
+      }
 
-function renderPayPlan(totalB,totalL){
-var payment=v(mp);if(payment<=0||totalL<=0){payBody.innerHTML='';timeToTarget.textContent='—';return}
-var targetUtil=0.3;var targetBal=totalL*targetUtil;var bal=totalB;var months=0;var rows=[];var maxMonths=60;
-while(bal>targetBal&&months<maxMonths){months++;var pay=Math.min(payment,bal);bal-=pay;var pct2=bal/totalL*100;rows.push({m:months,pay:pay,bal:bal,pct:pct2});}
-if(rows.length){var last=rows[rows.length-1];timeToTarget.textContent=last.m+' mo';timeToTarget.style.color=last.m<=12?'var(--color-success)':last.m<=24?'var(--color-primary)':'var(--color-warning)';
-if(totalB<=targetBal){timeToTarget.textContent='Already at target'}
-}else{timeToTarget.textContent=payment>=totalB?'1 mo':'—'}
-var h='';rows.forEach(function(rw){
-var s='',sc='';
-if(rw.pct<=10){s='Excellent';sc='var(--color-success)'}
-else if(rw.pct<=30){s='Good';sc='var(--color-primary)'}
-else if(rw.pct<=50){s='Fair';sc='var(--color-warning)'}
-else{s='Poor';sc='var(--color-error)'}
-h+='<tr><td>'+rw.m+'</td><td>'+fmtCurrency(rw.pay)+'</td><td>'+fmtCurrency(rw.bal)+'</td><td style="color:'+sc+'">'+rw.pct.toFixed(1)+'%</td><td style="color:'+sc+';font-size:11px;font-weight:800">'+s+'</td></tr>';
-});
-if(totalB<=targetBal){h='<tr><td colspan="5" style="text-align:center;opacity:.3;padding:12px">Already at or below target</td></tr>'}
-payBody.innerHTML=h||'<tr><td colspan="5" style="text-align:center;opacity:.3;padding:12px">Not enough to reach target</td></tr>';
-}
+      var totalB = bl.reduce(function(a, b) { return a + b; }, 0);
+      var totalL = lm.reduce(function(a, b) { return a + b; }, 0);
 
-function renderGoal(totalB,totalL){
-var tp=v(tgtPct)/100;if(tp<=0||totalL<=0){goalPay.textContent='$0';goalLimit.textContent='$0';benchmark.textContent='—';return}
-var neededBal=totalL*tp;
-goalPay.textContent=totalB>neededBal?fmtCurrency(Math.round(totalB-neededBal)):'$0';
-goalLimit.textContent=totalB>0?fmtCurrency(Math.round(totalB/tp)):fmtCurrency(totalL);
-var avgUtil=30;var pctNow=totalL>0?totalB/totalL*100:0;var diff=avgUtil-pctNow;
-benchmark.textContent='Avg US utilization ~'+avgUtil+'%';
-}
+      if (this.wi === 'pay-half') { totalB *= 0.5; }
+      else if (this.wi === 'double-bal') { totalB *= 2; }
+      else if (this.wi === 'limit-up') { totalL += 5000; }
+      else if (this.wi === 'pay-to-30') { totalB = totalL * 0.3; }
+      else if (this.wi === 'best-case') { totalB *= 0.5; totalL += 5000; }
 
-function saveInputs(){
-var obj={b1:v(b1),l1:v(l1),b2:v(b2),l2:v(l2),b3:v(b3),l3:v(l3),b4:v(b4),l4:v(l4),b5:v(b5),l5:v(l5),sb:v(sB),sl:v(sL),wi:wi,pm:v(mp),tg:v(tgtPct),pc:perCard?1:0};
-try{localStorage.setItem('sb_cu_i',JSON.stringify(obj))}catch(e){}
-}
+      var res = [];
+      if (this.perCard) {
+        var baseL = lm.reduce(function(a, b) { return a + b; }, 0);
+        var baseB = bl.reduce(function(a, b) { return a + b; }, 0);
+        var ratioB = baseB > 0 ? (totalB / baseB) : 1;
+        var ratioL = baseL > 0 ? (totalL / baseL) : 1;
+        for (var j = 0; j < 5; j++) {
+          var bVal = bl[j] * ratioB;
+          var lVal = lm[j] * ratioL;
+          res.push({ b: bVal, l: lVal });
+        }
+      } else {
+        res.push({ b: totalB, l: totalL });
+      }
+      return res;
+    },
 
-function saveHistory(){
-var d=applyWI();var totalB=cards.reduce(function(s,c){return s+c.b},0);var totalL=cards.reduce(function(s,c){return s+c.l},0);
-var pct2=totalL>0?(totalB/totalL*100).toFixed(1):0;
-var label=pct2+'% util · '+rating.textContent;
-history.unshift({b1:v(b1),l1:v(l1),b2:v(b2),l2:v(l2),b3:v(b3),l3:v(l3),b4:v(b4),l4:v(l4),b5:v(b5),l5:v(l5),sb:v(sB),sl:v(sL),wi:wi,pc:perCard?1:0,label:label,ts:Date.now()});
-if(history.length>30)history.pop();
-try{localStorage.setItem('sb_cu',JSON.stringify(history))}catch(e){}renderHistory();
-}
+    get totalBalance() {
+      return this.scenarioCards.reduce(function(s, c) { return s + c.b; }, 0);
+    },
 
-function renderHistory(){
-hiCount.textContent=history.length?'('+history.length+')':'';hiClear.hidden=!history.length;
-if(!history.length){hiList.innerHTML='<div class="cu-empty">No calculations yet</div>';return}
-var h='';history.forEach(function(item,i){
-var d2=new Date(item.ts);var diff=Math.round((Date.now()-d2)/1000);
-var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
-h+='<div class="cu-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
-});hiList.innerHTML=h;
-}
+    get totalLimit() {
+      return this.scenarioCards.reduce(function(s, c) { return s + c.l; }, 0);
+    },
 
-function copyAll(){
-var txt='Credit Utilization Report\nScenario: '+wi.replace(/-/g,' ')+'\n\nTotal Balance: '+fmtCurrency(cards.reduce(function(s,c){return s+c.b},0))+'\nTotal Limit: '+fmtCurrency(cards.reduce(function(s,c){return s+c.l},0))+'\n\nUtilization: '+ratio.textContent+'\nRating: '+rating.textContent+'\nEst. Score Range: '+scoreImpact.textContent+'\nAvailable: '+available.textContent+'\nPay Down to 30%: '+targetPay.textContent+'\nSuggested Limit: '+suggested.textContent+'\nTime to 30% Target: '+timeToTarget.textContent+'\nGoal Payment Needed: '+goalPay.textContent+'\nGoal Limit Needed: '+goalLimit.textContent+'\n\nPer-Card:\n';
-cards.forEach(function(c,i){if(c.l>0)txt+='Card '+(i+1)+': Bal '+fmtCurrency(c.b)+' / Limit '+fmtCurrency(c.l)+' = '+c.pct.toFixed(1)+'%\n'});
-navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')});
-}
+    get overallRatio() {
+      if (this.totalLimit <= 0) return 0;
+      return (this.totalBalance / this.totalLimit) * 100;
+    },
 
-function dlReport(){
-var txt='=== Credit Utilization Report ===\nDate: '+new Date().toISOString().slice(0,10)+'\nScenario: '+wi.replace(/-/g,' ')+'\n\nTotal Balance: '+fmtCurrency(cards.reduce(function(s,c){return s+c.b},0))+'\nTotal Limit: '+fmtCurrency(cards.reduce(function(s,c){return s+c.l},0))+'\n\nUtilization: '+ratio.textContent+'\nRating: '+rating.textContent+'\nEst. Score Range: '+scoreImpact.textContent+'\nAvailable: '+available.textContent+'\nPay Down to 30%: '+targetPay.textContent+'\nSuggested Limit: '+suggested.textContent+'\nTime to 30% Target: '+timeToTarget.textContent+'\nGoal Payment Needed: '+goalPay.textContent+'\nGoal Limit Needed: '+goalLimit.textContent+'\n\nPer-Card:\n';
-cards.forEach(function(c,i){if(c.l>0)txt+='Card '+(i+1)+': Bal '+fmtCurrency(c.b)+' / Limit '+fmtCurrency(c.l)+' = '+c.pct.toFixed(1)+'%\n'});
-var b2=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b2);a.download='credit-utilization-report-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded');
-}
+    get ratioColor() {
+      var p = this.overallRatio;
+      return p <= 30 ? 'var(--color-success)' : (p <= 50 ? 'var(--color-warning)' : 'var(--color-error)');
+    },
 
-modeTog.addEventListener('click',function(){perCard=modeTog.getAttribute('aria-expanded')==='true'?false:true;modeTog.setAttribute('aria-expanded',perCard);modeTog.classList.toggle('on');modeTog.textContent=perCard?'Per-Card':'Simple';perCardMode.hidden=!perCard;simpleMode.hidden=perCard;calc()});
+    get ratingText() {
+      var p = this.overallRatio;
+      if (p <= 10) return 'Excellent';
+      if (p <= 30) return 'Good';
+      if (p <= 50) return 'Fair';
+      return 'Poor';
+    },
 
-whatifEl.addEventListener('click',function(e){
-var b=e.target.closest('button[data-wi]');if(!b)return;
-wi=b.getAttribute('data-wi');whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
-calc();saveHistory();
-});
+    get ratingColor() {
+      var p = this.overallRatio;
+      if (p <= 10) return 'var(--color-success)';
+      if (p <= 30) return 'var(--color-primary)';
+      if (p <= 50) return 'var(--color-warning)';
+      return 'var(--color-error)';
+    },
 
-calcBtn.addEventListener('click',function(){calc();saveHistory()});
-copyBtn.addEventListener('click',copyAll);
-dlBtn.addEventListener('click',dlReport);
+    get scoreRangeText() {
+      var p = this.overallRatio;
+      if (p <= 10) return '750-850';
+      if (p <= 30) return '700-780';
+      if (p <= 50) return '620-700';
+      if (p <= 70) return '550-650';
+      return '450-580';
+    },
 
-hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
-hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_cu',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});
-hiList.addEventListener('click',function(e){
-var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_cu',JSON.stringify(history))}catch(e){}renderHistory();return}
-var item=e.target.closest('.cu-hist-item');if(!item)return;
-var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
-b1.value=h.b1||0;l1.value=h.l1||0;b2.value=h.b2||0;l2.value=h.l2||0;b3.value=h.b3||0;l3.value=h.l3||0;b4.value=h.b4||0;l4.value=h.l4||0;b5.value=h.b5||0;l5.value=h.l5||0;
-sB.value=h.sb||0;sL.value=h.sl||0;
-perCard=h.pc!==0;modeTog.setAttribute('aria-expanded',perCard);modeTog.classList.toggle('on',perCard);modeTog.textContent=perCard?'Per-Card':'Simple';perCardMode.hidden=!perCard;simpleMode.hidden=perCard;
-wi=h.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
-history.splice(idx,1);try{localStorage.setItem('sb_cu',JSON.stringify(history))}catch(e){}renderHistory();calc();
-});
+    get scoreColor() {
+      var p = this.overallRatio;
+      if (p <= 10) return 'var(--color-success)';
+      if (p <= 30) return 'var(--color-primary)';
+      if (p <= 50) return 'var(--color-warning)';
+      return 'var(--color-error)';
+    },
 
-cardTog.addEventListener('click',function(){cardTable=cardTog.getAttribute('aria-expanded')==='true'?false:true;cardTog.setAttribute('aria-expanded',cardTable);cardWrap.hidden=!cardTable;cardTog.classList.toggle('on')});
-goalTog.addEventListener('click',function(){goalOn=goalTog.getAttribute('aria-expanded')==='true'?false:true;goalTog.setAttribute('aria-expanded',goalOn);goalWrap.hidden=!goalOn;goalTog.classList.toggle('on')});
+    get availableCredit() {
+      return Math.max(0, this.totalLimit - this.totalBalance);
+    },
 
-[b1,l1,b2,l2,b3,l3,b4,l4,b5,l5,sB,sL,mp,tgtPct].forEach(function(el){el.addEventListener('input',calc)});
+    get payDownTo30() {
+      var target = this.totalLimit * 0.3;
+      return this.totalBalance > target ? (this.totalBalance - target) : 0;
+    },
 
-if(saved){b1.value=saved.b1||1500;l1.value=saved.l1||4000;b2.value=saved.b2||1200;l2.value=saved.l2||3500;b3.value=saved.b3||500;l3.value=saved.l3||2500;b4.value=saved.b4||0;l4.value=saved.l4||0;b5.value=saved.b5||0;l5.value=saved.l5||0;sB.value=saved.sb||3200;sL.value=saved.sl||10000;mp.value=saved.pm||500;tgtPct.value=saved.tg||30;
-perCard=saved.pc!==0;modeTog.setAttribute('aria-expanded',perCard);modeTog.classList.toggle('on',perCard);modeTog.textContent=perCard?'Per-Card':'Simple';perCardMode.hidden=!perCard;simpleMode.hidden=perCard;
-wi=saved.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)})}
-calc();
-})();
+    get suggestedLimit() {
+      return this.totalBalance > 0 ? (this.totalBalance / 0.3) : this.totalLimit;
+    },
+
+    get perCardRows() {
+      if (!this.perCard) return [];
+      return this.scenarioCards.filter(function(c) { return c.l > 0; }).map(function(c) {
+        var pct = (c.b / c.l) * 100;
+        var st = pct <= 10 ? 'Excellent' : (pct <= 30 ? 'Good' : (pct <= 50 ? 'Fair' : 'Poor'));
+        var clr = pct <= 10 ? 'var(--color-success)' : (pct <= 30 ? 'var(--color-primary)' : (pct <= 50 ? 'var(--color-warning)' : 'var(--color-error)'));
+        return { b: c.b, l: c.l, pct: pct, status: st, color: clr };
+      });
+    },
+
+    get payRows() {
+      var pay = Number(this.monthlyPayment) || 0;
+      var totalL = this.totalLimit;
+      var totalB = this.totalBalance;
+      if (pay <= 0 || totalL <= 0) return [];
+      var targetBal = totalL * 0.3;
+      var bal = totalB;
+      var rows = [];
+      var months = 0;
+      while (bal > targetBal && months < 60) {
+        months++;
+        var p = Math.min(pay, bal);
+        bal -= p;
+        var pct = (bal / totalL) * 100;
+        var st = pct <= 10 ? 'Excellent' : (pct <= 30 ? 'Good' : (pct <= 50 ? 'Fair' : 'Poor'));
+        var clr = pct <= 10 ? 'var(--color-success)' : (pct <= 30 ? 'var(--color-primary)' : (pct <= 50 ? 'var(--color-warning)' : 'var(--color-error)'));
+        rows.push({ m: months, pay: p, bal: bal, pct: pct, status: st, color: clr });
+      }
+      return rows;
+    },
+
+    get timeToTargetText() {
+      if (this.totalBalance <= this.totalLimit * 0.3) return 'Already at target';
+      if (!this.payRows.length) return '—';
+      return this.payRows.length + ' mo';
+    },
+
+    get goalPaymentNeeded() {
+      var tp = (Number(this.targetPct) || 30) / 100;
+      if (tp <= 0 || this.totalLimit <= 0) return 0;
+      var neededBal = this.totalLimit * tp;
+      return this.totalBalance > neededBal ? (this.totalBalance - neededBal) : 0;
+    },
+
+    get goalLimitNeeded() {
+      var tp = (Number(this.targetPct) || 30) / 100;
+      if (tp <= 0 || this.totalBalance <= 0) return this.totalLimit;
+      return this.totalBalance / tp;
+    },
+
+    saveHistory: function() {
+      var label = this.overallRatio.toFixed(1) + '% util · ' + this.ratingText;
+      this.history.unshift({
+        b: this.totalBalance,
+        l: this.totalLimit,
+        wi: this.wi,
+        label: label,
+        ts: Date.now()
+      });
+      if (this.history.length > 30) this.history.pop();
+      try { localStorage.setItem('sb_cu', JSON.stringify(this.history)); } catch(e) {}
+    },
+
+    restoreHistory: function(idx) {
+      var item = this.history[idx];
+      if (!item) return;
+      this.simpleB = item.b;
+      this.simpleL = item.l;
+      this.perCard = false;
+      this.wi = item.wi || 'current';
+    },
+
+    deleteHistory: function(idx) {
+      this.history.splice(idx, 1);
+      try { localStorage.setItem('sb_cu', JSON.stringify(this.history)); } catch(e) {}
+    },
+
+    clearHistory: function() {
+      this.history = [];
+      try { localStorage.setItem('sb_cu', JSON.stringify([])); } catch(e) {}
+    },
+
+    copyAll: function() {
+      var txt = 'Credit Utilization Report\nScenario: ' + this.wi.replace(/-/g, ' ') +
+        '\n\nTotal Balance: ' + this.formatCurrency(this.totalBalance) +
+        '\nTotal Limit: ' + this.formatCurrency(this.totalLimit) +
+        '\nUtilization: ' + this.overallRatio.toFixed(1) + '%' +
+        '\nRating: ' + this.ratingText +
+        '\nEst. Score Range: ' + this.scoreRangeText +
+        '\nAvailable: ' + this.formatCurrency(this.availableCredit) +
+        '\nPay Down to 30%: ' + this.formatCurrency(this.payDownTo30) +
+        '\nSuggested Limit: ' + this.formatCurrency(this.suggestedLimit);
+      navigator.clipboard.writeText(txt).then(function() {
+        alert('Copied results to clipboard!');
+      }).catch(function() {});
+    },
+
+    dlReport: function() {
+      var txt = '=== Credit Utilization Report ===\nDate: ' + new Date().toISOString().slice(0, 10) +
+        '\nScenario: ' + this.wi.replace(/-/g, ' ') +
+        '\n\nTotal Balance: ' + this.formatCurrency(this.totalBalance) +
+        '\nTotal Limit: ' + this.formatCurrency(this.totalLimit) +
+        '\nUtilization: ' + this.overallRatio.toFixed(1) + '%' +
+        '\nRating: ' + this.ratingText +
+        '\nEst. Score Range: ' + this.scoreRangeText +
+        '\nAvailable: ' + this.formatCurrency(this.availableCredit) +
+        '\nPay Down to 30%: ' + this.formatCurrency(this.payDownTo30) +
+        '\nSuggested Limit: ' + this.formatCurrency(this.suggestedLimit);
+      var b = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      a.download = 'credit-utilization-report-' + Date.now() + '.txt';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+  };
+};
 </script>
+{% endblock %}
 
 {{ tool_section_end() }}
 {% endblock %}

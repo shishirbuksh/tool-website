@@ -252,7 +252,7 @@ restart_service() {
         log_info "No systemd service found — starting gunicorn directly..."
         pkill -f "gunicorn.*$APP_NAME" 2>/dev/null || true
         cd "$APP_DIR"
-        nohup "$APP_DIR/venv/bin/gunicorn" app.main:app -c "$APP_DIR/gunicorn_conf.py" > /tmp/${APP_NAME}.log 2>&1 &
+        nohup "$APP_DIR/venv/bin/gunicorn" config.wsgi:application -c "$APP_DIR/gunicorn_conf.py" > /tmp/${APP_NAME}.log 2>&1 &
         log_info "Gunicorn started (PID: $!). Log: /tmp/${APP_NAME}.log"
     fi
 }

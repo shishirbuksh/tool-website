@@ -36,6 +36,11 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
+import os
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.development")
+import django
+django.setup()
+
 import yaml  # noqa: E402
 
 LEGACY_LOCALE_PREFIXES = frozenset({"hi", "es", "fr", "de"})
@@ -860,9 +865,9 @@ class QualityGate:
         return None
 
     def _check_sitemaps(self) -> None:
-        from app.core.config import settings
-        from app.services.blog_service import BlogService
-        from app.services.sitemap_service import SitemapService
+        from apps.core.config import settings
+        from apps.blog.services import BlogService
+        from apps.seo.services import SitemapService
 
         service = SitemapService(settings)
         base = settings.SITE_URL.rstrip("/")

@@ -1,13 +1,18 @@
 """Tests for MetricsMiddleware: request counting and latency recording."""
 
 import pytest
-from starlette.responses import Response
+
+
+class Response:
+    def __init__(self, content="", status_code=200):
+        self.content = content
+        self.status_code = status_code
 
 
 class TestMetricsMiddleware:
     @pytest.mark.asyncio
     async def test_tracks_request_count(self):
-        from app.core.metrics import MetricsMiddleware, request_count
+        from apps.core.metrics import MetricsMiddleware, request_count
 
         before = request_count.labels(method="GET", path="/test", status=200)._value.get()
 
@@ -24,7 +29,7 @@ class TestMetricsMiddleware:
 
     @pytest.mark.asyncio
     async def test_records_latency(self):
-        from app.core.metrics import MetricsMiddleware
+        from apps.core.metrics import MetricsMiddleware
 
         mock_request = type(
             "Req", (), {"method": "POST", "url": type("Url", (), {"path": "/api/test"})(), "scope": {}}

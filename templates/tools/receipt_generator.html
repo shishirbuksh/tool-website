@@ -38,7 +38,7 @@
 {% block content %}
 {{ tool_hero_section("receipt", "Online Receipt Maker", "RECEIPT", "GENERATOR", seo_data.description if seo_data else "Create and print custom payment receipts online with business logo, line items, payment method, tax, and instant PDF download — free.") }}
 
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="receiptGenerator()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
 
   <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
 
@@ -59,7 +59,20 @@
         </div>
         <div>
           <div class="flex items-center justify-between mb-1"><span class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider">Line Items</span><button type="button" id="addItemBtn" class="btn btn-primary btn-xs" aria-label="Add line item">{{ lucide_icon("plus","w-3 h-3",12)|safe }} Add</button></div>
-          <div id="itemRows"></div>
+          <div id="itemRows">
+            <div class="item-row" data-idx="0">
+              <input type="text" class="input cal-input desc-inp text-[10px] font-mono font-bold" value="Widget A" data-idx="0" data-field="desc" aria-label="Item description" maxlength="50">
+              <input type="number" class="input cal-input qty-inp text-[10px] font-mono font-bold hide-spinner" value="2" min="0" step="1" data-idx="0" data-field="qty" aria-label="Quantity">
+              <input type="number" class="input cal-input prc-inp text-[10px] font-mono font-bold hide-spinner" value="25" min="0" step="any" data-idx="0" data-field="prc" aria-label="Unit price">
+              <button type="button" class="rm-btn" data-idx="0" aria-label="Remove item">&times;</button>
+            </div>
+            <div class="item-row" data-idx="1">
+              <input type="text" class="input cal-input desc-inp text-[10px] font-mono font-bold" value="Widget B" data-idx="1" data-field="desc" aria-label="Item description" maxlength="50">
+              <input type="number" class="input cal-input qty-inp text-[10px] font-mono font-bold hide-spinner" value="1" min="0" step="1" data-idx="1" data-field="qty" aria-label="Quantity">
+              <input type="number" class="input cal-input prc-inp text-[10px] font-mono font-bold hide-spinner" value="49.99" min="0" step="any" data-idx="1" data-field="prc" aria-label="Unit price">
+              <button type="button" class="rm-btn" data-idx="1" aria-label="Remove item">&times;</button>
+            </div>
+          </div>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxRate">Tax Rate (%)</label><input aria-label="Tax Rate (%)" type="number" id="taxRate" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="10" min="0" step="0.5"></div>
@@ -107,12 +120,15 @@
           </div>
           <table class="rc-table" role="table">
             <thead><tr><th scope="col">Item</th><th scope="col">Qty</th><th scope="col">Price</th><th scope="col">Total</th></tr></thead>
-            <tbody id="rcItemsBody"></tbody>
+            <tbody id="rcItemsBody">
+              <tr><td>Widget A</td><td>2</td><td>$25.00</td><td>$50.00</td></tr>
+              <tr><td>Widget B</td><td>1</td><td>$49.99</td><td>$49.99</td></tr>
+            </tbody>
           </table>
           <div class="rc-totals">
-            <div class="rc-tr"><span>Subtotal</span><span id="rcSubtotal">$0</span></div>
-            <div class="rc-tr"><span>Tax</span><span id="rcTax">$0</span></div>
-            <div class="rc-tr rc-gt"><span>Total</span><span id="rcTotal">$0</span></div>
+            <div class="rc-tr"><span>Subtotal</span><span id="rcSubtotal">$99.99</span></div>
+            <div class="rc-tr"><span>Tax</span><span id="rcTax">$10.00</span></div>
+            <div class="rc-tr rc-gt"><span>Total</span><span id="rcTotal">$109.99</span></div>
           </div>
           <div style="margin-top:.4rem;font-size:.65rem;opacity:.5;padding:0 .15rem" id="rcNotesDisplay">Notes: Payment received. Thank you for your purchase.</div>
           <div class="rc-thanks">Thank you for your business!</div>
@@ -123,9 +139,9 @@
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Receipt Summary</h2>
       <div class="grid grid-cols-3 gap-4">
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Subtotal</span><output id="resSubtotal" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Tax</span><output id="resTax" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4" style="border:1px solid color-mix(in oklab,var(--color-success) 25%,transparent);border-radius:10px"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Paid Total</span><output id="resTotal" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">$0</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Subtotal</span><output id="resSubtotal" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$99.99</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Tax</span><output id="resTax" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$10.00</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4" style="border:1px solid color-mix(in oklab,var(--color-success) 25%,transparent);border-radius:10px"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Paid Total</span><output id="resTotal" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">$109.99</output></div>
       </div>
     </div>
 
@@ -138,7 +154,8 @@
 
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
+window.receiptGenerator = function() {
+
   'use strict';
   const $ = id => document.getElementById(id);
 
@@ -368,6 +385,19 @@
       reader.readAsDataURL(file);
     });
   });
-})();
+
+
+  return {
+    init: function() {
+      if (typeof calc === 'function') calc();
+      else if (typeof generate === 'function') generate();
+      else if (typeof gen === 'function') gen();
+      else if (typeof render === 'function') render();
+      else if (typeof update === 'function') update();
+      else if (typeof calculate === 'function') calculate();
+      else if (typeof build === 'function') build();
+    }
+  };
+};
 </script>
 {% endblock %}

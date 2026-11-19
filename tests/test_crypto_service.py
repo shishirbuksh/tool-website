@@ -4,8 +4,8 @@ import importlib.util
 
 import pytest
 
-from app.core.exceptions import ServiceError
-from app.services.crypto_service import CryptoService
+from apps.core.exceptions import ServiceError
+from apps.tools_api.services.crypto_service import CryptoService
 
 
 def _has_spec(name: str) -> bool:

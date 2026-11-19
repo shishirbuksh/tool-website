@@ -12,7 +12,7 @@ async function build() {
       minify: isProd,
       sourcemap: !isProd ? 'inline' : false,
       format: 'iife',
-      target: ['es2020', 'chrome80', 'firefox80', 'safari14'],
+      target: ['es2021', 'chrome90', 'firefox90', 'safari15'],
     });
 
   // Build each JS file individually

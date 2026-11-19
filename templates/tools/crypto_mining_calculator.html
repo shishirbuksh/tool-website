@@ -15,7 +15,7 @@
 {% block content %}
 {{ tool_hero_section("pickaxe", "Mining Profit Tool", "CRYPTO MINING", "CALCULATOR", seo_data.description if seo_data else "Estimate Bitcoin mining profitability. Enter your hash rate, power draw, electricity cost, and pool fee to see your potential daily earnings.") }}
 
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="cryptoMining()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
 
   <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
 
@@ -23,13 +23,13 @@
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-4 h-4",16)|safe }} Mining Settings</h2>
       <p class="text-xs text-base-content/60 mb-4">Enter your rig specs and local electricity rate.</p>
       <div class="space-y-4">
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="hashRate">Hash Rate (TH/s)</label><input aria-label="Mining Hashrate (TH/s)" type="number" id="hashRate" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="100" min="0" step="1"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="powerW">Power Consumption (W)</label><input aria-label="Power Consumption (Watts)" type="number" id="powerW" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="3250" min="0" step="10"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="elecCost">Electricity Cost ($/kWh)</label><input aria-label="Electricity Cost ($/kWh)" type="number" id="elecCost" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="0.08" min="0" step="0.01"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="poolFee">Pool Fee (%)</label><input aria-label="Mining Pool Fee (%)" type="number" id="poolFee" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="1" min="0" step="0.5"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="btcPrice">BTC Price ($)</label><input aria-label="Bitcoin Price ($)" type="number" id="btcPrice" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="65000" min="0"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="netHash">Network Hashrate (EH/s)</label><input aria-label="Network Hashrate (EH/s)" type="number" id="netHash" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="600" min="1"></div>
-        <button type="button" id="resetBtn" class="btn btn-primary w-full mt-2" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="hashRate">Hash Rate (TH/s)</label><input aria-label="Mining Hashrate (TH/s)" type="number" id="hashRate" x-model.number="hashRate" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="100" min="0" step="1"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="powerW">Power Consumption (W)</label><input aria-label="Power Consumption (Watts)" type="number" id="powerW" x-model.number="powerW" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="3250" min="0" step="10"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="elecCost">Electricity Cost ($/kWh)</label><input aria-label="Electricity Cost ($/kWh)" type="number" id="elecCost" x-model.number="elecCost" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="0.08" min="0" step="0.01"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="poolFee">Pool Fee (%)</label><input aria-label="Mining Pool Fee (%)" type="number" id="poolFee" x-model.number="poolFee" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="1" min="0" step="0.5"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="btcPrice">BTC Price ($)</label><input aria-label="Bitcoin Price ($)" type="number" id="btcPrice" x-model.number="btcPrice" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="65000" min="0"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="netHash">Network Hashrate (EH/s)</label><input aria-label="Network Hashrate (EH/s)" type="number" id="netHash" x-model.number="netHash" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="600" min="1"></div>
+        <button type="button" @click="reset()" id="resetBtn" class="btn btn-primary w-full mt-2" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
       </div>
     </div>
 
@@ -40,10 +40,10 @@
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Mining Summary</h2>
       <div class="grid grid-cols-2 gap-4">
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Daily Revenue</span><output id="resRevenue" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">$0.00</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Daily Cost</span><output id="resCost" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-error)">$0.00</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Daily Net Profit</span><output id="resProfit" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-primary)">$0.00</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Status</span><output id="resStatus" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-warning)">—</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Daily Revenue</span><output id="resRevenue" x-text="formatCurrency(dailyRevenue)" class="font-display font-semibold text-base-content text-lg leading-tight font-mono text-emerald-500">$4.88</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Daily Cost</span><output id="resCost" x-text="formatCurrency(dailyElecCost + dailyPoolFee)" class="font-display font-semibold text-base-content text-lg leading-tight font-mono text-rose-500">$6.29</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Daily Net Profit</span><output id="resProfit" x-text="formatCurrency(dailyNet)" :class="dailyNet >= 0 ? 'text-emerald-500' : 'text-rose-500'" class="font-display font-semibold text-base-content text-lg leading-tight font-mono text-rose-500">-$1.41</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Status</span><output id="resStatus" x-text="statusText" :class="statusColor" class="font-display font-semibold text-base-content text-lg leading-tight font-mono text-rose-500">UNPROFITABLE</output></div>
       </div>
     </div>
 
@@ -52,7 +52,27 @@
       <div class="overflow-x-auto">
         <table class="mine-table" role="table">
           <thead><tr><th scope="col">Period</th><th scope="col">Revenue</th><th scope="col">Cost</th><th scope="col">Pool Fee</th><th scope="col">Net Profit</th></tr></thead>
-          <tbody id="tableBody"></tbody>
+          <tbody id="tableBody">
+            <template x-for="p in periods" :key="p.label">
+              <tr>
+                <td style="font-weight:800" x-text="p.label"></td>
+                <td x-text="formatCurrency(p.rev)"></td>
+                <td x-text="formatCurrency(p.cost)"></td>
+                <td x-text="formatCurrency(p.pf)"></td>
+                <td :style="{ color: p.net >= 0 ? 'var(--color-success)' : 'var(--color-error)' }" x-text="formatCurrency(p.net)"></td>
+              </tr>
+            </template>
+            <!-- Pre-rendered SSR fallback for SEO -->
+            <tr x-show="!mounted">
+              <td style="font-weight:800">Daily</td><td>$4.88</td><td>$6.29</td><td>$0.05</td><td style="color:var(--color-error)">-$1.41</td>
+            </tr>
+            <tr x-show="!mounted">
+              <td style="font-weight:800">Weekly</td><td>$34.13</td><td>$44.02</td><td>$0.34</td><td style="color:var(--color-error)">$-9.89</td>
+            </tr>
+            <tr x-show="!mounted">
+              <td style="font-weight:800">Monthly</td><td>$146.25</td><td>$188.64</td><td>$1.46</td><td style="color:var(--color-error)">$-42.39</td>
+            </tr>
+          </tbody>
         </table>
       </div>
     </div>
@@ -68,73 +88,71 @@
 
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
-  'use strict';
-  const $ = id => document.getElementById(id);
-  const F2 = v => (v >= 0 ? '' : '') + '$' + Number(v).toFixed(2);
-
-  function calculate(){
-    const hashRate = parseFloat($('hashRate').value) || 0;
-    const powerW = parseFloat($('powerW').value) || 0;
-    const elecCost = parseFloat($('elecCost').value) || 0;
-    const poolFee = parseFloat($('poolFee').value) || 0;
-    const btcPrice = parseFloat($('btcPrice').value) || 0;
-    const netHashEh = parseFloat($('netHash').value) || 1;
-
-    const netHashTh = netHashEh * 1000000;
-    const dailyBtcMined = hashRate / netHashTh * 450;
-    const dailyRevenue = dailyBtcMined * btcPrice;
-    const dailyElecCost = (powerW / 1000) * 24 * elecCost;
-    const dailyPoolFee = dailyRevenue * (poolFee / 100);
-    const dailyNet = dailyRevenue - dailyElecCost - dailyPoolFee;
-
-    $('resRevenue').textContent = F2(Math.max(0, dailyRevenue));
-    $('resCost').textContent = F2(dailyElecCost + dailyPoolFee);
-    $('resProfit').textContent = F2(dailyNet);
-
-    const statusEl = $('resStatus');
-    if(hashRate === 0 || btcPrice === 0){
-      statusEl.textContent = '—';
-      statusEl.style.color = 'var(--color-base-content)';
-    } else if(dailyNet > 0){
-      statusEl.textContent = 'PROFITABLE';
-      statusEl.style.color = 'var(--color-success)';
-    } else {
-      statusEl.textContent = 'UNPROFITABLE';
-      statusEl.style.color = 'var(--color-error)';
+window.cryptoMining = function() {
+  return {
+    mounted: false,
+    hashRate: 100,
+    powerW: 3250,
+    elecCost: 0.08,
+    poolFee: 1,
+    btcPrice: 65000,
+    netHash: 600,
+    formatCurrency: function(val) {
+      val = Number(val) || 0;
+      var sign = val < 0 ? '-' : '';
+      return sign + '$' + Math.abs(val).toFixed(2);
+    },
+    init: function() {
+      this.mounted = true;
+    },
+    get dailyBtcMined() {
+      var netHashTh = (Number(this.netHash) || 1) * 1000000;
+      return (Number(this.hashRate) || 0) / netHashTh * 450;
+    },
+    get dailyRevenue() {
+      return Math.max(0, this.dailyBtcMined * (Number(this.btcPrice) || 0));
+    },
+    get dailyElecCost() {
+      return ((Number(this.powerW) || 0) / 1000) * 24 * (Number(this.elecCost) || 0);
+    },
+    get dailyPoolFee() {
+      return this.dailyRevenue * ((Number(this.poolFee) || 0) / 100);
+    },
+    get dailyNet() {
+      return this.dailyRevenue - this.dailyElecCost - this.dailyPoolFee;
+    },
+    get isProfitable() {
+      return this.dailyNet > 0;
+    },
+    get statusText() {
+      if (!this.hashRate || !this.btcPrice) return '—';
+      return this.isProfitable ? 'PROFITABLE' : 'UNPROFITABLE';
+    },
+    get statusColor() {
+      if (!this.hashRate || !this.btcPrice) return 'text-base-content/60';
+      return this.isProfitable ? 'text-emerald-500' : 'text-rose-500';
+    },
+    get periods() {
+      if (!this.mounted) return [];
+      var rev = this.dailyRevenue;
+      var elec = this.dailyElecCost;
+      var pf = this.dailyPoolFee;
+      var net = this.dailyNet;
+      return [
+        { label: 'Daily', rev: rev, cost: elec + pf, pf: pf, net: net },
+        { label: 'Weekly', rev: rev * 7, cost: (elec + pf) * 7, pf: pf * 7, net: net * 7 },
+        { label: 'Monthly', rev: rev * 30, cost: (elec + pf) * 30, pf: pf * 30, net: net * 30 }
+      ];
+    },
+    reset: function() {
+      this.hashRate = 100;
+      this.powerW = 3250;
+      this.elecCost = 0.08;
+      this.poolFee = 1;
+      this.btcPrice = 65000;
+      this.netHash = 600;
     }
-
-    const periods = [
-      {label:'Daily', mult:1},
-      {label:'Weekly', mult:7},
-      {label:'Monthly', mult:30},
-    ];
-    const tbody = $('tableBody');
-    tbody.innerHTML = periods.map(p => {
-      const rev = dailyRevenue * p.mult;
-      const cost = (dailyElecCost + dailyPoolFee) * p.mult;
-      const pf = dailyPoolFee * p.mult;
-      const net = dailyNet * p.mult;
-      const color = net >= 0 ? 'var(--color-success)' : 'var(--color-error)';
-      return '<tr><td style="font-weight:800">' + p.label + '</td><td>' + F2(rev) + '</td><td>' + F2(cost) + '</td><td>' + F2(pf) + '</td><td style="color:' + color + '">' + F2(net) + '</td></tr>';
-    }).join('');
-  }
-
-  function reset(){
-    $('hashRate').value = 100;
-    $('powerW').value = 3250;
-    $('elecCost').value = 0.08;
-    $('poolFee').value = 1;
-    $('btcPrice').value = 65000;
-    $('netHash').value = 600;
-    calculate();
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){
-    calculate();
-    ['hashRate','powerW','elecCost','poolFee','btcPrice','netHash'].forEach(id => $(id).addEventListener('input', calculate));
-    $('resetBtn').addEventListener('click', reset);
-  });
-})();
+  };
+};
 </script>
 {% endblock %}

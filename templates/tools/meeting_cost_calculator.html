@@ -3,16 +3,16 @@
 
 {% block content %}
 {{ tool_hero_section("clock", "Business Calculator", "MEETING COST", "CALCULATOR", seo_data.description if seo_data else "See what meetings really cost from salaries, headcount and time.") }}
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="meetingCostCalculator()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="feature-card p-6 md:p-8">
       <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5",20) | safe }} Meeting Setup</h2>
       <form class="flex flex-col gap-5" id="meetForm">
         <div><label class="text-xs font-semibold text-base-content/70" for="currencySym">Currency</label><select id="currencySym" class="select w-full cal-input font-bold rounded-xl" aria-label="Currency"><option value="$">USD ($)</option><option value="₹">INR (₹)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option></select></div>
-        <div><label class="text-xs font-semibold text-base-content/70" for="attendees">Attendees</label><input aria-label="Number of attendees" type="number" id="attendees" class="input w-full cal-input font-bold rounded-xl" value="6" min="1" max="500"></div>
-        <div><label class="text-xs font-semibold text-base-content/70" for="rate">Average hourly rate (per person)</label><input aria-label="Average hourly rate" type="number" id="rate" class="input w-full cal-input font-bold rounded-xl" value="25" min="0"></div>
-        <div><label class="text-xs font-semibold text-base-content/70" for="minutes">Duration (minutes)</label><input aria-label="Meeting duration in minutes" type="number" id="minutes" class="input w-full cal-input font-bold rounded-xl" value="60" min="1" max="1440"></div>
-        <div><label class="text-xs font-semibold text-base-content/70" for="freq">Times per week</label><input aria-label="Meetings per week" type="number" id="freq" class="input w-full cal-input font-bold rounded-xl" value="3" min="0" max="50"></div>
+        <div><label class="text-xs font-semibold text-base-content/70" for="attendees">Attendees</label><input aria-label="Number of attendees" type="number" id="attendees" x-model.number="attendees" @input="calc()" class="input w-full cal-input font-bold rounded-xl" value="6" min="1" max="500"></div>
+        <div><label class="text-xs font-semibold text-base-content/70" for="rate">Average hourly rate (per person)</label><input aria-label="Average hourly rate" type="number" id="rate" x-model.number="rate" @input="calc()" class="input w-full cal-input font-bold rounded-xl" value="25" min="0"></div>
+        <div><label class="text-xs font-semibold text-base-content/70" for="minutes">Duration (minutes)</label><input aria-label="Meeting duration in minutes" type="number" id="minutes" x-model.number="minutes" @input="calc()" class="input w-full cal-input font-bold rounded-xl" value="60" min="1" max="1440"></div>
+        <div><label class="text-xs font-semibold text-base-content/70" for="freq">Times per week</label><input aria-label="Meetings per week" type="number" id="freq" x-model.number="freq" @input="calc()" class="input w-full cal-input font-bold rounded-xl" value="3" min="0" max="50"></div>
       </form>
     </div>
   </div>
@@ -40,56 +40,97 @@
   </div>
 </div>
 <script nonce="{{ nonce }}">
-(function(){'use strict';
-var tickTimer=null,tickStart=0,tickBase=0;
-function val(id){return parseFloat(document.getElementById(id).value)||0;}
-function sym(){return document.getElementById('currencySym').value||'$';}
-function money(n){var s=sym();return s+n.toLocaleString(s==='₹'?'en-IN':'en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function inputs(){
-  var a=Math.max(1,Math.round(val('attendees'))),r=val('rate'),m=Math.max(1,val('minutes')),f=val('freq');
-  var total=a*r*(m/60);
-  return {a:a,r:r,m:m,f:f,total:total,perPerson:total/a,perMinute:m>0?total/m:0,monthly:total*f*4.33,yearly:total*f*52};
-}
-function calc(){
-  var r=inputs();
-  document.getElementById('totalCost').textContent=money(r.total);
-  document.getElementById('perPerson').textContent=money(r.perPerson);
-  document.getElementById('perMinute').textContent=money(r.perMinute);
-  document.getElementById('monthly').textContent=money(r.monthly);
-  document.getElementById('yearly').textContent=money(r.yearly);
-  var rows=[
-    ['Drop 1 attendee', r.total-((r.a-1)*r.r*(r.m/60))],
-    ['Cut 15 minutes', r.total-(r.a*r.r*((r.m-15)/60))],
-    ['Async instead (90% saved)', r.total*0.9]
-  ];
-  var html='';
-  rows.forEach(function(x){
-    if(x[1]>0)html+='<div class="flex justify-between rounded-xl px-4 py-2 bg-base-300/20"><span>'+x[0]+'</span><span class="font-mono text-success">saves '+money(x[1])+'</span></div>';
-  });
-  document.getElementById('savings').innerHTML=html;
-  return r;
-}
-function fmtTime(s){var m=Math.floor(s/60),ss=Math.floor(s%60);return (m<10?'0':'')+m+':'+(ss<10?'0':'')+ss;}
-function tick(){
-  var r=inputs();
-  var elapsed=(Date.now()-tickStart)/1000;
-  var cost=tickBase+r.a*r.r*(elapsed/3600);
-  document.getElementById('tickCost').textContent=money(cost);
-  document.getElementById('tickTime').textContent=fmtTime(elapsed);
-}
-function toggleTick(){
-  var btn=document.getElementById('tickBtn');
-  if(tickTimer){clearInterval(tickTimer);tickTimer=null;btn.textContent='START TICKER';return;}
-  tickStart=Date.now();tickBase=0;
-  tickTimer=setInterval(tick,250);
-  btn.textContent='STOP TICKER';
-  tick();
-}
-document.addEventListener('DOMContentLoaded',function(){
-  document.querySelectorAll('#meetForm input,#meetForm select').forEach(function(el){el.addEventListener('input',calc);el.addEventListener('change',calc);});
-  document.getElementById('tickBtn').addEventListener('click',toggleTick);
-  calc();
-});})();
+window.meetingCostCalculator = function() {
+  return {
+    currency: '$',
+    attendees: 5,
+    rate: 75,
+    minutes: 60,
+    freq: 1,
+
+    tickTimer: null,
+    tickStart: 0,
+    tickBase: 0,
+
+    money: function(n) {
+      var s = this.currency || '$';
+      return s + n.toLocaleString(s === '₹' ? 'en-IN' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
+
+    fmtTime: function(s) {
+      var m = Math.floor(s / 60), ss = Math.floor(s % 60);
+      return (m < 10 ? '0' : '') + m + ':' + (ss < 10 ? '0' : '') + ss;
+    },
+
+    inputs: function() {
+      var a = Math.max(1, Math.round(Number(this.attendees) || 1));
+      var r = Number(this.rate) || 0;
+      var m = Math.max(1, Number(this.minutes) || 1);
+      var f = Number(this.freq) || 1;
+      var total = a * r * (m / 60);
+      return {
+        a: a, r: r, m: m, f: f,
+        total: total,
+        perPerson: total / a,
+        perMinute: m > 0 ? total / m : 0,
+        monthly: total * f * 4.33,
+        yearly: total * f * 52
+      };
+    },
+
+    calc: function() {
+      var r = this.inputs();
+      var elTotal = document.getElementById('totalCost'); if (elTotal) elTotal.textContent = this.money(r.total);
+      var elPerPerson = document.getElementById('perPerson'); if (elPerPerson) elPerPerson.textContent = this.money(r.perPerson);
+      var elPerMinute = document.getElementById('perMinute'); if (elPerMinute) elPerMinute.textContent = this.money(r.perMinute);
+      var elMonthly = document.getElementById('monthly'); if (elMonthly) elMonthly.textContent = this.money(r.monthly);
+      var elYearly = document.getElementById('yearly'); if (elYearly) elYearly.textContent = this.money(r.yearly);
+
+      var rows = [
+        ['Drop 1 attendee', r.total - ((r.a - 1) * r.r * (r.m / 60))],
+        ['Cut 15 minutes', r.total - (r.a * r.r * ((r.m - 15) / 60))],
+        ['Async instead (90% saved)', r.total * 0.9]
+      ];
+      var html = '';
+      var self = this;
+      rows.forEach(function(x) {
+        if (x[1] > 0) html += '<div class="flex justify-between rounded-xl px-4 py-2 bg-base-300/20"><span>' + x[0] + '</span><span class="font-mono text-success">saves ' + self.money(x[1]) + '</span></div>';
+      });
+      var elSavings = document.getElementById('savings');
+      if (elSavings) elSavings.innerHTML = html;
+      return r;
+    },
+
+    tick: function() {
+      var r = this.inputs();
+      var elapsed = (Date.now() - this.tickStart) / 1000;
+      var cost = this.tickBase + r.a * r.r * (elapsed / 3600);
+      var elCost = document.getElementById('tickCost'), elTime = document.getElementById('tickTime');
+      if (elCost) elCost.textContent = this.money(cost);
+      if (elTime) elTime.textContent = this.fmtTime(elapsed);
+    },
+
+    toggleTick: function() {
+      var btn = document.getElementById('tickBtn');
+      if (this.tickTimer) {
+        clearInterval(this.tickTimer);
+        this.tickTimer = null;
+        if (btn) btn.textContent = 'START TICKER';
+        return;
+      }
+      this.tickStart = Date.now();
+      this.tickBase = 0;
+      var self = this;
+      this.tickTimer = setInterval(function(){ self.tick(); }, 250);
+      if (btn) btn.textContent = 'STOP TICKER';
+      this.tick();
+    },
+
+    init: function() {
+      this.calc();
+    }
+  };
+};
 </script>
 {{ tool_section_end() }}
 {% endblock %}

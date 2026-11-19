@@ -1,14 +1,9 @@
-"""Gunicorn config for StoryBrain AI (FastAPI via UvicornWorker).
+"""Gunicorn config for StoryBrain AI (Django WSGI via gthread workers).
 
 Env:
-    HOST, PORT, WORKERS (0=auto: cores+1), WORKERS_PER_CORE,
+    HOST, PORT, WORKERS (0=auto: cores+1), WORKERS_PER_CORE, THREADS,
     LOG_LEVEL, TIMEOUT, GRACEFUL_TIMEOUT, KEEP_ALIVE,
     FORWARDED_ALLOW_IPS, PROXY_ALLOW_IPS.
-
-Timeout model: TIMEOUT must stay > JobService task_timeout (90s).
-GRACEFUL_TIMEOUT should be close to TIMEOUT (e.g. 300 vs 320) so
-in-flight rembg/prophet requests finish on graceful reload instead
-of being SIGKILLed early (110s would cut 320s tasks short).
 """
 
 import logging
@@ -51,7 +46,8 @@ if _requested_workers > 0:
 else:
     workers: int = max(int(web_concurrency), 2)
 
-worker_class: str = "uvicorn.workers.UvicornWorker"
+worker_class: str = os.getenv("WORKER_CLASS", "gthread")
+threads: int = _safe_int("THREADS", 4)
 max_requests: int = 1000
 max_requests_jitter: int = 200
 loglevel: str = os.getenv("LOG_LEVEL", "info").lower()

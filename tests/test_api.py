@@ -3,11 +3,9 @@
 import struct
 import zlib
 
-from fastapi.testclient import TestClient
+from tests.conftest import DjangoTestClientWrapper
 
-from app.main import app
-
-client = TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 80))
+client = DjangoTestClientWrapper()
 
 
 def _make_png(r=255, g=0, b=0):

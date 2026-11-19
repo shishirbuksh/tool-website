@@ -1,8 +1,211 @@
-/* ── StoryBrain AI: app.js (base.js + ui-init.js bundled) ── */
+/* ── StoryBrain AI: app.js (Alpine.js + UI bundle) ── */
+import Alpine from 'alpinejs';
+
+// Expose Alpine globally
+window.Alpine = Alpine;
+
+// Global formatting and helper utilities for Alpine reactive expressions
+window.formatCurrency = function(val, dec) {
+  var n = parseFloat(val);
+  if (isNaN(n)) return '$0.00';
+  var d = dec !== undefined ? dec : 2;
+  var sign = n < 0 ? '-$' : '$';
+  return sign + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+};
+
+window.formatNumber = function(val, dec) {
+  var n = parseFloat(val);
+  if (isNaN(n)) return '0';
+  var d = dec !== undefined ? dec : 0;
+  return n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+};
+
+// Alpine Global Store: Mobile Drawer
+Alpine.store('drawer', {
+  open: false,
+  toggle() {
+    this.open = !this.open;
+    document.body.classList.toggle('overflow-hidden', this.open);
+  },
+  close() {
+    this.open = false;
+    document.body.classList.remove('overflow-hidden');
+  }
+});
+
+// Alpine Global Store: Theme Switcher
+Alpine.store('theme', {
+  current: (function() {
+    try {
+      return localStorage.getItem('sb-theme') || document.documentElement.getAttribute('data-theme') || 'dark';
+    } catch(e) {
+      return 'dark';
+    }
+  })(),
+  toggle() {
+    this.current = (this.current === 'dark' || this.current === 'night') ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', this.current);
+    try { localStorage.setItem('sb-theme', this.current); } catch(e) {}
+  }
+});
+
+// Alpine Global Component: Cookie Consent
+Alpine.data('cookieConsent', function() {
+  return {
+    show: false,
+    init: function() {
+      var gpc = navigator.globalPrivacyControl === true || window.globalPrivacyControl === true;
+      window.__sbrGpcEnabled = gpc;
+      if (gpc) return;
+      var consent = null;
+      try { consent = localStorage.getItem('cookieConsent'); } catch(e) {}
+      if (!consent) {
+        var self = this;
+        setTimeout(function() { self.show = true; }, 1000);
+      }
+    },
+    accept: function() {
+      try { localStorage.setItem('cookieConsent', 'accepted'); } catch(e) {}
+      this.show = false;
+      window.dispatchEvent(new Event('cookieConsentGiven'));
+    },
+    reject: function() {
+      try { localStorage.setItem('cookieConsent', 'rejected'); } catch(e) {}
+      this.show = false;
+    }
+  };
+});
+
+// Alpine Global Component: Omni Search Modal
+Alpine.data('omniSearch', function() {
+  return {
+    q: '',
+    status: 'empty', // 'empty' | 'results' | 'no-results' | 'error'
+    results: [],
+    tools: null,
+    init: function() {
+      var self = this;
+      window.openOmniSearch = function() { self.show(); };
+      document.addEventListener('keydown', function(e) {
+        if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+          e.preventDefault();
+          var tsi = document.getElementById('toolSearchInput');
+          if (tsi) {
+            tsi.focus();
+            tsi.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          } else {
+            self.show();
+          }
+          return;
+        }
+        if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          var el = document.activeElement;
+          var tag = el ? el.tagName.toLowerCase() : '';
+          if (tag === 'input' || tag === 'textarea' || (el && el.isContentEditable)) return;
+          var tsi2 = document.getElementById('toolSearchInput');
+          if (tsi2) {
+            e.preventDefault();
+            tsi2.focus();
+            tsi2.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            return;
+          }
+          e.preventDefault();
+          self.show();
+        }
+      });
+      document.querySelectorAll('[id^=searchToggle]').forEach(function(b) {
+        b.addEventListener('click', function() { self.show(); });
+      });
+    },
+    show: function() {
+      var dia = document.getElementById('searchDialog');
+      if (dia && !dia.open) {
+        dia.showModal();
+        var si = document.getElementById('searchInput');
+        if (si) setTimeout(function() { si.focus(); }, 50);
+      }
+      if (!this.tools) {
+        var self = this;
+        fetch('/api/tools/catalog')
+          .then(function(r) { if (!r.ok) throw new Error('catalog ' + r.status); return r.json(); })
+          .then(function(d) {
+            self.tools = Array.isArray(d) ? d : (d && Array.isArray(d.tools) ? d.tools : []);
+            self.filter();
+          })
+          .catch(function() {
+            self.tools = [];
+            self.status = 'error';
+          });
+      }
+    },
+    close: function() {
+      var dia = document.getElementById('searchDialog');
+      if (dia && dia.open) dia.close();
+      document.querySelectorAll('[id^=searchToggle]').forEach(function(b) {
+        b.setAttribute('aria-expanded', 'false');
+      });
+    },
+    filter: function() {
+      var query = this.q.trim().toLowerCase();
+      if (!query) {
+        this.status = 'empty';
+        this.results = [];
+        return;
+      }
+      if (!Array.isArray(this.tools)) {
+        this.status = 'error';
+        return;
+      }
+      var matches = this.tools.filter(function(t) {
+        var n = (t && t.name ? t.name : '').toLowerCase();
+        var d = (t && t.desc ? t.desc : '').toLowerCase();
+        var c = (t && t.category ? t.category : '').toLowerCase();
+        return n.indexOf(query) > -1 || d.indexOf(query) > -1 || c.indexOf(query) > -1;
+      });
+      if (!matches.length) {
+        this.status = 'no-results';
+        this.results = [];
+      } else {
+        this.status = 'results';
+        this.results = matches.slice(0, 20);
+      }
+    }
+  };
+});
+
+// Alpine Global Component: Accordion
+Alpine.data('accordion', function(defaultOpen) {
+  return {
+    open: Boolean(defaultOpen),
+    toggle: function() {
+      this.open = !this.open;
+    }
+  };
+});
+
+// Alpine Global Component: Copy Button
+Alpine.data('copyButton', function(defaultText) {
+  return {
+    copied: false,
+    copy: function(val) {
+      var txt = val || defaultText || window.location.href;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        var self = this;
+        navigator.clipboard.writeText(txt).then(function() {
+          self.copied = true;
+          setTimeout(function() { self.copied = false; }, 1800);
+        }).catch(function() {});
+      }
+    }
+  };
+});
+
+// Start Alpine
+Alpine.start();
+
 /* SCHEMA localStorage keys: sb-theme ('light'|'night'), cookieConsent ('accepted'|'rejected'), sbr_tools_recent_search (JSON array) */
 (function(){'use strict';const store={get(k){try{return localStorage.getItem(k)}catch{return null}},set(k,v){try{localStorage.setItem(k,v)}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};var html=document.documentElement;function setTheme(t){html.setAttribute('data-theme',t);store.set('sb-theme',t)}
-document.querySelectorAll('.theme-toggle').forEach(function(b){b.addEventListener('click',function(){var c=html.getAttribute('data-theme')||'night';setTheme(c==='night'?'light':'night')})})
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(e){if(!store.get('sb-theme')){setTheme(e.matches?'night':'light')}})
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(e){if(!store.get('sb-theme')){setTheme(e.matches?'dark':'light')}})
 var nav=document.getElementById('siteNavbar'),sh=document.getElementById('siteHeader');function hS(){var s=window.scrollY>20;if(nav)nav.classList.toggle('shadow-sm',s);if(sh)sh.classList.toggle('scrolled',s)}
 window.addEventListener('scroll',hS,{passive:true});if(typeof requestAnimationFrame==='function')requestAnimationFrame(hS);
 
@@ -14,61 +217,8 @@ document.querySelectorAll('.tilt-card[data-tilt]').forEach(function(c){c.addEven
 
 /* ── Button ripple ── */
 document.querySelectorAll('.btn-ripple').forEach(function(b){b.addEventListener('mousedown',function(e){var r=this.getBoundingClientRect();this.style.setProperty('--ripple-x',((e.clientX-r.left)/r.width*100)+'%');this.style.setProperty('--ripple-y',((e.clientY-r.top)/r.height*100)+'%')})})
-var dia=document.getElementById('searchDialog'),si=document.getElementById('searchInput'),sr=document.getElementById('searchResults'),toolCache=null;
-function _msg(m){if(!sr)return;sr.innerHTML='';var p=document.createElement('p');p.className='text-base-content/30 text-center py-4';p.textContent=m;sr.appendChild(p)}
-function _msgText(name,fallback){var d=document.getElementById('searchDialog');return (d&&d.getAttribute('data-msg-'+name))||fallback}
-function _results(items){if(!sr)return;sr.innerHTML='';if(!items||!items.length){_msg(_msgText('no-results','No results found'));return}
-var df=document.createDocumentFragment();items.slice(0,20).forEach(function(t){var a=document.createElement('a');a.setAttribute('href',typeof t.url==='string'&&t.url.charAt(0)==='/'?t.url:'#');a.className='flex items-center justify-between p-3 rounded-lg hover:bg-base-200 transition-colors duration-150'
-var d1=document.createElement('div');var d2=document.createElement('div');d2.className='font-semibold text-sm';d2.textContent=t.name||'';d1.appendChild(d2)
-var d3=document.createElement('div');d3.className='text-xs text-base-content/40';d3.textContent=t.category||'';d1.appendChild(d3);a.appendChild(d1)
-var sv=document.createElementNS('http://www.w3.org/2000/svg','svg');sv.setAttribute('class','w-4 h-4 text-base-content/20');sv.setAttribute('viewBox','0 0 24 24');sv.setAttribute('fill','none');sv.setAttribute('stroke','currentColor');sv.setAttribute('stroke-width','2')
-var p1=document.createElementNS('http://www.w3.org/2000/svg','path');p1.setAttribute('d','M5 12h14');sv.appendChild(p1)
-var p2=document.createElementNS('http://www.w3.org/2000/svg','path');p2.setAttribute('d','m12 5 7 7-7 7');sv.appendChild(p2);a.appendChild(sv)
-a.addEventListener('click',function(){if(dia)dia.close()});df.appendChild(a)});sr.appendChild(df)}
-function oS(){
-  if(!dia)return;
-  dia.showModal();
-  if(si)si.focus();
-  if(!toolCache){
-    fetch('/api/tools/catalog').then(function(r){if(!r.ok)throw new Error('catalog '+r.status);return r.json()}).then(function(d){toolCache=Array.isArray(d)?d:(d&&Array.isArray(d.tools)?d.tools:[]);filterTools()}).catch(function(){toolCache=[];if(sr)_msg(_msgText('error','Could not load tools. Try again later.'))})
-  }
-}
-function normQ(s){s=String(s==null?'':s);try{s=s.normalize('NFC')}catch(e){}s=s.toLowerCase();try{s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')}catch(e){}return s}
-function filterTools(){if(!si||!sr)return;var q=normQ(si.value.trim());if(!Array.isArray(toolCache)){_msg(_msgText('error','Could not load tools. Try again later.'));return}if(!q){_msg(_msgText('empty','Start typing to find tools'));return}
-var m=toolCache.filter(function(t){var n=normQ((t&&t.name)||'');var ds=normQ((t&&t.desc)||'');var cg=normQ((t&&t.category)||'');return n.indexOf(q)>-1||ds.indexOf(q)>-1||cg.indexOf(q)>-1})
-_results(m)}
-if(si){si.addEventListener('input',filterTools)}
-function cS(){if(dia)dia.close();document.querySelectorAll('[id^=searchToggle]').forEach(function(b){b.setAttribute('aria-expanded','false')})}
-document.querySelectorAll('[id^=searchToggle]').forEach(function(b){b.setAttribute('aria-expanded','false');b.addEventListener('click',function(){oS();b.setAttribute('aria-expanded','true')})})
-function _isEditable(el){if(!el||!el.tagName)return false;var t=el.tagName.toLowerCase();return t==='input'||t==='textarea'||t==='select'||el.isContentEditable===true}
-document.addEventListener('keydown',function(e){
-  if((e.metaKey||e.ctrlKey)&&(e.key==='k'||e.key==='K')){
-    e.preventDefault();
-    var tsi=document.getElementById('toolSearchInput');
-    if(tsi){
-      tsi.focus();
-      tsi.scrollIntoView({block:'center',behavior:'smooth'});
-    } else {
-      oS();
-    }
-    return;
-  }
-  if(e.key!=='/'||e.ctrlKey||e.metaKey||e.altKey)return;
-  if(dia&&dia.open)return;
-  if(_isEditable(document.activeElement))return;
-  var tsi2=document.getElementById('toolSearchInput');
-  if(tsi2){
-    e.preventDefault();
-    tsi2.focus();
-    tsi2.scrollIntoView({block:'center',behavior:'smooth'});
-    return;
-  }
-  e.preventDefault();
-  oS();
-})
-var sc=document.getElementById('searchClose');if(sc)sc.addEventListener('click',cS)
-if(dia){dia.addEventListener('click',function(e){if(e.target===dia)cS()});dia.addEventListener('keydown',function(e){if(e.key==='Escape')cS()});dia.addEventListener('close',function(){document.querySelectorAll('[id^=searchToggle]').forEach(function(b){b.setAttribute('aria-expanded','false')})})}
-if('serviceWorker'in navigator){var swRefreshing=false;navigator.serviceWorker.register('/sw.js',{scope:'/'}).then(function(reg){reg.addEventListener('updatefound',function(){var w=reg.installing;if(w){w.addEventListener('statechange',function(){if(w.state==='installed'&&navigator.serviceWorker.controller){var msg=document.createElement('div');msg.className='fixed bottom-4 right-4 z-50 bg-base-100 rounded-xl shadow-lg border border-base-300 animate-fade-in';msg.setAttribute('role','alert');var btn=document.createElement('button');btn.className='flex items-center gap-2 px-4 py-3 text-sm font-semibold cursor-pointer focus-visible:outline-2 focus-visible:outline-primary rounded-xl';btn.textContent=_msgText('update','New version available!')+' ';var refreshSpan=document.createElement('span');refreshSpan.className='font-bold underline ml-1';refreshSpan.textContent=_msgText('refresh','Refresh');btn.appendChild(refreshSpan);btn.addEventListener('click',function(){w.postMessage({action:'skipWaiting'});});btn.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();w.postMessage({action:'skipWaiting'})}});msg.appendChild(btn);document.body.appendChild(msg);btn.focus();}});}});}).catch(function(){})}navigator.serviceWorker.addEventListener('controllerchange',function(){if(swRefreshing)return;swRefreshing=true;window.location.reload();})
+
+if('serviceWorker'in navigator){navigator.serviceWorker.getRegistrations().then(function(regs){for(var i=0;i<regs.length;i++){regs[i].unregister()}}).catch(function(){});if(window.caches){caches.keys().then(function(keys){for(var j=0;j<keys.length;j++){caches.delete(keys[j])}}).catch(function(){})}}
 
 /* ── Dialog + accordion ── */
 document.addEventListener('click',function(e){var t=e.target.closest('[data-dialog-trigger]');if(t){var id=t.dataset.dialogTrigger,dlg=document.getElementById(id);if(dlg){if(dlg.tagName==='DIALOG')dlg.showModal();else{dlg.classList.remove('hidden');dlg.classList.add('flex');document.body.style.overflow='hidden'}}return}

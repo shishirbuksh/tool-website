@@ -25,22 +25,22 @@
 {% endblock %}
 {% block content %}
 {{ tool_hero_section("dice-1", "Crypto-Random Picker", "RANDOM NUMBER", "GENERATOR", seo_data.description if seo_data else "Generate uniform random integers, dice rolls, non-repeating picks, and formatted lists privately in your browser.") }}
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="rngCalculator()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="feature-card p-6 md:p-8">
       <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Settings</h2>
       <div class="flex flex-col gap-4">
         <div class="grid grid-cols-2 gap-3">
-          <div><label class="text-xs font-semibold text-base-content/70" for="rngMin">Minimum</label><input aria-label="Minimum Number" type="number" id="rngMin" class="input w-full cal-input bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="1"></div>
-          <div><label class="text-xs font-semibold text-base-content/70" for="rngMax">Maximum</label><input aria-label="Maximum Number" type="number" id="rngMax" class="input w-full cal-input bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="100"></div>
+          <div><label class="text-xs font-semibold text-base-content/70" for="rngMin">Minimum</label><input aria-label="Minimum Number" type="number" id="rngMin" x-model.number="min" class="input w-full cal-input bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="1"></div>
+          <div><label class="text-xs font-semibold text-base-content/70" for="rngMax">Maximum</label><input aria-label="Maximum Number" type="number" id="rngMax" x-model.number="max" class="input w-full cal-input bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="100"></div>
         </div>
         <div><label class="text-xs font-semibold text-base-content/70" for="rngCount">How Many</label>
-          <select aria-label="How Many Numbers to Generate" id="rngCount" class="input w-full cal-input bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl">
+          <select aria-label="How Many Numbers to Generate" id="rngCount" x-model.number="count" class="input w-full cal-input bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl">
             <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="15">15</option><option value="20">20</option>
           </select>
         </div>
         <div class="flex items-center justify-between gap-2">
-          <label class="flex items-center gap-2 cursor-pointer select-none" style="touch-action:manipulation"><input aria-label="Unique Numbers Only" type="checkbox" id="rngUnique" checked class="w-4 h-4 accent-primary cursor-pointer" style="touch-action:manipulation"><span class="font-bold text-xs uppercase tracking-wider">Unique</span></label>
+          <label class="flex items-center gap-2 cursor-pointer select-none" style="touch-action:manipulation"><input aria-label="Unique Numbers Only" type="checkbox" id="rngUnique" x-model="unique" checked class="w-4 h-4 accent-primary cursor-pointer" style="touch-action:manipulation"><span class="font-bold text-xs uppercase tracking-wider">Unique</span></label>
           <div class="flex items-center gap-1 rng-sec" role="radiogroup" aria-label="Sort order"><button type="button" class="rng-sec on" data-sort="asc" style="border-radius:999px;padding:.25rem .55rem;font-size:10px;border:none">A→Z</button><button type="button" class="rng-sec" data-sort="desc" style="border-radius:999px;padding:.25rem .55rem;font-size:10px;border:none">Z→A</button></div>
         </div>
         <button type="button" id="rngBtn" class="rng-pri w-full py-3 text-sm shadow-lg shadow-primary/20">{{ lucide_icon("shuffle","w-5 h-5", 20) | safe }} GENERATE</button>
@@ -75,111 +75,172 @@
   </div>
 </div>
 <script nonce="{{ nonce }}">
-(function(){'use strict';
-var K='sb_rng1',HS=[],S='asc';
-var minInp=document.getElementById('rngMin'),maxInp=document.getElementById('rngMax');
-var cntSel=document.getElementById('rngCount'),uniChk=document.getElementById('rngUnique');
-var outDiv=document.getElementById('rngOutput'),infSpan=document.getElementById('rngInfo');
-var statDiv=document.getElementById('rngStats'),fmtSel=document.getElementById('rngFmt');
-var genBtn=document.getElementById('rngBtn'),cpyBtn=document.getElementById('rngCopyBtn');
-var regBtn=document.getElementById('rngRegenBtn'),clrBtn=document.getElementById('rngClearBtn');
-var hCount=document.getElementById('rngHCount'),hEmpty=document.getElementById('rngHEmpty'),hList=document.getElementById('rngHList'),hClear=document.getElementById('rngHClear');
+window.rngCalculator = function() {
+  var K = 'sb_rng1', HS = [], S = 'asc';
 
-function rand(a,b){var t;if(a>b){t=a;a=b;b=t}var r=b-a+1;if(r<=0)return a;
-if(typeof crypto!=='undefined'&&crypto.getRandomValues&&r<=0x1000000){
-var arr=new Uint32Array(1);crypto.getRandomValues(arr);return a+(arr[0]%r)}
-return a+Math.floor(Math.random()*r)}
+  function rand(a, b) {
+    var t; if (a > b) { t = a; a = b; b = t; }
+    var r = b - a + 1; if (r <= 0) return a;
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues && r <= 0x1000000) {
+      var arr = new Uint32Array(1); crypto.getRandomValues(arr); return a + (arr[0] % r);
+    }
+    return a + Math.floor(Math.random() * r);
+  }
 
-function fmtTime(d){var n=Date.now()-d.getTime(),s=Math.round(n/1000);if(s<60)return s+'s ago';
-var m=Math.round(s/60);if(m<60)return m+'m ago';var h=Math.round(m/60);return h+'h ago'}
+  function fmtTime(d) {
+    var n = Date.now() - d.getTime(), s = Math.round(n / 1000);
+    if (s < 60) return s + 's ago';
+    var m = Math.round(s / 60); if (m < 60) return m + 'm ago';
+    var h = Math.round(m / 60); return h + 'h ago';
+  }
 
-function gen(){
-var min=parseInt(minInp.value)||1,max=parseInt(maxInp.value)||100;
-var cnt=parseInt(cntSel.value)||1,uni=uniChk.checked;
-if(min>max){var t=min;min=max;max=t}
-minInp.value=min;maxInp.value=max;
-var range=max-min+1;
-if(uni&&cnt>range)cnt=range;
-var res=[];
-if(uni){var pool=[];
-for(var i=0;i<range;i++)pool.push(min+i);
-for(var i=0;i<range;i++){var j=rand(i,range-1);var t2=pool[i];pool[i]=pool[j];pool[j]=t2}
-for(var i=0;i<cnt;i++)res.push(pool[i]);
-}else{for(var i=0;i<cnt;i++)res.push(rand(min,max))}
-if(S==='asc')res.sort(function(a,b){return a-b});
-else if(S==='desc')res.sort(function(a,b){return b-a});
-var html='';
-for(var i=0;i<res.length;i++)html+='<span class="rng-badge" data-n="'+res[i]+'" tabindex="0" role="button" aria-label="Copy '+res[i]+'">'+res[i]+'</span>';
-outDiv.innerHTML=html||'<span class="text-base-content/30 text-sm font-bold">No results</span>';
-infSpan.textContent=min+' – '+max+' · '+cnt+' num'+(cnt>1?'s':'');
-var smin=res[0],smax=res[res.length-1],savg=Math.round(res.reduce(function(a,b){return a+b},0)/res.length);
-statDiv.innerHTML='<span class="rng-stat">Min '+smin+'</span><span class="rng-stat">Max '+smax+'</span><span class="rng-stat">Avg '+savg+'</span>';
-HS.unshift({n:res.slice(),t:new Date().toISOString(),r:min+'-'+max,c:cnt,u:uni});
-sv();rdh();return res;}
+  return {
+    min: 1,
+    max: 100,
+    count: 1,
+    unique: false,
 
-function rdh(){
-hCount.textContent=HS.length?'('+HS.length+')':'';
-if(!HS.length){hEmpty.hidden=false;hList.hidden=true;return}
-hEmpty.hidden=true;hList.hidden=false;
-var html='';
-for(var i=0;i<Math.min(HS.length,10);i++){
-var h=HS[i],nums=h.n.slice(0,3),more=h.n.length>3;
-html+='<div class="rng-hitem"><span style="font-weight:600;font-size:11px;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">';
-for(var j=0;j<nums.length;j++){if(j)html+=', ';html+=nums[j]}
-if(more)html+=', …';
-html+=' <span style="opacity:.35;font-size:10px;font-weight:500">'+fmtTime(new Date(h.t))+'</span></span>';
-html+='<div class="flex gap-1 flex-shrink-0"><button type="button" class="rng-hdel" data-hp="'+i+'" aria-label="Copy">C</button><button type="button" class="rng-hdel" data-hd="'+i+'" aria-label="Remove">&times;</button></div></div>';}
-hList.innerHTML=html;}
+    gen: function() {
+      var minInp = document.getElementById('rngMin'), maxInp = document.getElementById('rngMax');
+      var cntSel = document.getElementById('rngCount'), uniChk = document.getElementById('rngUnique');
+      var outDiv = document.getElementById('rngOutput'), infSpan = document.getElementById('rngInfo');
+      var statDiv = document.getElementById('rngStats');
+      if (!outDiv) return;
 
-function ld(){try{var d=localStorage.getItem(K);if(d)HS=JSON.parse(d);rdh()}catch(e){}}
-function sv(){try{localStorage.setItem(K,JSON.stringify(HS.slice(0,50)))}catch(e){}}
+      var min = parseInt(this.min) || 1, max = parseInt(this.max) || 100;
+      var cnt = parseInt(this.count) || 1, uni = !!this.unique;
+      if (min > max) { var t = min; min = max; max = t; this.min = min; this.max = max; }
+      var range = max - min + 1;
+      if (uni && cnt > range) { cnt = range; this.count = cnt; }
 
-function copyAll(){
-var out=outDiv.querySelectorAll('.rng-badge'),nums=[];
-out.forEach(function(el){var v=parseInt(el.getAttribute('data-n'));if(!isNaN(v))nums.push(v)});
-if(!nums.length)return;
-var fmt=fmtSel.value,s='';
-for(var i=0;i<nums.length;i++){if(i&&fmt!=='none')s+=fmt==='newline'?'\n':fmt==='space'?' ':', ';s+=nums[i]}
-navigator.clipboard.writeText(s).then(function(){
-cpyBtn.innerHTML='{{ lucide_icon("check","w-5 h-5", 20) | safe }}';
-setTimeout(function(){cpyBtn.innerHTML='{{ lucide_icon("copy","w-4 h-4", 16) | safe }}<span class="hidden sm:inline">COPY</span>'},1200);
-}).catch(function(){})}
+      var res = [];
+      if (uni) {
+        var pool = [];
+        for (var i = 0; i < range; i++) pool.push(min + i);
+        for (var i = 0; i < range; i++) { var j = rand(i, range - 1); var t2 = pool[i]; pool[i] = pool[j]; pool[j] = t2; }
+        for (var i = 0; i < cnt; i++) res.push(pool[i]);
+      } else {
+        for (var i = 0; i < cnt; i++) res.push(rand(min, max));
+      }
 
-outDiv.addEventListener('click',function(e){
-var b=e.target.closest('.rng-badge');if(!b)return;
-var n=b.getAttribute('data-n');if(!n)return;
-navigator.clipboard.writeText(n).then(function(){
-b.classList.add('copied');b.textContent='Copied!';
-setTimeout(function(){b.classList.remove('copied');b.textContent=n},800);
-}).catch(function(){})});
+      if (S === 'asc') res.sort(function(a, b){ return a - b; });
+      else if (S === 'desc') res.sort(function(a, b){ return b - a; });
 
-outDiv.addEventListener('keydown',function(e){
-if(e.key!=='Enter'&&e.key!==' ')return;e.preventDefault();
-var b=e.target.closest('.rng-badge');if(!b)return;
-var n=b.getAttribute('data-n');if(!n)return;
-navigator.clipboard.writeText(n).then(function(){
-b.classList.add('copied');b.textContent='Copied!';
-setTimeout(function(){b.classList.remove('copied');b.textContent=n},800);
-}).catch(function(){})});
+      var html = '';
+      for (var i = 0; i < res.length; i++) {
+        html += '<span class="rng-badge" data-n="' + res[i] + '" tabindex="0" role="button" aria-label="Copy ' + res[i] + '">' + res[i] + '</span>';
+      }
+      outDiv.innerHTML = html || '<span class="text-base-content/30 text-sm font-bold">No results</span>';
+      if (infSpan) infSpan.textContent = min + ' – ' + max + ' · ' + cnt + ' num' + (cnt > 1 ? 's' : '');
 
-hList.addEventListener('click',function(e){
-var cp=e.target.closest('[data-hp]');
-if(cp){var idx=parseInt(cp.getAttribute('data-hp'));if(HS[idx]){navigator.clipboard.writeText(HS[idx].n.join(', '));cp.textContent='C';}}
-var dl=e.target.closest('[data-hd]');
-if(dl){var idx=parseInt(dl.getAttribute('data-hd'));HS.splice(idx,1);sv();rdh()}});
+      if (statDiv && res.length) {
+        var smin = res[0], smax = res[res.length - 1], savg = Math.round(res.reduce(function(a, b){ return a + b; }, 0) / res.length);
+        statDiv.innerHTML = '<span class="rng-stat">Min ' + smin + '</span><span class="rng-stat">Max ' + smax + '</span><span class="rng-stat">Avg ' + savg + '</span>';
+      }
 
-hClear.addEventListener('click',function(){HS=[];sv();rdh()});
-clrBtn.addEventListener('click',function(){outDiv.innerHTML='<span class="text-base-content/30 text-sm font-bold">Click Generate</span>';infSpan.textContent='';statDiv.innerHTML=''});
+      HS.unshift({ n: res.slice(), t: new Date().toISOString(), r: min + '-' + max, c: cnt, u: uni });
+      try { localStorage.setItem(K, JSON.stringify(HS.slice(0, 50))); } catch(e) {}
+      this.rdh();
+      return res;
+    },
 
-document.querySelectorAll('[data-sort]').forEach(function(b){b.addEventListener('click',function(){
-document.querySelectorAll('[data-sort]').forEach(function(x){x.classList.remove('on')});this.classList.add('on');S=this.getAttribute('data-sort')})});
+    rdh: function() {
+      var hCount = document.getElementById('rngHCount'), hEmpty = document.getElementById('rngHEmpty'), hList = document.getElementById('rngHList');
+      if (!hCount || !hEmpty || !hList) return;
+      hCount.textContent = HS.length ? '(' + HS.length + ')' : '';
+      if (!HS.length) { hEmpty.hidden = false; hList.hidden = true; return; }
+      hEmpty.hidden = true; hList.hidden = false;
+      var html = '';
+      for (var i = 0; i < Math.min(HS.length, 10); i++) {
+        var h = HS[i], nums = h.n.slice(0, 3), more = h.n.length > 3;
+        html += '<div class="rng-hitem"><span style="font-weight:600;font-size:11px;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">';
+        for (var j = 0; j < nums.length; j++) { if (j) html += ', '; html += nums[j]; }
+        if (more) html += ', …';
+        html += ' <span style="opacity:.35;font-size:10px;font-weight:500">' + fmtTime(new Date(h.t)) + '</span></span>';
+        html += '<div class="flex gap-1 flex-shrink-0"><button type="button" class="rng-hdel" data-hp="' + i + '" aria-label="Copy">C</button><button type="button" class="rng-hdel" data-hd="' + i + '" aria-label="Remove">&times;</button></div></div>';
+      }
+      hList.innerHTML = html;
+    },
 
-function handleGen(){gen()}
-genBtn.addEventListener('click',handleGen);
-regBtn.addEventListener('click',handleGen);
-cpyBtn.addEventListener('click',copyAll);
-ld();handleGen();
-})();
+    copyAll: function() {
+      var outDiv = document.getElementById('rngOutput');
+      if (!outDiv) return;
+      var out = outDiv.querySelectorAll('.rng-badge'), nums = [];
+      out.forEach(function(el){ var v = parseInt(el.getAttribute('data-n')); if (!isNaN(v)) nums.push(v); });
+      if (!nums.length) return;
+      var fmtSel = document.getElementById('rngFmt'), fmt = fmtSel ? fmtSel.value : 'comma', s = '';
+      for (var i = 0; i < nums.length; i++) {
+        if (i && fmt !== 'none') s += fmt === 'newline' ? '\n' : fmt === 'space' ? ' ' : ', ';
+        s += nums[i];
+      }
+      var cpyBtn = document.getElementById('rngCopyBtn');
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(s).then(function(){
+          if (cpyBtn) { var orig = cpyBtn.textContent; cpyBtn.textContent = 'Copied!'; setTimeout(function(){ cpyBtn.textContent = orig; }, 1200); }
+        }).catch(function(){});
+      }
+    },
+
+    init: function() {
+      try {
+        var d = localStorage.getItem(K);
+        if (d) HS = JSON.parse(d);
+        this.rdh();
+      } catch(e) {}
+
+      var self = this;
+      document.querySelectorAll('.rng-pre').forEach(function(b){
+        b.addEventListener('click', function(){
+          var minVal = parseInt(this.getAttribute('data-min')), maxVal = parseInt(this.getAttribute('data-max'));
+          var cntVal = parseInt(this.getAttribute('data-cnt')), uniVal = this.getAttribute('data-uni') === '1';
+          self.min = minVal; self.max = maxVal; self.count = cntVal; self.unique = uniVal;
+          self.gen();
+        });
+      });
+
+      document.querySelectorAll('.rng-srt').forEach(function(b){
+        b.addEventListener('click', function(){
+          document.querySelectorAll('.rng-srt').forEach(function(x){ x.classList.remove('on'); });
+          this.classList.add('on'); S = this.getAttribute('data-sort');
+          self.gen();
+        });
+      });
+
+      var clrBtn = document.getElementById('rngClearBtn'), hClear = document.getElementById('rngHClear');
+      if (clrBtn) clrBtn.addEventListener('click', function(){
+        var outDiv = document.getElementById('rngOutput'), infSpan = document.getElementById('rngInfo'), statDiv = document.getElementById('rngStats');
+        if (outDiv) outDiv.innerHTML = '<span class="text-base-content/30 text-sm font-bold">Press Generate</span>';
+        if (infSpan) infSpan.textContent = '1 – 100 · 1 num';
+        if (statDiv) statDiv.innerHTML = '';
+      });
+      if (hClear) hClear.addEventListener('click', function(){
+        HS = []; try { localStorage.removeItem(K); } catch(e) {}
+        self.rdh();
+      });
+
+      var hList = document.getElementById('rngHList');
+      if (hList) hList.addEventListener('click', function(e){
+        var hp = e.target.closest('[data-hp]'), hd = e.target.closest('[data-hd]');
+        if (hp) {
+          var idx = parseInt(hp.getAttribute('data-hp'));
+          if (HS[idx] && navigator.clipboard) {
+            navigator.clipboard.writeText(HS[idx].n.join(', ')).then(function(){
+              hp.textContent = '✓'; setTimeout(function(){ hp.textContent = 'C'; }, 1000);
+            }).catch(function(){});
+          }
+        } else if (hd) {
+          var idx2 = parseInt(hd.getAttribute('data-hd'));
+          HS.splice(idx2, 1);
+          try { localStorage.setItem(K, JSON.stringify(HS.slice(0, 50))); } catch(e2) {}
+          self.rdh();
+        }
+      });
+
+      var regBtn = document.getElementById('rngRegenBtn');
+      if (regBtn) regBtn.addEventListener('click', function(){ self.gen(); });
+    }
+  };
+};
 </script>
 
 

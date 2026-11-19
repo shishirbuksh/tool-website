@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from app.core.icons import _JSON_PATH, _cache, lucide_icon
+from apps.core.icons import _JSON_PATH, _cache, lucide_icon
 
 
 class TestLucideIcon:

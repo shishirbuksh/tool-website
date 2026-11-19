@@ -2,7 +2,7 @@
 
 import re
 
-from app.services.sitemap_service import SitemapService
+from apps.seo.services import SitemapService
 
 
 class TestSitemapService:

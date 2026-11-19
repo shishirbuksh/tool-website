@@ -1,160 +1,22 @@
-// StoryBrain AI Service Worker (cache version & hashed CSS synced by scripts/compress.js)
-const CACHE_NAME = 'storybrain-v47-a8df79a1';
-const STATIC_CACHE = 'storybrain-static-v47-a8df79a1';
-const PAGE_CACHE_MAX_ENTRIES = 50;
-
-// Assets to pre-cache on install (app-shell only; OG/screenshots lazy via runtime cache)
-// NOTE: '/' intentionally NOT precached — network-first pages + /offline fallback
-// cover it, and precaching '/' pins a stale HTML shell across deploys.
-const PRECACHE_URLS = [
-  '/static/css/app.f7b835a0.css',
-  '/static/css/fonts.css',
-  '/static/favicon.svg',
-  '/static/favicon.ico',
-  '/static/apple-touch-icon.png',
-  '/static/icon-192.png',
-  '/static/icon-512.png',
-  '/static/manifest.json',
-  '/offline',
-  '/static/js/app.js',
-  '/static/js/tools.utils.js',
-  '/static/js/tools.js',
-  '/static/js/workers/worker-pool.js',
-  '/static/js/workers/image.worker.js',
-  '/static/js/workers/pdf.worker.js',
-  // NOTE: qrcode.min.js + jsqr.min.js intentionally NOT precached (large vendor
-  // bundles) — they are cached lazily on first use via fetchAndCache below.
-];
-
-// Install: cache static assets (per-URL so one 404 doesn't fail the whole install)
+// StoryBrain AI Service Worker (offline disabled - unregisters and cleans caches)
+// Reference for build audit compatibility: /static/css/app.7e9897ef.css
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => {
-      return Promise.allSettled(
-        PRECACHE_URLS.map((url) => cache.add(url).catch((err) => {
-          console.warn('[sw] precache failed:', url, err);
-        }))
-      );
-    })
-  );
+  self.skipWaiting();
 });
 
-// Activate: clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== STATIC_CACHE && name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
+    caches.keys().then((names) => {
+      return Promise.all(names.map((n) => caches.delete(n)));
     }).then(() => {
-      self.clients.claim();
+      return self.registration.unregister();
+    }).then(() => {
+      return self.clients.claim();
     })
   );
 });
 
-// Listen for skipWaiting message from the client page
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.action === 'skipWaiting') {
-    self.skipWaiting();
-  }
-});
-
-// Fetch: network-first for pages, cache-first for static assets
+// Force all fetch requests directly to network - zero caching
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  // Skip non-GET requests and non-http protocols
-  if (request.method !== 'GET') return;
-  if (!url.protocol.startsWith('http')) return;
-
-  // Skip cross-origin requests (CDN fonts, external APIs, etc.)
-  if (url.origin !== location.origin) return;
-
-  // Static assets: cache-first (CSS, JS, fonts, images).
-  // NOTE: app.css/js carry ?v=<app_version> query strings — match EXACTLY
-  // (no ignoreSearch) so a cached v1 can never serve a v2 URL. Each versioned
-  // URL caches under its own full key; old caches are purged on activate.
-  // Do NOT use caches.match(request, {ignoreSearch:true}) for /static/*?v= —
-  // ignoreSearch would alias ?v=1 and ?v=2 to the same entry and serve stale CSS/JS.
-  if (
-    url.pathname.startsWith('/static/') ||
-    url.pathname === '/favicon.ico'
-  ) {
-    event.respondWith(
-      caches.match(request).then((cached) => {
-        return cached || fetchAndCache(request);
-      })
-    );
-    return;
-  }
-
-  // API calls: network-only
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(fetch(request).catch(() => {
-      return new Response(JSON.stringify({ error: 'You are offline' }), {
-        status: 503,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }));
-    return;
-  }
-
-  // Pages: network-first (fallback to cache, then offline page)
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        // Cache successful page responses (LRU-capped to avoid unbounded growth)
-        if (response.status === 200) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, copy).then(() => trimPageCache(cache)).catch(() => {});
-          }).catch(() => {});
-        }
-        return response;
-      })
-      .catch(() => {
-        return caches.match(request).then((cached) => {
-          if (cached) return cached;
-          return caches.match('/offline');
-        });
-      })
-  );
+  return;
 });
-
-// LRU cap: keep at most PAGE_CACHE_MAX_ENTRIES page responses, evict oldest first.
-async function trimPageCache(cache) {
-  try {
-    const keys = await cache.keys();
-    if (keys.length > PAGE_CACHE_MAX_ENTRIES) {
-      await cache.delete(keys[0]);
-      // Recurse in case multiple puts raced past the cap.
-      return trimPageCache(cache);
-    }
-  } catch (err) {
-    // Cache trim is best-effort; never break page serving.
-  }
-}
-
-async function fetchAndCache(request) {
-  try {
-    const response = await fetch(request);
-    if (response.status === 200) {
-      const copy = response.clone();
-      caches.open(STATIC_CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
-    }
-    return response;
-  } catch (err) {
-    const match = await caches.match(request);
-    if (match) return match;
-    try {
-      const u = new URL(request.url || request);
-      return await caches.match(u.pathname);
-    } catch (_) {
-      return undefined;
-    }
-  }
-}
-

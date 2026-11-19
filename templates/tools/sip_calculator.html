@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section, tool_seo_all, tool_section_end with context %}
 
-
 {% block head %}
 <style>
 .input-visible{background-color:color-mix(in oklab,var(--color-base-100) 85%,var(--color-base-300));border-color:var(--color-base-content);color:var(--color-base-content);font-weight:700}
@@ -10,7 +9,7 @@
 .stat-card{padding:.75rem;border-radius:12px;background:color-mix(in oklab,var(--color-base-100) 60%,var(--color-base-200))}
 .tab-btn{color:var(--color-base-content);opacity:.45;cursor:pointer;transition:all .3s 0.2s ease-out;background:0 0;border:2px solid color-mix(in oklab,var(--color-base-content) 12%,transparent);padding:.625rem 1.25rem;border-radius:.75rem;font-size:.875rem;font-weight:700;letter-spacing:.025em;text-transform:uppercase;flex:1;text-align:center;white-space:nowrap}
 .tab-btn.active,.tab-btn:hover{opacity:1;background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary);border-color:var(--color-primary)}
-.tab-content{display:block}.tab-content.hidden{display:none !important}
+.tab-content{display:block}
 .bg-card{background:color-mix(in oklab,var(--color-base-100) 60%,var(--color-base-200));border-radius:12px;border:1px solid color-mix(in oklab,var(--color-base-content) 8%,transparent)}
 table.schedule{width:100%;border-collapse:collapse;font-size:.8125rem}
 table.schedule th{padding:.5rem .625rem;text-align:right;font-size:.6875rem;text-transform:uppercase;letter-spacing:.1em;color:var(--color-base-content);opacity:.45;border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 12%,transparent)}
@@ -26,17 +25,17 @@ table.schedule tr:last-child td{border-bottom:none;font-weight:700}
 {% set cur_sym = '$' %}
 {{ tool_hero_section("trending-up", "Investment Tool", "SIP", "CALCULATOR", seo_data.description if seo_data else "Calculate your Systematic Investment Plan returns. Enter monthly amount, expected return rate, and tenure to see your investment growth.") }}
 
-<div class="max-w-2xl mx-auto reveal">
+<div x-data="sipCalculator()" class="max-w-2xl mx-auto reveal">
   <div class="feature-card rounded-xl p-5 md:p-6 mb-4">
     <div class="flex flex-wrap gap-4 mb-4">
       <div class="min-w-[140px] flex-1">
         <label for="sipCurrency" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-2 block">Currency</label>
-        <select id="sipCurrency" aria-label="Select currency" class="select w-full rounded-xl text-sm font-bold bg-base-200 border-base-content/20 h-11">
-          <option value="USD" {% if default_curr == 'USD' %}selected{% endif %}>&#127482;&#127480; USD</option>
-          <option value="EUR" {% if default_curr == 'EUR' %}selected{% endif %}>&#127466;&#127482; EUR</option>
+        <select id="sipCurrency" x-model="curr" aria-label="Select currency" class="select w-full rounded-xl text-sm font-bold bg-base-200 border-base-content/20 h-11">
+          <option value="USD">&#127482;&#127480; USD</option>
+          <option value="EUR">&#127466;&#127482; EUR</option>
           <option value="GBP">&#127468;&#127463; GBP</option>
           <option value="JPY">&#127471;&#127477; JPY</option>
-          <option value="INR" {% if default_curr == 'INR' %}selected{% endif %}>&#127470;&#127475; INR</option>
+          <option value="INR">&#127470;&#127475; INR</option>
           <option value="CAD">&#127464;&#127462; CAD</option>
           <option value="AUD">&#127462;&#127482; AUD</option>
           <option value="CHF">&#127464;&#127469; CHF</option>
@@ -52,50 +51,51 @@ table.schedule tr:last-child td{border-bottom:none;font-weight:700}
       </div>
     </div>
     <div class="flex flex-wrap gap-2" role="tablist" aria-label="SIP calculator tabs">
-      <button type="button" class="tab-btn active" data-tab="sip" role="tab" aria-selected="true" aria-controls="tab-sip">SIP Calculator</button>
-      <button type="button" class="tab-btn" data-tab="goal" role="tab" aria-selected="false" aria-controls="tab-goal">Goal Planner</button>
-      <button type="button" class="tab-btn" data-tab="schedule" role="tab" aria-selected="false" aria-controls="tab-schedule">Growth Schedule</button>
-      <button type="button" class="tab-btn" data-tab="compare" role="tab" aria-selected="false" aria-controls="tab-compare">Compare</button>
+      <button type="button" class="tab-btn" :class="{ 'active': tab === 'sip' }" @click="tab = 'sip'" role="tab" :aria-selected="tab === 'sip'" aria-controls="tab-sip">SIP Calculator</button>
+      <button type="button" class="tab-btn" :class="{ 'active': tab === 'goal' }" @click="tab = 'goal'" role="tab" :aria-selected="tab === 'goal'" aria-controls="tab-goal">Goal Planner</button>
+      <button type="button" class="tab-btn" :class="{ 'active': tab === 'schedule' }" @click="tab = 'schedule'" role="tab" :aria-selected="tab === 'schedule'" aria-controls="tab-schedule">Growth Schedule</button>
+      <button type="button" class="tab-btn" :class="{ 'active': tab === 'compare' }" @click="tab = 'compare'" role="tab" :aria-selected="tab === 'compare'" aria-controls="tab-compare">Compare</button>
     </div>
   </div>
 
-  <div id="tab-sip" class="tab-content feature-card rounded-xl p-5 md:p-6" role="tabpanel">
+  <!-- SIP Calculator Tab Panel -->
+  <div id="tab-sip" x-show="tab === 'sip'" class="tab-content feature-card rounded-xl p-5 md:p-6" role="tabpanel">
     <div class="space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="sipLumpsum" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Initial Lumpsum <span class="opacity-40 text-[10px]">optional</span></label>
           <div class="relative">
-            <span id="sipLsumSym" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">{{ cur_sym }}</span>
-            <input type="number" id="sipLumpsum" aria-label="Initial lumpsum investment" class="input input-visible w-full pl-8 rounded-xl text-sm" value="0" min="0" step="1000">
+            <span id="sipLsumSym" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true" x-text="sym">{{ cur_sym }}</span>
+            <input type="number" id="sipLumpsum" x-model.number="lumpsum" aria-label="Initial lumpsum investment" class="input input-visible w-full pl-8 rounded-xl text-sm" value="0" min="0" step="1000">
           </div>
         </div>
         <div>
           <label for="sipMonthly" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Monthly Investment</label>
           <div class="relative">
-            <span id="sipSym" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">{{ cur_sym }}</span>
-            <input type="number" id="sipMonthly" aria-label="Monthly investment amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="5000" min="0" step="100">
+            <span id="sipSym" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true" x-text="sym">{{ cur_sym }}</span>
+            <input type="number" id="sipMonthly" x-model.number="monthly" aria-label="Monthly investment amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="5000" min="0" step="100">
           </div>
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label for="sipRate" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Return Rate (%)</label>
-          <input type="number" id="sipRate" aria-label="Expected annual return percentage" class="input input-visible w-full rounded-xl text-sm" value="12" min="0" max="50" step="0.5">
+          <input type="number" id="sipRate" x-model.number="rate" aria-label="Expected annual return percentage" class="input input-visible w-full rounded-xl text-sm" value="12" min="0" max="50" step="0.5">
         </div>
         <div>
           <label for="sipStepup" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Step-up (%) <span class="opacity-40 text-[10px]">/yr</span></label>
-          <input type="number" id="sipStepup" aria-label="Annual step-up percentage" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="50" step="1">
+          <input type="number" id="sipStepup" x-model.number="stepup" aria-label="Annual step-up percentage" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="50" step="1">
         </div>
         <div>
           <label for="sipInflation" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Inflation (%) <span class="opacity-40 text-[10px]">optional</span></label>
-          <input type="number" id="sipInflation" aria-label="Expected inflation rate" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="30" step="0.5">
+          <input type="number" id="sipInflation" x-model.number="inflation" aria-label="Expected inflation rate" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="30" step="0.5">
         </div>
       </div>
       <div>
         <label class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Investment Period</label>
         <div class="flex gap-2">
-          <input type="number" id="sipYears" aria-label="Investment years" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
-          <input type="number" id="sipMonths" aria-label="Additional months" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
+          <input type="number" id="sipYears" x-model.number="years" aria-label="Investment years" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
+          <input type="number" id="sipMonths" x-model.number="months" aria-label="Additional months" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
         </div>
       </div>
     </div>
@@ -103,76 +103,78 @@ table.schedule tr:last-child td{border-bottom:none;font-weight:700}
     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6">
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Total Invested</div>
-        <output id="sipInvested" aria-live="polite">$600,000.00</output>
+        <output id="sipInvested" aria-live="polite" x-text="sym + format(sipResults.tl)">$600,000.00</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Lumpsum Growth</div>
-        <output id="sipLsumGrowth" aria-live="polite">$0.00</output>
+        <output id="sipLsumGrowth" aria-live="polite" x-text="sym + format(sipResults.lsumGrowth)">$0.00 (None)</output>
       </div>
       <div class="stat-card" style="background:color-mix(in oklab,var(--color-primary) 10%,transparent);border:1px solid color-mix(in oklab,var(--color-primary) 20%,transparent)">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Maturity Value</div>
-        <output id="sipMaturity" aria-live="polite" class="font-black text-lg" style="color:var(--color-primary)">$1,120,508.28</output>
+        <output id="sipMaturity" aria-live="polite" class="font-black text-lg" style="color:var(--color-primary)" x-text="sym + format(sipResults.fv)">$1,161,695.38</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Estimated Returns</div>
-        <output id="sipReturns" aria-live="polite" class="text-success">$520,508.28</output>
+        <output id="sipReturns" aria-live="polite" class="text-success" x-text="sym + format(sipResults.ret)">$561,695.38</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Real Maturity <span class="opacity-40">(adj.)</span></div>
-        <output id="sipRealMat" aria-live="polite" class="text-info">$1,120,508.28</output>
+        <output id="sipRealMat" aria-live="polite" class="text-info" x-text="sym + format(sipResults.realFv)">$1,161,695.38</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Real Returns <span class="opacity-40">(adj.)</span></div>
-        <output id="sipRealRet" aria-live="polite">$520,508.28</output>
+        <output id="sipRealRet" aria-live="polite" x-text="sym + format(sipResults.realRet)">$561,695.38</output>
       </div>
     </div>
   </div>
 
-  <div id="tab-goal" class="tab-content hidden feature-card rounded-xl p-5 md:p-6" role="tabpanel">
+  <!-- Goal Planner Tab Panel -->
+  <div id="tab-goal" x-show="tab === 'goal'" class="tab-content feature-card rounded-xl p-5 md:p-6" role="tabpanel">
     <p class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/40 mb-4">Calculate the monthly SIP needed to reach your target corpus</p>
     <div class="space-y-4">
       <div>
         <label for="goalTarget" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Target Maturity Amount</label>
         <div class="relative">
-          <span id="goalSym" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
-          <input type="number" id="goalTarget" aria-label="Target maturity amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="1000000" min="0" step="10000">
+          <span id="goalSym" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true" x-text="sym">$</span>
+          <input type="number" id="goalTarget" x-model.number="goalTarget" aria-label="Target maturity amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="1000000" min="0" step="10000">
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="goalRate" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Expected Return Rate (%)</label>
-          <input type="number" id="goalRate" aria-label="Expected return percentage" class="input input-visible w-full rounded-xl text-sm" value="12" min="0" max="50" step="0.5">
+          <input type="number" id="goalRate" x-model.number="goalRate" aria-label="Expected return percentage" class="input input-visible w-full rounded-xl text-sm" value="12" min="0" max="50" step="0.5">
         </div>
         <div>
           <label for="goalStepup" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Annual Step-up (%) <span class="opacity-40 text-[10px]">optional</span></label>
-          <input type="number" id="goalStepup" aria-label="Goal step-up percentage" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="50" step="1">
+          <input type="number" id="goalStepup" x-model.number="goalStepup" aria-label="Goal step-up percentage" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="50" step="1">
         </div>
       </div>
       <div>
         <label class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Investment Period</label>
         <div class="flex gap-2">
-          <input type="number" id="goalYears" aria-label="Goal investment years" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
-          <input type="number" id="goalMonths" aria-label="Goal additional months" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
+          <input type="number" id="goalYears" x-model.number="goalYears" aria-label="Goal investment years" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
+          <input type="number" id="goalMonths" x-model.number="goalMonths" aria-label="Goal additional months" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
         </div>
       </div>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-6">
       <div class="stat-card" style="grid-column:1/-1">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Required Monthly SIP</div>
-        <output id="goalRequired" aria-live="polite" class="font-black text-lg" style="color:var(--color-primary)">$4,461.30</output>
+        <output id="goalRequired" aria-live="polite" class="font-black text-lg" style="color:var(--color-primary)" x-text="sym + format(goalResults.req)">$4,304.05</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Total Invested</div>
-        <output id="goalInvested" aria-live="polite">$535,356.00</output>
+        <output id="goalInvested" aria-live="polite" x-text="sym + format(goalResults.tl)">$516,486.00</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Total Returns</div>
-        <output id="goalReturns" aria-live="polite" class="text-success">$464,644.00</output>
+        <output id="goalReturns" aria-live="polite" class="text-success" x-text="sym + format(goalResults.ret)">$483,514.00</output>
       </div>
     </div>
   </div>
 
-  <div id="tab-schedule" class="tab-content hidden feature-card rounded-xl p-5 md:p-6" role="tabpanel">
+  <!-- Growth Schedule Tab Panel -->
+  <div id="tab-schedule" x-show="tab === 'schedule'" class="tab-content feature-card rounded-xl p-5 md:p-6" role="tabpanel">
     <p class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/40 mb-4">Year-by-year growth breakdown for current SIP parameters</p>
     <div class="overflow-x-auto">
       <table class="schedule" aria-label="Yearly growth schedule">
@@ -185,275 +187,332 @@ table.schedule tr:last-child td{border-bottom:none;font-weight:700}
             <th>Maturity Value</th>
           </tr>
         </thead>
-        <tbody id="scheduleBody"></tbody>
+        <tbody id="scheduleBody">
+          <template x-for="r in scheduleRows" :key="r.yr">
+            <tr>
+              <td x-text="r.yr"></td>
+              <td x-text="sym + format(r.yi)"></td>
+              <td x-text="sym + format(r.cum)"></td>
+              <td x-text="sym + format(r.ret)"></td>
+              <td x-text="sym + format(r.fv)"></td>
+            </tr>
+          </template>
+          <!-- Pre-rendered SSR fallback rows for search engines -->
+          <tr x-show="!mounted"><td>1</td><td>$60,000.00</td><td>$60,000.00</td><td>$4,047.16</td><td>$64,047.16</td></tr>
+          <tr x-show="!mounted"><td>2</td><td>$60,000.00</td><td>$120,000.00</td><td>$16,254.26</td><td>$136,254.26</td></tr>
+          <tr x-show="!mounted"><td>3</td><td>$60,000.00</td><td>$180,000.00</td><td>$37,280.95</td><td>$217,280.95</td></tr>
+          <tr x-show="!mounted"><td>4</td><td>$60,000.00</td><td>$240,000.00</td><td>$67,820.73</td><td>$307,820.73</td></tr>
+          <tr x-show="!mounted"><td>5</td><td>$60,000.00</td><td>$300,000.00</td><td>$108,598.67</td><td>$408,598.67</td></tr>
+        </tbody>
       </table>
     </div>
   </div>
 
-  <div id="tab-compare" class="tab-content hidden feature-card rounded-xl p-5 md:p-6" role="tabpanel">
+  <!-- Compare Tab Panel -->
+  <div id="tab-compare" x-show="tab === 'compare'" class="tab-content feature-card rounded-xl p-5 md:p-6" role="tabpanel">
     <p class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/40 mb-4">Compare up to 3 investment strategies side by side</p>
     <div class="flex flex-wrap gap-3">
+      <!-- Scenario A -->
       <div class="compare-col">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-3 text-center">Scenario A</div>
         <div class="space-y-2.5">
           <div>
             <label for="cmpAmonthly" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Monthly</label>
-            <input type="number" id="cmpAmonthly" class="input input-visible w-full rounded-xl text-sm" value="5000" min="0" step="100">
+            <input type="number" id="cmpAmonthly" x-model.number="cmpA.monthly" class="input input-visible w-full rounded-xl text-sm" value="5000" min="0" step="100">
           </div>
           <div>
             <label for="cmpAlumpsum" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Lumpsum</label>
-            <input type="number" id="cmpAlumpsum" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" step="1000">
+            <input type="number" id="cmpAlumpsum" x-model.number="cmpA.lumpsum" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" step="1000">
           </div>
           <div>
             <label for="cmpArate" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Return %</label>
-            <input type="number" id="cmpArate" class="input input-visible w-full rounded-xl text-sm" value="12" min="0" max="50" step="0.5">
+            <input type="number" id="cmpArate" x-model.number="cmpA.rate" class="input input-visible w-full rounded-xl text-sm" value="12" min="0" max="50" step="0.5">
           </div>
           <div>
             <label for="cmpAstepup" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Step-up %</label>
-            <input type="number" id="cmpAstepup" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="50" step="1">
+            <input type="number" id="cmpAstepup" x-model.number="cmpA.stepup" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="50" step="1">
           </div>
           <div>
             <label class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Period</label>
             <div class="flex gap-1">
-              <input type="number" id="cmpAyears" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
-              <input type="number" id="cmpAmonths" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
+              <input type="number" id="cmpAyears" x-model.number="cmpA.years" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
+              <input type="number" id="cmpAmonths" x-model.number="cmpA.months" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
             </div>
           </div>
         </div>
         <hr class="my-3 border-base-content/10">
         <div class="space-y-1.5 text-sm">
-          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Total Invested</span><output id="cmpAinvested" class="font-bold">$600,000.00</output></div>
-          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Returns</span><output id="cmpAreturns" class="font-bold text-success">$520,508.28</output></div>
-          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Maturity</span><output id="cmpAmaturity" class="font-black">$1,120,508.28</output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Total Invested</span><output id="cmpAinvested" class="font-bold" x-text="sym + format(cmpAResults.tl)">$600,000.00</output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Returns</span><output id="cmpAreturns" class="font-bold text-success" x-text="sym + format(cmpAResults.ret)">$561,695.38</output></div>
+          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Maturity</span><output id="cmpAmaturity" class="font-black" x-text="sym + format(cmpAResults.fv)">$1,161,695.38</output></div>
         </div>
       </div>
+
+      <!-- Scenario B -->
       <div class="compare-col">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-3 text-center">Scenario B</div>
         <div class="space-y-2.5">
           <div>
             <label for="cmpBmonthly" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Monthly</label>
-            <input type="number" id="cmpBmonthly" class="input input-visible w-full rounded-xl text-sm" value="5000" min="0" step="100">
+            <input type="number" id="cmpBmonthly" x-model.number="cmpB.monthly" class="input input-visible w-full rounded-xl text-sm" value="5000" min="0" step="100">
           </div>
           <div>
             <label for="cmpBlumpsum" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Lumpsum</label>
-            <input type="number" id="cmpBlumpsum" class="input input-visible w-full rounded-xl text-sm" value="50000" min="0" step="1000">
+            <input type="number" id="cmpBlumpsum" x-model.number="cmpB.lumpsum" class="input input-visible w-full rounded-xl text-sm" value="50000" min="0" step="1000">
           </div>
           <div>
             <label for="cmpBrate" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Return %</label>
-            <input type="number" id="cmpBrate" class="input input-visible w-full rounded-xl text-sm" value="15" min="0" max="50" step="0.5">
+            <input type="number" id="cmpBrate" x-model.number="cmpB.rate" class="input input-visible w-full rounded-xl text-sm" value="15" min="0" max="50" step="0.5">
           </div>
           <div>
             <label for="cmpBstepup" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Step-up %</label>
-            <input type="number" id="cmpBstepup" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
+            <input type="number" id="cmpBstepup" x-model.number="cmpB.stepup" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
           </div>
           <div>
             <label class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Period</label>
             <div class="flex gap-1">
-              <input type="number" id="cmpByears" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
-              <input type="number" id="cmpBmonths" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
+              <input type="number" id="cmpByears" x-model.number="cmpB.years" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
+              <input type="number" id="cmpBmonths" x-model.number="cmpB.months" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
             </div>
           </div>
         </div>
         <hr class="my-3 border-base-content/10">
         <div class="space-y-1.5 text-sm">
-          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Total Invested</span><output id="cmpBinvested" class="font-bold">$650,000.00</output></div>
-          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Returns</span><output id="cmpBreturns" class="font-bold text-success">$2,354,786.01</output></div>
-          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Maturity</span><output id="cmpBmaturity" class="font-black">$3,004,786.01</output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Total Invested</span><output id="cmpBinvested" class="font-bold" x-text="sym + format(cmpBResults.tl)">$650,000.00</output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Returns</span><output id="cmpBreturns" class="font-bold text-success" x-text="sym + format(cmpBResults.ret)">$2,354,786.01</output></div>
+          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Maturity</span><output id="cmpBmaturity" class="font-black" x-text="sym + format(cmpBResults.fv)">$3,004,786.01</output></div>
         </div>
       </div>
+
+      <!-- Scenario C -->
       <div class="compare-col">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-3 text-center">Scenario C</div>
         <div class="space-y-2.5">
           <div>
             <label for="cmpCmonthly" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Monthly</label>
-            <input type="number" id="cmpCmonthly" class="input input-visible w-full rounded-xl text-sm" value="10000" min="0" step="100">
+            <input type="number" id="cmpCmonthly" x-model.number="cmpC.monthly" class="input input-visible w-full rounded-xl text-sm" value="10000" min="0" step="100">
           </div>
           <div>
             <label for="cmpClumpsum" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Lumpsum</label>
-            <input type="number" id="cmpClumpsum" class="input input-visible w-full rounded-xl text-sm" value="100000" min="0" step="1000">
+            <input type="number" id="cmpClumpsum" x-model.number="cmpC.lumpsum" class="input input-visible w-full rounded-xl text-sm" value="100000" min="0" step="1000">
           </div>
           <div>
             <label for="cmpCrate" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Return %</label>
-            <input type="number" id="cmpCrate" class="input input-visible w-full rounded-xl text-sm" value="12" min="0" max="50" step="0.5">
+            <input type="number" id="cmpCrate" x-model.number="cmpC.rate" class="input input-visible w-full rounded-xl text-sm" value="12" min="0" max="50" step="0.5">
           </div>
           <div>
             <label for="cmpCstepup" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Step-up %</label>
-            <input type="number" id="cmpCstepup" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="50" step="1">
+            <input type="number" id="cmpCstepup" x-model.number="cmpC.stepup" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="50" step="1">
           </div>
           <div>
             <label class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Period</label>
             <div class="flex gap-1">
-              <input type="number" id="cmpCyears" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
-              <input type="number" id="cmpCmonths" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
+              <input type="number" id="cmpCyears" x-model.number="cmpC.years" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="50" step="1">
+              <input type="number" id="cmpCmonths" x-model.number="cmpC.months" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" max="11" step="1">
             </div>
           </div>
         </div>
         <hr class="my-3 border-base-content/10">
         <div class="space-y-1.5 text-sm">
-          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Total Invested</span><output id="cmpCinvested" class="font-bold">$1,300,000.00</output></div>
-          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Returns</span><output id="cmpCreturns" class="font-bold text-success">$1,004,149.74</output></div>
-          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Maturity</span><output id="cmpCmaturity" class="font-black">$2,304,149.74</output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Total Invested</span><output id="cmpCinvested" class="font-bold" x-text="sym + format(cmpCResults.tl)">$1,300,000.00</output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Returns</span><output id="cmpCreturns" class="font-bold text-success" x-text="sym + format(cmpCResults.ret)">$1,004,149.74</output></div>
+          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Maturity</span><output id="cmpCmaturity" class="font-black" x-text="sym + format(cmpCResults.fv)">$2,304,149.74</output></div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
+{% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){'use strict';
-var cs=document.getElementById('sipCurrency');
-var cu={USD:{sym:'$',loc:'en-US'},EUR:{sym:'\u20AC',loc:'de-DE'},GBP:{sym:'\u00A3',loc:'en-GB'},JPY:{sym:'\u00A5',loc:'ja-JP'},INR:{sym:'\u20B9',loc:'en-IN'},CAD:{sym:'CA$',loc:'en-CA'},AUD:{sym:'AU$',loc:'en-AU'},CHF:{sym:'CHF ',loc:'de-CH'},CNY:{sym:'\u00A5',loc:'zh-CN'},BRL:{sym:'R$',loc:'pt-BR'},KRW:{sym:'\u20A9',loc:'ko-KR'},SEK:{sym:'kr ',loc:'sv-SE'},NZD:{sym:'NZ$',loc:'en-NZ'},SGD:{sym:'S$',loc:'en-SG'},HKD:{sym:'HK$',loc:'en-HK'},ZAR:{sym:'R ',loc:'en-ZA'}};
-var csym='$',cloc='en-US';
-
-function fmt(v){return v.toLocaleString(cloc,{minimumFractionDigits:2,maximumFractionDigits:2})}
-
-function sipFV(p,rAnn,tm,step){
-  var ri=rAnn/100/12,si=step/100,fv=0;
-  if(!p||!tm)return 0;
-  if(ri<=0)return p*tm;
-  if(si>0){
-    var yr=Math.ceil(tm/12);
-    for(var i=0;i<yr;i++){
-      var pm=p*Math.pow(1+si,i),ym=Math.min(12,tm-i*12);
-      for(var j=0;j<ym;j++){var rem=(tm-(i*12+j));fv+=pm*Math.pow(1+ri,rem);}
-    }
-  }else{fv=p*((Math.pow(1+ri,tm)-1)/ri)*(1+ri);}
-  return fv;
-}
-
-function totalInv(p,tm,step){
-  if(!p)return 0;var t=0,si=step/100;
-  if(si>0){var yr=Math.ceil(tm/12);for(var i=0;i<yr;i++){var ym=Math.min(12,tm-i*12);t+=p*Math.pow(1+si,i)*ym;}}
-  else{t=p*tm;}
-  return t;
-}
-
-function lumpsumFV(l,rAnn,tm){
-  if(!l||!tm)return 0;var ri=rAnn/100/12;
-  if(ri<=0)return l;
-  return l*Math.pow(1+ri,tm);
-}
-
-function findSIP(target,rAnn,tm,step){
-  if(!target||!tm)return 0;
-  var lo=0,hi=target,mid,iter=0;
-  while(lo<hi&&iter<200){
-    mid=(lo+hi)/2;
-    var fv=sipFV(mid,rAnn,tm,step);
-    if(Math.abs(fv-target)<0.01)return mid;
-    if(fv<target)lo=mid;else hi=mid;iter++;
-  }
-  return mid||0;
-}
-
-function getSIPParams(){
-  return {
-    p:parseFloat(document.getElementById('sipMonthly').value)||0,
-    l:parseFloat(document.getElementById('sipLumpsum').value)||0,
-    r:parseFloat(document.getElementById('sipRate').value)||0,
-    s:parseFloat(document.getElementById('sipStepup').value)||0,
-    inf:parseFloat(document.getElementById('sipInflation').value)||0,
-    y:parseFloat(document.getElementById('sipYears').value)||0,
-    m:parseFloat(document.getElementById('sipMonths').value)||0
+window.sipCalculator = function() {
+  var cu = {
+    USD:{sym:'$',loc:'en-US'}, EUR:{sym:'€',loc:'de-DE'}, GBP:{sym:'£',loc:'en-GB'}, JPY:{sym:'¥',loc:'ja-JP'},
+    INR:{sym:'₹',loc:'en-IN'}, CAD:{sym:'CA$',loc:'en-CA'}, AUD:{sym:'AU$',loc:'en-AU'}, CHF:{sym:'CHF ',loc:'de-CH'},
+    CNY:{sym:'¥',loc:'zh-CN'}, BRL:{sym:'R$',loc:'pt-BR'}, KRW:{sym:'₩',loc:'ko-KR'}, SEK:{sym:'kr ',loc:'sv-SE'},
+    NZD:{sym:'NZ$',loc:'en-NZ'}, SGD:{sym:'S$',loc:'en-SG'}, HKD:{sym:'HK$',loc:'en-HK'}, ZAR:{sym:'R ',loc:'en-ZA'}
   };
-}
 
-function calcRow(p,l,r,tm,s,infR){
-  var fvSip=sipFV(p,r,tm,s),fvLump=lumpsumFV(l,r,tm),fv=fvSip+fvLump;
-  var tl=totalInv(p,tm,s)+l,ret=fv-tl;
-  var realFv=fv,realRet=ret;
-  if(infR>0&&tm>0){var df=Math.pow(1+infR/100,tm/12);realFv=fv/df;realRet=realFv-tl;}
-  return {tl:tl,ret:ret,fv:fv,realFv:realFv,realRet:realRet};
-}
+  return {
+    mounted: false,
+    tab: 'sip',
+    curr: 'USD',
+    monthly: 5000,
+    lumpsum: 0,
+    rate: 12,
+    stepup: 0,
+    inflation: 0,
+    years: 10,
+    months: 0,
 
-function setCurr(){
-  var o=cu[cs.value];csym=o.sym;cloc=o.loc;
-  var syms=document.querySelectorAll('.currency-sym');
-  for(var i=0;i<syms.length;i++)syms[i].textContent=csym;
-  calcSIP();calcGoal();calcSchedule();calcCompare();
-}
+    goalTarget: 1000000,
+    goalRate: 12,
+    goalStepup: 0,
+    goalYears: 10,
+    goalMonths: 0,
 
-function calcSIP(){
-  var d=getSIPParams();
-  var tm=d.y*12+d.m,c=calcRow(d.p,d.l,d.r,tm,d.s,d.inf);
-  document.getElementById('sipInvested').textContent=csym+fmt(c.tl);
-  document.getElementById('sipLsumGrowth').textContent=csym+fmt(lumpsumFV(d.l,d.r,tm)-d.l);
-  document.getElementById('sipReturns').textContent=csym+fmt(c.ret);
-  document.getElementById('sipMaturity').textContent=csym+fmt(c.fv);
-  document.getElementById('sipRealMat').textContent=csym+fmt(c.realFv);
-  document.getElementById('sipRealRet').textContent=csym+fmt(c.realRet);
-}
+    cmpA: { monthly: 5000, lumpsum: 0, rate: 12, stepup: 0, years: 10, months: 0 },
+    cmpB: { monthly: 5000, lumpsum: 50000, rate: 15, stepup: 10, years: 10, months: 0 },
+    cmpC: { monthly: 10000, lumpsum: 100000, rate: 12, stepup: 0, years: 10, months: 0 },
 
-function calcGoal(){
-  var tg=document.getElementById('goalTarget'),rt=document.getElementById('goalRate');
-  var yr=document.getElementById('goalYears'),mo=document.getElementById('goalMonths'),st=document.getElementById('goalStepup');
-  var gr=document.getElementById('goalRequired'),gi=document.getElementById('goalInvested'),gR=document.getElementById('goalReturns');
-  var target=parseFloat(tg.value)||0,r=parseFloat(rt.value)||0,y=parseFloat(yr.value)||0,m=parseFloat(mo.value)||0,s=parseFloat(st.value)||0;
-  var tm=y*12+m,req=findSIP(target,r,tm,s),fv=sipFV(req,r,tm,s),tl=totalInv(req,tm,s);
-  gr.textContent=csym+fmt(req);gi.textContent=csym+fmt(tl);gR.textContent=csym+fmt(fv-tl);
-}
+    init: function() {
+      this.mounted = true;
+    },
 
-function calcSchedule(){
-  var d=getSIPParams();
-  var sb=document.getElementById('scheduleBody');
-  var tm=d.y*12+d.m,ri=d.r/100/12,si=d.s/100,html='';
-  if(!d.p||!tm){sb.innerHTML='';return;}
-  var cumInv=0,lsFv=lumpsumFV(d.l,d.r,tm);
-  for(var i=0;i<Math.ceil(tm/12);i++){
-    var ym=Math.min(12,tm-i*12),pm=d.p*Math.pow(1+si,i),yi=pm*ym;
-    var yFv=0;
-    for(var j=0;j<ym;j++){var rem=(tm-(i*12+j));yFv+=pm*Math.pow(1+ri,rem);}
-    cumInv+=yi;
-    html+='<tr><td>'+(i+1)+'</td><td>'+csym+fmt(yi)+'</td><td>'+csym+fmt(cumInv+d.l)+'</td><td>'+csym+fmt(Math.max(0,lsFv+yFv-cumInv-d.l))+'</td><td>'+csym+fmt(lsFv+yFv)+'</td></tr>';
-  }
-  sb.innerHTML=html;
-}
+    get curObj() {
+      return cu[this.curr] || cu.USD;
+    },
 
-function calcCompare(){
-  var ids=['A','B','C'];
-  for(var i=0;i<ids.length;i++){
-    var id=ids[i];
-    var p=parseFloat(document.getElementById('cmp'+id+'monthly').value)||0;
-    var l=parseFloat(document.getElementById('cmp'+id+'lumpsum').value)||0;
-    var r=parseFloat(document.getElementById('cmp'+id+'rate').value)||0;
-    var s=parseFloat(document.getElementById('cmp'+id+'stepup').value)||0;
-    var y=parseFloat(document.getElementById('cmp'+id+'years').value)||0;
-    var mo=parseFloat(document.getElementById('cmp'+id+'months').value)||0;
-    var tm=y*12+mo,c=calcRow(p,l,r,tm,s,0);
-    document.getElementById('cmp'+id+'invested').textContent=csym+fmt(c.tl);
-    document.getElementById('cmp'+id+'returns').textContent=csym+fmt(c.ret);
-    document.getElementById('cmp'+id+'maturity').textContent=csym+fmt(c.fv);
-  }
-}
+    get sym() {
+      return this.curObj.sym;
+    },
 
-cs.addEventListener('change',function(){setCurr();});
+    get loc() {
+      return this.curObj.loc;
+    },
 
-var sipIds=['sipMonthly','sipLumpsum','sipRate','sipYears','sipMonths','sipStepup','sipInflation'];
-for(var i=0;i<sipIds.length;i++){var e=document.getElementById(sipIds[i]);if(e)e.addEventListener('input',function(){calcSIP();calcSchedule();});}
+    format: function(v) {
+      var n = Number(v) || 0;
+      return n.toLocaleString(this.loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
 
-var goalIds=['goalTarget','goalRate','goalYears','goalMonths','goalStepup'];
-for(var i=0;i<goalIds.length;i++){var e=document.getElementById(goalIds[i]);if(e)e.addEventListener('input',calcGoal);}
+    sipFV: function(p, rAnn, tm, step) {
+      var ri = (Number(rAnn) || 0) / 100 / 12;
+      var si = (Number(step) || 0) / 100;
+      var fv = 0;
+      if (!p || !tm) return 0;
+      if (ri <= 0) return p * tm;
+      if (si > 0) {
+        var yr = Math.ceil(tm / 12);
+        for (var i = 0; i < yr; i++) {
+          var pm = p * Math.pow(1 + si, i);
+          var ym = Math.min(12, tm - i * 12);
+          for (var j = 0; j < ym; j++) {
+            var rem = (tm - (i * 12 + j));
+            fv += pm * Math.pow(1 + ri, rem);
+          }
+        }
+      } else {
+        fv = p * ((Math.pow(1 + ri, tm) - 1) / ri) * (1 + ri);
+      }
+      return fv;
+    },
 
-var cmpPrefixes=['A','B','C'];
-var cmpSuffixes=['monthly','lumpsum','rate','stepup','years','months'];
-for(var i=0;i<cmpPrefixes.length;i++){for(var j=0;j<cmpSuffixes.length;j++){var e=document.getElementById('cmp'+cmpPrefixes[i]+cmpSuffixes[j]);if(e)e.addEventListener('input',calcCompare);}}
+    totalInv: function(p, tm, step) {
+      if (!p) return 0;
+      var t = 0, si = (Number(step) || 0) / 100;
+      if (si > 0) {
+        var yr = Math.ceil(tm / 12);
+        for (var i = 0; i < yr; i++) {
+          var ym = Math.min(12, tm - i * 12);
+          t += p * Math.pow(1 + si, i) * ym;
+        }
+      } else {
+        t = p * tm;
+      }
+      return t;
+    },
 
-var tabs=document.querySelectorAll('.tab-btn');
-for(var i=0;i<tabs.length;i++){
-  tabs[i].addEventListener('click',function(){
-    var t=this.getAttribute('data-tab');
-    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');b.setAttribute('aria-selected','false');});
-    this.classList.add('active');this.setAttribute('aria-selected','true');
-    document.querySelectorAll('.tab-content').forEach(function(c){c.classList.add('hidden');c.setAttribute('aria-hidden','true');});
-    var p=document.getElementById('tab-'+t);
-    if(p){p.classList.remove('hidden');p.setAttribute('aria-hidden','false');}
-    if(t==='schedule'||t==='compare'){if(t==='schedule')calcSchedule();if(t==='compare')calcCompare();}
-  });
-}
+    lumpsumFV: function(l, rAnn, tm) {
+      if (!l || !tm) return 0;
+      var ri = (Number(rAnn) || 0) / 100 / 12;
+      if (ri <= 0) return l;
+      return l * Math.pow(1 + ri, tm);
+    },
 
-setCurr();
-})();
+    calcRow: function(p, l, r, tm, s, infR) {
+      var fvSip = this.sipFV(p, r, tm, s);
+      var fvLump = this.lumpsumFV(l, r, tm);
+      var fv = fvSip + fvLump;
+      var tl = this.totalInv(p, tm, s) + l;
+      var ret = fv - tl;
+      var realFv = fv, realRet = ret;
+      if (infR > 0 && tm > 0) {
+        var df = Math.pow(1 + infR / 100, tm / 12);
+        realFv = fv / df;
+        realRet = realFv - tl;
+      }
+      return { tl: tl, ret: ret, fv: fv, realFv: realFv, realRet: realRet, lsumGrowth: fvLump > l ? fvLump - l : 0 };
+    },
+
+    get sipResults() {
+      var tm = (Number(this.years) || 0) * 12 + (Number(this.months) || 0);
+      return this.calcRow(Number(this.monthly) || 0, Number(this.lumpsum) || 0, Number(this.rate) || 0, tm, Number(this.stepup) || 0, Number(this.inflation) || 0);
+    },
+
+    get goalResults() {
+      var target = Number(this.goalTarget) || 0;
+      var tm = (Number(this.goalYears) || 0) * 12 + (Number(this.goalMonths) || 0);
+      var rAnn = Number(this.goalRate) || 0;
+      var s = Number(this.goalStepup) || 0;
+      if (!target || !tm) return { req: 0, tl: 0, ret: 0 };
+      var lo = 0, hi = target, mid = 0, iter = 0;
+      while (lo < hi && iter < 200) {
+        mid = (lo + hi) / 2;
+        var fv = this.sipFV(mid, rAnn, tm, s);
+        if (Math.abs(fv - target) < 0.01) break;
+        if (fv < target) lo = mid; else hi = mid;
+        iter++;
+      }
+      var req = mid || 0;
+      var fvFinal = this.sipFV(req, rAnn, tm, s);
+      var tl = this.totalInv(req, tm, s);
+      return { req: req, tl: tl, ret: fvFinal - tl };
+    },
+
+    get scheduleRows() {
+      if (!this.mounted) return [];
+      var p = Number(this.monthly) || 0;
+      var l = Number(this.lumpsum) || 0;
+      var tm = (Number(this.years) || 0) * 12 + (Number(this.months) || 0);
+      var ri = (Number(this.rate) || 0) / 100 / 12;
+      var si = (Number(this.stepup) || 0) / 100;
+      if (!p || !tm) return [];
+      var cumInv = 0, lsFv = this.lumpsumFV(l, Number(this.rate) || 0, tm);
+      var rows = [];
+      var totalYears = Math.ceil(tm / 12);
+      for (var i = 0; i < totalYears; i++) {
+        var ym = Math.min(12, tm - i * 12);
+        var pm = p * Math.pow(1 + si, i);
+        var yi = pm * ym;
+        var yFv = 0;
+        for (var j = 0; j < ym; j++) {
+          var rem = (tm - (i * 12 + j));
+          yFv += pm * Math.pow(1 + ri, rem);
+        }
+        cumInv += yi;
+        rows.push({
+          yr: i + 1,
+          yi: yi,
+          cum: cumInv + l,
+          ret: Math.max(0, lsFv + yFv - cumInv - l),
+          fv: lsFv + yFv
+        });
+      }
+      return rows;
+    },
+
+    get cmpAResults() {
+      var d = this.cmpA;
+      var tm = (Number(d.years) || 0) * 12 + (Number(d.months) || 0);
+      return this.calcRow(Number(d.monthly) || 0, Number(d.lumpsum) || 0, Number(d.rate) || 0, tm, Number(d.stepup) || 0, 0);
+    },
+
+    get cmpBResults() {
+      var d = this.cmpB;
+      var tm = (Number(d.years) || 0) * 12 + (Number(d.months) || 0);
+      return this.calcRow(Number(d.monthly) || 0, Number(d.lumpsum) || 0, Number(d.rate) || 0, tm, Number(d.stepup) || 0, 0);
+    },
+
+    get cmpCResults() {
+      var d = this.cmpC;
+      var tm = (Number(d.years) || 0) * 12 + (Number(d.months) || 0);
+      return this.calcRow(Number(d.monthly) || 0, Number(d.lumpsum) || 0, Number(d.rate) || 0, tm, Number(d.stepup) || 0, 0);
+    }
+  };
+};
 </script>
+{% endblock %}
 
 {{ tool_section_end() }}
 {% endblock %}

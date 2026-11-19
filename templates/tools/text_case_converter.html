@@ -69,14 +69,14 @@
 {% endblock %}
 {% block content %}
 {{ tool_hero_section("text-cursor", "Productivity", "TEXT CASE", "CONVERTER", seo_data.description if seo_data else "Convert text between 16 formats with batch view, line operations, advanced stats, find & replace, and history — all in your browser.") }}
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="textCaseConverter()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="tcc-card">
       <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("edit-3","w-4 h-4",16) | safe }} Input</h2>
       <div class="flex items-center gap-2 mb-3">
         <span class="tcc-label" style="margin-bottom:0">Format</span>
         <label class="flex items-center gap-1.5 text-[11px] font-bold cursor-pointer touch-action-manipulation" style="margin-left:auto">
-          <input type="checkbox" id="tccLineMode" aria-label="Line by line mode"> Per-line
+          <input type="checkbox" id="tccLineMode" x-model="lineMode" @change="render()" aria-label="Line by line mode"> Per-line
         </label>
       </div>
       <div class="tcc-fmt mb-3" id="tccFmts" role="radiogroup" aria-label="Case format"></div>
@@ -97,9 +97,9 @@
       </div>
       <button type="button" class="tcc-toggle" id="tccFrToggle" aria-expanded="false" aria-controls="tccFrWrap">{{ lucide_icon("search","w-3 h-3",12) | safe }} Find & Replace</button>
       <div id="tccFrWrap" hidden class="mt-2 tcc-fr">
-        <input type="text" id="tccFind" placeholder="Find" aria-label="Find text">
+        <input type="text" id="tccFind" x-model="findText" @input="render()" placeholder="Find" aria-label="Find text">
         <input type="text" id="tccReplace" placeholder="Replace" aria-label="Replace with">
-        <label><input type="checkbox" id="tccRegex"> Regex</label>
+        <label><input type="checkbox" id="tccRegex" x-model="regex" @change="render()"> Regex</label>
       </div>
       <div class="mt-3 tcc-det" id="tccDet"></div>
     </div>
@@ -147,7 +147,8 @@
 </div>
 <div id="tccToast" class="tcc-toast" role="status" aria-live="polite"></div>
 <script nonce="{{ nonce }}">
-(function(){'use strict';
+window.textCaseConverter = function() {
+
 var LS_KEY='sb_tcc1';
 var FORMATS=[
 {id:'upper',label:'UPPER',grp:'basic'},
@@ -482,7 +483,25 @@ inp.value=h.text;pickFmt(h.fmt);
 history.splice(idx,1);saveHistory();renderHistory();
 inp.focus();
 });
-})();
+
+  return {
+    text: '',
+    lineMode: false,
+    findText: '',
+    replText: '',
+    regex: false,
+
+    render: function() {
+      render();
+    },
+
+    init: function() {
+      var inp = document.getElementById('tccInput');
+      if (inp) this.text = inp.value;
+      render();
+    }
+  };
+};
 </script>
 
 {{ tool_section_end() }}

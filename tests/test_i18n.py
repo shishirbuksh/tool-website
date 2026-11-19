@@ -2,8 +2,8 @@
 
 import pytest
 
-from app.api.routes.pages import catalog_service
-from app.core.tool_data import ToolDataLoader
+from apps.catalog.services import ToolDataLoader, CatalogService
+catalog_service = CatalogService()
 
 
 class TestPureEnglishSEO:

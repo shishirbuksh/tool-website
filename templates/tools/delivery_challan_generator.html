@@ -3,12 +3,12 @@
 
 {% block content %}
 {{ tool_hero_section("truck", "Business Document", "DELIVERY CHALLAN", "GENERATOR", seo_data.description if seo_data else "Create printable GST-ready delivery challans with business logo, consignee details, itemized quantities, and instant PDF export.") }}
-<div class="flex flex-col gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="deliveryChallanGenerator()" class="flex flex-col gap-6 reveal" style="animation-delay:0.2s">
   <div class="feature-card p-6 md:p-8 no-print">
     <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5",20) | safe }} Challan Details</h2>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div><label class="text-xs font-semibold text-base-content/70" for="bizName">Your business</label><input aria-label="Your business name" type="text" id="bizName" class="input w-full cal-input rounded-xl" placeholder="Sharma Traders"></div>
-      <div><label class="text-xs font-semibold text-base-content/70" for="bizGst">Your GSTIN</label><input aria-label="Your GSTIN" type="text" id="bizGst" class="input w-full cal-input rounded-xl" placeholder="22AAAAA0000A1Z5"></div>
+      <div><label class="text-xs font-semibold text-base-content/70" for="bizName">Your business</label><input aria-label="Your business name" type="text" id="bizName" class="input w-full cal-input rounded-xl" placeholder="Sharma Traders" value="Sharma Traders"></div>
+      <div><label class="text-xs font-semibold text-base-content/70" for="bizGst">Your GSTIN</label><input aria-label="Your GSTIN" type="text" id="bizGst" class="input w-full cal-input rounded-xl" placeholder="22AAAAA0000A1Z5" value="22AAAAA0000A1Z5"></div>
       <div><label class="text-xs font-semibold text-base-content/70" for="challanNo">Challan no.</label><input aria-label="Challan number" type="text" id="challanNo" class="input w-full cal-input rounded-xl" value="DC-001"></div>
       <div><label class="text-xs font-semibold text-base-content/70" for="recvName">Receiver name</label><input aria-label="Receiver name" type="text" id="recvName" class="input w-full cal-input rounded-xl" placeholder="Receiver / job worker"></div>
       <div><label class="text-xs font-semibold text-base-content/70" for="recvAddr">Receiver address</label><input aria-label="Receiver address" type="text" id="recvAddr" class="input w-full cal-input rounded-xl" placeholder="City, State"></div>
@@ -18,7 +18,20 @@
       <div><label class="text-xs font-semibold text-base-content/70" for="logoFile">Logo (optional)</label><input type="file" id="logoFile" accept="image/*" class="file-input w-full file-input-bordered rounded-xl" aria-label="Upload logo"></div>
     </div>
     <h3 class="text-lg font-black mt-6 mb-3">Items</h3>
-    <div class="overflow-x-auto"><table class="w-full text-sm"><caption class="sr-only">Challan line items</caption><thead><tr class="text-left text-xs uppercase opacity-60"><th scope="col" class="py-2 pr-2">Description</th><th scope="col" class="py-2 pr-2">Qty</th><th scope="col" class="py-2 pr-2">Rate (optional)</th><th scope="col" class="py-2"></th></tr></thead><tbody id="itemRows"></tbody></table></div>
+    <div class="overflow-x-auto"><table class="w-full text-sm"><caption class="sr-only">Challan line items</caption><thead><tr class="text-left text-xs uppercase opacity-60"><th scope="col" class="py-2 pr-2">Description</th><th scope="col" class="py-2 pr-2">Qty</th><th scope="col" class="py-2 pr-2">Rate (optional)</th><th scope="col" class="py-2"></th></tr></thead><tbody id="itemRows">
+      <tr class="border-t border-base-300/20">
+        <td class="py-1 pr-2"><input type="text" class="input input-sm w-full cal-input rounded-lg" data-i="0" data-f="d" value="Industrial Steel Fasteners (M8 x 50mm)" placeholder="Item description" aria-label="Item 1 description"></td>
+        <td class="py-1 pr-2"><input type="number" class="input input-sm w-20 cal-input rounded-lg font-mono" data-i="0" data-f="q" value="250" min="0" aria-label="Item 1 quantity"></td>
+        <td class="py-1 pr-2"><input type="number" class="input input-sm w-24 cal-input rounded-lg font-mono" data-i="0" data-f="r" value="12.50" min="0" step="any" placeholder="0" aria-label="Item 1 unit rate"></td>
+        <td class="py-1"><button type="button" class="btn btn-ghost btn-xs text-error" data-action="remove-item" data-i="0" aria-label="Remove item 1">&times;</button></td>
+      </tr>
+      <tr class="border-t border-base-300/20">
+        <td class="py-1 pr-2"><input type="text" class="input input-sm w-full cal-input rounded-lg" data-i="1" data-f="d" value="Heavy Duty Galvanized Washers" placeholder="Item description" aria-label="Item 2 description"></td>
+        <td class="py-1 pr-2"><input type="number" class="input input-sm w-20 cal-input rounded-lg font-mono" data-i="1" data-f="q" value="500" min="0" aria-label="Item 2 quantity"></td>
+        <td class="py-1 pr-2"><input type="number" class="input input-sm w-24 cal-input rounded-lg font-mono" data-i="1" data-f="r" value="3.50" min="0" step="any" placeholder="0" aria-label="Item 2 unit rate"></td>
+        <td class="py-1"><button type="button" class="btn btn-ghost btn-xs text-error" data-action="remove-item" data-i="1" aria-label="Remove item 2">&times;</button></td>
+      </tr>
+    </tbody></table></div>
     <button type="button" id="addItem" class="btn btn-ghost btn-sm mt-3 rounded-xl font-bold">+ ADD ITEM</button>
     <div class="flex gap-3 mt-6 flex-wrap">
       <button type="button" id="printBtn" class="btn btn-cal-primary px-6 py-3 text-sm font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("printer","w-5 h-5",20) | safe }} PRINT / PDF</button>
@@ -29,19 +42,32 @@
     <div class="flex items-start justify-between gap-4 flex-wrap">
       <div>
         <div class="text-xs font-black uppercase tracking-widest opacity-60">Delivery Challan</div>
-        <div id="pvBiz" class="text-2xl font-black">Your Business</div>
-        <div id="pvGst" class="text-xs opacity-60 font-mono"></div>
+        <div id="pvBiz" class="text-2xl font-black">Sharma Traders</div>
+        <div id="pvGst" class="text-xs opacity-60 font-mono">GSTIN: 22AAAAA0000A1Z5</div>
       </div>
       <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" id="pvLogo" width="80" height="80" class="hidden w-20 h-20 object-contain rounded-lg border border-base-300" alt="Business logo">
     </div>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-sm">
-      <div><div class="text-[10px] uppercase font-bold opacity-60">Challan no.</div><div id="pvNo" class="font-bold font-mono">DC-001</div></div>
-      <div><div class="text-[10px] uppercase font-bold opacity-60">Date</div><div id="pvDate" class="font-bold">—</div></div>
+      <div><div class="text-[10px] uppercase font-bold opacity-60">Challan no.</div><div id="pvNo" class="font-bold font-mono">DC-2026-0042</div></div>
+      <div><div class="text-[10px] uppercase font-bold opacity-60">Date</div><div id="pvDate" class="font-bold">2026-11-19</div></div>
       <div><div class="text-[10px] uppercase font-bold opacity-60">Transport</div><div id="pvTransport" class="font-bold">By Road</div></div>
       <div><div class="text-[10px] uppercase font-bold opacity-60">Vehicle / LR</div><div id="pvVehicle" class="font-bold">—</div></div>
     </div>
     <div class="mt-3 text-sm"><span class="text-[10px] uppercase font-bold opacity-60">Receiver: </span><span id="pvRecv" class="font-bold">—</span> <span id="pvAddr" class="opacity-70"></span></div>
-    <table class="w-full text-sm mt-4"><caption class="sr-only">Challan items preview</caption><thead><tr class="text-left text-xs uppercase opacity-60 border-b"><th scope="col" class="py-2">#</th><th scope="col" class="py-2">Description</th><th scope="col" class="py-2 text-right">Qty</th><th scope="col" class="py-2 text-right">Amount</th></tr></thead><tbody id="pvRows"></tbody></table>
+    <table class="w-full text-sm mt-4"><caption class="sr-only">Challan items preview</caption><thead><tr class="text-left text-xs uppercase opacity-60 border-b"><th scope="col" class="py-2">#</th><th scope="col" class="py-2">Description</th><th scope="col" class="py-2 text-right">Qty</th><th scope="col" class="py-2 text-right">Amount</th></tr></thead><tbody id="pvRows">
+      <tr class="border-t border-base-300/20">
+        <td class="py-1">1</td>
+        <td class="py-1">Industrial Steel Fasteners (M8 x 50mm)</td>
+        <td class="py-1 text-right font-mono">250</td>
+        <td class="py-1 text-right font-mono">3125.00</td>
+      </tr>
+      <tr class="border-t border-base-300/20">
+        <td class="py-1">2</td>
+        <td class="py-1">Heavy Duty Galvanized Washers</td>
+        <td class="py-1 text-right font-mono">500</td>
+        <td class="py-1 text-right font-mono">1750.00</td>
+      </tr>
+    </tbody></table>
     <div class="flex justify-end gap-8 mt-3 font-bold"><div>Total qty: <span id="pvQty" class="font-mono">0</span></div><div>Total value: <span id="pvTotal" class="font-mono">—</span></div></div>
     <div class="flex justify-between mt-10 text-xs font-bold uppercase opacity-70"><span>Sender signature</span><span>Receiver signature</span></div>
   </div>
@@ -54,8 +80,9 @@
 }
 </style>
 <script nonce="{{ nonce }}">
-(function(){'use strict';
-var items=[{d:'',q:1,r:''}];
+window.deliveryChallanGenerator = function() {
+
+var items=[{d:'Industrial Steel Fasteners (M8 x 50mm)',q:250,r:'12.50'},{d:'Heavy Duty Galvanized Washers',q:500,r:'3.50'}];
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function v(id){return document.getElementById(id).value;}
 function renderItems(){
@@ -141,7 +168,20 @@ document.addEventListener('DOMContentLoaded',function(){
     try{localStorage.removeItem('sb_dc');}catch(e){}
     items=[{d:'',q:1,r:''}];renderItems();preview();
   });
-});})();
+});
+
+  return {
+    init: function() {
+      if (typeof calc === 'function') calc();
+      else if (typeof generate === 'function') generate();
+      else if (typeof gen === 'function') gen();
+      else if (typeof render === 'function') render();
+      else if (typeof update === 'function') update();
+      else if (typeof calculate === 'function') calculate();
+      else if (typeof build === 'function') build();
+    }
+  };
+};
 </script>
 {{ tool_section_end() }}
 {% endblock %}

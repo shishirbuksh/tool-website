@@ -5,7 +5,7 @@ import re
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
-MIDDLEWARE_PATH = os.path.join(BASE_DIR, "app", "core", "middleware.py")
+MIDDLEWARE_PATH = os.path.join(BASE_DIR, "apps", "core", "middleware.py")
 
 # HTML-attribute handlers blocked by nonce CSP (leading whitespace required so
 # JS property assignments like ``el.onclick = fn`` do not match).

@@ -84,7 +84,7 @@
 {% endblock %}
 {% block content %}
 {{ tool_hero_section("wallet", "Savings Planner", "SAVINGS COMPARISON", "CALCULATOR", seo_data.description if seo_data else "Compare multiple high-yield savings accounts side by side with APY compounding, monthly deposits, and multi-currency totals.") }}
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="savingsAccountComparisonCalculator()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="sc-lcol">
     <div class="sc-card">
       <div class="flex items-center justify-between mb-3">
@@ -113,7 +113,37 @@
         <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("dollar-sign","w-4 h-4",16) | safe }} Accounts</h2>
         <button type="button" id="scAddBtn" class="sc-sec" style="font-size:10px">{{ lucide_icon("plus","w-3 h-3",12) | safe }} Add</button>
       </div>
-      <div id="scAccountList" class="flex flex-col gap-3"></div>
+      <div id="scAccountList" class="flex flex-col gap-3">
+        <div class="sc-account-card accent-1">
+          <div class="sc-grid-2" style="grid-template-columns:1fr 1fr;gap:7px">
+            <div style="grid-column:1/-1"><label class="sc-label">Account Name</label><input type="text" class="sc-input sc-ac-name" value="High-Yield Savings" placeholder="Account name" style="font-weight:800;font-size:.9rem"></div>
+            <div><label class="sc-label">APY (%)</label><input type="text" class="sc-input sc-ac-apy" value="4.50" inputmode="decimal"></div>
+            <div><label class="sc-label">Monthly Fee</label><input type="text" class="sc-input sc-ac-fee" value="0" inputmode="numeric"></div>
+            <div><label class="sc-label">Min Balance</label><input type="text" class="sc-input sc-ac-min" value="0" inputmode="numeric"></div>
+            <div><label class="sc-label">Initial Deposit</label><input type="text" class="sc-input sc-ac-dep" value="10000" inputmode="numeric"></div>
+            <div><label class="sc-label">Monthly Add</label><input type="text" class="sc-input sc-ac-add" value="200" inputmode="numeric"></div>
+            <div><label class="sc-label">Compounding</label><select class="sc-select sc-ac-freq">
+              <option value="365">Daily</option><option value="12" selected>Monthly</option><option value="4">Quarterly</option><option value="1">Yearly</option>
+            </select></div>
+            <div><label class="sc-label">Goal Amount</label><input type="text" class="sc-input sc-ac-goal" value="0" inputmode="numeric"></div>
+          </div>
+        </div>
+        <div class="sc-account-card accent-2">
+          <div class="sc-grid-2" style="grid-template-columns:1fr 1fr;gap:7px">
+            <div style="grid-column:1/-1"><label class="sc-label">Account Name</label><input type="text" class="sc-input sc-ac-name" value="Traditional Savings" placeholder="Account name" style="font-weight:800;font-size:.9rem"></div>
+            <div><label class="sc-label">APY (%)</label><input type="text" class="sc-input sc-ac-apy" value="0.50" inputmode="decimal"></div>
+            <div><label class="sc-label">Monthly Fee</label><input type="text" class="sc-input sc-ac-fee" value="5" inputmode="numeric"></div>
+            <div><label class="sc-label">Min Balance</label><input type="text" class="sc-input sc-ac-min" value="500" inputmode="numeric"></div>
+            <div><label class="sc-label">Initial Deposit</label><input type="text" class="sc-input sc-ac-dep" value="10000" inputmode="numeric"></div>
+            <div><label class="sc-label">Monthly Add</label><input type="text" class="sc-input sc-ac-add" value="200" inputmode="numeric"></div>
+            <div><label class="sc-label">Compounding</label><select class="sc-select sc-ac-freq">
+              <option value="365">Daily</option><option value="12" selected>Monthly</option><option value="4">Quarterly</option><option value="1">Yearly</option>
+            </select></div>
+            <div><label class="sc-label">Goal Amount</label><input type="text" class="sc-input sc-ac-goal" value="0" inputmode="numeric"></div>
+          </div>
+          <button type="button" class="sc-remove-btn" aria-label="Remove">✕</button>
+        </div>
+      </div>
     </div>
     <div class="sc-card mt-4">
       <div class="flex items-center justify-between">
@@ -161,11 +191,11 @@
     </div>
   </div>
   <div class="sc-rcol">
-    <div id="scEmpty" class="sc-card text-center py-10">
+    <div id="scEmpty" class="sc-card text-center py-10" hidden>
       <div class="text-base-content/20 mb-3">{{ lucide_icon("wallet","w-12 h-12",48) | safe }}</div>
       <p class="text-sm font-bold text-base-content/35">Add at least 2 accounts and click Calculate</p>
     </div>
-    <div id="scResults" hidden>
+    <div id="scResults">
       <div class="sc-tab" id="scTabs" role="tablist">
         <button type="button" class="on" data-tab="overview" role="tab" aria-selected="true">Overview</button>
         <button type="button" data-tab="growth" role="tab" aria-selected="false">Growth</button>
@@ -176,28 +206,45 @@
       <div id="scTabOverview" class="sc-section active">
         <div class="sc-card mb-4">
           <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("trophy","w-4 h-4",16) | safe }} Rankings</h2>
-          <div class="overflow-x-auto rounded-xl border border-base-300"><table class="sc-result-table"><thead><tr><th style="width:26px">#</th><th>Account</th><th style="text-align:right">Balance</th><th style="text-align:right">Interest</th><th style="text-align:right">Fees</th><th style="text-align:right">Net APY</th></tr></thead><tbody id="scRankBody"></tbody></table></div>
+          <div class="overflow-x-auto rounded-xl border border-base-300"><table class="sc-result-table"><thead><tr><th style="width:26px">#</th><th>Account</th><th style="text-align:right">Balance</th><th style="text-align:right">Interest</th><th style="text-align:right">Fees</th><th style="text-align:right">Net APY</th></tr></thead><tbody id="scRankBody">
+            <tr class="rank-1"><td><span class="sc-rank-badge r1">1</span></td><td style="font-weight:800;font-family:sans-serif;font-size:10px">High-Yield Savings</td><td style="text-align:right;font-weight:900">$25,947</td><td style="text-align:right;color:var(--color-success)">$3,947</td><td style="text-align:right;">$0</td><td style="text-align:right">3.36%</td></tr>
+            <tr class="rank-2"><td><span class="sc-rank-badge r2">2</span></td><td style="font-weight:800;font-family:sans-serif;font-size:10px">Traditional Savings</td><td style="text-align:right;font-weight:900">$22,098</td><td style="text-align:right;color:var(--color-success)">$398</td><td style="text-align:right;color:var(--color-error)">$300</td><td style="text-align:right">0.09%</td></tr>
+          </tbody></table></div>
         </div>
         <div class="sc-card mb-4">
           <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} Balance Comparison</h2>
-          <div class="sc-chart-bar" id="scChart"></div>
+          <div class="sc-chart-bar" id="scChart">
+            <div class="sc-chart-col"><div class="bar c1" style="height:100%"></div><div class="bl" style="color:var(--color-primary)">High-Yield</div></div>
+            <div class="sc-chart-col"><div class="bar c2" style="height:85.2%"></div><div class="bl" style="color:var(--color-success)">Traditional</div></div>
+          </div>
         </div>
         <div class="sc-card mb-4">
           <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("flag","w-4 h-4",16) | safe }} Goal Progress</h2>
-          <div id="scGoalProgress"></div>
+          <div id="scGoalProgress">
+            <div class="sc-account-card accent-1 mb-2">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:800;font-size:10px">High-Yield Savings</span><span style="font-size:10px;font-weight:700;font-family:monospace">$25,947 / $0</span></div>
+              <div style="font-size:11px;font-weight:700;opacity:.3;margin-top:4px">No goal set</div>
+            </div>
+            <div class="sc-account-card accent-2 mb-2">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:800;font-size:10px">Traditional Savings</span><span style="font-size:10px;font-weight:700;font-family:monospace">$22,098 / $0</span></div>
+              <div style="font-size:11px;font-weight:700;opacity:.3;margin-top:4px">No goal set</div>
+            </div>
+          </div>
         </div>
         <div class="sc-card mb-4">
           <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("alert-triangle","w-4 h-4",16) | safe }} Fee Impact</h2>
-          <div id="scBreakEven"></div>
+          <div id="scBreakEven">
+            <div class="sc-breakeven mb-2"><strong>Traditional Savings:</strong> Fees consume <strong>75%</strong> of interest ($60/yr vs $80/yr).</div>
+          </div>
         </div>
         <div class="sc-grid-2" id="scBestStats">
-          <div class="sc-stat full"><div class="sv" id="scBestName" style="color:var(--color-primary)">—</div><div class="sl">Best Account</div></div>
-          <div class="sc-stat"><div class="sv" id="scBestBalance">$0</div><div class="sl">Balance</div></div>
-          <div class="sc-stat"><div class="sv" id="scBestInterest">$0</div><div class="sl">Interest</div></div>
+          <div class="sc-stat full"><div class="sv" id="scBestName" style="color:var(--color-primary)">High-Yield Savings</div><div class="sl">Best Account</div></div>
+          <div class="sc-stat"><div class="sv" id="scBestBalance">$25,947</div><div class="sl">Balance</div></div>
+          <div class="sc-stat"><div class="sv" id="scBestInterest">$3,947</div><div class="sl">Interest</div></div>
           <div class="sc-stat"><div class="sv" id="scBestFees">$0</div><div class="sl">Fees</div></div>
-          <div class="sc-stat"><div class="sv" id="scBestNetApy">0%</div><div class="sl">Net APY</div></div>
-          <div class="sc-stat"><div class="sv" id="scBestContrib">$0</div><div class="sl">Contributions</div></div>
-          <div class="sc-stat"><div class="sv" id="scBestGoal">—</div><div class="sl">Goal Status</div></div>
+          <div class="sc-stat"><div class="sv" id="scBestNetApy">3.36%</div><div class="sl">Net APY</div></div>
+          <div class="sc-stat"><div class="sv" id="scBestContrib">$22,000</div><div class="sl">Contributions</div></div>
+          <div class="sc-stat"><div class="sv" id="scBestGoal">No goal set</div><div class="sl">Goal Status</div></div>
         </div>
       </div>
       <div id="scTabGrowth" class="sc-section">
@@ -207,7 +254,18 @@
         </div>
         <div class="sc-card mb-4">
           <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("table","w-4 h-4",16) | safe }} Year-by-Year</h2>
-          <div id="scYearTableWrap"><div class="overflow-x-auto rounded-xl border border-base-300" style="max-height:320px;overflow-y:auto"><table class="sc-result-table" style="font-size:10px"><thead><tr><th>Year</th><th>Account</th><th style="text-align:right">Start</th><th style="text-align:right">Deposits</th><th style="text-align:right">Interest</th><th style="text-align:right">Fees</th><th style="text-align:right">End</th></tr></thead><tbody id="scYearBody"></tbody></table></div></div>
+          <div id="scYearTableWrap"><div class="overflow-x-auto rounded-xl border border-base-300" style="max-height:320px;overflow-y:auto"><table class="sc-result-table" style="font-size:10px"><thead><tr><th>Year</th><th>Account</th><th style="text-align:right">Start</th><th style="text-align:right">Deposits</th><th style="text-align:right">Interest</th><th style="text-align:right">Fees</th><th style="text-align:right">End</th></tr></thead><tbody id="scYearBody">
+            <tr><td style="font-weight:800;opacity:.6">Yr 1</td><td style="font-family:sans-serif;font-weight:600;color:var(--color-primary)">High-Yield Savings</td><td style="text-align:right">$10,000</td><td style="text-align:right">$2,400</td><td style="text-align:right;color:var(--color-success)">$510</td><td style="text-align:right">$0</td><td style="text-align:right;font-weight:900">$12,910</td></tr>
+            <tr><td style="font-weight:800;opacity:.6">Yr 1</td><td style="font-family:sans-serif;font-weight:600;color:var(--color-success)">Traditional Savings</td><td style="text-align:right">$10,000</td><td style="text-align:right">$2,400</td><td style="text-align:right;color:var(--color-success)">$55</td><td style="text-align:right;color:var(--color-error)">$60</td><td style="text-align:right;font-weight:900">$12,395</td></tr>
+            <tr><td style="font-weight:800;opacity:.6">Yr 2</td><td style="font-family:sans-serif;font-weight:600;color:var(--color-primary)">High-Yield Savings</td><td style="text-align:right">$12,910</td><td style="text-align:right">$2,400</td><td style="text-align:right;color:var(--color-success)">$643</td><td style="text-align:right">$0</td><td style="text-align:right;font-weight:900">$15,953</td></tr>
+            <tr><td style="font-weight:800;opacity:.6">Yr 2</td><td style="font-family:sans-serif;font-weight:600;color:var(--color-success)">Traditional Savings</td><td style="text-align:right">$12,395</td><td style="text-align:right">$2,400</td><td style="text-align:right;color:var(--color-success)">$67</td><td style="text-align:right;color:var(--color-error)">$60</td><td style="text-align:right;font-weight:900">$14,803</td></tr>
+            <tr><td style="font-weight:800;opacity:.6">Yr 3</td><td style="font-family:sans-serif;font-weight:600;color:var(--color-primary)">High-Yield Savings</td><td style="text-align:right">$15,953</td><td style="text-align:right">$2,400</td><td style="text-align:right;color:var(--color-success)">$783</td><td style="text-align:right">$0</td><td style="text-align:right;font-weight:900">$19,136</td></tr>
+            <tr><td style="font-weight:800;opacity:.6">Yr 3</td><td style="font-family:sans-serif;font-weight:600;color:var(--color-success)">Traditional Savings</td><td style="text-align:right">$14,803</td><td style="text-align:right">$2,400</td><td style="text-align:right;color:var(--color-success)">$80</td><td style="text-align:right;color:var(--color-error)">$60</td><td style="text-align:right;font-weight:900">$17,223</td></tr>
+            <tr><td style="font-weight:800;opacity:.6">Yr 4</td><td style="font-family:sans-serif;font-weight:600;color:var(--color-primary)">High-Yield Savings</td><td style="text-align:right">$19,136</td><td style="text-align:right">$2,400</td><td style="text-align:right;color:var(--color-success)">$929</td><td style="text-align:right">$0</td><td style="text-align:right;font-weight:900">$22,465</td></tr>
+            <tr><td style="font-weight:800;opacity:.6">Yr 4</td><td style="font-family:sans-serif;font-weight:600;color:var(--color-success)">Traditional Savings</td><td style="text-align:right">$17,223</td><td style="text-align:right">$2,400</td><td style="text-align:right;color:var(--color-success)">$92</td><td style="text-align:right;color:var(--color-error)">$60</td><td style="text-align:right;font-weight:900">$19,654</td></tr>
+            <tr><td style="font-weight:800;opacity:.6">Yr 5</td><td style="font-family:sans-serif;font-weight:600;color:var(--color-primary)">High-Yield Savings</td><td style="text-align:right">$22,465</td><td style="text-align:right">$2,400</td><td style="text-align:right;color:var(--color-success)">$1,082</td><td style="text-align:right">$0</td><td style="text-align:right;font-weight:900">$25,947</td></tr>
+            <tr><td style="font-weight:800;opacity:.6">Yr 5</td><td style="font-family:sans-serif;font-weight:600;color:var(--color-success)">Traditional Savings</td><td style="text-align:right">$19,654</td><td style="text-align:right">$2,400</td><td style="text-align:right;color:var(--color-success)">$104</td><td style="text-align:right;color:var(--color-error)">$60</td><td style="text-align:right;font-weight:900">$22,098</td></tr>
+          </tbody></table></div></div>
         </div>
         <div class="sc-card mb-4">
           <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("refresh-cw","w-4 h-4",16) | safe }} Compound Frequency Comparison</h2>
@@ -219,11 +277,11 @@
         <div class="sc-card mb-4">
           <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("receipt","w-4 h-4",16) | safe }} Tax &amp; Inflation Impact</h2>
           <div class="sc-grid-2" id="scTaxGrid">
-            <div class="sc-stat"><div class="sv" id="scTaxGrossInt" style="color:var(--color-success)">—</div><div class="sl">Gross Interest</div></div>
-            <div class="sc-stat"><div class="sv" id="scTaxPaid">—</div><div class="sl">Tax Paid</div></div>
-            <div class="sc-stat"><div class="sv" id="scTaxNetInt">—</div><div class="sl">After-Tax Interest</div></div>
-            <div class="sc-stat"><div class="sv" id="scTaxInflAdj">—</div><div class="sl">Inflation-Adj. Balance</div></div>
-            <div class="sc-stat full"><div class="sv" id="scTaxRealReturn">—</div><div class="sl">Real Annual Return (After Tax &amp; Inflation)</div></div>
+            <div class="sc-stat"><div class="sv" id="scTaxGrossInt" style="color:var(--color-success)">$3,947</div><div class="sl">Gross Interest</div></div>
+            <div class="sc-stat"><div class="sv" id="scTaxPaid">$0</div><div class="sl">Tax Paid</div></div>
+            <div class="sc-stat"><div class="sv" id="scTaxNetInt">$3,947</div><div class="sl">After-Tax Interest</div></div>
+            <div class="sc-stat"><div class="sv" id="scTaxInflAdj">$22,382</div><div class="sl">Inflation-Adj. Balance</div></div>
+            <div class="sc-stat full"><div class="sv" id="scTaxRealReturn" style="color:var(--color-success)">+0.35%</div><div class="sl">Real Annual Return (After Tax &amp; Inflation)</div></div>
           </div>
           <div id="scTaxDetails" class="mt-3"></div>
         </div>
@@ -248,7 +306,8 @@
 <div id="scToast" class="sc-toast" role="status" aria-live="polite"></div>
 {% include "components/ymyl_disclaimer.html" %}
 <script nonce="{{ nonce }}">
-(function(){'use strict';
+window.savingsAccountComparisonCalculator = function() {
+
 
 var accountList=document.getElementById('scAccountList'),
   addBtn=document.getElementById('scAddBtn'),
@@ -818,8 +877,42 @@ tabs.addEventListener('click',function(e){
   if(tab==='growth')setTimeout(renderGrowthChart,100);
 });
 
-addAccount();addAccount();calc();
-})();
+function initCards(){
+  accountList.querySelectorAll('.sc-account-card').forEach(function(card, idx){
+    var rem = card.querySelector('.sc-remove-btn');
+    if(rem){
+      rem.addEventListener('click', function(){
+        accountList.removeChild(card);
+        addBtn.textContent = accountList.children.length >= 3 ? 'Max 3' : 'Add';
+        calc();
+      });
+    }
+    card.querySelectorAll('input, select').forEach(function(inp){
+      inp.addEventListener('input', calc);
+      inp.addEventListener('change', calc);
+    });
+  });
+}
+if(accountList.children.length === 0){
+  addAccount();addAccount();
+} else {
+  initCards();
+}
+calc();
+
+
+  return {
+    init: function() {
+      if (typeof calc === 'function') calc();
+      else if (typeof generate === 'function') generate();
+      else if (typeof gen === 'function') gen();
+      else if (typeof render === 'function') render();
+      else if (typeof update === 'function') update();
+      else if (typeof calculate === 'function') calculate();
+      else if (typeof build === 'function') build();
+    }
+  };
+};
 </script>
 
 {{ tool_section_end() }}

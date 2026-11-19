@@ -17,7 +17,7 @@
 {% block content %}
 {{ tool_hero_section("wallet", "Paycheck & Salary Tool", "SALARY", "CALCULATOR", seo_data.description if seo_data else "Convert hourly, daily, weekly, monthly, and annual pay with tax withholding estimates across 16 currencies.") }}
 
-<div class="feature-card rounded-xl p-5 md:p-6 max-w-5xl mx-auto reveal">
+<div x-data="salaryCalculator()" class="feature-card rounded-xl p-5 md:p-6 max-w-5xl mx-auto reveal">
   <div class="flex flex-wrap gap-2 mb-6" role="tablist" aria-label="Salary Calculator Modes">
     <button type="button" class="tab-btn active px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" role="tab" aria-selected="true" data-tab="converter">Pay Converter</button>
     <button type="button" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-bold tracking-wider uppercase border-2" role="tab" aria-selected="false" data-tab="takehome">Take-Home Pay</button>
@@ -30,7 +30,7 @@
     <div class="flex flex-wrap gap-4 mb-5">
       <div class="min-w-[140px] flex-1">
         <label for="scCurrency" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-2 block">Currency</label>
-        <select id="scCurrency" aria-label="Select currency" class="select w-full rounded-xl text-sm font-bold bg-base-200 border-base-content/20 h-11">
+        <select id="scCurrency" x-model="currency" @change="setCurr()" aria-label="Select currency" class="select w-full rounded-xl text-sm font-bold bg-base-200 border-base-content/20 h-11">
           <option value="USD">🇺🇸 USD</option>
           <option value="EUR">🇪🇺 EUR</option>
           <option value="GBP">🇬🇧 GBP</option>
@@ -51,11 +51,11 @@
       </div>
       <div class="flex-1 min-w-[100px]">
         <label for="scHours" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-2 block">Hours / Week</label>
-        <input type="number" id="scHours" aria-label="Hours per week" class="input input-visible w-full rounded-xl text-sm font-bold h-11" value="40" min="1" max="168" step="1">
+        <input type="number" id="scHours" x-model.number="hours" @input="convRecalc()" aria-label="Hours per week" class="input input-visible w-full rounded-xl text-sm font-bold h-11" value="40" min="1" max="168" step="1">
       </div>
       <div class="flex-1 min-w-[100px]">
         <label for="scDays" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-2 block">Days / Week</label>
-        <input type="number" id="scDays" aria-label="Days per week" class="input input-visible w-full rounded-xl text-sm font-bold h-11" value="5" min="1" max="7" step="1">
+        <input type="number" id="scDays" x-model.number="days" @input="convRecalc()" aria-label="Days per week" class="input input-visible w-full rounded-xl text-sm font-bold h-11" value="5" min="1" max="7" step="1">
       </div>
     </div>
     <div class="space-y-3">
@@ -63,35 +63,35 @@
         <label for="scHourly" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Hourly</label>
         <div class="relative">
           <span id="symHourly" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
-          <input type="number" id="scHourly" aria-label="Hourly pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="25" min="0" step="0.01">
+          <input type="number" id="scHourly" x-model.number="hourly" @input="convRecalc('Hourly')" aria-label="Hourly pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="25" min="0" step="0.01">
         </div>
       </div>
       <div>
         <label for="scDaily" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Daily</label>
         <div class="relative">
           <span id="symDaily" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
-          <input type="number" id="scDaily" aria-label="Daily pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="200" min="0" step="0.01">
+          <input type="number" id="scDaily" x-model.number="daily" @input="convRecalc('Daily')" aria-label="Daily pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="200" min="0" step="0.01">
         </div>
       </div>
       <div>
         <label for="scWeekly" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Weekly</label>
         <div class="relative">
           <span id="symWeekly" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
-          <input type="number" id="scWeekly" aria-label="Weekly pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="1000" min="0" step="0.01">
+          <input type="number" id="scWeekly" x-model.number="weekly" @input="convRecalc('Weekly')" aria-label="Weekly pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="1000" min="0" step="0.01">
         </div>
       </div>
       <div>
         <label for="scMonthly" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Monthly</label>
         <div class="relative">
           <span id="symMonthly" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
-          <input type="number" id="scMonthly" aria-label="Monthly pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="4333.33" min="0" step="0.01">
+          <input type="number" id="scMonthly" x-model.number="monthly" @input="convRecalc('Monthly')" aria-label="Monthly pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="4333.33" min="0" step="0.01">
         </div>
       </div>
       <div>
         <label for="scAnnual" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Annual</label>
         <div class="relative">
           <span id="symAnnual" class="currency-sym absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-bold" aria-hidden="true">$</span>
-          <input type="number" id="scAnnual" aria-label="Annual pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="52000" min="0" step="0.01">
+          <input type="number" id="scAnnual" x-model.number="annual" @input="convRecalc('Annual')" aria-label="Annual pay amount" class="input input-visible w-full pl-8 rounded-xl text-sm" value="52000" min="0" step="0.01">
         </div>
       </div>
     </div>
@@ -289,164 +289,219 @@
 </div>
 {% include "components/ymyl_disclaimer.html" %}
 <script nonce="{{ nonce }}">
-(function(){'use strict';
-var c=document.getElementById('scCurrency'),h=document.getElementById('scHours'),d=document.getElementById('scDays');
-var ids=['Hourly','Daily','Weekly','Monthly','Annual'];
-var inp={};ids.forEach(function(id){inp[id]=document.getElementById('sc'+id);});
-var currencies={USD:{sym:'$',loc:'en-US'},EUR:{sym:'€',loc:'de-DE'},GBP:{sym:'£',loc:'en-GB'},JPY:{sym:'¥',loc:'ja-JP'},INR:{sym:'₹',loc:'en-IN'},CAD:{sym:'CA$',loc:'en-CA'},AUD:{sym:'AU$',loc:'en-AU'},CHF:{sym:'CHF ',loc:'de-CH'},CNY:{sym:'¥',loc:'zh-CN'},BRL:{sym:'R$',loc:'pt-BR'},KRW:{sym:'₩',loc:'ko-KR'},SEK:{sym:'kr ',loc:'sv-SE'},NZD:{sym:'NZ$',loc:'en-NZ'},SGD:{sym:'S$',loc:'en-SG'},HKD:{sym:'HK$',loc:'en-HK'},ZAR:{sym:'R ',loc:'en-ZA'}};
-function cur(){return currencies[c.value];}
-var currSym='$',thDedSym=document.getElementById('thDedSym');function setCurr(){var o=cur();currSym=o.sym;ids.forEach(function(id){var e=document.getElementById('sym'+id);if(e)e.textContent=o.sym;});if(thDedSym)thDedSym.textContent=o.sym;convRecalc();calcTax();calcCompare();calcBd();calcPl();}
-function convRecalc(from){
-  var hr=parseFloat(h.value)||40,dy=parseFloat(d.value)||5;
-  if(!from){ids.forEach(function(id){if(parseFloat(inp[id].value)>0&&!from)from=id;});if(!from)from='Annual';}
-  var val=parseFloat(inp[from].value)||0,annual=0;
-  if(from==='Hourly')annual=val*hr*52;else if(from==='Daily')annual=val*dy*52;else if(from==='Weekly')annual=val*52;else if(from==='Monthly')annual=val*12;else annual=val;
-  inp.Hourly.value=(annual/hr/52).toFixed(2);inp.Daily.value=(annual/dy/52).toFixed(2);
-  inp.Weekly.value=(annual/52).toFixed(2);inp.Monthly.value=(annual/12).toFixed(2);inp.Annual.value=annual.toFixed(2);
-}
-c.addEventListener('change',setCurr);
-h.addEventListener('input',function(){convRecalc();});
-d.addEventListener('input',function(){convRecalc();});
-ids.forEach(function(id){inp[id].addEventListener('input',function(){convRecalc(id);});});
+window.salaryCalculator = function() {
+  var currencies = {
+    USD:{sym:'$',loc:'en-US'},EUR:{sym:'€',loc:'de-DE'},GBP:{sym:'£',loc:'en-GB'},JPY:{sym:'¥',loc:'ja-JP'},
+    INR:{sym:'₹',loc:'en-IN'},CAD:{sym:'CA$',loc:'en-CA'},AUD:{sym:'AU$',loc:'en-AU'},CHF:{sym:'CHF ',loc:'de-CH'},
+    CNY:{sym:'¥',loc:'zh-CN'},BRL:{sym:'R$',loc:'pt-BR'},KRW:{sym:'₩',loc:'ko-KR'},SEK:{sym:'kr ',loc:'sv-SE'},
+    NZD:{sym:'NZ$',loc:'en-NZ'},SGD:{sym:'S$',loc:'en-SG'},HKD:{sym:'HK$',loc:'en-HK'},ZAR:{sym:'R ',loc:'en-ZA'}
+  };
 
-var thAnn=document.getElementById('thAnnual'),thStat=document.getElementById('thStatus'),thRegime=document.getElementById('thRegime'),thCustomRate=document.getElementById('thCustomRate');
-var thTaxable=document.getElementById('thTaxable'),thTax=document.getElementById('thTax');
-var thTakeHome=document.getElementById('thTakeHome'),thRate=document.getElementById('thRate'),thMarginal=document.getElementById('thMarginal'),thDedLabel=document.getElementById('thDedLabel');
-var thStatusWrap=document.getElementById('thStatusWrap'),thCustomRateWrap=document.getElementById('thCustomRateWrap'),thAnnualLabel=document.getElementById('thAnnualLabel'),thNoteText=document.getElementById('thNoteText');
-var taxSingle=[{min:0,max:11925,rate:.1},{min:11925,max:48475,rate:.12},{min:48475,max:103350,rate:.22},{min:103350,max:197300,rate:.24},{min:197300,max:250525,rate:.32},{min:250525,max:626350,rate:.35},{min:626350,rate:.37}];
-var taxMarried=[{min:0,max:23850,rate:.1},{min:23850,max:96950,rate:.12},{min:96950,max:206700,rate:.22},{min:206700,max:394600,rate:.24},{min:394600,max:501050,rate:.32},{min:501050,max:751600,rate:.35},{min:751600,rate:.37}];
-var taxIndiaNew=[{min:0,max:400000,rate:0},{min:400000,max:800000,rate:.05},{min:800000,max:1200000,rate:.10},{min:1200000,max:1600000,rate:.15},{min:1600000,max:2000000,rate:.20},{min:2000000,max:2400000,rate:.25},{min:2400000,max:null,rate:.30}];
-function slabCalc(taxable,slabs){
-  var tax=0,marginal=0;
-  for(var i=0;i<slabs.length;i++){
-    var b=slabs[i],top=b.max||1/0;
-    if(taxable>b.min){var inc=Math.min(taxable,top)-b.min;tax+=inc*b.rate;}
-    if(taxable>=b.min&&taxable<=top)marginal=b.rate*100;
+  var taxSingle = [{min:0,max:11925,rate:.1},{min:11925,max:48475,rate:.12},{min:48475,max:103350,rate:.22},{min:103350,max:197300,rate:.24},{min:197300,max:250525,rate:.32},{min:250525,max:626350,rate:.35},{min:626350,max:null,rate:.37}];
+  var taxMarried = [{min:0,max:23850,rate:.1},{min:23850,max:96950,rate:.12},{min:96950,max:206700,rate:.22},{min:206700,max:394600,rate:.24},{min:394600,max:501050,rate:.32},{min:501050,max:751600,rate:.35},{min:751600,max:null,rate:.37}];
+  var taxIndiaNew = [{min:0,max:400000,rate:0},{min:400000,max:800000,rate:.05},{min:800000,max:1200000,rate:.10},{min:1200000,max:1600000,rate:.15},{min:1600000,max:2000000,rate:.20},{min:2000000,max:2400000,rate:.25},{min:2400000,max:null,rate:.30}];
+
+  function slabCalc(taxable, slabs) {
+    var tax = 0, marginal = 0;
+    for (var i = 0; i < slabs.length; i++) {
+      var b = slabs[i], top = b.max || 1/0;
+      if (taxable > b.min) { var inc = Math.min(taxable, top) - b.min; tax += inc * b.rate; }
+      if (taxable >= b.min && taxable <= top) marginal = b.rate * 100;
+    }
+    return { tax: tax, marginal: marginal };
   }
-  return{tax:tax,marginal:marginal};
-}
-function syncRegimeUI(){
-  var reg=thRegime?thRegime.value:'us';
-  if(thStatusWrap)thStatusWrap.classList.toggle('hidden',reg!=='us');
-  if(thCustomRateWrap)thCustomRateWrap.classList.toggle('hidden',reg!=='custom');
-  var sym=reg==='in'?'₹':reg==='uk'?'£':reg==='us'?'$':currSym;
-  if(thDedSym)thDedSym.textContent=sym;
-  if(thAnnualLabel)thAnnualLabel.textContent='Annual Gross Salary ('+sym.trim()+')';
-}
-function calcTax(){
-  var s=parseFloat(thAnn.value)||0,reg=thRegime?thRegime.value:'us',status=thStat.value;
-  var sym=reg==='in'?'₹':reg==='uk'?'£':reg==='us'?'$':currSym;
-  var loc=reg==='in'?'en-IN':reg==='uk'?'en-GB':'en-US';
-  var ded=0,taxable=s,tax=0,marginal=0;
 
-  if(reg==='in'){
-    ded=75000;
-    taxable=Math.max(0,s-ded);
-    var res=slabCalc(taxable,taxIndiaNew);
-    var slabTax=taxable<=1200000?0:Math.min(res.tax,taxable-1200000);
-    tax=slabTax*1.04;
-    marginal=taxable<=1200000?0:res.marginal*1.04;
-    thDedLabel.textContent=ded.toLocaleString('en-IN')+' (Salaried Std Deduction)';
-    if(thNoteText)thNoteText.textContent='India FY 2025-26 New Regime: 0-4L 0%, 4-8L 5%, 8-12L 10%, 12-16L 15%, 16-20L 20%, 20-24L 25%, >24L 30% + Sec 87A rebate up to ₹12L taxable & 4% Cess.';
-  }else if(reg==='uk'){
-    var pa=12570;
-    if(s>100000){pa=Math.max(0,pa-Math.floor((s-100000)/2));}
-    ded=pa;
-    taxable=Math.max(0,s-ded);
-    var ukRes=slabCalc(taxable,[{min:0,max:37700,rate:.20},{min:37700,max:125140,rate:.40},{min:125140,max:null,rate:.45}]);
-    tax=ukRes.tax;marginal=ukRes.marginal;
-    thDedLabel.textContent=ded.toLocaleString('en-GB')+' (Personal Allowance)';
-    if(thNoteText)thNoteText.textContent='UK 2025/26 Income Tax (England/Wales/NI): 20% Basic, 40% Higher, 45% Additional. Excludes National Insurance (NI) & student loans.';
-  }else if(reg==='custom'){
-    ded=0;taxable=s;
-    var r=Math.max(0,Math.min(100,parseFloat(thCustomRate.value)||0));
-    tax=s*(r/100);marginal=r;
-    thDedLabel.textContent='0';
-    if(thNoteText)thNoteText.textContent='Applies your custom effective rate ('+r.toFixed(1)+'%) across '+c.value+' salary.';
-  }else{
-    ded=status==='married'?30000:15000;
-    taxable=Math.max(0,s-ded);
-    var usRes=slabCalc(taxable,status==='married'?taxMarried:taxSingle);
-    tax=usRes.tax;marginal=usRes.marginal;
-    thDedLabel.textContent=ded.toLocaleString('en-US')+(status==='married'?' (Married Joint)':' (Single)');
-    if(thNoteText)thNoteText.textContent='Based on 2025 US federal tax brackets. Excludes FICA (Social Security/Medicare) and state taxes.';
-  }
-  var eff=s>0?tax/s*100:0;
-  thTaxable.textContent=sym+taxable.toLocaleString(loc,{minimumFractionDigits:2,maximumFractionDigits:2});
-  thTax.textContent=sym+tax.toLocaleString(loc,{minimumFractionDigits:2,maximumFractionDigits:2});
-  thTakeHome.textContent=sym+(s-tax).toLocaleString(loc,{minimumFractionDigits:2,maximumFractionDigits:2});
-  thRate.textContent=eff.toFixed(1)+'%';
-  thMarginal.textContent=marginal.toFixed(marginal%1===0?0:1)+'%';
-}
-thAnn.addEventListener('input',calcTax);thStat.addEventListener('change',calcTax);
-if(thRegime){thRegime.addEventListener('change',function(){syncRegimeUI();calcTax();});}
-if(thCustomRate){thCustomRate.addEventListener('input',calcTax);}
-syncRegimeUI();
+  return {
+    tab: 'conv',
+    currency: 'USD',
+    hours: 40,
+    days: 5,
+    hourly: 25,
+    daily: 200,
+    weekly: 1000,
+    monthly: 4333.33,
+    annual: 52000,
 
-var cp1=document.getElementById('cp1Amt'),cp1p=document.getElementById('cp1Period'),cp1h=document.getElementById('cp1Hrs');
-var cp2=document.getElementById('cp2Amt'),cp2p=document.getElementById('cp2Period'),cp2h=document.getElementById('cp2Hrs');
-var ca1=document.getElementById('cpAnn1'),ca2=document.getElementById('cpAnn2'),cw=document.getElementById('cpWinner');
-function calcCompare(){
-  function ta(amt,per,hrs){if(per==='hourly')return amt*hrs*52;if(per==='daily')return amt*5*52;if(per==='weekly')return amt*52;if(per==='monthly')return amt*12;return amt;}
-  var a1=ta(parseFloat(cp1.value)||0,cp1p.value,parseFloat(cp1h.value)||40);
-  var a2=ta(parseFloat(cp2.value)||0,cp2p.value,parseFloat(cp2h.value)||40);
-  ca1.textContent=currSym+a1.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  ca2.textContent=currSym+a2.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  var df=Math.abs(a1-a2),fs=df.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  if(a1>a2){cw.innerHTML='Job A pays <strong>'+currSym+fs+'</strong> more per year';cw.style.color='var(--color-success)';cw.style.borderColor='color-mix(in oklab,var(--color-success) 25%,transparent)';}
-  else if(a2>a1){cw.innerHTML='Job B pays <strong>'+currSym+fs+'</strong> more per year';cw.style.color='var(--color-success)';cw.style.borderColor='color-mix(in oklab,var(--color-success) 25%,transparent)';}
-  else{cw.innerHTML='Both jobs pay the same annual salary';cw.style.color='var(--color-base-content)';cw.style.borderColor='color-mix(in oklab,var(--color-base-content) 15%,transparent)';}
-}
-function cb(n){[document.getElementById('cp'+n+'Amt'),document.getElementById('cp'+n+'Period'),document.getElementById('cp'+n+'Hrs')].forEach(function(el){el.addEventListener('input',calcCompare);el.addEventListener('change',calcCompare);});}
-cb('1');cb('2');
+    get currSym() {
+      return (currencies[this.currency] || currencies.USD).sym;
+    },
 
-var bdAnn=document.getElementById('bdAnnual'),bdWeekly=document.getElementById('bdWeekly'),bdBi=document.getElementById('bdBiweekly'),bdSemi=document.getElementById('bdSemi'),bdMonthly=document.getElementById('bdMonthly');
-var bdOtH=document.getElementById('bdOtHours'),bdOtM=document.getElementById('bdOtMult'),bdOtR=document.getElementById('bdOtRate'),bdRegW=document.getElementById('bdRegWeekly'),bdOtP=document.getElementById('bdOtPay'),bdTot=document.getElementById('bdTotal');
-function calcBd(){
-  var a=parseFloat(bdAnn.value)||0,hrs=parseFloat(h.value)||40,otH=parseFloat(bdOtH.value)||0,otM=parseFloat(bdOtM.value)||1.5;
-  var wk=a/52,hr=hrs>0?wk/hrs:0;
-  bdWeekly.textContent=currSym+wk.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  bdBi.textContent=currSym+(a/26).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  bdSemi.textContent=currSym+(a/24).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  bdMonthly.textContent=currSym+(a/12).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  var otRate=hr*otM;
-  bdOtR.textContent=currSym+otRate.toFixed(2);
-  var otPay=otH*otRate;
-  bdRegW.textContent=currSym+wk.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  bdOtP.textContent=currSym+otPay.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  bdTot.innerHTML='<strong>'+currSym+(wk+otPay).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</strong>';
-}
-bdAnn.addEventListener('input',calcBd);bdOtH.addEventListener('input',calcBd);bdOtM.addEventListener('input',calcBd);
+    setCurr: function() {
+      this.convRecalc();
+      this.calcTax();
+      this.calcCompare();
+      this.calcBd();
+      this.calcPl();
+    },
 
-var plCur=document.getElementById('plCurSal'),plPct=document.getElementById('plRaisePct'),plNew=document.getElementById('plNewSal'),plInc=document.getElementById('plIncrease');
-var plFt=document.getElementById('plFrlTarget'),plFo=document.getElementById('plFrlOverhead'),plFh=document.getElementById('plFrlHours'),plFr=document.getElementById('plFrlRate');
-var plSm=document.getElementById('plSaveMonthly'),plSr=document.getElementById('plSaveReturn'),plS5=document.getElementById('plSave5'),plS10=document.getElementById('plSave10');
-function calcPl(){
-  var cur=parseFloat(plCur.value)||0,pct=parseFloat(plPct.value)||0;
-  var nsal=cur*(1+pct/100);
-  plNew.textContent=currSym+nsal.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  plInc.textContent=currSym+(nsal-cur).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  var ti=parseFloat(plFt.value)||0,oh=parseFloat(plFo.value)||0,bh=parseFloat(plFh.value)||1920;
-  var frRate=bh>0?(ti*(1+oh/100))/bh:0;
-  plFr.textContent=currSym+frRate.toFixed(2);
-  var pmt=parseFloat(plSm.value)||0,ar=parseFloat(plSr.value)||0,mr=ar/100/12;
-  function fv(n){if(mr<=0)return pmt*n;return pmt*((Math.pow(1+mr,n)-1)/mr)*(1+mr);}
-  plS5.textContent=currSym+fv(60).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  plS10.textContent=currSym+fv(120).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-}
-plCur.addEventListener('input',calcPl);plPct.addEventListener('input',calcPl);plFt.addEventListener('input',calcPl);plFo.addEventListener('input',calcPl);plFh.addEventListener('input',calcPl);plSm.addEventListener('input',calcPl);plSr.addEventListener('input',calcPl);
+    convRecalc: function(from) {
+      var hr = Number(this.hours) || 40, dy = Number(this.days) || 5;
+      if (!from) from = 'Annual';
+      var val = Number(this[from.toLowerCase()]) || 0, a = 0;
+      if (from === 'Hourly') a = val * hr * 52;
+      else if (from === 'Daily') a = val * dy * 52;
+      else if (from === 'Weekly') a = val * 52;
+      else if (from === 'Monthly') a = val * 12;
+      else a = val;
 
-document.querySelectorAll('.tab-btn').forEach(function(btn){
-  btn.addEventListener('click',function(){
-    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');b.setAttribute('aria-selected','false');});
-    this.classList.add('active');this.setAttribute('aria-selected','true');
-    document.querySelectorAll('.tab-content').forEach(function(t){t.classList.add('hidden');});
-    var tab=document.getElementById('tab-'+this.getAttribute('data-tab'));
-    if(tab)tab.classList.remove('hidden');
-  });
-});
-setCurr();calcTax();calcCompare();calcBd();calcPl();
-})();
+      this.annual = parseFloat(a.toFixed(2));
+      this.hourly = parseFloat((a / hr / 52).toFixed(2));
+      this.daily = parseFloat((a / dy / 52).toFixed(2));
+      this.weekly = parseFloat((a / 52).toFixed(2));
+      this.monthly = parseFloat((a / 12).toFixed(2));
+
+      var inpH = document.getElementById('scHourly'); if (inpH && from !== 'Hourly') inpH.value = this.hourly;
+      var inpD = document.getElementById('scDaily'); if (inpD && from !== 'Daily') inpD.value = this.daily;
+      var inpW = document.getElementById('scWeekly'); if (inpW && from !== 'Weekly') inpW.value = this.weekly;
+      var inpM = document.getElementById('scMonthly'); if (inpM && from !== 'Monthly') inpM.value = this.monthly;
+      var inpA = document.getElementById('scAnnual'); if (inpA && from !== 'Annual') inpA.value = this.annual;
+    },
+
+    calcTax: function() {
+      var thAnn = document.getElementById('thAnnual'), thStat = document.getElementById('thStatus'), thRegime = document.getElementById('thRegime'), thCustomRate = document.getElementById('thCustomRate');
+      if (!thAnn) return;
+      var s = parseFloat(thAnn.value) || 0, reg = thRegime ? thRegime.value : 'us', status = thStat ? thStat.value : 'single';
+      var sym = reg === 'in' ? '₹' : reg === 'uk' ? '£' : reg === 'us' ? '$' : this.currSym;
+      var loc = reg === 'in' ? 'en-IN' : reg === 'uk' ? 'en-GB' : 'en-US';
+      var ded = 0, taxable = s, tax = 0, marginal = 0;
+
+      var thDedLabel = document.getElementById('thDedLabel'), thNoteText = document.getElementById('thNoteText');
+      var thStatusWrap = document.getElementById('thStatusWrap'), thCustomRateWrap = document.getElementById('thCustomRateWrap'), thAnnualLabel = document.getElementById('thAnnualLabel'), thDedSym = document.getElementById('thDedSym');
+
+      if (thStatusWrap) thStatusWrap.classList.toggle('hidden', reg !== 'us');
+      if (thCustomRateWrap) thCustomRateWrap.classList.toggle('hidden', reg !== 'custom');
+      if (thDedSym) thDedSym.textContent = sym;
+      if (thAnnualLabel) thAnnualLabel.textContent = 'Annual Gross Salary (' + sym.trim() + ')';
+
+      if (reg === 'in') {
+        ded = 75000; taxable = Math.max(0, s - ded);
+        var res = slabCalc(taxable, taxIndiaNew);
+        var slabTax = taxable <= 1200000 ? 0 : Math.min(res.tax, taxable - 1200000);
+        tax = slabTax * 1.04; marginal = taxable <= 1200000 ? 0 : res.marginal * 1.04;
+        if (thDedLabel) thDedLabel.textContent = ded.toLocaleString('en-IN') + ' (Salaried Std Deduction)';
+        if (thNoteText) thNoteText.textContent = 'India FY 2025-26 New Regime: 0-4L 0%, 4-8L 5%, 8-12L 10%, 12-16L 15%, 16-20L 20%, 20-24L 25%, >24L 30% + Sec 87A rebate up to ₹12L taxable & 4% Cess.';
+      } else if (reg === 'uk') {
+        var pa = 12570; if (s > 100000) pa = Math.max(0, pa - Math.floor((s - 100000) / 2));
+        ded = pa; taxable = Math.max(0, s - ded);
+        var ukRes = slabCalc(taxable, [{min:0,max:37700,rate:.20},{min:37700,max:125140,rate:.40},{min:125140,max:null,rate:.45}]);
+        tax = ukRes.tax; marginal = ukRes.marginal;
+        if (thDedLabel) thDedLabel.textContent = ded.toLocaleString('en-GB') + ' (Personal Allowance)';
+        if (thNoteText) thNoteText.textContent = 'UK 2025/26 Income Tax (England/Wales/NI): 20% Basic, 40% Higher, 45% Additional. Excludes National Insurance (NI) & student loans.';
+      } else if (reg === 'custom') {
+        ded = 0; taxable = s;
+        var r = Math.max(0, Math.min(100, parseFloat(thCustomRate ? thCustomRate.value : '20') || 0));
+        tax = s * (r / 100); marginal = r;
+        if (thDedLabel) thDedLabel.textContent = '0';
+        if (thNoteText) thNoteText.textContent = 'Applies your custom effective rate (' + r.toFixed(1) + '%) across ' + this.currency + ' salary.';
+      } else {
+        ded = status === 'married' ? 30000 : 15000; taxable = Math.max(0, s - ded);
+        var usRes = slabCalc(taxable, status === 'married' ? taxMarried : taxSingle);
+        tax = usRes.tax; marginal = usRes.marginal;
+        if (thDedLabel) thDedLabel.textContent = ded.toLocaleString('en-US') + (status === 'married' ? ' (Married Joint)' : ' (Single)');
+        if (thNoteText) thNoteText.textContent = 'Based on 2025 US federal tax brackets. Excludes FICA (Social Security/Medicare) and state taxes.';
+      }
+      var eff = s > 0 ? (tax / s) * 100 : 0;
+      var elTaxable = document.getElementById('thTaxable'), elTax = document.getElementById('thTax'), elTakeHome = document.getElementById('thTakeHome'), elRate = document.getElementById('thRate'), elMarginal = document.getElementById('thMarginal');
+      if (elTaxable) elTaxable.textContent = sym + taxable.toLocaleString(loc, {minimumFractionDigits:2, maximumFractionDigits:2});
+      if (elTax) elTax.textContent = sym + tax.toLocaleString(loc, {minimumFractionDigits:2, maximumFractionDigits:2});
+      if (elTakeHome) elTakeHome.textContent = sym + (s - tax).toLocaleString(loc, {minimumFractionDigits:2, maximumFractionDigits:2});
+      if (elRate) elRate.textContent = eff.toFixed(1) + '%';
+      if (elMarginal) elMarginal.textContent = marginal.toFixed(marginal % 1 === 0 ? 0 : 1) + '%';
+    },
+
+    calcCompare: function() {
+      var cp1 = document.getElementById('cp1Amt'), cp1p = document.getElementById('cp1Period'), cp1h = document.getElementById('cp1Hrs');
+      var cp2 = document.getElementById('cp2Amt'), cp2p = document.getElementById('cp2Period'), cp2h = document.getElementById('cp2Hrs');
+      var ca1 = document.getElementById('cpAnn1'), ca2 = document.getElementById('cpAnn2'), cw = document.getElementById('cpWinner');
+      if (!cp1 || !ca1) return;
+      function ta(amt, per, hrs) {
+        if (per === 'hourly') return amt * hrs * 52;
+        if (per === 'daily') return amt * 5 * 52;
+        if (per === 'weekly') return amt * 52;
+        if (per === 'monthly') return amt * 12;
+        return amt;
+      }
+      var a1 = ta(parseFloat(cp1.value) || 0, cp1p ? cp1p.value : 'annual', parseFloat(cp1h ? cp1h.value : '40') || 40);
+      var a2 = ta(parseFloat(cp2.value) || 0, cp2p ? cp2p.value : 'hourly', parseFloat(cp2h ? cp2h.value : '40') || 40);
+      ca1.textContent = this.currSym + a1.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      ca2.textContent = this.currSym + a2.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      var df = Math.abs(a1 - a2), fs = df.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      if (a1 > a2) {
+        cw.innerHTML = 'Job A pays <strong>' + this.currSym + fs + '</strong> more per year';
+        cw.style.color = 'var(--color-success)';
+      } else if (a2 > a1) {
+        cw.innerHTML = 'Job B pays <strong>' + this.currSym + fs + '</strong> more per year';
+        cw.style.color = 'var(--color-success)';
+      } else {
+        cw.innerHTML = 'Both jobs pay the same annual salary';
+        cw.style.color = 'var(--color-base-content)';
+      }
+    },
+
+    calcBd: function() {
+      var bdAnn = document.getElementById('bdAnnual'), bdWeekly = document.getElementById('bdWeekly'), bdBi = document.getElementById('bdBiweekly'), bdSemi = document.getElementById('bdSemi'), bdMonthly = document.getElementById('bdMonthly');
+      var bdOtH = document.getElementById('bdOtHours'), bdOtM = document.getElementById('bdOtMult'), bdOtR = document.getElementById('bdOtRate'), bdRegW = document.getElementById('bdRegWeekly'), bdOtP = document.getElementById('bdOtPay'), bdTot = document.getElementById('bdTotal');
+      if (!bdAnn || !bdWeekly) return;
+      var a = parseFloat(bdAnn.value) || 0, hrs = Number(this.hours) || 40, otH = parseFloat(bdOtH ? bdOtH.value : '0') || 0, otM = parseFloat(bdOtM ? bdOtM.value : '1.5') || 1.5;
+      var wk = a / 52, hr = hrs > 0 ? wk / hrs : 0;
+      bdWeekly.textContent = this.currSym + wk.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      if (bdBi) bdBi.textContent = this.currSym + (a / 26).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      if (bdSemi) bdSemi.textContent = this.currSym + (a / 24).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      if (bdMonthly) bdMonthly.textContent = this.currSym + (a / 12).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      var otRate = hr * otM;
+      if (bdOtR) bdOtR.textContent = this.currSym + otRate.toFixed(2);
+      var otPay = otH * otRate;
+      if (bdRegW) bdRegW.textContent = this.currSym + wk.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      if (bdOtP) bdOtP.textContent = this.currSym + otPay.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      if (bdTot) bdTot.innerHTML = '<strong>' + this.currSym + (wk + otPay).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + '</strong>';
+    },
+
+    calcPl: function() {
+      var plCur = document.getElementById('plCurSal'), plPct = document.getElementById('plRaisePct'), plNew = document.getElementById('plNewSal'), plInc = document.getElementById('plIncrease');
+      var plFt = document.getElementById('plFrlTarget'), plFo = document.getElementById('plFrlOverhead'), plFh = document.getElementById('plFrlHours'), plFr = document.getElementById('plFrlRate');
+      var plSm = document.getElementById('plSaveMonthly'), plSr = document.getElementById('plSaveReturn'), plS5 = document.getElementById('plSave5'), plS10 = document.getElementById('plSave10');
+      if (!plCur || !plNew) return;
+      var cur = parseFloat(plCur.value) || 0, pct = parseFloat(plPct ? plPct.value : '0') || 0;
+      var nsal = cur * (1 + pct / 100);
+      plNew.textContent = this.currSym + nsal.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      if (plInc) plInc.textContent = this.currSym + (nsal - cur).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      var ti = parseFloat(plFt ? plFt.value : '0') || 0, oh = parseFloat(plFo ? plFo.value : '0') || 0, bh = parseFloat(plFh ? plFh.value : '1920') || 1920;
+      var frRate = bh > 0 ? (ti * (1 + oh / 100)) / bh : 0;
+      if (plFr) plFr.textContent = this.currSym + frRate.toFixed(2);
+      var pmt = parseFloat(plSm ? plSm.value : '0') || 0, ar = parseFloat(plSr ? plSr.value : '0') || 0, mr = ar / 100 / 12;
+      function fv(n) { if (mr <= 0) return pmt * n; return pmt * ((Math.pow(1 + mr, n) - 1) / mr) * (1 + mr); }
+      if (plS5) plS5.textContent = this.currSym + fv(60).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      if (plS10) plS10.textContent = this.currSym + fv(120).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+    },
+
+    init: function() {
+      var self = this;
+      ['thAnnual','thStatus','thRegime','thCustomRate'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', function(){ self.calcTax(); });
+        if (el) el.addEventListener('change', function(){ self.calcTax(); });
+      });
+      ['cp1Amt','cp1Period','cp1Hrs','cp2Amt','cp2Period','cp2Hrs'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', function(){ self.calcCompare(); });
+        if (el) el.addEventListener('change', function(){ self.calcCompare(); });
+      });
+      ['bdAnnual','bdOtHours','bdOtMult'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', function(){ self.calcBd(); });
+      });
+      ['plCurSal','plRaisePct','plFrlTarget','plFrlOverhead','plFrlHours','plSaveMonthly','plSaveReturn'].forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', function(){ self.calcPl(); });
+      });
+      this.convRecalc();
+      this.calcTax();
+      this.calcCompare();
+      this.calcBd();
+      this.calcPl();
+    }
+  };
+};
 </script>
 
 {{ tool_section_end() }}

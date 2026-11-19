@@ -36,7 +36,7 @@
 {% block content %}
 {{ tool_hero_section("clipboard-list", "Service Job Card", "JOB CARD", "GENERATOR", seo_data.description if seo_data else "Create professional job cards and work orders for service technicians, mechanics, and maintenance staff. Add labor, parts, and tax to see total job cost.") }}
 
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="jobCardGenerator()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
 
   <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
 
@@ -54,7 +54,20 @@
         </div>
         <div>
           <div class="flex items-center justify-between mb-1"><span class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider">Parts / Materials</span><button type="button" id="addPartBtn" class="btn btn-primary btn-xs" aria-label="Add part">{{ lucide_icon("plus","w-3 h-3",12)|safe }} Add</button></div>
-          <div id="partRows"></div>
+          <div id="partRows">
+            <div class="part-row" data-idx="0">
+              <input type="text" class="input cal-input desc-inp text-[10px] font-mono font-bold" value="Oil Filter" data-idx="0" data-field="desc" aria-label="Part description" maxlength="50">
+              <input type="number" class="input cal-input qty-inp text-[10px] font-mono font-bold hide-spinner" value="1" min="0" step="1" data-idx="0" data-field="qty" aria-label="Quantity">
+              <input type="number" class="input cal-input prc-inp text-[10px] font-mono font-bold hide-spinner" value="12" min="0" step="any" data-idx="0" data-field="prc" aria-label="Unit price">
+              <button type="button" class="rm-btn" data-idx="0" aria-label="Remove part">&times;</button>
+            </div>
+            <div class="part-row" data-idx="1">
+              <input type="text" class="input cal-input desc-inp text-[10px] font-mono font-bold" value="Engine Oil 5W-30" data-idx="1" data-field="desc" aria-label="Part description" maxlength="50">
+              <input type="number" class="input cal-input qty-inp text-[10px] font-mono font-bold hide-spinner" value="5" min="0" step="1" data-idx="1" data-field="qty" aria-label="Quantity">
+              <input type="number" class="input cal-input prc-inp text-[10px] font-mono font-bold hide-spinner" value="8" min="0" step="any" data-idx="1" data-field="prc" aria-label="Unit price">
+              <button type="button" class="rm-btn" data-idx="1" aria-label="Remove part">&times;</button>
+            </div>
+          </div>
         </div>
         <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxRate">Tax Rate (%)</label><input aria-label="Tax Rate (%)" type="number" id="taxRate" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="10" min="0" step="0.5"></div>
       </div>
@@ -95,13 +108,16 @@
           <div class="jc-section" style="padding:0;background:transparent"><span class="lbl" style="padding:0 .65rem;margin-bottom:.3rem">Parts</span>
             <table class="jc-table" role="table">
               <thead><tr><th scope="col">Part</th><th scope="col">Qty</th><th scope="col">Price</th><th scope="col">Total</th></tr></thead>
-              <tbody id="jcPartsBody"></tbody>
+              <tbody id="jcPartsBody">
+                <tr><td>Oil Filter</td><td>1</td><td>$12.00</td><td>$12.00</td></tr>
+                <tr><td>Engine Oil 5W-30</td><td>5</td><td>$8.00</td><td>$40.00</td></tr>
+              </tbody>
             </table>
           </div>
           <div class="jc-totals">
-            <div class="jc-tr"><span>Subtotal</span><span id="jcSubtotal">$0</span></div>
-            <div class="jc-tr"><span>Tax</span><span id="jcTax">$0</span></div>
-            <div class="jc-tr jc-gt"><span>Total</span><span id="jcTotal">$0</span></div>
+            <div class="jc-tr"><span>Subtotal</span><span id="jcSubtotal">$264.50</span></div>
+            <div class="jc-tr"><span>Tax</span><span id="jcTax">$26.45</span></div>
+            <div class="jc-tr jc-gt"><span>Total</span><span id="jcTotal">$290.95</span></div>
           </div>
         </div>
       </div>
@@ -110,10 +126,10 @@
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Cost Summary</h2>
       <div class="grid grid-cols-2 gap-4">
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Labor Cost</span><output id="resLabor" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-primary)">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Parts Cost</span><output id="resParts" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-info)">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Tax</span><output id="resTax" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4" style="border:1px solid color-mix(in oklab,var(--color-success) 25%,transparent);border-radius:10px"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Grand Total</span><output id="resTotal" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">$0</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Labor Cost</span><output id="resLabor" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-primary)">$212.50</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Parts Cost</span><output id="resParts" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-info)">$52.00</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Tax</span><output id="resTax" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$26.45</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4" style="border:1px solid color-mix(in oklab,var(--color-success) 25%,transparent);border-radius:10px"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Grand Total</span><output id="resTotal" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">$290.95</output></div>
       </div>
     </div>
 
@@ -126,7 +142,8 @@
 
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
+window.jobCardGenerator = function() {
+
   'use strict';
   const $ = id => document.getElementById(id);
 
@@ -312,6 +329,19 @@
       reader.readAsDataURL(file);
     });
   });
-})();
+
+
+  return {
+    init: function() {
+      if (typeof calc === 'function') calc();
+      else if (typeof generate === 'function') generate();
+      else if (typeof gen === 'function') gen();
+      else if (typeof render === 'function') render();
+      else if (typeof update === 'function') update();
+      else if (typeof calculate === 'function') calculate();
+      else if (typeof build === 'function') build();
+    }
+  };
+};
 </script>
 {% endblock %}

@@ -2,7 +2,7 @@
 
 import time
 
-from app.core.cache import MemoryCache
+from apps.core.cache import MemoryCache
 
 
 class TestMemoryCache:
@@ -46,14 +46,14 @@ class TestMemoryCache:
 
 class TestCacheService:
     def test_fallback_to_memory(self):
-        from app.core.cache import CacheService
+        from apps.core.cache import CacheService
 
         svc = CacheService(default_ttl=60)
         svc.set("test_key", "hello")
         assert svc.get("test_key") == "hello"
 
     def test_delete(self):
-        from app.core.cache import CacheService
+        from apps.core.cache import CacheService
 
         svc = CacheService()
         svc.set("del_key", "value")
@@ -61,7 +61,7 @@ class TestCacheService:
         assert svc.get("del_key") is None
 
     def test_clear(self):
-        from app.core.cache import CacheService
+        from apps.core.cache import CacheService
 
         svc = CacheService()
         svc.set("a", 1)
@@ -73,8 +73,8 @@ class TestCacheService:
     def test_authoritative_redis_miss_does_not_resurrect_memory(self, monkeypatch):
         from unittest.mock import MagicMock
 
-        from app.core import cache
-        from app.core.cache import CacheService, _memory_cache
+        from apps.core import cache
+        from apps.core.cache import CacheService, _memory_cache
 
         mock_redis = MagicMock()
         mock_redis.get.return_value = None
@@ -83,3 +83,4 @@ class TestCacheService:
         _memory_cache.set("stale_key", "old_stale_value", ttl=60)
         svc = CacheService(default_ttl=60)
         assert svc.get("stale_key") is None
+

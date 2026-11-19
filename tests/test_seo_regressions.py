@@ -7,16 +7,14 @@ import os
 import re
 
 import yaml
-from fastapi.testclient import TestClient
-
-from app.main import app
+from tests.conftest import DjangoTestClientWrapper
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS_DIR = os.path.join(BASE_DIR, "templates", "tools")
 TOOLS_YAML = os.path.join(BASE_DIR, "data", "tools.yaml")
 _YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
-client = TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 80))
+client = DjangoTestClientWrapper()
 
 
 def _load_tools() -> dict:

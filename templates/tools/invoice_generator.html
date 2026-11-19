@@ -36,7 +36,7 @@
 {% block content %}
 {{ tool_hero_section("file-text", "Invoice Billing Builder", "INVOICE", "GENERATOR", seo_data.description if seo_data else "Create professional invoices with line items, tax, currency, and custom design. Upload your logo, choose a theme, and print or download as PDF.") }}
 
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="invoiceGenerator()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
 
   <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
 
@@ -49,7 +49,26 @@
         <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="invNum">Invoice #</label><input aria-label="Invoice Number" type="text" id="invNum" class="input cal-input w-full text-sm font-mono font-bold" value="INV-001"></div>
         <div>
           <div class="flex items-center justify-between mb-1"><span class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider">Line Items</span><button type="button" id="addItemBtn" class="btn btn-primary btn-xs" aria-label="Add line item">{{ lucide_icon("plus","w-3 h-3",12)|safe }} Add</button></div>
-          <div id="itemRows"></div>
+          <div id="itemRows">
+            <div class="item-row" data-idx="0">
+              <input type="number" class="input cal-input qty-inp text-[10px] font-mono font-bold hide-spinner" value="2" min="0" step="1" data-idx="0" data-field="qty" aria-label="Quantity">
+              <input type="text" class="input cal-input desc-inp text-[10px] font-mono font-bold" value="Web Design" data-idx="0" data-field="desc" aria-label="Description" maxlength="50">
+              <input type="number" class="input cal-input prc-inp text-[10px] font-mono font-bold hide-spinner" value="500" min="0" step="any" data-idx="0" data-field="prc" aria-label="Unit price">
+              <button type="button" class="rm-btn" data-idx="0" aria-label="Remove item">&times;</button>
+            </div>
+            <div class="item-row" data-idx="1">
+              <input type="number" class="input cal-input qty-inp text-[10px] font-mono font-bold hide-spinner" value="1" min="0" step="1" data-idx="1" data-field="qty" aria-label="Quantity">
+              <input type="text" class="input cal-input desc-inp text-[10px] font-mono font-bold" value="Logo Concepts" data-idx="1" data-field="desc" aria-label="Description" maxlength="50">
+              <input type="number" class="input cal-input prc-inp text-[10px] font-mono font-bold hide-spinner" value="200" min="0" step="any" data-idx="1" data-field="prc" aria-label="Unit price">
+              <button type="button" class="rm-btn" data-idx="1" aria-label="Remove item">&times;</button>
+            </div>
+            <div class="item-row" data-idx="2">
+              <input type="number" class="input cal-input qty-inp text-[10px] font-mono font-bold hide-spinner" value="3" min="0" step="1" data-idx="2" data-field="qty" aria-label="Quantity">
+              <input type="text" class="input cal-input desc-inp text-[10px] font-mono font-bold" value="Hosting Setup" data-idx="2" data-field="desc" aria-label="Description" maxlength="50">
+              <input type="number" class="input cal-input prc-inp text-[10px] font-mono font-bold hide-spinner" value="100" min="0" step="any" data-idx="2" data-field="prc" aria-label="Unit price">
+              <button type="button" class="rm-btn" data-idx="2" aria-label="Remove item">&times;</button>
+            </div>
+          </div>
         </div>
         <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="taxRate">Tax Rate (%)</label><input aria-label="Tax Rate (%)" type="number" id="taxRate" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="10" min="0" step="0.5"></div>
         <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="currency">Currency</label><select aria-label="Currency" id="currency" class="input cal-input w-full text-sm font-bold"><option value="$" selected>$ (USD)</option><option value="€">€ (EUR)</option><option value="£">£ (GBP)</option><option value="₹">₹ (INR)</option><option value="¥">¥ (JPY)</option></select></div>
@@ -87,12 +106,16 @@
           <div class="inv-client"><span class="inv-label">Bill To</span><span id="invClientDisplay">Client Name</span></div>
           <table class="inv-items" role="table">
             <thead><tr><th scope="col">Item</th><th scope="col">Qty</th><th scope="col">Price</th><th scope="col">Total</th></tr></thead>
-            <tbody id="invItemsBody"></tbody>
+            <tbody id="invItemsBody">
+              <tr><td>Web Design</td><td>2</td><td>$500.00</td><td>$1,000.00</td></tr>
+              <tr><td>Logo Concepts</td><td>1</td><td>$200.00</td><td>$200.00</td></tr>
+              <tr><td>Hosting Setup</td><td>3</td><td>$100.00</td><td>$300.00</td></tr>
+            </tbody>
           </table>
           <div class="inv-totals">
-            <div class="inv-tr"><span>Subtotal</span><span id="invSubtotal">$0</span></div>
-            <div class="inv-tr"><span>Tax</span><span id="invTax">$0</span></div>
-            <div class="inv-tr inv-gt"><span>Total</span><span id="invTotal">$0</span></div>
+            <div class="inv-tr"><span>Subtotal</span><span id="invSubtotal">$1,500.00</span></div>
+            <div class="inv-tr"><span>Tax</span><span id="invTax">$150.00</span></div>
+            <div class="inv-tr inv-gt"><span>Total</span><span id="invTotal">$1,650.00</span></div>
           </div>
         </div>
       </div>
@@ -101,10 +124,10 @@
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Invoice Summary</h2>
       <div class="grid grid-cols-2 gap-4">
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Subtotal</span><output id="resSubtotal" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Tax</span><output id="resTax" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Line Items</span><output id="resCount" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4" style="border:1px solid color-mix(in oklab,var(--color-success) 25%,transparent);border-radius:10px"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total</span><output id="resTotal" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">$0</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Subtotal</span><output id="resSubtotal" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$1,500.00</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Tax</span><output id="resTax" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$150.00</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Line Items</span><output id="resCount" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">3</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4" style="border:1px solid color-mix(in oklab,var(--color-success) 25%,transparent);border-radius:10px"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total</span><output id="resTotal" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">$1,650.00</output></div>
       </div>
     </div>
 
@@ -117,7 +140,8 @@
 
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
+window.invoiceGenerator = function() {
+
   'use strict';
   const $ = id => document.getElementById(id);
 
@@ -294,6 +318,19 @@
       reader.readAsDataURL(file);
     });
   });
-})();
+
+
+  return {
+    init: function() {
+      if (typeof calc === 'function') calc();
+      else if (typeof generate === 'function') generate();
+      else if (typeof gen === 'function') gen();
+      else if (typeof render === 'function') render();
+      else if (typeof update === 'function') update();
+      else if (typeof calculate === 'function') calculate();
+      else if (typeof build === 'function') build();
+    }
+  };
+};
 </script>
 {% endblock %}

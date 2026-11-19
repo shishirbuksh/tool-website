@@ -15,7 +15,7 @@
 {% block content %}
 {{ tool_hero_section("trending-up", "Crypto DCA Tool", "CRYPTO DCA", "CALCULATOR", seo_data.description if seo_data else "Simulate Bitcoin and crypto dollar-cost averaging (DCA). Compare recurring investments vs lump-sum buys with fees and CAGR projections.") }}
 
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="cryptoDca()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
 
   <!-- ===== LEFT COLUMN ===== -->
   <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
@@ -24,11 +24,11 @@
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-4 h-4",16)|safe }} Investment Settings</h2>
       <p class="text-xs text-base-content/60 mb-4">Set your starting amount, monthly contribution, expected return, and time horizon.</p>
       <div class="space-y-4">
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="initialAmt">Initial Investment ($)</label><input aria-label="Initial Investment Amount" type="number" id="initialAmt" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="1000" min="0"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="monthlyAmt">Monthly Contribution ($)</label><input aria-label="Monthly Contribution Amount" type="number" id="monthlyAmt" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="200" min="0"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="annualRate">Expected Annual Return (%)</label><input aria-label="Expected Annual Return Rate (%)" type="number" id="annualRate" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="10" min="0" step="0.5"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="timeYears">Time Period (Years)</label><input aria-label="Investment Timeframe (Years)" type="number" id="timeYears" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="5" min="1" max="50"></div>
-        <button type="button" id="resetBtn" class="btn btn-primary w-full mt-2" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="initialAmt">Initial Investment ($)</label><input aria-label="Initial Investment Amount" type="number" id="initialAmt" x-model.number="initialAmt" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="1000" min="0"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="monthlyAmt">Monthly Contribution ($)</label><input aria-label="Monthly Contribution Amount" type="number" id="monthlyAmt" x-model.number="monthlyAmt" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="200" min="0"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="annualRate">Expected Annual Return (%)</label><input aria-label="Expected Annual Return Rate (%)" type="number" id="annualRate" x-model.number="annualRate" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="10" min="0" step="0.5"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="timeYears">Time Period (Years)</label><input aria-label="Investment Timeframe (Years)" type="number" id="timeYears" x-model.number="timeYears" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="5" min="1" max="50"></div>
+        <button type="button" @click="reset()" id="resetBtn" class="btn btn-primary w-full mt-2" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
       </div>
     </div>
 
@@ -41,16 +41,48 @@
       <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Growth Summary</h2>
       {% include "components/ymyl_disclaimer.html" %}
       <div class="grid grid-cols-2 gap-4">
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Invested</span><output id="resInvested" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-base-content)">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Final Value</span><output id="resFinal" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Return</span><output id="resReturn" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-primary)">$0</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">DCA vs Lump Sum</span><output id="resCompare" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-warning)">—</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
+          <span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Invested</span>
+          <output id="resInvested" x-text="formatCurrency(totalInvested)" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">$13,000</output>
+        </div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
+          <span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Final Value</span>
+          <output id="resFinal" x-text="formatCurrency(finalValue)" class="font-display font-semibold text-base-content text-lg leading-tight font-mono text-emerald-500">$17,133</output>
+        </div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
+          <span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Return</span>
+          <output id="resReturn" x-text="totalReturnText" class="font-display font-semibold text-base-content text-lg leading-tight font-mono text-primary">+$4,133</output>
+        </div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
+          <span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">DCA vs Lump Sum</span>
+          <output id="resCompare" x-text="compareText" class="font-display font-semibold text-base-content text-lg leading-tight font-mono text-amber-500">+$15,522 vs lump sum</output>
+        </div>
       </div>
     </div>
 
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("calendar","w-4 h-4",16)|safe }} Year-by-Year Breakdown</h2>
-      <div class="overflow-x-auto"><table class="dca-table" role="table"><thead><tr><th scope="col">Year</th><th scope="col">Invested</th><th scope="col">Value</th><th scope="col">Return</th></tr></thead><tbody id="tableBody"></tbody></table></div>
+      <div class="overflow-x-auto">
+        <table class="dca-table" role="table">
+          <thead><tr><th scope="col">Year</th><th scope="col">Invested</th><th scope="col">Value</th><th scope="col">Return</th></tr></thead>
+          <tbody id="tableBody">
+            <template x-for="r in rows" :key="r.year">
+              <tr>
+                <td x-text="r.year"></td>
+                <td x-text="formatCurrency(r.invested)"></td>
+                <td x-text="formatCurrency(r.value)"></td>
+                <td :style="{ color: r.ret >= 0 ? 'var(--color-success)' : 'var(--color-error)' }" x-text="(r.ret >= 0 ? '+' : '') + formatCurrency(r.ret)"></td>
+              </tr>
+            </template>
+            <!-- SSR Pre-rendered fallback -->
+            <tr x-show="!mounted"><td>1</td><td>$3,400</td><td>$3,618</td><td style="color:var(--color-success)">+$218</td></tr>
+            <tr x-show="!mounted"><td>2</td><td>$5,800</td><td>$6,510</td><td style="color:var(--color-success)">+$710</td></tr>
+            <tr x-show="!mounted"><td>3</td><td>$8,200</td><td>$9,705</td><td style="color:var(--color-success)">+$1,505</td></tr>
+            <tr x-show="!mounted"><td>4</td><td>$10,600</td><td>$13,234</td><td style="color:var(--color-success)">+$2,634</td></tr>
+            <tr x-show="!mounted"><td>5</td><td>$13,000</td><td>$17,133</td><td style="color:var(--color-success)">+$4,133</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </div>
@@ -62,59 +94,84 @@
 
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
-  'use strict';
-  const $ = id => document.getElementById(id);
-  const F = v => '$' + Math.round(v).toLocaleString('en-US');
+window.cryptoDca = function() {
+  return {
+    mounted: false,
+    initialAmt: 1000,
+    monthlyAmt: 200,
+    annualRate: 10,
+    timeYears: 5,
 
-  function calculate(){
-    const initial = parseFloat($('initialAmt').value) || 0;
-    const monthly = parseFloat($('monthlyAmt').value) || 0;
-    const rate = parseFloat($('annualRate').value) || 0;
-    const years = parseFloat($('timeYears').value) || 1;
-    const mr = rate / 100 / 12;
-    const totalMonths = years * 12;
+    init: function() {
+      this.mounted = true;
+    },
 
-    let value = initial;
-    let totalInvested = initial;
-    const rows = [];
+    reset: function() {
+      this.initialAmt = 1000;
+      this.monthlyAmt = 200;
+      this.annualRate = 10;
+      this.timeYears = 5;
+    },
 
-    for(let y = 1; y <= years; y++){
-      for(let m = 1; m <= 12; m++){
-        const idx = (y - 1) * 12 + m;
-        value = value * (1 + mr) + monthly;
-        totalInvested += monthly;
-        if(m === 12) rows.push({year: y, invested: totalInvested, value: value, ret: value - totalInvested});
+    formatCurrency: function(v) {
+      var n = Number(v) || 0;
+      var s = n < 0 ? '−$' : '$';
+      return s + Math.abs(Math.round(n)).toLocaleString('en-US');
+    },
+
+    get simulation() {
+      var initial = Number(this.initialAmt) || 0;
+      var monthly = Number(this.monthlyAmt) || 0;
+      var rate = Number(this.annualRate) || 0;
+      var years = Math.max(1, Math.min(50, Math.round(Number(this.timeYears) || 1)));
+      var mr = rate / 100 / 12;
+
+      var val = initial;
+      var inv = initial;
+      var rows = [];
+
+      for (var y = 1; y <= years; y++) {
+        for (var m = 1; m <= 12; m++) {
+          val = val * (1 + mr) + monthly;
+          inv += monthly;
+          if (m === 12) {
+            rows.push({ year: y, invested: inv, value: Math.round(val), ret: Math.round(val - inv) });
+          }
+        }
       }
+
+      var lumpSum = initial * Math.pow(1 + rate / 100, years);
+      return {
+        totalInvested: inv,
+        finalValue: Math.round(val),
+        totalReturn: Math.round(val - inv),
+        lumpSum: Math.round(lumpSum),
+        compare: Math.round(val - lumpSum),
+        rows: rows
+      };
+    },
+
+    get totalInvested() {
+      return this.simulation.totalInvested;
+    },
+    get finalValue() {
+      return this.simulation.finalValue;
+    },
+    get totalReturn() {
+      return this.simulation.totalReturn;
+    },
+    get totalReturnText() {
+      var r = this.totalReturn;
+      return (r >= 0 ? '+' : '') + this.formatCurrency(r);
+    },
+    get compareText() {
+      var c = this.simulation.compare;
+      return (c >= 0 ? '+' : '') + this.formatCurrency(c) + ' vs lump sum';
+    },
+    get rows() {
+      return this.simulation.rows;
     }
-
-    const finalValue = value;
-    const totalReturn = finalValue - totalInvested;
-    const lumpSum = initial * Math.pow(1 + rate / 100, years);
-    const compare = finalValue - lumpSum;
-
-    $('resInvested').innerText = F(totalInvested);
-    $('resFinal').innerText = F(finalValue);
-    $('resReturn').innerText = (totalReturn >= 0 ? '+' : '') + F(totalReturn);
-    $('resCompare').innerText = (compare >= 0 ? '+' : '') + F(compare) + ' vs lump sum';
-
-    const tbody = $('tableBody');
-    tbody.innerHTML = rows.map(r => '<tr><td>' + r.year + '</td><td>' + F(r.invested) + '</td><td>' + F(r.value) + '</td><td>' + (r.ret >= 0 ? '+' : '') + F(r.ret) + '</td></tr>').join('');
-  }
-
-  function reset(){
-    $('initialAmt').value = 1000;
-    $('monthlyAmt').value = 200;
-    $('annualRate').value = 10;
-    $('timeYears').value = 5;
-    calculate();
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){
-    calculate();
-    ['initialAmt','monthlyAmt','annualRate','timeYears'].forEach(id => $(id).addEventListener('input', calculate));
-    $('resetBtn').addEventListener('click', reset);
-  });
-})();
+  };
+};
 </script>
 {% endblock %}

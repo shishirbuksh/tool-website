@@ -5,11 +5,9 @@ import os
 import re
 
 import yaml
-from fastapi.testclient import TestClient
+from tests.conftest import DjangoTestClientWrapper
 
-from app.main import app
-
-client = TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 80))
+client = DjangoTestClientWrapper()
 
 _YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
@@ -193,7 +191,7 @@ class TestBlogContentGuards:
         assert "instagram-calculator" in adsense_tools, "instagram not promoted"
 
     def test_em_allowed_parity(self):
-        from app.core.sanitize import sanitize_html
+        from apps.core.sanitize import sanitize_html
 
         assert "<em>" in str(sanitize_html("<em>x</em>"))
 

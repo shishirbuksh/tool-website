@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% from "components/tool_layout.html" import tool_hero_section, tool_seo_all, tool_section_end with context %}
 
-
 {% block head %}
 <style>
 .input-visible{background-color:color-mix(in oklab,var(--color-base-100) 85%,var(--color-base-300));border-color:var(--color-base-content);color:var(--color-base-content);font-weight:700}
@@ -24,22 +23,23 @@ table.schedule tr:last-child td{border-bottom:none;font-weight:700}
 {% block content %}
 {{ tool_hero_section("video", "Creator Tool", "YOUTUBE", "CALCULATOR", seo_data.description if seo_data else "Estimate YouTube AdSense revenue from daily views, niche RPM/CPM, Shorts split, and channel sponsorship rates.") }}
 
-<div class="max-w-2xl mx-auto reveal">
+<div class="max-w-2xl mx-auto reveal" x-data="youtubeCalculator()">
   <div class="feature-card rounded-xl p-5 md:p-6 mb-4">
     <div class="flex flex-wrap gap-2" role="tablist" aria-label="YouTube calculator tabs">
-      <button type="button" class="tab-btn active" data-tab="revenue" role="tab" aria-selected="true" aria-controls="tab-revenue">Revenue</button>
-      <button type="button" class="tab-btn" data-tab="value" role="tab" aria-selected="false" aria-controls="tab-value">Channel Value</button>
-      <button type="button" class="tab-btn" data-tab="growth" role="tab" aria-selected="false" aria-controls="tab-growth">Growth</button>
-      <button type="button" class="tab-btn" data-tab="breakdown" role="tab" aria-selected="false" aria-controls="tab-breakdown">Breakdown</button>
-      <button type="button" class="tab-btn" data-tab="compare" role="tab" aria-selected="false" aria-controls="tab-compare">Compare</button>
+      <button type="button" class="tab-btn" :class="{ 'active': tab === 'revenue' }" @click="tab = 'revenue'" role="tab" :aria-selected="tab === 'revenue'" aria-controls="tab-revenue">Revenue</button>
+      <button type="button" class="tab-btn" :class="{ 'active': tab === 'value' }" @click="tab = 'value'" role="tab" :aria-selected="tab === 'value'" aria-controls="tab-value">Channel Value</button>
+      <button type="button" class="tab-btn" :class="{ 'active': tab === 'growth' }" @click="tab = 'growth'" role="tab" :aria-selected="tab === 'growth'" aria-controls="tab-growth">Growth</button>
+      <button type="button" class="tab-btn" :class="{ 'active': tab === 'breakdown' }" @click="tab = 'breakdown'" role="tab" :aria-selected="tab === 'breakdown'" aria-controls="tab-breakdown">Breakdown</button>
+      <button type="button" class="tab-btn" :class="{ 'active': tab === 'compare' }" @click="tab = 'compare'" role="tab" :aria-selected="tab === 'compare'" aria-controls="tab-compare">Compare</button>
     </div>
   </div>
 
-  <div id="tab-revenue" class="tab-content feature-card rounded-xl p-5 md:p-6" role="tabpanel">
+  <!-- Revenue Tab -->
+  <div id="tab-revenue" class="tab-content feature-card rounded-xl p-5 md:p-6" :class="{ 'hidden': tab !== 'revenue' }" role="tabpanel">
     <p class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/40 mb-4">Estimate your monthly YouTube ad revenue based on views, CPM, and engagement</p>
     <div class="mb-4">
       <label for="revNiche" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Channel Niche <span class="opacity-40 text-[10px]">auto-fills benchmarks</span></label>
-      <select id="revNiche" aria-label="Select channel niche" class="select w-full rounded-xl text-sm font-bold bg-base-200 border-base-content/20 h-11">
+      <select id="revNiche" x-model="revNiche" @change="applyNiche()" aria-label="Select channel niche" class="select w-full rounded-xl text-sm font-bold bg-base-200 border-base-content/20 h-11">
         <option value="custom">Custom (manual entry)</option>
         <option value="gaming">Gaming</option>
         <option value="education">Education</option>
@@ -61,148 +61,152 @@ table.schedule tr:last-child td{border-bottom:none;font-weight:700}
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="revViews" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Monthly Views</label>
-          <input type="number" id="revViews" aria-label="Monthly views" class="input input-visible w-full rounded-xl text-sm" value="100000" min="0" step="1000">
+          <input type="number" id="revViews" x-model.number="revViews" aria-label="Monthly views" class="input input-visible w-full rounded-xl text-sm" value="100000" min="0" step="1000">
         </div>
         <div>
           <label for="revCpm" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">CPM ($) — Cost per 1,000 views</label>
-          <input type="number" id="revCpm" aria-label="CPM rate" class="input input-visible w-full rounded-xl text-sm" value="2.5" min="0" max="100" step="0.1">
+          <input type="number" id="revCpm" x-model.number="revCpm" aria-label="CPM rate" class="input input-visible w-full rounded-xl text-sm" value="2.5" min="0" max="100" step="0.1">
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label for="revEngage" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Engagement Rate (%)</label>
-          <input type="number" id="revEngage" aria-label="Engagement rate percentage" class="input input-visible w-full rounded-xl text-sm" value="4" min="0" max="100" step="0.5">
+          <input type="number" id="revEngage" x-model.number="revEngage" aria-label="Engagement rate percentage" class="input input-visible w-full rounded-xl text-sm" value="4" min="0" max="100" step="0.5">
         </div>
         <div>
           <label for="revWatch" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Avg Watch Time (min)</label>
-          <input type="number" id="revWatch" aria-label="Average watch time in minutes" class="input input-visible w-full rounded-xl text-sm" value="4" min="0" max="60" step="0.5">
+          <input type="number" id="revWatch" x-model.number="revWatch" aria-label="Average watch time in minutes" class="input input-visible w-full rounded-xl text-sm" value="4" min="0" max="60" step="0.5">
         </div>
         <div>
           <label for="revAds" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Ad Pods per Video</label>
-          <input type="number" id="revAds" aria-label="Number of ad placements per video" class="input input-visible w-full rounded-xl text-sm" value="2" min="0" max="10" step="1">
+          <input type="number" id="revAds" x-model.number="revAds" aria-label="Number of ad placements per video" class="input input-visible w-full rounded-xl text-sm" value="2" min="0" max="10" step="1">
         </div>
       </div>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6">
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Daily Revenue</div>
-        <output id="revDaily" aria-live="polite" class="font-black text-lg" style="color:var(--color-primary)">$0.00</output>
+        <output id="revDaily" aria-live="polite" class="font-black text-lg" style="color:var(--color-primary)" x-text="'$' + fmt(revDaily)">$0.19</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Monthly Revenue</div>
-        <output id="revMonthly" aria-live="polite" class="font-black text-lg text-success">$0.00</output>
+        <output id="revMonthly" aria-live="polite" class="font-black text-lg text-success" x-text="'$' + fmt(revMonthly)">$5.75</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Yearly Revenue</div>
-        <output id="revYearly" aria-live="polite" class="font-black text-lg text-success">$0.00</output>
+        <output id="revYearly" aria-live="polite" class="font-black text-lg text-success" x-text="'$' + fmt(revYearly)">$69.00</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">RPM ($)</div>
-        <output id="revRpm" aria-live="polite">$0.00</output>
+        <output id="revRpm" aria-live="polite" x-text="'$' + fmt(revRpm)">$0.06</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Effective CPM</div>
-        <output id="revEffCpm" aria-live="polite">$0.00</output>
+        <output id="revEffCpm" aria-live="polite" x-text="'$' + fmt(revEffCpm)">$2.50</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Channel Tier</div>
-        <output id="revTier" aria-live="polite"><span class="tier-badge" style="background:color-mix(in oklab,var(--color-info) 20%,transparent);color:var(--color-info)">Growing</span></output>
+        <output id="revTier" aria-live="polite">
+          <span class="tier-badge" :style="tierStyle" x-text="tierName" style="background:color-mix(in oklab,var(--color-warning) 20%,transparent);color:var(--color-warning)">Mid</span>
+        </output>
       </div>
     </div>
   </div>
 
-  <div id="tab-value" class="tab-content hidden feature-card rounded-xl p-5 md:p-6" role="tabpanel">
+  <!-- Value Tab -->
+  <div id="tab-value" class="tab-content hidden feature-card rounded-xl p-5 md:p-6" :class="{ 'hidden': tab !== 'value' }" role="tabpanel">
     <p class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/40 mb-4">Estimate your channel's market value, sponsorship rates, and brand deal potential</p>
     <div class="space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="valViews" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Monthly Views</label>
-          <input type="number" id="valViews" aria-label="Monthly views for valuation" class="input input-visible w-full rounded-xl text-sm" value="100000" min="0" step="1000">
+          <input type="number" id="valViews" x-model.number="valViews" aria-label="Monthly views for valuation" class="input input-visible w-full rounded-xl text-sm" value="100000" min="0" step="1000">
         </div>
         <div>
           <label for="valSubs" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Subscribers</label>
-          <input type="number" id="valSubs" aria-label="Subscriber count" class="input input-visible w-full rounded-xl text-sm" value="5000" min="0" step="100">
+          <input type="number" id="valSubs" x-model.number="valSubs" aria-label="Subscriber count" class="input input-visible w-full rounded-xl text-sm" value="5000" min="0" step="100">
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="valCpm" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">CPM ($)</label>
-          <input type="number" id="valCpm" aria-label="CPM for valuation" class="input input-visible w-full rounded-xl text-sm" value="2.5" min="0" max="100" step="0.1">
+          <input type="number" id="valCpm" x-model.number="valCpm" aria-label="CPM for valuation" class="input input-visible w-full rounded-xl text-sm" value="2.5" min="0" max="100" step="0.1">
         </div>
         <div>
           <label for="valGrowth" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Monthly Growth Rate (%) <span class="opacity-40 text-[10px]">optional</span></label>
-          <input type="number" id="valGrowth" aria-label="Monthly growth rate" class="input input-visible w-full rounded-xl text-sm" value="5" min="0" max="100" step="0.5">
+          <input type="number" id="valGrowth" x-model.number="valGrowth" aria-label="Monthly growth rate" class="input input-visible w-full rounded-xl text-sm" value="5" min="0" max="100" step="0.5">
         </div>
       </div>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6">
       <div class="stat-card" style="background:color-mix(in oklab,var(--color-primary) 10%,transparent);border:1px solid color-mix(in oklab,var(--color-primary) 20%,transparent)">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Channel Valuation</div>
-        <output id="valWorth" aria-live="polite" class="font-black text-lg" style="color:var(--color-primary)">$0</output>
+        <output id="valWorth" aria-live="polite" class="font-black text-lg" style="color:var(--color-primary)" x-text="'$' + fmt(valWorth)">$3,625.00</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Monthly Revenue</div>
-        <output id="valMonthly" aria-live="polite" class="text-success">$0</output>
+        <output id="valMonthly" aria-live="polite" class="text-success" x-text="'$' + fmt(valMonthly)">$250.00</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Yearly Revenue</div>
-        <output id="valYearly" aria-live="polite" class="text-success">$0</output>
+        <output id="valYearly" aria-live="polite" class="text-success" x-text="'$' + fmt(valYearly)">$3,000.00</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Sponsorship per Video</div>
-        <output id="valSponsor" aria-live="polite">$0</output>
+        <output id="valSponsor" aria-live="polite" x-text="'$' + fmtInt(valSponsor)">$200</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Brand Deal Estimate</div>
-        <output id="valBrand" aria-live="polite">$0</output>
+        <output id="valBrand" aria-live="polite" x-text="'$' + fmtInt(valBrand)">$1,000</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Revenue per 1k Views</div>
-        <output id="valRpm" aria-live="polite">$0</output>
+        <output id="valRpm" aria-live="polite" x-text="'$' + fmt(valCpm)">$2.50</output>
       </div>
     </div>
   </div>
 
-  <div id="tab-growth" class="tab-content hidden feature-card rounded-xl p-5 md:p-6" role="tabpanel">
+  <!-- Growth Tab -->
+  <div id="tab-growth" class="tab-content hidden feature-card rounded-xl p-5 md:p-6" :class="{ 'hidden': tab !== 'growth' }" role="tabpanel">
     <p class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/40 mb-4">Project your channel's growth over time with compound view growth</p>
     <div class="space-y-4">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label for="grViews" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Current Monthly Views</label>
-          <input type="number" id="grViews" aria-label="Current monthly views" class="input input-visible w-full rounded-xl text-sm" value="100000" min="0" step="1000">
+          <input type="number" id="grViews" x-model.number="grViews" aria-label="Current monthly views" class="input input-visible w-full rounded-xl text-sm" value="100000" min="0" step="1000">
         </div>
         <div>
           <label for="grRate" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Monthly Growth (%)</label>
-          <input type="number" id="grRate" aria-label="Monthly growth rate" class="input input-visible w-full rounded-xl text-sm" value="5" min="0" max="100" step="0.5">
+          <input type="number" id="grRate" x-model.number="grRate" aria-label="Monthly growth rate" class="input input-visible w-full rounded-xl text-sm" value="5" min="0" max="100" step="0.5">
         </div>
         <div>
           <label for="grYears" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Projection (years)</label>
-          <input type="number" id="grYears" aria-label="Projection years" class="input input-visible w-full rounded-xl text-sm" value="5" min="1" max="20" step="1">
+          <input type="number" id="grYears" x-model.number="grYears" aria-label="Projection years" class="input input-visible w-full rounded-xl text-sm" value="5" min="1" max="20" step="1">
         </div>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label for="grCpm" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">CPM ($)</label>
-          <input type="number" id="grCpm" aria-label="CPM for projection" class="input input-visible w-full rounded-xl text-sm" value="2.5" min="0" max="100" step="0.1">
+          <input type="number" id="grCpm" x-model.number="grCpm" aria-label="CPM for projection" class="input input-visible w-full rounded-xl text-sm" value="2.5" min="0" max="100" step="0.1">
         </div>
         <div>
           <label for="grNewViews" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">New Videos per Month</label>
-          <input type="number" id="grNewViews" aria-label="New videos per month" class="input input-visible w-full rounded-xl text-sm" value="4" min="1" max="100" step="1">
+          <input type="number" id="grNewViews" x-model.number="grNewViews" aria-label="New videos per month" class="input input-visible w-full rounded-xl text-sm" value="4" min="1" max="100" step="1">
         </div>
       </div>
     </div>
     <div class="flex flex-wrap gap-3 mt-6 mb-4">
       <div class="stat-card flex-1 min-w-[120px]">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Year 1 Revenue</div>
-        <output id="grY1" aria-live="polite" class="font-black" style="color:var(--color-primary)">$0</output>
+        <output id="grY1" aria-live="polite" class="font-black" style="color:var(--color-primary)" x-text="'$' + fmt(growthSummary[1] || 0)">$3,000.00</output>
       </div>
       <div class="stat-card flex-1 min-w-[120px]">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Year 3 Revenue</div>
-        <output id="grY3" aria-live="polite" class="font-black" style="color:var(--color-primary)">$0</output>
+        <output id="grY3" aria-live="polite" class="font-black" style="color:var(--color-primary)" x-text="'$' + fmt(growthSummary[3] || 0)">$9,457.50</output>
       </div>
       <div class="stat-card flex-1 min-w-[120px]">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Year 5 Revenue</div>
-        <output id="grY5" aria-live="polite" class="font-black" style="color:var(--color-primary)">$0</output>
+        <output id="grY5" aria-live="polite" class="font-black" style="color:var(--color-primary)" x-text="'$' + fmt(growthSummary[5] || 0)">$16,576.89</output>
       </div>
     </div>
     <div class="overflow-x-auto">
@@ -217,122 +221,176 @@ table.schedule tr:last-child td{border-bottom:none;font-weight:700}
             <th>Cumulative Revenue</th>
           </tr>
         </thead>
-        <tbody id="grBody"></tbody>
+        <tbody id="grBody">
+          <template x-for="row in growthRows" :key="row.year">
+            <tr>
+              <td x-text="row.year"></td>
+              <td x-text="fmtInt(row.mv)"></td>
+              <td x-text="fmtInt(row.yrViews)"></td>
+              <td x-text="'$' + fmt(row.mr)"></td>
+              <td x-text="'$' + fmt(row.yrRev)"></td>
+              <td x-text="'$' + fmt(row.cumRev)"></td>
+            </tr>
+          </template>
+          <!-- SSR Pre-rendered Table Rows for crawlers & initial page load -->
+          <tr x-show="!mounted">
+            <td>1</td>
+            <td>100,000</td>
+            <td>1,200,000</td>
+            <td>$250.00</td>
+            <td>$3,000.00</td>
+            <td>$3,000.00</td>
+          </tr>
+          <tr x-show="!mounted">
+            <td>2</td>
+            <td>105,000</td>
+            <td>1,260,000</td>
+            <td>$262.50</td>
+            <td>$3,150.00</td>
+            <td>$6,150.00</td>
+          </tr>
+          <tr x-show="!mounted">
+            <td>3</td>
+            <td>110,250</td>
+            <td>1,323,000</td>
+            <td>$275.63</td>
+            <td>$3,307.50</td>
+            <td>$9,457.50</td>
+          </tr>
+          <tr x-show="!mounted">
+            <td>4</td>
+            <td>115,763</td>
+            <td>1,389,150</td>
+            <td>$289.41</td>
+            <td>$3,472.88</td>
+            <td>$12,930.38</td>
+          </tr>
+          <tr x-show="!mounted">
+            <td>5</td>
+            <td>121,551</td>
+            <td>1,458,608</td>
+            <td>$303.88</td>
+            <td>$3,646.52</td>
+            <td>$16,576.89</td>
+          </tr>
+        </tbody>
       </table>
     </div>
   </div>
 
-  <div id="tab-breakdown" class="tab-content hidden feature-card rounded-xl p-5 md:p-6" role="tabpanel">
+  <!-- Breakdown Tab -->
+  <div id="tab-breakdown" class="tab-content hidden feature-card rounded-xl p-5 md:p-6" :class="{ 'hidden': tab !== 'breakdown' }" role="tabpanel">
     <p class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/40 mb-4">Break down your total YouTube revenue by source. Add additional income streams beyond ads.</p>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
       <div>
         <label for="bdMembers" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Channel Memberships ($/mo)</label>
-        <input type="number" id="bdMembers" aria-label="Monthly channel membership revenue" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" step="50">
+        <input type="number" id="bdMembers" x-model.number="bdMembers" aria-label="Monthly channel membership revenue" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" step="50">
       </div>
       <div>
-        <label for="bdSuper" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Super Chat & Super Stickers ($/mo)</label>
-        <input type="number" id="bdSuper" aria-label="Monthly Super Chat revenue" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" step="50">
+        <label for="bdSuper" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Super Chat &amp; Super Stickers ($/mo)</label>
+        <input type="number" id="bdSuper" x-model.number="bdSuper" aria-label="Monthly Super Chat revenue" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" step="50">
       </div>
       <div>
         <label for="bdMerch" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Merchandise Sales ($/mo)</label>
-        <input type="number" id="bdMerch" aria-label="Monthly merchandise revenue" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" step="100">
+        <input type="number" id="bdMerch" x-model.number="bdMerch" aria-label="Monthly merchandise revenue" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" step="100">
       </div>
       <div>
         <label for="bdAffiliate" class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-1.5 block">Affiliate Marketing ($/mo)</label>
-        <input type="number" id="bdAffiliate" aria-label="Monthly affiliate revenue" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" step="100">
+        <input type="number" id="bdAffiliate" x-model.number="bdAffiliate" aria-label="Monthly affiliate revenue" class="input input-visible w-full rounded-xl text-sm" value="0" min="0" step="100">
       </div>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Ad Revenue</div>
-        <output id="bdAdRev" aria-live="polite">$0</output>
+        <output id="bdAdRev" aria-live="polite" x-text="'$' + fmt(revMonthly)">$5.75</output>
       </div>
       <div class="stat-card" style="background:color-mix(in oklab,var(--color-primary) 10%,transparent);border:1px solid color-mix(in oklab,var(--color-primary) 20%,transparent)">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Total Monthly</div>
-        <output id="bdTotal" aria-live="polite" class="font-black text-lg" style="color:var(--color-primary)">$0</output>
+        <output id="bdTotal" aria-live="polite" class="font-black text-lg" style="color:var(--color-primary)" x-text="'$' + fmt(bdTotal)">$5.75</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Total Yearly</div>
-        <output id="bdYearly" aria-live="polite" class="font-black text-lg text-success">$0</output>
+        <output id="bdYearly" aria-live="polite" class="font-black text-lg text-success" x-text="'$' + fmt(bdTotal * 12)">$69.00</output>
       </div>
       <div class="stat-card">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45">Ad Revenue Share</div>
-        <output id="bdShare" aria-live="polite">0%</output>
+        <output id="bdShare" aria-live="polite" x-text="bdShareText">100.0%</output>
       </div>
     </div>
     <div class="space-y-2.5" id="bdBars">
       <div class="bg-card p-3">
-        <div class="flex justify-between text-sm mb-1"><span>Ad Revenue</span><output id="bdPct0" class="font-bold">0%</output></div>
-        <div class="h-4 rounded-full overflow-hidden" style="background:color-mix(in oklab,var(--color-base-content) 8%,transparent)"><div id="bdBar0" class="h-full rounded-full transition-all duration-300" style="width:0%;background:var(--color-primary)"></div></div>
+        <div class="flex justify-between text-sm mb-1"><span>Ad Revenue</span><output id="bdPct0" class="font-bold" x-text="getShare(revMonthly) + '%'">100.0%</output></div>
+        <div class="h-4 rounded-full overflow-hidden" style="background:color-mix(in oklab,var(--color-base-content) 8%,transparent)"><div id="bdBar0" class="h-full rounded-full transition-all duration-300" :style="'width:' + getShare(revMonthly) + '%;background:var(--color-primary)'" style="width:100%;background:var(--color-primary)"></div></div>
       </div>
       <div class="bg-card p-3">
-        <div class="flex justify-between text-sm mb-1"><span>Memberships</span><output id="bdPct1" class="font-bold">0%</output></div>
-        <div class="h-4 rounded-full overflow-hidden" style="background:color-mix(in oklab,var(--color-base-content) 8%,transparent)"><div id="bdBar1" class="h-full rounded-full transition-all duration-300" style="width:0%;background:var(--color-success)"></div></div>
+        <div class="flex justify-between text-sm mb-1"><span>Memberships</span><output id="bdPct1" class="font-bold" x-text="getShare(bdMembers) + '%'">0.0%</output></div>
+        <div class="h-4 rounded-full overflow-hidden" style="background:color-mix(in oklab,var(--color-base-content) 8%,transparent)"><div id="bdBar1" class="h-full rounded-full transition-all duration-300" :style="'width:' + getShare(bdMembers) + '%;background:var(--color-success)'" style="width:0%;background:var(--color-success)"></div></div>
       </div>
       <div class="bg-card p-3">
-        <div class="flex justify-between text-sm mb-1"><span>Super Chat</span><output id="bdPct2" class="font-bold">0%</output></div>
-        <div class="h-4 rounded-full overflow-hidden" style="background:color-mix(in oklab,var(--color-base-content) 8%,transparent)"><div id="bdBar2" class="h-full rounded-full transition-all duration-300" style="width:0%;background:var(--color-warning)"></div></div>
+        <div class="flex justify-between text-sm mb-1"><span>Super Chat</span><output id="bdPct2" class="font-bold" x-text="getShare(bdSuper) + '%'">0.0%</output></div>
+        <div class="h-4 rounded-full overflow-hidden" style="background:color-mix(in oklab,var(--color-base-content) 8%,transparent)"><div id="bdBar2" class="h-full rounded-full transition-all duration-300" :style="'width:' + getShare(bdSuper) + '%;background:var(--color-warning)'" style="width:0%;background:var(--color-warning)"></div></div>
       </div>
       <div class="bg-card p-3">
-        <div class="flex justify-between text-sm mb-1"><span>Merchandise</span><output id="bdPct3" class="font-bold">0%</output></div>
-        <div class="h-4 rounded-full overflow-hidden" style="background:color-mix(in oklab,var(--color-base-content) 8%,transparent)"><div id="bdBar3" class="h-full rounded-full transition-all duration-300" style="width:0%;background:var(--color-secondary)"></div></div>
+        <div class="flex justify-between text-sm mb-1"><span>Merchandise</span><output id="bdPct3" class="font-bold" x-text="getShare(bdMerch) + '%'">0.0%</output></div>
+        <div class="h-4 rounded-full overflow-hidden" style="background:color-mix(in oklab,var(--color-base-content) 8%,transparent)"><div id="bdBar3" class="h-full rounded-full transition-all duration-300" :style="'width:' + getShare(bdMerch) + '%;background:var(--color-secondary)'" style="width:0%;background:var(--color-secondary)"></div></div>
       </div>
       <div class="bg-card p-3">
-        <div class="flex justify-between text-sm mb-1"><span>Affiliate</span><output id="bdPct4" class="font-bold">0%</output></div>
-        <div class="h-4 rounded-full overflow-hidden" style="background:color-mix(in oklab,var(--color-base-content) 8%,transparent)"><div id="bdBar4" class="h-full rounded-full transition-all duration-300" style="width:0%;background:color-mix(in oklab,var(--color-accent) 60%,transparent)"></div></div>
+        <div class="flex justify-between text-sm mb-1"><span>Affiliate</span><output id="bdPct4" class="font-bold" x-text="getShare(bdAffiliate) + '%'">0.0%</output></div>
+        <div class="h-4 rounded-full overflow-hidden" style="background:color-mix(in oklab,var(--color-base-content) 8%,transparent)"><div id="bdBar4" class="h-full rounded-full transition-all duration-300" :style="'width:' + getShare(bdAffiliate) + '%;background:color-mix(in oklab,var(--color-accent) 60%,transparent)'" style="width:0%;background:color-mix(in oklab,var(--color-accent) 60%,transparent)"></div></div>
       </div>
     </div>
   </div>
 
-  <div id="tab-compare" class="tab-content hidden feature-card rounded-xl p-5 md:p-6" role="tabpanel">
+  <!-- Compare Tab -->
+  <div id="tab-compare" class="tab-content hidden feature-card rounded-xl p-5 md:p-6" :class="{ 'hidden': tab !== 'compare' }" role="tabpanel">
     <p class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/40 mb-4">Compare up to 3 channel strategies side by side</p>
     <div class="flex flex-wrap gap-3">
       <div class="compare-col">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-3 text-center">Scenario A</div>
         <div class="space-y-2.5">
-          <div><label for="cmpAviews" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Monthly Views</label><input type="number" id="cmpAviews" class="input input-visible w-full rounded-xl text-sm" value="100000" min="0" step="1000"></div>
-          <div><label for="cmpAcpm" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">CPM ($)</label><input type="number" id="cmpAcpm" class="input input-visible w-full rounded-xl text-sm" value="2.5" min="0" max="100" step="0.1"></div>
-          <div><label for="cmpAengage" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Engagement %</label><input type="number" id="cmpAengage" class="input input-visible w-full rounded-xl text-sm" value="4" min="0" max="100" step="0.5"></div>
-          <div><label for="cmpAwatch" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Watch Time (min)</label><input type="number" id="cmpAwatch" class="input input-visible w-full rounded-xl text-sm" value="4" min="0" max="60" step="0.5"></div>
-          <div><label for="cmpAads" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Ad Pods</label><input type="number" id="cmpAads" class="input input-visible w-full rounded-xl text-sm" value="2" min="0" max="10" step="1"></div>
+          <div><label for="cmpAviews" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Monthly Views</label><input type="number" id="cmpAviews" x-model.number="cmpAviews" class="input input-visible w-full rounded-xl text-sm" value="100000" min="0" step="1000"></div>
+          <div><label for="cmpAcpm" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">CPM ($)</label><input type="number" id="cmpAcpm" x-model.number="cmpAcpm" class="input input-visible w-full rounded-xl text-sm" value="2.5" min="0" max="100" step="0.1"></div>
+          <div><label for="cmpAengage" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Engagement %</label><input type="number" id="cmpAengage" x-model.number="cmpAengage" class="input input-visible w-full rounded-xl text-sm" value="4" min="0" max="100" step="0.5"></div>
+          <div><label for="cmpAwatch" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Watch Time (min)</label><input type="number" id="cmpAwatch" x-model.number="cmpAwatch" class="input input-visible w-full rounded-xl text-sm" value="4" min="0" max="60" step="0.5"></div>
+          <div><label for="cmpAads" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Ad Pods</label><input type="number" id="cmpAads" x-model.number="cmpAads" class="input input-visible w-full rounded-xl text-sm" value="2" min="0" max="10" step="1"></div>
         </div>
         <hr class="my-3 border-base-content/10">
         <div class="space-y-1.5 text-sm">
-          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Monthly Revenue</span><output id="cmpArev" class="font-bold">$0</output></div>
-          <div class="flex justify-between"><span class="opacity-45 text-[11px]">RPM</span><output id="cmpArpm" class="font-bold">$0</output></div>
-          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Tier</span><output id="cmpAtier" class="font-bold"><span class="tier-badge" style="background:color-mix(in oklab,var(--color-info) 20%,transparent);color:var(--color-info)">Growing</span></output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Monthly Revenue</span><output id="cmpArev" class="font-bold" x-text="'$' + fmt(cmpCalc(cmpAviews, cmpAcpm, cmpAengage, cmpAwatch, cmpAads).rev)">$5.75</output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">RPM</span><output id="cmpArpm" class="font-bold" x-text="'$' + fmt(cmpCalc(cmpAviews, cmpAcpm, cmpAengage, cmpAwatch, cmpAads).rpm)">$0.06</output></div>
+          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Tier</span><output id="cmpAtier" class="font-bold"><span class="tier-badge" :style="getTier(cmpAviews).style" x-text="getTier(cmpAviews).name" style="background:color-mix(in oklab,var(--color-warning) 20%,transparent);color:var(--color-warning)">Mid</span></output></div>
         </div>
       </div>
       <div class="compare-col">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-3 text-center">Scenario B</div>
         <div class="space-y-2.5">
-          <div><label for="cmpBviews" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Monthly Views</label><input type="number" id="cmpBviews" class="input input-visible w-full rounded-xl text-sm" value="50000" min="0" step="1000"></div>
-          <div><label for="cmpBcpm" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">CPM ($)</label><input type="number" id="cmpBcpm" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="100" step="0.1"></div>
-          <div><label for="cmpBengage" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Engagement %</label><input type="number" id="cmpBengage" class="input input-visible w-full rounded-xl text-sm" value="5" min="0" max="100" step="0.5"></div>
-          <div><label for="cmpBwatch" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Watch Time (min)</label><input type="number" id="cmpBwatch" class="input input-visible w-full rounded-xl text-sm" value="6" min="0" max="60" step="0.5"></div>
-          <div><label for="cmpBads" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Ad Pods</label><input type="number" id="cmpBads" class="input input-visible w-full rounded-xl text-sm" value="3" min="0" max="10" step="1"></div>
+          <div><label for="cmpBviews" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Monthly Views</label><input type="number" id="cmpBviews" x-model.number="cmpBviews" class="input input-visible w-full rounded-xl text-sm" value="50000" min="0" step="1000"></div>
+          <div><label for="cmpBcpm" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">CPM ($)</label><input type="number" id="cmpBcpm" x-model.number="cmpBcpm" class="input input-visible w-full rounded-xl text-sm" value="10" min="0" max="100" step="0.1"></div>
+          <div><label for="cmpBengage" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Engagement %</label><input type="number" id="cmpBengage" x-model.number="cmpBengage" class="input input-visible w-full rounded-xl text-sm" value="5" min="0" max="100" step="0.5"></div>
+          <div><label for="cmpBwatch" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Watch Time (min)</label><input type="number" id="cmpBwatch" x-model.number="cmpBwatch" class="input input-visible w-full rounded-xl text-sm" value="6" min="0" max="60" step="0.5"></div>
+          <div><label for="cmpBads" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Ad Pods</label><input type="number" id="cmpBads" x-model.number="cmpBads" class="input input-visible w-full rounded-xl text-sm" value="3" min="0" max="10" step="1"></div>
         </div>
         <hr class="my-3 border-base-content/10">
         <div class="space-y-1.5 text-sm">
-          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Monthly Revenue</span><output id="cmpBrev" class="font-bold">$0</output></div>
-          <div class="flex justify-between"><span class="opacity-45 text-[11px]">RPM</span><output id="cmpBrpm" class="font-bold">$0</output></div>
-          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Tier</span><output id="cmpBtier" class="font-bold"><span class="tier-badge" style="background:color-mix(in oklab,var(--color-info) 20%,transparent);color:var(--color-info)">Growing</span></output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Monthly Revenue</span><output id="cmpBrev" class="font-bold" x-text="'$' + fmt(cmpCalc(cmpBviews, cmpBcpm, cmpBengage, cmpBwatch, cmpBads).rev)">$24.38</output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">RPM</span><output id="cmpBrpm" class="font-bold" x-text="'$' + fmt(cmpCalc(cmpBviews, cmpBcpm, cmpBengage, cmpBwatch, cmpBads).rpm)">$0.49</output></div>
+          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Tier</span><output id="cmpBtier" class="font-bold"><span class="tier-badge" :style="getTier(cmpBviews).style" x-text="getTier(cmpBviews).name" style="background:color-mix(in oklab,var(--color-warning) 20%,transparent);color:var(--color-warning)">Mid</span></output></div>
         </div>
       </div>
       <div class="compare-col">
         <div class="text-[11px] uppercase tracking-[0.15em] font-bold text-base-content/45 mb-3 text-center">Scenario C</div>
         <div class="space-y-2.5">
-          <div><label for="cmpCviews" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Monthly Views</label><input type="number" id="cmpCviews" class="input input-visible w-full rounded-xl text-sm" value="200000" min="0" step="1000"></div>
-          <div><label for="cmpCcpm" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">CPM ($)</label><input type="number" id="cmpCcpm" class="input input-visible w-full rounded-xl text-sm" value="5" min="0" max="100" step="0.1"></div>
-          <div><label for="cmpCengage" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Engagement %</label><input type="number" id="cmpCengage" class="input input-visible w-full rounded-xl text-sm" value="6" min="0" max="100" step="0.5"></div>
-          <div><label for="cmpCwatch" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Watch Time (min)</label><input type="number" id="cmpCwatch" class="input input-visible w-full rounded-xl text-sm" value="5" min="0" max="60" step="0.5"></div>
-          <div><label for="cmpCads" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Ad Pods</label><input type="number" id="cmpCads" class="input input-visible w-full rounded-xl text-sm" value="2" min="0" max="10" step="1"></div>
+          <div><label for="cmpCviews" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Monthly Views</label><input type="number" id="cmpCviews" x-model.number="cmpCviews" class="input input-visible w-full rounded-xl text-sm" value="200000" min="0" step="1000"></div>
+          <div><label for="cmpCcpm" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">CPM ($)</label><input type="number" id="cmpCcpm" x-model.number="cmpCcpm" class="input input-visible w-full rounded-xl text-sm" value="5" min="0" max="100" step="0.1"></div>
+          <div><label for="cmpCengage" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Engagement %</label><input type="number" id="cmpCengage" x-model.number="cmpCengage" class="input input-visible w-full rounded-xl text-sm" value="6" min="0" max="100" step="0.5"></div>
+          <div><label for="cmpCwatch" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Watch Time (min)</label><input type="number" id="cmpCwatch" x-model.number="cmpCwatch" class="input input-visible w-full rounded-xl text-sm" value="5" min="0" max="60" step="0.5"></div>
+          <div><label for="cmpCads" class="text-[10px] uppercase tracking-[.15em] font-bold text-base-content/45 block mb-0.5">Ad Pods</label><input type="number" id="cmpCads" x-model.number="cmpCads" class="input input-visible w-full rounded-xl text-sm" value="2" min="0" max="10" step="1"></div>
         </div>
         <hr class="my-3 border-base-content/10">
         <div class="space-y-1.5 text-sm">
-          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Monthly Revenue</span><output id="cmpCrev" class="font-bold">$0</output></div>
-          <div class="flex justify-between"><span class="opacity-45 text-[11px]">RPM</span><output id="cmpCrpm" class="font-bold">$0</output></div>
-          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Tier</span><output id="cmpCtier" class="font-bold"><span class="tier-badge" style="background:color-mix(in oklab,var(--color-info) 20%,transparent);color:var(--color-info)">Growing</span></output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">Monthly Revenue</span><output id="cmpCrev" class="font-bold" x-text="'$' + fmt(cmpCalc(cmpCviews, cmpCcpm, cmpCengage, cmpCwatch, cmpCads).rev)">$43.13</output></div>
+          <div class="flex justify-between"><span class="opacity-45 text-[11px]">RPM</span><output id="cmpCrpm" class="font-bold" x-text="'$' + fmt(cmpCalc(cmpCviews, cmpCcpm, cmpCengage, cmpCwatch, cmpCads).rpm)">$0.22</output></div>
+          <div class="flex justify-between" style="color:var(--color-primary)"><span class="text-[11px] font-bold">Tier</span><output id="cmpCtier" class="font-bold"><span class="tier-badge" :style="getTier(cmpCviews).style" x-text="getTier(cmpCviews).name" style="background:color-mix(in oklab,var(--color-warning) 20%,transparent);color:var(--color-warning)">Mid</span></output></div>
         </div>
       </div>
     </div>
@@ -340,159 +398,260 @@ table.schedule tr:last-child td{border-bottom:none;font-weight:700}
 </div>
 
 {% include "components/ymyl_disclaimer.html" %}
+
 <script nonce="{{ nonce }}">
-(function(){'use strict';
+window.youtubeCalculator = function() {
+function youtubeCalculator() {
+  var niches = {
+    gaming: {cpm: 3, e: 6, w: 5, a: 3},
+    education: {cpm: 10, e: 5, w: 6, a: 3},
+    tech: {cpm: 12, e: 4, w: 5, a: 3},
+    finance: {cpm: 20, e: 3, w: 5, a: 4},
+    entertainment: {cpm: 2, e: 4, w: 3, a: 2},
+    music: {cpm: 1.5, e: 5, w: 3, a: 1},
+    vlogging: {cpm: 5, e: 6, w: 4, a: 2},
+    travel: {cpm: 6, e: 5, w: 4, a: 2},
+    food: {cpm: 8, e: 6, w: 5, a: 3},
+    sports: {cpm: 4, e: 4, w: 4, a: 2},
+    news: {cpm: 8, e: 3, w: 3, a: 2},
+    diy: {cpm: 9, e: 5, w: 6, a: 3},
+    beauty: {cpm: 7, e: 6, w: 4, a: 2},
+    fitness: {cpm: 8, e: 5, w: 5, a: 3}
+  };
 
-var niches={gaming:{cpm:3,e:6,w:5,a:3},education:{cpm:10,e:5,w:6,a:3},tech:{cpm:12,e:4,w:5,a:3},finance:{cpm:20,e:3,w:5,a:4},entertainment:{cpm:2,e:4,w:3,a:2},music:{cpm:1.5,e:5,w:3,a:1},vlogging:{cpm:5,e:6,w:4,a:2},travel:{cpm:6,e:5,w:4,a:2},food:{cpm:8,e:6,w:5,a:3},sports:{cpm:4,e:4,w:4,a:2},news:{cpm:8,e:3,w:3,a:2},diy:{cpm:9,e:5,w:6,a:3},beauty:{cpm:7,e:6,w:4,a:2},fitness:{cpm:8,e:5,w:5,a:3}};
+  return {
+    mounted: false,
+    tab: 'revenue',
+    revNiche: 'custom',
+    revViews: 100000,
+    revCpm: 2.5,
+    revEngage: 4,
+    revWatch: 4,
+    revAds: 2,
 
-function applyNiche(){
-  var n=document.getElementById('revNiche').value;
-  if(n==='custom'||!niches[n])return;
-  var d=niches[n];
-  document.getElementById('revCpm').value=d.cpm;
-  document.getElementById('revEngage').value=d.e;
-  document.getElementById('revWatch').value=d.w;
-  document.getElementById('revAds').value=d.a;
-  calc();
+    valViews: 100000,
+    valSubs: 5000,
+    valCpm: 2.5,
+    valGrowth: 5,
+
+    grViews: 100000,
+    grRate: 5,
+    grYears: 5,
+    grCpm: 2.5,
+    grNewViews: 4,
+
+    bdMembers: 0,
+    bdSuper: 0,
+    bdMerch: 0,
+    bdAffiliate: 0,
+
+    cmpAviews: 100000, cmpAcpm: 2.5, cmpAengage: 4, cmpAwatch: 4, cmpAads: 2,
+    cmpBviews: 50000, cmpBcpm: 10, cmpBengage: 5, cmpBwatch: 6, cmpBads: 3,
+    cmpCviews: 200000, cmpCcpm: 5, cmpCengage: 6, cmpCwatch: 5, cmpCads: 2,
+
+    init: function() {
+      this.mounted = true;
+    },
+
+    fmt: function(val) {
+      var n = Number(val) || 0;
+      return n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    },
+
+    fmtInt: function(val) {
+      var n = Math.round(Number(val) || 0);
+      return n.toLocaleString('en-US');
+    },
+
+    applyNiche: function() {
+      if (this.revNiche === 'custom' || !niches[this.revNiche]) return;
+      var d = niches[this.revNiche];
+      this.revCpm = d.cpm;
+      this.revEngage = d.e;
+      this.revWatch = d.w;
+      this.revAds = d.a;
+    },
+
+    get monViews() {
+      var v = Number(this.revViews) || 0;
+      var e = Number(this.revEngage) || 0;
+      var w = Number(this.revWatch) || 0;
+      var a = Number(this.revAds) || 0;
+      var monRatio = Math.min(1, w / 8);
+      var adFactor = 1 + Math.min(a - 1, 3) * 0.15;
+      return v * Math.min(1, e / 100) * monRatio * adFactor;
+    },
+
+    get revMonthly() {
+      var c = Number(this.revCpm) || 0;
+      return this.monViews * c / 1000;
+    },
+
+    get revDaily() {
+      return this.revMonthly / 30.4;
+    },
+
+    get revYearly() {
+      return this.revMonthly * 12;
+    },
+
+    get revRpm() {
+      var v = Number(this.revViews) || 0;
+      return v > 0 ? (this.revMonthly / v * 1000) : 0;
+    },
+
+    get revEffCpm() {
+      return this.monViews > 0 ? (this.revMonthly / this.monViews * 1000) : 0;
+    },
+
+    get tierName() {
+      var v = Number(this.revViews) || 0;
+      if (v >= 5000000) return 'Mega';
+      if (v >= 500000) return 'Large';
+      if (v >= 50000) return 'Mid';
+      return 'Growing';
+    },
+
+    get tierStyle() {
+      var v = Number(this.revViews) || 0;
+      if (v >= 5000000) return 'background:color-mix(in oklab,var(--color-success) 20%,transparent);color:var(--color-success)';
+      if (v >= 500000) return 'background:color-mix(in oklab,var(--color-primary) 20%,transparent);color:var(--color-primary)';
+      if (v >= 50000) return 'background:color-mix(in oklab,var(--color-warning) 20%,transparent);color:var(--color-warning)';
+      return 'background:color-mix(in oklab,var(--color-info) 20%,transparent);color:var(--color-info)';
+    },
+
+    // Valuation
+    get valMonthly() {
+      var vv = Number(this.valViews) || 0;
+      var vc = Number(this.valCpm) || 0;
+      return vv * vc / 1000;
+    },
+
+    get valWorth() {
+      var vg = Number(this.valGrowth) || 0;
+      var vMult = 12 + Math.min(vg * 0.5, 24);
+      return this.valMonthly * vMult;
+    },
+
+    get valYearly() {
+      return this.valMonthly * 12;
+    },
+
+    get valSponsor() {
+      var vv = Number(this.valViews) || 0;
+      return vv > 0 ? Math.max(50, Math.round(vv * 0.002)) : 0;
+    },
+
+    get valBrand() {
+      var vv = Number(this.valViews) || 0;
+      return vv > 0 ? Math.max(100, Math.round(vv * 0.01)) : 0;
+    },
+
+    // Growth
+    get growthRows() {
+      var gv = Number(this.grViews) || 0;
+      var gr = Number(this.grRate) || 0;
+      var gy = Math.max(1, Math.min(20, Number(this.grYears) || 1));
+      var gc = Number(this.grCpm) || 0;
+      var rows = [];
+      var cumRev = 0;
+      var mv = gv;
+      var mr = gv * gc / 1000;
+
+      for (var y = 1; y <= gy; y++) {
+        var yrViews = mv * 12;
+        var yrRev = mv * gc / 1000 * 12;
+        cumRev += yrRev;
+        rows.push({
+          year: y,
+          mv: mv,
+          yrViews: yrViews,
+          mr: mr,
+          yrRev: yrRev,
+          cumRev: cumRev
+        });
+        mv *= (1 + gr / 100);
+        mr = mv * gc / 1000;
+      }
+      return rows;
+    },
+
+    get growthSummary() {
+      var gv = Number(this.grViews) || 0;
+      var gr = Number(this.grRate) || 0;
+      var gy = Math.max(1, Math.min(20, Number(this.grYears) || 1));
+      var gc = Number(this.grCpm) || 0;
+      var summary = {};
+      var cumRev = 0;
+      var mv = gv;
+
+      for (var y = 1; y <= Math.max(gy, 5); y++) {
+        cumRev += mv * gc / 1000 * 12;
+        if (y === 1 || y === 3 || y === 5) {
+          summary[y] = cumRev;
+        }
+        mv *= (1 + gr / 100);
+      }
+      return summary;
+    },
+
+    // Breakdown
+    get bdTotal() {
+      var mem = Number(this.bdMembers) || 0;
+      var sup = Number(this.bdSuper) || 0;
+      var mer = Number(this.bdMerch) || 0;
+      var aff = Number(this.bdAffiliate) || 0;
+      return this.revMonthly + mem + sup + mer + aff;
+    },
+
+    get bdShareText() {
+      var tot = this.bdTotal;
+      return tot > 0 ? (this.revMonthly / tot * 100).toFixed(1) + '%' : '0.0%';
+    },
+
+    getShare: function(amount) {
+      var tot = this.bdTotal;
+      var a = Number(amount) || 0;
+      return tot > 0 ? (a / tot * 100).toFixed(1) : '0.0';
+    },
+
+    // Compare
+    cmpCalc: function(v, c, e, w, a) {
+      var views = Number(v) || 0;
+      var cpm = Number(c) || 0;
+      var eng = Number(e) || 0;
+      var wt = Number(w) || 0;
+      var pods = Number(a) || 0;
+      var monRatio = Math.min(1, wt / 8);
+      var adFactor = 1 + Math.min(pods - 1, 3) * 0.15;
+      var monV = views * Math.min(1, eng / 100) * monRatio * adFactor;
+      var rev = monV * cpm / 1000;
+      var rpm = views > 0 ? (rev / views * 1000) : 0;
+      return { rev: rev, rpm: rpm };
+    },
+
+    getTier: function(v) {
+      var views = Number(v) || 0;
+      if (views >= 5000000) return { name: 'Mega', style: 'background:color-mix(in oklab,var(--color-success) 20%,transparent);color:var(--color-success)' };
+      if (views >= 500000) return { name: 'Large', style: 'background:color-mix(in oklab,var(--color-primary) 20%,transparent);color:var(--color-primary)' };
+      if (views >= 50000) return { name: 'Mid', style: 'background:color-mix(in oklab,var(--color-warning) 20%,transparent);color:var(--color-warning)' };
+      return { name: 'Growing', style: 'background:color-mix(in oklab,var(--color-info) 20%,transparent);color:var(--color-info)' };
+    }
+  };
 }
 
-function calc(){
-  // Revenue tab
-  var v=parseFloat(document.getElementById('revViews').value)||0;
-  var c=parseFloat(document.getElementById('revCpm').value)||0;
-  var e=parseFloat(document.getElementById('revEngage').value)||0;
-  var w=parseFloat(document.getElementById('revWatch').value)||0;
-  var a=parseFloat(document.getElementById('revAds').value)||0;
-  var monRatio=Math.min(1,w/8),adFactor=1+Math.min(a-1,3)*0.15;
-  var monViews=v*Math.min(1,e/100)*monRatio*adFactor;
-  var rev=monViews*c/1000, daily=rev/30.4, yr=rev*12;
-  document.getElementById('revDaily').textContent='$'+fmt(rev/30.4);
-  document.getElementById('revMonthly').textContent='$'+fmt(rev);
-  document.getElementById('revYearly').textContent='$'+fmt(rev*12);
-  var rpm=v>0?rev/v*1000:0,effCpm=monViews>0?rev/monViews*1000:0;
-  document.getElementById('revRpm').textContent='$'+fmt(rpm);
-  document.getElementById('revEffCpm').textContent='$'+fmt(effCpm);
-  var ti=document.getElementById('revTier');var tierHtml='';
-  if(v>=5000000){tierHtml='<span class="tier-badge" style="background:color-mix(in oklab,var(--color-success) 20%,transparent);color:var(--color-success)">Mega</span>';}
-  else if(v>=500000){tierHtml='<span class="tier-badge" style="background:color-mix(in oklab,var(--color-primary) 20%,transparent);color:var(--color-primary)">Large</span>';}
-  else if(v>=50000){tierHtml='<span class="tier-badge" style="background:color-mix(in oklab,var(--color-warning) 20%,transparent);color:var(--color-warning)">Mid</span>';}
-  else{tierHtml='<span class="tier-badge" style="background:color-mix(in oklab,var(--color-info) 20%,transparent);color:var(--color-info)">Growing</span>';}
-  ti.innerHTML=tierHtml;
-
-  // Value tab
-  var vv=parseFloat(document.getElementById('valViews').value)||0;
-  var vs=parseFloat(document.getElementById('valSubs').value)||0;
-  var vc=parseFloat(document.getElementById('valCpm').value)||0;
-  var vg=parseFloat(document.getElementById('valGrowth').value)||0;
-  var vRev=vv*vc/1000,vMult=12+Math.min(vg*0.5,24);
-  document.getElementById('valWorth').textContent='$'+fmt(vRev*vMult);
-  document.getElementById('valMonthly').textContent='$'+fmt(vRev);
-  document.getElementById('valYearly').textContent='$'+fmt(vRev*12);
-  var spon=vv>0?Math.max(50,Math.round(vv*0.002)):0;
-  var brand=vv>0?Math.max(100,Math.round(vv*0.01)):0;
-  document.getElementById('valSponsor').textContent='$'+spon.toLocaleString('en-US');
-  document.getElementById('valBrand').textContent='$'+brand.toLocaleString('en-US');
-  document.getElementById('valRpm').textContent='$'+fmt(vc);
-
-  // Growth tab
-  var gv=parseFloat(document.getElementById('grViews').value)||0;
-  var gr=parseFloat(document.getElementById('grRate').value)||0;
-  var gy=parseFloat(document.getElementById('grYears').value)||1;
-  var gc=parseFloat(document.getElementById('grCpm').value)||0;
-  var gn=parseFloat(document.getElementById('grNewViews').value)||1;
-  var html='',cumRev=0,mv=gv,mr=gv*gc/1000;
-  for(var y=1;y<=gy;y++){
-    var yrViews=mv*12,yrRev=mv*gc/1000*12;
-    cumRev+=yrRev;
-    html+='<tr><td>'+y+'</td><td>$'+fmt(mv)+'</td><td>$'+fmt(yrViews)+'</td><td>$'+fmt(mr)+'</td><td>$'+fmt(yrRev)+'</td><td>$'+fmt(cumRev)+'</td></tr>';
-    mv*=1+gr/100;mr=mv*gc/1000;
-  }
-  document.getElementById('grBody').innerHTML=html;
-  var gData=[];
-  mv=gv;cumRev=0;
-  for(var y=1;y<=Math.max(gy,5);y++){
-    cumRev+=mv*gc/1000*12;
-    if(y===1||y===3||y===5)gData[y]=cumRev;
-    mv*=1+gr/100;
-  }
-  document.getElementById('grY1').textContent='$'+fmt(gData[1]||0);
-  document.getElementById('grY3').textContent='$'+fmt(gData[3]||0);
-  document.getElementById('grY5').textContent='$'+fmt(gData[5]||0);
-
-  // Breakdown tab
-  calcBreakdown(rev);
-
-  // Compare tab
-  calcCompare();
-}
-
-function fmt(v){return v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
-
-function calcBreakdown(adRev){
-  var mem=parseFloat(document.getElementById('bdMembers').value)||0;
-  var sup=parseFloat(document.getElementById('bdSuper').value)||0;
-  var mer=parseFloat(document.getElementById('bdMerch').value)||0;
-  var aff=parseFloat(document.getElementById('bdAffiliate').value)||0;
-  var src=[adRev,mem,sup,mer,aff];var total=0;
-  for(var i=0;i<src.length;i++)total+=src[i];
-  document.getElementById('bdAdRev').textContent='$'+fmt(adRev);
-  document.getElementById('bdTotal').textContent='$'+fmt(total);
-  document.getElementById('bdYearly').textContent='$'+fmt(total*12);
-  document.getElementById('bdShare').textContent=total>0?(adRev/total*100).toFixed(1)+'%':'0%';
-  for(var i=0;i<5;i++){
-    document.getElementById('bdPct'+i).textContent=total>0?(src[i]/total*100).toFixed(1)+'%':'0%';
-    document.getElementById('bdBar'+i).style.width=total>0?(src[i]/total*100)+'%':'0%';
-  }
-}
-
-function calcCompare(){
-  var ids=['A','B','C'];
-  for(var i=0;i<ids.length;i++){
-    var id=ids[i];
-    var v=parseFloat(document.getElementById('cmp'+id+'views').value)||0;
-    var c=parseFloat(document.getElementById('cmp'+id+'cpm').value)||0;
-    var e=parseFloat(document.getElementById('cmp'+id+'engage').value)||0;
-    var w=parseFloat(document.getElementById('cmp'+id+'watch').value)||0;
-    var a=parseFloat(document.getElementById('cmp'+id+'ads').value)||0;
-    var monRatio=Math.min(1,w/8),adFactor=1+Math.min(a-1,3)*0.15;
-    var monV=v*Math.min(1,e/100)*monRatio*adFactor;
-    var rev=monV*c/1000,rpm=v>0?rev/v*1000:0;
-    document.getElementById('cmp'+id+'rev').textContent='$'+fmt(rev);
-    document.getElementById('cmp'+id+'rpm').textContent='$'+fmt(rpm);
-    var ti=document.getElementById('cmp'+id+'tier');var tHtml='';
-    if(v>=5000000){tHtml='<span class="tier-badge" style="background:color-mix(in oklab,var(--color-success) 20%,transparent);color:var(--color-success)">Mega</span>';}
-    else if(v>=500000){tHtml='<span class="tier-badge" style="background:color-mix(in oklab,var(--color-primary) 20%,transparent);color:var(--color-primary)">Large</span>';}
-    else if(v>=50000){tHtml='<span class="tier-badge" style="background:color-mix(in oklab,var(--color-warning) 20%,transparent);color:var(--color-warning)">Mid</span>';}
-    else{tHtml='<span class="tier-badge" style="background:color-mix(in oklab,var(--color-info) 20%,transparent);color:var(--color-info)">Growing</span>';}
-    ti.innerHTML=tHtml;
-  }
-}
-
-document.getElementById('revNiche').addEventListener('change',applyNiche);
-
-var ids=['revViews','revCpm','revEngage','revWatch','revAds',
-         'valViews','valSubs','valCpm','valGrowth',
-         'grViews','grRate','grYears','grCpm','grNewViews',
-         'bdMembers','bdSuper','bdMerch','bdAffiliate'];
-for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.addEventListener('input',calc);}
-
-var cmpIds=['A','B','C'];var cmpSufs=['views','cpm','engage','watch','ads'];
-for(var i=0;i<cmpIds.length;i++){for(var j=0;j<cmpSufs.length;j++){var e=document.getElementById('cmp'+cmpIds[i]+cmpSufs[j]);if(e)e.addEventListener('input',calcCompare);}}
-
-var tabs=document.querySelectorAll('.tab-btn');
-for(var i=0;i<tabs.length;i++){
-  tabs[i].addEventListener('click',function(){
-    var t=this.getAttribute('data-tab');
-    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');b.setAttribute('aria-selected','false');});
-    this.classList.add('active');this.setAttribute('aria-selected','true');
-    document.querySelectorAll('.tab-content').forEach(function(c){c.classList.add('hidden');c.setAttribute('aria-hidden','true');});
-    var p=document.getElementById('tab-'+t);
-    if(p){p.classList.remove('hidden');p.setAttribute('aria-hidden','false');}
-  });
-}
-
-calc();
-})();
+  return {
+    init: function() {
+      if (typeof calc === 'function') calc();
+      else if (typeof generate === 'function') generate();
+      else if (typeof gen === 'function') gen();
+      else if (typeof render === 'function') render();
+      else if (typeof update === 'function') update();
+      else if (typeof calculate === 'function') calculate();
+      else if (typeof build === 'function') build();
+    }
+  };
+};
 </script>
 
 {{ tool_section_end() }}

@@ -1,0 +1,814 @@
+"""Crypto prediction and trend analysis service (async, dependency-gated)."""
+
+import asyncio
+import concurrent.futures
+import contextlib
+import copy
+import json
+import logging
+import math
+import re
+import threading
+from datetime import UTC, datetime, timedelta
+from typing import Any
+
+from django.core.cache import cache
+from django.conf import settings
+from apps.core.exceptions import ServiceError
+from apps.core.cache import get_cache
+
+logger = logging.getLogger(__name__)
+
+# Must match the route-level pattern in app/api/routes/tools_crypto.py
+# (digits are legitimate: e.g. 1000SATS-style symbols).
+_SYMBOL_RE = re.compile(r"^[A-Z0-9]{2,10}-[A-Z0-9]{2,10}$")
+
+_SPOT_CACHE_KEY = "cache:crypto:spot_rates"
+_SPOT_CACHE_TTL = 60
+
+# CoinGecko id -> display symbol. Keep the list small and stable so the
+# endpoint is predictable and cacheable.
+_SPOT_COINS: dict[str, str] = {
+    "bitcoin": "BTC",
+    "ethereum": "ETH",
+    "solana": "SOL",
+    "binancecoin": "BNB",
+    "ripple": "XRP",
+    "dogecoin": "DOGE",
+    "cardano": "ADA",
+}
+_SPOT_BINANCE_PAIRS: dict[str, str] = {
+    "BTC": "BTCUSDT",
+    "ETH": "ETHUSDT",
+    "SOL": "SOLUSDT",
+    "BNB": "BNBUSDT",
+    "XRP": "XRPUSDT",
+    "DOGE": "DOGEUSDT",
+    "ADA": "ADAUSDT",
+}
+_SPOT_CRYPTO_FIATS = ("usd", "eur", "inr", "gbp", "cad", "aud")
+_SPOT_FX_CODES = ("EUR", "GBP", "JPY", "CNY", "INR", "KRW", "CAD", "AUD", "CHF", "SGD", "BRL", "MXN")
+
+_SPOT_LAST_GOOD: dict[str, Any] | None = None
+_SPOT_LAST_GOOD_LOCK = threading.Lock()
+_SPOT_LOCKS: dict[int, asyncio.Lock] = {}
+_SPOT_LOCKS_LOCK = threading.Lock()
+
+
+def _get_spot_lock() -> asyncio.Lock:
+    """Return an asyncio lock scoped to the current event loop."""
+    loop_id = id(asyncio.get_running_loop())
+    with _SPOT_LOCKS_LOCK:
+        lock = _SPOT_LOCKS.get(loop_id)
+        if lock is None:
+            lock = asyncio.Lock()
+            _SPOT_LOCKS[loop_id] = lock
+            if len(_SPOT_LOCKS) > 8:
+                _SPOT_LOCKS.pop(next(iter(_SPOT_LOCKS)), None)
+        return lock
+
+
+def _iso_utc(moment: datetime | None = None) -> str:
+    value = moment or datetime.now(UTC)
+    return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _positive_float(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number) or number <= 0:
+        return None
+    return number
+
+
+def _age_seconds(timestamp: str | None) -> int:
+    if not timestamp:
+        return 0
+    try:
+        parsed = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=UTC)
+        return max(0, int((datetime.now(UTC) - parsed.astimezone(UTC)).total_seconds()))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _http_get_json(url: str, *, params: dict[str, Any] | None = None, timeout: float = 6.0) -> Any:
+    """Small testable HTTP helper. Raises on non-2xx responses."""
+    import requests  # noqa: PLC0415
+
+    response = requests.get(
+        url,
+        params=params,
+        timeout=timeout,
+        headers={"User-Agent": "StoryBrainAI/1.0 (+https://www.storybrainai.com)"},
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def _fetch_fiat_cross_sync() -> dict[str, Any] | None:
+    """Fetch ECB reference rates via Frankfurter. Returns None on failure."""
+    payload = _http_get_json(
+        "https://api.frankfurter.app/latest",
+        params={"from": "USD", "to": ",".join(_SPOT_FX_CODES)},
+        timeout=5.0,
+    )
+    if not isinstance(payload, dict):
+        return None
+    cross: dict[str, float] = {"USD": 1.0}
+    raw_rates = payload.get("rates")
+    if isinstance(raw_rates, dict):
+        allowed = set(_SPOT_FX_CODES)
+        for code, value in raw_rates.items():
+            code_upper = str(code).upper()
+            number = _positive_float(value)
+            if code_upper in allowed and number is not None:
+                cross[code_upper] = number
+    if len(cross) < 2:
+        return None
+    source_date = payload.get("date")
+    return {
+        "rates": cross,
+        "source": "frankfurter_ecb",
+        "source_label": "ECB reference rates via Frankfurter",
+        "date": str(source_date) if source_date else None,
+        "timestamp": f"{source_date}T00:00:00Z" if source_date else None,
+    }
+
+
+def _fetch_coingecko_sync() -> dict[str, Any] | None:
+    payload = _http_get_json(
+        "https://api.coingecko.com/api/v3/simple/price",
+        params={
+            "ids": ",".join(_SPOT_COINS),
+            "vs_currencies": ",".join(_SPOT_CRYPTO_FIATS),
+            "include_last_updated_at": "true",
+        },
+        timeout=6.0,
+    )
+    if not isinstance(payload, dict):
+        return None
+
+    rates: dict[str, dict[str, float]] = {}
+    latest_epoch = 0
+    for coin_id, symbol in _SPOT_COINS.items():
+        entry = payload.get(coin_id)
+        if not isinstance(entry, dict):
+            continue
+        row: dict[str, float] = {}
+        for currency in _SPOT_CRYPTO_FIATS:
+            number = _positive_float(entry.get(currency))
+            if number is not None:
+                row[currency.upper()] = number
+        if "USD" not in row:
+            continue
+        rates[symbol] = row
+        with contextlib.suppress(TypeError, ValueError):
+            latest_epoch = max(latest_epoch, int(entry.get("last_updated_at") or 0))
+    if not rates:
+        return None
+    timestamp = _iso_utc(datetime.fromtimestamp(latest_epoch, tz=UTC)) if latest_epoch > 0 else _iso_utc()
+    return {
+        "rates": rates,
+        "source": "coingecko",
+        "source_label": "CoinGecko public API",
+        "timestamp": timestamp,
+        "partial": len(rates) < len(_SPOT_COINS),
+    }
+
+
+def _fetch_binance_sync(fiat_cross: dict[str, float]) -> dict[str, Any] | None:
+    payload = _http_get_json(
+        "https://api.binance.com/api/v3/ticker/price",
+        params={"symbols": json.dumps(list(_SPOT_BINANCE_PAIRS.values()), separators=(",", ":"))},
+        timeout=6.0,
+    )
+    if not isinstance(payload, list):
+        return None
+    raw = {
+        str(item.get("symbol")): item.get("price")
+        for item in payload
+        if isinstance(item, dict) and item.get("symbol")
+    }
+    rates: dict[str, dict[str, float]] = {}
+    for symbol, pair in _SPOT_BINANCE_PAIRS.items():
+        usd_price = _positive_float(raw.get(pair))
+        if usd_price is None:
+            continue
+        row = {"USD": usd_price}
+        for code, multiplier in fiat_cross.items():
+            if code == "USD":
+                continue
+            converted = _positive_float(usd_price * multiplier)
+            if converted is not None:
+                row[code] = converted
+        rates[symbol] = row
+    if not rates:
+        return None
+    return {
+        "rates": rates,
+        "source": "binance",
+        "source_label": "Binance public ticker (USDT pairs)",
+        "timestamp": _iso_utc(),
+        "partial": len(rates) < len(_SPOT_BINANCE_PAIRS),
+    }
+
+
+def _fetch_spot_rates_sync() -> dict[str, Any]:
+    """Fetch reference rates from public APIs. Never invents fallback prices."""
+    fiat_cross: dict[str, float] = {"USD": 1.0}
+    fiat_meta: dict[str, Any] | None = None
+    fiat_error: str | None = None
+    try:
+        fiat_meta = _fetch_fiat_cross_sync()
+    except Exception as exc:  # noqa: BLE001 - upstream failures are expected
+        fiat_error = type(exc).__name__
+        logger.warning("Frankfurter/ECB reference-rate fetch failed: %s", exc)
+    if fiat_meta:
+        fiat_cross = dict(fiat_meta["rates"])
+    elif fiat_error:
+        logger.info("Proceeding without ECB fiat cross-rates (%s)", fiat_error)
+
+    crypto_meta: dict[str, Any] | None = None
+    errors: list[str] = []
+    try:
+        crypto_meta = _fetch_coingecko_sync()
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"coingecko:{type(exc).__name__}")
+        logger.warning("CoinGecko spot-rate fetch failed: %s", exc)
+
+    if crypto_meta is None:
+        try:
+            crypto_meta = _fetch_binance_sync(fiat_cross)
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"binance:{type(exc).__name__}")
+            logger.warning("Binance spot-rate fallback failed: %s", exc)
+
+    if crypto_meta is None:
+        return {
+            "status": "unavailable",
+            "source": None,
+            "source_label": "No live source available",
+            "timestamp": _iso_utc(),
+            "timestamp_epoch": int(datetime.now(UTC).timestamp()),
+            "rates": {},
+            "fiat_cross": fiat_cross,
+            "fiat_source": fiat_meta["source"] if fiat_meta else None,
+            "fiat_source_label": fiat_meta["source_label"] if fiat_meta else None,
+            "fiat_date": fiat_meta.get("date") if fiat_meta else None,
+            "fiat_timestamp": fiat_meta.get("timestamp") if fiat_meta else None,
+            "partial": True,
+            "cache_hit": False,
+            "age_seconds": 0,
+            "note": "Live crypto and fiat feeds could not be reached. Use manual rate mode; no estimated prices are substituted.",
+            "errors": errors,
+        }
+
+    has_fiat_cross = len(fiat_cross) > 1
+    partial = bool(crypto_meta.get("partial")) or not has_fiat_cross
+    notes: list[str] = []
+    if not has_fiat_cross:
+        notes.append("ECB fiat cross-rates are unavailable; fiat-to-fiat conversions are disabled.")
+    if crypto_meta.get("partial"):
+        notes.append("Some tracked assets are missing from the upstream response.")
+    if errors:
+        notes.append("A primary data source failed and a fallback was used.")
+
+    return {
+        "status": "live",
+        "source": crypto_meta["source"],
+        "source_label": crypto_meta["source_label"],
+        "timestamp": crypto_meta["timestamp"],
+        "timestamp_epoch": int(datetime.now(UTC).timestamp()),
+        "rates": crypto_meta["rates"],
+        "fiat_cross": fiat_cross,
+        "fiat_source": fiat_meta["source"] if fiat_meta else None,
+        "fiat_source_label": fiat_meta["source_label"] if fiat_meta else None,
+        "fiat_date": fiat_meta.get("date") if fiat_meta else None,
+        "fiat_timestamp": fiat_meta.get("timestamp") if fiat_meta else None,
+        "partial": partial,
+        "cache_hit": False,
+        "age_seconds": _age_seconds(crypto_meta["timestamp"]),
+        "note": " ".join(notes) if notes else None,
+        "errors": errors,
+    }
+
+_prophet_semaphores: dict[int, asyncio.Semaphore] = {}
+_prophet_sem_lock = __import__("threading").Lock()
+_ml_executor = concurrent.futures.ThreadPoolExecutor(max_workers=10, thread_name_prefix="ml_worker")
+
+
+def _get_prophet_semaphore() -> asyncio.Semaphore:
+    loop_id = id(asyncio.get_running_loop())
+    with _prophet_sem_lock:
+        sem = _prophet_semaphores.get(loop_id)
+        if sem is None:
+            sem = asyncio.Semaphore(2)
+            _prophet_semaphores[loop_id] = sem
+            if len(_prophet_semaphores) > 8:
+                _prophet_semaphores.pop(next(iter(_prophet_semaphores)), None)
+        return sem
+
+
+class CryptoService:
+    def __init__(self, settings: Settings):
+        self.settings = settings
+        self._pd = None
+
+    def _get_pd(self) -> Any:
+        if self._pd is None:
+            try:
+                import pandas as pd
+
+                self._pd = pd
+            except Exception as e:
+                msg = f"pandas library is not available: {str(e)}"
+                raise ServiceError(msg) from e
+        return self._pd
+
+    def _get_prophet(self) -> Any | None:
+        """Lazy import Prophet; return None if not installed."""
+        try:
+            from prophet import Prophet  # noqa: PLC0415
+
+            return Prophet
+        except Exception:
+            return None
+
+    async def _run_prophet_async(self, func: Any) -> Any | None:
+        """Run sync Prophet fn in executor with 90s timeout + per-loop semaphore."""
+        loop = asyncio.get_running_loop()
+        sem = _get_prophet_semaphore()
+        async with sem:
+            try:
+                return await asyncio.wait_for(loop.run_in_executor(_ml_executor, func), timeout=90)
+            except TimeoutError:
+                logger.warning("Prophet model timed out after 90s — degrading")
+                return None
+
+    async def predict(self, symbol: str = "BTC-USD") -> dict[str, Any]:
+        symbol_norm = (symbol or "BTC-USD").strip().upper()
+        cache_key = f"cache:predict:{symbol_norm.lower()}"
+        cache = get_cache()
+        cached = await cache.async_get(cache_key)
+        if cached:
+            return cached
+
+        result = await self._run_analysis(symbol_norm, period="1y", lookback=20, rust_epochs=150)
+        await cache.async_set(cache_key, result, ttl=300)
+        return result
+
+    async def analyze_trend(self, symbol: str = "BTC-USD") -> dict[str, Any]:
+        symbol_norm = (symbol or "BTC-USD").strip().upper()
+        cache_key = f"cache:trend:{symbol_norm.lower()}"
+        cache = get_cache()
+        cached = await cache.async_get(cache_key)
+        if cached:
+            return cached
+
+        result = await self._run_analysis(symbol_norm, period="4mo", lookback=15, rust_epochs=100, include_ta=True)
+        await cache.async_set(cache_key, result, ttl=300)
+        return result
+
+    async def _run_analysis(
+        self,
+        symbol: str,
+        period: str,
+        lookback: int,
+        rust_epochs: int,
+        include_ta: bool = False,
+    ) -> dict[str, Any]:
+        symbol = (symbol or "").strip().upper() or "BTC-USD"
+        if not _SYMBOL_RE.match(symbol):
+            msg = f"Invalid symbol format: {symbol}"
+            raise ServiceError(msg)
+        loop = asyncio.get_running_loop()
+
+        def _download():
+            import datetime
+
+            import requests
+
+            pd = self._get_pd()
+
+            # 1. Try CoinGecko (Never blocks datacenters)
+            coin_map = {"BTC-USD": "bitcoin", "ETH-USD": "ethereum", "SOL-USD": "solana"}
+            if symbol in coin_map:
+                try:
+                    r = requests.get(
+                        f"https://api.coingecko.com/api/v3/coins/{coin_map[symbol]}/market_chart?vs_currency=usd&days=365&interval=daily",
+                        timeout=10,
+                    )
+                    if r.status_code == 200:
+                        data = r.json()
+                        prices = data.get("prices", [])
+                        if prices:
+                            dates = [datetime.datetime.fromtimestamp(x[0] / 1000, tz=datetime.UTC) for x in prices]
+                            closes = [float(x[1]) for x in prices]
+                            return pd.DataFrame({"Close": closes}, index=pd.DatetimeIndex(dates))
+                except Exception:
+                    pass
+
+            # 2. Try Binance & Binance US
+            binance_sym = symbol.replace("-USD", "USDT")
+            urls = [
+                f"https://api.binance.com/api/v3/klines?symbol={binance_sym}&interval=1d&limit=365",
+                f"https://api.binance.us/api/v3/klines?symbol={binance_sym}&interval=1d&limit=365",
+            ]
+
+            last_error = ""
+            for url in urls:
+                try:
+                    r = requests.get(url, timeout=10)
+                    if r.status_code == 200:
+                        data = r.json()
+                        if data:
+                            dates = [datetime.datetime.fromtimestamp(x[0] / 1000, tz=datetime.UTC) for x in data]
+                            closes = [float(x[4]) for x in data]
+                            return pd.DataFrame({"Close": closes}, index=pd.DatetimeIndex(dates))
+                except Exception as e:
+                    last_error = str(e)
+
+            msg = f"Symbol '{symbol}' not found or blocked by exchanges. Details: {last_error}"
+            raise ServiceError(msg)
+
+        try:
+            df = await asyncio.wait_for(loop.run_in_executor(_ml_executor, _download), timeout=30)
+        except TimeoutError:
+            raise ServiceError("Market data download timed out after 30 seconds") from None
+        df = df.dropna()
+        if df.empty:
+            msg = f"No valid data after cleaning for symbol '{symbol}'"
+            raise ServiceError(msg)
+        pd = self._get_pd()
+
+        close_prices = df["Close"][symbol].values if isinstance(df.columns, pd.MultiIndex) else df["Close"].values
+
+        timestamps = df.index.strftime("%Y-%m-%d").tolist()
+        min_points = 50 if include_ta else 30
+        if len(close_prices) < min_points:
+            msg = f"Not enough data for symbol '{symbol}'"
+            raise ServiceError(msg)
+
+        future_days = 7
+
+        def _run_prophet():
+            prophet_mod = self._get_prophet()
+            if prophet_mod is None:
+                return None
+            try:
+                prophet_df = pd.DataFrame(
+                    {
+                        "ds": pd.to_datetime(df.index.tz_localize(None) if df.index.tz is not None else df.index),
+                        "y": close_prices,
+                    }
+                )
+                m = prophet_mod(daily_seasonality=False, yearly_seasonality=False, weekly_seasonality=True)
+                m.fit(prophet_df)
+                future = m.make_future_dataframe(periods=future_days)
+                forecast = m.predict(future)
+                return forecast["yhat"].tail(future_days).values.tolist()
+            except Exception:
+                logger.warning("Prophet model fitting failed for %s — degrading", symbol)
+                return None
+
+        def _run_rust():
+            # PURE PYTHON FALLBACK: No Rust/C++ required!
+            import math
+            import random
+
+            prices = close_prices.tolist()
+            n = len(prices)
+            if n < lookback:
+                return None
+
+            p_min, p_max = min(prices), max(prices)
+            if p_max - p_min < 1e-6:
+                return [prices[-1]] * future_days
+
+            scaled = [(p - p_min) / (p_max - p_min) for p in prices]
+            x_train = [scaled[i - lookback : i] for i in range(lookback, n)]
+            y_train = [scaled[i] for i in range(lookback, n)]
+
+            hidden_size = 50
+            w1 = [[random.uniform(-0.5, 0.5) for _ in range(lookback)] for _ in range(hidden_size)]
+            b1 = [random.uniform(-0.5, 0.5) for _ in range(hidden_size)]
+            w2 = [random.uniform(-0.5, 0.5) for _ in range(hidden_size)]
+            b2 = 0.0
+
+            lr = 0.01
+            for _ in range(min(10, rust_epochs)):
+                for i in range(len(x_train)):
+                    hidden = [
+                        max(0.0, sum(w1[j][k] * x_train[i][k] for k in range(lookback)) + b1[j])
+                        for j in range(hidden_size)
+                    ]
+                    out = sum(w2[j] * hidden[j] for j in range(hidden_size)) + b2
+                    out = 1.0 / (1.0 + math.exp(max(-50, min(50, -out))))
+                    err = out - y_train[i]
+                    d_out = 2.0 * err * out * (1.0 - out)
+                    d_w2 = [d_out * h for h in hidden]
+                    d_hidden = [d_out * w2[j] if hidden[j] > 0 else 0.0 for j in range(hidden_size)]
+                    for j in range(hidden_size):
+                        w2[j] -= lr * d_w2[j]
+                        b1[j] -= lr * d_hidden[j]
+                        for k in range(lookback):
+                            w1[j][k] -= lr * d_hidden[j] * x_train[i][k]
+                    b2 -= lr * d_out
+
+            current_seq = scaled[-lookback:]
+            predictions = []
+            clamp_hi = p_max * 10.0 if p_max > 0 else 1000000.0
+
+            for _ in range(future_days):
+                hidden = [
+                    max(0.0, sum(w1[j][k] * current_seq[k] for k in range(lookback)) + b1[j])
+                    for j in range(hidden_size)
+                ]
+                out = sum(w2[j] * hidden[j] for j in range(hidden_size)) + b2
+                out = 1.0 / (1.0 + math.exp(max(-50, min(50, -out))))
+                res = out * (p_max - p_min) + p_min
+                predictions.append(max(0.0, min(res, clamp_hi)))
+                current_seq.pop(0)
+                current_seq.append(out)
+
+            return predictions
+
+        # Belt-and-braces overall timeout: components are individually bounded
+        # (prophet 90s + download 30s), but a stuck executor thread must never
+        # pin the gather forever.
+        try:
+            prophet_preds, rust_preds = await asyncio.wait_for(
+                asyncio.gather(
+                    self._run_prophet_async(_run_prophet),
+                    loop.run_in_executor(_ml_executor, _run_rust),
+                ),
+                timeout=150,
+            )
+        except TimeoutError:
+            raise ServiceError("Model inference timed out after 150 seconds") from None
+
+        last_date = df.index[-1]
+        future_dates = [(last_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, future_days + 1)]
+
+        # Degraded engines return None — normalize to per-date None so zip(strict) never 500s.
+        if not isinstance(prophet_preds, list):
+            prophet_preds = [None] * len(future_dates)
+        if not isinstance(rust_preds, list):
+            rust_preds = [None] * len(future_dates)
+        # Truncate/pad to future_dates length in case an engine returned short list.
+        prophet_preds = list(prophet_preds[: len(future_dates)]) + [None] * max(
+            0, len(future_dates) - len(prophet_preds)
+        )
+        rust_preds = list(rust_preds[: len(future_dates)]) + [None] * max(0, len(future_dates) - len(rust_preds))
+
+        if include_ta:
+            result = await loop.run_in_executor(
+                None,
+                self._build_trend_result,
+                symbol,
+                close_prices,
+                timestamps,
+                future_dates,
+                prophet_preds,
+                rust_preds,
+                df,
+            )
+            return result
+
+        history = [{"date": d, "price": float(p)} for d, p in zip(timestamps, close_prices, strict=True)]
+        future_data = []
+        for date, p_val, r_val in zip(future_dates, prophet_preds, rust_preds, strict=True):
+            entry = {"date": date}
+            if p_val is not None:
+                entry["prophet_price"] = float(p_val)
+            if r_val is not None:
+                entry["rust_price"] = float(r_val)
+            future_data.append(entry)
+
+        result = {"symbol": symbol, "history": history, "predictions": future_data}
+        return result
+
+    def _compute_ta(self, close_prices: Any, df_index: Any) -> Any:
+        pd = self._get_pd()
+        df_ta = pd.DataFrame({"Close": close_prices}, index=df_index)
+
+        df_ta["SMA20"] = df_ta["Close"].rolling(window=20).mean()
+        df_ta["SMA50"] = df_ta["Close"].rolling(window=50).mean()
+
+        delta = df_ta["Close"].diff()
+        gain = delta.where(delta > 0, 0).rolling(window=14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        rs = gain / loss
+        df_ta["RSI"] = 100 - (100 / (1 + rs))
+
+        exp1 = df_ta["Close"].ewm(span=12, adjust=False).mean()
+        exp2 = df_ta["Close"].ewm(span=26, adjust=False).mean()
+        df_ta["MACD"] = exp1 - exp2
+        df_ta["Signal"] = df_ta["MACD"].ewm(span=9, adjust=False).mean()
+        df_ta["MACD_Hist"] = df_ta["MACD"] - df_ta["Signal"]
+        # RSI 0/0 (flat market, gain==0 and loss==0) -> NaN; neutral is 50.
+        try:
+            flat_mask = (gain.fillna(0) == 0) & (loss.fillna(0) == 0)
+            df_ta["RSI"] = df_ta["RSI"].mask(flat_mask, 50)
+        except Exception:
+            logger.exception("Failed to compute RSI flat mask")
+        # Prefer forward/back-fill over zeros to preserve trend continuity.
+        trend_cols = ["SMA20", "SMA50", "MACD", "Signal", "MACD_Hist"]
+        try:
+            df_ta[trend_cols] = df_ta[trend_cols].ffill().bfill().fillna(0)
+            df_ta["RSI"] = df_ta["RSI"].ffill().bfill().fillna(50)
+        except Exception:
+            df_ta = df_ta.fillna(0)
+            try:
+                df_ta.loc[df_ta["RSI"] == 0, "RSI"] = 50
+            except Exception:
+                logger.exception("Failed to fallback RSI to 50")
+
+        return df_ta
+
+    def _build_trend_result(
+        self,
+        symbol: str,
+        close_prices: Any,
+        timestamps: list[str],
+        future_dates: list[str],
+        prophet_preds: list[Any],
+        rust_preds: list[Any],
+        df: Any,
+    ) -> dict[str, Any]:
+        df_ta = self._compute_ta(close_prices, df.index)
+
+        sma20_vals = df_ta["SMA20"].to_numpy()
+        sma50_vals = df_ta["SMA50"].to_numpy()
+        rsi_vals = df_ta["RSI"].to_numpy()
+        macd_vals = df_ta["MACD"].to_numpy()
+        macd_hist_vals = df_ta["MACD_Hist"].to_numpy()
+
+        history = [
+            {
+                "date": timestamps[i],
+                "price": float(close_prices[i]),
+                "sma20": float(sma20_vals[i]),
+                "sma50": float(sma50_vals[i]),
+                "rsi": float(rsi_vals[i]),
+                "macd": float(macd_vals[i]),
+                "macd_hist": float(macd_hist_vals[i]),
+            }
+            for i in range(len(timestamps))
+        ]
+
+        future_data = []
+        _pp = prophet_preds if isinstance(prophet_preds, list) else [None] * len(future_dates)
+        _rp = rust_preds if isinstance(rust_preds, list) else [None] * len(future_dates)
+        _pp = list(_pp[: len(future_dates)]) + [None] * max(0, len(future_dates) - len(_pp))
+        _rp = list(_rp[: len(future_dates)]) + [None] * max(0, len(future_dates) - len(_rp))
+        for d, p, r in zip(future_dates, _pp, _rp, strict=True):
+            entry: dict[str, Any] = {"date": d}
+            if p is not None:
+                with contextlib.suppress(TypeError, ValueError):
+                    entry["prophet_price"] = float(p)
+            if r is not None:
+                with contextlib.suppress(TypeError, ValueError):
+                    entry["rust_price"] = float(r)
+            future_data.append(entry)
+
+        curr_price = float(close_prices[-1])
+        curr_rsi = float(rsi_vals[-1])
+        curr_sma20 = float(sma20_vals[-1])
+        proj_raw = rust_preds[-1] if rust_preds else None
+        try:
+            proj_rs_price = float(proj_raw) if proj_raw is not None else None
+        except (TypeError, ValueError):
+            proj_rs_price = None
+
+        score = 0
+        if curr_rsi < 40:
+            score += 1
+        elif curr_rsi > 70:
+            score -= 1
+
+        if curr_price > curr_sma20:
+            score += 1
+        else:
+            score -= 1
+
+        # Skip projection component when Rust engine degraded (None).
+        if proj_rs_price is not None:
+            if proj_rs_price > curr_price * 1.025:
+                score += 2
+            elif proj_rs_price > curr_price * 1.005:
+                score += 1
+            elif proj_rs_price < curr_price * 0.975:
+                score -= 2
+            elif proj_rs_price < curr_price * 0.995:
+                score -= 1
+
+        if score >= 3:
+            verdict = "Strong Bullish"
+        elif score >= 1:
+            verdict = "Bullish"
+        elif score == 0:
+            verdict = "Neutral"
+        elif score >= -2:
+            verdict = "Bearish"
+        else:
+            verdict = "Strong Bearish"
+
+        return {
+            "symbol": symbol,
+            "verdict": verdict,
+            "score": score,
+            "current_metrics": {"price": curr_price, "rsi": curr_rsi, "sma20": curr_sma20},
+            "history": history,
+            "predictions": future_data,
+        }
+
+    async def get_spot_rates(self) -> dict[str, Any]:
+        """Return cached reference rates with truthful live/stale/unavailable states.
+
+        Design rules:
+        - Never fabricate a price when upstream feeds fail.
+        - CoinGecko is primary; Binance is a fallback for USD/USDT quotes only
+          when real ECB fiat cross-rates are available.
+        - Stale responses reuse a previously verified payload and are labelled.
+        """
+        cache = get_cache()
+        cached = await cache.async_get(_SPOT_CACHE_KEY)
+        if isinstance(cached, dict) and cached.get("status") in {"live", "stale"} and cached.get("rates"):
+            result = copy.deepcopy(cached)
+            result["cache_hit"] = True
+            result["age_seconds"] = _age_seconds(result.get("timestamp"))
+            return result
+
+        async with _get_spot_lock():
+            # Another request may have populated the cache while we waited.
+            cached = await cache.async_get(_SPOT_CACHE_KEY)
+            if isinstance(cached, dict) and cached.get("status") in {"live", "stale"} and cached.get("rates"):
+                result = copy.deepcopy(cached)
+                result["cache_hit"] = True
+                result["age_seconds"] = _age_seconds(result.get("timestamp"))
+                return result
+
+            try:
+                result = await asyncio.wait_for(asyncio.to_thread(_fetch_spot_rates_sync), timeout=20)
+            except TimeoutError:
+                logger.warning("Spot-rate fetch timed out after 20s")
+                result = {
+                    "status": "unavailable",
+                    "source": None,
+                    "source_label": "No live source available",
+                    "timestamp": _iso_utc(),
+                    "rates": {},
+                    "fiat_cross": {"USD": 1.0},
+                    "fiat_source": None,
+                    "fiat_source_label": None,
+                    "partial": True,
+                    "cache_hit": False,
+                    "age_seconds": 0,
+                    "note": "The reference-rate request timed out. Use manual rate mode.",
+                }
+            except Exception:
+                logger.exception("Unexpected spot-rate fetch failure")
+                result = {
+                    "status": "unavailable",
+                    "source": None,
+                    "source_label": "No live source available",
+                    "timestamp": _iso_utc(),
+                    "rates": {},
+                    "fiat_cross": {"USD": 1.0},
+                    "fiat_source": None,
+                    "fiat_source_label": None,
+                    "partial": True,
+                    "cache_hit": False,
+                    "age_seconds": 0,
+                    "note": "The reference-rate request failed. Use manual rate mode.",
+                }
+
+            result["cache_hit"] = False
+
+            if result.get("status") == "live" and result.get("rates"):
+                result["age_seconds"] = _age_seconds(result.get("timestamp"))
+                with _SPOT_LAST_GOOD_LOCK:
+                    global _SPOT_LAST_GOOD
+                    _SPOT_LAST_GOOD = copy.deepcopy(result)
+            elif result.get("status") == "unavailable":
+                with _SPOT_LAST_GOOD_LOCK:
+                    last_good = copy.deepcopy(_SPOT_LAST_GOOD)
+                if last_good and last_good.get("rates"):
+                    last_good["status"] = "stale"
+                    last_good["cache_hit"] = False
+                    last_good["age_seconds"] = _age_seconds(last_good.get("timestamp"))
+                    last_good["note"] = (
+                        "Live feeds could not be reached. Showing the last verified reference rates; "
+                        "they may be outdated and are not a trading quote."
+                    )
+                    result = last_good
+
+            ttl = _SPOT_CACHE_TTL if result.get("status") == "live" else (30 if result.get("status") == "stale" else 15)
+            await cache.async_set(_SPOT_CACHE_KEY, result, ttl=ttl)
+            return result
+

@@ -41,32 +41,32 @@
 {% endblock %}
 {% block content %}
 {{ tool_hero_section("calendar", "Calendar & Days Tool", "DATE", "CALCULATOR", seo_data.description if seo_data else "Calculate exact days between two dates, add or subtract days/weeks/months/years, count business days, and check weekday lookups.") }}
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="dateCalculator()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="dc-card">
       <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("arrow-left-right","w-4 h-4",16) | safe }} Date Calculator</h2>
       <div class="dc-mode mb-3" id="dcMode" role="radiogroup" aria-label="Calculation mode"><button type="button" class="on" data-mode="diff" role="radio" aria-checked="true">Date Diff</button><button type="button" data-mode="shift" role="radio" aria-checked="false">Add/Sub</button><button type="button" data-mode="biz" role="radio" aria-checked="false">Biz Days</button></div>
-      <div id="dcDiff" class="mode-panel">
-        <div class="mb-3"><label class="dc-label" for="dDiffStart">Start Date</label><input type="date" id="dDiffStart" class="dc-input" aria-label="Start date"></div>
-        <div class="mb-3"><label class="dc-label" for="dDiffEnd">End Date</label><input type="date" id="dDiffEnd" class="dc-input" aria-label="End date"></div>
-        <div class="flex items-center gap-2 mb-3"><input type="checkbox" id="dDiffInc" class="toggle toggle-sm" checked><label for="dDiffInc" class="text-xs font-bold tracking-wider uppercase opacity-60">Include End Date</label></div>
-        <div class="dc-presets mb-3" id="dPresets"><button type="button" data-preset="7d">Last 7d</button><button type="button" data-preset="30d">Last 30d</button><button type="button" data-preset="90d">Last 90d</button><button type="button" data-preset="ytd">YTD</button><button type="button" data-preset="this-month">This Month</button><button type="button" data-preset="this-year">This Year</button></div>
+      <div id="dcDiff" class="mode-panel" x-show="mode === 'diff'">
+        <div class="mb-3"><label class="dc-label" for="dDiffStart">Start Date</label><input type="date" id="dDiffStart" x-model="diffStart" @input="render()" class="dc-input" aria-label="Start date"></div>
+        <div class="mb-3"><label class="dc-label" for="dDiffEnd">End Date</label><input type="date" id="dDiffEnd" x-model="diffEnd" @input="render()" class="dc-input" aria-label="End date"></div>
+        <div class="flex items-center gap-2 mb-3"><input type="checkbox" id="dDiffInc" x-model="diffInc" @change="render()" class="toggle toggle-sm" checked><label for="dDiffInc" class="text-xs font-bold tracking-wider uppercase opacity-60">Include End Date</label></div>
+        <div class="dc-presets mb-3" id="dPresets"><button type="button" @click="applyPreset('7d')">Last 7d</button><button type="button" @click="applyPreset('30d')">Last 30d</button><button type="button" @click="applyPreset('90d')">Last 90d</button><button type="button" @click="applyPreset('ytd')">YTD</button><button type="button" @click="applyPreset('this-month')">This Month</button><button type="button" @click="applyPreset('this-year')">This Year</button></div>
       </div>
-      <div id="dcShift" class="mode-panel" hidden>
-        <div class="mb-3"><label class="dc-label" for="dShiftStart">Start Date</label><input type="date" id="dShiftStart" class="dc-input" aria-label="Shift start date"></div>
+      <div id="dcShift" class="mode-panel" x-show="mode === 'shift'">
+        <div class="mb-3"><label class="dc-label" for="dShiftStart">Start Date</label><input type="date" id="dShiftStart" x-model="shiftStart" @input="render()" class="dc-input" aria-label="Shift start date"></div>
         <div class="flex gap-2 mb-3"><button type="button" class="dc-sec on" id="dShiftAdd" data-action="add">+ Add</button><button type="button" class="dc-sec" id="dShiftSub" data-action="sub" aria-pressed="false">− Subtract</button></div>
-        <div class="dc-shift-grid"><div><label class="dc-label">Years</label><input type="number" id="dShiftY" class="dc-input" value="0" min="0"></div><div><label class="dc-label">Months</label><input type="number" id="dShiftM" class="dc-input" value="0" min="0"></div><div><label class="dc-label">Weeks</label><input type="number" id="dShiftW" class="dc-input" value="0" min="0"></div><div><label class="dc-label">Days</label><input type="number" id="dShiftD" class="dc-input" value="0" min="0"></div></div>
+        <div class="dc-shift-grid"><div><label class="dc-label">Years</label><input type="number" id="dShiftY" x-model.number="shiftY" @input="render()" class="dc-input" value="0" min="0"></div><div><label class="dc-label">Months</label><input type="number" id="dShiftM" x-model.number="shiftM" @input="render()" class="dc-input" value="0" min="0"></div><div><label class="dc-label">Weeks</label><input type="number" id="dShiftW" x-model.number="shiftW" @input="render()" class="dc-input" value="0" min="0"></div><div><label class="dc-label">Days</label><input type="number" id="dShiftD" x-model.number="shiftD" @input="render()" class="dc-input" value="0" min="0"></div></div>
       </div>
-      <div id="dcBiz" class="mode-panel" hidden>
-        <div class="mb-3"><label class="dc-label" for="dBizStart">Start Date</label><input type="date" id="dBizStart" class="dc-input" aria-label="Business days start date"></div>
-        <div class="mb-3"><label class="dc-label" for="dBizDays">Business Days to Add</label><input type="number" id="dBizDays" class="dc-input" value="10" min="1"></div>
-        <div class="flex items-center gap-2 mb-3"><input type="checkbox" id="dBizSkipHols" class="toggle toggle-sm" checked><label for="dBizSkipHols" class="text-xs font-bold tracking-wider uppercase opacity-60">Skip Weekends (Sat-Sun)</label></div>
+      <div id="dcBiz" class="mode-panel" x-show="mode === 'biz'">
+        <div class="mb-3"><label class="dc-label" for="dBizStart">Start Date</label><input type="date" id="dBizStart" x-model="bizStart" @input="render()" class="dc-input" aria-label="Business days start date"></div>
+        <div class="mb-3"><label class="dc-label" for="dBizDays">Business Days to Add</label><input type="number" id="dBizDays" x-model.number="bizDays" @input="render()" class="dc-input" value="10" min="1"></div>
+        <div class="flex items-center gap-2 mb-3"><input type="checkbox" id="dBizSkipHols" x-model="bizSkipHols" @change="render()" class="toggle toggle-sm" checked><label for="dBizSkipHols" class="text-xs font-bold tracking-wider uppercase opacity-60">Skip Weekends (Sat-Sun)</label></div>
       </div>
-      <button type="button" id="dCalcBtn" class="dc-pri w-full mb-3">{{ lucide_icon("sparkles","w-4 h-4",16) | safe }} Calculate</button>
+      <button type="button" id="dCalcBtn" @click="render(); saveHistory()" class="dc-pri w-full mb-3">{{ lucide_icon("sparkles","w-4 h-4",16) | safe }} Calculate</button>
       <div class="dc-result" id="dResult"><span style="font-size:14px;opacity:.3">Enter dates and click Calculate</span></div>
       <div class="flex items-center gap-2 mt-3">
-        <button type="button" id="dCopyBtn" class="dc-sec">{{ lucide_icon("copy","w-3 h-3",12) | safe }} Copy</button>
-        <button type="button" id="dDlBtn" class="dc-sec">{{ lucide_icon("download","w-3 h-3",12) | safe }} .txt</button>
+        <button type="button" id="dCopyBtn" @click="copy()" class="dc-sec">{{ lucide_icon("copy","w-3 h-3",12) | safe }} Copy</button>
+        <button type="button" id="dDlBtn" @click="download()" class="dc-sec">{{ lucide_icon("download","w-3 h-3",12) | safe }} .txt</button>
       </div>
     </div>
     <div class="dc-card mt-6">
@@ -86,184 +86,256 @@
 </div>
 <div id="dToast" class="dc-toast" role="status" aria-live="polite"></div>
 <script nonce="{{ nonce }}">
-(function(){'use strict';
-var mode='diff',shiftAction='add';
-var history=[]; try{var h=JSON.parse(localStorage.getItem('sb_dc1')||'[]');if(Array.isArray(h))history=h}catch(e){}
-var today=new Date();var todayStr=today.toISOString().slice(0,10);
+window.dateCalculator = function() {
+  var today = new Date();
+  var todayStr = today.toISOString().slice(0, 10);
+  var future = new Date(today);
+  future.setDate(future.getDate() + 30);
+  var futureStr = future.toISOString().slice(0, 10);
 
-function el(id){return document.getElementById(id)}
-var modeEl=el('dcMode'),diffPanel=el('dcDiff'),shiftPanel=el('dcShift'),bizPanel=el('dcBiz');
-var dDiffStart=el('dDiffStart'),dDiffEnd=el('dDiffEnd'),dDiffInc=el('dDiffInc');
-var dShiftStart=el('dShiftStart'),dShiftY=el('dShiftY'),dShiftM=el('dShiftM'),dShiftW=el('dShiftW'),dShiftD=el('dShiftD'),dShiftAdd=el('dShiftAdd'),dShiftSub=el('dShiftSub');
-var dBizStart=el('dBizStart'),dBizDays=el('dBizDays'),dBizSkipHols=el('dBizSkipHols');
-var dPresets=el('dPresets'),dCalcBtn=el('dCalcBtn'),dResult=el('dResult'),dBreakdown=el('dBreakdown');
-var dCopyBtn=el('dCopyBtn'),dDlBtn=el('dDlBtn');
-var hiToggle=el('dHiToggle'),hiCount=el('dHiCount'),hiClear=el('dHiClear'),hiWrap=el('dHiWrap'),hiList=el('dHiList');
-var toastEl=el('dToast');
+  var hist = [];
+  try {
+    var h = JSON.parse(localStorage.getItem('sb_dc1') || '[]');
+    if (Array.isArray(h)) hist = h;
+  } catch(e) {}
 
-dDiffStart.value=todayStr;dDiffEnd.value=todayStr;dShiftStart.value=todayStr;dBizStart.value=todayStr;
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
 
-function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
-function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show')},2200)}
+  function addMonths(d, n) {
+    var y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+    var targetMonth = m + n;
+    var targetDate = new Date(y, targetMonth, 1);
+    var maxDays = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).getDate();
+    return new Date(targetDate.getFullYear(), targetDate.getMonth(), Math.min(day, maxDays));
+  }
 
-function addMonths(d,n){
-var y=d.getFullYear(),m=d.getMonth(),day=d.getDate();
-var totalM=m+n;y+=Math.floor(totalM/12);m=totalM%12;if(m<0){m+=12;y--}
-var last=new Date(y,m+1,0).getDate();return new Date(y,m,Math.min(day,last),12,0,0)
-}
+  function addDays(d, n) {
+    var r = new Date(d);
+    r.setDate(r.getDate() + n);
+    return r;
+  }
 
-function calcDiff(startStr,endStr,inc){
-if(!startStr||!endStr){return null}
-var sp=startStr.split('-'),ep=endStr.split('-');
-var d1=new Date(sp[0],sp[1]-1,sp[2],12,0,0);
-var d2=new Date(ep[0],ep[1]-1,ep[2],12,0,0);
-var neg=false;if(d1>d2){var t=d1;d1=d2;d2=t;neg=true}
-var msDay=86400000;var totalDays=Math.round((d2-d1)/msDay);if(inc)totalDays+=1;
-if(neg&&inc)d2.setDate(d2.getDate()+1);else if(neg)d2.setDate(d2.getDate());
-var sy=d1.getFullYear(),sm=d1.getMonth(),sd=d1.getDate();
-var years=0;while(addMonths(new Date(sy,sm,sd,12,0,0),(years+1)*12)<=d2){years++}
-var months=0;while(addMonths(new Date(sy,sm,sd,12,0,0),(years*12)+months+1)<=d2){months++}
-var d1t=addMonths(new Date(sy,sm,sd,12,0,0),(years*12)+months);var days=Math.round((d2-d1t)/msDay);
-return{years:years,months:months,days:days,totalDays:totalDays,neg:neg}
-}
+  function isWeekend(d) {
+    var day = d.getDay();
+    return day === 0 || day === 6;
+  }
 
-function calcShift(startStr,y,m,w,d,action){
-if(!startStr)return null;
-var sp=startStr.split('-');var dt=new Date(sp[0],sp[1]-1,sp[2],12,0,0);var mult=action==='add'?1:-1;
-dt=addMonths(dt,(m*mult)+(y*12*mult));dt.setDate(dt.getDate()+((w*7)*mult)+(d*mult));
-return dt;
-}
+  function getHolidays(year) {
+    return [
+      new Date(year, 0, 1).toISOString().slice(0, 10),
+      new Date(year, 6, 4).toISOString().slice(0, 10),
+      new Date(year, 11, 25).toISOString().slice(0, 10)
+    ];
+  }
 
-function calcBizDays(startStr,n,skipWeekends){
-if(!startStr)return null;
-var sp=startStr.split('-');var dt=new Date(sp[0],sp[1]-1,sp[2],12,0,0);
-var added=0;while(added<n){dt.setDate(dt.getDate()+1);if(!skipWeekends||(dt.getDay()!==0&&dt.getDay()!==6))added++}
-return dt;
-}
+  function isHoliday(d) {
+    var hols = getHolidays(d.getFullYear());
+    return hols.indexOf(d.toISOString().slice(0, 10)) !== -1;
+  }
 
-function fmtDate(d){return d.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
-function fmtShort(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day}
+  return {
+    mode: 'diff',
+    shiftAction: 'add',
+    diffStart: todayStr,
+    diffEnd: futureStr,
+    diffInc: false,
+    shiftStart: todayStr,
+    shiftY: 0,
+    shiftM: 1,
+    shiftW: 0,
+    shiftD: 0,
+    bizStart: todayStr,
+    bizDays: 10,
+    bizSkipHols: true,
+    showHistory: false,
+    history: hist,
 
-function render(){
-var res='',bd='';
-if(mode==='diff'){
-var r=calcDiff(dDiffStart.value,dDiffEnd.value,dDiffInc.checked);
-if(!r){dResult.innerHTML='<span style="font-size:14px;opacity:.3">Select both dates</span>';dBreakdown.innerHTML='<span style="font-size:11px;font-weight:600;opacity:.3">Select both dates to see breakdown</span>';return}
-var parts=[];if(r.years)parts.push(r.years+(r.years===1?' year':' years'));if(r.months)parts.push(r.months+(r.months===1?' month':' months'));if(r.days||!parts.length)parts.push(r.days+(r.days===1?' day':' days'));
-var primary=(r.neg?'− ':'')+parts.join(', ');
-res=esc(primary)+'<div class="sub">'+esc(r.totalDays)+' total day'+(r.totalDays!==1?'s':'')+'</div>';
-bd='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:360px;margin:0 auto">';
-bd+='<div style="background:var(--color-base-100);border-radius:1rem;padding:16px;border:1px solid var(--color-base-300)"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-bottom:4px">Years</div><div style="font-size:28px;font-weight:900;font-family:monospace">'+r.years+'</div></div>';
-bd+='<div style="background:var(--color-base-100);border-radius:1rem;padding:16px;border:1px solid var(--color-base-300)"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-bottom:4px">Months</div><div style="font-size:28px;font-weight:900;font-family:monospace">'+r.months+'</div></div>';
-bd+='<div style="background:var(--color-base-100);border-radius:1rem;padding:16px;border:1px solid var(--color-base-300)"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-bottom:4px">Days</div><div style="font-size:28px;font-weight:900;font-family:monospace">'+r.days+'</div></div>';
-bd+='</div><div style="margin-top:12px;font-size:13px;font-weight:700;opacity:.5">'+esc(r.totalDays)+' total day'+(r.totalDays!==1?'s':'')+'</div>';
-}
-else if(mode==='shift'){
-var y=parseInt(dShiftY.value)||0,m=parseInt(dShiftM.value)||0,w=parseInt(dShiftW.value)||0,day=parseInt(dShiftD.value)||0;
-if(!y&&!m&&!w&&!day){dResult.innerHTML='<span style="font-size:14px;opacity:.3">Enter at least one value</span>';dBreakdown.innerHTML='';return}
-var dt=calcShift(dShiftStart.value,y,m,w,day,shiftAction);
-if(!dt){dResult.innerHTML='<span style="font-size:14px;opacity:.3">Select a start date</span>';return}
-res=esc(fmtDate(dt))+'<div class="sub">'+esc(shiftAction==='add'?'After':'Before')+' '+esc(dShiftStart.value)+'</div>';
-bd='<div style="font-size:13px;font-weight:700;opacity:.5;margin-top:8px">';
-var p=[];if(y)p.push(y+(y===1?' year':' years'));if(m)p.push(m+(m===1?' month':' months'));if(w)p.push(w+(w===1?' week':' weeks'));if(day)p.push(day+(day===1?' day':' days'));
-bd+=esc(shiftAction==='add'?'Added ':'Subtracted ')+p.join(', ')+'</div>';
-}
-else if(mode==='biz'){
-var n=parseInt(dBizDays.value)||0;
-var dt=calcBizDays(dBizStart.value,n,dBizSkipHols.checked);
-if(!dt){dResult.innerHTML='<span style="font-size:14px;opacity:.3">Select a start date</span>';return}
-res=esc(fmtDate(dt))+'<div class="sub">'+esc(n)+' business day'+(n!==1?'s':'')+' from '+esc(dBizStart.value)+'</div>';
-bd='<div style="font-size:13px;font-weight:700;opacity:.5;margin-top:8px">Weekends '+(dBizSkipHols.checked?'skipped':'included')+'</div>';
-}
-dResult.innerHTML=res;
-dBreakdown.innerHTML=bd;
-}
+    setMode: function(m) {
+      this.mode = m;
+      this.render();
+    },
 
-function saveHistory(){
-var prev=hiToggle.getAttribute('aria-expanded')==='true';
-if(mode==='diff'){
-var r=calcDiff(dDiffStart.value,dDiffEnd.value,dDiffInc.checked);
-if(!r)return;var parts=[];if(r.years)parts.push(r.years+'y');if(r.months)parts.push(r.months+'m');if(r.days)parts.push(r.days+'d');
-history.unshift({m:'diff',a:dDiffStart.value,b:dDiffEnd.value,inc:dDiffInc.checked,label:parts.join(' ')+' ('+r.totalDays+'d)',ts:Date.now()})
-}else if(mode==='shift'){
-var y=parseInt(dShiftY.value)||0,m=parseInt(dShiftM.value)||0,w=parseInt(dShiftW.value)||0,day=parseInt(dShiftD.value)||0;
-history.unshift({m:'shift',a:dShiftStart.value,y:y,mo:m,w:w,d:day,act:shiftAction,label:shiftAction+' '+[y&&y+'y',m&&m+'mo',w&&w+'w',day&&day+'d'].filter(Boolean).join(' '),ts:Date.now()})
-}else if(mode==='biz'){
-var n=parseInt(dBizDays.value)||0;
-history.unshift({m:'biz',a:dBizStart.value,n:n,skip:dBizSkipHols.checked,label:n+' biz days from '+dBizStart.value,ts:Date.now()})
-}
-if(history.length>50)history.pop();
-try{localStorage.setItem('sb_dc1',JSON.stringify(history))}catch(e){}
-renderHistory();
-}
+    toast: function(m) {
+      var toastEl = document.getElementById('dToast');
+      if (toastEl) {
+        toastEl.textContent = m;
+        toastEl.classList.add('show');
+        clearTimeout(toastEl._t);
+        toastEl._t = setTimeout(function(){ toastEl.classList.remove('show'); }, 2200);
+      }
+    },
 
-function renderHistory(){
-hiCount.textContent=history.length?'('+history.length+')':'';
-hiClear.hidden=!history.length;
-if(!history.length){hiList.innerHTML='<div class="dc-empty">No calculations yet</div>';return}
-var h='';history.forEach(function(item,i){
-var d=new Date(item.ts),now=new Date();
-var diff=Math.round((now-d)/1000);
-var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
-h+='<div class="dc-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label||'')+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
-});
-hiList.innerHTML=h;
-}
+    calcDiff: function(aStr, bStr, inc) {
+      if (!aStr || !bStr) return null;
+      var a = new Date(aStr + 'T00:00:00'), b = new Date(bStr + 'T00:00:00');
+      var neg = false;
+      if (b < a) { var tmp = a; a = b; b = tmp; neg = true; }
+      var msDiff = b - a;
+      var totalDays = Math.round(msDiff / 86400000);
+      if (inc) totalDays += 1;
+      var y = b.getFullYear() - a.getFullYear();
+      var m = b.getMonth() - a.getMonth();
+      var d = b.getDate() - a.getDate();
+      if (d < 0) {
+        var prevMonth = new Date(b.getFullYear(), b.getMonth(), 0);
+        d += prevMonth.getDate();
+        m -= 1;
+      }
+      if (m < 0) { m += 12; y -= 1; }
+      if (inc) d += 1;
+      var weeks = Math.floor(totalDays / 7), remDays = totalDays % 7;
+      var totalHours = totalDays * 24, totalMinutes = totalHours * 60;
+      var bizDays = 0, cur = new Date(a);
+      var end = inc ? addDays(b, 1) : b;
+      while (cur < end) {
+        if (!isWeekend(cur)) bizDays++;
+        cur = addDays(cur, 1);
+      }
+      return { years: y, months: m, days: d, totalDays: totalDays, weeks: weeks, remDays: remDays, totalHours: totalHours, totalMinutes: totalMinutes, bizDays: bizDays, neg: neg };
+    },
 
-var lastMode=mode;
-modeEl.addEventListener('click',function(e){
-var b=e.target.closest('button[data-mode]');if(!b)return;
-mode=b.getAttribute('data-mode');modeEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-mode')===mode);el.setAttribute('aria-checked',el.getAttribute('data-mode')===mode)});
-diffPanel.hidden=mode!=='diff';shiftPanel.hidden=mode!=='shift';bizPanel.hidden=mode!=='biz';
-render();
-if(lastMode!==mode){lastMode=mode;saveHistory()}
-});
+    calcShift: function(sStr, y, mo, w, d, act) {
+      if (!sStr) return null;
+      var start = new Date(sStr + 'T00:00:00');
+      var sign = act === 'sub' ? -1 : 1;
+      var res = addMonths(start, sign * (y * 12 + mo));
+      res = addDays(res, sign * (w * 7 + d));
+      var daysName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][res.getDay()];
+      var totalDays = Math.round(Math.abs(res - start) / 86400000);
+      return { date: res, dateStr: res.toISOString().slice(0, 10), dayName: daysName, totalDays: totalDays };
+    },
 
-dDiffStart.addEventListener('change',render);dDiffEnd.addEventListener('change',render);dDiffInc.addEventListener('change',render);
-dPresets.addEventListener('click',function(e){
-var b=e.target.closest('button[data-preset]');if(!b)return;
-var p=b.getAttribute('data-preset');var now=new Date();var end=new Date(now);var start=new Date(now);
-if(p==='7d'){start.setDate(now.getDate()-7)}
-else if(p==='30d'){start.setDate(now.getDate()-30)}
-else if(p==='90d'){start.setDate(now.getDate()-90)}
-else if(p==='ytd'){start=new Date(now.getFullYear(),0,1)}
-else if(p==='this-month'){start=new Date(now.getFullYear(),now.getMonth(),1)}
-else if(p==='this-year'){start=new Date(now.getFullYear(),0,1);end=new Date(now.getFullYear(),11,31)}
-dDiffStart.value=fmtShort(start);dDiffEnd.value=fmtShort(end);render();
-});
+    calcBiz: function(sStr, n, skipHols) {
+      if (!sStr || isNaN(n)) return null;
+      var cur = new Date(sStr + 'T00:00:00');
+      var added = 0, totalCal = 0;
+      while (added < n) {
+        cur = addDays(cur, 1);
+        totalCal++;
+        if (isWeekend(cur)) continue;
+        if (skipHols && isHoliday(cur)) continue;
+        added++;
+      }
+      var dayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][cur.getDay()];
+      return { date: cur, dateStr: cur.toISOString().slice(0, 10), dayName: dayName, calDays: totalCal, bizDays: n };
+    },
 
-dShiftY.addEventListener('input',render);dShiftM.addEventListener('input',render);dShiftW.addEventListener('input',render);dShiftD.addEventListener('input',render);dShiftStart.addEventListener('change',render);
-dShiftAdd.addEventListener('click',function(){shiftAction='add';dShiftAdd.classList.add('on');dShiftSub.classList.remove('on');render()});
-dShiftSub.addEventListener('click',function(){shiftAction='sub';dShiftSub.classList.add('on');dShiftAdd.classList.remove('on');render()});
+    applyPreset: function(p) {
+      var d = new Date();
+      var todayStr = d.toISOString().slice(0, 10);
+      var a, b = todayStr;
+      if (p === '7d') a = addDays(d, -7).toISOString().slice(0, 10);
+      else if (p === '30d') a = addDays(d, -30).toISOString().slice(0, 10);
+      else if (p === '90d') a = addDays(d, -90).toISOString().slice(0, 10);
+      else if (p === 'ytd') a = new Date(d.getFullYear(), 0, 1).toISOString().slice(0, 10);
+      else if (p === 'this-month') a = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+      else if (p === 'this-year') { a = new Date(d.getFullYear(), 0, 1).toISOString().slice(0, 10); b = new Date(d.getFullYear(), 11, 31).toISOString().slice(0, 10); }
+      this.diffStart = a;
+      this.diffEnd = b;
+      this.render();
+    },
 
-dBizStart.addEventListener('change',render);dBizDays.addEventListener('input',render);dBizSkipHols.addEventListener('change',render);
+    render: function() {
+      var dResult = document.getElementById('dResult'), dBreakdown = document.getElementById('dBreakdown');
+      if (!dResult || !dBreakdown) return;
+      var res = '', bd = '';
 
-dCalcBtn.addEventListener('click',function(){render();saveHistory()});
-dCopyBtn.addEventListener('click',function(){
-var txt=dResult.textContent||dResult.innerText;
-navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')})
-});
-dDlBtn.addEventListener('click',function(){
-var txt='Date Calculation\n'+'='.repeat(40)+'\n'+dResult.textContent+'\n'+dBreakdown.textContent+'\nDate: '+new Date().toISOString().slice(0,10);
-var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='date-calculation-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded')
-});
+      if (this.mode === 'diff') {
+        var r = this.calcDiff(this.diffStart, this.diffEnd, this.diffInc);
+        if (!r) {
+          dResult.innerHTML = '<span style="font-size:14px;opacity:.3">Select both dates</span>';
+          dBreakdown.innerHTML = '<span style="font-size:11px;font-weight:600;opacity:.3">Select both dates to see breakdown</span>';
+          return;
+        }
+        var parts = [];
+        if (r.years) parts.push(r.years + (r.years === 1 ? ' year' : ' years'));
+        if (r.months) parts.push(r.months + (r.months === 1 ? ' month' : ' months'));
+        if (r.days || !parts.length) parts.push(r.days + (r.days === 1 ? ' day' : ' days'));
+        var primary = (r.neg ? '− ' : '') + parts.join(', ');
+        res = esc(primary) + '<div class="sub">' + esc(r.totalDays) + ' total day' + (r.totalDays !== 1 ? 's' : '') + '</div>';
 
-hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
-hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_dc1',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});
-hiList.addEventListener('click',function(e){
-var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_dc1',JSON.stringify(history))}catch(e){}renderHistory();return}
-var item=e.target.closest('.dc-hist-item');if(!item)return;
-var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
-mode=h.m;modeEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-mode')===mode);el.setAttribute('aria-checked',el.getAttribute('data-mode')===mode)});
-diffPanel.hidden=mode!=='diff';shiftPanel.hidden=mode!=='shift';bizPanel.hidden=mode!=='biz';
-if(mode==='diff'){dDiffStart.value=h.a;dDiffEnd.value=h.b;dDiffInc.checked=h.inc}
-else if(mode==='shift'){dShiftStart.value=h.a;dShiftY.value=h.y||0;dShiftM.value=h.mo||0;dShiftW.value=h.w||0;dShiftD.value=h.d||0;shiftAction=h.act;dShiftAdd.classList.toggle('on',shiftAction==='add');dShiftSub.classList.toggle('on',shiftAction==='sub')}
-else if(mode==='biz'){dBizStart.value=h.a;dBizDays.value=h.n;dBizSkipHols.checked=h.skip}
-history.splice(idx,1);try{localStorage.setItem('sb_dc1',JSON.stringify(history))}catch(e){}renderHistory();render();
-});
+        bd = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:360px;margin:0 auto">';
+        bd += '<div style="background:var(--color-base-100);border-radius:1rem;padding:16px;border:1px solid var(--color-base-300)"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-bottom:4px">Years</div><div style="font-size:28px;font-weight:900;font-family:monospace">' + r.years + '</div></div>';
+        bd += '<div style="background:var(--color-base-100);border-radius:1rem;padding:16px;border:1px solid var(--color-base-300)"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-bottom:4px">Months</div><div style="font-size:28px;font-weight:900;font-family:monospace">' + r.months + '</div></div>';
+        bd += '<div style="background:var(--color-base-100);border-radius:1rem;padding:16px;border:1px solid var(--color-base-300)"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;opacity:.4;margin-bottom:4px">Days</div><div style="font-size:28px;font-weight:900;font-family:monospace">' + r.days + '</div></div></div>';
+        bd += '<div class="dc-grid" style="margin-top:16px">';
+        bd += '<div class="dc-stat"><div class="l">Total Days</div><div class="v">' + r.totalDays.toLocaleString() + '</div></div>';
+        bd += '<div class="dc-stat"><div class="l">Weeks + Days</div><div class="v">' + r.weeks + 'w ' + r.remDays + 'd</div></div>';
+        bd += '<div class="dc-stat"><div class="l">Business Days</div><div class="v">' + r.bizDays.toLocaleString() + '</div></div>';
+        bd += '<div class="dc-stat"><div class="l">Total Hours</div><div class="v">' + r.totalHours.toLocaleString() + '</div></div>';
+        bd += '<div class="dc-stat"><div class="l">Total Minutes</div><div class="v">' + r.totalMinutes.toLocaleString() + '</div></div>';
+        bd += '<div class="dc-stat"><div class="l">Weekend Days</div><div class="v">' + (r.totalDays - r.bizDays).toLocaleString() + '</div></div></div>';
+      } else if (this.mode === 'shift') {
+        var rS = this.calcShift(this.shiftStart, Number(this.shiftY) || 0, Number(this.shiftM) || 0, Number(this.shiftW) || 0, Number(this.shiftD) || 0, this.shiftAction);
+        if (!rS) {
+          dResult.innerHTML = '<span style="font-size:14px;opacity:.3">Select start date</span>';
+          return;
+        }
+        res = esc(rS.dateStr) + '<div class="sub">' + esc(rS.dayName) + ' (' + esc(rS.totalDays) + ' days ' + (this.shiftAction === 'sub' ? 'ago' : 'from start') + ')</div>';
+        bd = '<div class="dc-grid">';
+        bd += '<div class="dc-stat"><div class="l">Target Date</div><div class="v" style="font-size:16px">' + esc(rS.dateStr) + '</div></div>';
+        bd += '<div class="dc-stat"><div class="l">Day of Week</div><div class="v">' + esc(rS.dayName) + '</div></div>';
+        bd += '<div class="dc-stat"><div class="l">Total Shift</div><div class="v">' + (this.shiftAction === 'sub' ? '−' : '+') + rS.totalDays + ' days</div></div>';
+        bd += '<div class="dc-stat"><div class="l">Weekend?</div><div class="v">' + (isWeekend(rS.date) ? 'Yes' : 'No') + '</div></div></div>';
+      } else if (this.mode === 'biz') {
+        var rB = this.calcBiz(this.bizStart, Number(this.bizDays) || 0, this.bizSkipHols);
+        if (!rB) {
+          dResult.innerHTML = '<span style="font-size:14px;opacity:.3">Select start date</span>';
+          return;
+        }
+        res = esc(rB.dateStr) + '<div class="sub">' + esc(rB.dayName) + ' (' + esc(rB.calDays) + ' calendar days)</div>';
+        bd = '<div class="dc-grid">';
+        bd += '<div class="dc-stat"><div class="l">Target Date</div><div class="v" style="font-size:16px">' + esc(rB.dateStr) + '</div></div>';
+        bd += '<div class="dc-stat"><div class="l">Day of Week</div><div class="v">' + esc(rB.dayName) + '</div></div>';
+        bd += '<div class="dc-stat"><div class="l">Business Days Added</div><div class="v">' + rB.bizDays + '</div></div>';
+        bd += '<div class="dc-stat"><div class="l">Calendar Days Passed</div><div class="v">' + rB.calDays + '</div></div></div>';
+      }
 
-render();
-})();
+      dResult.innerHTML = res;
+      dBreakdown.innerHTML = bd;
+    },
+
+    saveHistory: function() {
+      var item = null;
+      if (this.mode === 'diff') item = { m: 'diff', a: this.diffStart, b: this.diffEnd, inc: this.diffInc };
+      else if (this.mode === 'shift') item = { m: 'shift', a: this.shiftStart, y: this.shiftY, mo: this.shiftM, w: this.shiftW, d: this.shiftD, act: this.shiftAction };
+      else if (this.mode === 'biz') item = { m: 'biz', a: this.bizStart, n: this.bizDays, skip: this.bizSkipHols };
+      if (!item) return;
+      this.history.unshift(item);
+      if (this.history.length > 20) this.history = this.history.slice(0, 20);
+      try { localStorage.setItem('sb_dc1', JSON.stringify(this.history)); } catch(e) {}
+    },
+
+    copy: function() {
+      var dResult = document.getElementById('dResult');
+      var txt = dResult ? dResult.textContent : '';
+      var self = this;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(txt).then(function(){ self.toast('Copied!'); }).catch(function(){ self.toast('Copy failed'); });
+      }
+    },
+
+    download: function() {
+      var dResult = document.getElementById('dResult'), dBreakdown = document.getElementById('dBreakdown');
+      var txt = 'Date Calculation\n' + '='.repeat(40) + '\n' + (dResult ? dResult.textContent : '') + '\n' + (dBreakdown ? dBreakdown.textContent : '') + '\nDate: ' + new Date().toISOString().slice(0, 10);
+      var b = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      a.download = 'date-calculation-' + Date.now() + '.txt';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      this.toast('Downloaded');
+    },
+
+    init: function() {
+      this.render();
+    }
+  };
+};
 </script>
 
 {{ tool_section_end() }}

@@ -6,8 +6,8 @@ import tempfile
 
 import pytest
 
-import app.services.analytics_service as analytics_service
-from app.services.analytics_service import flush, get_counts, track
+import apps.analytics.services as analytics_service
+from apps.analytics.services import flush, get_counts, track
 
 TEST_DB_PATH = os.path.join(tempfile.gettempdir(), "test_analytics.db")
 analytics_service.DB_PATH = TEST_DB_PATH

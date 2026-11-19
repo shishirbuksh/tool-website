@@ -1,8 +1,12 @@
 """Tests for custom exception classes and their inheritance chain."""
 
-from starlette import status
+class status:
+    HTTP_500_INTERNAL_SERVER_ERROR = 500
+    HTTP_404_NOT_FOUND = 404
+    HTTP_422_UNPROCESSABLE_CONTENT = 422
 
-from app.core.exceptions import AppException, NotFoundException, ServiceError, ValidationException
+
+from apps.core.exceptions import AppException, NotFoundException, ServiceError, ValidationException
 
 
 class TestExceptions:

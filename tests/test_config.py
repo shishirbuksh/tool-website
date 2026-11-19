@@ -2,7 +2,7 @@
 
 import os
 
-from app.core.config import Settings
+from apps.core.config import Settings
 
 
 class TestSettings:
@@ -25,12 +25,12 @@ class TestSettings:
         assert s.PROJECT_NAME == "Multi-Tool Website"
 
     def test_settings_singleton(self):
-        from app.core.config import settings
+        from apps.core.config import settings
 
         assert settings.PROJECT_NAME == "Multi-Tool Website"
 
     def test_asset_version_tracks_bundle_hash_even_in_prod(self, tmp_path, monkeypatch):
-        from app.core.config import _DynamicAssetVersion
+        from apps.core.config import _DynamicAssetVersion
 
         css_dir = tmp_path / "css"
         css_dir.mkdir(parents=True)
@@ -50,7 +50,7 @@ class TestSettings:
     def test_dynamic_app_css_href_uses_hashed_file_when_present(self, tmp_path, monkeypatch):
         import hashlib
 
-        from app.core.config import _DynamicAppCssHref, _DynamicAssetVersion
+        from apps.core.config import _DynamicAppCssHref, _DynamicAssetVersion
 
         css_dir = tmp_path / "css"
         css_dir.mkdir(parents=True)

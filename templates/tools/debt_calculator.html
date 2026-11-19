@@ -23,7 +23,7 @@
 {% block content %}
 {{ tool_hero_section("shield", 'Debt Freedom Tool', "DEBT PAYOFF", "CALCULATOR", seo_data.description if seo_data else "Compare Snowball vs Avalanche methods. See exactly when you'll be debt-free and how much interest you'll pay.") }}
 
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s" x-data="debtCalculator()">
 
   <!-- ===== LEFT COLUMN ===== -->
   <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
@@ -32,10 +32,52 @@
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("credit-card","w-4 h-4",16)|safe }} Your Debts</h2>
       <p class="text-xs text-base-content/60 mb-4">List the debts you want to pay off.</p>
-      <div id="debtContainer" class="space-y-3"></div>
+      
+      <div id="debtContainer" class="space-y-3">
+        <template x-for="(d, idx) in debts" :key="d.id">
+          <div class="debt-row rounded-xl p-3 border" style="border-color:color-mix(in oklab,var(--color-base-content) 8%,transparent)">
+            <div class="grid grid-cols-2 gap-2">
+              <div class="col-span-2">
+                <label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Debt Name</label>
+                <input aria-label="Debt Name" type="text" class="cal-input w-full text-xs font-bold" x-model="d.name">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Balance ({{ cur_sym }})</label>
+                <input aria-label="Balance" type="number" class="cal-input w-full text-xs font-mono font-bold" x-model.number="d.bal" min="0" step="100">
+              </div>
+              <div>
+                <label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Rate (%)</label>
+                <input aria-label="Rate" type="number" class="cal-input w-full text-xs font-mono font-bold" x-model.number="d.rate" min="0" max="100" step="0.1">
+              </div>
+              <div class="col-span-2 flex items-center gap-2">
+                <div class="flex-1">
+                  <label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Min. Payment ({{ cur_sym }})</label>
+                  <input aria-label="Min. Payment" type="number" class="cal-input w-full text-xs font-mono font-bold" x-model.number="d.minP" min="0" step="10">
+                </div>
+                <button type="button" @click="removeDebt(d.id)" class="text-xs font-bold px-2 py-1.5 rounded-lg border border-base-300 text-error hover:bg-error/10 transition-colors mt-4" aria-label="Remove debt">Remove</button>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- SSR Pre-rendered Fallback Debts -->
+        <div x-show="!mounted" class="space-y-3">
+          {% for d in defaults %}
+          <div class="debt-row rounded-xl p-3 border" style="border-color:color-mix(in oklab,var(--color-base-content) 8%,transparent)">
+            <div class="grid grid-cols-2 gap-2">
+              <div class="col-span-2"><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Debt Name</label><input type="text" class="cal-input w-full text-xs font-bold" value="{{ d.name }}"></div>
+              <div><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Balance ({{ cur_sym }})</label><input type="number" class="cal-input w-full text-xs font-mono font-bold" value="{{ d.bal }}"></div>
+              <div><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Rate (%)</label><input type="number" class="cal-input w-full text-xs font-mono font-bold" value="{{ d.rate }}"></div>
+              <div class="col-span-2"><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider">Min. Payment ({{ cur_sym }})</label><input type="number" class="cal-input w-full text-xs font-mono font-bold" value="{{ d.min }}"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
       <div class="flex gap-3 mt-4">
-        <button type="button" id="addDebtBtn" class="btn-action flex-1" style="background:var(--color-primary);color:var(--color-primary-content)">{{ lucide_icon("plus","w-3.5 h-3.5",14)|safe }} Add Debt</button>
-        <button type="button" id="resetDebtsBtn" class="btn-action" style="background:color-mix(in oklab,var(--color-error) 12%,transparent);color:var(--color-error)" aria-label="Reset all debts">{{ lucide_icon("refresh-cw","w-3.5 h-3.5",14)|safe }}</button>
+        <button type="button" id="addDebtBtn" @click="addDebt()" class="btn-action flex-1" style="background:var(--color-primary);color:var(--color-primary-content)">{{ lucide_icon("plus","w-3.5 h-3.5",14)|safe }} Add Debt</button>
+        <button type="button" id="resetDebtsBtn" @click="resetDebts()" class="btn-action" style="background:color-mix(in oklab,var(--color-error) 12%,transparent);color:var(--color-error)" aria-label="Reset all debts">{{ lucide_icon("refresh-cw","w-3.5 h-3.5",14)|safe }}</button>
       </div>
     </div>
 
@@ -43,7 +85,10 @@
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("wallet","w-4 h-4",16)|safe }} Extra Payment</h2>
       <p class="text-xs text-base-content/60 mb-4">Extra amount you can pay each month beyond minimums.</p>
-      <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="extraPayment">Extra per Month ({{ cur_sym }})</label><input aria-label="Extra per Month" type="number" id="extraPayment" class="cal-input w-full text-sm font-mono font-bold hide-spinner" value="{{ d_extra }}" min="0"></div>
+      <div>
+        <label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="extraPayment">Extra per Month ({{ cur_sym }})</label>
+        <input aria-label="Extra per Month" type="number" id="extraPayment" class="cal-input w-full text-sm font-mono font-bold hide-spinner" x-model.number="extra" value="{{ d_extra }}" min="0">
+      </div>
     </div>
 
   </div>
@@ -55,10 +100,22 @@
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Payoff Summary</h2>
       <div class="grid grid-cols-2 gap-4">
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Interest</span><output id="resInterest" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-error)">{{ zero }}</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Debt-Free By</span><output id="resPayoff" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">—</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Min. Only Interest</span><output id="resMinInt" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-warning)">{{ zero }}</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Best Method</span><output id="resBest" class="font-display font-semibold text-base-content text-lg leading-tight font-mono font-bold" style="color:var(--color-primary)">—</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
+          <span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Total Interest</span>
+          <output id="resInterest" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-error)" x-text="formatCurrency(results.bestInt, 0)">$6,342</output>
+        </div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
+          <span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Debt-Free By</span>
+          <output id="resPayoff" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)" x-text="results.payoffDateStr">69 mo</output>
+        </div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
+          <span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Min. Only Interest</span>
+          <output id="resMinInt" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-warning)" x-text="formatCurrency(results.minInt, 0)">$6,342</output>
+        </div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4">
+          <span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Best Method</span>
+          <output id="resBest" class="font-display font-semibold text-base-content text-lg leading-tight font-mono font-bold" style="color:var(--color-primary)" x-text="results.bestMethod">Same</output>
+        </div>
       </div>
     </div>
 
@@ -69,15 +126,15 @@
         <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4" style="border-color:color-mix(in oklab,var(--color-primary) 20%,transparent)">
           <span class="text-xs font-black flex items-center justify-center gap-1.5 mb-3" style="color:var(--color-primary)">{{ lucide_icon("snowflake","w-3 h-3",12)|safe }} Snowball</span>
           <div class="space-y-2">
-            <div><span class="text-[11px] font-bold text-base-content/40 block uppercase tracking-wider">Interest Paid</span><span class="text-sm font-mono font-bold" id="resSnowInt">{{ zero }}</span></div>
-            <div><span class="text-[11px] font-bold text-base-content/40 block uppercase tracking-wider">Payoff Time</span><span class="text-sm font-mono font-bold" id="resSnowMonths">0 mo</span></div>
+            <div><span class="text-[11px] font-bold text-base-content/40 block uppercase tracking-wider">Interest Paid</span><span class="text-sm font-mono font-bold" id="resSnowInt" x-text="formatCurrency(results.snowInt, 0)">$6,342</span></div>
+            <div><span class="text-[11px] font-bold text-base-content/40 block uppercase tracking-wider">Payoff Time</span><span class="text-sm font-mono font-bold" id="resSnowMonths" x-text="results.snowMonths + ' mo'">69 mo</span></div>
           </div>
         </div>
         <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4" style="border-color:color-mix(in oklab,var(--color-success) 20%,transparent)">
           <span class="text-xs font-black flex items-center justify-center gap-1.5 mb-3" style="color:var(--color-success)">{{ lucide_icon("zap","w-3 h-3",12)|safe }} Avalanche</span>
           <div class="space-y-2">
-            <div><span class="text-[11px] font-bold text-base-content/40 block uppercase tracking-wider">Interest Paid</span><span class="text-sm font-mono font-bold" id="resAvaInt">{{ zero }}</span></div>
-            <div><span class="text-[11px] font-bold text-base-content/40 block uppercase tracking-wider">Payoff Time</span><span class="text-sm font-mono font-bold" id="resAvaMonths">0 mo</span></div>
+            <div><span class="text-[11px] font-bold text-base-content/40 block uppercase tracking-wider">Interest Paid</span><span class="text-sm font-mono font-bold" id="resAvaInt" x-text="formatCurrency(results.avaInt, 0)">$6,342</span></div>
+            <div><span class="text-[11px] font-bold text-base-content/40 block uppercase tracking-wider">Payoff Time</span><span class="text-sm font-mono font-bold" id="resAvaMonths" x-text="results.avaMonths + ' mo'">69 mo</span></div>
           </div>
         </div>
       </div>
@@ -88,142 +145,134 @@
 </div>
 {% include "components/ymyl_disclaimer.html" %}
 
-
 {{ tool_section_end() }}
 {% endblock %}
 
 {% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){
-  'use strict';
-  const $ = id => document.getElementById(id);
+window.debtCalculator = function() {
+document.addEventListener('alpine:init', function() {
   const INTL_LOCALE = "en-US";
-  const CUR_SYM = {{ cur_sym | tojson }};
-  const T = {{ {
-    'name': 'Name',
-    'balance': 'Balance',
-    'rate': 'Rate',
-    'min_payment': 'Min. Payment',
-    'remove': 'Remove debt',
-    'snowball': 'Snowball',
-    'avalanche': 'Avalanche',
-    'same': 'Same',
-    'months_short': 'mo'
-  } | tojson }};
-  const DEFAULTS = {{ defaults | tojson }};
-  const F = v => {
-    if(window.sbr && window.sbr.formatCurrency) return window.sbr.formatCurrency(v || 0, 0);
-    return CUR_SYM + Math.round(v || 0).toLocaleString(INTL_LOCALE);
-  };
-  const Fm = v => v + ' ' + T.months_short;
-  let debtId = 0;
-
-  function escAttr(s){return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
-  function debtRow(id, name, bal, rate, minP){
-    return '<div class="debt-row rounded-xl p-3 border" style="border-color:color-mix(in oklab,var(--color-base-content) 8%,transparent)" data-id="' + id + '">' +
-      '<div class="grid grid-cols-2 gap-2">' +
-      '<div class="col-span-2"><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="dn' + id + '">' + T.name + '</label><input aria-label="' + T.name + '" type="text" id="dn' + id + '" class="cal-input w-full text-xs font-bold" value="' + escAttr(name) + '"></div>' +
-      '<div><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="db' + id + '">' + T.balance + ' (' + CUR_SYM + ')</label><input aria-label="' + T.balance + '" type="number" id="db' + id + '" class="cal-input w-full text-xs font-mono font-bold hide-spinner" value="' + bal + '" min="1"></div>' +
-      '<div><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="dr' + id + '">' + T.rate + ' (%)</label><input aria-label="' + T.rate + '" type="number" id="dr' + id + '" class="cal-input w-full text-xs font-mono font-bold hide-spinner" value="' + rate + '" min="0" step="0.1"></div>' +
-      '<div class="col-span-2"><label class="text-[11px] font-bold text-base-content/40 block mb-0.5 uppercase tracking-wider" for="dm' + id + '">' + T.min_payment + ' (' + CUR_SYM + ')</label><div class="flex gap-2"><input aria-label="' + T.min_payment + '" type="number" id="dm' + id + '" class="cal-input flex-1 text-xs font-mono font-bold hide-spinner" value="' + minP + '" min="0"><button type="button" class="text-error font-bold text-xs px-1.5 py-1 rounded-lg hover:bg-error/10 transition-colors remove-debt-btn" data-rid="' + id + '" aria-label="' + T.remove + '">✕</button></div></div>' +
-      '</div></div>';
-  }
-
-  function getDebts(){
-    const rows = document.querySelectorAll('#debtContainer > div');
-    const debts = [];
-    rows.forEach(r => {
-      const id = r.getAttribute('data-id');
-      const name = $('dn' + id)?.value || '';
-      const bal = parseFloat($('db' + id)?.value) || 0;
-      const rate = parseFloat($('dr' + id)?.value) || 0;
-      const minP = parseFloat($('dm' + id)?.value) || 0;
-      if(name && bal > 0 && rate > 0 && minP > 0) debts.push({name, bal, rate, minP});
-    });
-    return debts;
-  }
-
-  function simulate(debts, extra, sortFn){
-    const d = debts.map(d => ({...d}));
-    if(sortFn) d.sort(sortFn);
-    d.forEach(d => d.remaining = d.bal);
-    let months = 0, totalInt = 0;
-    while(d.some(x => x.remaining > 0.01) && months < 600){
-      months++;
-      let totalMin = d.reduce((s, x) => s + (x.remaining > 0.01 ? Math.min(x.minP, x.remaining) : 0), 0);
-      let avail = totalMin + extra;
-      d.forEach(x => {
-        if(x.remaining > 0.01){
-          const mr = x.rate / 100 / 12;
-          const int = x.remaining * mr;
-          totalInt += int;
-          x.remaining += int;
-          const pay = Math.min(x.minP, x.remaining);
-          x.remaining -= pay;
-          avail -= pay;
+  Alpine.data('debtCalculator', function() {
+    return {
+      mounted: false,
+      extra: 0,
+      debts: [
+        { id: 1, name: 'Credit Card', bal: 5000, rate: 22, minP: 150 },
+        { id: 2, name: 'Car Loan', bal: 15000, rate: 6, minP: 350 },
+        { id: 3, name: 'Student Loan', bal: 12000, rate: 4.5, minP: 200 }
+      ],
+      init: function() {
+        this.mounted = true;
+      },
+      addDebt: function() {
+        var newId = Date.now();
+        this.debts.push({ id: newId, name: 'New Debt', bal: 1000, rate: 10, minP: 50 });
+      },
+      removeDebt: function(id) {
+        this.debts = this.debts.filter(function(d) { return d.id !== id; });
+      },
+      resetDebts: function() {
+        this.extra = 0;
+        this.debts = [
+          { id: 1, name: 'Credit Card', bal: 5000, rate: 22, minP: 150 },
+          { id: 2, name: 'Car Loan', bal: 15000, rate: 6, minP: 350 },
+          { id: 3, name: 'Student Loan', bal: 12000, rate: 4.5, minP: 200 }
+        ];
+      },
+      simulate: function(debtsList, extraAmt, sortFn) {
+        var d = debtsList.map(function(item) {
+          return {
+            name: item.name,
+            bal: parseFloat(item.bal) || 0,
+            rate: parseFloat(item.rate) || 0,
+            minP: parseFloat(item.minP) || 0,
+            remaining: parseFloat(item.bal) || 0
+          };
+        });
+        if (sortFn) d.sort(sortFn);
+        var months = 0, totalInt = 0;
+        while (d.some(function(x) { return x.remaining > 0.01; }) && months < 600) {
+          months++;
+          var totalMin = d.reduce(function(s, x) {
+            return s + (x.remaining > 0.01 ? Math.min(x.minP, x.remaining) : 0);
+          }, 0);
+          var avail = totalMin + (extraAmt || 0);
+          d.forEach(function(x) {
+            if (x.remaining > 0.01) {
+              var mr = x.rate / 100 / 12;
+              var intr = x.remaining * mr;
+              totalInt += intr;
+              x.remaining += intr;
+              var pay = Math.min(x.minP, x.remaining);
+              x.remaining -= pay;
+              avail -= pay;
+            }
+          });
+          var rem = d.filter(function(x) { return x.remaining > 0.01; });
+          if (rem.length > 0 && avail > 0.01) {
+            rem[0].remaining = Math.max(0, rem[0].remaining - avail);
+          }
         }
-      });
-      const remainingDebts = d.filter(x => x.remaining > 0.01);
-      if(remainingDebts.length > 0 && avail > 0.01){
-        remainingDebts[0].remaining = Math.max(0, remainingDebts[0].remaining - avail);
+        return { months: months, totalInt: totalInt };
+      },
+      get results() {
+        if (!this.debts.length) {
+          return {
+            minInt: 0,
+            bestInt: 0,
+            payoffDateStr: '—',
+            bestMethod: '—',
+            snowInt: 0,
+            snowMonths: 0,
+            avaInt: 0,
+            avaMonths: 0
+          };
+        }
+        var ext = parseFloat(this.extra) || 0;
+        var minSim = this.simulate(this.debts, 0, null);
+        var snowSim = this.simulate(this.debts, ext, function(a, b) { return a.bal - b.bal; });
+        var avaSim = this.simulate(this.debts, ext, function(a, b) { return b.rate - a.rate; });
+
+        var best = 'Same', bestInt = snowSim.totalInt, bestMonths = snowSim.months;
+        if (avaSim.totalInt < snowSim.totalInt - 0.01) {
+          best = 'Avalanche';
+          bestInt = avaSim.totalInt;
+          bestMonths = avaSim.months;
+        } else if (snowSim.totalInt < avaSim.totalInt - 0.01) {
+          best = 'Snowball';
+        }
+
+        var d = new Date();
+        d.setMonth(d.getMonth() + bestMonths);
+        var dateStr = d.toLocaleDateString(INTL_LOCALE, { month: 'short', year: 'numeric' });
+
+        return {
+          minInt: minSim.totalInt,
+          bestInt: bestInt,
+          payoffDateStr: dateStr,
+          bestMethod: best,
+          snowInt: snowSim.totalInt,
+          snowMonths: snowSim.months,
+          avaInt: avaSim.totalInt,
+          avaMonths: avaSim.months
+        };
       }
-    }
-    return {months, totalInt};
-  }
-
-  function calculate(){
-    const debts = getDebts();
-    const extra = parseFloat($('extraPayment').value) || 0;
-    if(debts.length === 0){
-      $('resInterest').innerText = F(0); $('resPayoff').innerText = '—'; $('resMinInt').innerText = F(0); $('resBest').innerText = '—';
-      $('resSnowInt').innerText = F(0); $('resSnowMonths').innerText = Fm(0); $('resAvaInt').innerText = F(0); $('resAvaMonths').innerText = Fm(0);
-      return;
-    }
-    const min = simulate(debts, 0, null);
-    const snow = simulate(debts, extra, (a, b) => a.bal - b.bal);
-    const ava = simulate(debts, extra, (a, b) => b.rate - a.rate);
-    let best = T.same, bestInt = snow.totalInt, bestMonths = snow.months;
-    if(ava.totalInt < snow.totalInt - 0.01){ best = T.avalanche; bestInt = ava.totalInt; bestMonths = ava.months; }
-    else if(snow.totalInt < ava.totalInt - 0.01){ best = T.snowball; }
-    $('resMinInt').innerText = F(min.totalInt);
-    $('resInterest').innerText = F(bestInt);
-    const payoffMonth = new Date(); payoffMonth.setMonth(payoffMonth.getMonth() + bestMonths);
-    try { $('resPayoff').innerText = payoffMonth.toLocaleDateString(INTL_LOCALE, {month:'short', year:'numeric'}); }
-    catch(e) { $('resPayoff').innerText = payoffMonth.toLocaleDateString('en-US', {month:'short', year:'numeric'}); }
-    $('resBest').innerText = best;
-    $('resSnowInt').innerText = F(snow.totalInt); $('resSnowMonths').innerText = Fm(snow.months);
-    $('resAvaInt').innerText = F(ava.totalInt); $('resAvaMonths').innerText = Fm(ava.months);
-  }
-
-  function addDebt(name, bal, rate, minP){
-    const id = ++debtId;
-    const container = $('debtContainer');
-    const div = document.createElement('div');
-    div.innerHTML = debtRow(id, name, bal, rate, minP);
-    while(div.children.length > 0) container.appendChild(div.firstChild);
-    const row = container.querySelector('[data-id="' + id + '"]');
-    row.querySelectorAll('input').forEach(el => el.addEventListener('input', calculate));
-    row.querySelector('.remove-debt-btn').addEventListener('click', function(){
-      this.closest('[data-id]').remove();
-      calculate();
-    });
-    calculate();
-  }
-
-  function resetDebts(){
-    $('debtContainer').innerHTML = '';
-    debtId = 0;
-    DEFAULTS.forEach(function(d){ addDebt(d.name, d.bal, d.rate, d.min); });
-    calculate();
-  }
-
-  document.addEventListener('DOMContentLoaded', function(){
-    resetDebts();
-    $('addDebtBtn').addEventListener('click', () => addDebt('', 0, 0, 0));
-    $('resetDebtsBtn').addEventListener('click', resetDebts);
-    $('extraPayment').addEventListener('input', calculate);
+    };
   });
-})();
+});
+
+  return {
+    init: function() {
+      if (typeof calc === 'function') calc();
+      else if (typeof generate === 'function') generate();
+      else if (typeof gen === 'function') gen();
+      else if (typeof render === 'function') render();
+      else if (typeof update === 'function') update();
+      else if (typeof calculate === 'function') calculate();
+      else if (typeof build === 'function') build();
+    }
+  };
+};
 </script>
 {% endblock %}

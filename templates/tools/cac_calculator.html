@@ -45,226 +45,340 @@
 {% endblock %}
 {% block content %}
 {{ tool_hero_section("users", "SaaS Metrics", "CAC", "CALCULATOR", seo_data.description if seo_data else "Blended CAC, payback, LTV:CAC ratio, revenue impact, What-If scenarios, and industry benchmarks.") }}
-<div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
+<div x-data="cacCalculator()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
   <div class="lg:w-5/12">
     <div class="cc-card">
       <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("wallet","w-4 h-4",16) | safe }} Costs & Customers</h2>
       <div class="flex flex-col gap-3">
-        <div><label class="cc-label" for="ccMarketing">Monthly Marketing Spend ($)</label><input type="text" id="ccMarketing" class="cc-input" value="10000" inputmode="numeric" aria-label="Monthly marketing spend"></div>
-        <div><label class="cc-label" for="ccSales">Monthly Sales Spend ($)</label><input type="text" id="ccSales" class="cc-input" value="15000" inputmode="numeric" aria-label="Monthly sales spend"></div>
-        <div><label class="cc-label" for="ccCustomers">New Customers (per month)</label><input type="text" id="ccCustomers" class="cc-input" value="50" inputmode="numeric" aria-label="New customers per month"></div>
+        <div><label class="cc-label" for="ccMarketing">Monthly Marketing Spend ($)</label><input type="number" id="ccMarketing" x-model.number="marketing" class="cc-input" value="10000" inputmode="numeric" aria-label="Monthly marketing spend"></div>
+        <div><label class="cc-label" for="ccSales">Monthly Sales Spend ($)</label><input type="number" id="ccSales" x-model.number="sales" class="cc-input" value="15000" inputmode="numeric" aria-label="Monthly sales spend"></div>
+        <div><label class="cc-label" for="ccCustomers">New Customers (per month)</label><input type="number" id="ccCustomers" x-model.number="customers" class="cc-input" value="50" inputmode="numeric" aria-label="New customers per month"></div>
         <hr style="border:none;border-top:1px solid var(--color-base-300);margin:4px 0">
-        <div><label class="cc-label" for="ccARPU">Avg Revenue Per Customer ($/mo)</label><input type="text" id="ccARPU" class="cc-input" value="120" inputmode="decimal" aria-label="Average revenue per customer per month"></div>
-        <div><label class="cc-label" for="ccLifespan">Avg Customer Lifespan (months)</label><input type="text" id="ccLifespan" class="cc-input" value="24" inputmode="numeric" aria-label="Average customer lifespan in months"></div>
+        <div><label class="cc-label" for="ccARPU">Avg Revenue Per Customer ($/mo)</label><input type="number" id="ccARPU" x-model.number="arpu" class="cc-input" value="120" inputmode="decimal" aria-label="Average revenue per customer per month"></div>
+        <div><label class="cc-label" for="ccLifespan">Avg Customer Lifespan (months)</label><input type="number" id="ccLifespan" x-model.number="lifespan" class="cc-input" value="24" inputmode="numeric" aria-label="Average customer lifespan in months"></div>
       </div>
       <div class="flex gap-2 mt-3">
-        <button type="button" id="ccCalcBtn" class="cc-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
-        <button type="button" id="ccCopyBtn" class="cc-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
-        <button type="button" id="ccDlBtn" class="cc-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
+        <button type="button" @click="saveHistory()" id="ccCalcBtn" class="cc-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
+        <button type="button" @click="copyAll()" id="ccCopyBtn" class="cc-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
+        <button type="button" @click="dlReport()" id="ccDlBtn" class="cc-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
       </div>
     </div>
     <div class="cc-card mt-4">
       <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("zap","w-3 h-3",12) | safe }} What-If</h2>
       <p class="text-[11px] font-bold opacity-30 uppercase tracking-wider mt-1 mb-2">Test how changes affect your unit economics</p>
-      <div class="cc-whatif" id="ccWhatIf"><button type="button" class="on" data-wi="current">Current</button><button type="button" data-wi="cut-spend-20">Cut Spend 20%</button><button type="button" data-wi="double-cust">x2 Customers</button><button type="button" data-wi="higher-arpu">Higher ARPU</button><button type="button" data-wi="longer-life">Longer Life</button><button type="button" data-wi="best-case">Best Case</button></div>
+      <div class="cc-whatif" id="ccWhatIf">
+        <button type="button" :class="{ 'on': wi === 'current' }" @click="setScenario('current')">Current</button>
+        <button type="button" :class="{ 'on': wi === 'cut-spend-20' }" @click="setScenario('cut-spend-20')">Cut Spend 20%</button>
+        <button type="button" :class="{ 'on': wi === 'double-cust' }" @click="setScenario('double-cust')">x2 Customers</button>
+        <button type="button" :class="{ 'on': wi === 'higher-arpu' }" @click="setScenario('higher-arpu')">Higher ARPU</button>
+        <button type="button" :class="{ 'on': wi === 'longer-life' }" @click="setScenario('longer-life')">Longer Life</button>
+        <button type="button" :class="{ 'on': wi === 'best-case' }" @click="setScenario('best-case')">Best Case</button>
+      </div>
     </div>
     <div class="cc-card mt-4">
       <div class="flex items-center justify-between">
         <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
-        <div class="flex items-center gap-2"><button type="button" id="ccHiToggle" class="cc-toggle" aria-expanded="false" aria-controls="ccHiWrap">History <span id="ccHiCount"></span></button><button type="button" id="ccHiClear" class="cc-sec" hidden>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button></div>
+        <div class="flex items-center gap-2">
+          <button type="button" @click="showHistory = !showHistory" :class="{ 'on': showHistory }" id="ccHiToggle" class="cc-toggle" :aria-expanded="showHistory">History <span id="ccHiCount" x-text="history.length ? '(' + history.length + ')' : ''"></span></button>
+          <button type="button" @click="clearHistory()" id="ccHiClear" class="cc-sec" x-show="history.length" x-cloak>{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button>
+        </div>
       </div>
-      <div id="ccHiWrap" hidden class="mt-2"><div id="ccHiList" class="cc-hist"></div></div>
+      <div id="ccHiWrap" x-show="showHistory" class="mt-2" x-cloak>
+        <div id="ccHiList" class="cc-hist">
+          <template x-for="(item, idx) in history" :key="item.ts">
+            <div class="cc-hist-item" @click="restoreHistory(idx)">
+              <span class="preview" x-text="item.label"></span>
+              <span class="meta" x-text="formatTime(item.ts)"></span>
+              <button type="button" class="hdel" @click.stop="deleteHistory(idx)" aria-label="Delete">✕</button>
+            </div>
+          </template>
+          <div class="cc-empty" x-show="!history.length">No calculations yet</div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="lg:w-7/12">
     <div class="cc-card">
       <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16) | safe }} CAC Metrics</h2>
       <div class="cc-grid" id="ccResults">
-        <div class="cc-result full"><div class="iv" id="ccBlended" style="color:var(--color-primary)">$0.00</div><div class="il">Blended CAC</div></div>
-        <div class="cc-result"><div class="iv" id="ccMarketingCac">$0.00</div><div class="il">Marketing CAC</div></div>
-        <div class="cc-result"><div class="iv" id="ccSalesCac">$0.00</div><div class="il">Sales CAC</div></div>
-        <div class="cc-result"><div class="iv" id="ccPayback">0 mo</div><div class="il">CAC Payback</div></div>
-        <div class="cc-result"><div class="iv" id="ccLTV">$0.00</div><div class="il">Customer LTV</div></div>
-        <div class="cc-result full" style="padding:8px"><div class="iv" id="ccLtvRatio" style="font-size:22px">0.0:1</div><div class="il">LTV:CAC Ratio</div></div>
-        <div class="cc-result" style="grid-column:1/-1;padding:8px"><span class="cc-health" id="ccHealth">—</span></div>
+        <div class="cc-result full"><div class="iv text-primary" id="ccBlended" x-text="formatCurrency2(cacBlended)">$500.00</div><div class="il">Blended CAC</div></div>
+        <div class="cc-result"><div class="iv" id="ccMarketingCac" x-text="formatCurrency2(cacMkt)">$200.00</div><div class="il">Marketing CAC</div></div>
+        <div class="cc-result"><div class="iv" id="ccSalesCac" x-text="formatCurrency2(cacSales)">$300.00</div><div class="il">Sales CAC</div></div>
+        <div class="cc-result"><div class="iv" id="ccPayback" :style="{ color: paybackColor }" x-text="paybackText" style="color:var(--color-success)">4 mo</div><div class="il">CAC Payback</div></div>
+        <div class="cc-result"><div class="iv" id="ccLTV" x-text="formatCurrency2(ltvValue)">$2,880.00</div><div class="il">Customer LTV</div></div>
+        <div class="cc-result full" style="padding:8px"><div class="iv" id="ccLtvRatio" :style="{ color: ltvRatioColor }" x-text="ltvRatioText" style="font-size:22px;color:var(--color-success)">5.8:1</div><div class="il">LTV:CAC Ratio</div></div>
+        <div class="cc-result" style="grid-column:1/-1;padding:8px"><span class="cc-health" id="ccHealth" :style="{ background: 'color-mix(in oklab,' + healthColor + ' 12%,transparent)', color: healthColor }" x-text="healthText" style="background:color-mix(in oklab,var(--color-success) 12%,transparent);color:var(--color-success)">Excellent</span></div>
       </div>
     </div>
     <div class="cc-card mt-4">
       <h2 class="text-sm font-black uppercase tracking-widest mb-3 flex items-center gap-2">{{ lucide_icon("trending-up","w-4 h-4",16) | safe }} Revenue Impact</h2>
       <p class="text-[11px] font-bold opacity-30 uppercase tracking-wider mb-2">Projected revenue from new customers at current CAC</p>
       <div class="cc-grid">
-        <div class="cc-result"><div class="iv" id="ccMoRev" style="font-size:18px">$0</div><div class="il">Monthly New Rev</div></div>
-        <div class="cc-result"><div class="iv" id="ccAnnRev" style="font-size:18px">$0</div><div class="il">Annual New Rev</div></div>
-        <div class="cc-result"><div class="iv" id="ccTotalCost" style="font-size:18px">$0</div><div class="il">Monthly Cost</div></div>
-        <div class="cc-result"><div class="iv" id="ccGrossMargin" style="font-size:18px">$0</div><div class="il">Monthly Gross</div></div>
+        <div class="cc-result"><div class="iv text-success" id="ccMoRev" :class="monthlyNewRev > 0 ? 'text-success' : 'text-error'" x-text="formatCurrency(monthlyNewRev)" style="font-size:18px">$6,000</div><div class="il">Monthly New Rev</div></div>
+        <div class="cc-result"><div class="iv" id="ccAnnRev" x-text="formatCurrency(annualNewRev)" style="font-size:18px">$72,000</div><div class="il">Annual New Rev</div></div>
+        <div class="cc-result"><div class="iv" id="ccTotalCost" x-text="formatCurrency(totalSpend)" style="font-size:18px">$25,000</div><div class="il">Monthly Cost</div></div>
+        <div class="cc-result"><div class="iv text-error" id="ccGrossMargin" :class="monthlyGross >= 0 ? 'text-success' : 'text-error'" x-text="formatCurrency(monthlyGross)" style="font-size:18px">-$19,000</div><div class="il">Monthly Gross</div></div>
       </div>
     </div>
     <div class="cc-card mt-4">
       <div class="flex items-center justify-between">
         <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("globe","w-4 h-4",16) | safe }} Industry Benchmark</h2>
-        <button type="button" id="ccBenchTog" class="cc-toggle" aria-expanded="false" aria-controls="ccBenchWrap">{{ lucide_icon("arrow-left-right","w-3 h-3",12) | safe }}</button>
+        <button type="button" @click="showBench = !showBench" :class="{ 'on': showBench }" id="ccBenchTog" class="cc-toggle" :aria-expanded="showBench">{{ lucide_icon("arrow-left-right","w-3 h-3",12) | safe }}</button>
       </div>
-      <div id="ccBenchWrap" hidden class="mt-2"><div class="cc-bench" id="ccBenchGrid"></div><div class="cc-hint">Compare your CAC and LTV:CAC to industry averages.</div></div>
+      <div id="ccBenchWrap" x-show="showBench" class="mt-2" x-cloak>
+        <div class="cc-bench" id="ccBenchGrid">
+          <template x-for="b in benchmarks" :key="b.name">
+            <div class="br">
+              <span x-text="b.name"></span>
+              <span>
+                <span class="bv" :style="{ color: cacBlended <= b.cac ? 'var(--color-success)' : 'var(--color-error)' }" x-text="formatCurrency2(b.cac)"></span>
+                vs 
+                <span class="bv" :style="{ color: ltvCac >= b.ltvCac ? 'var(--color-success)' : 'var(--color-error)' }" x-text="b.ltvCac.toFixed(1) + ':1'"></span>
+              </span>
+            </div>
+          </template>
+        </div>
+        <div class="cc-hint">Compare your CAC and LTV:CAC to industry averages.</div>
+      </div>
     </div>
   </div>
 </div>
-<div id="ccToast" class="cc-toast" role="status" aria-live="polite"></div>
 {% include "components/ymyl_disclaimer.html" %}
+
+{% block scripts %}
 <script nonce="{{ nonce }}">
-(function(){'use strict';
-var wi='current',benchTog=false;
-var history=[]; try{var h=JSON.parse(localStorage.getItem('sb_cc1')||'[]');if(Array.isArray(h))history=h}catch(e){}
-var saved=null; try{var s=JSON.parse(localStorage.getItem('sb_cc1_i')||'null');if(s&&typeof s==='object')saved=s}catch(e){}
+window.cacCalculator = function() {
+  var IND_BENCH = [
+    { name: 'SaaS', cac: 150, ltvCac: 4.5 },
+    { name: 'Ecommerce', cac: 45, ltvCac: 3.0 },
+    { name: 'Fintech', cac: 250, ltvCac: 5.0 },
+    { name: 'Marketplace', cac: 80, ltvCac: 3.5 },
+    { name: 'Enterprise', cac: 500, ltvCac: 6.0 },
+    { name: 'Consumer', cac: 35, ltvCac: 2.5 }
+  ];
 
-var IND_BENCH={
-saas:{name:'SaaS',cac:150,ltvCac:4.5},
-ecommerce:{name:'Ecommerce',cac:45,ltvCac:3.0},
-fintech:{name:'Fintech',cac:250,ltvCac:5.0},
-marketplace:{name:'Marketplace',cac:80,ltvCac:3.5},
-enterprise:{name:'Enterprise',cac:500,ltvCac:6.0},
-consumer:{name:'Consumer',cac:35,ltvCac:2.5},
+  var hist = [];
+  try {
+    var h = JSON.parse(localStorage.getItem('sb_cc1') || '[]');
+    if (Array.isArray(h)) hist = h;
+  } catch(e) {}
+
+  return {
+    marketing: 10000,
+    sales: 15000,
+    customers: 50,
+    arpu: 120,
+    lifespan: 24,
+    wi: 'current',
+    showHistory: false,
+    showBench: false,
+    history: hist,
+    benchmarks: IND_BENCH,
+
+    setScenario: function(s) {
+      this.wi = s;
+    },
+
+    formatCurrency: function(n) {
+      var num = Number(n) || 0;
+      var sign = num < 0 ? '-' : '';
+      return sign + '$' + Math.abs(Math.round(num)).toLocaleString('en-US');
+    },
+
+    formatCurrency2: function(n) {
+      var num = Number(n) || 0;
+      return '$' + num.toFixed(2);
+    },
+
+    formatTime: function(ts) {
+      var diff = Math.round((Date.now() - ts) / 1000);
+      if (diff < 60) return 'now';
+      if (diff < 3600) return Math.floor(diff / 60) + 'm';
+      if (diff < 86400) return Math.floor(diff / 3600) + 'h';
+      return Math.floor(diff / 86400) + 'd';
+    },
+
+    get scenarioValues() {
+      var m = Number(this.marketing) || 0;
+      var s = Number(this.sales) || 0;
+      var c = Number(this.customers) || 1;
+      var a = Number(this.arpu) || 0;
+      var l = Number(this.lifespan) || 0;
+
+      if (this.wi === 'cut-spend-20') { m *= 0.8; s *= 0.8; }
+      else if (this.wi === 'double-cust') { c *= 2; }
+      else if (this.wi === 'higher-arpu') { a *= 1.3; }
+      else if (this.wi === 'longer-life') { l *= 1.5; }
+      else if (this.wi === 'best-case') { m *= 0.8; s *= 0.8; c *= 2; a *= 1.3; l *= 1.5; }
+
+      return { m: m, s: s, c: Math.max(1, c), a: a, l: l };
+    },
+
+    get totalSpend() {
+      var sc = this.scenarioValues;
+      return sc.m + sc.s;
+    },
+
+    get cacBlended() {
+      var sc = this.scenarioValues;
+      return this.totalSpend / sc.c;
+    },
+
+    get cacMkt() {
+      var sc = this.scenarioValues;
+      return sc.m / sc.c;
+    },
+
+    get cacSales() {
+      var sc = this.scenarioValues;
+      return sc.s / sc.c;
+    },
+
+    get ltvValue() {
+      var sc = this.scenarioValues;
+      return sc.a * sc.l;
+    },
+
+    get paybackMonths() {
+      var sc = this.scenarioValues;
+      return this.cacBlended > 0 ? (sc.a > 0 ? this.cacBlended / sc.a : 0) : 0;
+    },
+
+    get paybackText() {
+      var pb = this.paybackMonths;
+      if (pb <= 0) return '0 mo';
+      if (pb < 1) return '<1 mo';
+      return Math.round(pb) + ' mo';
+    },
+
+    get paybackColor() {
+      var pb = this.paybackMonths;
+      return pb <= 12 ? 'var(--color-success)' : (pb <= 24 ? 'var(--color-warning)' : 'var(--color-error)');
+    },
+
+    get ltvCac() {
+      return this.cacBlended > 0 ? this.ltvValue / this.cacBlended : 0;
+    },
+
+    get ltvRatioText() {
+      return this.ltvCac.toFixed(1) + ':1';
+    },
+
+    get ltvRatioColor() {
+      var r = this.ltvCac;
+      return r >= 5 ? 'var(--color-success)' : (r >= 3 ? 'var(--color-primary)' : (r >= 1 ? 'var(--color-warning)' : 'var(--color-error)'));
+    },
+
+    get healthText() {
+      var r = this.ltvCac;
+      if (r >= 5) return 'Excellent';
+      if (r >= 3) return 'Good';
+      if (r >= 1) return 'Poor';
+      return 'Critical';
+    },
+
+    get healthColor() {
+      var r = this.ltvCac;
+      if (r >= 5) return 'var(--color-success)';
+      if (r >= 3) return 'var(--color-primary)';
+      if (r >= 1) return 'var(--color-warning)';
+      return 'var(--color-error)';
+    },
+
+    get monthlyNewRev() {
+      var sc = this.scenarioValues;
+      return sc.c * sc.a;
+    },
+
+    get annualNewRev() {
+      return this.monthlyNewRev * 12;
+    },
+
+    get monthlyGross() {
+      return this.monthlyNewRev - this.totalSpend;
+    },
+
+    saveHistory: function() {
+      var sc = this.scenarioValues;
+      var label = this.formatCurrency(sc.m + sc.s) + ' spend · ' + Math.round(sc.c) + ' customers';
+      this.history.unshift({ m: sc.m, s: sc.s, c: sc.c, a: sc.a, l: sc.l, wi: this.wi, label: label, ts: Date.now() });
+      if (this.history.length > 30) this.history.pop();
+      try { localStorage.setItem('sb_cc1', JSON.stringify(this.history)); } catch(e) {}
+    },
+
+    restoreHistory: function(idx) {
+      var item = this.history[idx];
+      if (!item) return;
+      this.marketing = item.m;
+      this.sales = item.s;
+      this.customers = item.c;
+      this.arpu = item.a;
+      this.lifespan = item.l;
+      this.wi = item.wi || 'current';
+    },
+
+    deleteHistory: function(idx) {
+      this.history.splice(idx, 1);
+      try { localStorage.setItem('sb_cc1', JSON.stringify(this.history)); } catch(e) {}
+    },
+
+    clearHistory: function() {
+      this.history = [];
+      try { localStorage.setItem('sb_cc1', JSON.stringify([])); } catch(e) {}
+    },
+
+    copyAll: function() {
+      var sc = this.scenarioValues;
+      var txt = 'CAC Report\nScenario: ' + this.wi.replace(/-/g, ' ') +
+        '\nMarketing: ' + this.formatCurrency(sc.m) + '/mo' +
+        '\nSales: ' + this.formatCurrency(sc.s) + '/mo' +
+        '\nCustomers: ' + Math.round(sc.c) + '/mo' +
+        '\nBlended CAC: ' + this.formatCurrency2(this.cacBlended) +
+        '\nMarketing CAC: ' + this.formatCurrency2(this.cacMkt) +
+        '\nSales CAC: ' + this.formatCurrency2(this.cacSales) +
+        '\nPayback: ' + this.paybackText +
+        '\nLTV: ' + this.formatCurrency2(this.ltvValue) +
+        '\nLTV:CAC: ' + this.ltvRatioText +
+        '\nHealth: ' + this.healthText +
+        '\nMo. New Rev: ' + this.formatCurrency(this.monthlyNewRev) +
+        '\nAnn. New Rev: ' + this.formatCurrency(this.annualNewRev) +
+        '\nMo. Gross: ' + this.formatCurrency(this.monthlyGross);
+      navigator.clipboard.writeText(txt).then(function() {
+        alert('Copied results to clipboard!');
+      }).catch(function() {});
+    },
+
+    dlReport: function() {
+      var sc = this.scenarioValues;
+      var txt = '=== CAC Report ===\nDate: ' + new Date().toISOString().slice(0, 10) +
+        '\nScenario: ' + this.wi.replace(/-/g, ' ') +
+        '\n\nInputs\nMarketing Spend: ' + this.formatCurrency(sc.m) + '/mo' +
+        '\nSales Spend: ' + this.formatCurrency(sc.s) + '/mo' +
+        '\nNew Customers: ' + Math.round(sc.c) + '/mo' +
+        '\nARPU: ' + this.formatCurrency2(sc.a) + '/mo' +
+        '\nLifespan: ' + Math.round(sc.l) + ' mo' +
+        '\n\nUnit Economics\nBlended CAC: ' + this.formatCurrency2(this.cacBlended) +
+        '\nMarketing CAC: ' + this.formatCurrency2(this.cacMkt) +
+        '\nSales CAC: ' + this.formatCurrency2(this.cacSales) +
+        '\nCAC Payback: ' + this.paybackText +
+        '\nCustomer LTV: ' + this.formatCurrency2(this.ltvValue) +
+        '\nLTV:CAC Ratio: ' + this.ltvRatioText +
+        '\nHealth: ' + this.healthText +
+        '\n\nRevenue Impact\nMonthly New Revenue: ' + this.formatCurrency(this.monthlyNewRev) +
+        '\nAnnual New Revenue: ' + this.formatCurrency(this.annualNewRev) +
+        '\nMonthly Cost: ' + this.formatCurrency(this.totalSpend) +
+        '\nMonthly Gross: ' + this.formatCurrency(this.monthlyGross);
+      var b = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      a.download = 'cac-report-' + Date.now() + '.txt';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+  };
 };
-
-function el(id){return document.getElementById(id)}
-var marketing=el('ccMarketing'),sales=el('ccSales'),customers=el('ccCustomers'),arpu=el('ccARPU'),lifespan=el('ccLifespan');
-var calcBtn=el('ccCalcBtn'),copyBtn=el('ccCopyBtn'),dlBtn=el('ccDlBtn'),whatifEl=el('ccWhatIf');
-var blended=el('ccBlended'),mktCac=el('ccMarketingCac'),salesCac=el('ccSalesCac'),payback=el('ccPayback'),ltv=el('ccLTV'),ltvRatio=el('ccLtvRatio'),health=el('ccHealth');
-var moRev=el('ccMoRev'),annRev=el('ccAnnRev'),totalCost=el('ccTotalCost'),grossMargin=el('ccGrossMargin');
-var benchTogEl=el('ccBenchTog'),benchWrap=el('ccBenchWrap'),benchGrid=el('ccBenchGrid');
-var hiToggle=el('ccHiToggle'),hiCount=el('ccHiCount'),hiClear=el('ccHiClear'),hiWrap=el('ccHiWrap'),hiList=el('ccHiList');
-var toastEl=el('ccToast'),tt;
-
-function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toastEl.classList.remove('show')},2200)}
-function v(e){var n=parseFloat(e.value.replace(/,/g,''));return isNaN(n)?0:n}
-function fmtCurrency(n){var s='$'+(n>=0?Math.round(n).toLocaleString('en-US'):'0');return s}
-function fmtCurrency2(n){if(isNaN(n)||n===0)return'$0.00';return'$'+n.toFixed(2)}
-function fmtRatio(n){return n.toFixed(1)}
-function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
-
-function applyWI(){
-var m=v(marketing),s=v(sales),c=v(customers)||1,a=v(arpu),l=v(lifespan);
-if(wi==='cut-spend-20'){m*=0.8;s*=0.8}
-else if(wi==='double-cust'){c*=2}
-else if(wi==='higher-arpu'){a*=1.3}
-else if(wi==='longer-life'){l*=1.5}
-else if(wi==='best-case'){m*=0.8;s*=0.8;c*=2;a*=1.3;l*=1.5}
-return{m:m,s:s,c:c,a:a,l:l}
-}
-
-function calc(){
-var d=applyWI();
-var m=d.m,s=d.s,c=d.c,a=d.a,l=d.l;
-var totalSpend=m+s;
-var cacBlended=totalSpend/c;
-var cacMkt=m/c;
-var cacSales=s/c;
-var ltvValue=a*l;
-var paybackMonths=cacBlended>0?(a>0?cacBlended/a:0):0;
-var ltvCac=cacBlended>0?ltvValue/cacBlended:0;
-var monthlyNewRev=c*a;
-var annualNewRev=monthlyNewRev*12;
-var monthlyGross=monthlyNewRev-totalSpend;
-blended.textContent=fmtCurrency2(cacBlended);
-mktCac.textContent=fmtCurrency2(cacMkt);
-salesCac.textContent=fmtCurrency2(cacSales);
-payback.textContent=paybackMonths<=0?'0 mo':paybackMonths<1?'<1 mo':Math.round(paybackMonths)+' mo';
-payback.style.color=paybackMonths<=12?'var(--color-success)':paybackMonths<=24?'var(--color-warning)':'var(--color-error)';
-ltv.textContent=fmtCurrency2(ltvValue);
-ltvRatio.textContent=fmtRatio(ltvCac)+':1';ltvRatio.style.color=ltvCac>=5?'var(--color-success)':ltvCac>=3?'var(--color-primary)':ltvCac>=1?'var(--color-warning)':'var(--color-error)';
-var h,hl;if(ltvCac>=5){h='Excellent';hl='var(--color-success)'}else if(ltvCac>=3){h='Good';hl='var(--color-primary)'}else if(ltvCac>=1){h='Poor';hl='var(--color-warning)'}else{h='Critical';hl='var(--color-error)'}
-health.textContent=h;health.style.background='color-mix(in oklab,'+hl+' 12%,transparent)';health.style.color=hl;
-moRev.textContent=fmtCurrency(monthlyNewRev);moRev.style.color=monthlyNewRev>0?'var(--color-success)':'var(--color-error)';
-annRev.textContent=fmtCurrency(annualNewRev);
-totalCost.textContent=fmtCurrency(totalSpend);
-grossMargin.textContent=fmtCurrency(monthlyGross);grossMargin.style.color=monthlyGross>=0?'var(--color-success)':'var(--color-error)';
-renderBench(cacBlended,ltvCac);
-saveInputs();
-}
-
-function renderBench(cacBlended,ltvCac){
-if(!benchTog)return;
-var h='';var keys=Object.keys(IND_BENCH);
-keys.forEach(function(k){
-var b=IND_BENCH[k];
-var cacDiff=((cacBlended-b.cac)/b.cac*100).toFixed(0);
-var ltvDiff=((ltvCac-b.ltvCac)/b.ltvCac*100).toFixed(0);
-var cacColor=cacBlended<=b.cac?'var(--color-success)':'var(--color-error)';
-var ltvColor=ltvCac>=b.ltvCac?'var(--color-success)':'var(--color-error)';
-h+='<div class="br"><span>'+esc(b.name)+'</span><span><span class="bv" style="color:'+cacColor+'">'+fmtCurrency2(b.cac)+'</span> vs <span class="bv" style="color:'+ltvColor+'">'+fmtRatio(b.ltvCac)+':1</span></span></div>';
-});
-benchGrid.innerHTML=h;
-}
-
-function saveHistory(){
-var d=applyWI();
-var label=fmtCurrency(d.m+d.s)+' spend · '+Math.round(d.c)+' customers';
-history.unshift({m:d.m,s:d.s,c:d.c,a:d.a,l:d.l,wi:wi,label:label,ts:Date.now()});
-if(history.length>30)history.pop();
-try{localStorage.setItem('sb_cc1',JSON.stringify(history))}catch(e){}
-renderHistory();
-}
-
-function renderHistory(){
-hiCount.textContent=history.length?'('+history.length+')':'';
-hiClear.hidden=!history.length;
-if(!history.length){hiList.innerHTML='<div class="cc-empty">No calculations yet</div>';return}
-var h='';history.forEach(function(item,i){
-var d=new Date(item.ts);var diff=Math.round((Date.now()-d)/1000);
-var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
-h+='<div class="cc-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.label)+'</span><span class="meta">'+rel+'</span><button type="button" class="hdel" data-idx="'+i+'" aria-label="Delete">✕</button></div>';
-});
-hiList.innerHTML=h;
-}
-
-function saveInputs(){
-var d=applyWI();
-var obj={m:d.m,s:d.s,c:d.c,a:d.a,l:d.l,wi:wi};
-try{localStorage.setItem('sb_cc1_i',JSON.stringify(obj))}catch(e){}
-}
-
-function copyAll(){
-var d=applyWI();
-var txt='CAC Report\nScenario: '+wi.replace(/-/g,' ')+'\nMarketing: '+fmtCurrency(d.m)+'/mo\nSales: '+fmtCurrency(d.s)+'/mo\nCustomers: '+Math.round(d.c)+'/mo\nBlended CAC: '+blended.textContent+'\nMarketing CAC: '+mktCac.textContent+'\nSales CAC: '+salesCac.textContent+'\nPayback: '+payback.textContent+'\nLTV: '+ltv.textContent+'\nLTV:CAC: '+ltvRatio.textContent+'\nHealth: '+health.textContent+'\nMo. New Rev: '+moRev.textContent+'\nAnn. New Rev: '+annRev.textContent+'\nMo. Gross: '+grossMargin.textContent;
-navigator.clipboard.writeText(txt).then(function(){toast('Copied!')}).catch(function(){toast('Copy failed')});
-}
-
-function dlReport(){
-var d=applyWI();
-var txt='=== CAC Report ===\nDate: '+new Date().toISOString().slice(0,10)+'\nScenario: '+wi.replace(/-/g,' ')+'\n\nInputs\nMarketing Spend: '+fmtCurrency(d.m)+'/mo\nSales Spend: '+fmtCurrency(d.s)+'/mo\nNew Customers: '+Math.round(d.c)+'/mo\nARPU: '+fmtCurrency2(d.a)+'/mo\nLifespan: '+Math.round(d.l)+' mo\n\nUnit Economics\nBlended CAC: '+blended.textContent+'\nMarketing CAC: '+mktCac.textContent+'\nSales CAC: '+salesCac.textContent+'\nCAC Payback: '+payback.textContent+'\nCustomer LTV: '+ltv.textContent+'\nLTV:CAC Ratio: '+ltvRatio.textContent+'\nHealth: '+health.textContent+'\n\nRevenue Impact\nMonthly New Revenue: '+moRev.textContent+'\nAnnual New Revenue: '+annRev.textContent+'\nMonthly Cost: '+totalCost.textContent+'\nMonthly Gross: '+grossMargin.textContent;
-var b=new Blob([txt],{type:'text/plain;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='cac-report-'+Date.now()+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Downloaded');
-}
-
-whatifEl.addEventListener('click',function(e){
-var b=e.target.closest('button[data-wi]');if(!b)return;
-wi=b.getAttribute('data-wi');whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
-calc();saveHistory();
-});
-
-calcBtn.addEventListener('click',function(){calc();saveHistory()});
-copyBtn.addEventListener('click',copyAll);
-dlBtn.addEventListener('click',dlReport);
-
-benchTogEl.addEventListener('click',function(){benchTog=benchTogEl.getAttribute('aria-expanded')==='true'?false:true;benchTogEl.setAttribute('aria-expanded',benchTog);benchWrap.hidden=!benchTog;benchTogEl.classList.toggle('on');if(benchTog){var d=applyWI();var cac=(d.m+d.s)/d.c;var ltvCac=(d.a*d.l)/cac;renderBench(cac,ltvCac)}});
-
-hiToggle.addEventListener('click',function(){var o=hiToggle.getAttribute('aria-expanded')==='true';hiToggle.setAttribute('aria-expanded',!o);hiWrap.hidden=o;hiToggle.classList.toggle('on');if(!o)renderHistory()});
-hiClear.addEventListener('click',function(){history=[];try{localStorage.setItem('sb_cc1',JSON.stringify(history))}catch(e){}renderHistory();toast('History cleared')});
-hiList.addEventListener('click',function(e){
-var del=e.target.closest('.hdel');if(del){var idx=parseInt(del.getAttribute('data-idx'));history.splice(idx,1);try{localStorage.setItem('sb_cc1',JSON.stringify(history))}catch(e){}renderHistory();return}
-var item=e.target.closest('.cc-hist-item');if(!item)return;
-var idx=parseInt(item.getAttribute('data-idx'));var h=history[idx];if(!h)return;
-marketing.value=h.m;sales.value=h.s;customers.value=h.c;arpu.value=h.a||120;lifespan.value=h.l||24;
-wi=h.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
-history.splice(idx,1);try{localStorage.setItem('sb_cc1',JSON.stringify(history))}catch(e){}renderHistory();calc();
-});
-
-if(saved){
-marketing.value=saved.m||10000;sales.value=saved.s||15000;customers.value=saved.c||50;arpu.value=saved.a||120;lifespan.value=saved.l||24;
-wi=saved.wi||'current';whatifEl.querySelectorAll('button').forEach(function(el){el.classList.toggle('on',el.getAttribute('data-wi')===wi)});
-}
-
-calc();
-})();
 </script>
+{% endblock %}
 
 {{ tool_section_end() }}
 {% endblock %}
