@@ -57,7 +57,7 @@ from apps.core.exceptions import ServiceError, ValidationException
 
 
 class ProxyService:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Any = None) -> None:
         self.settings = settings
         self._dns_cache: dict[str, tuple[str | None, float]] = {}
         self._dns_ttl = 300

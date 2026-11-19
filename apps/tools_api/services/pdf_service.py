@@ -4,6 +4,7 @@ import contextlib
 import io
 import os
 import re
+from typing import Any
 
 from fpdf import FPDF
 from PIL import Image
@@ -53,7 +54,7 @@ def _find_unicode_font() -> str | None:
 
 
 class PDFService:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Any = None) -> None:
         self.settings = settings
         self._unicode_font = _find_unicode_font()
 

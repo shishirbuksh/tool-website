@@ -84,7 +84,7 @@ def _validate_bg_color(bg_color: str) -> str:
 
 
 class ImageService:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Any = None):
         self.settings = settings
         self._rembg = None
         self._cv2 = None

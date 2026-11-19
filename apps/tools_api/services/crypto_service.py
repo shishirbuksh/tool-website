@@ -314,7 +314,7 @@ def _get_prophet_semaphore() -> asyncio.Semaphore:
 
 
 class CryptoService:
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Any = None):
         self.settings = settings
         self._pd = None
 
