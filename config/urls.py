@@ -47,6 +47,24 @@ def favicon_ico(request):
     return HttpResponse(status=404)
 
 
+def apple_touch_icon(request):
+    path = os.path.join(settings.BASE_DIR, "static", "apple-touch-icon.png")
+    if os.path.isfile(path):
+        response = FileResponse(open(path, "rb"), content_type="image/png")
+        response["Cache-Control"] = "public, max-age=604800, stale-while-revalidate=86400"
+        return response
+    return HttpResponse(status=404)
+
+
+def webmanifest(request):
+    path = os.path.join(settings.BASE_DIR, "static", "manifest.json")
+    if os.path.isfile(path):
+        response = FileResponse(open(path, "rb"), content_type="application/manifest+json")
+        response["Cache-Control"] = "public, max-age=86400, stale-while-revalidate=3600"
+        return response
+    return HttpResponse(status=404)
+
+
 _ADS_TXT_CONTENT = "google.com, pub-6310719489589992, DIRECT, f08c47fec0942fa0\n"
 
 
@@ -119,6 +137,10 @@ urlpatterns = [
 
     # Static SEO roots
     path("favicon.ico", favicon_ico, name="favicon_ico"),
+    path("apple-touch-icon.png", apple_touch_icon, name="apple_touch_icon"),
+    path("apple-touch-icon-precomposed.png", apple_touch_icon, name="apple_touch_icon_precomposed"),
+    path("site.webmanifest", webmanifest, name="site_webmanifest"),
+    path("manifest.json", webmanifest, name="manifest_json"),
     path("ads.txt", ads_txt, name="ads_txt"),
     path("sw.js", sw_js, name="sw_js"),
     path("static/sw.js", sw_js, name="static_sw_js"),
