@@ -280,3 +280,15 @@ class TestSeoAuditRevisions2026:
             assert resp.status_code == 200
             assert "Primary Sources" in resp.text
             assert '"citation"' in resp.text
+
+    def test_all_tool_json_ld_valid_json(self) -> None:
+        import json as _json
+
+        for slug in _load_tools().keys():
+            resp = client.get(f"/tool/{slug}")
+            assert resp.status_code == 200
+            scripts = re.findall(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', resp.text, re.S)
+            assert scripts, f"No JSON-LD found on /tool/{slug}"
+            for s in scripts:
+                parsed = _json.loads(s.strip())
+                assert isinstance(parsed, dict), f"JSON-LD root must be a dict on /tool/{slug}"
