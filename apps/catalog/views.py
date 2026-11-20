@@ -194,6 +194,8 @@ def hub_or_page(request, page_name: str):
 
 def legacy_locale_redirect(request, rest_path: str = ""):
     clean = "/" + rest_path.lstrip("/")
+    if len(clean) > 1 and clean.endswith("/"):
+        clean = clean.rstrip("/")
     qs = f"?{request.META['QUERY_STRING']}" if request.META.get("QUERY_STRING") else ""
     return HttpResponsePermanentRedirect(f"{clean}{qs}")
 
