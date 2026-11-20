@@ -275,4 +275,3 @@ class SitemapService:
             content = "\n".join(lines)
             self._llms_cache = (now, content)
             return content
-            return content
