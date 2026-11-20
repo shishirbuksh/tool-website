@@ -171,6 +171,19 @@ document.addEventListener('alpine:init', function() {
       toastShow: false,
       init: function() {
         this.mounted = true;
+        try {
+          var sp = new URLSearchParams(window.location.search);
+          var pP = sp.get('principal') || sp.get('deposit') || sp.get('amount') || sp.get('p');
+          var pR = sp.get('rate') || sp.get('interest') || sp.get('r');
+          var pT = sp.get('tenure') || sp.get('years') || sp.get('term') || sp.get('t');
+          var pC = sp.get('comp') || sp.get('compounding');
+          var pS = sp.get('senior');
+          if (pP) this.principal = Math.max(100, Number(pP) || this.principal);
+          if (pR) this.rate = Math.max(0.1, Number(pR) || this.rate);
+          if (pT) this.tenure = Math.max(0.25, Number(pT) || this.tenure);
+          if (pC && [1, 2, 4, 12].indexOf(Number(pC)) !== -1) this.comp = Number(pC);
+          if (pS === '1' || pS === 'true' || pS === 'yes') this.senior = true;
+        } catch (e) {}
       },
       get effectiveRate() {
         return (this.senior ? (this.rate || 0) + 0.5 : (this.rate || 0));
