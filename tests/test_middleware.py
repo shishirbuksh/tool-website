@@ -80,7 +80,7 @@ class TestSecurityHeadersMiddleware:
         assert response.headers["Cross-Origin-Opener-Policy"] == "same-origin-allow-popups"
         assert response.headers["Cross-Origin-Resource-Policy"] == "same-origin"
         assert response.headers["X-Permitted-Cross-Domain-Policies"] == "none"
-        assert "browsing-topics=()" in response.headers["Permissions-Policy"]
+        assert "camera=()" in response.headers["Permissions-Policy"]
         assert "Accept-Encoding" in response.headers["Vary"]
 
 
