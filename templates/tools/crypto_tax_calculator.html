@@ -58,7 +58,10 @@
           </div>
         </div>
         <div id="taxRegimeNote" class="text-[11px] text-base-content/60 p-3 rounded-xl bg-base-200/40 leading-relaxed">US estimate applies IRS ordinary income brackets for short-term gains and 0%/15%/20% brackets for assets held over 1 year.</div>
-        <button type="button" id="resetBtn" class="btn btn-primary w-full mt-2" aria-label="Reset">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
+        <div class="flex gap-2 mt-2">
+          <button type="button" id="resetBtn" class="btn btn-primary flex-1" aria-label="Reset">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
+          <button type="button" id="taxShareBtn" class="btn btn-ghost" aria-label="Share Calculation" title="Share calculation URL">{{ lucide_icon("share-2","w-3.5 h-3.5",14)|safe }} Share</button>
+        </div>
       </div>
     </div>
 
@@ -307,6 +310,22 @@ window.cryptoTaxCalculator = function() {
     $('taxJurisdiction').addEventListener('change', function(){ updateJurisdictionUI(); calculate(); });
     ['taxCostBasis','taxProceeds','taxFees','taxCustomRate','taxIncome'].forEach(function(id){ $(id).addEventListener('input', calculate); });
     $('resetBtn').addEventListener('click', reset);
+    var shareBtn = $('taxShareBtn');
+    if (shareBtn) {
+      shareBtn.addEventListener('click', function() {
+        var sp = new URLSearchParams();
+        if ($('taxCostBasis') && $('taxCostBasis').value) sp.set('cost', $('taxCostBasis').value);
+        if ($('taxProceeds') && $('taxProceeds').value) sp.set('proceeds', $('taxProceeds').value);
+        if ($('taxJurisdiction') && $('taxJurisdiction').value) sp.set('jurisdiction', $('taxJurisdiction').value);
+        if ($('taxIncome') && $('taxIncome').value) sp.set('income', $('taxIncome').value);
+        var url = window.location.origin + window.location.pathname + (sp.toString() ? '?' + sp.toString() : '');
+        navigator.clipboard.writeText(url).then(function() {
+          var orig = shareBtn.innerHTML;
+          shareBtn.innerHTML = 'Copied!';
+          setTimeout(function() { shareBtn.innerHTML = orig; }, 2000);
+        });
+      });
+    }
   });
 
 

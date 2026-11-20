@@ -124,6 +124,7 @@
       <div class="gc-words" id="gcWords" x-text="amountInWords">One Thousand One Hundred and Eighty Rupees Only.</div>
       <div class="flex items-center gap-2 mt-3">
         <button type="button" id="gcBatchTog" class="gc-toggle" :class="{ 'on': showBatch }" :aria-expanded="showBatch" @click="showBatch = !showBatch" aria-controls="gcBatchWrap">{{ lucide_icon("grid","w-3 h-3",12) | safe }} All Slabs</button>
+        <button type="button" id="gcShareBtn" class="gc-sec" @click="shareLink()" aria-label="Share calculation" title="Share calculation URL">{{ lucide_icon("share-2","w-3 h-3",12) | safe }} Share</button>
         <button type="button" id="gcCopyBtn" class="gc-sec" @click="copyAll()" aria-label="Copy result">{{ lucide_icon("copy","w-3 h-3",12) | safe }} Copy</button>
         <button type="button" id="gcDlBtn" class="gc-sec" @click="dlReport()" aria-label="Download as text">{{ lucide_icon("download","w-3 h-3",12) | safe }} .txt</button>
       </div>
@@ -546,6 +547,22 @@ window.gstCalculator = function() {
       a.click();
       URL.revokeObjectURL(a.href);
       this.toast('Invoice exported');
+    },
+
+    shareLink: function() {
+      var p = new URLSearchParams();
+      if (this.amount) p.set('amount', this.amount);
+      if (this.activeRate) p.set('rate', this.activeRate);
+      if (this.mode) p.set('mode', this.mode);
+      var shareUrl = window.location.origin + window.location.pathname + (p.toString() ? '?' + p.toString() : '');
+      var self = this;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(function() {
+          self.toast('Link copied!');
+        }).catch(function() {
+          self.toast('Copy failed');
+        });
+      }
     },
 
     copyStr: function(s) {

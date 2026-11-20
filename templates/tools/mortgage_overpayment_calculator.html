@@ -106,7 +106,12 @@
 
     <!-- ═══════ TOP-LEVEL METRICS ═══════ -->
     <div class="feature-card p-6 md:p-8">
-      <h3 class="text-xl font-black mb-5 tracking-tight flex items-center gap-2">{{ lucide_icon("gauge","w-5 h-5", 20) | safe }} Your Overpayment Impact</h3>
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-xl font-black tracking-tight flex items-center gap-2">{{ lucide_icon("gauge","w-5 h-5", 20) | safe }} Your Overpayment Impact</h3>
+        <button type="button" id="moShareBtn" @click="shareLink()" class="btn btn-sm btn-ghost gap-1.5 text-xs font-bold" aria-label="Share calculation" title="Share calculation URL">
+          {{ lucide_icon("share-2","w-3.5 h-3.5",14) | safe }} <span x-text="copied ? 'Link Copied!' : 'Share'">Share</span>
+        </button>
+      </div>
       {% include "components/ymyl_disclaimer.html" %}
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div class="rounded-xl bg-base-content/5 p-4 text-center">
@@ -251,6 +256,23 @@ window.mortgageCalculator = function() {
         if (pCur && ['USD','EUR','GBP','JPY','INR','CAD','AUD'].indexOf(pCur.toUpperCase()) !== -1) this.currency = pCur.toUpperCase();
       } catch (e) {}
     },
+      copied: false,
+      shareLink: function() {
+        var p = new URLSearchParams();
+        if (this.balance) p.set('balance', this.balance);
+        if (this.rate) p.set('rate', this.rate);
+        if (this.term) p.set('term', this.term);
+        if (this.extra) p.set('extra', this.extra);
+        if (this.lumpSum) p.set('lumpsum', this.lumpSum);
+        if (this.freq) p.set('freq', this.freq);
+        if (this.currency) p.set('currency', this.currency);
+        var shareUrl = window.location.origin + window.location.pathname + (p.toString() ? '?' + p.toString() : '');
+        var self = this;
+        navigator.clipboard.writeText(shareUrl).then(function() {
+          self.copied = true;
+          setTimeout(function() { self.copied = false; }, 2500);
+        });
+      },
       get currSym() {
         var syms = { USD: '$', EUR: '€', GBP: '£', JPY: '¥', INR: '₹', CAD: 'CA$', AUD: 'AU$', CHF: 'CHF ', CNY: '¥', BRL: 'R$', KRW: '₩', SEK: 'kr ', NZD: 'NZ$', SGD: 'S$', HKD: 'HK$', ZAR: 'R ' };
         return syms[this.currency] || '$';

@@ -29,7 +29,10 @@
         <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="poolFee">Pool Fee (%)</label><input aria-label="Mining Pool Fee (%)" type="number" id="poolFee" x-model.number="poolFee" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="1" min="0" step="0.5"></div>
         <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="btcPrice">BTC Price ($)</label><input aria-label="Bitcoin Price ($)" type="number" id="btcPrice" x-model.number="btcPrice" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="65000" min="0"></div>
         <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="netHash">Network Hashrate (EH/s)</label><input aria-label="Network Hashrate (EH/s)" type="number" id="netHash" x-model.number="netHash" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="600" min="1"></div>
-        <button type="button" @click="reset()" id="resetBtn" class="btn btn-primary w-full mt-2" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
+        <div class="flex gap-2 mt-2">
+          <button type="button" @click="reset()" id="resetBtn" class="btn btn-primary flex-1" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
+          <button type="button" @click="shareLink()" id="mineShareBtn" class="btn btn-ghost" aria-label="Share calculation" title="Share calculation URL">{{ lucide_icon("share-2","w-3.5 h-3.5",14)|safe }} <span x-text="copied ? 'Copied' : 'Share'">Share</span></button>
+        </div>
       </div>
     </div>
 
@@ -154,6 +157,20 @@ window.cryptoMining = function() {
         { label: 'Weekly', rev: rev * 7, cost: (elec + pf) * 7, pf: pf * 7, net: net * 7 },
         { label: 'Monthly', rev: rev * 30, cost: (elec + pf) * 30, pf: pf * 30, net: net * 30 }
       ];
+    },
+    copied: false,
+    shareLink: function() {
+      var p = new URLSearchParams();
+      if (this.hashRate) p.set('hashrate', this.hashRate);
+      if (this.powerW) p.set('power', this.powerW);
+      if (this.elecCost) p.set('cost', this.elecCost);
+      if (this.btcPrice) p.set('price', this.btcPrice);
+      var shareUrl = window.location.origin + window.location.pathname + (p.toString() ? '?' + p.toString() : '');
+      var self = this;
+      navigator.clipboard.writeText(shareUrl).then(function() {
+        self.copied = true;
+        setTimeout(function() { self.copied = false; }, 2500);
+      });
     },
     reset: function() {
       this.hashRate = 100;

@@ -46,7 +46,10 @@
 <div class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s" x-data="fdCalculator()">
   <div class="lg:w-5/12">
     <div class="fc-card">
-      <h2 class="text-sm font-black uppercase tracking-widest mb-4 flex items-center gap-2">{{ lucide_icon("landmark","w-4 h-4",16) | safe }} {{ seo_data.name if seo_data and seo_data.name else "FD Details" }}</h2>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("landmark","w-4 h-4",16) | safe }} {{ seo_data.name if seo_data and seo_data.name else "FD Details" }}</h2>
+        <button type="button" id="fcShareBtn" @click="shareLink()" class="fc-toggle" aria-label="Share calculation">{{ lucide_icon("share-2","w-3 h-3",12) | safe }} <span x-text="copied ? 'Copied' : 'Share'">Share</span></button>
+      </div>
       <div class="mb-3"><label class="fc-label" for="fcPrincipal">Principal Amount ({{ cur_sym }})</label><input type="number" id="fcPrincipal" class="fc-input" x-model.number="principal" min="0" step="1000" value="100000"></div>
       <div class="fc-grid-2 mb-3">
         <div><label class="fc-label" for="fcRate">Interest Rate (%)</label><input type="number" id="fcRate" class="fc-input" x-model.number="rate" min="0" max="50" step="0.1" value="7.0"></div>
@@ -184,6 +187,21 @@ document.addEventListener('alpine:init', function() {
           if (pC && [1, 2, 4, 12].indexOf(Number(pC)) !== -1) this.comp = Number(pC);
           if (pS === '1' || pS === 'true' || pS === 'yes') this.senior = true;
         } catch (e) {}
+      },
+      copied: false,
+      shareLink: function() {
+        var p = new URLSearchParams();
+        if (this.principal) p.set('principal', this.principal);
+        if (this.rate) p.set('rate', this.rate);
+        if (this.tenure) p.set('tenure', this.tenure);
+        if (this.comp) p.set('comp', this.comp);
+        if (this.senior) p.set('senior', '1');
+        var shareUrl = window.location.origin + window.location.pathname + (p.toString() ? '?' + p.toString() : '');
+        var self = this;
+        navigator.clipboard.writeText(shareUrl).then(function() {
+          self.copied = true;
+          setTimeout(function() { self.copied = false; }, 2500);
+        });
       },
       get effectiveRate() {
         return (this.senior ? (this.rate || 0) + 0.5 : (this.rate || 0));

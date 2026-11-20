@@ -50,11 +50,16 @@ table.schedule tr:last-child td{border-bottom:none;font-weight:700}
         </select>
       </div>
     </div>
-    <div class="flex flex-wrap gap-2" role="tablist" aria-label="SIP calculator tabs">
-      <button type="button" class="tab-btn" :class="{ 'active': tab === 'sip' }" @click="tab = 'sip'" role="tab" :aria-selected="tab === 'sip'" aria-controls="tab-sip">SIP Calculator</button>
-      <button type="button" class="tab-btn" :class="{ 'active': tab === 'goal' }" @click="tab = 'goal'" role="tab" :aria-selected="tab === 'goal'" aria-controls="tab-goal">Goal Planner</button>
-      <button type="button" class="tab-btn" :class="{ 'active': tab === 'schedule' }" @click="tab = 'schedule'" role="tab" :aria-selected="tab === 'schedule'" aria-controls="tab-schedule">Growth Schedule</button>
-      <button type="button" class="tab-btn" :class="{ 'active': tab === 'compare' }" @click="tab = 'compare'" role="tab" :aria-selected="tab === 'compare'" aria-controls="tab-compare">Compare</button>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex flex-wrap gap-2" role="tablist" aria-label="SIP calculator tabs">
+        <button type="button" class="tab-btn" :class="{ 'active': tab === 'sip' }" @click="tab = 'sip'" role="tab" :aria-selected="tab === 'sip'" aria-controls="tab-sip">SIP Calculator</button>
+        <button type="button" class="tab-btn" :class="{ 'active': tab === 'goal' }" @click="tab = 'goal'" role="tab" :aria-selected="tab === 'goal'" aria-controls="tab-goal">Goal Planner</button>
+        <button type="button" class="tab-btn" :class="{ 'active': tab === 'schedule' }" @click="tab = 'schedule'" role="tab" :aria-selected="tab === 'schedule'" aria-controls="tab-schedule">Growth Schedule</button>
+        <button type="button" class="tab-btn" :class="{ 'active': tab === 'compare' }" @click="tab = 'compare'" role="tab" :aria-selected="tab === 'compare'" aria-controls="tab-compare">Compare</button>
+      </div>
+      <button type="button" id="sipShareBtn" @click="shareLink()" class="btn btn-sm btn-ghost gap-1.5 text-xs font-bold" aria-label="Share calculation" title="Share this calculation">
+        {{ lucide_icon("share-2","w-3.5 h-3.5",14) | safe }} <span x-text="copied ? 'Link Copied!' : 'Share'">Share</span>
+      </button>
     </div>
   </div>
 
@@ -354,6 +359,23 @@ window.sipCalculator = function() {
     cmpA: { monthly: 5000, lumpsum: 0, rate: 12, stepup: 0, years: 10, months: 0 },
     cmpB: { monthly: 5000, lumpsum: 50000, rate: 15, stepup: 10, years: 10, months: 0 },
     cmpC: { monthly: 10000, lumpsum: 100000, rate: 12, stepup: 0, years: 10, months: 0 },
+    copied: false,
+
+    shareLink: function() {
+      var p = new URLSearchParams();
+      if (this.monthly) p.set('monthly', this.monthly);
+      if (this.lumpsum) p.set('lumpsum', this.lumpsum);
+      if (this.rate) p.set('rate', this.rate);
+      if (this.years) p.set('years', this.years);
+      if (this.stepup) p.set('stepup', this.stepup);
+      if (this.curr) p.set('curr', this.curr);
+      var shareUrl = window.location.origin + window.location.pathname + (p.toString() ? '?' + p.toString() : '');
+      var self = this;
+      navigator.clipboard.writeText(shareUrl).then(function() {
+        self.copied = true;
+        setTimeout(function() { self.copied = false; }, 2500);
+      });
+    },
 
     init: function() {
       this.mounted = true;

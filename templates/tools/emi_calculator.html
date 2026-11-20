@@ -66,8 +66,9 @@
       </div>
       <div class="flex gap-2 mt-3">
         <button type="button" id="emCalcBtn" @click="saveHistory()" class="em-pri flex-1">{{ lucide_icon("calculator","w-3 h-3",12) | safe }} Calculate</button>
-        <button type="button" id="emCopyBtn" @click="copyAll()" class="em-sec" aria-label="Copy results">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
-        <button type="button" id="emDlBtn" @click="dlReport()" class="em-sec" aria-label="Download report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="emShareBtn" @click="shareLink()" class="em-sec" aria-label="Share calculation" title="Share calculation URL">{{ lucide_icon("share-2","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="emCopyBtn" @click="copyAll()" class="em-sec" aria-label="Copy results" title="Copy report">{{ lucide_icon("copy","w-3 h-3",12) | safe }}</button>
+        <button type="button" id="emDlBtn" @click="dlReport()" class="em-sec" aria-label="Download report" title="Download text report">{{ lucide_icon("download","w-3 h-3",12) | safe }}</button>
       </div>
     </div>
     <div class="em-card mt-4">
@@ -521,6 +522,22 @@ window.emiCalculator = function() {
       var p = this.wiParams;
       var txt = 'EMI Report\nScenario: ' + this.wi + '\nLoan Amount: ' + window.formatCurrency(p.p, 0) + '\nRate: ' + p.r + '%\nTerm: ' + p.t + ' years\n\nMonthly EMI: ' + window.formatCurrency(this.monthlyEmi, 0) + '\nTotal Payment: ' + window.formatCurrency(this.totalPayment, 0) + '\nTotal Interest: ' + window.formatCurrency(this.totalInterest, 0) + '\nTotal Months: ' + this.totalMonths + '\nEMI/Income Ratio: ' + this.incomeRatioText + '\n\nPrepayment: Extra ' + window.formatCurrency(this.extra, 0) + ', Saved ' + window.formatCurrency(this.prepayment.savedInt, 0) + ', Reduced ' + (this.prepayment.reducedMonths > 0 ? this.prepayment.reducedMonths + ' mo' : '0 mo') + '\n\nLoan B: Amount ' + window.formatCurrency(this.cAmt, 0) + ', Rate ' + this.cRate + '%, Term ' + this.cTenure + ' years\nEMI B: ' + window.formatCurrency(this.comparison.emi, 0) + ', Interest B: ' + window.formatCurrency(this.comparison.totalInt, 0);
       return txt;
+    },
+
+    shareLink: function() {
+      var p = new URLSearchParams();
+      if (this.amount) p.set('amount', this.amount);
+      if (this.rate) p.set('rate', this.rate);
+      if (this.tenure) p.set('tenure', this.tenure);
+      if (this.extra) p.set('extra', this.extra);
+      if (this.income) p.set('income', this.income);
+      var shareUrl = window.location.origin + window.location.pathname + (p.toString() ? '?' + p.toString() : '');
+      var self = this;
+      navigator.clipboard.writeText(shareUrl).then(function() {
+        self.toast('Link copied!');
+      }).catch(function() {
+        self.toast('Copy failed');
+      });
     },
 
     copyAll: function() {
