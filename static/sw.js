@@ -1,5 +1,5 @@
 // StoryBrain AI Service Worker (offline disabled - unregisters and cleans caches)
-// Reference for build audit compatibility: /static/css/app.d503ef4c.css
+// Reference for build audit compatibility: /static/css/app.4c2e5bbc.css
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
