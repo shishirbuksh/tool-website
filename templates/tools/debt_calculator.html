@@ -151,126 +151,116 @@
 {% block scripts %}
 <script nonce="{{ nonce }}">
 window.debtCalculator = function() {
-document.addEventListener('alpine:init', function() {
   const INTL_LOCALE = "en-US";
-  Alpine.data('debtCalculator', function() {
-    return {
-      mounted: false,
-      extra: 0,
-      debts: [
+  return {
+    mounted: false,
+    extra: 0,
+    formatCurrency: function(val, dec) {
+      return '$' + (Number(val) || 0).toLocaleString(INTL_LOCALE, { minimumFractionDigits: dec !== undefined ? dec : 0, maximumFractionDigits: dec !== undefined ? dec : 0 });
+    },
+    formatNumber: function(val) {
+      return (Number(val) || 0).toLocaleString(INTL_LOCALE);
+    },
+    debts: [
+      { id: 1, name: 'Credit Card', bal: 5000, rate: 22, minP: 150 },
+      { id: 2, name: 'Car Loan', bal: 15000, rate: 6, minP: 350 },
+      { id: 3, name: 'Student Loan', bal: 12000, rate: 4.5, minP: 200 }
+    ],
+    init: function() {
+      this.mounted = true;
+    },
+    addDebt: function() {
+      var newId = Date.now();
+      this.debts.push({ id: newId, name: 'New Debt', bal: 1000, rate: 10, minP: 50 });
+    },
+    removeDebt: function(id) {
+      this.debts = this.debts.filter(function(d) { return d.id !== id; });
+    },
+    resetDebts: function() {
+      this.extra = 0;
+      this.debts = [
         { id: 1, name: 'Credit Card', bal: 5000, rate: 22, minP: 150 },
         { id: 2, name: 'Car Loan', bal: 15000, rate: 6, minP: 350 },
         { id: 3, name: 'Student Loan', bal: 12000, rate: 4.5, minP: 200 }
-      ],
-      init: function() {
-        this.mounted = true;
-      },
-      addDebt: function() {
-        var newId = Date.now();
-        this.debts.push({ id: newId, name: 'New Debt', bal: 1000, rate: 10, minP: 50 });
-      },
-      removeDebt: function(id) {
-        this.debts = this.debts.filter(function(d) { return d.id !== id; });
-      },
-      resetDebts: function() {
-        this.extra = 0;
-        this.debts = [
-          { id: 1, name: 'Credit Card', bal: 5000, rate: 22, minP: 150 },
-          { id: 2, name: 'Car Loan', bal: 15000, rate: 6, minP: 350 },
-          { id: 3, name: 'Student Loan', bal: 12000, rate: 4.5, minP: 200 }
-        ];
-      },
-      simulate: function(debtsList, extraAmt, sortFn) {
-        var d = debtsList.map(function(item) {
-          return {
-            name: item.name,
-            bal: parseFloat(item.bal) || 0,
-            rate: parseFloat(item.rate) || 0,
-            minP: parseFloat(item.minP) || 0,
-            remaining: parseFloat(item.bal) || 0
-          };
-        });
-        if (sortFn) d.sort(sortFn);
-        var months = 0, totalInt = 0;
-        while (d.some(function(x) { return x.remaining > 0.01; }) && months < 600) {
-          months++;
-          var totalMin = d.reduce(function(s, x) {
-            return s + (x.remaining > 0.01 ? Math.min(x.minP, x.remaining) : 0);
-          }, 0);
-          var avail = totalMin + (extraAmt || 0);
-          d.forEach(function(x) {
-            if (x.remaining > 0.01) {
-              var mr = x.rate / 100 / 12;
-              var intr = x.remaining * mr;
-              totalInt += intr;
-              x.remaining += intr;
-              var pay = Math.min(x.minP, x.remaining);
-              x.remaining -= pay;
-              avail -= pay;
-            }
-          });
-          var rem = d.filter(function(x) { return x.remaining > 0.01; });
-          if (rem.length > 0 && avail > 0.01) {
-            rem[0].remaining = Math.max(0, rem[0].remaining - avail);
-          }
-        }
-        return { months: months, totalInt: totalInt };
-      },
-      get results() {
-        if (!this.debts.length) {
-          return {
-            minInt: 0,
-            bestInt: 0,
-            payoffDateStr: '—',
-            bestMethod: '—',
-            snowInt: 0,
-            snowMonths: 0,
-            avaInt: 0,
-            avaMonths: 0
-          };
-        }
-        var ext = parseFloat(this.extra) || 0;
-        var minSim = this.simulate(this.debts, 0, null);
-        var snowSim = this.simulate(this.debts, ext, function(a, b) { return a.bal - b.bal; });
-        var avaSim = this.simulate(this.debts, ext, function(a, b) { return b.rate - a.rate; });
-
-        var best = 'Same', bestInt = snowSim.totalInt, bestMonths = snowSim.months;
-        if (avaSim.totalInt < snowSim.totalInt - 0.01) {
-          best = 'Avalanche';
-          bestInt = avaSim.totalInt;
-          bestMonths = avaSim.months;
-        } else if (snowSim.totalInt < avaSim.totalInt - 0.01) {
-          best = 'Snowball';
-        }
-
-        var d = new Date();
-        d.setMonth(d.getMonth() + bestMonths);
-        var dateStr = d.toLocaleDateString(INTL_LOCALE, { month: 'short', year: 'numeric' });
-
+      ];
+    },
+    simulate: function(debtsList, extraAmt, sortFn) {
+      var d = debtsList.map(function(item) {
         return {
-          minInt: minSim.totalInt,
-          bestInt: bestInt,
-          payoffDateStr: dateStr,
-          bestMethod: best,
-          snowInt: snowSim.totalInt,
-          snowMonths: snowSim.months,
-          avaInt: avaSim.totalInt,
-          avaMonths: avaSim.months
+          name: item.name,
+          bal: parseFloat(item.bal) || 0,
+          rate: parseFloat(item.rate) || 0,
+          minP: parseFloat(item.minP) || 0,
+          remaining: parseFloat(item.bal) || 0
+        };
+      });
+      if (sortFn) d.sort(sortFn);
+      var months = 0, totalInt = 0;
+      while (d.some(function(x) { return x.remaining > 0.01; }) && months < 600) {
+        months++;
+        var totalMin = d.reduce(function(s, x) {
+          return s + (x.remaining > 0.01 ? Math.min(x.minP, x.remaining) : 0);
+        }, 0);
+        var avail = totalMin + (extraAmt || 0);
+        d.forEach(function(x) {
+          if (x.remaining > 0.01) {
+            var mr = x.rate / 100 / 12;
+            var intr = x.remaining * mr;
+            totalInt += intr;
+            x.remaining += intr;
+            var pay = Math.min(x.minP, x.remaining);
+            x.remaining -= pay;
+            avail -= pay;
+          }
+        });
+        var rem = d.filter(function(x) { return x.remaining > 0.01; });
+        if (rem.length > 0 && avail > 0.01) {
+          rem[0].remaining = Math.max(0, rem[0].remaining - avail);
+        }
+      }
+      return { months: months, totalInt: totalInt };
+    },
+    get results() {
+      if (!this.debts.length) {
+        return {
+          minInt: 0,
+          bestInt: 0,
+          payoffDateStr: '—',
+          bestMethod: '—',
+          snowInt: 0,
+          snowMonths: 0,
+          avaInt: 0,
+          avaMonths: 0
         };
       }
-    };
-  });
-});
+      var ext = parseFloat(this.extra) || 0;
+      var minSim = this.simulate(this.debts, 0, null);
+      var snowSim = this.simulate(this.debts, ext, function(a, b) { return a.bal - b.bal; });
+      var avaSim = this.simulate(this.debts, ext, function(a, b) { return b.rate - a.rate; });
 
-  return {
-    init: function() {
-      if (typeof calc === 'function') calc();
-      else if (typeof generate === 'function') generate();
-      else if (typeof gen === 'function') gen();
-      else if (typeof render === 'function') render();
-      else if (typeof update === 'function') update();
-      else if (typeof calculate === 'function') calculate();
-      else if (typeof build === 'function') build();
+      var best = 'Same', bestInt = snowSim.totalInt, bestMonths = snowSim.months;
+      if (avaSim.totalInt < snowSim.totalInt - 0.01) {
+        best = 'Avalanche';
+        bestInt = avaSim.totalInt;
+        bestMonths = avaSim.months;
+      } else if (snowSim.totalInt < avaSim.totalInt - 0.01) {
+        best = 'Snowball';
+      }
+
+      var d = new Date();
+      d.setMonth(d.getMonth() + bestMonths);
+      var dateStr = d.toLocaleDateString(INTL_LOCALE, { month: 'short', year: 'numeric' });
+
+      return {
+        minInt: minSim.totalInt,
+        bestInt: bestInt,
+        payoffDateStr: dateStr,
+        bestMethod: best,
+        snowInt: snowSim.totalInt,
+        snowMonths: snowSim.months,
+        avaInt: avaSim.totalInt,
+        avaMonths: avaSim.months
+      };
     }
   };
 };
