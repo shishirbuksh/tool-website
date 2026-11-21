@@ -14,4 +14,5 @@ urlpatterns = [
     path("api/contact", views.contact_view, name="api_contact"),
     path("api/generate-nft", views.generate_nft_view, name="api_generate_nft"),
     path("api/proxy-request", views.proxy_request_view, name="api_proxy_request"),
+    path("api/youtube-channel", views.youtube_channel_view, name="api_youtube_channel"),
 ]

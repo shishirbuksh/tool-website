@@ -5,6 +5,8 @@ from __future__ import annotations
 import io
 import json
 import logging
+import re
+import urllib.request
 import uuid
 from urllib.parse import quote
 from django.conf import settings
@@ -211,3 +213,153 @@ def proxy_request_view(request):
     except Exception as e:
         logger.exception("Proxy request failed")
         return JsonResponse({"detail": str(e)}, status=400)
+
+
+def youtube_channel_view(request):
+    """Fetch real-time public YouTube channel stats (subscribers, videos, title, avatar) without API keys."""
+    import urllib.request
+    from django.core.cache import cache
+
+    query = (request.GET.get("q") or request.GET.get("channel") or "").strip()
+    if not query:
+        return JsonResponse({"success": False, "message": "Query parameter required"}, status=400)
+
+    # Normalize handle
+    m_url = re.search(r"youtube\.com/@([a-zA-Z0-9_\-\.]+)", query)
+    if m_url:
+        handle = m_url.group(1)
+    elif query.startswith("@"):
+        handle = query[1:].strip()
+    else:
+        handle = query.replace(" ", "").strip()
+
+    cache_key = f"yt_ch_{handle.lower()}"
+    cached = cache.get(cache_key)
+    if cached:
+        return JsonResponse(cached)
+
+    url = f"https://www.youtube.com/@{handle}"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=6) as response:
+            html = response.read().decode("utf-8")
+
+        title_match = re.search(r'<meta property="og:title" content="([^"]+)"', html)
+        title = title_match.group(1) if title_match else f"@{handle}"
+
+        desc_match = re.search(r'<meta property="og:description" content="([^"]+)"', html)
+        description = desc_match.group(1) if desc_match else ""
+
+        sub_match = re.search(r"([0-9\.]+[KMkm]?)\s+subscribers", html)
+        subs_text = sub_match.group(1).upper() if sub_match else None
+
+        if not subs_text:
+            sub_acc = re.search(r'"subscriberCountText":\{"accessibility":\{"accessibilityData":\{"label":"([^"]+)"', html)
+            if sub_acc:
+                label = sub_acc.group(1)
+                m_k = re.search(r"([0-9\.]+)\s+thousand", label, re.IGNORECASE)
+                m_m = re.search(r"([0-9\.]+)\s+million", label, re.IGNORECASE)
+                m_b = re.search(r"([0-9\.]+)\s+billion", label, re.IGNORECASE)
+                if m_m:
+                    subs_text = f"{m_m.group(1)}M"
+                elif m_k:
+                    subs_text = f"{m_k.group(1)}K"
+                elif m_b:
+                    subs_text = f"{m_b.group(1)}B"
+
+        subs_num = 0
+        if subs_text:
+            if subs_text.endswith("K"):
+                subs_num = int(float(subs_text[:-1]) * 1000)
+            elif subs_text.endswith("M"):
+                subs_num = int(float(subs_text[:-1]) * 1000000)
+            elif subs_text.endswith("B"):
+                subs_num = int(float(subs_text[:-1]) * 1000000000)
+            else:
+                try:
+                    subs_num = int(float(subs_text))
+                except Exception:
+                    subs_num = 0
+
+        vid_match = re.search(r"([0-9\.]+[KMkm]?)\s+videos", html)
+        vids_text = vid_match.group(1).upper() if vid_match else None
+        vids_num = 0
+        if vids_text:
+            if vids_text.endswith("K"):
+                vids_num = int(float(vids_text[:-1]) * 1000)
+            elif vids_text.endswith("M"):
+                vids_num = int(float(vids_text[:-1]) * 1000000)
+            else:
+                try:
+                    vids_num = int(float(vids_text))
+                except Exception:
+                    vids_num = 0
+
+        avatar_match = re.search(r'<meta property="og:image" content="([^"]+)"', html)
+        avatar = avatar_match.group(1) if avatar_match else None
+
+        # Niche detection
+        text_corpus = (title + " " + handle + " " + description).lower()
+        niche = "entertainment"
+        cpm = 3.5
+        shorts_pct = 35
+
+        if any(w in text_corpus for w in ["sport", "league", "football", "cricket", "nba", "soccer", "match", "isl"]):
+            niche = "sports"
+            cpm = 4.0
+            shorts_pct = 40
+        elif any(w in text_corpus for w in ["finance", "money", "invest", "stock", "crypto", "wealth"]):
+            niche = "finance"
+            cpm = 20.0
+            shorts_pct = 20
+        elif any(w in text_corpus for w in ["tech", "code", "software", "ai", "gadget", "iphone", "hardware"]):
+            niche = "tech"
+            cpm = 12.0
+            shorts_pct = 25
+        elif any(w in text_corpus for w in ["game", "gaming", "play", "minecraft", "roblox", "fortnite"]):
+            niche = "gaming"
+            cpm = 3.5
+            shorts_pct = 35
+        elif any(w in text_corpus for w in ["science", "learn", "education", "study", "math", "physics"]):
+            niche = "education"
+            cpm = 10.0
+            shorts_pct = 20
+        elif any(w in text_corpus for w in ["fit", "fitness", "gym", "workout"]):
+            niche = "fitness"
+            cpm = 8.0
+            shorts_pct = 35
+        elif any(w in text_corpus for w in ["cook", "food", "recipe", "kitchen"]):
+            niche = "food"
+            cpm = 8.0
+            shorts_pct = 30
+
+        estimated_views = max(25000, int(subs_num * 1.25)) if subs_num > 0 else 100000
+
+        res_data = {
+            "success": True,
+            "title": title,
+            "handle": f"@{handle}",
+            "subs_text": subs_text or "Growing",
+            "subs_num": subs_num,
+            "vids_text": vids_text or "Active",
+            "vids_num": vids_num,
+            "avatar": avatar,
+            "niche": niche,
+            "cpm": cpm,
+            "shorts_pct": shorts_pct,
+            "estimated_views": estimated_views,
+        }
+        cache.set(cache_key, res_data, 7200)
+        return JsonResponse(res_data)
+
+    except Exception as e:
+        logger.warning("YouTube real-time fetch failed for %s: %s", handle, e)
+        return JsonResponse({"success": False, "error": str(e), "handle": f"@{handle}"})
+

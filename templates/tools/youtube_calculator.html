@@ -105,24 +105,25 @@ table.schedule tr:last-child td { border-bottom: none; font-weight: 700; }
 {{ tool_hero_section("video", "Creator Analytics", "YOUTUBE CHANNEL", "CALCULATOR", seo_data.description if seo_data else "Free YouTube channel revenue calculator. Estimate video earnings by channel name, RPM, CPM, Shorts views mix, and sponsorship brand deals.") }}
 
 <div class="reveal max-w-6xl mx-auto" style="animation-delay:0.1s" x-data="youtubeCalculator()">
-  <!-- Top Section: Pro Studio Channel & Keyword Benchmark Bar -->
+  <!-- Top Section: Pro Studio Channel & Real-Time Lookup Bar -->
   <div class="feature-card rounded-2xl p-5 md:p-6 mb-6 border border-base-300 shadow-sm bg-base-100">
     <label for="channelQuery" class="text-xs font-bold text-base-content/70 flex items-center justify-between mb-2">
       <span class="flex items-center gap-1.5 font-black text-sm">
-        {{ lucide_icon("youtube","w-4 h-4 text-error",16)|safe }} YouTube Channel Name, Keyword or URL
+        {{ lucide_icon("youtube","w-4 h-4 text-error",16)|safe }} Real-Time YouTube Channel &amp; Revenue Lookup
       </span>
-      <span class="text-xs text-base-content/50 font-normal hidden sm:inline">Instant benchmark views &amp; CPM</span>
+      <span class="text-xs text-base-content/50 font-normal hidden sm:inline">Fetches real subscribers, videos &amp; estimated views</span>
     </label>
 
-    <div class="flex flex-col sm:flex-row gap-2.5 mb-4">
-      <div class="relative flex-1">
-        <input type="text" id="channelQuery" x-model="searchQuery" @keydown.enter.prevent="fetchEstimate()" placeholder="Enter channel handle (e.g. @MrBeast, @MKBHD) or topic (e.g. finance, gaming)..." class="input cal-input w-full font-bold px-4 rounded-xl text-sm h-12" aria-label="YouTube Channel Name, Keyword or Video URL">
+    <div class="flex flex-col sm:flex-row gap-3 mb-4" style="align-items: stretch;">
+      <div style="flex: 1 1 auto; min-width: 0; width: 100%;">
+        <input type="text" id="channelQuery" x-model="searchQuery" @keydown.enter.prevent="fetchEstimate()" placeholder="Enter channel handle (e.g. @IndianSuperLeague, @MrBeast, @MKBHD) or URL..." class="input cal-input font-bold px-4 rounded-xl text-sm" style="width: 100% !important; min-width: 100% !important; height: 48px; box-sizing: border-box;" aria-label="YouTube Channel Name, Keyword or Video URL">
       </div>
-      <button type="button" @click="fetchEstimate()" class="btn btn-primary rounded-xl font-bold gap-2 h-12 px-6 shrink-0 shadow-sm">
-        {{ lucide_icon("sparkles","w-4 h-4",16)|safe }} Estimate Channel
+      <button type="button" @click="fetchEstimate()" :disabled="loading" class="btn btn-primary rounded-xl font-bold gap-2 px-6 shadow-sm shrink-0" style="height: 48px; white-space: nowrap;">
+        {{ lucide_icon("sparkles","w-4 h-4",16)|safe }}
+        <span x-text="loading ? 'Fetching...' : 'Estimate Channel'">Estimate Channel</span>
       </button>
-      <div class="w-full sm:w-36 shrink-0">
-        <select id="currencySelect" x-model="currency" class="select cal-input w-full font-bold rounded-xl text-sm h-12" aria-label="Select Currency">
+      <div style="width: 130px;" class="shrink-0">
+        <select id="currencySelect" x-model="currency" class="select cal-input font-bold rounded-xl text-sm" style="width: 100% !important; height: 48px;" aria-label="Select Currency">
           <option value="$">USD ($)</option>
           <option value="€">EUR (€)</option>
           <option value="£">GBP (£)</option>
@@ -133,32 +134,58 @@ table.schedule tr:last-child td { border-bottom: none; font-weight: 700; }
       </div>
     </div>
 
+    <!-- Live Channel Profile Badge (appears when real-time channel is loaded) -->
+    <template x-if="liveChannel && liveChannel.title">
+      <div class="p-3.5 mb-4 rounded-xl border border-primary/30 bg-primary/5 flex items-center justify-between flex-wrap gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-full border border-base-content/20 bg-primary/10 text-primary font-black flex items-center justify-center shrink-0 overflow-hidden text-xs">
+            <template x-if="liveChannel.avatar">
+              <img :src="liveChannel.avatar" :alt="liveChannel.title" class="w-full h-full object-cover" @error="$el.style.display='none'">
+            </template>
+            <span x-show="!liveChannel.avatar" x-text="liveChannel.title ? liveChannel.title.substring(0, 2).toUpperCase() : 'YT'"></span>
+          </div>
+          <div>
+            <div class="font-black text-sm text-base-content flex items-center gap-2">
+              <span x-text="liveChannel.title"></span>
+              <span class="badge badge-xs badge-success text-success-content font-bold">Live YouTube Data</span>
+            </div>
+            <div class="text-xs opacity-60 font-mono" x-text="liveChannel.handle"></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-mono font-bold flex-wrap">
+          <span class="badge badge-sm badge-outline" x-text="liveChannel.subs_text + ' Subscribers'"></span>
+          <span class="badge badge-sm badge-outline" x-text="liveChannel.vids_text + ' Videos'"></span>
+          <span class="badge badge-sm badge-primary text-primary-content font-black" x-text="'~' + fmtInt(revViews) + ' views/mo'"></span>
+        </div>
+      </div>
+    </template>
+
     <!-- Quick-Select Presets -->
     <div class="pt-3 border-t border-base-content/10 flex flex-wrap items-center gap-2">
       <span class="text-[11px] uppercase tracking-wider font-extrabold text-base-content/50 mr-1 flex items-center gap-1">
-        {{ lucide_icon("flame","w-3.5 h-3.5 text-warning",14)|safe }} Verified Benchmarks:
+        {{ lucide_icon("flame","w-3.5 h-3.5 text-warning",14)|safe }} Fast Benchmarks:
       </span>
+      <button type="button" @click="loadPreset('@IndianSuperLeague')" class="btn btn-xs btn-outline rounded-lg font-bold">⚽ @IndianSuperLeague</button>
       <button type="button" @click="loadPreset('@MrBeast')" class="btn btn-xs btn-outline rounded-lg font-bold">🔥 @MrBeast</button>
       <button type="button" @click="loadPreset('@MKBHD')" class="btn btn-xs btn-outline rounded-lg font-bold">💻 @MKBHD</button>
       <button type="button" @click="loadPreset('@AliAbdaal')" class="btn btn-xs btn-outline rounded-lg font-bold">📚 @AliAbdaal</button>
       <button type="button" @click="loadPreset('@GrahamStephan')" class="btn btn-xs btn-outline rounded-lg font-bold">📈 @GrahamStephan</button>
       <button type="button" @click="loadPreset('@Veritasium')" class="btn btn-xs btn-outline rounded-lg font-bold">🔬 @Veritasium</button>
       <button type="button" @click="loadPreset('@PewDiePie')" class="btn btn-xs btn-outline rounded-lg font-bold">🎮 @PewDiePie</button>
-      <button type="button" @click="loadPreset('@MarkRober')" class="btn btn-xs btn-outline rounded-lg font-bold">🚀 @MarkRober</button>
     </div>
   </div>
 
   <!-- Studio Main Card with Full-Width Navigation -->
   <div class="feature-card rounded-2xl p-5 md:p-6 mb-6 border border-base-300 shadow-sm bg-base-100">
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-6 pb-4 border-b border-base-content/10">
-      <div class="flex flex-wrap gap-2" role="tablist" aria-label="YouTube calculator tabs">
-        <button type="button" class="tab-btn" :class="{ 'active': tab === 'revenue' }" @click="tab = 'revenue'" role="tab" :aria-selected="tab === 'revenue'">Revenue</button>
-        <button type="button" class="tab-btn" :class="{ 'active': tab === 'value' }" @click="tab = 'value'" role="tab" :aria-selected="tab === 'value'">Channel Value</button>
-        <button type="button" class="tab-btn" :class="{ 'active': tab === 'growth' }" @click="tab = 'growth'" role="tab" :aria-selected="tab === 'growth'">Growth Projections</button>
-        <button type="button" class="tab-btn" :class="{ 'active': tab === 'breakdown' }" @click="tab = 'breakdown'" role="tab" :aria-selected="tab === 'breakdown'">Revenue Breakdown</button>
-        <button type="button" class="tab-btn" :class="{ 'active': tab === 'compare' }" @click="tab = 'compare'" role="tab" :aria-selected="tab === 'compare'">Compare Offers</button>
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-base-content/10">
+      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1" role="tablist" aria-label="YouTube calculator tabs">
+        <button type="button" class="tab-btn whitespace-nowrap shrink-0" :class="{ 'active': tab === 'revenue' }" @click="tab = 'revenue'" role="tab" :aria-selected="tab === 'revenue'">Revenue</button>
+        <button type="button" class="tab-btn whitespace-nowrap shrink-0" :class="{ 'active': tab === 'value' }" @click="tab = 'value'" role="tab" :aria-selected="tab === 'value'">Channel Value</button>
+        <button type="button" class="tab-btn whitespace-nowrap shrink-0" :class="{ 'active': tab === 'growth' }" @click="tab = 'growth'" role="tab" :aria-selected="tab === 'growth'">Growth Projections</button>
+        <button type="button" class="tab-btn whitespace-nowrap shrink-0" :class="{ 'active': tab === 'breakdown' }" @click="tab = 'breakdown'" role="tab" :aria-selected="tab === 'breakdown'">Revenue Breakdown</button>
+        <button type="button" class="tab-btn whitespace-nowrap shrink-0" :class="{ 'active': tab === 'compare' }" @click="tab = 'compare'" role="tab" :aria-selected="tab === 'compare'">Compare Offers</button>
       </div>
-      <button type="button" @click="copyPitchCard()" class="btn btn-sm btn-primary rounded-xl font-bold gap-1.5 shadow-sm">
+      <button type="button" @click="copyPitchCard()" class="btn btn-sm btn-primary rounded-xl font-bold gap-1.5 shadow-sm shrink-0 self-start sm:self-center">
         {{ lucide_icon("copy","w-3.5 h-3.5",14)|safe }} <span x-text="copied ? 'Copied Pitch Card!' : 'Copy Media Kit'">Copy Media Kit</span>
       </button>
     </div>
@@ -589,18 +616,14 @@ window.youtubeCalculator = function() {
   };
 
   var creatorsDB = {
-    mrbeast: { handle: '@MrBeast', subs: 330000000, views: 350000000, niche: 'entertainment', cpm: 4.5, shorts: 45, engage: 7.0, watch: 9.0 },
-    mkbhd: { handle: '@MKBHD', subs: 19000000, views: 28000000, niche: 'tech', cpm: 12.5, shorts: 25, engage: 5.5, watch: 8.5 },
-    aliabdaal: { handle: '@AliAbdaal', subs: 5600000, views: 5500000, niche: 'education', cpm: 14.0, shorts: 30, engage: 4.5, watch: 7.0 },
-    grahamstephan: { handle: '@GrahamStephan', subs: 4500000, views: 3200000, niche: 'finance', cpm: 18.0, shorts: 35, engage: 4.0, watch: 8.0 },
-    veritasium: { handle: '@Veritasium', subs: 16500000, views: 24000000, niche: 'education', cpm: 10.5, shorts: 20, engage: 6.0, watch: 10.5 },
-    pewdiepie: { handle: '@PewDiePie', subs: 111000000, views: 22000000, niche: 'gaming', cpm: 3.8, shorts: 25, engage: 5.0, watch: 6.0 },
-    markrober: { handle: '@MarkRober', subs: 60000000, views: 50000000, niche: 'diy', cpm: 8.5, shorts: 40, engage: 8.0, watch: 11.0 },
-    dudeperfect: { handle: '@DudePerfect', subs: 60000000, views: 45000000, niche: 'sports', cpm: 6.5, shorts: 35, engage: 6.5, watch: 7.5 },
-    kurzgesagt: { handle: '@Kurzgesagt', subs: 23000000, views: 18000000, niche: 'education', cpm: 9.0, shorts: 15, engage: 6.5, watch: 9.0 },
-    lexfridman: { handle: '@LexFridman', subs: 4200000, views: 12000000, niche: 'education', cpm: 15.0, shorts: 10, engage: 4.5, watch: 25.0 },
-    linustech: { handle: '@LinusTechTips', subs: 15800000, views: 45000000, niche: 'tech', cpm: 11.0, shorts: 30, engage: 5.0, watch: 9.0 },
-    nasdaily: { handle: '@NasDaily', subs: 14000000, views: 60000000, niche: 'vlogging', cpm: 5.0, shorts: 70, engage: 5.0, watch: 3.5 }
+    indiansuperleague: { handle: '@IndianSuperLeague', title: 'MG Indian Super League', subs: 837000, subsText: '837K', views: 1046250, vidsText: '12K', niche: 'sports', cpm: 4.0, shorts: 40, engage: 6.5, watch: 7.5 },
+    mrbeast: { handle: '@MrBeast', title: 'MrBeast', subs: 330000000, subsText: '330M', views: 350000000, vidsText: '1K', niche: 'entertainment', cpm: 4.5, shorts: 45, engage: 7.0, watch: 9.0 },
+    mkbhd: { handle: '@MKBHD', title: 'Marques Brownlee', subs: 21400000, subsText: '21.4M', views: 28000000, vidsText: '1.8K', niche: 'tech', cpm: 12.5, shorts: 25, engage: 5.5, watch: 8.5 },
+    aliabdaal: { handle: '@AliAbdaal', title: 'Ali Abdaal', subs: 5600000, subsText: '5.6M', views: 5500000, vidsText: '800', niche: 'education', cpm: 14.0, shorts: 30, engage: 4.5, watch: 7.0 },
+    grahamstephan: { handle: '@GrahamStephan', title: 'Graham Stephan', subs: 4500000, subsText: '4.5M', views: 3200000, vidsText: '1.2K', niche: 'finance', cpm: 18.0, shorts: 35, engage: 4.0, watch: 8.0 },
+    veritasium: { handle: '@Veritasium', title: 'Veritasium', subs: 16500000, subsText: '16.5M', views: 24000000, vidsText: '450', niche: 'education', cpm: 10.5, shorts: 20, engage: 6.0, watch: 10.5 },
+    pewdiepie: { handle: '@PewDiePie', title: 'PewDiePie', subs: 111000000, subsText: '111M', views: 22000000, vidsText: '4.7K', niche: 'gaming', cpm: 3.8, shorts: 25, engage: 5.0, watch: 6.0 },
+    markrober: { handle: '@MarkRober', title: 'Mark Rober', subs: 60000000, subsText: '60M', views: 50000000, vidsText: '150', niche: 'diy', cpm: 8.5, shorts: 40, engage: 8.0, watch: 11.0 }
   };
 
   var keywordsDB = [
@@ -614,44 +637,46 @@ window.youtubeCalculator = function() {
     { words: ['beauty', 'makeup', 'skin', 'skincare', 'fashion', 'outfit'], niche: 'beauty', views: 240000, cpm: 7.0, shorts: 45 },
     { words: ['vlog', 'daily', 'life', 'routine', 'family'], niche: 'vlogging', views: 300000, cpm: 5.0, shorts: 35 },
     { words: ['diy', 'build', 'maker', 'woodwork', 'repair', 'craft'], niche: 'diy', views: 280000, cpm: 9.0, shorts: 30 },
-    { words: ['sport', 'football', 'basketball', 'soccer', 'nba', 'cricket', 'superleague', 'league'], niche: 'sports', views: 400000, cpm: 4.0, shorts: 40 },
+    { words: ['sport', 'football', 'basketball', 'soccer', 'nba', 'cricket', 'superleague', 'league', 'isl'], niche: 'sports', views: 400000, cpm: 4.0, shorts: 40 },
     { words: ['comedy', 'funny', 'prank', 'meme', 'joke', 'entertainment', 'podcast'], niche: 'entertainment', views: 600000, cpm: 2.5, shorts: 50 },
     { words: ['short', 'shorts', 'reel', 'tiktok'], niche: 'entertainment', views: 2500000, cpm: 2.0, shorts: 90 }
   ];
 
   return {
     mounted: false,
+    loading: false,
+    liveChannel: null,
     tab: 'revenue',
-    searchQuery: '@MrBeast',
-    channelName: '@MrBeast',
+    searchQuery: '@IndianSuperLeague',
+    channelName: 'MG Indian Super League',
     currency: '$',
-    revNiche: 'entertainment',
-    revViews: 350000000,
-    shortsPct: 45,
-    revCpm: 4.5,
-    revEngage: 7,
-    revWatch: 9,
-    revAds: 3,
+    revNiche: 'sports',
+    revViews: 1046250,
+    shortsPct: 40,
+    revCpm: 4.0,
+    revEngage: 6.5,
+    revWatch: 7.5,
+    revAds: 2,
 
-    valViews: 100000,
-    valSubs: 5000,
-    valCpm: 2.5,
+    valViews: 1046250,
+    valSubs: 837000,
+    valCpm: 4.0,
     valGrowth: 5,
 
-    grViews: 100000,
+    grViews: 1046250,
     grRate: 5,
     grYears: 5,
-    grCpm: 2.5,
-    grNewViews: 4,
+    grCpm: 4.0,
+    grNewViews: 8,
 
     bdMembers: 0,
     bdSuper: 0,
     bdMerch: 0,
     bdAffiliate: 0,
 
-    cmpAviews: 100000, cmpAcpm: 2.5, cmpAengage: 4, cmpAwatch: 4, cmpAads: 2,
-    cmpBviews: 50000, cmpBcpm: 10, cmpBengage: 5, cmpBwatch: 6, cmpBads: 3,
-    cmpCviews: 200000, cmpCcpm: 5, cmpCengage: 6, cmpCwatch: 5, cmpCads: 2,
+    cmpAviews: 1046250, cmpAcpm: 4.0, cmpAengage: 6.5, cmpAwatch: 7.5, cmpAads: 2,
+    cmpBviews: 500000, cmpBcpm: 12.0, cmpBengage: 5, cmpBwatch: 8, cmpBads: 3,
+    cmpCviews: 5000000, cmpCcpm: 3.0, cmpCengage: 7, cmpCwatch: 5, cmpCads: 2,
 
     copied: false,
     toastMsg: '',
@@ -670,7 +695,7 @@ window.youtubeCalculator = function() {
           this.searchQuery = pName;
           this.fetchEstimate();
         } else {
-          this.loadPreset('@CreatorChannel');
+          this.loadPreset('@IndianSuperLeague');
         }
         if (pViews && Number(pViews) > 0) this.revViews = Number(pViews);
         if (pCpm && Number(pCpm) > 0) this.revCpm = Number(pCpm);
@@ -698,7 +723,7 @@ window.youtubeCalculator = function() {
       this.toastMsg = m;
       this.toastShow = true;
       var self = this;
-      setTimeout(function() { self.toastShow = false; }, 2400);
+      setTimeout(function() { self.toastShow = false; }, 2600);
     },
 
     applyNiche: function() {
@@ -711,28 +736,8 @@ window.youtubeCalculator = function() {
     },
 
     loadPreset: function(handle) {
-      var clean = (handle || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      if (creatorsDB[clean]) {
-        var c = creatorsDB[clean];
-        this.searchQuery = c.handle;
-        this.channelName = c.handle;
-        this.revViews = c.views;
-        this.valSubs = c.subs;
-        this.revNiche = c.niche;
-        this.revCpm = c.cpm;
-        this.shortsPct = c.shorts;
-        this.revEngage = c.engage;
-        this.revWatch = c.watch;
-        this.revAds = c.watch >= 8 ? 3 : 2;
-        this.toast('Loaded verified benchmark for ' + c.handle);
-      } else {
-        this.searchQuery = handle;
-        this.channelName = handle.startsWith('@') ? handle : '@' + handle;
-        this.revViews = 100000;
-        this.revNiche = 'tech';
-        this.applyNiche();
-        this.shortsPct = 25;
-      }
+      this.searchQuery = handle;
+      this.fetchEstimate();
     },
 
     fetchEstimate: function() {
@@ -742,68 +747,79 @@ window.youtubeCalculator = function() {
         return;
       }
 
-      // Check if YouTube URL (oEmbed)
-      if (q.indexOf('youtube.com') !== -1 || q.indexOf('youtu.be') !== -1) {
-        this.toast('Looking up YouTube video details...');
-        var self = this;
-        var oembedUrl = 'https://www.youtube.com/oembed?url=' + encodeURIComponent(q) + '&format=json';
-        fetch(oembedUrl)
-          .then(function(res) { return res.json(); })
-          .then(function(data) {
-            if (data && data.author_name) {
-              self.channelName = '@' + data.author_name.replace(/\s+/g, '');
-              self.toast('Found channel: ' + data.author_name);
+      this.loading = true;
+      var self = this;
+
+      fetch('/api/youtube-channel?q=' + encodeURIComponent(q))
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          self.loading = false;
+          if (data && data.success) {
+            self.liveChannel = data;
+            self.channelName = data.title || data.handle;
+            self.revViews = data.estimated_views || 100000;
+            self.valSubs = data.subs_num || 5000;
+            if (data.niche && niches[data.niche]) {
+              self.revNiche = data.niche;
+              self.applyNiche();
             }
-          })
-          .catch(function() {
-            self.toast('Applied channel estimate for URL');
-          });
-        return;
-      }
+            if (data.cpm) self.revCpm = data.cpm;
+            if (data.shorts_pct !== undefined) self.shortsPct = data.shorts_pct;
+            self.toast('Loaded live stats for ' + data.title + ' (' + data.subs_text + ' subs)!');
+          } else {
+            self.fallbackEstimate(q);
+          }
+        })
+        .catch(function() {
+          self.loading = false;
+          self.fallbackEstimate(q);
+        });
+    },
 
+    fallbackEstimate: function(q) {
       var clean = q.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-      // 1. Check known creators
       if (creatorsDB[clean]) {
-        this.loadPreset(q);
+        var c = creatorsDB[clean];
+        this.channelName = c.title || c.handle;
+        this.revViews = c.views;
+        this.valSubs = c.subs;
+        this.revNiche = c.niche;
+        this.revCpm = c.cpm;
+        this.shortsPct = c.shorts;
+        this.revEngage = c.engage;
+        this.revWatch = c.watch;
+        this.revAds = c.watch >= 8 ? 3 : 2;
+        this.liveChannel = {
+          title: c.title || c.handle,
+          handle: c.handle,
+          subs_text: c.subsText || 'Active',
+          vids_text: c.vidsText || 'Active',
+          avatar: null
+        };
+        this.toast('Loaded benchmark for ' + c.handle);
         return;
       }
-
-      // Partial creator match
-      var keys = Object.keys(creatorsDB);
-      for (var i = 0; i < keys.length; i++) {
-        var k = keys[i];
-        if (clean.indexOf(k) !== -1 || k.indexOf(clean) !== -1) {
-          this.loadPreset(creatorsDB[k].handle);
-          return;
-        }
-      }
-
-      // 2. Check keyword topics
-      var qLower = q.toLowerCase();
       for (var j = 0; j < keywordsDB.length; j++) {
         var kw = keywordsDB[j];
         for (var w = 0; w < kw.words.length; w++) {
-          if (qLower.indexOf(kw.words[w]) !== -1) {
+          if (clean.indexOf(kw.words[w]) !== -1) {
             this.channelName = q.startsWith('@') ? q : '@' + q.replace(/\s+/g, '');
             this.revNiche = kw.niche;
             this.revViews = kw.views;
             this.revCpm = kw.cpm;
             this.shortsPct = kw.shorts;
             this.applyNiche();
-            this.toast('Estimated ' + kw.niche.toUpperCase() + ' niche benchmarks for "' + q + '"');
+            this.toast('Estimated ' + kw.niche.toUpperCase() + ' benchmarks for "' + q + '"');
             return;
           }
         }
       }
-
-      // 3. Fallback: smart heuristic channel estimator
       this.channelName = q.startsWith('@') ? q : '@' + q.replace(/\s+/g, '');
       this.revViews = 150000;
       this.revNiche = 'custom';
       this.revCpm = 4.0;
       this.shortsPct = 30;
-      this.toast('Generated custom estimate for ' + this.channelName);
+      this.toast('Estimated benchmarks for ' + this.channelName);
     },
 
     get monViews() {

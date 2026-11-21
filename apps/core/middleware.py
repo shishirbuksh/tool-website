@@ -21,7 +21,7 @@ _CSP_BASE = (
     "https://www.google.com https://www.gstatic.com https://googleads.g.doubleclick.net https://*.doubleclick.net "
     "https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com "
     "https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://*.adtrafficquality.google "
-    "https://fundingchoicesmessages.google.com; "
+    "https://fundingchoicesmessages.google.com https://*.googleusercontent.com https://*.ggpht.com; "
     "connect-src 'self' https://unpkg.com https://cloudflareinsights.com https://www.google-analytics.com "
     "https://*.google-analytics.com https://analytics.google.com https://www.googletagmanager.com "
     "https://pagead2.googlesyndication.com https://*.googlesyndication.com "
