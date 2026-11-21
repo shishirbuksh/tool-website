@@ -217,6 +217,7 @@ def proxy_request_view(request):
 
 def youtube_channel_view(request):
     """Fetch real-time public YouTube channel stats (subscribers, videos, title, avatar) without API keys."""
+    import html as html_lib
     import urllib.request
     from django.core.cache import cache
 
@@ -224,7 +225,7 @@ def youtube_channel_view(request):
     if not query:
         return JsonResponse({"success": False, "message": "Query parameter required"}, status=400)
 
-    # Normalize handle
+    # Normalize and sanitize handle
     m_url = re.search(r"youtube\.com/@([a-zA-Z0-9_\-\.]+)", query)
     if m_url:
         handle = m_url.group(1)
@@ -232,6 +233,10 @@ def youtube_channel_view(request):
         handle = query[1:].strip()
     else:
         handle = query.replace(" ", "").strip()
+
+    handle = re.sub(r"[^a-zA-Z0-9_\-\.]", "", handle)
+    if not handle:
+        return JsonResponse({"success": False, "message": "Invalid YouTube handle format."}, status=400)
 
     cache_key = f"yt_ch_{handle.lower()}"
     cached = cache.get(cache_key)
@@ -249,13 +254,15 @@ def youtube_channel_view(request):
 
     try:
         with urllib.request.urlopen(req, timeout=6) as response:
-            html = response.read().decode("utf-8")
+            page_bytes = response.read()
+            html = page_bytes.decode("utf-8", errors="replace")
 
         title_match = re.search(r'<meta property="og:title" content="([^"]+)"', html)
-        title = title_match.group(1) if title_match else f"@{handle}"
+        raw_title = title_match.group(1) if title_match else f"@{handle}"
+        title = html_lib.unescape(raw_title)
 
         desc_match = re.search(r'<meta property="og:description" content="([^"]+)"', html)
-        description = desc_match.group(1) if desc_match else ""
+        description = html_lib.unescape(desc_match.group(1)) if desc_match else ""
 
         sub_match = re.search(r"([0-9\.]+[KMkm]?)\s+subscribers", html)
         subs_text = sub_match.group(1).upper() if sub_match else None
@@ -303,7 +310,10 @@ def youtube_channel_view(request):
                     vids_num = 0
 
         avatar_match = re.search(r'<meta property="og:image" content="([^"]+)"', html)
-        avatar = avatar_match.group(1) if avatar_match else None
+        raw_avatar = avatar_match.group(1) if avatar_match else None
+        avatar = None
+        if raw_avatar and raw_avatar.startswith("https://") and any(d in raw_avatar for d in ["googleusercontent.com", "ggpht.com", "ytimg.com"]):
+            avatar = raw_avatar
 
         # Niche detection
         text_corpus = (title + " " + handle + " " + description).lower()
@@ -361,5 +371,7 @@ def youtube_channel_view(request):
 
     except Exception as e:
         logger.warning("YouTube real-time fetch failed for %s: %s", handle, e)
-        return JsonResponse({"success": False, "error": str(e), "handle": f"@{handle}"})
+        neg_data = {"success": False, "error": str(e), "handle": f"@{handle}"}
+        cache.set(cache_key, neg_data, 60)
+        return JsonResponse(neg_data)
 

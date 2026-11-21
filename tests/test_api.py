@@ -416,6 +416,40 @@ class TestNewRouteFeatures:
         resp = client.get("/api/jobs/%20")
         assert resp.status_code in (400, 404)
 
+    def test_youtube_channel_missing_param(self):
+        resp = client.get("/api/youtube-channel")
+        assert resp.status_code == 400
+        assert resp.json()["success"] is False
+
+    def test_youtube_channel_invalid_handle(self):
+        resp = client.get("/api/youtube-channel?q=%20%20%20")
+        assert resp.status_code == 400
+        assert resp.json()["success"] is False
+
+    def test_youtube_channel_cached_or_live(self):
+        from django.core.cache import cache
+        cache.set("yt_ch_testmockchannel", {
+            "success": True,
+            "title": "Test Mock Channel",
+            "handle": "@testmockchannel",
+            "subs_text": "500K",
+            "subs_num": 500000,
+            "vids_text": "150",
+            "vids_num": 150,
+            "avatar": "https://yt3.googleusercontent.com/test",
+            "niche": "tech",
+            "cpm": 12.0,
+            "shorts_pct": 25,
+            "estimated_views": 625000,
+        }, 300)
+        resp = client.get("/api/youtube-channel?q=@testmockchannel")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        assert data["title"] == "Test Mock Channel"
+        assert data["subs_num"] == 500000
+        assert data["niche"] == "tech"
+
 
 class TestHeadersAndCaching:
     def test_favicon_cache_control(self):
