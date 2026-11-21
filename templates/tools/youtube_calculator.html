@@ -123,17 +123,29 @@ table.schedule tr:last-child td { border-bottom: none; font-weight: 700; }
         <span x-show="!loading">{{ lucide_icon("sparkles","w-4 h-4",16)|safe }}</span>
         <span x-text="loading ? 'Fetching...' : 'Estimate Channel'">Estimate Channel</span>
       </button>
-      <div style="width: 130px;" class="shrink-0">
-        <select id="currencySelect" x-model="currency" class="select cal-input font-bold rounded-xl text-sm" style="width: 100% !important; height: 48px;" aria-label="Select Currency">
-          <option value="$">USD ($)</option>
-          <option value="€">EUR (€)</option>
-          <option value="£">GBP (£)</option>
-          <option value="₹">INR (₹)</option>
-          <option value="A$">AUD (A$)</option>
-          <option value="C$">CAD (C$)</option>
+      <div style="min-width: 135px;" class="shrink-0">
+        <select id="currencySelect" x-model="currency" @change="changeCurrency($event.target.value)" class="select cal-input font-bold rounded-xl text-sm" style="width: 100% !important; height: 48px;" aria-label="Select Currency">
+          <option value="USD">USD ($)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="GBP">GBP (£)</option>
+          <option value="INR">INR (₹)</option>
+          <option value="AUD">AUD (A$)</option>
+          <option value="CAD">CAD (C$)</option>
+          <option value="PKR">PKR (₨)</option>
         </select>
       </div>
     </div>
+
+    <!-- Live FX Exchange Rate Pill -->
+    <template x-if="currency !== 'USD'">
+      <div class="px-3.5 py-2 mb-4 rounded-xl border border-success/30 bg-success/5 flex items-center justify-between text-xs font-mono">
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-2 h-2 rounded-full bg-success animate-pulse"></span>
+          <span>Real-time FX: <strong>1 USD = <span x-text="fmtRate(currentFxRate) + ' ' + currency"></span></strong></span>
+        </div>
+        <span class="text-[10px] opacity-60">Live ECB Reference Rate</span>
+      </div>
+    </template>
 
     <!-- Live Channel Profile Badge (appears when real-time channel is loaded) -->
     <template x-if="liveChannel && liveChannel.title">
@@ -256,7 +268,7 @@ table.schedule tr:last-child td { border-bottom: none; font-weight: 700; }
           <!-- CPM & Engagement Grid -->
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label for="revCpm" class="text-xs font-semibold text-base-content/70 block mb-1">Long-Form CPM (<span x-text="currency"></span>)</label>
+              <label for="revCpm" class="text-xs font-semibold text-base-content/70 block mb-1">Long-Form CPM (<span x-text="currencySymbol"></span>)</label>
               <input type="number" id="revCpm" x-model.number="revCpm" aria-label="CPM rate" class="input cal-input w-full font-bold rounded-xl text-sm font-mono" value="2.5" min="0" max="100" step="0.5">
             </div>
             <div>
@@ -380,7 +392,7 @@ table.schedule tr:last-child td { border-bottom: none; font-weight: 700; }
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label for="valCpm" class="text-xs font-semibold text-base-content/70 block mb-1">CPM (<span x-text="currency"></span>)</label>
+              <label for="valCpm" class="text-xs font-semibold text-base-content/70 block mb-1">CPM (<span x-text="currencySymbol"></span>)</label>
               <input type="number" id="valCpm" x-model.number="valCpm" aria-label="CPM for valuation" class="input cal-input w-full font-bold rounded-xl text-sm font-mono" value="2.5" min="0" max="100" step="0.5">
             </div>
             <div>
@@ -439,7 +451,7 @@ table.schedule tr:last-child td { border-bottom: none; font-weight: 700; }
               <input type="number" id="grYears" x-model.number="grYears" class="input cal-input w-full font-bold rounded-xl text-sm font-mono" value="5" min="1" max="15" step="1">
             </div>
             <div>
-              <label for="grCpm" class="text-xs font-semibold text-base-content/70 block mb-1">Avg CPM (<span x-text="currency"></span>)</label>
+              <label for="grCpm" class="text-xs font-semibold text-base-content/70 block mb-1">Avg CPM (<span x-text="currencySymbol"></span>)</label>
               <input type="number" id="grCpm" x-model.number="grCpm" class="input cal-input w-full font-bold rounded-xl text-sm font-mono" value="2.5" min="0" max="100" step="0.5">
             </div>
           </div>
@@ -555,7 +567,7 @@ table.schedule tr:last-child td { border-bottom: none; font-weight: 700; }
             <div class="text-[11px] font-black uppercase tracking-wider text-primary mb-2 text-center">Scenario A (Niche Standard)</div>
             <div class="space-y-2 mb-3">
               <div><label class="text-[10px] font-bold opacity-60">Views</label><input type="number" x-model.number="cmpAviews" class="input cal-input w-full font-bold rounded-xl text-xs font-mono h-9"></div>
-              <div><label class="text-[10px] font-bold opacity-60">CPM (<span x-text="currency"></span>)</label><input type="number" x-model.number="cmpAcpm" class="input cal-input w-full font-bold rounded-xl text-xs font-mono h-9"></div>
+              <div><label class="text-[10px] font-bold opacity-60">CPM (<span x-text="currencySymbol"></span>)</label><input type="number" x-model.number="cmpAcpm" class="input cal-input w-full font-bold rounded-xl text-xs font-mono h-9"></div>
             </div>
             <div class="pt-2 border-t border-base-content/10">
               <div class="flex justify-between text-xs"><span class="opacity-60">Monthly Rev</span><span class="font-black text-primary font-mono" x-text="fmt(cmpCalc(cmpAviews, cmpAcpm, cmpAengage, cmpAwatch, cmpAads).rev)"></span></div>
@@ -567,7 +579,7 @@ table.schedule tr:last-child td { border-bottom: none; font-weight: 700; }
             <div class="text-[11px] font-black uppercase tracking-wider text-success mb-2 text-center">Scenario B (High CPM Pivot)</div>
             <div class="space-y-2 mb-3">
               <div><label class="text-[10px] font-bold opacity-60">Views</label><input type="number" x-model.number="cmpBviews" class="input cal-input w-full font-bold rounded-xl text-xs font-mono h-9"></div>
-              <div><label class="text-[10px] font-bold opacity-60">CPM (<span x-text="currency"></span>)</label><input type="number" x-model.number="cmpBcpm" class="input cal-input w-full font-bold rounded-xl text-xs font-mono h-9"></div>
+              <div><label class="text-[10px] font-bold opacity-60">CPM (<span x-text="currencySymbol"></span>)</label><input type="number" x-model.number="cmpBcpm" class="input cal-input w-full font-bold rounded-xl text-xs font-mono h-9"></div>
             </div>
             <div class="pt-2 border-t border-base-content/10">
               <div class="flex justify-between text-xs"><span class="opacity-60">Monthly Rev</span><span class="font-black text-success font-mono" x-text="fmt(cmpCalc(cmpBviews, cmpBcpm, cmpBengage, cmpBwatch, cmpBads).rev)"></span></div>
@@ -579,7 +591,7 @@ table.schedule tr:last-child td { border-bottom: none; font-weight: 700; }
             <div class="text-[11px] font-black uppercase tracking-wider text-secondary mb-2 text-center">Scenario C (Viral Volume)</div>
             <div class="space-y-2 mb-3">
               <div><label class="text-[10px] font-bold opacity-60">Views</label><input type="number" x-model.number="cmpCviews" class="input cal-input w-full font-bold rounded-xl text-xs font-mono h-9"></div>
-              <div><label class="text-[10px] font-bold opacity-60">CPM (<span x-text="currency"></span>)</label><input type="number" x-model.number="cmpCcpm" class="input cal-input w-full font-bold rounded-xl text-xs font-mono h-9"></div>
+              <div><label class="text-[10px] font-bold opacity-60">CPM (<span x-text="currencySymbol"></span>)</label><input type="number" x-model.number="cmpCcpm" class="input cal-input w-full font-bold rounded-xl text-xs font-mono h-9"></div>
             </div>
             <div class="pt-2 border-t border-base-content/10">
               <div class="flex justify-between text-xs"><span class="opacity-60">Monthly Rev</span><span class="font-black text-secondary font-mono" x-text="fmt(cmpCalc(cmpCviews, cmpCcpm, cmpCengage, cmpCwatch, cmpCads).rev)"></span></div>
@@ -599,6 +611,26 @@ table.schedule tr:last-child td { border-bottom: none; font-weight: 700; }
 
 <script nonce="{{ nonce }}">
 window.youtubeCalculator = function() {
+  var currencySymbols = {
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    INR: '₹',
+    AUD: 'A$',
+    CAD: 'C$',
+    PKR: '₨'
+  };
+
+  var defaultFxRates = {
+    USD: 1.0,
+    EUR: 0.9099,
+    GBP: 0.7619,
+    INR: 92.68,
+    CAD: 1.4307,
+    AUD: 1.5002,
+    PKR: 278.50
+  };
+
   var niches = {
     gaming: {cpm: 3, e: 6, w: 5, a: 3},
     education: {cpm: 10, e: 5, w: 6, a: 3},
@@ -650,7 +682,10 @@ window.youtubeCalculator = function() {
     tab: 'revenue',
     searchQuery: '@IndianSuperLeague',
     channelName: 'MG Indian Super League',
-    currency: '$',
+    currency: 'USD',
+    prevCurrency: 'USD',
+    fxRates: Object.assign({}, defaultFxRates),
+    fxLoaded: false,
     revNiche: 'sports',
     revViews: 1046250,
     shortsPct: 40,
@@ -683,8 +718,22 @@ window.youtubeCalculator = function() {
     toastMsg: '',
     toastShow: false,
 
+    get currencySymbol() {
+      return currencySymbols[this.currency] || '$';
+    },
+
+    get currentFxRate() {
+      return this.fxRates[this.currency] || 1.0;
+    },
+
+    fmtRate: function(val) {
+      var n = Number(val) || 1;
+      return n >= 10 ? n.toFixed(2) : n.toFixed(4);
+    },
+
     init: function() {
       this.mounted = true;
+      this.loadFxRates();
       try {
         var sp = new URLSearchParams(window.location.search);
         var pName = sp.get('channel') || sp.get('name') || sp.get('handle') || sp.get('q');
@@ -692,6 +741,10 @@ window.youtubeCalculator = function() {
         var pCpm = sp.get('cpm');
         var pNiche = sp.get('niche');
         var pCurr = sp.get('curr');
+        if (pCurr && (defaultFxRates[pCurr.toUpperCase()] || currencySymbols[pCurr.toUpperCase()])) {
+          this.currency = pCurr.toUpperCase();
+          this.prevCurrency = this.currency;
+        }
         if (pName) {
           this.searchQuery = pName;
           this.fetchEstimate();
@@ -704,15 +757,58 @@ window.youtubeCalculator = function() {
           this.revNiche = pNiche;
           this.applyNiche();
         }
-        if (pCurr) this.currency = pCurr;
       } catch (e) {}
     },
 
+    loadFxRates: function() {
+      var self = this;
+      fetch('/api/crypto-rates')
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data && data.fiat_cross) {
+            for (var k in data.fiat_cross) {
+              if (data.fiat_cross[k] && Number(data.fiat_cross[k]) > 0) {
+                self.fxRates[k] = Number(data.fiat_cross[k]);
+              }
+            }
+            self.fxLoaded = true;
+          }
+        })
+        .catch(function() {});
+    },
+
+    changeCurrency: function(newCurr) {
+      var oldCurr = this.prevCurrency || 'USD';
+      if (oldCurr === newCurr) return;
+
+      var oldRate = this.fxRates[oldCurr] || 1.0;
+      var newRate = this.fxRates[newCurr] || 1.0;
+      var mult = newRate / oldRate;
+
+      this.revCpm = Math.round(this.revCpm * mult * 100) / 100;
+      this.valCpm = Math.round(this.valCpm * mult * 100) / 100;
+      this.grCpm = Math.round(this.grCpm * mult * 100) / 100;
+      this.cmpAcpm = Math.round(this.cmpAcpm * mult * 100) / 100;
+      this.cmpBcpm = Math.round(this.cmpBcpm * mult * 100) / 100;
+      this.cmpCcpm = Math.round(this.cmpCcpm * mult * 100) / 100;
+
+      this.bdMembers = Math.round(this.bdMembers * mult);
+      this.bdSuper = Math.round(this.bdSuper * mult);
+      this.bdMerch = Math.round(this.bdMerch * mult);
+      this.bdAffiliate = Math.round(this.bdAffiliate * mult);
+
+      this.currency = newCurr;
+      this.prevCurrency = newCurr;
+      var sym = currencySymbols[newCurr] || newCurr;
+      this.toast('Converted all values to ' + newCurr + ' (' + sym + ')');
+    },
+
     fmt: function(val, dec) {
-      var s = this.currency || '$';
+      var sym = currencySymbols[this.currency] || '$';
       var n = Number(val) || 0;
       var d = dec !== undefined ? dec : 2;
-      return s + n.toLocaleString(s === '₹' ? 'en-IN' : 'en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+      var loc = (this.currency === 'INR' || this.currency === 'PKR') ? 'en-IN' : 'en-US';
+      return sym + n.toLocaleString(loc, { minimumFractionDigits: d, maximumFractionDigits: d });
     },
 
     fmtInt: function(val) {
@@ -730,7 +826,8 @@ window.youtubeCalculator = function() {
     applyNiche: function() {
       if (this.revNiche === 'custom' || !niches[this.revNiche]) return;
       var d = niches[this.revNiche];
-      this.revCpm = d.cpm;
+      var rate = this.fxRates[this.currency] || 1.0;
+      this.revCpm = Math.round(d.cpm * rate * 100) / 100;
       this.revEngage = d.e;
       this.revWatch = d.w;
       this.revAds = d.a;
@@ -764,7 +861,10 @@ window.youtubeCalculator = function() {
               self.revNiche = data.niche;
               self.applyNiche();
             }
-            if (data.cpm) self.revCpm = data.cpm;
+            if (data.cpm) {
+              var rate = self.fxRates[self.currency] || 1.0;
+              self.revCpm = Math.round(data.cpm * rate * 100) / 100;
+            }
             if (data.shorts_pct !== undefined) self.shortsPct = data.shorts_pct;
             self.toast('Loaded live stats for ' + data.title + ' (' + data.subs_text + ' subs)!');
           } else {
@@ -785,7 +885,8 @@ window.youtubeCalculator = function() {
         this.revViews = c.views;
         this.valSubs = c.subs;
         this.revNiche = c.niche;
-        this.revCpm = c.cpm;
+        var rate = this.fxRates[this.currency] || 1.0;
+        this.revCpm = Math.round(c.cpm * rate * 100) / 100;
         this.shortsPct = c.shorts;
         this.revEngage = c.engage;
         this.revWatch = c.watch;
@@ -807,7 +908,8 @@ window.youtubeCalculator = function() {
             this.channelName = q.startsWith('@') ? q : '@' + q.replace(/\s+/g, '');
             this.revNiche = kw.niche;
             this.revViews = kw.views;
-            this.revCpm = kw.cpm;
+            var kwRate = this.fxRates[this.currency] || 1.0;
+            this.revCpm = Math.round(kw.cpm * kwRate * 100) / 100;
             this.shortsPct = kw.shorts;
             this.applyNiche();
             this.toast('Estimated ' + kw.niche.toUpperCase() + ' benchmarks for "' + q + '"');
@@ -818,7 +920,8 @@ window.youtubeCalculator = function() {
       this.channelName = q.startsWith('@') ? q : '@' + q.replace(/\s+/g, '');
       this.revViews = 150000;
       this.revNiche = 'custom';
-      this.revCpm = 4.0;
+      var defRate = this.fxRates[this.currency] || 1.0;
+      this.revCpm = Math.round(4.0 * defRate * 100) / 100;
       this.shortsPct = 30;
       this.toast('Estimated benchmarks for ' + this.channelName);
     },
@@ -844,7 +947,8 @@ window.youtubeCalculator = function() {
       var v = Number(this.revViews) || 0;
       var sPct = Math.min(100, Math.max(0, Number(this.shortsPct) || 0));
       var shortsV = v * (sPct / 100);
-      return shortsV * 0.05 / 1000;
+      var rate = this.fxRates[this.currency] || 1.0;
+      return shortsV * (0.05 * rate) / 1000;
     },
 
     get revMonthly() {
@@ -904,12 +1008,14 @@ window.youtubeCalculator = function() {
 
     get valSponsor() {
       var vv = Number(this.revViews) || 0;
-      return vv > 0 ? Math.max(50, Math.round(vv * 0.0025)) : 0;
+      var rate = this.fxRates[this.currency] || 1.0;
+      return vv > 0 ? Math.max(Math.round(50 * rate), Math.round(vv * 0.0025 * rate)) : 0;
     },
 
     get valBrand() {
       var vv = Number(this.revViews) || 0;
-      return vv > 0 ? Math.max(100, Math.round(vv * 0.012)) : 0;
+      var rate = this.fxRates[this.currency] || 1.0;
+      return vv > 0 ? Math.max(Math.round(100 * rate), Math.round(vv * 0.012 * rate)) : 0;
     },
 
     get growthRows() {
