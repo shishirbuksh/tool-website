@@ -412,6 +412,35 @@ class TestNewRouteFeatures:
         )
         assert resp.status_code in (400, 422)
 
+    def test_proxy_missing_url(self):
+        resp = client.post(
+            "/api/proxy-request",
+            json={},
+        )
+        assert resp.status_code == 400
+        assert "URL parameter required" in resp.json()["detail"]
+
+    def test_proxy_forwards_url_and_method(self, monkeypatch):
+        called_args = {}
+
+        async def fake_execute(self, url, method="GET", headers=None, body=None):
+            called_args["url"] = url
+            called_args["method"] = method
+            return {"status": "success", "status_code": 200, "body": "<html><title>Test</title></html>"}
+
+        from apps.tools_api.services.proxy_service import ProxyService
+        monkeypatch.setattr(ProxyService, "execute", fake_execute)
+
+        resp = client.post(
+            "/api/proxy-request",
+            json={"url": "https://example.com/test", "method": "GET"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "success"
+        assert called_args["url"] == "https://example.com/test"
+        assert called_args["method"] == "GET"
+
     def test_empty_job_id(self):
         resp = client.get("/api/jobs/%20")
         assert resp.status_code in (400, 404)

@@ -178,6 +178,13 @@ class ProxyService:
             # cache-poisoning/SSRF quirks; requests sets Host from URL instead.
             if k.lower() not in ("authorization", "cookie", "host")
         }
+        # Provide browser-grade defaults so public websites do not reject crawler/analyzer requests
+        headers_cleaned.setdefault(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 (compatible; StoryBrainAI/1.0; +https://www.storybrainai.com)",
+        )
+        headers_cleaned.setdefault("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        headers_cleaned.setdefault("Accept-Language", "en-US,en;q=0.9")
 
         loop = asyncio.get_running_loop()
 

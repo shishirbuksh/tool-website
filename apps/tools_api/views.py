@@ -11,6 +11,7 @@ import uuid
 from urllib.parse import quote
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
+from apps.core.exceptions import AppException
 from apps.tools_api.services.image_service import ImageService
 from apps.tools_api.services.pdf_service import PDFService
 from apps.tools_api.services.crypto_service import CryptoService
@@ -205,13 +206,26 @@ def proxy_request_view(request):
     url = body.get("url") or request.POST.get("url", "")
     if not url:
         return JsonResponse({"detail": "URL parameter required"}, status=400)
+    method = (body.get("method") or "GET").upper()
+    req_headers = body.get("headers")
+    req_body = body.get("body")
     loop = asyncio.new_event_loop()
     try:
         asyncio.set_event_loop(loop)
-        data = loop.run_until_complete(_proxy_service.execute("GET", url))
+        data = loop.run_until_complete(
+            _proxy_service.execute(
+                url=url,
+                method=method,
+                headers=req_headers if isinstance(req_headers, dict) else None,
+                body=req_body if isinstance(req_body, str) else None,
+            )
+        )
         return JsonResponse(data)
+    except AppException as e:
+        logger.warning("Proxy request error for %s: %s", url, e.detail)
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
     except Exception as e:
-        logger.exception("Proxy request failed")
+        logger.exception("Proxy request failed for %s", url)
         return JsonResponse({"detail": str(e)}, status=400)
     finally:
         loop.close()
