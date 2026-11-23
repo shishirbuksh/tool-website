@@ -44,7 +44,7 @@ class SitemapService:
         hub_categories = getattr(settings, "HUB_CATEGORIES", {})
         hub_path = os.path.join(templates_dir, "hub.html")
         for hub in hub_categories:
-            if hub == "pdf-tools":
+            if hub in ("pdf-tools", "student-tools"):
                 continue
             pages.append({"loc": f"/{hub}", "priority": "0.6", "changefreq": "weekly", "filepath": hub_path})
 
@@ -92,12 +92,6 @@ class SitemapService:
                             "changefreq": freq,
                             "filepath": os.path.join(pages_dir, f),
                         })
-            privacy_path = os.path.join(pages_dir, "privacy.html")
-            terms_path = os.path.join(pages_dir, "terms.html")
-            if os.path.exists(privacy_path):
-                pages.append({"loc": "/privacy-policy", "priority": "0.4", "changefreq": "monthly", "filepath": privacy_path})
-            if os.path.exists(terms_path):
-                pages.append({"loc": "/terms-of-service", "priority": "0.4", "changefreq": "monthly", "filepath": terms_path})
 
         # Blog posts
         blog_service = BlogService()
@@ -124,7 +118,18 @@ class SitemapService:
                 "yaml_date": post.date_modified or None,
             })
 
-        return pages
+        # Required legal aliases for Google AdSense compliance bot verification
+        pages.append({"loc": "/privacy-policy", "priority": "0.5", "changefreq": "monthly", "filepath": os.path.join(pages_dir, "privacy.html")})
+        pages.append({"loc": "/terms-of-service", "priority": "0.5", "changefreq": "monthly", "filepath": os.path.join(pages_dir, "terms.html")})
+
+        deduped: list[dict] = []
+        seen = set()
+        for p in pages:
+            loc = p["loc"]
+            if loc not in seen:
+                seen.add(loc)
+                deduped.append(p)
+        return deduped
 
     def _render_urlset(self, pages: list[dict]) -> str:
         lines = [

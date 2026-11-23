@@ -170,20 +170,21 @@ def hub_or_page(request, page_name: str):
         "terms-of-service": "terms",
         "student-hub": "student-tools",
     }
-    resolved = _page_aliases.get(page_name, page_name)
+    canonical_name = _page_aliases.get(page_name, page_name)
+
     pages_dir = os.path.join(settings.BASE_DIR, "templates", "pages")
-    resolved_path = os.path.join(pages_dir, f"{resolved}.html")
+    resolved_path = os.path.join(pages_dir, f"{canonical_name}.html")
 
     if os.path.isfile(resolved_path):
         ctx = {
-            "title": page_name.replace("-", " ").title(),
+            "title": canonical_name.replace("-", " ").title(),
             "categories": categories,
             "static_pages": static_pages,
         }
         ctx.update(_page_context(request, f"/{page_name}"))
         if page_name == "offline":
             ctx["robots_noindex"] = True
-        response = render(request, f"pages/{resolved}.html", ctx)
+        response = render(request, f"pages/{canonical_name}.html", ctx)
         response["Cache-Control"] = "public, max-age=0, must-revalidate"
         if page_name == "offline":
             response["X-Robots-Tag"] = "noindex, follow"
@@ -228,7 +229,7 @@ def contact_submission(request):
 
     if website or honeypot:
         return JsonResponse({"status": "ok"})
-    if not name or not email or not message:
+    if not name or not email or "@" not in email or not message:
         return JsonResponse({"detail": "All fields are required"}, status=400)
 
     return JsonResponse({"status": "ok"})

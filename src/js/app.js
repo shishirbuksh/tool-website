@@ -200,6 +200,34 @@ Alpine.data('copyButton', function(defaultText) {
   };
 });
 
+// Alpine Global Component: Tool Helpfulness Tracker
+Alpine.data('helpfulWidget', function(slug) {
+  var s = slug || window.location.pathname;
+  return {
+    done: false,
+    init: function() {
+      try {
+        this.done = localStorage.getItem('sb_helpful_' + s) === '1';
+      } catch (e) {
+        this.done = false;
+      }
+    },
+    vote: function(v) {
+      if (this.done) return;
+      try {
+        var payload = JSON.stringify({ name: s + ':helpful-' + v, category: v === 'yes' ? 'helpful_yes' : 'helpful_no' });
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/api/track', new Blob([payload], { type: 'application/json' }));
+        } else {
+          fetch('/api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true });
+        }
+      } catch (err) {}
+      this.done = true;
+      try { localStorage.setItem('sb_helpful_' + s, '1'); } catch (e) {}
+    }
+  };
+});
+
 // Start Alpine
 Alpine.start();
 
@@ -219,23 +247,6 @@ document.querySelectorAll('.tilt-card[data-tilt]').forEach(function(c){c.addEven
 document.querySelectorAll('.btn-ripple').forEach(function(b){b.addEventListener('mousedown',function(e){var r=this.getBoundingClientRect();this.style.setProperty('--ripple-x',((e.clientX-r.left)/r.width*100)+'%');this.style.setProperty('--ripple-y',((e.clientY-r.top)/r.height*100)+'%')})})
 
 if('serviceWorker'in navigator){navigator.serviceWorker.getRegistrations().then(function(regs){for(var i=0;i<regs.length;i++){regs[i].unregister()}}).catch(function(){});if(window.caches){caches.keys().then(function(keys){for(var j=0;j<keys.length;j++){caches.delete(keys[j])}}).catch(function(){})}}
-
-/* ── Dialog + accordion ── */
-document.addEventListener('click',function(e){var t=e.target.closest('[data-dialog-trigger]');if(t){var id=t.dataset.dialogTrigger,dlg=document.getElementById(id);if(dlg){if(dlg.tagName==='DIALOG')dlg.showModal();else{dlg.classList.remove('hidden');dlg.classList.add('flex');document.body.style.overflow='hidden'}}return}
-var cb=e.target.closest('[data-dialog-close]');if(cb){cD(cb.dataset.dialogClose);return}
-var ov=e.target.closest('[data-dialog-overlay]');if(ov){var d2=ov.closest('[data-dialog]');if(d2)cD(d2.id)}})
-document.addEventListener('keydown',function(e){if(e.key==='Escape'){document.querySelectorAll('[data-dialog]:not(.hidden)').forEach(function(d){cD(d.id)})}})
-function cD(id){var dlg=document.getElementById(id);if(dlg){if(dlg.tagName==='DIALOG')dlg.close();else{dlg.classList.add('hidden');dlg.classList.remove('flex');document.body.style.overflow=''}}}
-function toggleAccordion(t){var ac=t.closest('[data-accordion]');if(!ac)return;var it=t.closest('[data-accordion-item]'),isOpen=it?it.dataset.open==='true':false
-if(ac.dataset.accordion!=='multi'){ac.querySelectorAll('[data-accordion-item]').forEach(function(i){i.dataset.open='false';var c=i.querySelector('[data-accordion-content]');if(c){c.style.display='none';c.style.maxHeight='0'}
-var ch=i.querySelector('[data-accordion-chevron]');if(ch)ch.classList.remove('rotate-180');var tr=i.querySelector('[data-accordion-trigger]');if(tr)tr.setAttribute('aria-expanded','false')})}
-if(it){var nO=isOpen?'false':'true';it.dataset.open=nO;var c2=it.querySelector('[data-accordion-content]');if(c2){c2.style.display=nO==='true'?'block':'none';c2.style.maxHeight=nO==='true'?c2.scrollHeight+'px':'0'}
-var ch2=it.querySelector('[data-accordion-chevron]');if(ch2)ch2.classList.toggle('rotate-180',nO==='true');t.setAttribute('aria-expanded',nO)}}
-document.addEventListener('click',function(e){var t=e.target.closest('[data-accordion-trigger]');if(t){e.preventDefault();toggleAccordion(t)}})
-document.addEventListener('keydown',function(e){if(e.key!=='Enter'&&e.key!==' ')return;var t=e.target.closest('[data-accordion-trigger]');if(t){e.preventDefault();toggleAccordion(t)}})
-document.querySelectorAll('[data-accordion-item][data-open="true"]').forEach(function(it){var c=it.querySelector('[data-accordion-content]');if(c){c.style.display='block';c.style.maxHeight=c.scrollHeight+'px'}
-var ch=it.querySelector('[data-accordion-chevron]');if(ch)ch.classList.add('rotate-180')})
-document.querySelectorAll('.dropdown button[aria-haspopup="true"]').forEach(function(b){b.addEventListener('click',function(){var d=b.closest('.dropdown'),c=d?d.querySelector('.dropdown-content'):null;if(c){var o=c.style.display!=='block';c.style.display=o?'block':'';b.setAttribute('aria-expanded',o)}})})
 
 /* ── Scroll reveal IntersectionObserver (with no-JS/no-IO fallback: reveal all) ── */
 if('IntersectionObserver'in window){var ro=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');ro.unobserve(e.target)}})},{threshold:0.1})

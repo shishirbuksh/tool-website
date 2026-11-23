@@ -1,232 +1,16 @@
+/* ── StoryBrain AI: tools.js (Alpine.js Tools Directory Component) ── */
 (function () {
   'use strict';
 
-  /* SCHEMA localStorage keys: sb-theme ('light'|'night'), cookieConsent ('accepted'|'rejected'), sbr_tools_recent_search (JSON array) */
+  const STORAGE_KEY = 'sbr_tools_recent_search';
+  const MAX_RECENT = 5;
+
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch {} },
     del(k) { try { localStorage.removeItem(k); } catch {} }
   };
 
-  const STORAGE_KEY = 'sbr_tools_recent_search';
-  const MAX_RECENT = 5;
-  const $ = (s, p) => (p || document).querySelector(s);
-  const $$ = (s, p) => [...(p || document).querySelectorAll(s)];
-
-  const searchInput = $('#toolSearchInput');
-  const searchClearBtn = $('#toolSearchClear');
-  const suggestions = $('#searchSuggestions');
-  const suggestionHeader = $('#suggestionHeader');
-  const skeletonGrid = $('#skeletonGrid');
-  const toolsGrid = $('#toolsGrid');
-  const emptyState = $('#emptyState');
-  const clearBtn = $('#clearFiltersBtn');
-  const categoryBtns = () => $$('.category-card');
-  const sections = () => $$('.category-section');
-  const toolCards = () => $$('.tool-card');
-
-  let currentFocusIdx = -1;
-  let suggestionItems = [];
-  let toolsCache = null;
-
-  /* ── In-memory Tools Cache for Sub-millisecond Search ── */
-  function getCachedTools() {
-    if (toolsCache && toolsCache.length > 0) return toolsCache;
-    const cards = toolCards();
-    if (cards.length === 0) return [];
-    toolsCache = cards.map(c => {
-      const nameEl = c.querySelector('.tool-card-name');
-      const descEl = c.querySelector('.tool-card-desc');
-      const linkEl = c.querySelector('a');
-      return {
-        card: c,
-        name: nameEl ? nameEl.textContent.trim() : '',
-        desc: descEl ? descEl.textContent.trim() : '',
-        url: linkEl ? linkEl.getAttribute('href') : '',
-        nameNorm: normTx(nameEl ? nameEl.textContent : ''),
-        descNorm: normTx(descEl ? descEl.textContent : '')
-      };
-    }).filter(t => t.name);
-    return toolsCache;
-  }
-
-  /* ── Recent searches ── */
-  function getRecentSearches() {
-    try { return JSON.parse(store.get(STORAGE_KEY) || '[]').slice(0, MAX_RECENT); }
-    catch { return []; }
-  }
-  function addRecentSearch(q) {
-    const ql = q.trim();
-    if (!ql) return;
-    let recents = getRecentSearches().filter(r => r.toLowerCase() !== ql.toLowerCase());
-    recents.unshift(ql);
-    if (recents.length > MAX_RECENT) recents = recents.slice(0, MAX_RECENT);
-    store.set(STORAGE_KEY, JSON.stringify(recents));
-  }
-  function clearRecentSearches() {
-    store.del(STORAGE_KEY);
-    renderSuggestions(searchInput ? searchInput.value.trim() : '');
-  }
-
-  /* ── Search Clear Button State ("✕") ── */
-  function updateClearButtonState() {
-    if (!searchClearBtn || !searchInput) return;
-    const hasValue = searchInput.value.length > 0;
-    searchClearBtn.classList.toggle('hidden', !hasValue);
-    searchClearBtn.classList.toggle('flex', hasValue);
-  }
-
-  /* ── Render suggestions dropdown ── */
-  function renderSuggestions(query) {
-    if (!suggestions || !searchInput) return;
-    const q = normTx(query || '');
-    const recent = getRecentSearches();
-    const allTools = getCachedTools();
-    let items = [];
-
-    if (q.length > 0) {
-      const matches = allTools.filter(t => t.nameNorm.includes(q) || t.descNorm.includes(q)).slice(0, 8);
-      items = matches.map(t => ({ label: t.name, url: t.url, type: 'match' }));
-      if (items.length === 0) {
-        items = [{ label: 'No matching tools', url: '', type: 'empty' }];
-      }
-    } else {
-      if (recent.length > 0) {
-        items = recent.map(r => {
-          const matchTool = allTools.find(t => normTx(t.name) === normTx(r));
-          return { label: r, url: matchTool ? matchTool.url : '', type: 'recent' };
-        });
-        items.push({ label: 'Clear recent searches', url: '', type: 'clear' });
-      } else {
-        const popularSlugs = ['crypto-price-prediction', 'emi-calculator', 'sip-calculator', 'pdf-converter', 'image-background-remover', 'qr-generator'];
-        const popular = allTools.filter(t => popularSlugs.some(slug => t.url && t.url.includes(slug))).slice(0, 6);
-        const fallback = popular.length > 0 ? popular : allTools.slice(0, 6);
-        items = fallback.map(t => ({ label: t.name, url: t.url, type: 'popular' }));
-      }
-    }
-
-    suggestionItems = items;
-    currentFocusIdx = -1;
-    buildSuggestionList(items);
-    searchInput.setAttribute('aria-expanded', items.length > 0 && items[0].type !== 'empty' ? 'true' : 'false');
-  }
-
-  function buildSuggestionList(items) {
-    if (!suggestions || !suggestionHeader) return;
-    suggestions.innerHTML = '';
-    if (searchInput) searchInput.removeAttribute('aria-activedescendant');
-
-    if (items.length === 0 || (items.length === 1 && items[0].type === 'empty')) {
-      suggestions.classList.remove('open');
-      suggestions.classList.add('hidden');
-      if (searchInput) searchInput.setAttribute('aria-expanded', 'false');
-      return;
-    }
-
-    suggestions.classList.remove('hidden');
-    suggestions.classList.add('open');
-
-    const firstType = items[0].type;
-    const headerClone = suggestionHeader.cloneNode(true);
-    headerClone.removeAttribute('id');
-    if (firstType === 'recent') headerClone.textContent = 'Recent Searches';
-    else if (firstType === 'match') headerClone.textContent = 'Matching Tools';
-    else headerClone.textContent = 'Popular Tools';
-    suggestions.appendChild(headerClone);
-
-    items.forEach((item, i) => {
-      const el = item.url ? document.createElement('a') : document.createElement('div');
-      if (item.url) el.setAttribute('href', item.url);
-      el.className = 'search-suggestion-item' + (item.url ? ' group' : '');
-      el.setAttribute('role', 'option');
-      el.setAttribute('id', 'sug-' + i);
-      el.setAttribute('aria-selected', 'false');
-
-      let iconSvg = '';
-      if (item.type === 'recent') iconSvg = '<svg class="w-3.5 h-3.5 suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-      else if (item.type === 'clear') iconSvg = '<svg class="w-3.5 h-3.5 suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>';
-      else iconSvg = '<svg class="w-3.5 h-3.5 suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>';
-
-      el.innerHTML = iconSvg + '<span class="suggestion-label">' + escapeHtml(item.label) + '</span>';
-      if (item.type === 'recent' || item.type === 'popular') {
-        const meta = document.createElement('span');
-        meta.className = 'suggestion-meta';
-        meta.textContent = item.type === 'recent' ? 'Recent' : 'Popular';
-        el.appendChild(meta);
-      } else if (item.url) {
-        const arrow = document.createElement('span');
-        arrow.className = 'text-primary/70 text-xs font-semibold';
-        arrow.textContent = '→';
-        el.appendChild(arrow);
-      }
-
-      el.addEventListener('pointerdown', function (e) {
-        if (item.url) {
-          addRecentSearch(item.label);
-          return;
-        }
-        e.preventDefault();
-        selectSuggestion(i);
-      });
-
-      el.addEventListener('mouseenter', function () {
-        setFocus(i);
-      });
-      suggestions.appendChild(el);
-    });
-  }
-
-  function escapeHtml(s) {
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-  }
-
-  function selectSuggestion(idx) {
-    if (idx < 0 || idx >= suggestionItems.length) return;
-    const item = suggestionItems[idx];
-    if (item.type === 'clear') { clearRecentSearches(); return; }
-    if (item.type === 'empty') return;
-    if (item.url) {
-      addRecentSearch(item.label);
-      window.location.href = item.url;
-      return;
-    }
-    if (searchInput) {
-      searchInput.value = item.label;
-      addRecentSearch(item.label);
-      updateClearButtonState();
-    }
-    closeSuggestions();
-    filterTools();
-  }
-
-  function setFocus(idx) {
-    $$('.search-suggestion-item').forEach((el, i) => {
-      el.classList.toggle('active', i === idx);
-      el.setAttribute('aria-selected', i === idx ? 'true' : 'false');
-    });
-    currentFocusIdx = idx;
-    if (searchInput) {
-      if (idx >= 0) searchInput.setAttribute('aria-activedescendant', 'sug-' + idx);
-      else searchInput.removeAttribute('aria-activedescendant');
-    }
-  }
-
-  function closeSuggestions() {
-    if (suggestions) {
-      suggestions.classList.remove('open');
-      suggestions.classList.add('hidden');
-    }
-    suggestionItems = [];
-    currentFocusIdx = -1;
-    if (searchInput) {
-      searchInput.setAttribute('aria-expanded', 'false');
-      searchInput.removeAttribute('aria-activedescendant');
-    }
-  }
-
-  /* ── Filter tools ── */
   function normTx(s) {
     s = String(s == null ? '' : s);
     try { s = s.normalize('NFC'); } catch (e) {}
@@ -235,331 +19,389 @@
     return s;
   }
 
-  function filterTools() {
-    const query = searchInput ? normTx(searchInput.value.trim()) : '';
-    const activeBtn = document.querySelector('.category-card.active');
-    let activeFilter = activeBtn ? activeBtn.getAttribute('data-filter') : 'all';
-    let anyVisible = false;
+  function toolsDirectory() {
+    return {
+      searchQuery: '',
+      activeCategory: 'all',
+      showSuggestions: false,
+      focusedSuggestionIdx: -1,
+      suggestions: [],
+      suggestionHeaderTitle: 'Popular Tools',
+      recentSearches: [],
+      cachedTools: [],
+      canScrollLeft: false,
+      canScrollRight: false,
+      totalVisibleCount: 126,
+      categoryMatchCounts: {},
 
-    // Cross-category search convenience
-    if (query.length > 0 && activeFilter !== 'all') {
-      const currentCatMatches = getCachedTools().some(t => {
-        const cat = t.card.closest('.category-section')?.getAttribute('data-category');
-        return cat === activeFilter && (t.nameNorm.includes(query) || t.descNorm.includes(query));
-      });
-      if (!currentCatMatches) {
-        activeFilter = 'all';
-        const allTab = document.querySelector('.category-card[data-filter="all"]');
-        if (allTab && activeBtn && allTab !== activeBtn) {
-          activeBtn.classList.remove('active', 'bg-base-content', 'text-base-100', 'border-base-content', 'shadow-md');
-          activeBtn.classList.add('bg-base-100/80', 'border-base-content/10');
-          activeBtn.setAttribute('aria-selected', 'false');
-          allTab.classList.add('active', 'bg-base-content', 'text-base-100', 'border-base-content', 'shadow-md');
-          allTab.classList.remove('bg-base-100/80', 'border-base-content/10');
-          allTab.setAttribute('aria-selected', 'true');
-        }
-      }
-    }
+      init() {
+        this.loadRecentSearches();
+        this.buildToolsCache();
+        this.initFromQuery();
 
-    // Update active category feedback banner
-    const catBanner = $('#categoryActiveBanner');
-    if (catBanner) {
-      if (activeFilter !== 'all' && activeBtn && query === '') {
-        const catName = activeBtn.getAttribute('data-category-name') || activeBtn.querySelector('.category-card-name')?.textContent || '';
-        const catCount = activeBtn.querySelector('.category-card-count')?.textContent || '';
-        const catIconSvg = activeBtn.querySelector('.category-card-icon')?.innerHTML || '';
-        const bannerTitle = $('#activeBannerTitle');
-        const bannerCount = $('#activeBannerCount');
-        const bannerIcon = $('#activeBannerIcon');
-        if (bannerTitle) bannerTitle.textContent = catName;
-        if (bannerCount) bannerCount.textContent = `(${catCount} Tools)`;
-        if (bannerIcon) bannerIcon.innerHTML = catIconSvg;
-        catBanner.classList.remove('hidden');
-        catBanner.classList.add('flex');
-      } else {
-        catBanner.classList.add('hidden');
-        catBanner.classList.remove('flex');
-      }
-    }
+        this.$watch('searchQuery', (val) => {
+          this.handleQueryChange(val);
+        });
 
-    sections().forEach(function (section) {
-      const cat = section.getAttribute('data-category');
-      const catMatch = activeFilter === 'all' || activeFilter === cat;
-      let hasVisible = false;
-      const cards = section.querySelectorAll('.tool-card');
+        this.$watch('activeCategory', () => {
+          this.filterTools();
+          this.scrollActiveCategoryTabIntoView();
+        });
 
-      cards.forEach(function (card) {
-        const nameEl = card.querySelector('.tool-card-name');
-        const descEl = card.querySelector('.tool-card-desc');
-        const name = nameEl ? normTx(nameEl.textContent) : '';
-        const desc = descEl ? normTx(descEl.textContent) : '';
-        const match = query === '' || name.includes(query) || desc.includes(query);
-        card.style.display = match ? '' : 'none';
-        if (match) hasVisible = true;
-      });
+        // Set up touch move dismiss for search input on mobile
+        let touchStartY = 0;
+        window.addEventListener('touchstart', (e) => {
+          if (e.touches && e.touches[0]) touchStartY = e.touches[0].clientY;
+        }, { passive: true });
 
-      const show = catMatch && hasVisible;
-      section.style.display = show ? '' : 'none';
-      if (show) anyVisible = true;
-    });
+        window.addEventListener('touchmove', (e) => {
+          if (!e.touches || !e.touches[0]) return;
+          const diffY = Math.abs(e.touches[0].clientY - touchStartY);
+          const tsi = document.getElementById('toolSearchInput');
+          if (diffY > 15 && document.activeElement === tsi && tsi) {
+            tsi.blur();
+          }
+        }, { passive: true });
 
-    if (emptyState) {
-      emptyState.classList.toggle('show', !anyVisible);
-      emptyState.classList.toggle('hidden', anyVisible);
-      emptyState.classList.toggle('flex', !anyVisible);
-    }
-  }
-
-  /* ── Event handlers ── */
-  if (searchInput) {
-    searchInput.addEventListener('input', window.sbr.debounce(function () {
-      const q = normTx(searchInput.value.trim());
-      updateClearButtonState();
-      filterTools();
-      renderSuggestions(q);
-    }, 60));
-
-    searchInput.addEventListener('focus', function () {
-      renderSuggestions(this.value.trim());
-    });
-
-    searchInput.addEventListener('blur', function () {
-      setTimeout(closeSuggestions, 200);
-    });
-
-    searchInput.addEventListener('keydown', function (e) {
-      const items = $$('.search-suggestion-item');
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        const next = currentFocusIdx < items.length - 1 ? currentFocusIdx + 1 : 0;
-        setFocus(next);
-        if (items[next]) items[next].scrollIntoView({ block: 'nearest' });
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        const prev = currentFocusIdx > 0 ? currentFocusIdx - 1 : items.length - 1;
-        setFocus(prev);
-        if (items[prev]) items[prev].scrollIntoView({ block: 'nearest' });
-      } else if (e.key === 'Enter') {
-        if (currentFocusIdx >= 0 && items[currentFocusIdx]) {
-          e.preventDefault();
-          selectSuggestion(currentFocusIdx);
-        } else {
-          const q = normTx(searchInput.value.trim());
-          if (q) {
-            const allTools = getCachedTools();
-            const top = allTools.find(t => t.nameNorm === q || t.nameNorm.startsWith(q)) || allTools.find(t => t.nameNorm.includes(q));
-            if (top && top.url) {
+        // Connect global search triggers (mobile navbar / bottom nav search button)
+        const setupMobileSearchTrigger = (id) => {
+          const btn = document.getElementById(id);
+          if (btn) {
+            btn.addEventListener('click', (e) => {
               e.preventDefault();
-              addRecentSearch(top.name);
-              window.location.href = top.url;
-            }
+              e.stopPropagation();
+              this.focusSearchInput();
+            });
+          }
+        };
+        setupMobileSearchTrigger('searchToggleMobileNav');
+        setupMobileSearchTrigger('searchToggleMobile');
+
+        // Quick action launch pills
+        document.querySelectorAll('[data-quick-search]').forEach((pill) => {
+          pill.addEventListener('click', (e) => {
+            e.preventDefault();
+            const q = pill.getAttribute('data-quick-search') || '';
+            this.searchQuery = q;
+            this.focusSearchInput();
+            const toolsSec = document.getElementById('tools');
+            if (toolsSec) toolsSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+        });
+
+        // Initial scroll button state
+        this.$nextTick(() => {
+          this.updateScrollButtons();
+          window.addEventListener('resize', () => this.updateScrollButtons(), { passive: true });
+        });
+      },
+
+      buildToolsCache() {
+        const cards = Array.from(document.querySelectorAll('.tool-card'));
+        this.cachedTools = cards.map((c) => {
+          const nameEl = c.querySelector('.tool-card-name');
+          const descEl = c.querySelector('.tool-card-desc');
+          const linkEl = c.closest('a') || c.querySelector('a');
+          const sec = c.closest('.category-section');
+          const cat = sec ? sec.getAttribute('data-category') : '';
+          return {
+            el: c,
+            name: nameEl ? nameEl.textContent.trim() : '',
+            desc: descEl ? descEl.textContent.trim() : '',
+            url: linkEl ? linkEl.getAttribute('href') : '',
+            category: cat || '',
+            nameNorm: normTx(nameEl ? nameEl.textContent : ''),
+            descNorm: normTx(descEl ? descEl.textContent : '')
+          };
+        }).filter((t) => t.name);
+
+        this.filterTools();
+      },
+
+      loadRecentSearches() {
+        try {
+          this.recentSearches = JSON.parse(store.get(STORAGE_KEY) || '[]').slice(0, MAX_RECENT);
+        } catch {
+          this.recentSearches = [];
+        }
+      },
+
+      addRecentSearch(q) {
+        const ql = q.trim();
+        if (!ql) return;
+        let recents = this.recentSearches.filter((r) => r.toLowerCase() !== ql.toLowerCase());
+        recents.unshift(ql);
+        if (recents.length > MAX_RECENT) recents = recents.slice(0, MAX_RECENT);
+        this.recentSearches = recents;
+        store.set(STORAGE_KEY, JSON.stringify(recents));
+      },
+
+      clearRecentSearches() {
+        store.del(STORAGE_KEY);
+        this.recentSearches = [];
+        this.renderSuggestions(this.searchQuery);
+      },
+
+      initFromQuery() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const catParam = params.get('category');
+          const qParam = params.get('q');
+          if (catParam) {
+            this.activeCategory = catParam;
+          }
+          if (qParam) {
+            this.searchQuery = qParam.trim();
+          }
+        } catch {}
+      },
+
+      handleQueryChange(val) {
+        const q = normTx(val);
+        // Cross-category convenience check: if active category has 0 matches but other categories do, switch to 'all'
+        if (q.length > 0 && this.activeCategory !== 'all') {
+          const hasMatchInCurrentCat = this.cachedTools.some(
+            (t) => t.category === this.activeCategory && (t.nameNorm.includes(q) || t.descNorm.includes(q))
+          );
+          if (!hasMatchInCurrentCat) {
+            this.activeCategory = 'all';
           }
         }
-      } else if (e.key === 'Escape') {
-        closeSuggestions();
-      }
-    });
-  }
+        this.filterTools();
+        if (this.showSuggestions) {
+          this.renderSuggestions(val);
+        }
+      },
 
-  // Clear button ("✕") listener
-  if (searchClearBtn) {
-    searchClearBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-      if (!searchInput) return;
-      searchInput.value = '';
-      updateClearButtonState();
-      filterTools();
-      closeSuggestions();
-      searchInput.focus();
-    });
-  }
+      filterTools() {
+        const q = normTx(this.searchQuery);
+        let visibleCount = 0;
+        const counts = {};
 
-  // Touch-Scroll Keyboard Dismissal
-  let touchStartY = 0;
-  window.addEventListener('touchstart', function (e) {
-    if (e.touches && e.touches[0]) touchStartY = e.touches[0].clientY;
-  }, { passive: true });
+        this.cachedTools.forEach((t) => {
+          const catMatch = this.activeCategory === 'all' || this.activeCategory === t.category;
+          const textMatch = q === '' || t.nameNorm.includes(q) || t.descNorm.includes(q);
+          const isVisible = catMatch && textMatch;
 
-  window.addEventListener('touchmove', function (e) {
-    if (!e.touches || !e.touches[0] || !searchInput) return;
-    const currentY = e.touches[0].clientY;
-    const diffY = Math.abs(currentY - touchStartY);
-    if (diffY > 15 && document.activeElement === searchInput) {
-      searchInput.blur();
-    }
-  }, { passive: true });
+          t.el.style.display = isVisible ? '' : 'none';
+          if (isVisible) {
+            visibleCount++;
+            counts[t.category] = (counts[t.category] || 0) + 1;
+          }
+        });
 
-  // Quick Action Launch Pills
-  $$('[data-quick-search]').forEach(pill => {
-    pill.addEventListener('click', function (e) {
-      const query = this.getAttribute('data-quick-search');
-      if (searchInput) {
-        searchInput.value = query;
-        updateClearButtonState();
-        filterTools();
-        searchInput.focus();
-        const toolsSection = document.getElementById('tools');
-        if (toolsSection) {
-          toolsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        this.totalVisibleCount = visibleCount;
+        this.categoryMatchCounts = counts;
+
+        // Show/hide category sections
+        document.querySelectorAll('.category-section').forEach((sec) => {
+          const slug = sec.getAttribute('data-category');
+          const secMatch = (this.activeCategory === 'all' || this.activeCategory === slug) && (counts[slug] || 0) > 0;
+          sec.style.display = secMatch ? '' : 'none';
+        });
+
+        // Sync empty state
+        const emptyState = document.getElementById('emptyState');
+        if (emptyState) {
+          emptyState.classList.toggle('hidden', visibleCount > 0);
+          emptyState.classList.toggle('flex', visibleCount === 0);
+          emptyState.classList.toggle('show', visibleCount === 0);
+        }
+      },
+
+      setCategory(slug) {
+        this.activeCategory = slug;
+      },
+
+      clearSearch() {
+        this.searchQuery = '';
+        this.closeSuggestions();
+        this.focusSearchInput();
+      },
+
+      clearAllFilters() {
+        this.searchQuery = '';
+        this.activeCategory = 'all';
+        this.closeSuggestions();
+      },
+
+      focusSearchInput() {
+        const tsi = document.getElementById('toolSearchInput');
+        if (tsi) {
+          tsi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => tsi.focus({ preventScroll: true }), 150);
+        }
+      },
+
+      onSearchFocus() {
+        this.renderSuggestions(this.searchQuery);
+      },
+
+      onSearchBlur() {
+        setTimeout(() => this.closeSuggestions(), 220);
+      },
+
+      renderSuggestions(query) {
+        const q = normTx(query);
+        let items = [];
+
+        if (q.length > 0) {
+          const matches = this.cachedTools.filter(
+            (t) => t.nameNorm.includes(q) || t.descNorm.includes(q)
+          ).slice(0, 8);
+
+          items = matches.map((t) => ({
+            label: t.name,
+            url: t.url,
+            type: 'match',
+            iconSvg: '<svg class="w-3.5 h-3.5 suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>'
+          }));
+
+          if (items.length === 0) {
+            items = [{
+              label: 'No matching tools',
+              url: '',
+              type: 'empty',
+              iconSvg: '<svg class="w-3.5 h-3.5 suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+            }];
+          }
+          this.suggestionHeaderTitle = 'Matching Tools';
+        } else {
+          if (this.recentSearches.length > 0) {
+            items = this.recentSearches.map((r) => {
+              const match = this.cachedTools.find((t) => normTx(t.name) === normTx(r));
+              return {
+                label: r,
+                url: match ? match.url : '',
+                type: 'recent',
+                meta: 'Recent',
+                iconSvg: '<svg class="w-3.5 h-3.5 suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+              };
+            });
+            items.push({
+              label: 'Clear recent searches',
+              url: '',
+              type: 'clear',
+              iconSvg: '<svg class="w-3.5 h-3.5 suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>'
+            });
+            this.suggestionHeaderTitle = 'Recent Searches';
+          } else {
+            const popularSlugs = ['crypto-price-prediction', 'emi-calculator', 'sip-calculator', 'pdf-converter', 'image-background-remover', 'qr-generator'];
+            const popular = this.cachedTools.filter((t) => popularSlugs.some((s) => t.url && t.url.includes(s))).slice(0, 6);
+            const fallback = popular.length > 0 ? popular : this.cachedTools.slice(0, 6);
+            items = fallback.map((t) => ({
+              label: t.name,
+              url: t.url,
+              type: 'popular',
+              meta: 'Popular',
+              iconSvg: '<svg class="w-3.5 h-3.5 suggestion-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>'
+            }));
+            this.suggestionHeaderTitle = 'Popular Tools';
+          }
+        }
+
+        this.suggestions = items;
+        this.focusedSuggestionIdx = -1;
+        this.showSuggestions = items.length > 0 && items[0].type !== 'empty';
+      },
+
+      selectSuggestion(item, event) {
+        if (!item) return;
+        if (item.type === 'clear') {
+          if (event) { event.preventDefault(); event.stopPropagation(); }
+          this.clearRecentSearches();
+          return;
+        }
+        if (item.type === 'empty') {
+          if (event) event.preventDefault();
+          return;
+        }
+        if (item.url) {
+          this.addRecentSearch(item.label);
+          window.location.href = item.url;
+          return;
+        }
+        if (event) event.preventDefault();
+        this.searchQuery = item.label;
+        this.addRecentSearch(item.label);
+        this.closeSuggestions();
+      },
+
+      navigateSuggestions(dir) {
+        if (!this.showSuggestions || this.suggestions.length === 0) {
+          this.renderSuggestions(this.searchQuery);
+          return;
+        }
+        const len = this.suggestions.length;
+        this.focusedSuggestionIdx = (this.focusedSuggestionIdx + dir + len) % len;
+      },
+
+      onSearchEnter(event) {
+        if (this.showSuggestions && this.focusedSuggestionIdx >= 0 && this.suggestions[this.focusedSuggestionIdx]) {
+          event.preventDefault();
+          this.selectSuggestion(this.suggestions[this.focusedSuggestionIdx], event);
+          return;
+        }
+        const q = normTx(this.searchQuery);
+        if (q) {
+          const top = this.cachedTools.find((t) => t.nameNorm === q || t.nameNorm.startsWith(q)) ||
+                      this.cachedTools.find((t) => t.nameNorm.includes(q));
+          if (top && top.url) {
+            event.preventDefault();
+            this.addRecentSearch(top.name);
+            window.location.href = top.url;
+          }
+        }
+      },
+
+      closeSuggestions() {
+        this.showSuggestions = false;
+        this.focusedSuggestionIdx = -1;
+      },
+
+      scrollCategories(delta) {
+        const c = document.getElementById('categoryScrollContainer');
+        if (c) c.scrollBy({ left: delta, behavior: 'smooth' });
+      },
+
+      updateScrollButtons() {
+        const c = document.getElementById('categoryScrollContainer');
+        if (!c) return;
+        const scrollLeft = c.scrollLeft;
+        const maxScroll = c.scrollWidth - c.clientWidth;
+        const hasOverflow = maxScroll > 8;
+
+        if (!hasOverflow) {
+          this.canScrollLeft = false;
+          this.canScrollRight = false;
+          c.classList.remove('has-left-fade', 'has-right-fade');
+          return;
+        }
+
+        this.canScrollLeft = scrollLeft > 8;
+        this.canScrollRight = scrollLeft < maxScroll - 8;
+        c.classList.toggle('has-left-fade', this.canScrollLeft);
+        c.classList.toggle('has-right-fade', this.canScrollRight);
+      },
+
+      scrollActiveCategoryTabIntoView() {
+        const activeTab = document.querySelector(`.category-card[data-filter="${this.activeCategory}"]`);
+        if (activeTab) {
+          activeTab.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
         }
       }
-    });
-  });
-
-  // Category Tab Switching (Hybrid <a href> and <button>)
-  document.addEventListener('click', function (e) {
-    const btn = e.target.closest('.category-card');
-    if (!btn) return;
-    e.preventDefault(); // Intercept link click for smooth in-page filter
-    const filter = btn.getAttribute('data-filter');
-
-    categoryBtns().forEach(b => {
-      b.classList.remove('active', 'bg-base-content', 'text-base-100', 'border-base-content', 'shadow-md');
-      b.classList.add('bg-base-100/80', 'border-base-content/10');
-      b.setAttribute('aria-selected', 'false');
-      b.setAttribute('tabindex', '-1');
-      const icon = b.querySelector('.category-card-icon');
-      if (icon) { icon.classList.remove('text-base-100'); icon.classList.add('text-base-content/60'); }
-      const count = b.querySelector('.category-card-count');
-      if (count) { count.classList.remove('bg-base-100/20', 'text-base-100'); count.classList.add('bg-base-content/10', 'text-base-content/60'); }
-    });
-
-    btn.classList.add('active', 'bg-base-content', 'text-base-100', 'border-base-content', 'shadow-md');
-    btn.classList.remove('bg-base-100/80', 'border-base-content/10');
-    btn.setAttribute('aria-selected', 'true');
-    btn.setAttribute('tabindex', '0');
-    const bIcon = btn.querySelector('.category-card-icon');
-    if (bIcon) { bIcon.classList.add('text-base-100'); bIcon.classList.remove('text-base-content/60'); }
-    const bCount = btn.querySelector('.category-card-count');
-    if (bCount) { bCount.classList.add('bg-base-100/20', 'text-base-100'); bCount.classList.remove('bg-base-content/10', 'text-base-content/60'); }
-
-    // Auto-scroll selected tab to center on mobile
-    btn.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
-
-    // Scroll stabilization: if scrolled far past the category dock, anchor back smoothly
-    const toolsNav = document.getElementById('tools');
-    if (toolsNav) {
-      const rect = toolsNav.getBoundingClientRect();
-      if (rect.top < -50) {
-        toolsNav.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-
-    filterTools();
-  });
-
-  // Reset category filter banner button
-  const resetBannerBtn = document.getElementById('resetCategoryFilter');
-  if (resetBannerBtn) {
-    resetBannerBtn.addEventListener('click', function () {
-      const allTab = document.querySelector('.category-card[data-filter="all"]');
-      if (allTab) allTab.click();
-    });
+    };
   }
 
-  // Mobile navbar & bottom nav search click redirection to in-page search
-  const mobileNavSearch = $('#searchToggleMobileNav');
-  const mobileHeaderSearch = $('#searchToggleMobile');
+  // Expose component function globally
+  window.toolsDirectory = toolsDirectory;
 
-  function focusInPageSearch(e) {
-    if (!searchInput) return;
-    e.preventDefault();
-    e.stopPropagation();
-    searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(() => {
-      searchInput.focus({ preventScroll: true });
-    }, 200);
-  }
-
-  if (mobileNavSearch) mobileNavSearch.addEventListener('click', focusInPageSearch);
-  if (mobileHeaderSearch) mobileHeaderSearch.addEventListener('click', focusInPageSearch);
-
-  // Clear filters button in empty state
-  if (clearBtn) {
-    clearBtn.addEventListener('click', function () {
-      if (searchInput) {
-        searchInput.value = '';
-        updateClearButtonState();
-      }
-      const allTab = document.querySelector('.category-card[data-filter="all"]');
-      if (allTab) allTab.click();
-      else filterTools();
-    });
-  }
-
-  // Category Bar Left/Right Scroll Chevrons & Overflow Indicators
-  const catScrollContainer = document.getElementById('categoryScrollContainer');
-  const catScrollLeft = document.getElementById('catScrollLeft');
-  const catScrollRight = document.getElementById('catScrollRight');
-
-  function updateCategoryScrollButtons() {
-    if (!catScrollContainer) return;
-    const scrollLeft = catScrollContainer.scrollLeft;
-    const maxScroll = catScrollContainer.scrollWidth - catScrollContainer.clientWidth;
-    const hasOverflow = maxScroll > 8;
-
-    if (!hasOverflow) {
-      if (catScrollLeft) { catScrollLeft.classList.add('hidden'); catScrollLeft.classList.remove('sm:flex'); }
-      if (catScrollRight) { catScrollRight.classList.add('hidden'); catScrollRight.classList.remove('sm:flex'); }
-      catScrollContainer.classList.remove('has-left-fade', 'has-right-fade');
-      return;
-    }
-
-    const canScrollLeft = scrollLeft > 8;
-    const canScrollRight = scrollLeft < maxScroll - 8;
-
-    if (catScrollLeft) {
-      catScrollLeft.classList.toggle('hidden', !canScrollLeft);
-      catScrollLeft.classList.toggle('sm:flex', canScrollLeft);
-    }
-    if (catScrollRight) {
-      catScrollRight.classList.toggle('hidden', !canScrollRight);
-      catScrollRight.classList.toggle('sm:flex', canScrollRight);
-    }
-    catScrollContainer.classList.toggle('has-left-fade', canScrollLeft);
-    catScrollContainer.classList.toggle('has-right-fade', canScrollRight);
-  }
-
-  if (catScrollContainer) {
-    if (catScrollLeft) {
-      catScrollLeft.addEventListener('click', function () {
-        catScrollContainer.scrollBy({ left: -240, behavior: 'smooth' });
-      });
-    }
-    if (catScrollRight) {
-      catScrollRight.addEventListener('click', function () {
-        catScrollContainer.scrollBy({ left: 240, behavior: 'smooth' });
-      });
-    }
-    catScrollContainer.addEventListener('scroll', updateCategoryScrollButtons, { passive: true });
-    window.addEventListener('resize', updateCategoryScrollButtons, { passive: true });
-    setTimeout(updateCategoryScrollButtons, 150);
-  }
-
-  function initFromQuery() {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const catParam = params.get('category');
-      const qParam = params.get('q');
-      if (catParam || qParam) getCachedTools();
-      if (catParam) {
-        const selector = '.category-card[data-filter="' + (window.CSS && CSS.escape ? CSS.escape(catParam) : catParam.replace(/["\\]/g, '')) + '"]';
-        const catTab = document.querySelector(selector);
-        if (catTab) catTab.click();
-      }
-      if (qParam && searchInput) {
-        searchInput.value = qParam.trim();
-        filterTools();
-      }
-    } catch {}
-    updateClearButtonState();
-  }
-
-  // Initialize tool cache & query filters on DOMContentLoaded (or immediately if ready)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initFromQuery);
+  // Register with Alpine when available
+  if (window.Alpine) {
+    window.Alpine.data('toolsDirectory', toolsDirectory);
   } else {
-    initFromQuery();
+    document.addEventListener('alpine:init', () => {
+      window.Alpine.data('toolsDirectory', toolsDirectory);
+    });
   }
-
 })();

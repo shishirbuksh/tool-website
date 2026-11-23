@@ -69,6 +69,17 @@ def _writer_worker() -> None:
                     _write_queue.task_done()
                 batch.clear()
 
+        now = time.time()
+        global _last_cleanup
+        if now - _last_cleanup > _CLEANUP_INTERVAL:
+            _last_cleanup = now
+            try:
+                cutoff = int(now) - (_RETENTION_DAYS * 86400)
+                conn.execute("DELETE FROM events_v2 WHERE ts < ?", (cutoff,))
+                conn.commit()
+            except Exception:
+                logger.exception("Failed to purge expired analytics events")
+
 
 def flush(timeout: float = 5.0) -> bool:
     """Block until queued analytics writes are persisted (for tests/scripts)."""

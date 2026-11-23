@@ -9,12 +9,13 @@ from apps.analytics.services import track, get_counts
 
 
 def _is_internal(request) -> bool:
-    client_ip = (
-        request.headers.get("x-real-ip")
-        or request.META.get("HTTP_X_REAL_IP")
-        or request.META.get("REMOTE_ADDR", "")
-    ).strip()
-    return client_ip in ("127.0.0.1", "::1", "localhost", "testclient")
+    remote_addr = request.META.get("REMOTE_ADDR", "").strip()
+    if remote_addr in ("127.0.0.1", "::1", "testclient"):
+        real_ip = (request.headers.get("x-real-ip") or request.META.get("HTTP_X_REAL_IP", "")).strip()
+        if real_ip:
+            return real_ip in ("127.0.0.1", "::1", "localhost", "testclient")
+        return True
+    return False
 
 
 @csrf_exempt

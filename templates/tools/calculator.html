@@ -33,186 +33,317 @@
 {% endblock %}
 {% block content %}
 {{ tool_hero_section("calculator", "Arithmetic Tool", "STANDARD", "CALCULATOR", seo_data.description if seo_data else "Fast online basic calculator with memory, keyboard shortcuts, percentage key, and calculation history — free, no signup.") }}
-<div x-data="basicCalculator()" class="max-w-[420px] mx-auto w-full reveal" style="animation-delay:0.2s">
+<div x-data="basicCalculator()" @keydown.window="handleKey($event)" class="max-w-[420px] mx-auto w-full reveal" style="animation-delay:0.2s">
   <div class="sc-card">
     <div class="sc-display">
-      <div class="sc-ind" id="scInd"></div>
-      <div class="expr" id="scExpr"></div>
-      <div class="val" id="scVal" aria-live="polite" aria-atomic="true">0</div>
+      <div class="sc-ind" id="scInd" x-text="hasMem ? 'M' : ''"></div>
+      <div class="expr" id="scExpr" x-text="expr"></div>
+      <div class="val" id="scVal" x-text="formattedDisplay" :style="pop ? 'transform:scale(1.05);color:var(--color-primary)' : ''" aria-live="polite" aria-atomic="true">0</div>
     </div>
     <div class="sc-mem-row">
-      <button type="button" class="sc-key sc-key mm" data-mem="mc" aria-label="Memory clear">MC</button>
-      <button type="button" class="sc-key sc-key mm" data-mem="mr" aria-label="Memory recall">MR</button>
-      <button type="button" class="sc-key sc-key mm" data-mem="mplus" aria-label="Memory add">M+</button>
-      <button type="button" class="sc-key sc-key mm" data-mem="mminus" aria-label="Memory subtract">M−</button>
+      <button type="button" @click="memClear()" class="sc-key sc-key mm" data-mem="mc" aria-label="Memory clear">MC</button>
+      <button type="button" @click="memRecall()" class="sc-key sc-key mm" :class="{ 'on': hasMem }" data-mem="mr" aria-label="Memory recall">MR</button>
+      <button type="button" @click="memAdd()" class="sc-key sc-key mm" data-mem="mplus" aria-label="Memory add">M+</button>
+      <button type="button" @click="memSubtract()" class="sc-key sc-key mm" data-mem="mminus" aria-label="Memory subtract">M−</button>
     </div>
     <div class="sc-keypad" id="scKeys">
-      <button type="button" class="sc-key sc-key ac" data-calc="clear">AC</button>
-      <button type="button" class="sc-key" data-calc="negate">+/−</button>
-      <button type="button" class="sc-key" data-calc="percent">%</button>
-      <button type="button" class="sc-key sc-key op" data-calc="op:/">&divide;</button>
-      <button type="button" class="sc-key" data-calc="7">7</button>
-      <button type="button" class="sc-key" data-calc="8">8</button>
-      <button type="button" class="sc-key" data-calc="9">9</button>
-      <button type="button" class="sc-key sc-key op" data-calc="op:*">&times;</button>
-      <button type="button" class="sc-key" data-calc="4">4</button>
-      <button type="button" class="sc-key" data-calc="5">5</button>
-      <button type="button" class="sc-key" data-calc="6">6</button>
-      <button type="button" class="sc-key sc-key op" data-calc="op:−">−</button>
-      <button type="button" class="sc-key" data-calc="1">1</button>
-      <button type="button" class="sc-key" data-calc="2">2</button>
-      <button type="button" class="sc-key" data-calc="3">3</button>
-      <button type="button" class="sc-key sc-key op" data-calc="op:+">+</button>
-      <button type="button" class="sc-key" data-calc="0" style="grid-column:span 2">0</button>
-      <button type="button" class="sc-key" data-calc="decimal">.</button>
-      <button type="button" class="sc-key sc-key eq" data-calc="equals">=</button>
+      <button type="button" @click="clearAll()" class="sc-key sc-key ac" data-calc="clear">AC</button>
+      <button type="button" @click="toggleSign()" class="sc-key" data-calc="negate">+/−</button>
+      <button type="button" @click="percent()" class="sc-key" data-calc="percent">%</button>
+      <button type="button" @click="setOperator('/')" class="sc-key sc-key op" data-calc="op:/">&divide;</button>
+      <button type="button" @click="inputDigit('7')" class="sc-key" data-calc="7">7</button>
+      <button type="button" @click="inputDigit('8')" class="sc-key" data-calc="8">8</button>
+      <button type="button" @click="inputDigit('9')" class="sc-key" data-calc="9">9</button>
+      <button type="button" @click="setOperator('*')" class="sc-key sc-key op" data-calc="op:*">&times;</button>
+      <button type="button" @click="inputDigit('4')" class="sc-key" data-calc="4">4</button>
+      <button type="button" @click="inputDigit('5')" class="sc-key" data-calc="5">5</button>
+      <button type="button" @click="inputDigit('6')" class="sc-key" data-calc="6">6</button>
+      <button type="button" @click="setOperator('−')" class="sc-key sc-key op" data-calc="op:−">−</button>
+      <button type="button" @click="inputDigit('1')" class="sc-key" data-calc="1">1</button>
+      <button type="button" @click="inputDigit('2')" class="sc-key" data-calc="2">2</button>
+      <button type="button" @click="inputDigit('3')" class="sc-key" data-calc="3">3</button>
+      <button type="button" @click="setOperator('+')" class="sc-key sc-key op" data-calc="op:+">+</button>
+      <button type="button" @click="inputDigit('0')" class="sc-key" data-calc="0" style="grid-column:span 2">0</button>
+      <button type="button" @click="inputDecimal()" class="sc-key" data-calc="decimal">.</button>
+      <button type="button" @click="equals()" class="sc-key sc-key eq" data-calc="equals">=</button>
     </div>
     <div class="flex items-center gap-2 mt-3">
-      <button type="button" id="scCopy" class="sc-key sc-key mm" style="flex:1;font-size:12px">{{ lucide_icon("copy","w-3 h-3",12) | safe }} Copy</button>
-      <button type="button" id="scPaste" class="sc-key sc-key mm" style="flex:1;font-size:12px">{{ lucide_icon("clipboard-paste","w-3 h-3",12) | safe }} Paste</button>
+      <button type="button" id="scCopy" @click="copy()" class="sc-key sc-key mm" style="flex:1;font-size:12px">{{ lucide_icon("copy","w-3 h-3",12) | safe }} Copy</button>
+      <button type="button" id="scPaste" @click="paste()" class="sc-key sc-key mm" style="flex:1;font-size:12px">{{ lucide_icon("clipboard-paste","w-3 h-3",12) | safe }} Paste</button>
     </div>
   </div>
   <div class="sc-card mt-4">
     <div class="flex items-center justify-between mb-2">
       <h2 class="text-xs font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("history","w-3 h-3",12) | safe }} History</h2>
-      <button type="button" id="scHiClear" class="sc-key sc-key mm" style="min-height:28px;font-size:11px">{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button>
+      <button type="button" id="scHiClear" @click="clearHist()" class="sc-key sc-key mm" style="min-height:28px;font-size:11px">{{ lucide_icon("trash-2","w-3 h-3",12) | safe }}</button>
     </div>
-    <div id="scHiList" class="sc-hist"></div>
+    <div id="scHiList" class="sc-hist">
+      <template x-for="(item, i) in hist.slice(0, 20)" :key="item.ts">
+        <div class="sc-hist-item" @click="restoreHist(item.txt)">
+          <span class="preview" x-text="item.txt"></span>
+          <button type="button" class="hdel" @click.stop="delHist(i)" aria-label="Delete">✕</button>
+        </div>
+      </template>
+      <div x-show="hist.length === 0" class="sc-empty">No calculations yet</div>
+    </div>
   </div>
+  <div id="scToast" class="sc-toast" :class="{ 'show': showToast }" x-text="toastMsg" role="status" aria-live="polite"></div>
 </div>
-<div id="scToast" class="sc-toast" role="status" aria-live="polite"></div>
+
 <script nonce="{{ nonce }}">
 window.basicCalculator = function() {
-
-var display='0',first=null,waiting=false,op=null,expr='',mem=0,hasMem=false;
-var hist=[]; try{var d=localStorage.getItem('sb_sc1');if(d)hist=JSON.parse(d)}catch(e){}
-var maxHist=30;
-
-function el(id){return document.getElementById(id)}
-var valEl=el('scVal'),exprEl=el('scExpr'),indEl=el('scInd'),histEl=el('scHiList');
-var toastEl=el('scToast');
-
-function toast(m){toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show')},2200)}
-
-function update(pop){
-var s=display;if(s.length>14){var n=parseFloat(s);if(!isNaN(n))s=n.toPrecision(10).replace(/(?:\.0+|(\.\d+?)0+)$/,'$1')}
-valEl.textContent=s;exprEl.textContent=expr;indEl.textContent=hasMem?'M':'';
-if(pop){valEl.style.transform='scale(1.05)';valEl.style.color='var(--color-primary)';setTimeout(function(){valEl.style.transform='';valEl.style.color=''},100)}
-}
-
-function inputDigit(d){
-if(display==='Error'){display=d;waiting=false;update();return}
-if(waiting){display=d;waiting=false}else display=display==='0'?d:display+d;update()
-}
-
-function inputDecimal(){
-if(display==='Error'){display='0.';waiting=false;update();return}
-if(waiting){display='0.';waiting=false;return}
-if(display.indexOf('.')===-1)display+='.';update()
-}
-
-function opSymbol(o){return o==='+'?'+':o==='−'?'−':o==='*'?'×':o==='/'?'÷':''}
-
-function setOperator(nextOp){
-var v=parseFloat(display);if(op&&waiting){op=nextOp;expr=first+opSymbol(nextOp);update();return}
-if(first===null&&!isNaN(v))first=v;else if(op){var res=calc(first,v,op);display=String(parseFloat(res.toFixed(10)));first=res}
-waiting=true;op=nextOp;expr=first+opSymbol(nextOp);update()
-}
-
-function calc(a,b,o){
-if(o==='+')return a+b;if(o==='−')return a-b;if(o==='*')return a*b;if(o==='/')return b===0?NaN:a/b;return b
-}
-
-function equals(){
-if(!op||waiting)return;var v=parseFloat(display);var res=calc(first,v,op);
-if(isNaN(res)||!isFinite(res)){display='Error';expr='';first=null;op=null;waiting=true;update();return}
-expr=first+opSymbol(op)+v+'=';display=String(parseFloat(res.toFixed(10)));first=res;op=null;waiting=true;update(true);
-saveToHistory(expr+display);
-}
-
-function clearAll(){display='0';first=null;waiting=false;op=null;expr='';update()}
-function toggleSign(){if(display==='Error'||display==='0')return;display=display[0]==='−'?display.slice(1):'−'+display;update()}
-function percent(){if(display==='Error'){clearAll();return}display=String(parseFloat(display)/100);update()}
-function backspace(){if(display==='Error'){clearAll();return}display=display.length>1?display.slice(0,-1):'0';update()}
-
-function saveToHistory(e){
-var txt=e||display;if(hist.length&&hist[0].txt===txt)return;
-hist.unshift({txt:txt,ts:Date.now()});if(hist.length>maxHist)hist.pop();try{localStorage.setItem('sb_sc1',JSON.stringify(hist))}catch(e2){}renderHist()
-}
-
-function renderHist(){
-if(!hist.length){histEl.innerHTML='<div class="sc-empty">No calculations yet</div>';return}
-var h='';hist.slice(0,20).forEach(function(item,i){
-var d=new Date(item.ts),now=new Date();var diff=Math.round((now-d)/1000);
-var rel=diff<60?'now':diff<3600?Math.floor(diff/60)+'m':diff<86400?Math.floor(diff/3600)+'h':Math.floor(diff/86400)+'d';
-h+='<div class="sc-hist-item" data-idx="'+i+'"><span class="preview">'+esc(item.txt)+'</span><span class="hdel" data-idx="'+i+'" aria-label="Delete">✕</span></div>';
-});
-histEl.innerHTML=h;
-}
-
-function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
-
-el('scKeys').addEventListener('click',function(e){
-var btn=e.target.closest('[data-calc]');if(!btn)return;
-var a=btn.getAttribute('data-calc');
-if(a==='clear')clearAll();
-else if(a==='negate')toggleSign();
-else if(a==='percent')percent();
-else if(a==='decimal')inputDecimal();
-else if(a==='equals')equals();
-else if(a.indexOf('op:')===0)setOperator(a.slice(3));
-else inputDigit(a);
-});
-
-el('scKeys').querySelectorAll('[data-mem]').forEach(function(b){
-b.addEventListener('click',function(){
-var m=this.getAttribute('data-mem');
-if(m==='mc'){mem=0;hasMem=false;update()}
-else if(m==='mr'){if(hasMem){display=String(mem);waiting=false;update()}}
-else if(m==='mplus'){mem+=parseFloat(display)||0;hasMem=true;update()}
-else if(m==='mminus'){mem-=parseFloat(display)||0;hasMem=true;update()}
-});
-});
-
-document.addEventListener('keydown',function(e){
-if(document.activeElement && (document.activeElement.tagName==='INPUT' || document.activeElement.tagName==='TEXTAREA')) return;
-if(e.key>='0'&&e.key<='9')inputDigit(e.key);
-if(e.key==='.')inputDecimal();
-if(e.key==='='||e.key==='Enter'){e.preventDefault();equals()}
-if(e.key==='Backspace')backspace();
-if(e.key==='Escape')clearAll();
-if(e.key==='+'||e.key==='-')setOperator(e.key==='+'?'+':'−');
-if(e.key==='*')setOperator('*');
-if(e.key==='/'){e.preventDefault();setOperator('/')}
-if(e.key==='%')percent();
-});
-
-el('scCopy').addEventListener('click',function(){
-navigator.clipboard.writeText(display).then(function(){toast('Copied: '+display)}).catch(function(){toast('Copy failed')});
-saveToHistory();
-});
-
-el('scPaste').addEventListener('click',function(){
-navigator.clipboard.readText().then(function(t){t=t.trim();var n=parseFloat(t);if(!isNaN(n)){display=String(n);waiting=false;update();toast('Pasted')}else toast('Not a number')}).catch(function(){toast('Paste failed')});
-});
-
-el('scHiClear').addEventListener('click',function(){if(confirm('Clear all history?')){hist=[];try{localStorage.setItem('sb_sc1',JSON.stringify(hist))}catch(e){}renderHist();toast('History cleared')}});
-histEl.addEventListener('click',function(e){
-var del=e.target.closest('.hdel');if(!del)return;
-var idx=parseInt(del.getAttribute('data-idx'));hist.splice(idx,1);try{localStorage.setItem('sb_sc1',JSON.stringify(hist))}catch(e){}renderHist()
-});
-
-renderHist();
-
-
   return {
-    init: function() {
-      if (typeof calc === 'function') calc();
-      else if (typeof generate === 'function') generate();
-      else if (typeof gen === 'function') gen();
-      else if (typeof render === 'function') render();
-      else if (typeof update === 'function') update();
-      else if (typeof calculate === 'function') calculate();
+    display: '0',
+    first: null,
+    waiting: false,
+    op: null,
+    expr: '',
+    mem: 0,
+    hasMem: false,
+    pop: false,
+    hist: [],
+    toastMsg: '',
+    showToast: false,
+    toastTimer: null,
+    maxHist: 30,
+
+    get formattedDisplay() {
+      var s = this.display;
+      if (s.length > 14) {
+        var n = parseFloat(s);
+        if (!isNaN(n)) s = n.toPrecision(10).replace(/(?:\.0+|(\.\d+?)0+)$/, '$1');
+      }
+      return s;
+    },
+
+    init() {
+      try {
+        var d = localStorage.getItem('sb_sc1');
+        if (d) this.hist = JSON.parse(d);
+      } catch (e) {}
+    },
+
+    toast(m) {
+      this.toastMsg = m;
+      this.showToast = true;
+      clearTimeout(this.toastTimer);
+      var self = this;
+      this.toastTimer = setTimeout(function() {
+        self.showToast = false;
+      }, 2200);
+    },
+
+    triggerPop() {
+      this.pop = true;
+      var self = this;
+      setTimeout(function() {
+        self.pop = false;
+      }, 120);
+    },
+
+    opSymbol(o) {
+      return o === '+' ? '+' : o === '−' ? '−' : o === '*' ? '×' : o === '/' ? '÷' : '';
+    },
+
+    inputDigit(d) {
+      if (this.display === 'Error') {
+        this.display = d;
+        this.waiting = false;
+        return;
+      }
+      if (this.waiting) {
+        this.display = d;
+        this.waiting = false;
+      } else {
+        this.display = this.display === '0' ? d : this.display + d;
+      }
+    },
+
+    inputDecimal() {
+      if (this.display === 'Error' || this.waiting) {
+        this.display = '0.';
+        this.waiting = false;
+        return;
+      }
+      if (this.display.indexOf('.') === -1) {
+        this.display += '.';
+      }
+    },
+
+    calc(a, b, o) {
+      if (o === '+') return a + b;
+      if (o === '−') return a - b;
+      if (o === '*') return a * b;
+      if (o === '/') return b === 0 ? NaN : a / b;
+      return b;
+    },
+
+    setOperator(nextOp) {
+      var v = parseFloat(this.display);
+      if (this.op && this.waiting) {
+        this.op = nextOp;
+        this.expr = this.first + this.opSymbol(nextOp);
+        return;
+      }
+      if (this.first === null && !isNaN(v)) {
+        this.first = v;
+      } else if (this.op) {
+        var res = this.calc(this.first, v, this.op);
+        this.display = String(parseFloat(res.toFixed(10)));
+        this.first = res;
+      }
+      this.waiting = true;
+      this.op = nextOp;
+      this.expr = this.first + this.opSymbol(nextOp);
+    },
+
+    equals() {
+      if (!this.op || this.waiting) return;
+      var v = parseFloat(this.display);
+      var res = this.calc(this.first, v, this.op);
+      if (isNaN(res) || !isFinite(res)) {
+        this.display = 'Error';
+        this.expr = '';
+        this.first = null;
+        this.op = null;
+        this.waiting = true;
+        return;
+      }
+      this.expr = this.first + this.opSymbol(this.op) + v + '=';
+      this.display = String(parseFloat(res.toFixed(10)));
+      this.first = res;
+      this.op = null;
+      this.waiting = true;
+      this.triggerPop();
+      this.saveToHistory(this.expr + this.display);
+    },
+
+    clearAll() {
+      this.display = '0';
+      this.first = null;
+      this.waiting = false;
+      this.op = null;
+      this.expr = '';
+    },
+
+    toggleSign() {
+      if (this.display === 'Error' || this.display === '0') return;
+      this.display = this.display[0] === '−' ? this.display.slice(1) : '−' + this.display;
+    },
+
+    percent() {
+      if (this.display === 'Error') {
+        this.clearAll();
+        return;
+      }
+      this.display = String(parseFloat(this.display) / 100);
+    },
+
+    backspace() {
+      if (this.display === 'Error') {
+        this.clearAll();
+        return;
+      }
+      this.display = this.display.length > 1 ? this.display.slice(0, -1) : '0';
+    },
+
+    memClear() {
+      this.mem = 0;
+      this.hasMem = false;
+    },
+
+    memRecall() {
+      if (this.hasMem) {
+        this.display = String(this.mem);
+        this.waiting = false;
+      }
+    },
+
+    memAdd() {
+      this.mem += parseFloat(this.display) || 0;
+      this.hasMem = true;
+    },
+
+    memSubtract() {
+      this.mem -= parseFloat(this.display) || 0;
+      this.hasMem = true;
+    },
+
+    saveToHistory(txt) {
+      var itemTxt = txt || this.display;
+      if (this.hist.length && this.hist[0].txt === itemTxt) return;
+      this.hist.unshift({ txt: itemTxt, ts: Date.now() });
+      if (this.hist.length > this.maxHist) this.hist.pop();
+      try {
+        localStorage.setItem('sb_sc1', JSON.stringify(this.hist));
+      } catch (e) {}
+    },
+
+    delHist(idx) {
+      this.hist.splice(idx, 1);
+      try {
+        localStorage.setItem('sb_sc1', JSON.stringify(this.hist));
+      } catch (e) {}
+    },
+
+    clearHist() {
+      if (confirm('Clear all history?')) {
+        this.hist = [];
+        try {
+          localStorage.setItem('sb_sc1', JSON.stringify(this.hist));
+        } catch (e) {}
+        this.toast('History cleared');
+      }
+    },
+
+    restoreHist(txt) {
+      var parts = txt.split('=');
+      var val = parts[parts.length - 1];
+      var n = parseFloat(val);
+      if (!isNaN(n)) {
+        this.display = String(n);
+        this.waiting = false;
+      }
+    },
+
+    copy() {
+      var self = this;
+      navigator.clipboard.writeText(this.display).then(function() {
+        self.toast('Copied: ' + self.display);
+      }).catch(function() {
+        self.toast('Copy failed');
+      });
+      this.saveToHistory();
+    },
+
+    paste() {
+      var self = this;
+      navigator.clipboard.readText().then(function(t) {
+        t = t.trim();
+        var n = parseFloat(t);
+        if (!isNaN(n)) {
+          self.display = String(n);
+          self.waiting = false;
+          self.toast('Pasted');
+        } else {
+          self.toast('Not a number');
+        }
+      }).catch(function() {
+        self.toast('Paste failed');
+      });
+    },
+
+    handleKey(e) {
+      if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
+      if (e.key >= '0' && e.key <= '9') this.inputDigit(e.key);
+      if (e.key === '.') this.inputDecimal();
+      if (e.key === '=' || e.key === 'Enter') { e.preventDefault(); this.equals(); }
+      if (e.key === 'Backspace') this.backspace();
+      if (e.key === 'Escape') this.clearAll();
+      if (e.key === '+' || e.key === '-') this.setOperator(e.key === '+' ? '+' : '−');
+      if (e.key === '*') this.setOperator('*');
+      if (e.key === '/') { e.preventDefault(); this.setOperator('/'); }
+      if (e.key === '%') this.percent();
     }
   };
 };

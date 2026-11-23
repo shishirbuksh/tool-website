@@ -205,14 +205,16 @@ def proxy_request_view(request):
     url = body.get("url") or request.POST.get("url", "")
     if not url:
         return JsonResponse({"detail": "URL parameter required"}, status=400)
+    loop = asyncio.new_event_loop()
     try:
-        loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         data = loop.run_until_complete(_proxy_service.execute("GET", url))
         return JsonResponse(data)
     except Exception as e:
         logger.exception("Proxy request failed")
         return JsonResponse({"detail": str(e)}, status=400)
+    finally:
+        loop.close()
 
 
 def youtube_channel_view(request):
