@@ -379,8 +379,13 @@ setup_systemd() {
 setup_permissions() {
     log_info "Ensuring required directories exist..."
     mkdir -p "$APP_DIR/var/data" "$APP_DIR/.u2net" /var/log/caddy
-    # Static must stay world-readable for Caddy (UMask 022 in unit ensures 644/755).
+    # Static must stay world-readable for Caddy/Nginx (UMask 022 in unit ensures 644/755).
     chmod 755 "$APP_DIR" "$APP_DIR/static" 2>/dev/null || true
+    # CloudPanel creates a default placeholder index.html on site creation.
+    # Remove it so Nginx never serves it directly instead of proxying to Django.
+    if [ -f "$APP_DIR/index.html" ]; then
+        rm -f "$APP_DIR/index.html"
+    fi
     
     if id "storybrainai" >/dev/null 2>&1; then
         log_info "Fixing permissions (chown storybrainai:storybrainai)..."
