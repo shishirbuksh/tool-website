@@ -2,247 +2,755 @@
 {% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
 {% block head %}
 <style>
-.rng-badge{display:inline-flex;align-items:center;justify-content:center;min-width:2.8rem;padding:.3rem .8rem;border-radius:999px;background:var(--color-base-200);border:1px solid var(--color-base-300);font-weight:800;font-size:1.05rem;font-variant-numeric:tabular-nums;cursor:pointer;transition:all .15s;touch-action:manipulation}
-.rng-badge:hover,.rng-badge:focus-visible{background:var(--color-primary);color:#fff;border-color:var(--color-primary);outline:none}
-.rng-badge.copied{background:var(--color-success);border-color:var(--color-success);color:#fff}
-.rng-pri{background:#111111;color:#ffffff;border:none;border-radius:8px;padding:.65rem;font-weight:700;font-size:.8rem;text-transform:none;letter-spacing:0;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:7px;touch-action:manipulation}
-.rng-pri:hover{filter:brightness(1.1);transform:translateY(-1px)}
-.rng-pri:active{transform:translateY(0)}
-.rng-pri:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:none}
-.rng-sec{background:var(--color-base-100);color:var(--color-base-content);border:1px solid var(--color-base-300);border-radius:8px;padding:.5rem .75rem;font-weight:700;font-size:.7rem;text-transform:none;letter-spacing:0;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:5px;touch-action:manipulation;white-space:nowrap}
-.rng-sec:hover{border-color:var(--color-base-content)}
-.rng-sec.on{background:color-mix(in oklab,var(--color-primary) 10%,transparent);border-color:var(--color-primary);color:var(--color-primary)}
-.rng-sel{background:var(--color-base-200);border:2px solid var(--color-base-300);border-radius:.75rem;padding:.4rem .6rem;font-weight:700;font-size:11px;color:var(--color-base-content);cursor:pointer;color-scheme:light dark;appearance:auto}
-.rng-sel option{background:var(--color-base-200);color:var(--color-base-content)}
-.rng-stat{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:.25rem .65rem;border-radius:999px;background:var(--color-base-200);border:1px solid var(--color-base-300);white-space:nowrap}
-.rng-hitem{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:.35rem .65rem;border-radius:.5rem;background:var(--color-base-100);border:1px solid var(--color-base-300);font-size:12px;font-weight:700;transition:all .15s}
-.rng-hitem:hover{border-color:var(--color-base-content)}
-.rng-hdel{width:20px;height:20px;border-radius:50%;background:var(--color-error);color:#fff;font-size:11px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;touch-action:manipulation;transition:all .15s}
-.rng-hdel:hover{filter:brightness(1.2)}
-#rngCount{color-scheme:light dark}
-#rngCount option{background:var(--color-base-200);color:var(--color-base-content)}
+.rng-chip {
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  touch-action: manipulation;
+  font-variant-numeric: tabular-nums;
+}
+.rng-chip:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+}
+.rng-chip:active {
+  transform: translateY(0);
+}
+.rng-hero-num {
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 4px 20px color-mix(in oklab, var(--color-primary) 30%, transparent);
+}
+.rng-preset-pill {
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.rng-preset-pill.active {
+  background-color: var(--color-primary);
+  color: var(--color-primary-content, #ffffff);
+  border-color: var(--color-primary);
+  font-weight: 800;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 </style>
 {% endblock %}
 {% block content %}
-{{ tool_hero_section("dice-1", "Crypto-Random Picker", "RANDOM NUMBER", "GENERATOR", seo_data.description if seo_data else "Generate uniform random integers, dice rolls, non-repeating picks, and formatted lists privately in your browser.") }}
-<div x-data="rngCalculator()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
-  <div class="lg:w-5/12">
-    <div class="feature-card p-6 md:p-8">
-      <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5", 20) | safe }} Settings</h2>
-      <div class="flex flex-col gap-4">
-        <div class="grid grid-cols-2 gap-3">
-          <div><label class="text-xs font-semibold text-base-content/70" for="rngMin">Minimum</label><input aria-label="Minimum Number" type="number" id="rngMin" x-model.number="min" class="input w-full cal-input bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="1"></div>
-          <div><label class="text-xs font-semibold text-base-content/70" for="rngMax">Maximum</label><input aria-label="Maximum Number" type="number" id="rngMax" x-model.number="max" class="input w-full cal-input bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl" value="100"></div>
-        </div>
-        <div><label class="text-xs font-semibold text-base-content/70" for="rngCount">How Many</label>
-          <select aria-label="How Many Numbers to Generate" id="rngCount" x-model.number="count" class="input w-full cal-input bg-base-300/30 border-base-content/20 text-base-content font-bold rounded-xl">
-            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="15">15</option><option value="20">20</option>
-          </select>
-        </div>
-        <div class="flex items-center justify-between gap-2">
-          <label class="flex items-center gap-2 cursor-pointer select-none" style="touch-action:manipulation"><input aria-label="Unique Numbers Only" type="checkbox" id="rngUnique" x-model="unique" checked class="w-4 h-4 accent-primary cursor-pointer" style="touch-action:manipulation"><span class="font-bold text-xs uppercase tracking-wider">Unique</span></label>
-          <div class="flex items-center gap-1 rng-sec" role="radiogroup" aria-label="Sort order"><button type="button" class="rng-sec on" data-sort="asc" style="border-radius:999px;padding:.25rem .55rem;font-size:10px;border:none">A→Z</button><button type="button" class="rng-sec" data-sort="desc" style="border-radius:999px;padding:.25rem .55rem;font-size:10px;border:none">Z→A</button></div>
-        </div>
-        <button type="button" id="rngBtn" class="rng-pri w-full py-3 text-sm shadow-lg shadow-primary/20">{{ lucide_icon("shuffle","w-5 h-5", 20) | safe }} GENERATE</button>
-        <div><div class="flex items-center justify-between mb-2"><span class="text-xs font-semibold text-base-content/70" style="margin:0">History <span id="rngHCount" class="text-xs opacity-40"></span></span><button type="button" id="rngHClear" class="text-[10px] font-bold uppercase tracking-wider opacity-40 hover:opacity-100 transition-opacity" style="touch-action:manipulation;background:none;border:none;cursor:pointer;color:var(--color-error);padding:0">Clear</button></div>
-          <div id="rngHEmpty" class="text-center py-4 text-[10px] font-bold uppercase tracking-wider opacity-30">No history yet</div>
-          <div id="rngHList" class="flex flex-col gap-1.5" hidden></div>
-        </div>
-      </div>
+{{ tool_hero_section("dice-1", "Hardware CSPRNG Picker", "RANDOM NUMBER", "GENERATOR", seo_data.description if seo_data else "Pick unbiased random numbers, 1-100, 1-10, dice rolls, coin flips, and non-repeating lottery draws with cryptographically fair hardware entropy.") }}
+
+<div x-data="rngCalculator()" class="flex flex-col gap-6 reveal" style="animation-delay:0.15s" @keydown.window.space="onGlobalSpace($event)" @keydown.window.enter="onGlobalEnter($event)">
+  
+  <!-- Quick Presets Bar (Google Trends Breakouts) -->
+  <div class="bg-base-200/60 p-3 sm:p-4 rounded-2xl border border-base-300">
+    <div class="flex items-center justify-between mb-2 px-1">
+      <span class="text-xs font-bold uppercase tracking-wider text-base-content/60 flex items-center gap-1.5">
+        {{ lucide_icon("sparkles","w-3.5 h-3.5 text-primary", 14) | safe }}
+        Popular Presets
+      </span>
+      <span class="text-[11px] text-base-content/50 hidden sm:inline">Tap any preset to roll instantly</span>
+    </div>
+    <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+      <button type="button" @click="applyPreset('1-100')" :class="{'active': activePreset === '1-100'}" class="rng-preset-pill btn btn-sm btn-outline rounded-xl font-bold border-base-300 hover:border-primary text-xs" aria-label="Preset 1 to 100">
+        1 – 100 <span class="badge badge-xs badge-primary ml-1">Top</span>
+      </button>
+      <button type="button" @click="applyPreset('1-10')" :class="{'active': activePreset === '1-10'}" class="rng-preset-pill btn btn-sm btn-outline rounded-xl font-bold border-base-300 hover:border-primary text-xs" aria-label="Preset 1 to 10">
+        1 – 10
+      </button>
+      <button type="button" @click="applyPreset('1-50')" :class="{'active': activePreset === '1-50'}" class="rng-preset-pill btn btn-sm btn-outline rounded-xl font-bold border-base-300 hover:border-primary text-xs" aria-label="Preset 1 to 50">
+        1 – 50
+      </button>
+      <button type="button" @click="applyPreset('dice')" :class="{'active': activePreset === 'dice'}" class="rng-preset-pill btn btn-sm btn-outline rounded-xl font-bold border-base-300 hover:border-primary text-xs" aria-label="Roll a 6-sided die">
+        🎲 Dice (1–6)
+      </button>
+      <button type="button" @click="applyPreset('coin')" :class="{'active': activePreset === 'coin'}" class="rng-preset-pill btn btn-sm btn-outline rounded-xl font-bold border-base-300 hover:border-primary text-xs" aria-label="Flip a coin Heads or Tails">
+        🪙 Coin Flip
+      </button>
+      <button type="button" @click="applyPreset('3digit')" :class="{'active': activePreset === '3digit'}" class="rng-preset-pill btn btn-sm btn-outline rounded-xl font-bold border-base-300 hover:border-primary text-xs" aria-label="3 Digit Random Number">
+        3-Digit (100–999)
+      </button>
+      <button type="button" @click="applyPreset('4digit')" :class="{'active': activePreset === '4digit'}" class="rng-preset-pill btn btn-sm btn-outline rounded-xl font-bold border-base-300 hover:border-primary text-xs" aria-label="4 Digit PIN">
+        4-Digit PIN
+      </button>
+      <button type="button" @click="applyPreset('6digit')" :class="{'active': activePreset === '6digit'}" class="rng-preset-pill btn btn-sm btn-outline rounded-xl font-bold border-base-300 hover:border-primary text-xs" aria-label="6 Digit OTP Code">
+        6-Digit Code
+      </button>
+      <button type="button" @click="applyPreset('lottery')" :class="{'active': activePreset === 'lottery'}" class="rng-preset-pill btn btn-sm btn-outline rounded-xl font-bold border-base-300 hover:border-primary text-xs" aria-label="Lottery 6 of 49">
+        🎟️ Lottery 6/49
+      </button>
     </div>
   </div>
-  <div class="lg:w-7/12">
-    <div class="feature-card p-6 md:p-8">
-      <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h3 class="text-xl font-black tracking-tight flex items-center gap-3">{{ lucide_icon("list","w-5 h-5", 20) | safe }} Results</h3>
-        <span id="rngInfo" class="text-[10px] font-bold uppercase tracking-wider opacity-40" aria-live="polite"></span>
-      </div>
-      <div id="rngStats" class="flex gap-2 mb-4 flex-wrap"></div>
-      <div id="rngOutput" class="flex flex-wrap items-center justify-center gap-2.5 p-6 bg-base-300/20 rounded-xl min-h-[100px]" role="status" aria-live="polite" aria-atomic="true">
-        <span class="text-base-content/30 text-sm font-bold">Click Generate</span>
-      </div>
-      <div class="flex items-center justify-between mt-4 flex-wrap gap-2">
-        <div class="flex items-center gap-2">
-          <select aria-label="Output Format" id="rngFmt" class="rng-sel"><option value="comma">CSV</option><option value="space">Space</option><option value="newline">Line</option><option value="none">Compact</option></select>
-          <button type="button" id="rngCopyBtn" class="rng-sec" aria-label="Copy results">{{ lucide_icon("copy","w-4 h-4", 16) | safe }}<span class="hidden sm:inline">COPY</span></button>
+
+  <!-- Main Grid: Controls (Left) & Results (Right) -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    
+    <!-- Controls Column -->
+    <div class="lg:col-span-5 flex flex-col gap-6">
+      <div class="feature-card p-6 md:p-8 bg-base-100 border border-base-300 rounded-2xl shadow-sm flex flex-col gap-5">
+        
+        <div class="flex items-center justify-between border-b border-base-300 pb-4">
+          <h2 class="text-lg font-black tracking-tight flex items-center gap-2 text-base-content">
+            {{ lucide_icon("sliders-horizontal","w-5 h-5 text-primary", 20) | safe }}
+            Draw Parameters
+          </h2>
+          <span class="badge badge-sm badge-ghost font-mono font-bold" x-text="rangeSummary"></span>
         </div>
-        <div class="flex items-center gap-2">
-          <button type="button" id="rngRegenBtn" class="rng-sec">{{ lucide_icon("shuffle","w-4 h-4", 16) | safe }}</button>
-          <button type="button" id="rngClearBtn" class="rng-sec" style="color:var(--color-error);border-color:var(--color-error)">{{ lucide_icon("trash-2","w-4 h-4", 16) | safe }}</button>
+
+        <!-- Range Inputs (Min & Max with Swap) -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-base-content/70 mb-2">Number Range</label>
+          <div class="grid grid-cols-5 gap-2 items-center">
+            <div class="col-span-2">
+              <span class="text-[11px] font-semibold text-base-content/50 block mb-1">Lower limit</span>
+              <input aria-label="Minimum Number" type="number" id="rngMin" x-model.number="min" @input="onManualChange()" class="input input-bordered w-full bg-base-200/50 text-base-content font-mono font-bold rounded-xl text-center text-lg">
+            </div>
+            <div class="col-span-1 flex justify-center pt-5">
+              <button type="button" @click="swapMinMax()" class="btn btn-sm btn-circle btn-ghost text-base-content/60 hover:text-primary" title="Swap Min & Max" aria-label="Swap Minimum and Maximum">
+                {{ lucide_icon("arrow-left-right","w-4 h-4", 16) | safe }}
+              </button>
+            </div>
+            <div class="col-span-2">
+              <span class="text-[11px] font-semibold text-base-content/50 block mb-1">Upper limit</span>
+              <input aria-label="Maximum Number" type="number" id="rngMax" x-model.number="max" @input="onManualChange()" class="input input-bordered w-full bg-base-200/50 text-base-content font-mono font-bold rounded-xl text-center text-lg">
+            </div>
+          </div>
         </div>
+
+        <!-- How Many Numbers (Count) -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-bold uppercase tracking-wider text-base-content/70" for="rngCount">How Many Numbers?</label>
+            <span class="text-xs font-bold text-primary" x-text="count + ' draw' + (count > 1 ? 's' : '')"></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input aria-label="Quantity of Numbers to Generate" type="number" id="rngCount" x-model.number="count" min="1" max="1000" @input="onManualChange()" class="input input-bordered w-24 bg-base-200/50 text-base-content font-mono font-bold rounded-xl text-center">
+            <div class="flex items-center gap-1.5 flex-1 overflow-x-auto no-scrollbar">
+              <template x-for="c in [1, 3, 5, 10, 20, 50]" :key="c">
+                <button type="button" @click="setCount(c)" :class="{'btn-primary text-primary-content': count === c, 'btn-ghost border border-base-300': count !== c}" class="btn btn-xs rounded-lg font-bold" x-text="c" :aria-label="'Generate ' + c + ' numbers'"></button>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode Toggles (Unique & Sort) -->
+        <div class="bg-base-200/40 p-4 rounded-xl border border-base-300/80 flex flex-col gap-3">
+          <label class="flex items-center justify-between cursor-pointer select-none">
+            <div class="flex flex-col">
+              <span class="font-bold text-xs uppercase tracking-wider text-base-content">Unique (No Repeats)</span>
+              <span class="text-[11px] text-base-content/60">Every number appears at most once</span>
+            </div>
+            <input aria-label="Unique Numbers Only (No Repeats)" type="checkbox" x-model="unique" @change="onManualChange()" class="toggle toggle-primary toggle-sm cursor-pointer">
+          </label>
+
+          <!-- Warning if count > range in unique mode -->
+          <div x-show="unique && count > availableRange" x-cloak class="alert alert-warning py-2 text-xs rounded-xl flex items-center gap-2">
+            {{ lucide_icon("alert-circle","w-4 h-4 shrink-0", 16) | safe }}
+            <span>Range has only <strong x-text="availableRange"></strong> distinct integers.</span>
+          </div>
+
+          <div class="divider my-0 opacity-40"></div>
+
+          <!-- Sort Order -->
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-base-content/60 block mb-1.5">Sort Order</span>
+            <div class="grid grid-cols-3 gap-1.5 p-1 bg-base-300/40 rounded-xl" role="radiogroup" aria-label="Sort Order">
+              <button type="button" @click="setSort('none')" :class="{'bg-base-100 text-primary shadow-xs font-black': sortOrder === 'none', 'text-base-content/70 hover:text-base-content': sortOrder !== 'none'}" class="btn btn-xs border-0 rounded-lg text-[11px] py-1 transition-all" aria-label="Original draw order">
+                Original
+              </button>
+              <button type="button" @click="setSort('asc')" :class="{'bg-base-100 text-primary shadow-xs font-black': sortOrder === 'asc', 'text-base-content/70 hover:text-base-content': sortOrder !== 'asc'}" class="btn btn-xs border-0 rounded-lg text-[11px] py-1 transition-all" aria-label="Sort ascending lowest to highest">
+                Min → Max
+              </button>
+              <button type="button" @click="setSort('desc')" :class="{'bg-base-100 text-primary shadow-xs font-black': sortOrder === 'desc', 'text-base-content/70 hover:text-base-content': sortOrder !== 'desc'}" class="btn btn-xs border-0 rounded-lg text-[11px] py-1 transition-all" aria-label="Sort descending highest to lowest">
+                Max → Min
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Big Primary Generate Button -->
+        <button type="button" @click="generate()" :disabled="isGenerating" class="btn btn-primary btn-lg w-full font-black text-sm sm:text-base tracking-wide rounded-xl shadow-lg shadow-primary/25 flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-transform">
+          {{ lucide_icon("shuffle","w-5 h-5", 20) | safe }}
+          <span>GENERATE NUMBERS</span>
+        </button>
+
+        <!-- Hardware Security Trust Badge -->
+        <div class="flex items-center justify-center gap-2 text-[11px] font-semibold text-base-content/50 text-center">
+          {{ lucide_icon("shield-check","w-4 h-4 text-success", 16) | safe }}
+          <span>Web Crypto CSPRNG &middot; Zero Modulo Bias</span>
+        </div>
+
+      </div>
+
+      <!-- Draw History Card -->
+      <div class="feature-card p-5 md:p-6 bg-base-100 border border-base-300 rounded-2xl shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-black uppercase tracking-wider text-base-content flex items-center gap-2">
+            {{ lucide_icon("history","w-4 h-4 text-primary", 16) | safe }}
+            Draw History <span class="text-xs font-bold text-base-content/40" x-text="history.length ? '(' + history.length + ')' : ''"></span>
+          </h3>
+          <button type="button" x-show="history.length > 0" @click="clearHistory()" class="text-xs font-bold text-error hover:underline transition-opacity" aria-label="Clear all draw history">
+            Clear
+          </button>
+        </div>
+
+        <div x-show="history.length === 0" class="text-center py-6 text-base-content/40 text-xs font-medium">
+          No rolls yet. Hit Generate to start your history.
+        </div>
+
+        <div x-show="history.length > 0" class="flex flex-col gap-2 max-h-60 overflow-y-auto no-scrollbar">
+          <template x-for="(item, idx) in history" :key="item.id || idx">
+            <div class="flex items-center justify-between p-2.5 rounded-xl bg-base-200/60 border border-base-300/80 hover:border-primary/40 transition-colors text-xs">
+              <div class="flex flex-col min-w-0 pr-2">
+                <div class="font-mono font-bold text-base-content truncate" x-text="formatHistoryNums(item.nums)"></div>
+                <div class="flex items-center gap-2 text-[10px] text-base-content/50">
+                  <span x-text="item.range"></span>
+                  <span>&bull;</span>
+                  <span x-text="item.timeAgo"></span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" @click="copyHistoryItem(item, $event)" class="btn btn-ghost btn-xs btn-circle text-base-content/60 hover:text-primary" title="Copy this draw" aria-label="Copy past draw">
+                  {{ lucide_icon("copy","w-3.5 h-3.5", 14) | safe }}
+                </button>
+                <button type="button" @click="restoreHistory(item)" class="btn btn-ghost btn-xs btn-circle text-base-content/60 hover:text-success" title="Rerun with these settings" aria-label="Rerun past draw settings">
+                  {{ lucide_icon("refresh-cw","w-3.5 h-3.5", 14) | safe }}
+                </button>
+                <button type="button" @click="deleteHistoryItem(idx)" class="btn btn-ghost btn-xs btn-circle text-base-content/40 hover:text-error" title="Delete entry" aria-label="Delete history entry">
+                  {{ lucide_icon("x","w-3.5 h-3.5", 14) | safe }}
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Results Column -->
+    <div class="lg:col-span-7 flex flex-col gap-6">
+      <div class="feature-card p-6 md:p-8 bg-base-100 border border-base-300 rounded-2xl shadow-sm flex flex-col justify-between min-h-[500px]">
+        
+        <div>
+          <!-- Results Header Bar -->
+          <div class="flex items-center justify-between border-b border-base-300 pb-4 mb-6 flex-wrap gap-2">
+            <div>
+              <h2 class="text-xl font-black tracking-tight text-base-content flex items-center gap-2">
+                {{ lucide_icon("sparkles","w-5 h-5 text-primary", 20) | safe }}
+                Draw Results
+              </h2>
+              <p class="text-xs text-base-content/60 font-medium mt-0.5" x-text="drawSummarySubtitle"></p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" @click="generate()" class="btn btn-sm btn-outline rounded-xl font-bold gap-1.5" aria-label="Reroll numbers">
+                {{ lucide_icon("shuffle","w-3.5 h-3.5 text-primary", 14) | safe }}
+                <span>Re-roll</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Empty State (Before First Generate) -->
+          <div x-show="results.length === 0" class="flex flex-col items-center justify-center text-center py-16 px-4">
+            <div class="w-16 h-16 rounded-2xl bg-base-200 border border-base-300 flex items-center justify-center text-primary/60 mb-3 shadow-inner">
+              {{ lucide_icon("dice-1","w-8 h-8", 32) | safe }}
+            </div>
+            <p class="text-base font-bold text-base-content">Ready for your draw</p>
+            <p class="text-xs text-base-content/50 mt-1 max-w-xs">Select your parameters and tap Generate Numbers or press Spacebar.</p>
+          </div>
+
+          <!-- Hero Display for Single Number (count === 1) -->
+          <div x-show="results.length === 1" x-cloak class="flex flex-col items-center justify-center py-10 px-4 bg-base-200/40 rounded-2xl border border-base-300/80 mb-6 relative overflow-hidden">
+            
+            <!-- Coin Mode View -->
+            <div x-show="activePreset === 'coin'" class="text-center">
+              <div class="inline-flex items-center justify-center w-28 h-28 rounded-full border-4 shadow-xl mb-4 transition-transform hover:rotate-12 cursor-pointer select-none"
+                   :class="results[0] === 1 ? 'bg-primary/10 border-primary text-primary' : 'bg-secondary/10 border-secondary text-secondary'"
+                   @click="copyNumber(results[0] === 1 ? 'Heads' : 'Tails')">
+                <span class="text-5xl" x-text="results[0] === 1 ? '🪙' : '🪙'"></span>
+              </div>
+              <div class="text-4xl md:text-5xl font-black uppercase tracking-wider mb-1"
+                   :class="results[0] === 1 ? 'text-primary' : 'text-secondary'"
+                   x-text="results[0] === 1 ? 'HEADS' : 'TAILS'"></div>
+              <div class="text-xs font-mono font-bold text-base-content/50" x-text="'Numeric value: ' + results[0]"></div>
+            </div>
+
+            <!-- Dice Mode View -->
+            <div x-show="activePreset === 'dice'" class="text-center">
+              <div class="inline-flex items-center justify-center w-28 h-28 rounded-2xl bg-base-100 border-2 border-primary/40 shadow-xl mb-4 font-black text-6xl text-primary cursor-pointer select-none hover:scale-105 transition-transform"
+                   @click="copyNumber(results[0])">
+                <span x-text="diceFace(results[0])"></span>
+              </div>
+              <div class="text-3xl font-black text-base-content mb-1">
+                Rolled a <span class="text-primary" x-text="results[0]"></span>
+              </div>
+              <div class="text-xs text-base-content/50">Standard 6-sided die</div>
+            </div>
+
+            <!-- Standard Single Number View -->
+            <div x-show="activePreset !== 'coin' && activePreset !== 'dice'" class="text-center w-full">
+              <div class="rng-hero-num font-mono font-black text-6xl sm:text-7xl md:text-8xl text-primary tracking-tight py-4 cursor-pointer select-all inline-block hover:scale-105 transition-transform"
+                   @click="copyNumber(results[0])"
+                   title="Click to copy"
+                   x-text="results[0]"></div>
+              <div class="mt-2">
+                <button type="button" @click="copyNumber(results[0])" class="btn btn-sm btn-ghost rounded-full border border-base-300 text-xs font-bold gap-1 text-base-content/70 hover:text-primary">
+                  <span x-show="!singleCopied">{{ lucide_icon("copy","w-3.5 h-3.5", 14) | safe }} Click to Copy</span>
+                  <span x-show="singleCopied" class="text-success flex items-center gap-1">{{ lucide_icon("check","w-3.5 h-3.5", 14) | safe }} Copied!</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Multiple Numbers Grid (count > 1) -->
+          <div x-show="results.length > 1" x-cloak class="mb-6">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 max-h-[380px] overflow-y-auto p-1 no-scrollbar" role="region" aria-label="Generated Numbers List">
+              <template x-for="(num, idx) in results" :key="idx">
+                <div class="rng-chip bg-base-200/70 hover:bg-base-200 rounded-xl p-3 border border-base-300/80 flex flex-col items-center justify-center relative cursor-pointer group"
+                     @click="copyNumber(num, idx)"
+                     :title="'Click to copy ' + num"
+                     :aria-label="'Number ' + num + ', click to copy'">
+                  <span class="text-[10px] font-mono font-bold text-base-content/40 absolute top-1.5 left-2" x-text="'#' + (idx + 1)"></span>
+                  <span class="font-mono font-black text-xl sm:text-2xl text-base-content group-hover:text-primary transition-colors py-1" x-text="num"></span>
+                  <span x-show="copiedIndex === idx" x-cloak class="badge badge-xs badge-success text-[10px] font-bold absolute bottom-1">Copied!</span>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- Summary Statistics Bar (When count > 1) -->
+          <div x-show="results.length > 1" x-cloak class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
+            <div class="bg-base-200/50 p-2.5 rounded-xl border border-base-300/60 text-center">
+              <span class="text-[10px] uppercase font-bold text-base-content/50 block">Lowest (Min)</span>
+              <span class="text-sm font-mono font-black text-base-content" x-text="stats.min"></span>
+            </div>
+            <div class="bg-base-200/50 p-2.5 rounded-xl border border-base-300/60 text-center">
+              <span class="text-[10px] uppercase font-bold text-base-content/50 block">Highest (Max)</span>
+              <span class="text-sm font-mono font-black text-base-content" x-text="stats.max"></span>
+            </div>
+            <div class="bg-base-200/50 p-2.5 rounded-xl border border-base-300/60 text-center">
+              <span class="text-[10px] uppercase font-bold text-base-content/50 block">Total Sum</span>
+              <span class="text-sm font-mono font-black text-base-content" x-text="stats.sum"></span>
+            </div>
+            <div class="bg-base-200/50 p-2.5 rounded-xl border border-base-300/60 text-center">
+              <span class="text-[10px] uppercase font-bold text-base-content/50 block">Average</span>
+              <span class="text-sm font-mono font-black text-base-content" x-text="stats.avg"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Export & Action Toolbar -->
+        <div x-show="results.length > 0" x-cloak class="border-t border-base-300 pt-4 flex items-center justify-between flex-wrap gap-3">
+          
+          <!-- Format Selector -->
+          <div class="flex items-center gap-2">
+            <label for="rngFmtSelect" class="text-xs font-bold text-base-content/60 hidden sm:inline">Format:</label>
+            <select id="rngFmtSelect" x-model="exportFormat" class="select select-sm select-bordered rounded-xl bg-base-200 font-bold text-xs" aria-label="Select export format">
+              <option value="comma">CSV (1, 2, 3)</option>
+              <option value="newline">Line by Line</option>
+              <option value="space">Space Separated</option>
+              <option value="json">JSON Array</option>
+            </select>
+          </div>
+
+          <!-- Copy & Download Actions -->
+          <div class="flex items-center gap-2">
+            <button type="button" @click="copyAll()" class="btn btn-sm btn-primary rounded-xl font-bold gap-1.5 shadow-sm" aria-label="Copy all generated numbers to clipboard">
+              <template x-if="!copiedAll">
+                <span class="flex items-center gap-1.5">{{ lucide_icon("copy","w-3.5 h-3.5", 14) | safe }} Copy All</span>
+              </template>
+              <template x-if="copiedAll">
+                <span class="flex items-center gap-1.5 text-primary-content">{{ lucide_icon("check","w-3.5 h-3.5", 14) | safe }} Copied!</span>
+              </template>
+            </button>
+            <button type="button" @click="downloadTxt()" class="btn btn-sm btn-outline rounded-xl font-bold gap-1.5 border-base-300 hover:border-primary" title="Download text file" aria-label="Download results as a text file">
+              {{ lucide_icon("download","w-3.5 h-3.5", 14) | safe }}
+              <span class="hidden sm:inline">Download</span>
+            </button>
+            <button type="button" @click="clearResults()" class="btn btn-sm btn-ghost btn-circle text-base-content/40 hover:text-error" title="Clear results" aria-label="Clear results">
+              {{ lucide_icon("trash-2","w-4 h-4", 16) | safe }}
+            </button>
+          </div>
+
+        </div>
+
       </div>
     </div>
+
   </div>
+
 </div>
+
 <script nonce="{{ nonce }}">
 window.rngCalculator = function() {
-  var K = 'sb_rng1', HS = [], S = 'asc';
+  var STORAGE_KEY = 'sb_rng_history_v2';
 
-  function rand(a, b) {
-    var t; if (a > b) { t = a; a = b; b = t; }
-    var r = b - a + 1; if (r <= 0) return a;
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues && r <= 0x1000000) {
-      var arr = new Uint32Array(1); crypto.getRandomValues(arr); return a + (arr[0] % r);
+  // Cryptographically secure uniform random integer in [min, max]
+  // Rejection sampling completely avoids modulo bias.
+  function secureRandomInt(min, max) {
+    if (min === max) return min;
+    var low = Math.min(min, max);
+    var high = Math.max(min, max);
+    var range = high - low + 1;
+    if (range <= 1) return low;
+
+    if (window.crypto && window.crypto.getRandomValues) {
+      var maxUint = 0xFFFFFFFF;
+      var limit = maxUint - (maxUint % range);
+      var buffer = new Uint32Array(1);
+      var val;
+      do {
+        window.crypto.getRandomValues(buffer);
+        val = buffer[0];
+      } while (val >= limit);
+      return low + (val % range);
     }
-    return a + Math.floor(Math.random() * r);
+    return low + Math.floor(Math.random() * range);
   }
 
-  function fmtTime(d) {
-    var n = Date.now() - d.getTime(), s = Math.round(n / 1000);
-    if (s < 60) return s + 's ago';
-    var m = Math.round(s / 60); if (m < 60) return m + 'm ago';
-    var h = Math.round(m / 60); return h + 'h ago';
+  function formatRelativeTime(ts) {
+    var delta = Math.round((Date.now() - ts) / 1000);
+    if (delta < 5) return 'Just now';
+    if (delta < 60) return delta + 's ago';
+    var mins = Math.round(delta / 60);
+    if (mins < 60) return mins + 'm ago';
+    var hrs = Math.round(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    return Math.round(hrs / 24) + 'd ago';
   }
 
   return {
     min: 1,
     max: 100,
     count: 1,
-    unique: false,
+    unique: true,
+    sortOrder: 'none', // 'none' | 'asc' | 'desc'
+    activePreset: '1-100',
+    exportFormat: 'comma',
+    results: [],
+    history: [],
+    isGenerating: false,
+    copiedIndex: null,
+    singleCopied: false,
+    copiedAll: false,
 
-    gen: function() {
-      var minInp = document.getElementById('rngMin'), maxInp = document.getElementById('rngMax');
-      var cntSel = document.getElementById('rngCount'), uniChk = document.getElementById('rngUnique');
-      var outDiv = document.getElementById('rngOutput'), infSpan = document.getElementById('rngInfo');
-      var statDiv = document.getElementById('rngStats');
-      if (!outDiv) return;
+    init: function() {
+      this.loadHistory();
+      // Generate default draw on initial load
+      this.generate();
+    },
 
-      var min = parseInt(this.min) || 1, max = parseInt(this.max) || 100;
-      var cnt = parseInt(this.count) || 1, uni = !!this.unique;
-      if (min > max) { var t = min; min = max; max = t; this.min = min; this.max = max; }
-      var range = max - min + 1;
-      if (uni && cnt > range) { cnt = range; this.count = cnt; }
+    get availableRange: function() {
+      var low = Math.min(this.min, this.max);
+      var high = Math.max(this.min, this.max);
+      return Math.max(1, high - low + 1);
+    },
 
-      var res = [];
-      if (uni) {
-        var pool = [];
-        for (var i = 0; i < range; i++) pool.push(min + i);
-        for (var i = 0; i < range; i++) { var j = rand(i, range - 1); var t2 = pool[i]; pool[i] = pool[j]; pool[j] = t2; }
-        for (var i = 0; i < cnt; i++) res.push(pool[i]);
+    get rangeSummary: function() {
+      var low = Math.min(this.min, this.max);
+      var high = Math.max(this.min, this.max);
+      return low + ' – ' + high;
+    },
+
+    get drawSummarySubtitle: function() {
+      if (!this.results.length) return 'No active numbers';
+      var low = Math.min(this.min, this.max);
+      var high = Math.max(this.min, this.max);
+      var desc = 'Range: ' + low + ' – ' + high + ' · ' + this.results.length + ' number' + (this.results.length > 1 ? 's' : '');
+      if (this.unique && this.results.length > 1) desc += ' (Unique)';
+      if (this.sortOrder === 'asc') desc += ' · Sorted Asc';
+      else if (this.sortOrder === 'desc') desc += ' · Sorted Desc';
+      return desc;
+    },
+
+    get stats: function() {
+      if (!this.results.length) {
+        return { min: 0, max: 0, sum: 0, avg: 0 };
+      }
+      var sum = 0, min = this.results[0], max = this.results[0];
+      for (var i = 0; i < this.results.length; i++) {
+        var v = this.results[i];
+        sum += v;
+        if (v < min) min = v;
+        if (v > max) max = v;
+      }
+      var avg = Math.round((sum / this.results.length) * 100) / 100;
+      return { min: min, max: max, sum: sum, avg: avg };
+    },
+
+    diceFace: function(val) {
+      var faces = { 1: '⚀', 2: '⚁', 3: '⚂', 4: '⚃', 5: '⚄', 6: '⚅' };
+      return faces[val] || val;
+    },
+
+    onManualChange: function() {
+      this.activePreset = 'custom';
+    },
+
+    setCount: function(c) {
+      this.count = c;
+      this.onManualChange();
+      this.generate();
+    },
+
+    setSort: function(s) {
+      this.sortOrder = s;
+      if (this.results.length > 1) {
+        this.applySorting();
+      }
+    },
+
+    swapMinMax: function() {
+      var tmp = this.min;
+      this.min = this.max;
+      this.max = tmp;
+      this.onManualChange();
+      this.generate();
+    },
+
+    applyPreset: function(p) {
+      this.activePreset = p;
+      if (p === '1-100') {
+        this.min = 1; this.max = 100; this.count = 1; this.unique = true; this.sortOrder = 'none';
+      } else if (p === '1-10') {
+        this.min = 1; this.max = 10; this.count = 1; this.unique = true; this.sortOrder = 'none';
+      } else if (p === '1-50') {
+        this.min = 1; this.max = 50; this.count = 1; this.unique = true; this.sortOrder = 'none';
+      } else if (p === 'dice') {
+        this.min = 1; this.max = 6; this.count = 1; this.unique = false; this.sortOrder = 'none';
+      } else if (p === 'coin') {
+        this.min = 1; this.max = 2; this.count = 1; this.unique = false; this.sortOrder = 'none';
+      } else if (p === '3digit') {
+        this.min = 100; this.max = 999; this.count = 1; this.unique = true; this.sortOrder = 'none';
+      } else if (p === '4digit') {
+        this.min = 1000; this.max = 9999; this.count = 1; this.unique = true; this.sortOrder = 'none';
+      } else if (p === '6digit') {
+        this.min = 100000; this.max = 999999; this.count = 1; this.unique = true; this.sortOrder = 'none';
+      } else if (p === 'lottery') {
+        this.min = 1; this.max = 49; this.count = 6; this.unique = true; this.sortOrder = 'asc';
+      }
+      this.generate();
+    },
+
+    generate: function() {
+      var low = parseInt(this.min);
+      var high = parseInt(this.max);
+      if (isNaN(low)) low = 1;
+      if (isNaN(high)) high = 100;
+      if (low > high) { var t = low; low = high; high = t; this.min = low; this.max = high; }
+
+      var cnt = parseInt(this.count);
+      if (isNaN(cnt) || cnt < 1) cnt = 1;
+      if (cnt > 1000) cnt = 1000;
+      this.count = cnt;
+
+      var range = high - low + 1;
+      if (this.unique && cnt > range) {
+        cnt = range;
+        this.count = cnt;
+      }
+
+      var draws = [];
+
+      if (this.unique) {
+        if (range <= 20000) {
+          // Fisher-Yates partial shuffle
+          var pool = [];
+          for (var i = 0; i < range; i++) pool.push(low + i);
+          for (var i = 0; i < cnt; i++) {
+            var j = secureRandomInt(i, range - 1);
+            var tmp = pool[i];
+            pool[i] = pool[j];
+            pool[j] = tmp;
+            draws.push(pool[i]);
+          }
+        } else {
+          // Rejection sampling with Set for vast ranges
+          var set = new Set();
+          var maxAttempts = cnt * 25 + 1000;
+          var attempts = 0;
+          while (set.size < cnt && attempts < maxAttempts) {
+            set.add(secureRandomInt(low, high));
+            attempts++;
+          }
+          draws = Array.from(set);
+        }
       } else {
-        for (var i = 0; i < cnt; i++) res.push(rand(min, max));
+        for (var i = 0; i < cnt; i++) {
+          draws.push(secureRandomInt(low, high));
+        }
       }
 
-      if (S === 'asc') res.sort(function(a, b){ return a - b; });
-      else if (S === 'desc') res.sort(function(a, b){ return b - a; });
-
-      var html = '';
-      for (var i = 0; i < res.length; i++) {
-        html += '<span class="rng-badge" data-n="' + res[i] + '" tabindex="0" role="button" aria-label="Copy ' + res[i] + '">' + res[i] + '</span>';
-      }
-      outDiv.innerHTML = html || '<span class="text-base-content/30 text-sm font-bold">No results</span>';
-      if (infSpan) infSpan.textContent = min + ' – ' + max + ' · ' + cnt + ' num' + (cnt > 1 ? 's' : '');
-
-      if (statDiv && res.length) {
-        var smin = res[0], smax = res[res.length - 1], savg = Math.round(res.reduce(function(a, b){ return a + b; }, 0) / res.length);
-        statDiv.innerHTML = '<span class="rng-stat">Min ' + smin + '</span><span class="rng-stat">Max ' + smax + '</span><span class="rng-stat">Avg ' + savg + '</span>';
-      }
-
-      HS.unshift({ n: res.slice(), t: new Date().toISOString(), r: min + '-' + max, c: cnt, u: uni });
-      try { localStorage.setItem(K, JSON.stringify(HS.slice(0, 50))); } catch(e) {}
-      this.rdh();
-      return res;
+      this.results = draws;
+      this.applySorting();
+      this.saveToHistory(draws, low, high, cnt, this.unique);
     },
 
-    rdh: function() {
-      var hCount = document.getElementById('rngHCount'), hEmpty = document.getElementById('rngHEmpty'), hList = document.getElementById('rngHList');
-      if (!hCount || !hEmpty || !hList) return;
-      hCount.textContent = HS.length ? '(' + HS.length + ')' : '';
-      if (!HS.length) { hEmpty.hidden = false; hList.hidden = true; return; }
-      hEmpty.hidden = true; hList.hidden = false;
-      var html = '';
-      for (var i = 0; i < Math.min(HS.length, 10); i++) {
-        var h = HS[i], nums = h.n.slice(0, 3), more = h.n.length > 3;
-        html += '<div class="rng-hitem"><span style="font-weight:600;font-size:11px;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">';
-        for (var j = 0; j < nums.length; j++) { if (j) html += ', '; html += nums[j]; }
-        if (more) html += ', …';
-        html += ' <span style="opacity:.35;font-size:10px;font-weight:500">' + fmtTime(new Date(h.t)) + '</span></span>';
-        html += '<div class="flex gap-1 flex-shrink-0"><button type="button" class="rng-hdel" data-hp="' + i + '" aria-label="Copy">C</button><button type="button" class="rng-hdel" data-hd="' + i + '" aria-label="Remove">&times;</button></div></div>';
+    applySorting: function() {
+      if (this.sortOrder === 'asc') {
+        this.results.sort(function(a, b){ return a - b; });
+      } else if (this.sortOrder === 'desc') {
+        this.results.sort(function(a, b){ return b - a; });
       }
-      hList.innerHTML = html;
     },
 
-    copyAll: function() {
-      var outDiv = document.getElementById('rngOutput');
-      if (!outDiv) return;
-      var out = outDiv.querySelectorAll('.rng-badge'), nums = [];
-      out.forEach(function(el){ var v = parseInt(el.getAttribute('data-n')); if (!isNaN(v)) nums.push(v); });
-      if (!nums.length) return;
-      var fmtSel = document.getElementById('rngFmt'), fmt = fmtSel ? fmtSel.value : 'comma', s = '';
-      for (var i = 0; i < nums.length; i++) {
-        if (i && fmt !== 'none') s += fmt === 'newline' ? '\n' : fmt === 'space' ? ' ' : ', ';
-        s += nums[i];
-      }
-      var cpyBtn = document.getElementById('rngCopyBtn');
-      if (navigator.clipboard) {
-        navigator.clipboard.writeText(s).then(function(){
-          if (cpyBtn) { var orig = cpyBtn.textContent; cpyBtn.textContent = 'Copied!'; setTimeout(function(){ cpyBtn.textContent = orig; }, 1200); }
+    copyNumber: function(num, idx) {
+      var text = String(num);
+      var self = this;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          if (idx !== undefined) {
+            self.copiedIndex = idx;
+            setTimeout(function(){ if (self.copiedIndex === idx) self.copiedIndex = null; }, 1200);
+          } else {
+            self.singleCopied = true;
+            setTimeout(function(){ self.singleCopied = false; }, 1200);
+          }
         }).catch(function(){});
       }
     },
 
-    init: function() {
-      try {
-        var d = localStorage.getItem(K);
-        if (d) HS = JSON.parse(d);
-        this.rdh();
-      } catch(e) {}
+    getFormattedExport: function() {
+      var fmt = this.exportFormat;
+      if (fmt === 'newline') return this.results.join('\n');
+      if (fmt === 'space') return this.results.join(' ');
+      if (fmt === 'json') return JSON.stringify(this.results);
+      return this.results.join(', ');
+    },
 
+    copyAll: function() {
+      if (!this.results.length) return;
+      var text = this.getFormattedExport();
       var self = this;
-      document.querySelectorAll('.rng-pre').forEach(function(b){
-        b.addEventListener('click', function(){
-          var minVal = parseInt(this.getAttribute('data-min')), maxVal = parseInt(this.getAttribute('data-max'));
-          var cntVal = parseInt(this.getAttribute('data-cnt')), uniVal = this.getAttribute('data-uni') === '1';
-          self.min = minVal; self.max = maxVal; self.count = cntVal; self.unique = uniVal;
-          self.gen();
-        });
-      });
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          self.copiedAll = true;
+          setTimeout(function(){ self.copiedAll = false; }, 1500);
+        }).catch(function(){});
+      }
+    },
 
-      document.querySelectorAll('.rng-srt').forEach(function(b){
-        b.addEventListener('click', function(){
-          document.querySelectorAll('.rng-srt').forEach(function(x){ x.classList.remove('on'); });
-          this.classList.add('on'); S = this.getAttribute('data-sort');
-          self.gen();
-        });
-      });
+    downloadTxt: function() {
+      if (!this.results.length) return;
+      var text = "StoryBrain AI Random Number Generator\n";
+      text += "Range: " + this.min + " to " + this.max + "\n";
+      text += "Count: " + this.results.length + (this.unique ? " (Unique)" : "") + "\n";
+      text += "Date: " + new Date().toISOString() + "\n";
+      text += "----------------------------------------\n";
+      text += this.getFormattedExport() + "\n";
 
-      var clrBtn = document.getElementById('rngClearBtn'), hClear = document.getElementById('rngHClear');
-      if (clrBtn) clrBtn.addEventListener('click', function(){
-        var outDiv = document.getElementById('rngOutput'), infSpan = document.getElementById('rngInfo'), statDiv = document.getElementById('rngStats');
-        if (outDiv) outDiv.innerHTML = '<span class="text-base-content/30 text-sm font-bold">Press Generate</span>';
-        if (infSpan) infSpan.textContent = '1 – 100 · 1 num';
-        if (statDiv) statDiv.innerHTML = '';
-      });
-      if (hClear) hClear.addEventListener('click', function(){
-        HS = []; try { localStorage.removeItem(K); } catch(e) {}
-        self.rdh();
-      });
+      var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'random-numbers-' + Date.now() + '.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+    },
 
-      var hList = document.getElementById('rngHList');
-      if (hList) hList.addEventListener('click', function(e){
-        var hp = e.target.closest('[data-hp]'), hd = e.target.closest('[data-hd]');
-        if (hp) {
-          var idx = parseInt(hp.getAttribute('data-hp'));
-          if (HS[idx] && navigator.clipboard) {
-            navigator.clipboard.writeText(HS[idx].n.join(', ')).then(function(){
-              hp.textContent = '✓'; setTimeout(function(){ hp.textContent = 'C'; }, 1000);
-            }).catch(function(){});
+    clearResults: function() {
+      this.results = [];
+    },
+
+    // History Storage
+    saveToHistory: function(nums, low, high, count, unique) {
+      var item = {
+        id: Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        nums: nums.slice(),
+        min: low,
+        max: high,
+        range: low + '–' + high,
+        count: count,
+        unique: unique,
+        timestamp: Date.now(),
+        timeAgo: 'Just now'
+      };
+      this.history.unshift(item);
+      if (this.history.length > 20) {
+        this.history = this.history.slice(0, 20);
+      }
+      this.persistHistory();
+    },
+
+    loadHistory: function() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          var parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            for (var i = 0; i < parsed.length; i++) {
+              parsed[i].timeAgo = formatRelativeTime(parsed[i].timestamp || Date.now());
+            }
+            this.history = parsed;
           }
-        } else if (hd) {
-          var idx2 = parseInt(hd.getAttribute('data-hd'));
-          HS.splice(idx2, 1);
-          try { localStorage.setItem(K, JSON.stringify(HS.slice(0, 50))); } catch(e2) {}
-          self.rdh();
         }
-      });
+      } catch(e) {}
+    },
 
-      var regBtn = document.getElementById('rngRegenBtn');
-      if (regBtn) regBtn.addEventListener('click', function(){ self.gen(); });
+    persistHistory: function() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.history));
+      } catch(e) {}
+    },
+
+    formatHistoryNums: function(nums) {
+      if (!nums || !nums.length) return '';
+      if (nums.length <= 4) return nums.join(', ');
+      return nums.slice(0, 4).join(', ') + ', … (' + nums.length + ')';
+    },
+
+    copyHistoryItem: function(item, e) {
+      if (item && item.nums && navigator.clipboard) {
+        navigator.clipboard.writeText(item.nums.join(', ')).then(function() {
+          var btn = e ? e.currentTarget : null;
+          if (btn) {
+            var orig = btn.innerHTML;
+            btn.innerHTML = '✓';
+            setTimeout(function(){ btn.innerHTML = orig; }, 1000);
+          }
+        }).catch(function(){});
+      }
+    },
+
+    restoreHistory: function(item) {
+      if (!item) return;
+      this.min = item.min;
+      this.max = item.max;
+      this.count = item.count;
+      this.unique = item.unique;
+      this.activePreset = 'custom';
+      this.generate();
+    },
+
+    deleteHistoryItem: function(idx) {
+      this.history.splice(idx, 1);
+      this.persistHistory();
+    },
+
+    clearHistory: function() {
+      this.history = [];
+      try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+    },
+
+    onGlobalSpace: function(e) {
+      var tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
+      e.preventDefault();
+      this.generate();
+    },
+
+    onGlobalEnter: function(e) {
+      var tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+      if (tag === 'textarea' || e.target.isContentEditable) return;
+      if (tag === 'input' && e.target.type !== 'number') return;
+      this.generate();
     }
   };
 };
 </script>
-
 
 {{ tool_section_end() }}
 {% endblock %}
