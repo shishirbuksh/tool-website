@@ -199,6 +199,7 @@ def test_ads_txt_and_public_static_routes():
     assert "text/plain" in ads_head.headers.get("content-type", "")
 
     for route in (
+        "/",
         "/privacy-policy",
         "/terms-of-service",
         "/privacy",
