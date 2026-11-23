@@ -216,10 +216,14 @@ def contact_submission(request):
     if request.method != "POST":
         return JsonResponse({"detail": "Method not allowed"}, status=405)
     import json
-    try:
-        body = json.loads(request.body.decode("utf-8"))
-    except Exception:
-        return JsonResponse({"detail": "Invalid JSON"}, status=400)
+    body = {}
+    if request.content_type == "application/json" or (request.body and request.body.startswith(b"{")):
+        try:
+            body = json.loads(request.body.decode("utf-8"))
+        except Exception:
+            body = {}
+    if not body:
+        body = request.POST.dict()
 
     name = str(body.get("name", "")).strip()
     email = str(body.get("email", "")).strip()
