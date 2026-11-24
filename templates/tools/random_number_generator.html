@@ -368,6 +368,16 @@
               {{ lucide_icon("download","w-3.5 h-3.5", 14) | safe }}
               <span class="hidden sm:inline">Download</span>
             </button>
+            <button type="button" @click="shareLink()" class="btn btn-sm btn-outline rounded-xl font-bold gap-1.5 border-base-300 hover:border-primary" title="Share configured draw URL" aria-label="Share configured draw URL">
+              <span class="flex items-center gap-1.5" x-show="!shareCopied">
+                {{ lucide_icon("share-2","w-3.5 h-3.5", 14) | safe }}
+                <span class="hidden sm:inline">Share</span>
+              </span>
+              <span class="flex items-center gap-1.5 text-success" x-show="shareCopied" style="display: none;">
+                {{ lucide_icon("check","w-3.5 h-3.5", 14) | safe }}
+                <span class="hidden sm:inline">Copied!</span>
+              </span>
+            </button>
             <button type="button" @click="clearResults()" class="btn btn-sm btn-ghost btn-circle text-base-content/40 hover:text-error" title="Clear results" aria-label="Clear results">
               {{ lucide_icon("trash-2","w-4 h-4", 16) | safe }}
             </button>
@@ -434,11 +444,54 @@ window.rngCalculator = function() {
     copiedIndex: null,
     singleCopied: false,
     copiedAll: false,
+    shareCopied: false,
 
     init: function() {
+      try {
+        var sp = new URLSearchParams(window.location.search);
+        var pPreset = sp.get('preset') || sp.get('mode');
+        if (pPreset) {
+          this.applyPreset(pPreset);
+        }
+        var pMin = sp.get('min');
+        var pMax = sp.get('max');
+        var pCount = sp.get('count') || sp.get('n') || sp.get('qty');
+        var pUnique = sp.get('unique') || sp.get('norepeat');
+        var pSort = sp.get('sort');
+
+        if (pMin !== null && !isNaN(parseInt(pMin, 10))) this.min = parseInt(pMin, 10);
+        if (pMax !== null && !isNaN(parseInt(pMax, 10))) this.max = parseInt(pMax, 10);
+        if (pCount !== null && !isNaN(parseInt(pCount, 10))) {
+          this.count = Math.min(1000, Math.max(1, parseInt(pCount, 10)));
+        }
+        if (pUnique !== null) {
+          this.unique = (pUnique === 'true' || pUnique === '1' || pUnique === 'yes');
+        }
+        if (pSort && ['none', 'asc', 'desc'].indexOf(pSort.toLowerCase()) !== -1) {
+          this.sortOrder = pSort.toLowerCase();
+        }
+      } catch (e) {}
+
       this.loadHistory();
       // Generate default draw on initial load
       this.generate();
+    },
+
+    shareLink: function() {
+      var p = new URLSearchParams();
+      p.set('min', this.min);
+      p.set('max', this.max);
+      if (this.count > 1) p.set('count', this.count);
+      if (!this.unique) p.set('unique', 'false');
+      if (this.sortOrder !== 'none') p.set('sort', this.sortOrder);
+      var shareUrl = window.location.origin + window.location.pathname + '?' + p.toString();
+      var self = this;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(function() {
+          self.shareCopied = true;
+          setTimeout(function() { self.shareCopied = false; }, 2000);
+        });
+      }
     },
 
     get availableRange() {
