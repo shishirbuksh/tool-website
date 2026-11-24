@@ -1,6 +1,29 @@
 {% extends "base.html" %}
 {% from "components/tool_card.html" import tool_card %}
 
+{% set hub_faqs = {
+  'calculators': [
+    {'q': 'Are StoryBrain AI calculators completely free to use?', 'a': 'Yes, 100% free with no account creation, no subscriptions, and no hidden fees.'},
+    {'q': 'Does StoryBrain AI store my financial or calculation data?', 'a': 'No. All formulas run locally inside your browser tab using JavaScript and WebAssembly. Your numbers never leave your device.'},
+    {'q': 'How accurate are the financial, mortgage, and tax formulas?', 'a': 'All calculators are built to official standards (including CFPB amortization formulas, UK 10% ERC thresholds, and standard compound interest accounting).'}
+  ],
+  'developer-tools': [
+    {'q': 'Do these developer tools work offline or without sending code to a server?', 'a': 'Yes. Client-side utilities like hash generators, CSS gradient makers, and meta tag analyzers process data in memory without server logging.'},
+    {'q': 'How does the SEO Page Grader inspect web pages safely?', 'a': 'The Page Grader uses a secure proxy that prevents SSRF, blocks private IP addresses, and respects robots headers.'},
+    {'q': 'Are generated schemas and tags compliant with search engine standards?', 'a': 'Yes. All JSON-LD structured data and meta tags follow official Schema.org, Open Graph, and Google Search Central specifications.'}
+  ],
+  'business-tools': [
+    {'q': 'Can I generate and download commercial PDF invoices and receipts?', 'a': 'Yes. Generated PDF documents are unwatermarked and fully valid for business accounting, client billing, and tax records.'},
+    {'q': 'Can I add my company logo and localized tax rates?', 'a': 'Yes. Upload your custom brand logo and configure VAT, GST, or local sales taxes across 16 major currencies.'},
+    {'q': 'Are my customer details and prices stored on your servers?', 'a': 'No. Invoices, receipts, and order forms are generated purely client-side; no commercial data is saved on external servers.'}
+  ],
+  'productivity-tools': [
+    {'q': 'Is it safe to process confidential documents with these PDF and text tools?', 'a': 'Yes. PDF manipulation and text analysis run directly in your local browser sandbox without uploading your files.'},
+    {'q': 'How are random numbers and secure passwords generated?', 'a': 'We use the cryptographically secure browser Web Crypto API (crypto.getRandomValues) with zero mathematical modulo bias.'},
+    {'q': 'Can I use these tools on mobile devices?', 'a': 'Yes. All tools are fully responsive, touch-friendly, and optimized for iOS and Android web browsers.'}
+  ]
+} %}
+
 {% block title %}{{ seo_title or category_name }} | StoryBrain AI{% endblock %}
 {% block meta_description %}Browse {{ tools | length }} free {{ category_name | lower }} online tools with instant results. No signup, no uploads, 100% private and fast in your browser.{% endblock %}
 {% block meta_keywords %}{{ category_name | lower }}, free {{ category_name | lower }}, online {{ category_name | lower }}, {{ category_name | lower }} tools, free online tools, storybrain ai{% endblock %}
@@ -17,7 +40,27 @@
 <script type="application/ld+json" nonce="{{ nonce }}">
 {"@context":"https://schema.org","@type":"ItemList","name":{{ (category_name + " — free tools") | tojson }},"numberOfItems":{{ tools | length }},"inLanguage": "en","itemListElement":[{% for tool in tools %}{"@type":"ListItem","position":{{ loop.index }},"name":{{ tool.name | tojson }},"url":"https://www.storybrainai.com{{ tool.url }}","description":{{ tool.desc | truncate(160) | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]}
 </script>
-
+{% if hub_name in hub_faqs %}
+<script type="application/ld+json" nonce="{{ nonce }}">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "inLanguage": "en",
+  "mainEntity": [
+    {% for item in hub_faqs[hub_name] %}
+    {
+      "@type": "Question",
+      "name": {{ item.q | tojson }},
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": {{ item.a | tojson }}
+      }
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+{% endif %}
 {% endblock %}
 
 {% block breadcrumb %}
@@ -119,6 +162,33 @@
       </ul>
     </div>
   </div>
+
+  {% if hub_name in hub_faqs %}
+  <div class="mt-12 feature-card p-6 sm:p-8">
+    <div class="flex items-center gap-2 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+        {{ lucide_icon("help-circle","w-4 h-4", 16) | safe }}
+      </span>
+      <div>
+        <h3 class="font-display text-xl font-bold text-base-content">Frequently Asked Questions</h3>
+        <p class="text-xs text-base-content/60">Common questions about {{ category_name | lower }} and browser execution.</p>
+      </div>
+    </div>
+    <div class="space-y-3">
+      {% for faq in hub_faqs[hub_name] %}
+      <details class="group rounded-xl border border-base-300 bg-base-100/50 overflow-hidden transition-all duration-200">
+        <summary class="flex items-center justify-between p-4 cursor-pointer text-sm font-semibold text-base-content hover:bg-base-200/40 select-none">
+          <span>{{ faq.q }}</span>
+          <span class="text-base-content/40 group-open:rotate-180 transition-transform duration-200 text-xs">▼</span>
+        </summary>
+        <div class="p-4 pt-0 text-xs sm:text-sm text-base-content/75 leading-relaxed border-t border-base-300/40">
+          {{ faq.a }}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
 </section>
 {% endblock %}
