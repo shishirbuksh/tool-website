@@ -97,22 +97,66 @@
     <!-- Pro Feature: Baby & Child Milestone Card -->
     <div class="ac-card mt-4">
       <div class="flex items-center justify-between mb-2">
-        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("smile","w-4 h-4",16) | safe }} Baby & Child Milestone Tracker</h2>
+        <h2 class="text-sm font-black uppercase tracking-widest flex items-center gap-2">{{ lucide_icon("smile","w-4 h-4",16) | safe }} Baby &amp; Child Milestone Tracker</h2>
         <span class="badge badge-primary badge-sm font-bold" x-text="stageCategory"></span>
       </div>
-      <div class="grid grid-cols-2 gap-3 text-center my-3">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-center my-3">
         <div class="p-3 bg-base-100 rounded-xl border border-base-300">
-          <div class="text-[10px] uppercase font-bold opacity-50">Age in Weeks & Days</div>
-          <div class="text-lg font-black font-mono text-primary mt-1" x-text="weeksAndDays"></div>
+          <div class="text-[10px] uppercase font-bold opacity-50">Age in Weeks &amp; Days</div>
+          <div class="text-base sm:text-lg font-black font-mono text-primary mt-0.5" x-text="weeksAndDays"></div>
         </div>
         <div class="p-3 bg-base-100 rounded-xl border border-base-300">
           <div class="text-[10px] uppercase font-bold opacity-50">Developmental Stage</div>
-          <div class="text-base font-black font-mono text-primary mt-1" x-text="stageCategory"></div>
+          <div class="text-sm sm:text-base font-black font-mono text-primary mt-0.5" x-text="stageCategory"></div>
+        </div>
+        <div class="p-3 bg-base-100 rounded-xl border border-base-300 col-span-2 sm:col-span-1">
+          <div class="text-[10px] uppercase font-bold opacity-50">Next Milestone</div>
+          <div class="text-xs font-bold text-success mt-0.5 truncate" x-text="nextMilestone.label + ': ' + nextMilestone.daysLeft + 'd left'"></div>
         </div>
       </div>
-      <div class="p-2.5 bg-base-100 rounded-xl border border-base-300 text-xs text-base-content/75 flex items-center gap-2">
-        <span class="badge badge-neutral badge-xs font-bold">CORNELL METHOD</span>
-        <span>Standard clinical assessment: <strong x-text="age.y + 'y ' + age.m + 'm ' + age.d + 'd'"></strong> (borrowing 12 months & prior month days).</span>
+
+      <!-- Upcoming Pediatric Checkup / Vaccine Accordion -->
+      <div class="p-3 bg-base-100 rounded-xl border border-base-300 mb-3 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-base-content/80 flex items-center gap-1.5">
+            {{ lucide_icon("shield-check","w-3.5 h-3.5 text-primary",14) | safe }}
+            <span>Upcoming Pediatric Vaccine &amp; Milestone:</span>
+          </span>
+          <span class="font-mono font-bold text-primary text-[11px]" x-text="nextMilestone.dateStr"></span>
+        </div>
+        <p class="text-base-content/60 text-[11px] mt-1" x-text="nextMilestone.desc"></p>
+      </div>
+
+      <!-- Premature Baby / Adjusted Age Toggle -->
+      <div class="p-3 bg-base-100 rounded-xl border border-base-300 mb-3">
+        <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-base-content/80">
+          <input type="checkbox" x-model="isPremature" class="checkbox checkbox-primary checkbox-xs">
+          <span>Baby Born Premature? (Calculate Adjusted / Corrected Age)</span>
+        </label>
+        <template x-if="isPremature">
+          <div class="mt-2.5 pt-2.5 border-t border-base-300/60 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <div class="flex-1 w-full">
+              <label class="text-[10px] uppercase font-bold opacity-50 block mb-1">Expected Due Date</label>
+              <input type="date" x-model="dueDate" class="ac-input text-xs py-1">
+            </div>
+            <div class="flex-1 w-full bg-base-200/50 p-2 rounded-lg border border-base-300/60">
+              <span class="text-[10px] uppercase font-bold opacity-50 block">Corrected / Adjusted Age</span>
+              <span class="text-xs font-mono font-bold text-primary" x-text="adjustedAgeStr"></span>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- School & Academic Cutoff / Cornell Method -->
+      <div class="p-3 bg-base-100 rounded-xl border border-base-300 text-xs text-base-content/75 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="badge badge-neutral badge-xs font-bold">CORNELL METHOD</span>
+          <span>Clinical age: <strong x-text="age.y + 'y ' + age.m + 'm ' + age.d + 'd'"></strong> (borrowing 12m &amp; prior month days).</span>
+        </div>
+        <div class="text-[11px] text-base-content/60">
+          <span>School cutoff (Sep 1): </span>
+          <strong class="text-primary font-mono" x-text="schoolCutoffAgeStr"></strong>
+        </div>
       </div>
     </div>
   </div>
@@ -128,6 +172,8 @@ window.ageCalculator = function() {
     liveTimer: null,
     nowTimestamp: Date.now(),
     copied: false,
+    isPremature: false,
+    dueDate: '',
 
     init: function() {
       var maxD = new Date().toISOString().slice(0, 10);
@@ -251,6 +297,99 @@ window.ageCalculator = function() {
       if (years < 18) return 'Teenager (13–17y)';
       if (years < 65) return 'Adult';
       return 'Senior Adult (65+)';
+    },
+
+    get nextMilestone() {
+      var days = this.age.totalDays;
+      var dobStr = this.dob;
+      if (!dobStr) return { label: 'None', daysLeft: 0, dateStr: '—', desc: 'Enter birth date to view pediatric milestones' };
+      var sp = dobStr.split('-');
+      var dob = new Date(parseInt(sp[0], 10), parseInt(sp[1], 10) - 1, parseInt(sp[2], 10));
+
+      var milestones = [
+        { label: '2-Month Checkup', targetDays: 61, desc: 'DTaP, IPV, Hib, PCV15, Rotavirus vaccines; smiling, tracking faces' },
+        { label: '4-Month Checkup', targetDays: 122, desc: 'Second vaccine round (DTaP, IPV, Hib, PCV, RV); rolling tummy to back, babbling' },
+        { label: '6-Month Checkup', targetDays: 183, desc: 'Third vaccine round, introduction to solid foods, sitting with slight support' },
+        { label: '9-Month Wellness', targetDays: 274, desc: 'Pincer grasp development, crawling, responding to name, peek-a-boo' },
+        { label: '12-Month (1st Year)', targetDays: 365, desc: '1-Year vaccines (MMR, Varicella, Hep A); standing, first words, waving bye-bye' },
+        { label: '18-Month Wellness', targetDays: 548, desc: 'DTaP & Hep A booster; walking independently, vocabulary expansion (10+ words)' },
+        { label: '24-Month (2 Years)', targetDays: 730, desc: '2-Year pediatric checkup, 2-word phrases, running, climbing, pediatric autism screening' },
+        { label: '3-Year Milestone', targetDays: 1095, desc: 'Preschool readiness check, 3-word sentences, potty training progression' },
+        { label: '4-5 Year Pre-K / Kindergarten', targetDays: 1826, desc: 'Kindergarten entry booster vaccines (DTaP, IPV, MMR, Varicella)' }
+      ];
+
+      for (var i = 0; i < milestones.length; i++) {
+        var m = milestones[i];
+        if (days < m.targetDays) {
+          var targetDate = new Date(dob.getTime() + m.targetDays * 86400000);
+          return {
+            label: m.label,
+            daysLeft: m.targetDays - days,
+            dateStr: targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            desc: m.desc
+          };
+        }
+      }
+      return {
+        label: 'School-Age Routine',
+        daysLeft: 0,
+        dateStr: 'Annual Checkup',
+        desc: 'Routine annual pediatric wellness and vision/dental screenings.'
+      };
+    },
+
+    get adjustedAgeStr() {
+      if (!this.dueDate) return 'Enter expected due date';
+      var sp = this.dueDate.split('-');
+      var due = new Date(parseInt(sp[0], 10), parseInt(sp[1], 10) - 1, parseInt(sp[2], 10), 12, 0, 0);
+      var asOfStr = this.asOf;
+      var asOf = asOfStr ? new Date(parseInt(asOfStr.split('-')[0], 10), parseInt(asOfStr.split('-')[1], 10) - 1, parseInt(asOfStr.split('-')[2], 10), 12, 0, 0) : new Date();
+      var diffMs = asOf - due;
+      if (diffMs < 0) {
+        var daysUntilDue = Math.ceil(Math.abs(diffMs) / (1000 * 60 * 60 * 24));
+        return 'Not yet reached due date (' + daysUntilDue + ' days to term)';
+      }
+      var totalDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      var w = Math.floor(totalDays / 7);
+      var remD = totalDays % 7;
+      if (w < 52) return w + ' weeks, ' + remD + ' days adjusted';
+      var y = Math.floor(w / 52);
+      var remW = w % 52;
+      return y + 'y, ' + remW + 'w adjusted';
+    },
+
+    get schoolCutoffAgeStr() {
+      var dobStr = this.dob;
+      if (!dobStr) return '—';
+      var sp = dobStr.split('-');
+      var dob = new Date(parseInt(sp[0], 10), parseInt(sp[1], 10) - 1, parseInt(sp[2], 10), 12, 0, 0);
+      var asOfStr = this.asOf;
+      var targetYear = asOfStr ? parseInt(asOfStr.split('-')[0], 10) : new Date().getFullYear();
+      var cutoff = new Date(targetYear, 8, 1, 12, 0, 0);
+      if (cutoff < dob) {
+        cutoff = new Date(targetYear + 1, 8, 1, 12, 0, 0);
+      }
+      var y = cutoff.getFullYear() - dob.getFullYear();
+      var m = cutoff.getMonth() - dob.getMonth();
+      var d = cutoff.getDate() - dob.getDate();
+      if (d < 0) {
+        m--;
+        var prevMonth = new Date(cutoff.getFullYear(), cutoff.getMonth(), 0);
+        d += prevMonth.getDate();
+      }
+      if (m < 0) {
+        y--;
+        m += 12;
+      }
+      var grade = '';
+      if (y < 3) grade = 'Early Toddler';
+      else if (y === 3) grade = 'Preschool (3K)';
+      else if (y === 4) grade = 'Pre-K (4K)';
+      else if (y === 5) grade = 'Kindergarten Eligible';
+      else if (y === 6) grade = '1st Grade';
+      else if (y >= 7 && y <= 18) grade = 'Grade ' + (y - 5);
+      else grade = 'Adult Cohort';
+      return y + 'y ' + m + 'm (' + grade + ')';
     },
 
     get countdownStr() {
