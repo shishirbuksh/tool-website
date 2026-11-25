@@ -5,11 +5,11 @@
 - HTML5 (Semantic, Accessible, Mobile-First)
 - Tailwind CSS v4 (@tailwindcss/postcss, @theme)
 - DaisyUI v5 (@plugin "daisyui")
-- JavaScript (Vanilla, client-side execution for 120/126 tools)
+- JavaScript (Vanilla, client-side execution for 122/128 tools)
 - Caddy (reverse proxy, automatic HTTPS, Brotli/Gzip) + Gunicorn WSGI/ASGI on port 8090
 
 ## Catalog
-- 126 free online tools (slugs defined in `data/tools.yaml`)
+- 128 free online tools (slugs defined in `data/tools.yaml`)
 - 99 in-depth SEO guides across 6 topical pillars (`data/blog.yaml`)
 - English-only architecture (canonical English URLs at root/tool/blog; legacy `/hi/`, `/es/`, `/fr/`, `/de/` paths issue HTTP 301 redirects to canonical English URLs)
 
@@ -23,7 +23,7 @@
 - `apps/core/` → Shared middleware, sanitize, icons, custom exceptions
 - `templates/` → HTML templates (`templates/tools/<slug_with_underscores>.html`, `templates/blog/`, `templates/pages/`)
 - `static/` → CSS, JS, images, fonts
-- `data/` → `tools.yaml` (126 tools catalog) and `blog.yaml` (99 articles)
+- `data/` → `tools.yaml` (128 tools catalog) and `blog.yaml` (99 articles)
 - `Caddyfile` → Reverse proxy configuration
 - `deploy.sh` → VPS deployment engine
 - `storybrain-ai.service` → Systemd unit file
