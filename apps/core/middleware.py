@@ -157,6 +157,8 @@ class SecurityHeadersMiddleware:
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
         response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+        response.headers["X-Page-Speed"] = "off"
+        response.headers["PageSpeed"] = "off"
         if response.status_code != 304:
             response.headers["Content-Security-Policy"] = csp
         existing_vary = response.headers.get("Vary", "")
@@ -184,6 +186,8 @@ class SecurityHeadersMiddleware:
         response["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
         response["Cross-Origin-Resource-Policy"] = "same-origin"
         response["X-Permitted-Cross-Domain-Policies"] = "none"
+        response["X-Page-Speed"] = "off"
+        response["PageSpeed"] = "off"
         if response.status_code != 304:
             response["Content-Security-Policy"] = csp
 
