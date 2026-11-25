@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
+
+{% block head %}
+<style>
+.fgc-panel{background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:12px;padding:1.25rem}
+.fgc-subcard{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:12px}
+.fgc-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:12px;font-weight:600;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;transition:all .14s;touch-action:manipulation;white-space:nowrap}
+.fgc-pill:hover{border-color:var(--color-base-content)}
+.fgc-pill.is-active{background:#111111;color:#ffffff;border-color:#111111}
+[data-theme="night"] .fgc-pill.is-active{background:#ffffff;color:#111111;border-color:#ffffff}
+.fgc-pill:focus-visible,.fgc-btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.fgc-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-100);color:var(--color-base-content);border:1px solid var(--color-base-300);border-radius:12px;padding:10px 18px;font-weight:600;font-size:13px;box-shadow:0 10px 25px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);pointer-events:none;transition:all .22s ease;display:flex;align-items:center;gap:8px}
+.fgc-toast.show{opacity:1;transform:translateY(0)}
+@media print{
+  header,nav,.bottom-nav,#cookieConsent,footer,.fgc-no-print,.breadcrumb{display:none!important}
+  body{padding:0!important;background:#ffffff!important;color:#111111!important}
+  .fgc-panel,.fgc-subcard{border:1px solid #d1d5db!important;background:#ffffff!important;box-shadow:none!important}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{{ tool_hero_section("graduation-cap", "Final Exam Score Needed", "FINAL GRADE", "CALCULATOR", seo_data.description if seo_data else tool.description) }}
+
+<div x-data="finalGradeCalculator()" class="space-y-6 reveal" style="animation-delay:0.15s">
+  <!-- Mode Selector & Preset Bar -->
+  <section class="fgc-panel fgc-no-print" aria-label="Calculator preset options">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-semibold text-base-content/60">Target Grade Preset:</span>
+        <div class="flex flex-wrap items-center gap-1.5" id="fgcTargetPills">
+          <button type="button" class="fgc-pill is-active" data-target="90">A (90%)</button>
+          <button type="button" class="fgc-pill" data-target="80">B (80%)</button>
+          <button type="button" class="fgc-pill" data-target="70">C (70%)</button>
+          <button type="button" class="fgc-pill" data-target="60">Pass (60%)</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button type="button" id="fgcDemoHonors" class="btn btn-ghost btn-xs text-xs fgc-btn">A Target Demo</button>
+        <button type="button" id="fgcDemoPass" class="btn btn-ghost btn-xs text-xs fgc-btn">Pass Target Demo</button>
+        <button type="button" id="fgcResetBtn" class="btn btn-ghost btn-xs gap-1 fgc-btn" aria-label="Reset calculator">
+          {{ lucide_icon("rotate-ccw", "w-3.5 h-3.5", 14) | safe }} Reset
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main 2-Column Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Left Column: Inputs -->
+    <div class="min-w-0 lg:col-span-5 space-y-5">
+      <div class="fgc-panel space-y-4">
+        <div class="flex items-center gap-2">
+          {{ lucide_icon("sliders", "w-4 h-4 text-base-content/70", 16) | safe }}
+          <h2 class="font-display text-base font-semibold tracking-tight text-base-content">Grade Parameters</h2>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <label for="fgcCurrent" class="block text-xs font-semibold text-base-content/75 mb-1">Current Class Grade (%)</label>
+            <input type="number" id="fgcCurrent" min="0" max="150" step="0.1" value="84.5" class="input input-sm cal-input w-full font-mono text-base font-bold">
+            <span class="text-[11px] text-base-content/50">Your cumulative percentage before the final exam.</span>
+          </div>
+
+          <div>
+            <label for="fgcTarget" class="block text-xs font-semibold text-base-content/75 mb-1">Desired Target Grade (%)</label>
+            <input type="number" id="fgcTarget" min="0" max="150" step="0.1" value="90" class="input input-sm cal-input w-full font-mono text-base font-bold">
+            <span class="text-[11px] text-base-content/50">Grade you want to achieve for the entire course.</span>
+          </div>
+
+          <div>
+            <label for="fgcWeight" class="block text-xs font-semibold text-base-content/75 mb-1">Final Exam Weight (% of Course)</label>
+            <input type="number" id="fgcWeight" min="1" max="100" step="0.5" value="25" class="input input-sm cal-input w-full font-mono text-base font-bold">
+            <span class="text-[11px] text-base-content/50">How much your final exam counts toward 100% of the course grade.</span>
+          </div>
+        </div>
+
+        <!-- Quick Weight Selector Buttons -->
+        <div class="pt-2 border-t border-base-300">
+          <span class="text-xs font-semibold text-base-content/60 block mb-1.5">Common Final Weights:</span>
+          <div class="flex flex-wrap gap-1.5" id="fgcWeightPills">
+            <button type="button" class="fgc-pill" data-weight="15">15%</button>
+            <button type="button" class="fgc-pill" data-weight="20">20%</button>
+            <button type="button" class="fgc-pill is-active" data-weight="25">25%</button>
+            <button type="button" class="fgc-pill" data-weight="30">30%</button>
+            <button type="button" class="fgc-pill" data-weight="40">40%</button>
+            <button type="button" class="fgc-pill" data-weight="50">50%</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formula Card -->
+      <div class="fgc-subcard p-4 space-y-2 text-xs text-base-content/75">
+        <div class="font-semibold text-base-content flex items-center gap-1.5">
+          {{ lucide_icon("sigma", "w-3.5 h-3.5 text-primary", 14) | safe }}
+          Mathematical Formula
+        </div>
+        <p class="font-mono text-xs p-2 bg-base-200 rounded border border-base-300">
+          Score Needed = (Target - (Current &times; (1 - Weight))) &divide; Weight
+        </p>
+        <p class="text-[11px] text-base-content/60 leading-relaxed">
+          Where Weight is entered as a decimal (e.g. 25% = 0.25).
+        </p>
+      </div>
+    </div>
+
+    <!-- Right Column: Results & Scenario Matrix -->
+    <div class="min-w-0 lg:col-span-7 space-y-5">
+      <!-- Big Score Banner Card -->
+      <div class="fgc-panel space-y-4" id="fgcResultCard">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Required Exam Score</span>
+          <span id="fgcStatusBadge" class="badge badge-sm font-semibold">Calculating</span>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-baseline gap-2">
+          <div class="font-display text-4xl sm:text-5xl font-extrabold tracking-tight" id="fgcRequiredScore">--%</div>
+          <div class="text-xs text-base-content/60 font-medium" id="fgcRequiredContext">needed on your final exam</div>
+        </div>
+
+        <p id="fgcVerdictText" class="text-sm font-medium leading-relaxed text-base-content/90 border-t border-base-300 pt-3">
+          Loading scenario...
+        </p>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2 pt-2 fgc-no-print">
+          <button type="button" id="fgcCopyBtn" class="btn btn-sm btn-ghost gap-1.5 border border-base-300 fgc-btn">
+            {{ lucide_icon("copy", "w-3.5 h-3.5", 14) | safe }} Copy Result
+          </button>
+          <button type="button" id="fgcShareBtn" class="btn btn-sm btn-ghost gap-1.5 border border-base-300 fgc-btn">
+            {{ lucide_icon("share-2", "w-3.5 h-3.5", 14) | safe }} Share Link
+          </button>
+          <button type="button" id="fgcPrintBtn" class="btn btn-sm btn-ghost gap-1.5 border border-base-300 fgc-btn">
+            {{ lucide_icon("printer", "w-3.5 h-3.5", 14) | safe }} Print Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Scenarios Table for All Letter Grades -->
+      <div class="fgc-panel space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("table", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h3 class="font-display text-sm font-semibold text-base-content">Target Letter Grade Scenarios</h3>
+          </div>
+          <span class="text-xs font-mono text-base-content/50">Current: <span id="fgcCurrentDisplay">84.5%</span></span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="table table-xs w-full font-mono text-xs">
+            <thead>
+              <tr class="border-b border-base-300 text-base-content/60">
+                <th class="py-2">Letter</th>
+                <th class="py-2">Course Target</th>
+                <th class="py-2 text-right">Required on Final</th>
+                <th class="py-2 text-right">Status</th>
+              </tr>
+            </thead>
+            <tbody id="fgcScenarioBody">
+              <!-- Dynamically rendered rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="fgcToast" class="fgc-toast" role="status" aria-live="polite">
+  {{ lucide_icon("check-circle-2", "w-4 h-4 text-success", 16) | safe }}
+  <span id="fgcToastMsg">Action completed!</span>
+</div>
+
+<script nonce="{{ nonce }}">
+window.finalGradeCalculator = function() {
+  function el(id) { return document.getElementById(id); }
+  function toast(msg) {
+    var t = el('fgcToast');
+    var m = el('fgcToastMsg');
+    if (!t || !m) return;
+    m.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2200);
+  }
+
+  function calculate() {
+    var current = parseFloat(el('fgcCurrent').value) || 0;
+    var target = parseFloat(el('fgcTarget').value) || 0;
+    var weightPct = parseFloat(el('fgcWeight').value) || 0;
+
+    if (weightPct <= 0) weightPct = 1;
+    if (weightPct > 100) weightPct = 100;
+
+    var w = weightPct / 100.0;
+    // Score Needed = (Target - (Current * (1 - w))) / w
+    var needed = (target - (current * (1.0 - w))) / w;
+    var neededRounded = Math.round(needed * 100) / 100;
+
+    el('fgcRequiredScore').textContent = neededRounded + '%';
+    el('fgcCurrentDisplay').textContent = current + '%';
+
+    var badge = el('fgcStatusBadge');
+    var verdict = el('fgcVerdictText');
+    var context = el('fgcRequiredContext');
+
+    if (needed <= 0) {
+      badge.className = 'badge badge-sm badge-success font-semibold';
+      badge.textContent = 'Locked In';
+      context.textContent = 'Target already secured!';
+      verdict.innerHTML = '<strong>Congratulations!</strong> You have already locked in your desired grade of <strong>' + target + '%</strong>. Even if you score <strong>0%</strong> on the final exam, your final course grade will remain at or above your target.';
+    } else if (needed > 100) {
+      badge.className = 'badge badge-sm badge-error font-semibold';
+      badge.textContent = 'Extra Credit Needed';
+      context.textContent = 'Exceeds 100% threshold';
+      verdict.innerHTML = '<strong>Heads Up:</strong> To reach <strong>' + target + '%</strong>, you need <strong>' + neededRounded + '%</strong> on the final exam. Since this exceeds 100%, you will require extra credit, curving, or a bonus assignment to achieve this grade.';
+    } else if (needed >= 90) {
+      badge.className = 'badge badge-sm badge-warning font-semibold';
+      badge.textContent = 'Challenging';
+      context.textContent = 'Intense prep recommended';
+      verdict.innerHTML = '<strong>High Focus Required:</strong> You need <strong>' + neededRounded + '%</strong> on the final exam to secure your <strong>' + target + '%</strong> course grade. Schedule extra study sessions to hit this mark.';
+    } else {
+      badge.className = 'badge badge-sm badge-info font-semibold';
+      badge.textContent = 'Achievable';
+      context.textContent = 'Realistic study goal';
+      verdict.innerHTML = '<strong>Realistic Goal:</strong> You need <strong>' + neededRounded + '%</strong> on your final exam to finish with a course grade of <strong>' + target + '%</strong>.';
+    }
+
+    // Render Scenarios Table
+    var grades = [
+      { letter: 'A (Excellent)', target: 93 },
+      { letter: 'A- (Superior)', target: 90 },
+      { letter: 'B+ (Very Good)', target: 87 },
+      { letter: 'B (Good)', target: 83 },
+      { letter: 'B- (Above Average)', target: 80 },
+      { letter: 'C+ (Average)', target: 77 },
+      { letter: 'C (Satisfactory)', target: 70 },
+      { letter: 'D / Pass (Credit)', target: 60 }
+    ];
+
+    var tbody = el('fgcScenarioBody');
+    if (tbody) {
+      var rowsHtml = '';
+      for (var i = 0; i < grades.length; i++) {
+        var g = grades[i];
+        var req = Math.round(((g.target - (current * (1.0 - w))) / w) * 10) / 10;
+        var statusBadge = '';
+        if (req <= 0) {
+          statusBadge = '<span class="badge badge-xs badge-success">Secured (&le; 0%)</span>';
+        } else if (req > 100) {
+          statusBadge = '<span class="badge badge-xs badge-error">Extra Credit (' + req + '%)</span>';
+        } else if (req >= 90) {
+          statusBadge = '<span class="badge badge-xs badge-warning">' + req + '% (Hard)</span>';
+        } else {
+          statusBadge = '<span class="badge badge-xs badge-info">' + req + '%</span>';
+        }
+
+        var isSelected = Math.abs(g.target - target) < 0.1;
+        rowsHtml += '<tr class="border-b border-base-300/50 ' + (isSelected ? 'bg-primary/10 font-bold' : '') + '">' +
+          '<td class="py-1.5">' + g.letter + '</td>' +
+          '<td class="py-1.5">' + g.target + '%</td>' +
+          '<td class="py-1.5 text-right font-bold">' + (req <= 0 ? '0%' : req + '%') + '</td>' +
+          '<td class="py-1.5 text-right">' + statusBadge + '</td>' +
+          '</tr>';
+      }
+      tbody.innerHTML = rowsHtml;
+    }
+  }
+
+  // Event Listeners
+  ['fgcCurrent', 'fgcTarget', 'fgcWeight'].forEach(function(id) {
+    var input = el(id);
+    if (input) {
+      input.addEventListener('input', calculate);
+      input.addEventListener('change', calculate);
+    }
+  });
+
+  // Target Pills
+  var targetPills = document.querySelectorAll('#fgcTargetPills button');
+  targetPills.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      targetPills.forEach(function(b) { b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+      el('fgcTarget').value = btn.getAttribute('data-target');
+      calculate();
+    });
+  });
+
+  // Weight Pills
+  var weightPills = document.querySelectorAll('#fgcWeightPills button');
+  weightPills.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      weightPills.forEach(function(b) { b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+      el('fgcWeight').value = btn.getAttribute('data-weight');
+      calculate();
+    });
+  });
+
+  // Reset and Presets
+  el('fgcResetBtn').addEventListener('click', function() {
+    el('fgcCurrent').value = '84.5';
+    el('fgcTarget').value = '90';
+    el('fgcWeight').value = '25';
+    calculate();
+    toast('Calculator reset to defaults.');
+  });
+
+  el('fgcDemoHonors').addEventListener('click', function() {
+    el('fgcCurrent').value = '88';
+    el('fgcTarget').value = '93';
+    el('fgcWeight').value = '30';
+    calculate();
+    toast('Loaded Honors A scenario.');
+  });
+
+  el('fgcDemoPass').addEventListener('click', function() {
+    el('fgcCurrent').value = '55';
+    el('fgcTarget').value = '60';
+    el('fgcWeight').value = '20';
+    calculate();
+    toast('Loaded Pass threshold scenario.');
+  });
+
+  // Copy, Share, Print
+  el('fgcCopyBtn').addEventListener('click', function() {
+    var score = el('fgcRequiredScore').textContent;
+    var target = el('fgcTarget').value;
+    var current = el('fgcCurrent').value;
+    var weight = el('fgcWeight').value;
+    var txt = 'Final Exam Grade Calculator Result:\nCurrent Grade: ' + current + '%\nTarget Grade: ' + target + '%\nFinal Exam Weight: ' + weight + '%\nRequired Score on Final: ' + score + '\nCalculated with StoryBrain AI (https://www.storybrainai.com/tool/final-grade-calculator)';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function() { toast('Score summary copied to clipboard!'); });
+    }
+  });
+
+  el('fgcShareBtn').addEventListener('click', function() {
+    var url = window.location.origin + window.location.pathname + '?c=' + el('fgcCurrent').value + '&t=' + el('fgcTarget').value + '&w=' + el('fgcWeight').value;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function() { toast('Shareable calculation link copied!'); });
+    }
+  });
+
+  el('fgcPrintBtn').addEventListener('click', function() { window.print(); });
+
+  // Query parameter restoration
+  var sp = new URLSearchParams(window.location.search);
+  if (sp.get('c')) el('fgcCurrent').value = sp.get('c');
+  if (sp.get('t')) el('fgcTarget').value = sp.get('t');
+  if (sp.get('w')) el('fgcWeight').value = sp.get('w');
+
+  calculate();
+
+  return {
+    init: function() {
+      calculate();
+    }
+  };
+};
+</script>
+
+{{ tool_section_end() }}
+{% endblock %}

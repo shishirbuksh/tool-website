@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+{% from "components/tool_layout.html" import tool_hero_section, tool_section_end with context %}
+
+{% block head %}
+<style>
+.gwa-panel{background:var(--color-base-200);border:1px solid var(--color-base-300);border-radius:12px;padding:1.25rem}
+.gwa-subcard{background:var(--color-base-100);border:1px solid var(--color-base-300);border-radius:12px}
+.gwa-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9999px;font-size:12px;font-weight:600;border:1px solid var(--color-base-300);background:var(--color-base-100);color:var(--color-base-content);cursor:pointer;transition:all .14s;touch-action:manipulation;white-space:nowrap}
+.gwa-pill:hover{border-color:var(--color-base-content)}
+.gwa-pill.is-active{background:#111111;color:#ffffff;border-color:#111111}
+[data-theme="night"] .gwa-pill.is-active{background:#ffffff;color:#111111;border-color:#ffffff}
+.gwa-pill:focus-visible,.gwa-btn:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.gwa-toast{position:fixed;bottom:24px;right:24px;background:var(--color-base-100);color:var(--color-base-content);border:1px solid var(--color-base-300);border-radius:12px;padding:10px 18px;font-weight:600;font-size:13px;box-shadow:0 10px 25px rgba(0,0,0,.15);z-index:999;opacity:0;transform:translateY(10px);pointer-events:none;transition:all .22s ease;display:flex;align-items:center;gap:8px}
+.gwa-toast.show{opacity:1;transform:translateY(0)}
+@media print{
+  header,nav,.bottom-nav,#cookieConsent,footer,.gwa-no-print,.breadcrumb{display:none!important}
+  body{padding:0!important;background:#ffffff!important;color:#111111!important}
+  .gwa-panel,.gwa-subcard{border:1px solid #d1d5db!important;background:#ffffff!important;box-shadow:none!important}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+{{ tool_hero_section("award", "General Weighted Average", "PHILIPPINE GWA", "CALCULATOR", seo_data.description if seo_data else tool.description) }}
+
+<div x-data="gwaCalculator()" class="space-y-6 reveal" style="animation-delay:0.15s">
+  <!-- Presets & Demo Bar -->
+  <section class="gwa-panel gwa-no-print" aria-label="GWA calculator presets and options">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-semibold text-base-content/60">University Presets:</span>
+        <button type="button" id="gwaPresetUp" class="gwa-pill is-active">UP System (1.00 Scale)</button>
+        <button type="button" id="gwaPresetPup" class="gwa-pill">PUP / State U</button>
+        <button type="button" id="gwaPresetUst" class="gwa-pill">UST / Private</button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button type="button" id="gwaDemoHonors" class="btn btn-ghost btn-xs text-xs gwa-btn">Magna Cum Laude Demo</button>
+        <button type="button" id="gwaResetBtn" class="btn btn-ghost btn-xs gap-1 gwa-btn" aria-label="Reset GWA calculator">
+          {{ lucide_icon("rotate-ccw", "w-3.5 h-3.5", 14) | safe }} Reset
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2-Column Workspace -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Left Column: Course Rows Table -->
+    <div class="min-w-0 lg:col-span-7 space-y-4">
+      <div class="gwa-panel space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            {{ lucide_icon("book-open", "w-4 h-4 text-base-content/70", 16) | safe }}
+            <h2 class="font-display text-base font-semibold tracking-tight text-base-content">Courses &amp; Subjects</h2>
+          </div>
+          <span class="text-xs text-base-content/60 font-mono" id="gwaRowCount">4 subjects</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="table table-xs w-full font-mono text-xs" id="gwaTable">
+            <thead>
+              <tr class="border-b border-base-300 text-base-content/60">
+                <th class="py-2">Subject / Course Code</th>
+                <th class="py-2 w-28">Grade</th>
+                <th class="py-2 w-24">Units</th>
+                <th class="py-2 w-10 text-center fwa-no-print">Action</th>
+              </tr>
+            </thead>
+            <tbody id="gwaCourseBody">
+              <!-- Dynamically rendered rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-base-300 fga-no-print">
+          <button type="button" id="gwaAddRowBtn" class="btn btn-sm btn-outline gap-1.5 gwa-btn">
+            {{ lucide_icon("plus", "w-3.5 h-3.5", 14) | safe }} Add Subject
+          </button>
+          <span class="text-[11px] text-base-content/50">Non-academic subjects (PE, NSTP) may be excluded as per university policy.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Results & Latin Honors -->
+    <div class="min-w-0 lg:col-span-5 space-y-5">
+      <!-- Result Score Banner -->
+      <div class="gwa-panel space-y-4" id="gwaResultCard">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Computed GWA</span>
+          <span id="gwaHonorsBadge" class="badge badge-sm font-semibold">Honors Track</span>
+        </div>
+
+        <div class="flex items-baseline gap-3">
+          <div class="font-display text-4xl sm:text-5xl font-extrabold tracking-tight text-primary" id="gwaScoreDisplay">1.4250</div>
+          <div class="text-xs text-base-content/60 font-medium">General Weighted Average</div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-base-300 text-xs">
+          <div>
+            <span class="text-base-content/50 block">Total Credit Units:</span>
+            <span class="font-bold font-mono text-sm" id="gwaTotalUnits">13</span>
+          </div>
+          <div>
+            <span class="text-base-content/50 block">Grade Points Product:</span>
+            <span class="font-bold font-mono text-sm" id="gwaTotalPoints">18.525</span>
+          </div>
+        </div>
+
+        <div id="gwaHonorsDesc" class="p-3 rounded-lg bg-base-100 border border-base-300 text-xs leading-relaxed">
+          Loading Latin honors status...
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2 pt-2 gwa-no-print">
+          <button type="button" id="gwaCopyBtn" class="btn btn-sm btn-ghost gap-1.5 border border-base-300 gwa-btn">
+            {{ lucide_icon("copy", "w-3.5 h-3.5", 14) | safe }} Copy GWA
+          </button>
+          <button type="button" id="gwaShareBtn" class="btn btn-sm btn-ghost gap-1.5 border border-base-300 gwa-btn">
+            {{ lucide_icon("share-2", "w-3.5 h-3.5", 14) | safe }} Share Link
+          </button>
+          <button type="button" id="gwaPrintBtn" class="btn btn-sm btn-ghost gap-1.5 border border-base-300 gwa-btn">
+            {{ lucide_icon("printer", "w-3.5 h-3.5", 14) | safe }} Print Summary
+          </button>
+        </div>
+      </div>
+
+      <!-- Philippine Grading Reference Scale -->
+      <div class="gwa-subcard p-4 space-y-3 text-xs">
+        <div class="font-semibold text-base-content flex items-center justify-between">
+          <span class="flex items-center gap-1.5">
+            {{ lucide_icon("award", "w-3.5 h-3.5 text-primary", 14) | safe }}
+            Philippine Latin Honors Criteria
+          </span>
+          <span class="text-[10px] text-base-content/50">CHED / State U</span>
+        </div>
+
+        <div class="space-y-1.5 text-[11px] text-base-content/75 font-mono">
+          <div class="flex justify-between py-1 border-b border-base-300/50">
+            <span class="font-bold text-success">Summa Cum Laude</span>
+            <span>1.0000 &ndash; 1.2000</span>
+          </div>
+          <div class="flex justify-between py-1 border-b border-base-300/50">
+            <span class="font-bold text-info">Magna Cum Laude</span>
+            <span>1.2001 &ndash; 1.4500</span>
+          </div>
+          <div class="flex justify-between py-1 border-b border-base-300/50">
+            <span class="font-bold text-warning">Cum Laude</span>
+            <span>1.4501 &ndash; 1.7500</span>
+          </div>
+          <div class="flex justify-between py-1">
+            <span class="text-base-content/60">Passing Grade</span>
+            <span>1.7501 &ndash; 3.0000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="gwaToast" class="gwa-toast" role="status" aria-live="polite">
+  {{ lucide_icon("check-circle-2", "w-4 h-4 text-success", 16) | safe }}
+  <span id="gwaToastMsg">Action completed!</span>
+</div>
+
+<script nonce="{{ nonce }}">
+window.gwaCalculator = function() {
+  function el(id) { return document.getElementById(id); }
+  function toast(msg) {
+    var t = el('gwaToast');
+    var m = el('gwaToastMsg');
+    if (!t || !m) return;
+    m.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2200);
+  }
+
+  var defaultRows = [
+    { code: 'MATH 21 (Calculus I)', grade: 1.25, units: 4 },
+    { code: 'PHYS 71 (Elementary Physics I)', grade: 1.50, units: 4 },
+    { code: 'ENG 13 (Writing as Thinking)', grade: 1.00, units: 3 },
+    { code: 'CS 11 (Intro to Programming)', grade: 1.25, units: 3 }
+  ];
+
+  var rows = JSON.parse(JSON.stringify(defaultRows));
+
+  var gradeOptions = [
+    { val: 1.00, label: '1.00 (Excellent / 97-100%)' },
+    { val: 1.25, label: '1.25 (Superior / 94-96%)' },
+    { val: 1.50, label: '1.50 (Very Good / 91-93%)' },
+    { val: 1.75, label: '1.75 (Good / 88-90%)' },
+    { val: 2.00, label: '2.00 (Meritorious / 85-87%)' },
+    { val: 2.25, label: '2.25 (Very Satisfactory / 82-84%)' },
+    { val: 2.50, label: '2.50 (Satisfactory / 79-81%)' },
+    { val: 2.75, label: '2.75 (Fair / 76-78%)' },
+    { val: 3.00, label: '3.00 (Passing / 75%)' },
+    { val: 4.00, label: '4.00 (Conditional)' },
+    { val: 5.00, label: '5.00 (Failed)' }
+  ];
+
+  function renderRows() {
+    var tbody = el('gwaCourseBody');
+    if (!tbody) return;
+    var html = '';
+
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      var selectHtml = '<select class="select select-xs select-bordered w-full font-mono gwa-grade-input" data-idx="' + i + '">';
+      for (var j = 0; j < gradeOptions.length; j++) {
+        var opt = gradeOptions[j];
+        var sel = Math.abs(opt.val - r.grade) < 0.01 ? ' selected' : '';
+        selectHtml += '<option value="' + opt.val + '"' + sel + '>' + opt.label + '</option>';
+      }
+      selectHtml += '</select>';
+
+      html += '<tr class="border-b border-base-300/50">' +
+        '<td class="py-1.5"><input type="text" value="' + (r.code || '') + '" placeholder="Course Code" class="input input-xs input-bordered w-full font-mono gwa-code-input" data-idx="' + i + '"></td>' +
+        '<td class="py-1.5">' + selectHtml + '</td>' +
+        '<td class="py-1.5"><input type="number" min="0.5" max="12" step="0.5" value="' + r.units + '" class="input input-xs input-bordered w-full font-mono gwa-units-input" data-idx="' + i + '"></td>' +
+        '<td class="py-1.5 text-center gwa-no-print">' +
+        (rows.length > 1 ? '<button type="button" class="btn btn-ghost btn-xs text-error gwa-del-btn" data-idx="' + i + '" title="Remove Course">&times;</button>' : '') +
+        '</td>' +
+        '</tr>';
+    }
+
+    tbody.innerHTML = html;
+    el('gwaRowCount').textContent = rows.length + ' subjects';
+    attachRowListeners();
+    calculate();
+  }
+
+  function attachRowListeners() {
+    var codes = document.querySelectorAll('.gwa-code-input');
+    codes.forEach(function(inp) {
+      inp.addEventListener('input', function() {
+        var idx = parseInt(this.getAttribute('data-idx'), 10);
+        rows[idx].code = this.value;
+      });
+    });
+
+    var grades = document.querySelectorAll('.gwa-grade-input');
+    grades.forEach(function(sel) {
+      sel.addEventListener('change', function() {
+        var idx = parseInt(this.getAttribute('data-idx'), 10);
+        rows[idx].grade = parseFloat(this.value) || 1.00;
+        calculate();
+      });
+    });
+
+    var units = document.querySelectorAll('.gwa-units-input');
+    units.forEach(function(inp) {
+      inp.addEventListener('input', function() {
+        var idx = parseInt(this.getAttribute('data-idx'), 10);
+        rows[idx].units = parseFloat(this.value) || 0;
+        calculate();
+      });
+    });
+
+    var dels = document.querySelectorAll('.gwa-del-btn');
+    dels.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(this.getAttribute('data-idx'), 10);
+        if (rows.length > 1) {
+          rows.splice(idx, 1);
+          renderRows();
+        }
+      });
+    });
+  }
+
+  function calculate() {
+    var totalUnits = 0;
+    var totalPoints = 0;
+
+    for (var i = 0; i < rows.length; i++) {
+      var u = rows[i].units || 0;
+      var g = rows[i].grade || 0;
+      totalUnits += u;
+      totalPoints += (g * u);
+    }
+
+    var gwa = totalUnits > 0 ? (totalPoints / totalUnits) : 1.0000;
+    var gwaFixed = gwa.toFixed(4);
+
+    el('gwaScoreDisplay').textContent = gwaFixed;
+    el('gwaTotalUnits').textContent = totalUnits;
+    el('gwaTotalPoints').textContent = totalPoints.toFixed(3);
+
+    var badge = el('gwaHonorsBadge');
+    var desc = el('gwaHonorsDesc');
+
+    if (gwa <= 1.2000) {
+      badge.className = 'badge badge-sm badge-success font-semibold';
+      badge.textContent = 'Summa Cum Laude';
+      desc.innerHTML = '<strong class="text-success">Exceptional Standing (Summa Cum Laude Track):</strong> Your GWA of <strong>' + gwaFixed + '</strong> is within the top Latin honors tier (1.0000 &ndash; 1.2000). Verify that your college residency and minimum load requirements are met.';
+    } else if (gwa <= 1.4500) {
+      badge.className = 'badge badge-sm badge-info font-semibold';
+      badge.textContent = 'Magna Cum Laude';
+      desc.innerHTML = '<strong class="text-info">High Honors Standing (Magna Cum Laude Track):</strong> Your GWA of <strong>' + gwaFixed + '</strong> qualifies for Magna Cum Laude (1.2001 &ndash; 1.4500). Maintain your performance to lock in graduation honors.';
+    } else if (gwa <= 1.7500) {
+      badge.className = 'badge badge-sm badge-warning font-semibold';
+      badge.textContent = 'Cum Laude';
+      desc.innerHTML = '<strong class="text-warning">With Honors Standing (Cum Laude Track):</strong> Your GWA of <strong>' + gwaFixed + '</strong> qualifies for Cum Laude honors (1.4501 &ndash; 1.7500).';
+    } else if (gwa <= 3.0000) {
+      badge.className = 'badge badge-sm badge-ghost font-semibold';
+      badge.textContent = 'Good Standing (Passed)';
+      desc.innerHTML = '<strong>Satisfactory Academic Standing:</strong> Your GWA of <strong>' + gwaFixed + '</strong> satisfies the graduation passing threshold (3.0000 or better).';
+    } else {
+      badge.className = 'badge badge-sm badge-error font-semibold';
+      badge.textContent = 'Retention Review';
+      desc.innerHTML = '<strong class="text-error">Academic Warning:</strong> Your GWA of <strong>' + gwaFixed + '</strong> is below the passing mark of 3.0000. Consult your academic advisor regarding subject retakes or scholastic probation rules.';
+    }
+  }
+
+  // Add Row Button
+  el('gwaAddRowBtn').addEventListener('click', function() {
+    rows.push({ code: 'Course ' + (rows.length + 1), grade: 1.50, units: 3 });
+    renderRows();
+    toast('Added new course row.');
+  });
+
+  // Presets
+  el('gwaPresetUp').addEventListener('click', function() {
+    rows = [
+      { code: 'MATH 21 (Calculus I)', grade: 1.25, units: 4 },
+      { code: 'PHYS 71 (Elementary Physics)', grade: 1.50, units: 4 },
+      { code: 'ENG 13 (Writing)', grade: 1.00, units: 3 },
+      { code: 'CS 11 (Programming)', grade: 1.25, units: 3 }
+    ];
+    renderRows();
+    toast('Loaded UP System 14-unit sample.');
+  });
+
+  el('gwaPresetPup').addEventListener('click', function() {
+    rows = [
+      { code: 'BACC 1 (Financial Acctg)', grade: 1.50, units: 3 },
+      { code: 'MANA 1 (Principles of Mgt)', grade: 1.25, units: 3 },
+      { code: 'ECON 1 (Microeconomics)', grade: 1.75, units: 3 },
+      { code: 'COMM 1 (Purposive Comm)', grade: 1.00, units: 3 },
+      { code: 'MATH 1 (Math in Modern World)', grade: 1.25, units: 3 }
+    ];
+    renderRows();
+    toast('Loaded PUP 15-unit curriculum.');
+  });
+
+  el('gwaPresetUst').addEventListener('click', function() {
+    rows = [
+      { code: 'THY 1 (Christian Vision)', grade: 1.25, units: 3 },
+      { code: 'LIT 1 (Philippine Lit)', grade: 1.00, units: 3 },
+      { code: 'BIO 101 (General Biology)', grade: 1.50, units: 5 },
+      { code: 'CHEM 101 (General Chemistry)', grade: 1.75, units: 5 }
+    ];
+    renderRows();
+    toast('Loaded UST 16-unit curriculum.');
+  });
+
+  el('gwaDemoHonors').addEventListener('click', function() {
+    rows = [
+      { code: 'Major Subject A', grade: 1.25, units: 4 },
+      { code: 'Major Subject B', grade: 1.25, units: 4 },
+      { code: 'Elective 1', grade: 1.00, units: 3 },
+      { code: 'General Education', grade: 1.50, units: 3 }
+    ];
+    renderRows();
+    toast('Loaded Magna Cum Laude demonstration.');
+  });
+
+  el('gwaResetBtn').addEventListener('click', function() {
+    rows = JSON.parse(JSON.stringify(defaultRows));
+    renderRows();
+    toast('GWA calculator reset to default.');
+  });
+
+  // Copy, Share, Print
+  el('gwaCopyBtn').addEventListener('click', function() {
+    var gwa = el('gwaScoreDisplay').textContent;
+    var units = el('gwaTotalUnits').textContent;
+    var txt = 'Philippine GWA Calculator Result:\nComputed GWA: ' + gwa + '\nTotal Units: ' + units + '\nHonor Status: ' + el('gwaHonorsBadge').textContent + '\nCalculated with StoryBrain AI (https://www.storybrainai.com/tool/gwa-calculator)';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(function() { toast('GWA summary copied to clipboard!'); });
+    }
+  });
+
+  el('gwaShareBtn').addEventListener('click', function() {
+    var serialized = rows.map(function(r) { return encodeURIComponent(r.code) + ':' + r.grade + ':' + r.units; }).join(';');
+    var url = window.location.origin + window.location.pathname + '?d=' + encodeURIComponent(serialized);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function() { toast('Shareable GWA calculation link copied!'); });
+    }
+  });
+
+  el('gwaPrintBtn').addEventListener('click', function() { window.print(); });
+
+  // URL Query Restore
+  var sp = new URLSearchParams(window.location.search);
+  var rawData = sp.get('d');
+  if (rawData) {
+    try {
+      var parts = decodeURIComponent(rawData).split(';');
+      var parsed = [];
+      for (var i = 0; i < parts.length; i++) {
+        var sub = parts[i].split(':');
+        if (sub.length === 3) {
+          parsed.push({ code: decodeURIComponent(sub[0]), grade: parseFloat(sub[1]) || 1.0, units: parseFloat(sub[2]) || 3 });
+        }
+      }
+      if (parsed.length > 0) rows = parsed;
+    } catch(e) {}
+  }
+
+  renderRows();
+
+  return {
+    init: function() {
+      calculate();
+    }
+  };
+};
+</script>
+
+{{ tool_section_end() }}
+{% endblock %}

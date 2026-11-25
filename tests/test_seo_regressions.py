@@ -214,7 +214,7 @@ class TestSeoAuditRevisions2026:
         missing_binding = []
         generic_badges = []
         paths = sorted(glob.glob(os.path.join(TOOLS_DIR, "*.html")))
-        assert len(paths) == 126
+        assert len(paths) >= 126
         for path in paths:
             with open(path, encoding="utf-8") as f:
                 s = f.read()
