@@ -245,6 +245,11 @@ class TestSEORoutes:
         assert resp.status_code == 200
         assert "Sitemap" in resp.text
 
+    def test_robot_txt_alias(self):
+        resp = client.get("/robot.txt", follow_redirects=False)
+        assert resp.status_code == 301
+        assert resp.headers["location"] == "/robots.txt"
+
     def test_llms_txt(self):
         resp = client.get("/llms.txt")
         assert resp.status_code == 200

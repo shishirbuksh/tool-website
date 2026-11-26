@@ -37,6 +37,10 @@ def robots_txt(request):
     return response
 
 
+def robots_alias(request):
+    return HttpResponsePermanentRedirect("/robots.txt")
+
+
 def llms_txt(request):
     content = _sitemap_service.build_llms_txt()
     response = HttpResponse(content, content_type="text/plain; charset=utf-8")
