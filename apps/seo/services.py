@@ -134,7 +134,6 @@ class SitemapService:
     def _render_urlset(self, pages: list[dict]) -> str:
         lines = [
             '<?xml version="1.0" encoding="UTF-8"?>',
-            '<?xml-stylesheet type="text/xsl" href="/static/sitemap.xsl"?>',
             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
         ]
         base = getattr(settings, "SITE_URL", "https://www.storybrainai.com").rstrip("/")
