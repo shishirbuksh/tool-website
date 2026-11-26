@@ -37,7 +37,33 @@ def _page_context(request, bare_path: str) -> dict:
         "robots_noindex": False,
         "nonce": getattr(request, "nonce", ""),
         "tool_count": len(ToolDataLoader.get_slugs()),
+        "blog_count": len(_blog_service.get_all()),
     }
+
+
+def _build_home_faqs(tool_count: int) -> list[dict[str, str]]:
+    return [
+        {
+            "q": "What is StoryBrain AI?",
+            "a": f"StoryBrain AI is a suite of {tool_count} free online browser tools covering finance calculators (EMI, SIP, GST), image editing (background removal, compression), document tools (PDF converter), developer utilities, and business generators. Every tool runs directly in your browser with zero signups.",
+        },
+        {
+            "q": "Are all tools 100% free with no signups?",
+            "a": "Yes. Every tool is completely free forever. You never have to create an account, enter a credit card, or subscribe to any plan. Everything works right in your browser.",
+        },
+        {
+            "q": "Is my data private and secure?",
+            "a": f"Yes. Over 115 of our {tool_count} tools process files and inputs entirely inside your device's browser. Server-assisted features like AI background removal, live crypto feeds, and URL auditing process inputs in volatile server RAM with zero disk persistence. See our Privacy Policy for full details.",
+        },
+        {
+            "q": "Does StoryBrain AI work on mobile devices?",
+            "a": f"Yes. All {tool_count} tools are designed mobile-first. They function smoothly on iPhones, Android smartphones, iPads, tablets, and desktop computers with zero app installations required.",
+        },
+        {
+            "q": "Where can I find sitemaps and machine-readable indexes?",
+            "a": "You can access our XML Sitemap at /sitemap.xml, our HTML Sitemap at /sitemap, and our llms.txt index for AI search agents and web crawlers.",
+        },
+    ]
 
 
 def home(request):
@@ -45,6 +71,7 @@ def home(request):
     recent_posts = _blog_service.get_recent(3)
     popular_posts = _blog_service.get_popular(3)
     pillars = _blog_service.get_pillars()
+    base_ctx = _page_context(request, "/")
 
     ctx = {
         "categories": categories,
@@ -52,8 +79,9 @@ def home(request):
         "recent_posts": recent_posts,
         "popular_posts": popular_posts,
         "pillars": pillars,
+        "home_faqs": _build_home_faqs(base_ctx["tool_count"]),
     }
-    ctx.update(_page_context(request, "/"))
+    ctx.update(base_ctx)
     response = render(request, "index.html", ctx)
     response["Cache-Control"] = "public, max-age=0, must-revalidate"
     return response
@@ -236,4 +264,6 @@ def contact_submission(request):
     if not name or not email or "@" not in email or not message:
         return JsonResponse({"detail": "All fields are required"}, status=400)
 
+    from apps.core.contact import save_and_notify_contact
+    save_and_notify_contact(name, email, message)
     return JsonResponse({"status": "ok"})

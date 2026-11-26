@@ -118,6 +118,50 @@ class JobService:
         self._maybe_cleanup()
         return JobResponse(job_id=job_id, status=job.status, created_at=job.created_at)
 
+    def submit_background(self, name: str, coro_factory: Callable[[], Coroutine[Any, Any, Any]]) -> JobResponse:
+        """Schedule coroutine job in either running event loop (ASGI) or daemon thread loop (WSGI)."""
+        try:
+            asyncio.get_running_loop()
+            return self.submit(name, coro_factory)
+        except RuntimeError:
+            pass
+
+        if not callable(coro_factory):
+            raise TypeError("coro_factory must be a callable returning a coroutine")
+        job_id = str(uuid.uuid4())
+        job = Job(job_id, name)
+        with self._lock:
+            active = sum(1 for j in self._jobs.values() if j.status in (JobStatus.PENDING, JobStatus.RUNNING))
+            if active >= self._max_jobs:
+                raise RuntimeError(f"Job queue full ({active} active jobs, max {self._max_jobs})")
+            self._jobs[job_id] = job
+        self._sync_cache(job)
+
+        def _thread_runner() -> None:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                with self._lock:
+                    job.status = JobStatus.RUNNING
+                self._sync_cache(job)
+                job.result = loop.run_until_complete(asyncio.wait_for(coro_factory(), timeout=self._task_timeout))
+                with self._lock:
+                    job.status = JobStatus.DONE
+                self._sync_cache(job)
+            except Exception as e:
+                with self._lock:
+                    job.status = JobStatus.ERROR
+                    job.error = str(e)[:500] or "Job failed"
+                self._sync_cache(job)
+                logger.exception("Background job %s (%s) failed", job_id, name)
+            finally:
+                loop.close()
+
+        t = threading.Thread(target=_thread_runner, daemon=True, name=f"job-{job_id[:8]}")
+        t.start()
+        self._maybe_cleanup()
+        return JobResponse(job_id=job_id, status=job.status, created_at=job.created_at)
+
     def get_status(self, job_id: str) -> JobResponse | None:
         with self._lock:
             job = self._jobs.get(job_id)

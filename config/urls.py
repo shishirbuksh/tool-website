@@ -114,11 +114,13 @@ def handler404_view(request, exception=None):
 
 def handler500_view(request):
     from django.shortcuts import render
+    from apps.catalog.services import ToolDataLoader
     ctx = {
         "status_code": 500,
         "request": request,
         "nonce": getattr(request, "nonce", ""),
         "bare_path": getattr(request, "path", "/"),
+        "tool_count": len(ToolDataLoader.get_slugs()),
     }
     response = render(request, "pages/500.html", ctx, status=500)
     response["Cache-Control"] = "no-cache, no-store, must-revalidate"

@@ -120,14 +120,16 @@ def crypto_fng_view(request):
 
 def crypto_predict_async_view(request):
     symbol = request.GET.get("symbol", "BTC-USD")
-    job_id = str(uuid.uuid4())
-    return JsonResponse({"job_id": job_id, "status": "pending"})
+    from apps.tools_api.services.job_service import get_job_service
+    job = get_job_service().submit_background("predict-crypto", lambda: _crypto_service.predict(symbol))
+    return JsonResponse({"job_id": job.job_id, "status": job.status.value if hasattr(job.status, "value") else str(job.status)})
 
 
 def crypto_analyze_async_view(request):
     symbol = request.GET.get("symbol", "BTC-USD")
-    job_id = str(uuid.uuid4())
-    return JsonResponse({"job_id": job_id, "status": "pending"})
+    from apps.tools_api.services.job_service import get_job_service
+    job = get_job_service().submit_background("analyze-crypto", lambda: _crypto_service.analyze_trend(symbol))
+    return JsonResponse({"job_id": job.job_id, "status": job.status.value if hasattr(job.status, "value") else str(job.status)})
 
 
 def job_status_view(request, job_id):
@@ -160,6 +162,8 @@ def contact_view(request):
     message = (body.get("message") or "").strip()
     if not name or not email or "@" not in email or not message:
         return JsonResponse({"detail": "Invalid contact fields"}, status=400)
+    from apps.core.contact import save_and_notify_contact
+    save_and_notify_contact(name, email, message)
     return JsonResponse({"status": "ok"})
 
 
@@ -183,8 +187,8 @@ def generate_nft_view(request):
 def crypto_predict_view(request):
     symbol = request.GET.get("symbol", "BTC-USD")
     import asyncio
+    loop = asyncio.new_event_loop()
     try:
-        loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         res = loop.run_until_complete(_crypto_service.predict(symbol))
         response = JsonResponse(res)
@@ -193,6 +197,8 @@ def crypto_predict_view(request):
     except Exception as e:
         logger.exception("Failed to predict crypto trend")
         return JsonResponse({"detail": str(e)}, status=400)
+    finally:
+        loop.close()
 
 
 def proxy_request_view(request):

@@ -329,7 +329,9 @@ class TestCryptoAsync:
         assert resp.status_code == 200
         data = resp.json()
         assert "job_id" in data
-        assert data["status"] in ("pending", "running")
+        assert data["status"] in ("pending", "running", "done")
+        status_resp = client.get(f"/api/jobs/{data['job_id']}")
+        assert status_resp.status_code == 200
 
     def test_analyze_crypto_trend_async_returns_job_id(self):
         resp = client.get("/api/analyze-crypto-trend-async?symbol=BTC-USD")
@@ -360,12 +362,37 @@ class TestSecurityHeaders:
 
 class TestNewRouteFeatures:
     def test_contact_submission(self):
+        import os, sqlite3
+        from django.conf import settings
+
         resp = client.post(
             "/api/contact",
             json={"name": "Alice", "email": "alice@example.com", "message": "Hello world"},
         )
         assert resp.status_code == 200
         assert resp.json() == {"status": "ok"}
+
+        db_path = os.path.join(settings.BASE_DIR, "var", "data", "analytics.db")
+        assert os.path.isfile(db_path)
+        conn = sqlite3.connect(db_path)
+        row = conn.execute(
+            "SELECT name, email, message FROM contact_messages WHERE email = ? ORDER BY id DESC LIMIT 1",
+            ("alice@example.com",),
+        ).fetchone()
+        conn.close()
+        assert row == ("Alice", "alice@example.com", "Hello world")
+
+    def test_tool_schema_excludes_unbacked_aggregate_rating(self):
+        resp = client.get("/tool/bmi-calculator")
+        assert resp.status_code == 200
+        assert '"aggregateRating"' not in resp.text
+
+    def test_external_cdn_scripts_require_sri(self):
+        import glob, re
+        for f in glob.glob("templates/tools/*.html"):
+            txt = open(f, encoding="utf-8").read()
+            for tag in re.findall(r'<script\b[^>]*src=["\']https?://[^"\']+["\'][^>]*>', txt):
+                assert 'integrity="sha384-' in tag, f"Missing SRI in {f}: {tag}"
 
     def test_contact_submission_invalid(self):
         resp = client.post("/api/contact", json={"name": "", "email": "invalid", "message": ""})
