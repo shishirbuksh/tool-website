@@ -240,6 +240,12 @@ class TestSEORoutes:
         assert "application/xml" in resp.headers["content-type"]
         assert "storybrainai.com" in resp.text
 
+    def test_legacy_sitemap_redirects(self):
+        for path in ["/page-sitemap.xml", "/post-sitemap.xml", "/pages-sitemap.xml", "/posts-sitemap.xml", "/category-sitemap.xml", "/tools-sitemap.xml", "/sitemap_index.xml", "/sitemap-index.xml"]:
+            resp = client.get(path, follow_redirects=False)
+            assert resp.status_code == 301, f"Failed on {path}"
+            assert resp.headers["location"] == "/sitemap.xml", f"Failed destination on {path}"
+
     def test_robots_txt(self):
         resp = client.get("/robots.txt")
         assert resp.status_code == 200
