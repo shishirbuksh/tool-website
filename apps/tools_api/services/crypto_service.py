@@ -296,21 +296,19 @@ def _fetch_spot_rates_sync() -> dict[str, Any]:
         "errors": errors,
     }
 
-_prophet_semaphores: dict[int, asyncio.Semaphore] = {}
-_prophet_sem_lock = __import__("threading").Lock()
+_prophet_thread_sem = threading.Semaphore(2)
 _ml_executor = concurrent.futures.ThreadPoolExecutor(max_workers=10, thread_name_prefix="ml_worker")
 
 
-def _get_prophet_semaphore() -> asyncio.Semaphore:
-    loop_id = id(asyncio.get_running_loop())
-    with _prophet_sem_lock:
-        sem = _prophet_semaphores.get(loop_id)
-        if sem is None:
-            sem = asyncio.Semaphore(2)
-            _prophet_semaphores[loop_id] = sem
-            if len(_prophet_semaphores) > 8:
-                _prophet_semaphores.pop(next(iter(_prophet_semaphores)), None)
-        return sem
+def _run_prophet_sync(func: Any) -> Any | None:
+    """Run sync Prophet fn in worker pool with 90s timeout + bounded concurrency."""
+    with _prophet_thread_sem:
+        fut = _ml_executor.submit(func)
+        try:
+            return fut.result(timeout=90)
+        except concurrent.futures.TimeoutError:
+            logger.warning("Prophet model timed out after 90s — degrading")
+            return None
 
 
 class CryptoService:
@@ -338,42 +336,37 @@ class CryptoService:
         except Exception:
             return None
 
-    async def _run_prophet_async(self, func: Any) -> Any | None:
-        """Run sync Prophet fn in executor with 90s timeout + per-loop semaphore."""
-        loop = asyncio.get_running_loop()
-        sem = _get_prophet_semaphore()
-        async with sem:
-            try:
-                return await asyncio.wait_for(loop.run_in_executor(_ml_executor, func), timeout=90)
-            except TimeoutError:
-                logger.warning("Prophet model timed out after 90s — degrading")
-                return None
-
-    async def predict(self, symbol: str = "BTC-USD") -> dict[str, Any]:
+    def predict_sync(self, symbol: str = "BTC-USD") -> dict[str, Any]:
         symbol_norm = (symbol or "BTC-USD").strip().upper()
         cache_key = f"cache:predict:{symbol_norm.lower()}"
-        cache = get_cache()
-        cached = await cache.async_get(cache_key)
+        c = get_cache()
+        cached = c.get(cache_key)
         if cached:
             return cached
 
-        result = await self._run_analysis(symbol_norm, period="1y", lookback=20, rust_epochs=150)
-        await cache.async_set(cache_key, result, ttl=300)
+        result = self._run_analysis_sync(symbol_norm, period="1y", lookback=20, rust_epochs=150)
+        c.set(cache_key, result, ttl=300)
         return result
 
-    async def analyze_trend(self, symbol: str = "BTC-USD") -> dict[str, Any]:
+    def analyze_trend_sync(self, symbol: str = "BTC-USD") -> dict[str, Any]:
         symbol_norm = (symbol or "BTC-USD").strip().upper()
         cache_key = f"cache:trend:{symbol_norm.lower()}"
-        cache = get_cache()
-        cached = await cache.async_get(cache_key)
+        c = get_cache()
+        cached = c.get(cache_key)
         if cached:
             return cached
 
-        result = await self._run_analysis(symbol_norm, period="4mo", lookback=15, rust_epochs=100, include_ta=True)
-        await cache.async_set(cache_key, result, ttl=300)
+        result = self._run_analysis_sync(symbol_norm, period="4mo", lookback=15, rust_epochs=100, include_ta=True)
+        c.set(cache_key, result, ttl=300)
         return result
 
-    async def _run_analysis(
+    async def predict(self, symbol: str = "BTC-USD") -> dict[str, Any]:
+        return await asyncio.to_thread(self.predict_sync, symbol)
+
+    async def analyze_trend(self, symbol: str = "BTC-USD") -> dict[str, Any]:
+        return await asyncio.to_thread(self.analyze_trend_sync, symbol)
+
+    def _run_analysis_sync(
         self,
         symbol: str,
         period: str,
@@ -385,7 +378,6 @@ class CryptoService:
         if not _SYMBOL_RE.match(symbol):
             msg = f"Invalid symbol format: {symbol}"
             raise ServiceError(msg)
-        loop = asyncio.get_running_loop()
 
         def _download():
             import datetime
@@ -436,8 +428,8 @@ class CryptoService:
             raise ServiceError(msg)
 
         try:
-            df = await asyncio.wait_for(loop.run_in_executor(_ml_executor, _download), timeout=30)
-        except TimeoutError:
+            df = _ml_executor.submit(_download).result(timeout=30)
+        except concurrent.futures.TimeoutError:
             raise ServiceError("Market data download timed out after 30 seconds") from None
         df = df.dropna()
         if df.empty:
@@ -541,14 +533,14 @@ class CryptoService:
         # (prophet 90s + download 30s), but a stuck executor thread must never
         # pin the gather forever.
         try:
-            prophet_preds, rust_preds = await asyncio.wait_for(
-                asyncio.gather(
-                    self._run_prophet_async(_run_prophet),
-                    loop.run_in_executor(_ml_executor, _run_rust),
-                ),
-                timeout=150,
-            )
-        except TimeoutError:
+            prophet_fut = _ml_executor.submit(_run_prophet_sync, _run_prophet)
+            rust_fut = _ml_executor.submit(_run_rust)
+            concurrent.futures.wait([prophet_fut, rust_fut], timeout=150)
+            if not prophet_fut.done() or not rust_fut.done():
+                raise concurrent.futures.TimeoutError()
+            prophet_preds = prophet_fut.result()
+            rust_preds = rust_fut.result()
+        except concurrent.futures.TimeoutError:
             raise ServiceError("Model inference timed out after 150 seconds") from None
 
         last_date = df.index[-1]
@@ -566,9 +558,7 @@ class CryptoService:
         rust_preds = list(rust_preds[: len(future_dates)]) + [None] * max(0, len(future_dates) - len(rust_preds))
 
         if include_ta:
-            result = await loop.run_in_executor(
-                None,
-                self._build_trend_result,
+            return self._build_trend_result(
                 symbol,
                 close_prices,
                 timestamps,
@@ -577,7 +567,6 @@ class CryptoService:
                 rust_preds,
                 df,
             )
-            return result
 
         history = [{"date": d, "price": float(p)} for d, p in zip(timestamps, close_prices, strict=True)]
         future_data = []

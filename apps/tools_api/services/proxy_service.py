@@ -148,15 +148,14 @@ class ProxyService:
         sorted_items = sorted(self._dns_cache.items(), key=lambda x: x[1][1])
         self._dns_cache = dict(sorted_items[self._dns_maxsize // 2 :])
 
-    async def execute(
+    def execute_sync(
         self,
         url: str,
         method: str = "GET",
         headers: dict[str, str] | None = None,
         body: str | None = None,
     ) -> dict[str, Any]:
-        # TODO: add circuit-breaker per upstream host (trip after N consecutive
-        # failures/timeouts via CacheService, cooldown before half-open retry).
+        """Execute an SSRF-validated HTTP request synchronously (safe for Django WSGI threads)."""
         _max_redirects = 3
         parsed_url = urlparse(url)
         scheme = parsed_url.scheme
@@ -186,8 +185,6 @@ class ProxyService:
         headers_cleaned.setdefault("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
         headers_cleaned.setdefault("Accept-Language", "en-US,en;q=0.9")
 
-        loop = asyncio.get_running_loop()
-
         current_url = url
         current_method = method.upper()
         current_data: bytes | None = body.encode("utf-8") if body else None
@@ -205,10 +202,7 @@ class ProxyService:
             if cur_scheme not in ("http", "https"):
                 raise ValidationException("Only http and https URLs are allowed")
 
-            def _resolve(cur=cur_host):
-                return self._resolve_cached(cur)
-
-            ip = await loop.run_in_executor(_proxy_executor, _resolve)
+            ip = self._resolve_cached(cur_host)
             if ip is None:
                 raise ValidationException("Access to internal networks is forbidden.")
             # Validate port AFTER SSRF check so private-IP probes report
@@ -287,7 +281,7 @@ class ProxyService:
                     _dns_local.forced_ip = None
 
             try:
-                response = await loop.run_in_executor(_proxy_executor, _make_request)
+                response = _make_request()
             except ValidationException:
                 raise
             except requests.exceptions.Timeout:
@@ -347,3 +341,16 @@ class ProxyService:
                 "body": body_content,
             }
         raise ServiceError("An unexpected error occurred") from None
+
+    async def execute(
+        self,
+        url: str,
+        method: str = "GET",
+        headers: dict[str, str] | None = None,
+        body: str | None = None,
+    ) -> dict[str, Any]:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            _proxy_executor,
+            lambda: self.execute_sync(url=url, method=method, headers=headers, body=body),
+        )

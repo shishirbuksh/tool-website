@@ -303,3 +303,16 @@ class TestSeoAuditRevisions2026:
                 assert f'href="/tool/{t}"' not in resp.text, f"{page} still links to quarantined tool {t}"
             for b in QUARANTINED_BLOG_POSTS:
                 assert f'/{b}"' not in resp.text, f"{page} still links to quarantined post {b}"
+
+    def test_legacy_404_tool_and_home_redirects(self) -> None:
+        expected = {
+            "/home": "/",
+            "/tool/grammar-checker": "/tool/writing-quality-analyzer",
+            "/tool/pdf-image-extractor": "/tool/pdf-to-images",
+            "/tool/pdf-to-text": "/tool/image-to-text",
+            "/tool/interest-rate-calculator": "/tool/compound-calculator",
+        }
+        for src, dst in expected.items():
+            resp = client.get(src, follow_redirects=False)
+            assert resp.status_code == 301, f"{src} returned {resp.status_code}"
+            assert resp.headers.get("location") == dst, f"{src} redirected to {resp.headers.get('location')}"

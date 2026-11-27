@@ -108,7 +108,17 @@ def directory_redirect(request):
     return HttpResponsePermanentRedirect("/tools")
 
 
+_LEGACY_TOOL_REDIRECTS = {
+    "grammar-checker": "/tool/writing-quality-analyzer",
+    "pdf-image-extractor": "/tool/pdf-to-images",
+    "pdf-to-text": "/tool/image-to-text",
+    "interest-rate-calculator": "/tool/compound-calculator",
+}
+
+
 def tool_detail(request, tool_name: str):
+    if tool_name in _LEGACY_TOOL_REDIRECTS:
+        return HttpResponsePermanentRedirect(_LEGACY_TOOL_REDIRECTS[tool_name])
     if tool_name == "crypto-red-flag-self-assessment-tool":
         tool_name = "crypto-scam-checker"
 
@@ -182,6 +192,8 @@ def hub_or_page(request, page_name: str):
     if page_name in ("sw.js", "favicon.ico", "404", "500"):
         raise Http404("Page not found")
 
+    if page_name == "home":
+        return HttpResponsePermanentRedirect("/")
     if page_name == "pdf-tools":
         return HttpResponsePermanentRedirect("/productivity-tools")
 

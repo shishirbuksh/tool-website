@@ -316,7 +316,7 @@ setup_env_file() {
     if [ ! -f "$APP_DIR/.env" ]; then
         if [ -f "$APP_DIR/.env.example" ]; then
             cp "$APP_DIR/.env.example" "$APP_DIR/.env"
-            SECRET="$(python3 -c "import secrets; print(secrets.token_urlsafe(32))" 2>/dev/null || echo "change-me")"
+            SECRET="$(python3 -c "import secrets; print(secrets.token_urlsafe(48))" 2>/dev/null || echo "change-me")"
             if command -v python3 >/dev/null 2>&1 && [ "$SECRET" != "change-me" ]; then
                 # SECRET is urlsafe (no / or |), safe for sed with | delimiter.
                 sed -i "s|^SECRET_KEY=.*|SECRET_KEY=$SECRET|" "$APP_DIR/.env"
@@ -333,7 +333,7 @@ setup_env_file() {
     # append a generated value when missing or empty.
     if [ -f "$APP_DIR/.env" ]; then
         if ! grep -q "^SECRET_KEY=.\+" "$APP_DIR/.env" 2>/dev/null; then
-            SECRET="$(python3 -c "import secrets; print(secrets.token_urlsafe(32))" 2>/dev/null || echo "change-me")"
+            SECRET="$(python3 -c "import secrets; print(secrets.token_urlsafe(48))" 2>/dev/null || echo "change-me")"
             if [ "$SECRET" = "change-me" ]; then
                 log_error "SECRET generation failed — aborting (refuse change-me)"
                 exit 1

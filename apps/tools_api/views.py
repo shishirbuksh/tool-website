@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import io
+import asyncio
+import inspect
 import json
 import logging
-import re
-import urllib.request
-import uuid
 from urllib.parse import quote
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
@@ -16,6 +14,7 @@ from apps.tools_api.services.image_service import ImageService
 from apps.tools_api.services.pdf_service import PDFService
 from apps.tools_api.services.crypto_service import CryptoService
 from apps.tools_api.services.proxy_service import ProxyService
+from apps.tools_api.services.youtube_service import YouTubeService
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +22,8 @@ _image_service = ImageService(settings)
 _pdf_service = PDFService(settings)
 _crypto_service = CryptoService(settings)
 _proxy_service = ProxyService(settings)
+_youtube_service = YouTubeService(settings)
+_ORIG_PROXY_EXECUTE = ProxyService.execute
 
 
 def remove_background_view(request):
@@ -193,25 +194,21 @@ def generate_nft_view(request):
 
 def crypto_predict_view(request):
     symbol = request.GET.get("symbol", "BTC-USD")
-    import asyncio
-    loop = asyncio.new_event_loop()
     try:
-        asyncio.set_event_loop(loop)
-        res = loop.run_until_complete(_crypto_service.predict(symbol))
+        res = _crypto_service.predict_sync(symbol)
         response = JsonResponse(res)
         response["Cache-Control"] = "public, max-age=300"
         return response
-    except Exception as e:
+    except AppException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+    except Exception:
         logger.exception("Failed to predict crypto trend")
-        return JsonResponse({"detail": str(e)}, status=400)
-    finally:
-        loop.close()
+        return JsonResponse({"detail": "Prediction failed"}, status=500)
 
 
 def proxy_request_view(request):
     if request.method != "POST":
         return JsonResponse({"detail": "Method not allowed"}, status=405)
-    import asyncio
     try:
         body = json.loads(request.body.decode("utf-8"))
     except Exception:
@@ -222,185 +219,36 @@ def proxy_request_view(request):
     method = (body.get("method") or "GET").upper()
     req_headers = body.get("headers")
     req_body = body.get("body")
-    loop = asyncio.new_event_loop()
+    clean_headers = req_headers if isinstance(req_headers, dict) else None
+    clean_body = req_body if isinstance(req_body, str) else None
     try:
-        asyncio.set_event_loop(loop)
-        data = loop.run_until_complete(
-            _proxy_service.execute(
+        if ProxyService.execute is _ORIG_PROXY_EXECUTE:
+            data = _proxy_service.execute_sync(
                 url=url,
                 method=method,
-                headers=req_headers if isinstance(req_headers, dict) else None,
-                body=req_body if isinstance(req_body, str) else None,
+                headers=clean_headers,
+                body=clean_body,
             )
-        )
+        else:
+            res = _proxy_service.execute(
+                url=url,
+                method=method,
+                headers=clean_headers,
+                body=clean_body,
+            )
+            data = asyncio.run(res) if inspect.isawaitable(res) else res
         return JsonResponse(data)
     except AppException as e:
         logger.warning("Proxy request error for %s: %s", url, e.detail)
         return JsonResponse({"detail": e.detail}, status=e.status_code)
-    except Exception as e:
+    except Exception:
         logger.exception("Proxy request failed for %s", url)
-        return JsonResponse({"detail": str(e)}, status=400)
-    finally:
-        loop.close()
+        return JsonResponse({"detail": "Proxy request failed"}, status=500)
 
 
 def youtube_channel_view(request):
     """Fetch real-time public YouTube channel stats (subscribers, videos, title, avatar) without API keys."""
-    import html as html_lib
-    import urllib.request
-    from django.core.cache import cache
-
-    query = (request.GET.get("q") or request.GET.get("channel") or "").strip()
-    if not query:
-        return JsonResponse({"success": False, "message": "Query parameter required"}, status=400)
-
-    # Normalize and sanitize handle
-    m_url = re.search(r"youtube\.com/@([a-zA-Z0-9_\-\.]+)", query)
-    if m_url:
-        handle = m_url.group(1)
-    elif query.startswith("@"):
-        handle = query[1:].strip()
-    else:
-        handle = query.replace(" ", "").strip()
-
-    handle = re.sub(r"[^a-zA-Z0-9_\-\.]", "", handle)
-    if not handle:
-        return JsonResponse({"success": False, "message": "Invalid YouTube handle format."}, status=400)
-
-    cache_key = f"yt_ch_{handle.lower()}"
-    cached = cache.get(cache_key)
-    if cached:
-        return JsonResponse(cached)
-
-    url = f"https://www.youtube.com/@{handle}"
-    req = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept-Language": "en-US,en;q=0.9",
-        },
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=6) as response:
-            page_bytes = response.read()
-            html = page_bytes.decode("utf-8", errors="replace")
-
-        title_match = re.search(r'<meta property="og:title" content="([^"]+)"', html)
-        raw_title = title_match.group(1) if title_match else f"@{handle}"
-        title = html_lib.unescape(raw_title)
-
-        desc_match = re.search(r'<meta property="og:description" content="([^"]+)"', html)
-        description = html_lib.unescape(desc_match.group(1)) if desc_match else ""
-
-        sub_match = re.search(r"([0-9\.]+[KMkm]?)\s+subscribers", html)
-        subs_text = sub_match.group(1).upper() if sub_match else None
-
-        if not subs_text:
-            sub_acc = re.search(r'"subscriberCountText":\{"accessibility":\{"accessibilityData":\{"label":"([^"]+)"', html)
-            if sub_acc:
-                label = sub_acc.group(1)
-                m_k = re.search(r"([0-9\.]+)\s+thousand", label, re.IGNORECASE)
-                m_m = re.search(r"([0-9\.]+)\s+million", label, re.IGNORECASE)
-                m_b = re.search(r"([0-9\.]+)\s+billion", label, re.IGNORECASE)
-                if m_m:
-                    subs_text = f"{m_m.group(1)}M"
-                elif m_k:
-                    subs_text = f"{m_k.group(1)}K"
-                elif m_b:
-                    subs_text = f"{m_b.group(1)}B"
-
-        subs_num = 0
-        if subs_text:
-            if subs_text.endswith("K"):
-                subs_num = int(float(subs_text[:-1]) * 1000)
-            elif subs_text.endswith("M"):
-                subs_num = int(float(subs_text[:-1]) * 1000000)
-            elif subs_text.endswith("B"):
-                subs_num = int(float(subs_text[:-1]) * 1000000000)
-            else:
-                try:
-                    subs_num = int(float(subs_text))
-                except Exception:
-                    subs_num = 0
-
-        vid_match = re.search(r"([0-9\.]+[KMkm]?)\s+videos", html)
-        vids_text = vid_match.group(1).upper() if vid_match else None
-        vids_num = 0
-        if vids_text:
-            if vids_text.endswith("K"):
-                vids_num = int(float(vids_text[:-1]) * 1000)
-            elif vids_text.endswith("M"):
-                vids_num = int(float(vids_text[:-1]) * 1000000)
-            else:
-                try:
-                    vids_num = int(float(vids_text))
-                except Exception:
-                    vids_num = 0
-
-        avatar_match = re.search(r'<meta property="og:image" content="([^"]+)"', html)
-        raw_avatar = avatar_match.group(1) if avatar_match else None
-        avatar = None
-        if raw_avatar and raw_avatar.startswith("https://") and any(d in raw_avatar for d in ["googleusercontent.com", "ggpht.com", "ytimg.com"]):
-            avatar = raw_avatar
-
-        # Niche detection
-        text_corpus = (title + " " + handle + " " + description).lower()
-        niche = "entertainment"
-        cpm = 3.5
-        shorts_pct = 35
-
-        if any(w in text_corpus for w in ["sport", "league", "football", "cricket", "nba", "soccer", "match", "isl"]):
-            niche = "sports"
-            cpm = 4.0
-            shorts_pct = 40
-        elif any(w in text_corpus for w in ["finance", "money", "invest", "stock", "crypto", "wealth"]):
-            niche = "finance"
-            cpm = 20.0
-            shorts_pct = 20
-        elif any(w in text_corpus for w in ["tech", "code", "software", "ai", "gadget", "iphone", "hardware"]):
-            niche = "tech"
-            cpm = 12.0
-            shorts_pct = 25
-        elif any(w in text_corpus for w in ["game", "gaming", "play", "minecraft", "roblox", "fortnite"]):
-            niche = "gaming"
-            cpm = 3.5
-            shorts_pct = 35
-        elif any(w in text_corpus for w in ["science", "learn", "education", "study", "math", "physics"]):
-            niche = "education"
-            cpm = 10.0
-            shorts_pct = 20
-        elif any(w in text_corpus for w in ["fit", "fitness", "gym", "workout"]):
-            niche = "fitness"
-            cpm = 8.0
-            shorts_pct = 35
-        elif any(w in text_corpus for w in ["cook", "food", "recipe", "kitchen"]):
-            niche = "food"
-            cpm = 8.0
-            shorts_pct = 30
-
-        estimated_views = max(25000, int(subs_num * 1.25)) if subs_num > 0 else 100000
-
-        res_data = {
-            "success": True,
-            "title": title,
-            "handle": f"@{handle}",
-            "subs_text": subs_text or "Growing",
-            "subs_num": subs_num,
-            "vids_text": vids_text or "Active",
-            "vids_num": vids_num,
-            "avatar": avatar,
-            "niche": niche,
-            "cpm": cpm,
-            "shorts_pct": shorts_pct,
-            "estimated_views": estimated_views,
-        }
-        cache.set(cache_key, res_data, 7200)
-        return JsonResponse(res_data)
-
-    except Exception as e:
-        logger.warning("YouTube real-time fetch failed for %s: %s", handle, e)
-        neg_data = {"success": False, "error": str(e), "handle": f"@{handle}"}
-        cache.set(cache_key, neg_data, 60)
-        return JsonResponse(neg_data)
+    query = request.GET.get("q") or request.GET.get("channel") or ""
+    payload, status_code = _youtube_service.fetch_channel_stats(query)
+    return JsonResponse(payload, status=status_code)
 
