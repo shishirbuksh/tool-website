@@ -83,6 +83,7 @@ def jinja2_environment(**options):
     env.globals.update({
         "lucide_icon": lucide_icon,
         "today": lambda: datetime.now(UTC).strftime("%Y-%m-%d"),
+        "current_year": lambda: datetime.now(UTC).year,
         "SITE_URL": SITE_URL,
         "site_url": SITE_URL,
         "app_version": APP_VERSION,

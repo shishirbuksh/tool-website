@@ -8,7 +8,7 @@ from django.test import Client
 
 
 class DjangoTestClientWrapper:
-    """Wraps Django Client to match Starlette TestClient signature used across tests."""
+    """Ergonomic wrapper around Django's native test Client for tests."""
 
     def __init__(self, client=None):
         self._client = client or Client()

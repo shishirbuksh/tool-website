@@ -1,43 +1,25 @@
-"""Tests for MetricsMiddleware: request counting and latency recording."""
+"""Tests for Django MetricsMiddleware: request counting and latency recording."""
 
-import pytest
-
-
-class Response:
-    def __init__(self, content="", status_code=200):
-        self.content = content
-        self.status_code = status_code
+from django.http import HttpResponse
+from django.test import RequestFactory
 
 
 class TestMetricsMiddleware:
-    @pytest.mark.asyncio
-    async def test_tracks_request_count(self):
+    def test_tracks_request_count(self):
         from apps.core.metrics import MetricsMiddleware, request_count
 
         before = request_count.labels(method="GET", path="/test", status=200)._value.get()
-
-        mock_request = type("Req", (), {"method": "GET", "url": type("Url", (), {"path": "/test"})(), "scope": {}})()
-
-        async def ok_handler(_):
-            return Response(status_code=200)
-
-        mw = MetricsMiddleware(lambda: None)
-        await mw.dispatch(mock_request, ok_handler)
+        req = RequestFactory().get("/test")
+        mw = MetricsMiddleware(lambda r: HttpResponse("ok", status=200))
+        mw(req)
 
         after = request_count.labels(method="GET", path="/test", status=200)._value.get()
         assert after >= before + 1
 
-    @pytest.mark.asyncio
-    async def test_records_latency(self):
+    def test_records_latency(self):
         from apps.core.metrics import MetricsMiddleware
 
-        mock_request = type(
-            "Req", (), {"method": "POST", "url": type("Url", (), {"path": "/api/test"})(), "scope": {}}
-        )()
-
-        async def fast_handler(_):
-            return Response(status_code=201)
-
-        mw = MetricsMiddleware(lambda: None)
-        response = await mw.dispatch(mock_request, fast_handler)
+        req = RequestFactory().post("/api/test")
+        mw = MetricsMiddleware(lambda r: HttpResponse("created", status=201))
+        response = mw(req)
         assert response.status_code == 201

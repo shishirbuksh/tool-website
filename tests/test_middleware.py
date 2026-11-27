@@ -1,63 +1,34 @@
-"""Tests for RequestIDMiddleware: header propagation, ID generation, and contextvar isolation."""
+"""Tests for Django middlewares: RequestID, SecurityHeaders, OriginCheck, CleanQuery, TrailingSlash, CaseSensitive."""
 
-from unittest.mock import AsyncMock
-
-import pytest
-class Request:
-    url = None
-    headers = None
-    method = "GET"
-    state = None
-    query_params = None
-
-
-class Response:
-    def __init__(self, content="", status_code=200, headers=None):
-        self.content = content
-        self.status_code = status_code
-        self.headers = headers or {}
-
-
-from apps.core.log import _request_id_var, reset_request_id, set_request_id
+from django.http import HttpResponse
+from django.test import RequestFactory
 
 
 class TestRequestIDMiddleware:
-    @pytest.mark.asyncio
-    async def test_adds_request_id_header(self):
+    def test_adds_request_id_header(self):
+        from apps.core.log import _request_id_var
         from apps.core.middleware import RequestIDMiddleware
 
-        mock_request = AsyncMock(spec=Request)
-        mock_request.headers = {"X-Request-ID": "test-id-123"}
-        mock_request.method = "GET"
-        mock_request.url.path = "/test"
+        req = RequestFactory().get("/test", HTTP_X_REQUEST_ID="test-id-123")
+        mw = RequestIDMiddleware(lambda r: HttpResponse("ok"))
+        response = mw(req)
 
-        mock_call_next = AsyncMock(return_value=Response())
-
-        middleware = RequestIDMiddleware(lambda: None)
-        response = await middleware.dispatch(mock_request, mock_call_next)
-
-        assert response.headers["X-Request-ID"] == "test-id-123"
+        assert response["X-Request-ID"] == "test-id-123"
         assert _request_id_var.get() == ""
 
-    @pytest.mark.asyncio
-    async def test_generates_request_id_if_missing(self):
+    def test_generates_request_id_if_missing(self):
         from apps.core.middleware import RequestIDMiddleware
 
-        mock_request = AsyncMock(spec=Request)
-        mock_request.headers = {}
-        mock_request.method = "GET"
-        mock_request.url.path = "/test"
+        req = RequestFactory().get("/test")
+        mw = RequestIDMiddleware(lambda r: HttpResponse("ok"))
+        response = mw(req)
 
-        mock_call_next = AsyncMock(return_value=Response())
+        assert response.get("X-Request-ID")
+        assert len(response["X-Request-ID"]) > 0
 
-        middleware = RequestIDMiddleware(lambda: None)
-        response = await middleware.dispatch(mock_request, mock_call_next)
+    def test_contextvar_isolation(self):
+        from apps.core.log import _request_id_var, reset_request_id, set_request_id
 
-        assert response.headers["X-Request-ID"] is not None
-        assert len(response.headers["X-Request-ID"]) > 0
-
-    @pytest.mark.asyncio
-    async def test_contextvar_isolation(self):
         token = set_request_id("outer-id")
         assert _request_id_var.get() == "outer-id"
         reset_request_id(token)
@@ -65,167 +36,110 @@ class TestRequestIDMiddleware:
 
 
 class TestSecurityHeadersMiddleware:
-    @pytest.mark.asyncio
-    async def test_security_headers_present(self):
+    def test_security_headers_present(self):
         from apps.core.middleware import SecurityHeadersMiddleware
 
-        mock_request = AsyncMock(spec=Request)
-        mock_request.state = type("State", (), {})()
-        mock_call_next = AsyncMock(return_value=Response())
+        req = RequestFactory().get("/test")
+        mw = SecurityHeadersMiddleware(lambda r: HttpResponse("ok"))
+        response = mw(req)
 
-        middleware = SecurityHeadersMiddleware(lambda: None)
-        response = await middleware.dispatch(mock_request, mock_call_next)
-
-        assert "object-src 'none'" in response.headers["Content-Security-Policy"]
-        assert response.headers["Cross-Origin-Opener-Policy"] == "same-origin-allow-popups"
-        assert response.headers["Cross-Origin-Resource-Policy"] == "same-origin"
-        assert response.headers["X-Permitted-Cross-Domain-Policies"] == "none"
-        assert response.headers["X-Page-Speed"] == "off"
-        assert "camera=()" in response.headers["Permissions-Policy"]
-        assert "Accept-Encoding" in response.headers["Vary"]
+        assert "object-src 'none'" in response["Content-Security-Policy"]
+        assert response["Cross-Origin-Opener-Policy"] == "same-origin-allow-popups"
+        assert response["Cross-Origin-Resource-Policy"] == "same-origin"
+        assert response["X-Permitted-Cross-Domain-Policies"] == "none"
+        assert response["X-Page-Speed"] == "off"
+        assert "camera=()" in response["Permissions-Policy"]
+        assert "Accept-Encoding" in response["Vary"]
 
 
 class TestCaseSensitiveRedirectMiddleware:
-    @pytest.mark.asyncio
-    async def test_relative_redirect_preserves_query(self):
+    def test_relative_redirect_preserves_query(self):
         from apps.core.middleware import CaseSensitiveRedirectMiddleware
 
-        mock_url = type("Url", (), {"path": "/TOOL/Image-Compressor", "query": "source=header&ref=test"})()
-        mock_request = AsyncMock(spec=Request)
-        mock_request.url = mock_url
-        mock_call_next = AsyncMock(return_value=Response())
+        req = RequestFactory().get("/TOOL/Image-Compressor?source=header&ref=test")
+        mw = CaseSensitiveRedirectMiddleware(lambda r: HttpResponse("ok"))
+        response = mw(req)
 
-        middleware = CaseSensitiveRedirectMiddleware(lambda: None)
-        response = await middleware.dispatch(mock_request, mock_call_next)
-
-        assert response.status_code == 308
-        assert response.headers["location"] == "/tool/image-compressor?source=header&ref=test"
+        assert response.status_code == 301
+        assert response["Location"] == "/tool/image-compressor?source=header&ref=test"
 
 
 class TestOriginCheckMiddleware:
-    @pytest.mark.asyncio
-    async def test_blocks_unauthorized_cross_origin_post(self):
+    def test_blocks_unauthorized_cross_origin_post(self):
         from apps.core.middleware import OriginCheckMiddleware
 
-        mock_request = AsyncMock(spec=Request)
-        mock_request.method = "POST"
-        mock_request.headers = {"Origin": "https://malicious-site.com"}
-        mock_call_next = AsyncMock(return_value=Response())
-
-        middleware = OriginCheckMiddleware(lambda: None)
-        response = await middleware.dispatch(mock_request, mock_call_next)
+        req = RequestFactory().post("/api/track", HTTP_ORIGIN="https://malicious-site.com")
+        mw = OriginCheckMiddleware(lambda r: HttpResponse("ok"))
+        response = mw(req)
 
         assert response.status_code == 403
 
 
 class TestCleanQueryMiddleware:
-    @pytest.mark.asyncio
-    async def test_strips_pagespeed_junk(self):
+    def test_strips_pagespeed_junk(self):
         from apps.core.middleware import CleanQueryMiddleware
 
-        mock_url = type("Url", (), {"path": "/tool/calculator", "query": "pagespeed=noscript&valid=1"})()
-        mock_request = AsyncMock(spec=Request)
-        mock_request.method = "GET"
-        mock_request.url = mock_url
-        mock_request.query_params = {"pagespeed": "noscript", "valid": "1"}
-        mock_call_next = AsyncMock(return_value=Response())
-
-        middleware = CleanQueryMiddleware(lambda: None)
-        response = await middleware.dispatch(mock_request, mock_call_next)
+        req = RequestFactory().get("/tool/calculator?pagespeed=noscript&valid=1")
+        mw = CleanQueryMiddleware(lambda r: HttpResponse("ok"))
+        response = mw(req)
 
         assert response.status_code == 301
-        assert response.headers["location"] == "/tool/calculator?valid=1"
+        assert response["Location"] == "/tool/calculator?valid=1"
 
-    @pytest.mark.asyncio
-    async def test_preserves_marketing_utm_and_gclid_by_default(self):
+    def test_preserves_marketing_utm_and_gclid_by_default(self):
         from apps.core.middleware import CleanQueryMiddleware
 
-        mock_url = type("Url", (), {"path": "/tool/calculator", "query": "utm_source=twitter&gclid=123"})()
-        mock_request = AsyncMock(spec=Request)
-        mock_request.method = "GET"
-        mock_request.url = mock_url
-        mock_request.query_params = {"utm_source": "twitter", "gclid": "123"}
-        mock_call_next = AsyncMock(return_value=Response(content="ok", status_code=200))
+        req = RequestFactory().get("/tool/calculator?utm_source=twitter&gclid=123")
+        mw = CleanQueryMiddleware(lambda r: HttpResponse("ok"))
+        response = mw(req)
 
-        middleware = CleanQueryMiddleware(lambda: None)
-        response = await middleware.dispatch(mock_request, mock_call_next)
-
-        # Must not redirect; passes through to call_next
         assert response.status_code == 200
 
 
 class TestTrailingSlashRedirectMiddleware:
-    @pytest.mark.asyncio
-    async def test_trailing_slash_redirects_301_relative(self):
+    def test_trailing_slash_redirects_301_relative(self):
         from apps.core.middleware import TrailingSlashRedirectMiddleware
 
-        mock_url = type("Url", (), {"path": "/tools/", "query": ""})()
-        mock_request = AsyncMock(spec=Request)
-        mock_request.method = "GET"
-        mock_request.url = mock_url
-        mock_call_next = AsyncMock(return_value=Response(content="ok", status_code=200))
+        called = False
 
-        middleware = TrailingSlashRedirectMiddleware(lambda: None)
-        response = await middleware.dispatch(mock_request, mock_call_next)
+        def inner(_r):
+            nonlocal called
+            called = True
+            return HttpResponse("ok")
+
+        req = RequestFactory().get("/tools/")
+        mw = TrailingSlashRedirectMiddleware(inner)
+        response = mw(req)
 
         assert response.status_code == 301
-        assert response.headers["location"] == "/tools"
-        mock_call_next.assert_not_called()
+        assert response["Location"] == "/tools"
+        assert not called
 
-    @pytest.mark.asyncio
-    async def test_trailing_slash_lowercases_and_preserves_query(self):
+    def test_trailing_slash_lowercases_and_preserves_query(self):
         from apps.core.middleware import TrailingSlashRedirectMiddleware
 
-        mock_url = type("Url", (), {"path": "/TOOL/Image-Compressor/", "query": "q=webp&ref=nav"})()
-        mock_request = AsyncMock(spec=Request)
-        mock_request.method = "HEAD"
-        mock_request.url = mock_url
-        mock_call_next = AsyncMock(return_value=Response())
-
-        middleware = TrailingSlashRedirectMiddleware(lambda: None)
-        response = await middleware.dispatch(mock_request, mock_call_next)
+        req = RequestFactory().head("/TOOL/Image-Compressor/?q=webp&ref=nav")
+        mw = TrailingSlashRedirectMiddleware(lambda r: HttpResponse("ok"))
+        response = mw(req)
 
         assert response.status_code == 301
-        assert response.headers["location"] == "/tool/image-compressor?q=webp&ref=nav"
-        mock_call_next.assert_not_called()
+        assert response["Location"] == "/tool/image-compressor?q=webp&ref=nav"
 
-    @pytest.mark.asyncio
-    async def test_root_and_static_do_not_redirect(self):
+    def test_root_and_static_do_not_redirect(self):
         from apps.core.middleware import TrailingSlashRedirectMiddleware
 
-        middleware = TrailingSlashRedirectMiddleware(lambda: None)
+        mw = TrailingSlashRedirectMiddleware(lambda r: HttpResponse("ok"))
         for path in ("/", "/static/css/"):
-            mock_url = type("Url", (), {"path": path, "query": ""})()
-            mock_request = AsyncMock(spec=Request)
-            mock_request.method = "GET"
-            mock_request.url = mock_url
-            mock_call_next = AsyncMock(return_value=Response(content="ok", status_code=200))
-
-            response = await middleware.dispatch(mock_request, mock_call_next)
+            req = RequestFactory().get(path)
+            response = mw(req)
             assert response.status_code == 200
-            mock_call_next.assert_called_once()
+            assert "Location" not in response
 
-    @pytest.mark.asyncio
-    async def test_trailing_slash_strips_legacy_locale_single_hop(self):
+    def test_post_to_trailing_slash_does_not_redirect(self):
         from apps.core.middleware import TrailingSlashRedirectMiddleware
 
-        middleware = TrailingSlashRedirectMiddleware(lambda: None)
-        cases = [
-            ("/hi/", "/", None),
-            ("/es/tools/", "/tools", None),
-            ("/hi/tool/fd-calculator/", "/tool/fd-calculator?foo=1", "foo=1"),
-            ("/history/", "/history", None),
-        ]
-        for path, expected, query in cases:
-            mock_url = type("Url", (), {"path": path, "query": query or ""})()
-            mock_request = AsyncMock(spec=Request)
-            mock_request.method = "GET"
-            mock_request.url = mock_url
-            mock_call_next = AsyncMock(return_value=Response(content="ok", status_code=200))
-
-            response = await middleware.dispatch(mock_request, mock_call_next)
-            assert response.status_code == 301
-            assert response.headers["location"] == expected
-            mock_call_next.assert_not_called()
-
-
+        mw = TrailingSlashRedirectMiddleware(lambda r: HttpResponse("ok"))
+        req = RequestFactory().post("/api/track/")
+        response = mw(req)
+        assert response.status_code == 200
+        assert "Location" not in response

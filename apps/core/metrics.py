@@ -38,12 +38,7 @@ def _normalize_path(path: str) -> str:
 
 def _safe_path_label(request, max_labels: int = 100) -> str:
     global _CARDINALITY_CAP_WARNED
-    route = getattr(request, "scope", {}).get("route") if hasattr(request, "scope") else None
-    if route is not None:
-        path_attr = getattr(route, "path", None)
-        if path_attr:
-            return path_attr
-    raw_path = getattr(getattr(request, "url", None), "path", None) or getattr(request, "path", "/")
+    raw_path = getattr(request, "path", "/")
     path = _normalize_path(raw_path)
     if path not in _PATH_CARDINALITY_WARNED:
         if len(_PATH_CARDINALITY_WARNED) < max_labels:
@@ -74,23 +69,8 @@ active_requests = Gauge(
 
 
 class MetricsMiddleware:
-    def __init__(self, get_response=None):
+    def __init__(self, get_response):
         self.get_response = get_response
-
-    async def dispatch(self, request, call_next):
-        active_requests.inc()
-        start = time.monotonic()
-        response = None
-        try:
-            response = await call_next(request)
-            return response
-        finally:
-            elapsed = time.monotonic() - start
-            status = getattr(response, "status_code", 500)
-            active_requests.dec()
-            path = _safe_path_label(request)
-            request_count.labels(method=request.method, path=path, status=status).inc()
-            request_latency.labels(method=request.method, path=path).observe(elapsed)
 
     def __call__(self, request):
         active_requests.inc()

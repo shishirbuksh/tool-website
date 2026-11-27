@@ -240,8 +240,17 @@
         </div>
       </div>
 
-      <!-- Dashboard Interactive Runner Fragment -->
-      <div class="pt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+      <!-- Dashboard Interactive Runner Fragment (Pure Alpine.js) -->
+      <div class="pt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center"
+           x-data="{
+             activeSlot: 'pdf',
+             slots: {
+               emi: { url: '/tool/emi-calculator', title: 'EMI Calculator', speed: '0.02 ms (instant)' },
+               pdf: { url: '/tool/pdf-converter', title: 'PDF Tools', speed: '0.04 ms (instant)' },
+               bg:  { url: '/tool/image-background-remover', title: 'BG Remover', speed: '0.12 ms (instant)' },
+               qr:  { url: '/tool/qr-generator', title: 'QR Code', speed: '0.01 ms (instant)' }
+             }
+           }">
         
         <!-- Left: Quick Tool Slots -->
         <div class="lg:col-span-5 flex flex-col gap-3">
@@ -254,25 +263,25 @@
           </div>
 
           <div class="grid grid-cols-2 gap-2" id="calHeroSlots">
-            <button type="button" class="cal-hero-time-slot" data-slot="emi" data-url="/tool/emi-calculator" data-title="EMI Calculator" data-speed="0.02 ms (instant)">
+            <button type="button" class="cal-hero-time-slot" :class="{ 'selected': activeSlot === 'emi' }" @click="activeSlot = 'emi'">
               {{ lucide_icon("calculator", "w-3.5 h-3.5 mr-1.5 opacity-70", 14) | safe }}
               <span>EMI Calculator</span>
             </button>
-            <button type="button" class="cal-hero-time-slot selected" data-slot="pdf" data-url="/tool/pdf-converter" data-title="PDF Tools" data-speed="0.04 ms (instant)">
+            <button type="button" class="cal-hero-time-slot selected" :class="{ 'selected': activeSlot === 'pdf' }" @click="activeSlot = 'pdf'">
               {{ lucide_icon("file-text", "w-3.5 h-3.5 mr-1.5 opacity-90", 14) | safe }}
               <span>PDF Converter</span>
             </button>
-            <button type="button" class="cal-hero-time-slot" data-slot="bg" data-url="/tool/image-background-remover" data-title="BG Remover" data-speed="0.12 ms (instant)">
+            <button type="button" class="cal-hero-time-slot" :class="{ 'selected': activeSlot === 'bg' }" @click="activeSlot = 'bg'">
               {{ lucide_icon("image", "w-3.5 h-3.5 mr-1.5 opacity-70", 14) | safe }}
               <span>BG Remover</span>
             </button>
-            <button type="button" class="cal-hero-time-slot" data-slot="qr" data-url="/tool/qr-generator" data-title="QR Code" data-speed="0.01 ms (instant)">
+            <button type="button" class="cal-hero-time-slot" :class="{ 'selected': activeSlot === 'qr' }" @click="activeSlot = 'qr'">
               {{ lucide_icon("qr-code", "w-3.5 h-3.5 mr-1.5 opacity-70", 14) | safe }}
               <span>QR Generator</span>
             </button>
           </div>
 
-          <a href="/tool/pdf-converter" id="calHeroLaunchBtn" class="btn-action w-full text-xs h-10 shadow-sm mt-1 rounded-xl">
+          <a href="/tool/pdf-converter" :href="slots[activeSlot].url" id="calHeroLaunchBtn" class="btn-action w-full text-xs h-10 shadow-sm mt-1 rounded-xl" x-text="'Launch ' + slots[activeSlot].title + ' →'">
             Run Selected Tool Now →
           </a>
         </div>
@@ -284,7 +293,7 @@
               <span class="w-2 h-2 rounded-full bg-[#7EC8E3]"></span>
               Live Telemetry Simulation
             </span>
-            <span class="text-[11px] font-mono text-base-content/60" id="calHeroSpeed">0.04 ms (instant)</span>
+            <span class="text-[11px] font-mono text-base-content/60" id="calHeroSpeed" x-text="slots[activeSlot].speed">0.04 ms (instant)</span>
           </div>
 
           <!-- Trend Bar Graph Preview in DataFast Colors (#7EC8E3 line, #E86A4A bars) -->
@@ -637,43 +646,4 @@
 
 {% block scripts %}
 <script nonce="{{ nonce }}" src="/static/js/tools.js?v={{ app_version }}" defer></script>
-<script nonce="{{ nonce }}">
-(function() {
-  // DataFast Hero Mockup interactive slot switcher
-  var slots = document.querySelectorAll('#calHeroSlots .cal-hero-time-slot');
-  var speedEl = document.getElementById('calHeroSpeed');
-  var launchBtn = document.getElementById('calHeroLaunchBtn');
-  if (slots.length && launchBtn) {
-    slots.forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        slots.forEach(function(s) { s.classList.remove('selected'); });
-        btn.classList.add('selected');
-        var speed = btn.getAttribute('data-speed');
-        var url = btn.getAttribute('data-url');
-        var title = btn.getAttribute('data-title');
-        if (speedEl && speed) speedEl.textContent = speed;
-        if (url) {
-          launchBtn.setAttribute('href', url);
-          launchBtn.textContent = 'Launch ' + title + ' →';
-        }
-      });
-    });
-  }
-
-  // Hero search bar enter / submit navigation
-  var heroBtn = document.getElementById('heroActionBtn');
-  var searchInput = document.getElementById('toolSearchInput');
-  if (heroBtn && searchInput) {
-    heroBtn.addEventListener('click', function(e) {
-      var val = searchInput.value.trim();
-      if (val) {
-        var toolsSec = document.getElementById('tools');
-        if (toolsSec) {
-          toolsSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }
-    });
-  }
-})();
-</script>
 {% endblock %}
