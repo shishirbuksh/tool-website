@@ -1,16 +1,12 @@
 {# Re-exports components/tool_ui_macros.html + components/tool_seo_macros.html. #}
 {#
-  CSP MIGRATION GUIDE (inline-handler -> data-action + addEventListener):
+  CSP MIGRATION GUIDE (inline handlers -> Alpine.js reactive directives):
   Inline onclick=/onchange=/oninput= are blocked by the nonce-based
-  Content-Security-Policy (see app/core/middleware.py). Exemplar: templates/tools/qr_generator.html.
+  Content-Security-Policy (see apps/core/middleware.py). Exemplar: templates/tools/emi_calculator.html.
   Pattern for remaining tools:
-    1. Replace `onclick="doX(...)"` with `data-action="do-x" data-*="..."` (+ type="button").
-    2. Replace `onchange="..."` / `oninput="..."` with matching data-action.
-    3. In the page's <script nonce="{{ nonce }}"> add delegated listeners:
-         document.addEventListener('click', e => { const el = e.target.closest('[data-action]'); ... });
-         document.addEventListener('change', ...); document.addEventListener('input', ...);
-    4. Keep the underlying functions unchanged; call them from the dispatcher.
-       This also covers dynamically injected HTML (history lists, presets).
+    1. Define a pure Alpine.js component (`window.<toolName> = function() { return { ... }; }`) with `x-data`.
+    2. Use `x-model`, `@click`, `@input`, `@change`, `x-text`, `x-show`, and `x-for` instead of manual DOM queries.
+    3. Keep pre-rendered SSR fallback values in HTML for SEO crawlers (`x-show="!mounted"` when needed).
 #}
 {% import 'components/tool_ui_macros.html' as ui with context %}
 {% import 'components/tool_seo_macros.html' as seo with context %}

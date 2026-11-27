@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 from django.conf import settings
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.urls import include, path
@@ -164,8 +165,9 @@ urlpatterns = [
     path("", include("apps.catalog.urls")),
 ]
 
-from django.urls import re_path
-from django.views.static import serve
-urlpatterns += [
-    re_path(r"^static/(?P<path>.*)$", serve, {"document_root": getattr(settings, "STATIC_DIR", os.path.join(settings.BASE_DIR, "static"))}),
-]
+if settings.DEBUG or "pytest" in sys.modules:
+    from django.urls import re_path
+    from django.views.static import serve
+    urlpatterns += [
+        re_path(r"^static/(?P<path>.*)$", serve, {"document_root": getattr(settings, "STATIC_DIR", os.path.join(settings.BASE_DIR, "static"))}),
+    ]

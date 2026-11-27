@@ -60,12 +60,14 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "apps.core.middleware.TrustedHostCheckMiddleware",
+    "apps.core.middleware.RequestIDMiddleware",
     "apps.core.middleware.SecurityHeadersMiddleware",
     "apps.core.middleware.CanonicalHostMiddleware",
     "apps.core.middleware.CaseSensitiveRedirectMiddleware",
     "apps.core.middleware.TrailingSlashRedirectMiddleware",
     "apps.core.middleware.CleanQueryMiddleware",
     "apps.core.middleware.OriginCheckMiddleware",
+    "apps.core.middleware.RateLimitMiddleware",
     "django.middleware.gzip.GZipMiddleware",
     "apps.core.middleware.ConditionalGetMiddleware",
 ]
@@ -75,9 +77,13 @@ ROOT_URLCONF = "config.urls"
 # Jinja2 Environment configuration
 def jinja2_environment(**options):
     from jinja2 import Environment
+    from apps.core.config import _DynamicAppCssHref, _DynamicAssetVersion
     from apps.core.icons import lucide_icon
     from apps.core.sanitize import enhance_tables, sanitize_html
     from datetime import datetime, UTC
+
+    asset_version = _DynamicAssetVersion(STATIC_DIR)
+    app_css_href = _DynamicAppCssHref(STATIC_DIR, asset_version)
 
     env = Environment(**options)
     env.globals.update({
@@ -86,8 +92,8 @@ def jinja2_environment(**options):
         "current_year": lambda: datetime.now(UTC).year,
         "SITE_URL": SITE_URL,
         "site_url": SITE_URL,
-        "app_version": APP_VERSION,
-        "app_css_href": f"/static/css/app.css?v={APP_VERSION}",
+        "app_version": asset_version,
+        "app_css_href": app_css_href,
         "adsense_blog_slot_id": env_var_slot("ADSENSE_BLOG_SLOT_ID"),
         "adsense_tool_slot_id": env_var_slot("ADSENSE_TOOL_SLOT_ID"),
     })

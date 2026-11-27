@@ -63,32 +63,6 @@
           }
         }, { passive: true });
 
-        // Connect global search triggers (mobile navbar / bottom nav search button)
-        const setupMobileSearchTrigger = (id) => {
-          const btn = document.getElementById(id);
-          if (btn) {
-            btn.addEventListener('click', (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              this.focusSearchInput();
-            });
-          }
-        };
-        setupMobileSearchTrigger('searchToggleMobileNav');
-        setupMobileSearchTrigger('searchToggleMobile');
-
-        // Quick action launch pills
-        document.querySelectorAll('[data-quick-search]').forEach((pill) => {
-          pill.addEventListener('click', (e) => {
-            e.preventDefault();
-            const q = pill.getAttribute('data-quick-search') || '';
-            this.searchQuery = q;
-            this.focusSearchInput();
-            const toolsSec = document.getElementById('tools');
-            if (toolsSec) toolsSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          });
-        });
-
         // Initial scroll button state
         this.$nextTick(() => {
           this.updateScrollButtons();

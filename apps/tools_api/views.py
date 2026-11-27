@@ -39,9 +39,11 @@ def remove_background_view(request):
         response = HttpResponse(output_bytes, content_type="image/png")
         response["Cache-Control"] = "no-cache"
         return response
-    except Exception as e:
+    except AppException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+    except Exception:
         logger.exception("Failed to remove background")
-        return JsonResponse({"detail": str(e)}, status=400)
+        return JsonResponse({"detail": "Background removal failed"}, status=500)
 
 
 def remove_watermark_view(request):
@@ -57,9 +59,11 @@ def remove_watermark_view(request):
         response = HttpResponse(output_bytes, content_type="image/png")
         response["Cache-Control"] = "no-cache"
         return response
-    except Exception as e:
+    except AppException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+    except Exception:
         logger.exception("Failed to remove watermark")
-        return JsonResponse({"detail": str(e)}, status=400)
+        return JsonResponse({"detail": "Watermark removal failed"}, status=500)
 
 
 def convert_to_pdf_view(request):
@@ -80,9 +84,11 @@ def convert_to_pdf_view(request):
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="{safe_name}"'
         return response
-    except Exception as e:
+    except AppException as e:
+        return JsonResponse({"detail": e.detail}, status=e.status_code)
+    except Exception:
         logger.exception("Failed to convert to PDF")
-        return JsonResponse({"detail": str(e)}, status=400)
+        return JsonResponse({"detail": "PDF conversion failed"}, status=500)
 
 
 def crypto_rates_view(request):
@@ -98,6 +104,7 @@ def crypto_rates_view(request):
 
 
 def crypto_fng_view(request):
+    limit = 30
     limit_param = request.GET.get("limit")
     if limit_param is not None:
         try:
@@ -108,7 +115,7 @@ def crypto_fng_view(request):
             return JsonResponse({"detail": "Invalid limit"}, status=400)
     import requests
     try:
-        res = requests.get("https://api.alternative.me/fng/?limit=30", timeout=5)
+        res = requests.get(f"https://api.alternative.me/fng/?limit={limit}", timeout=5)
         data = res.json()
         response = JsonResponse(data)
         response["Cache-Control"] = "public, max-age=300"

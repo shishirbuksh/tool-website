@@ -19,7 +19,7 @@ from apps.core.cache import get_cache
 
 logger = logging.getLogger(__name__)
 
-# Must match the route-level pattern in app/api/routes/tools_crypto.py
+# Must match the route-level symbol validation in apps/tools_api/views.py
 # (digits are legitimate: e.g. 1000SATS-style symbols).
 _SYMBOL_RE = re.compile(r"^[A-Z0-9]{2,10}-[A-Z0-9]{2,10}$")
 

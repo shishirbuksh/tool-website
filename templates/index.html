@@ -48,6 +48,7 @@
 {% set hub_links = {"AI & Crypto":"/ai-tools","Image Processing":"/image-tools","Calculators":"/calculators","Developer & SEO":"/developer-tools","Business & Operations":"/business-tools","Productivity & Utilities":"/productivity-tools"} %}
 
 <!-- 1. DATAFAST CENTERED HERO & LIVE DASHBOARD PREVIEW (DESIGN.md) -->
+<div x-data="toolsDirectory()">
 <section class="relative pt-16 pb-16 sm:pt-24 sm:pb-24 overflow-hidden text-center" aria-label="Hero and Quick Search">
   
   <!-- Subtle Ambient Glow -->
@@ -88,16 +89,24 @@
           {{ lucide_icon("search", "w-4 h-4 text-base-content/50 shrink-0", 16) | safe }}
           <label for="toolSearchInput" class="sr-only">Search {{ tool_count }} tools</label>
           <input type="search" id="toolSearchInput" 
+                 x-model="searchQuery"
+                 @focus="onSearchFocus()"
+                 @blur="onSearchBlur()"
+                 @click.outside="closeSuggestions()"
+                 @keydown.down.prevent="navigateSuggestions(1)"
+                 @keydown.up.prevent="navigateSuggestions(-1)"
+                 @keydown.enter="onSearchEnter($event)"
+                 @keydown.escape="closeSuggestions()"
                  class="grow bg-transparent border-none outline-none p-0 text-sm sm:text-base font-medium text-base-content placeholder:text-base-content/40 min-w-0 focus:ring-0" 
                  placeholder="Search tools (e.g. emi, pdf, qr, invoice)..." 
                  autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                 role="combobox" aria-expanded="false" aria-controls="searchSuggestions" aria-autocomplete="list" enterkeyhint="search" inputmode="search">
+                 role="combobox" :aria-expanded="showSuggestions && suggestions.length > 0 ? 'true' : 'false'" aria-expanded="false" aria-controls="searchSuggestions" aria-autocomplete="list" enterkeyhint="search" inputmode="search">
           
-          <button type="button" id="toolSearchClear" class="hidden p-1 rounded-md text-base-content/50 hover:text-base-content min-h-[28px] min-w-[28px] flex items-center justify-center cursor-pointer shrink-0" aria-label="Clear search">
+          <button type="button" id="toolSearchClear" x-show="searchQuery.length > 0" @click="clearSearch()" x-cloak class="p-1 rounded-md text-base-content/50 hover:text-base-content min-h-[28px] min-w-[28px] flex items-center justify-center cursor-pointer shrink-0" aria-label="Clear search">
             {{ lucide_icon("x", "w-3.5 h-3.5", 14) | safe }}
           </button>
 
-          <kbd class="px-2 py-0.5 rounded-lg bg-base-100 border border-base-300 text-[10px] font-mono text-base-content/50 hidden md:inline-flex shrink-0 shadow-2xs">⌘K</kbd>
+          <kbd class="px-2 py-0.5 rounded-lg bg-base-100 border border-base-300 text-[10px] font-mono text-base-content/50 hidden md:inline-flex shrink-0 shadow-2xs" x-show="searchQuery.length === 0">⌘K</kbd>
         </div>
 
         <!-- Primary Coral Action CTA Button -->
@@ -108,8 +117,26 @@
       </div>
 
       <!-- Search Suggestions Dropdown -->
-      <div id="searchSuggestions" class="search-suggestions hidden rounded-2xl border border-base-300 bg-base-200/95 backdrop-blur-xl shadow-2xl overflow-hidden z-50 flex-col max-h-80 overflow-y-auto text-left" role="listbox" aria-label="Search suggestions">
-        <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/50 px-4 pb-2 pt-3 border-b border-base-300/60" id="suggestionHeader">Popular Tools</div>
+      <div id="searchSuggestions" x-show="showSuggestions && suggestions.length > 0" x-cloak class="absolute top-full left-0 right-0 mt-2 search-suggestions rounded-2xl border border-base-300 bg-base-200/95 backdrop-blur-xl shadow-2xl overflow-hidden z-50 flex flex-col max-h-80 overflow-y-auto text-left" role="listbox" aria-label="Search suggestions">
+        <div class="text-[11px] font-semibold uppercase tracking-wider text-base-content/50 px-4 pb-2 pt-3 border-b border-base-300/60" id="suggestionHeader" x-text="suggestionHeaderTitle">Popular Tools</div>
+        <template x-for="(item, idx) in suggestions" :key="idx">
+          <a :href="item.url || '#'"
+             @click="selectSuggestion(item, $event)"
+             @mouseenter="focusedSuggestionIdx = idx"
+             :class="{ 'active': idx === focusedSuggestionIdx }"
+             class="search-suggestion-item group"
+             role="option"
+             :aria-selected="idx === focusedSuggestionIdx ? 'true' : 'false'">
+            <span x-html="item.iconSvg"></span>
+            <span class="suggestion-label" x-text="item.label"></span>
+            <template x-if="item.meta">
+              <span class="suggestion-meta" x-text="item.meta"></span>
+            </template>
+            <template x-if="item.url && !item.meta">
+              <span class="text-primary/70 text-xs font-semibold">→</span>
+            </template>
+          </a>
+        </template>
       </div>
     </div>
 
@@ -340,15 +367,15 @@
 <!-- 3. STICKY CATEGORY NAV-PILL-GROUP BAR -->
 <nav class="sticky top-16 z-30 py-2.5 px-4 bg-base-100/95 backdrop-blur-xl border-b border-base-300 shadow-xs mb-8 transition-all" id="tools" aria-label="Category navigation">
   <div class="relative max-w-[1280px] mx-auto flex items-center group/cats">
-    <button type="button" id="catScrollLeft" class="hidden sm:hidden items-center justify-center w-8 h-8 rounded-full bg-base-100/95 border border-base-300 shadow-md text-base-content/70 hover:text-base-content hover:bg-base-200 transition-all absolute -left-2 top-1/2 -translate-y-1/2 z-20 cursor-pointer" aria-label="Scroll categories left">
+    <button type="button" id="catScrollLeft" x-show="canScrollLeft" @click="scrollCategories(-240)" x-cloak class="flex items-center justify-center w-8 h-8 rounded-full bg-base-100/95 border border-base-300 shadow-md text-base-content/70 hover:text-base-content hover:bg-base-200 transition-all absolute -left-2 top-1/2 -translate-y-1/2 z-20 cursor-pointer" aria-label="Scroll categories left">
       {{ lucide_icon("chevron-left", "w-4 h-4", 16) | safe }}
     </button>
-    <div class="category-scroll-track w-full overflow-x-auto no-scrollbar py-0.5" id="categoryScrollContainer" style="scrollbar-width:none;-ms-overflow-style:none;">
+    <div class="category-scroll-track w-full overflow-x-auto no-scrollbar py-0.5" id="categoryScrollContainer" @scroll.passive="updateScrollButtons()" :class="{ 'has-left-fade': canScrollLeft, 'has-right-fade': canScrollRight }" style="scrollbar-width:none;-ms-overflow-style:none;">
       <div class="w-max mx-auto flex items-center gap-2 p-0.5">
-        <div class="nav-pill-group flex items-center p-1 rounded-full bg-base-200/80 border border-base-300 shrink-0" role="tablist" id="categoryTablist">
+        <div class="nav-pill-group flex items-center p-1 rounded-full bg-base-200/80 border border-base-300 shrink-0" aria-label="Category hub links" id="categoryTablist">
           <a href="/tools" 
              class="category-card active" 
-             role="tab" aria-selected="true" tabindex="0" data-filter="all" data-category-name="All Tools" title="All Tools" id="tab-all">
+             data-filter="all" data-category-name="All Tools" title="All Tools" id="tab-all">
             <span class="category-card-icon flex-shrink-0">{{ lucide_icon("grid-3x3", "w-3.5 h-3.5", 14) | safe }}</span>
             <span class="category-card-name">All Tools</span>
             <span class="category-card-count">{{ tool_count }}</span>
@@ -360,7 +387,7 @@
           {% set short_name = cat_short_names.get(category, category) %}
           <a href="{{ hub }}" 
              class="category-card" 
-             role="tab" aria-selected="false" tabindex="-1" data-filter="{{ slug }}" data-category-name="{{ category }}" title="{{ category }}" id="tab-{{ slug }}">
+             data-filter="{{ slug }}" data-category-name="{{ category }}" title="{{ category }}" id="tab-{{ slug }}">
             <span class="category-card-icon flex-shrink-0">{{ lucide_icon(icon, "w-3.5 h-3.5", 14) | safe }}</span>
             <span class="category-card-name">{{ short_name }}</span>
             <span class="category-card-count">{{ tools | length }}</span>
@@ -373,7 +400,7 @@
         </a>
       </div>
     </div>
-    <button type="button" id="catScrollRight" class="hidden sm:hidden items-center justify-center w-8 h-8 rounded-full bg-base-100/95 border border-base-300 shadow-md text-base-content/70 hover:text-base-content hover:bg-base-200 transition-all absolute -right-2 top-1/2 -translate-y-1/2 z-20 cursor-pointer" aria-label="Scroll categories right">
+    <button type="button" id="catScrollRight" x-show="canScrollRight" @click="scrollCategories(240)" x-cloak class="flex items-center justify-center w-8 h-8 rounded-full bg-base-100/95 border border-base-300 shadow-md text-base-content/70 hover:text-base-content hover:bg-base-200 transition-all absolute -right-2 top-1/2 -translate-y-1/2 z-20 cursor-pointer" aria-label="Scroll categories right">
       {{ lucide_icon("chevron-right", "w-4 h-4", 16) | safe }}
     </button>
   </div>
@@ -402,7 +429,7 @@
     {% set cat_icon = cat_icons.get(category, "box") %}
     {% set hub = hub_links.get(category, "/tools") %}
     
-    <section id="grid-{{ slug }}" class="category-section mb-14 scroll-mt-28" data-category="{{ slug }}" role="tabpanel" aria-label="{{ category }} tools">
+    <section id="grid-{{ slug }}" class="category-section mb-14 scroll-mt-28" data-category="{{ slug }}" aria-label="{{ category }} tools">
       
       <!-- Category Header with Hub Link -->
       <div class="category-header justify-between mb-5">
@@ -441,9 +468,10 @@
     </div>
     <p class="text-lg font-bold text-base-content mb-1">No tools matched your query</p>
     <p class="text-sm text-base-content/60 mb-5">Try searching for "calculator", "pdf", "invoice" or "qr".</p>
-    <button type="button" id="clearFiltersBtn" class="btn-action text-xs px-5 h-9 rounded-xl">Reset filters</button>
+    <button type="button" id="clearFiltersBtn" @click="clearAllFilters()" class="btn-action text-xs px-5 h-9 rounded-xl">Reset filters</button>
   </div>
 
+</div>
 </div>
 
 <!-- 5. DATAFAST 3-UP FEATURE BAND WITH EMBEDDED UI FRAGMENTS -->
@@ -644,6 +672,6 @@
 
 {% endblock %}
 
-{% block scripts %}
+{% block pre_app_scripts %}
 <script nonce="{{ nonce }}" src="/static/js/tools.js?v={{ app_version }}" defer></script>
 {% endblock %}

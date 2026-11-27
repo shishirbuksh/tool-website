@@ -5,8 +5,8 @@
 - HTML5 (Semantic, Accessible, Mobile-First)
 - Tailwind CSS v4 (@tailwindcss/postcss, @theme)
 - DaisyUI v5 (@plugin "daisyui")
-- JavaScript (Vanilla, client-side execution for 122/128 tools)
-- Caddy (reverse proxy, automatic HTTPS, Brotli/Gzip) + Gunicorn WSGI/ASGI on port 8090
+- Alpine.js v3 (reactive client-side execution; migrating remaining legacy DOM handlers to pure Alpine.js)
+- Caddy (reverse proxy, automatic HTTPS, Brotli/Gzip) + Gunicorn WSGI (`gthread`) on port 8090
 
 ## Catalog
 - 128 free online tools (slugs defined in `data/tools.yaml`)

@@ -84,3 +84,12 @@ class TestCacheService:
         svc = CacheService(default_ttl=60)
         assert svc.get("stale_key") is None
 
+    def test_unwrap_stored_plain_string_and_bytes(self):
+        from apps.core.cache import _unwrap_stored, _wrap_for_storage
+
+        wrapped_str = _wrap_for_storage("hello-world")
+        assert _unwrap_stored(wrapped_str) == "hello-world"
+
+        wrapped_bytes = _wrap_for_storage(b"\x01\x02\xff")
+        assert _unwrap_stored(wrapped_bytes) == b"\x01\x02\xff"
+

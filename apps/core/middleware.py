@@ -6,11 +6,14 @@ import os
 import re
 import secrets
 import sys
+import time
+import threading
 from urllib.parse import urlencode, urlparse
 import uuid
 
 from django.conf import settings
-from django.http import HttpResponse, HttpResponseNotModified, HttpResponsePermanentRedirect
+from django.core.cache import cache
+from django.http import HttpResponse, HttpResponseNotModified, HttpResponsePermanentRedirect, JsonResponse
 
 from apps.core.log import reset_request_id, set_request_id
 
@@ -268,3 +271,45 @@ class ConditionalGetMiddleware:
                 return not_modified
 
         return response
+
+
+class RateLimitMiddleware:
+    """Sliding-window per-IP rate limiter for /api/* write/proxy/heavy endpoints."""
+
+    _STRICT_API_PREFIXES = ("/api/proxy-request", "/api/contact", "/api/remove-background", "/api/remove-watermark", "/api/convert-to-pdf", "/api/youtube-channel")
+    _WINDOW_SEC = 60
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self._lock = threading.Lock()
+
+    def _client_ip(self, request) -> str:
+        xff = request.META.get("HTTP_X_FORWARDED_FOR", "")
+        if xff:
+            return xff.split(",")[0].strip()
+        return (request.headers.get("x-real-ip") or request.META.get("REMOTE_ADDR") or "unknown").strip()
+
+    def __call__(self, request):
+        path = request.path
+        if not path.startswith("/api/"):
+            return self.get_response(request)
+        if settings.DEBUG or getattr(settings, "IS_TEST", False) or "test" in os.environ.get("ENV", "").lower() or "pytest" in sys.modules:
+            if not getattr(request, "_force_ratelimit_test", False):
+                return self.get_response(request)
+
+        is_strict = any(path.startswith(p) for p in self._STRICT_API_PREFIXES)
+        limit = 15 if is_strict else 60
+        bucket = "strict" if is_strict else "api"
+        ip = self._client_ip(request)
+        window = int(time.time() // self._WINDOW_SEC)
+        key = f"rl:{bucket}:{ip}:{window}"
+
+        with self._lock:
+            count = cache.get(key, 0) + 1
+            cache.set(key, count, timeout=self._WINDOW_SEC + 5)
+
+        if count > limit:
+            resp = JsonResponse({"detail": "Rate limit exceeded. Please try again shortly."}, status=429)
+            resp["Retry-After"] = str(self._WINDOW_SEC)
+            return resp
+        return self.get_response(request)

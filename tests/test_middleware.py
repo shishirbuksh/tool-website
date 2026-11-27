@@ -143,3 +143,23 @@ class TestTrailingSlashRedirectMiddleware:
         response = mw(req)
         assert response.status_code == 200
         assert "Location" not in response
+
+
+class TestRateLimitMiddleware:
+    def test_strict_api_endpoint_rate_limited(self):
+        from django.core.cache import cache
+        from apps.core.middleware import RateLimitMiddleware
+
+        cache.clear()
+        mw = RateLimitMiddleware(lambda r: HttpResponse("ok"))
+        for _ in range(15):
+            req = RequestFactory().post("/api/contact", REMOTE_ADDR="198.51.100.10")
+            req._force_ratelimit_test = True
+            resp = mw(req)
+            assert resp.status_code == 200
+
+        blocked = RequestFactory().post("/api/contact", REMOTE_ADDR="198.51.100.10")
+        blocked._force_ratelimit_test = True
+        resp_429 = mw(blocked)
+        assert resp_429.status_code == 429
+        assert resp_429.get("Retry-After") == "60"

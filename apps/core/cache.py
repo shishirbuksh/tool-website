@@ -155,7 +155,7 @@ def _unwrap_stored(payload: str) -> Any:
                 return bytes.fromhex(raw[6:])
             except (ValueError, TypeError):
                 return payload
-            return raw
+        return raw
     try:
         return json.loads(payload)
     except (ValueError, TypeError):

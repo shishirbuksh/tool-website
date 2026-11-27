@@ -10,21 +10,14 @@ from datetime import datetime, UTC
 from django.conf import settings
 from django.http import Http404, HttpResponse, HttpResponsePermanentRedirect, JsonResponse
 from django.shortcuts import render
+from django.template import TemplateDoesNotExist
 from apps.catalog.services import CatalogService, SeoService, ToolDataLoader, tool_etag
 from apps.blog.services import BlogService
+from apps.core.constants import QUARANTINED_TOOLS
 
 _catalog_service = CatalogService()
 _seo_service = SeoService()
 _blog_service = BlogService()
-
-_QUARANTINED_TOOLS = {
-    "love-calculator",
-    "crypto-price-prediction",
-    "meme-coin-detector",
-    "airdrop-finder",
-    "crypto-scam-checker",
-    "crypto-red-flag-self-assessment-tool",
-}
 
 
 def _page_context(request, bare_path: str) -> dict:
@@ -143,12 +136,12 @@ def tool_detail(request, tool_name: str):
         "related_guides": related_guides,
     }
     ctx.update(_page_context(request, f"/tool/{tool_name}"))
-    if tool_name in _QUARANTINED_TOOLS:
+    if tool_name in QUARANTINED_TOOLS:
         ctx["robots_noindex"] = True
 
     try:
         response = render(request, template_name, ctx)
-    except Exception as e:
+    except TemplateDoesNotExist as e:
         raise Http404("Tool template not found") from e
 
     response["Cache-Control"] = "public, max-age=0, must-revalidate"

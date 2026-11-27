@@ -10,17 +10,10 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import render
 from apps.blog.services import BlogService
 from apps.catalog.services import CatalogService
+from apps.core.constants import QUARANTINED_BLOG_POSTS
 
 _blog_service = BlogService()
 _catalog_service = CatalogService()
-
-_QUARANTINED_POSTS = {
-    "love-calculator-explained-fun",
-    "crypto-price-prediction-how-it-works",
-    "meme-coin-detector-guide",
-    "meme-coin-red-flags-learn-guide",
-    "airdrop-finder-guide",
-}
 
 
 def _page_canonical(bare_path: str, page: int) -> str:
@@ -163,7 +156,7 @@ def blog_post(request, pillar: str, cluster: str):
         "html_lang": "en",
         "og_locale": "en_US",
         "bare_path": f"/blog/{pillar}/{cluster}",
-        "robots_noindex": post.slug in _QUARANTINED_POSTS,
+        "robots_noindex": post.slug in QUARANTINED_BLOG_POSTS,
         "nonce": getattr(request, "nonce", ""),
     }
 

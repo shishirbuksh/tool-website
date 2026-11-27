@@ -12,7 +12,7 @@ The platform is engineered for absolute maximum performance (100/100 Core Web Vi
 - **Speculation Rules API:** Zero-millisecond (0ms) predictive prerendering on hover.
 - **DataFast SaaS Conversion UI:** Dark-first `#1A1A1A` high-contrast aesthetic with Action Coral `#E86A4A` accents.
 - **Zero-Byte CSS:** Tailwind `app.css` is strictly cached and version-busted on the backend for minimal TTFB.
-- **Hydration-Free Frontend:** No heavy JS frameworks (React/Vue/Angular). Vanilla JS ensures zero main-thread blocking.
+- **Hydration-Free Frontend:** No heavy SPA frameworks (React/Vue/Angular). Alpine.js + server-rendered Django templates ensure minimal main-thread blocking.
 - **Lazy Loading:** Analytics and ads are debounced to guarantee 100/100 Lighthouse performance.
 
 ## 🛠️ Tech Stack
@@ -25,7 +25,7 @@ The platform is engineered for absolute maximum performance (100/100 Core Web Vi
 - **SQLite / Redis** (Analytics tracking and high-throughput caching)
 
 ### Frontend
-- **HTML5 & Vanilla JavaScript**
+- **HTML5 & Alpine.js v3**
 - **TailwindCSS v4**
 - **DaisyUI v5**
 - **DataFast Design System** (Dark surface layers, coral action buttons, accessible typography)
@@ -117,10 +117,10 @@ This script will automatically pull the latest `main` branch, rebuild assets, re
 - **Legacy locale redirects:** Legacy `/hi/*`, `/es/*`, `/fr/*`, and `/de/*` URLs issue HTTP `301` permanent redirects to their canonical English URLs; `/sitemap-index.xml` and `/sitemap-en.xml` `301`-redirect to `/sitemap.xml`, and `/sitemap-{hi,es,fr,de}.xml` return `404`.
 
 ### Environment, Caddy & Systemd
-- **Layout:** HTML templates live in `templates/` and static assets in `static/` (both at the repo root — not under `app/`). Tool pages are `templates/tools/<slug_with_underscores>.html` for each slug in `data/tools.yaml`.
+- **Layout:** HTML templates live in `templates/` and static assets in `static/` (both at the repo root — not under `apps/`). Tool pages are `templates/tools/<slug_with_underscores>.html` for each slug in `data/tools.yaml`.
 - **Env:** copy `.env.example` to `.env` and set `SECRET_KEY`, `ALLOWED_HOSTS`, `CORS_ORIGINS`, plus `CADDY_DOMAIN` / `CADDY_PROXY_UPSTREAM` / `CADDY_STATIC_ROOT` (must equal `$APP_DIR/static`), `FORWARDED_ALLOW_IPS=127.0.0.1`, and `U2NET_HOME`. `deploy.sh` auto-generates `SECRET_KEY` if missing and persists `APP_VERSION` to `.env`.
 - **Caddy:** `Caddyfile` reverse-proxies to Gunicorn on `127.0.0.1:8090`, serves `/static/*` from `CADDY_STATIC_ROOT`, and serves `/sw.js` with `Service-Worker-Allowed: /`. Override the apex domain with `CADDY_DOMAIN`.
-- **Systemd:** `storybrain-ai.service` loads `{{APP_DIR}}/.env` via `EnvironmentFile`, runs `gunicorn app.main:app -c gunicorn_conf.py` as the `storybrainai` user, and sets `U2NET_HOME={{APP_DIR}}/.u2net`.
+- **Systemd:** `storybrain-ai.service` loads `{{APP_DIR}}/.env` via `EnvironmentFile`, runs `gunicorn config.wsgi:application -c gunicorn_conf.py` as the `storybrainai` user, and sets `U2NET_HOME={{APP_DIR}}/.u2net`.
 
 ---
 

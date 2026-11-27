@@ -1,6 +1,23 @@
-from .base import *  # noqa: F403
+from django.core.exceptions import ImproperlyConfigured
+
+from .base import *  # noqa: F403, F405
 
 DEBUG = False
+
+if ENV in ("prod", "production"):  # noqa: F405
+    if (
+        not SECRET_KEY  # noqa: F405
+        or SECRET_KEY.startswith("django-insecure-")  # noqa: F405
+        or SECRET_KEY == "change-me"  # noqa: F405
+        or len(SECRET_KEY) < 32  # noqa: F405
+    ):
+        raise ImproperlyConfigured(
+            "Production (ENV=prod) requires a strong SECRET_KEY (>=32 chars, not default/change-me)."
+        )
+    if not ALLOWED_HOSTS or "*" in ALLOWED_HOSTS:  # noqa: F405
+        raise ImproperlyConfigured(
+            "Production (ENV=prod) requires explicit ALLOWED_HOSTS without wildcards."
+        )
 
 # Production security headers and cookie policies
 SECURE_SSL_REDIRECT = False  # Handled at Caddy edge

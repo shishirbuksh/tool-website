@@ -11,6 +11,7 @@ from html import escape
 from django.conf import settings
 from apps.catalog.services import ToolDataLoader
 from apps.blog.services import BlogService
+from apps.core.constants import QUARANTINED_BLOG_POSTS, QUARANTINED_TOOLS
 
 _YAML_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
@@ -50,18 +51,10 @@ class SitemapService:
 
         # Tool pages
         tools_dir = os.path.join(templates_dir, "tools")
-        excluded_tools = {
-            "love-calculator",
-            "crypto-price-prediction",
-            "meme-coin-detector",
-            "airdrop-finder",
-            "crypto-scam-checker",
-            "crypto-red-flag-self-assessment-tool",
-        }
         if os.path.exists(tools_dir):
             all_slugs = ToolDataLoader.get_slugs()
             for slug in all_slugs:
-                if slug in excluded_tools:
+                if slug in QUARANTINED_TOOLS:
                     continue
                 fname = f"{slug.replace('-', '_')}.html"
                 fpath = os.path.join(tools_dir, fname)
@@ -100,15 +93,8 @@ class SitemapService:
         for pinfo in blog_service.get_pillars():
             pages.append({"loc": f"/blog/{pinfo}", "priority": "0.6", "changefreq": "weekly", "filepath": os.path.join(blog_tpl_dir, "pillar.html")})
 
-        excluded_blog_posts = {
-            "love-calculator-explained-fun",
-            "crypto-price-prediction-how-it-works",
-            "meme-coin-detector-guide",
-            "meme-coin-red-flags-learn-guide",
-            "airdrop-finder-guide",
-        }
         for post in blog_service.get_all():
-            if post.slug in excluded_blog_posts:
+            if post.slug in QUARANTINED_BLOG_POSTS:
                 continue
             pages.append({
                 "loc": f"/blog/{post.pillar}/{post.slug}",
@@ -145,9 +131,7 @@ class SitemapService:
             yaml_date = page.get("yaml_date")
             filepath = page.get("filepath")
             lastmod = None
-            if filepath and os.path.isfile(filepath) and not filepath.endswith(("hub.html", "pillar.html", "post.html")):
-                lastmod = self._get_lastmod(filepath)
-            elif yaml_date and _YAML_DATE_RE.match(str(yaml_date)):
+            if yaml_date and _YAML_DATE_RE.match(str(yaml_date)):
                 lastmod = str(yaml_date)
             elif filepath and os.path.isfile(filepath):
                 lastmod = self._get_lastmod(filepath)
@@ -238,14 +222,15 @@ class SitemapService:
                 return self._llms_cache[1]
             site_url = getattr(settings, "SITE_URL", "https://www.storybrainai.com").rstrip("/")
             all_tools = ToolDataLoader.get_all()
+            indexable_slugs = [s for s in sorted(all_tools.keys()) if s not in QUARANTINED_TOOLS]
             lines = [
                 f"# {getattr(settings, 'PROJECT_NAME', 'StoryBrain AI')} — AI Tool Directory",
                 "",
-                f"> Discover {len(all_tools)} free AI-powered tools, calculators, and business utilities.",
+                f"> Discover {len(indexable_slugs)} free AI-powered tools, calculators, and business utilities.",
                 "",
                 "## Tools",
             ]
-            for slug in sorted(all_tools.keys()):
+            for slug in indexable_slugs:
                 info = all_tools.get(slug, {})
                 name = info.get("name") or slug.replace("-", " ").title()
                 desc = (info.get("description") or "").strip().replace("\n", " ")
@@ -271,6 +256,8 @@ class SitemapService:
             lines.append("")
             lines.append(f"- [Blog]({site_url}/blog): step-by-step guides for every free tool")
             for post in BlogService().get_all():
+                if post.slug in QUARANTINED_BLOG_POSTS:
+                    continue
                 lines.append(f"- [{post.title}]({site_url}/blog/{post.pillar}/{post.slug})")
 
             lines.append("")

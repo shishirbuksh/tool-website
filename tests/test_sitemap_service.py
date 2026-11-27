@@ -90,6 +90,9 @@ class TestSitemapService:
         assert "## Categories" in result
         assert "/blog/calculators/emi-calculator-guide" in result
         assert "/calculators" in result
+        assert "/tool/love-calculator" not in result
+        assert "/tool/crypto-price-prediction" not in result
+        assert "/blog/ai-crypto/crypto-price-prediction-how-it-works" not in result
 
     def test_sitemap_uses_item_dates(self, settings):
         svc = SitemapService(settings)

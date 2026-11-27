@@ -72,6 +72,7 @@ Alpine.data('cookieConsent', function() {
     reject: function() {
       try { localStorage.setItem('cookieConsent', 'rejected'); } catch(e) {}
       this.show = false;
+      window.dispatchEvent(new Event('cookieConsentRejected'));
     }
   };
 });
@@ -234,21 +235,11 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',func
 var nav=document.getElementById('siteNavbar'),sh=document.getElementById('siteHeader');function hS(){var s=window.scrollY>20;if(nav)nav.classList.toggle('shadow-sm',s);if(sh)sh.classList.toggle('scrolled',s)}
 window.addEventListener('scroll',hS,{passive:true});if(typeof requestAnimationFrame==='function')requestAnimationFrame(hS);
 
-/* ── Nav active state for tool pages ── */
-if(window.location.pathname.indexOf('/tool/')===0){document.querySelectorAll('.nav-link').forEach(function(l){if(l.getAttribute('href')==='/#tools')l.classList.add('active')})}
-
 /* ── Tilt cards ── */
 document.querySelectorAll('.tilt-card[data-tilt]').forEach(function(c){c.addEventListener('mousemove',function(e){var r=this.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-0.5,y=(e.clientY-r.top)/r.height-0.5;this.style.setProperty('--tilt-x',(-y*12)+'deg');this.style.setProperty('--tilt-y',(x*12)+'deg')});c.addEventListener('mouseleave',function(){this.style.setProperty('--tilt-x','0deg');this.style.setProperty('--tilt-y','0deg')})})
 
 /* ── Button ripple ── */
 document.querySelectorAll('.btn-ripple').forEach(function(b){b.addEventListener('mousedown',function(e){var r=this.getBoundingClientRect();this.style.setProperty('--ripple-x',((e.clientX-r.left)/r.width*100)+'%');this.style.setProperty('--ripple-y',((e.clientY-r.top)/r.height*100)+'%')})})
-
-if('serviceWorker'in navigator){navigator.serviceWorker.getRegistrations().then(function(regs){for(var i=0;i<regs.length;i++){regs[i].unregister()}}).catch(function(){});if(window.caches){caches.keys().then(function(keys){for(var j=0;j<keys.length;j++){caches.delete(keys[j])}}).catch(function(){})}}
-
-/* ── Scroll reveal IntersectionObserver (with no-JS/no-IO fallback: reveal all) ── */
-if('IntersectionObserver'in window){var ro=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('visible');ro.unobserve(e.target)}})},{threshold:0.1})
-document.querySelectorAll('.reveal').forEach(function(el){ro.observe(el)})}
-else{document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('visible')})}
 
 /* ── Lightweight analytics ── */
 var an=document.getElementById('analytics-track');if(an&&'sendBeacon'in navigator){var b=new Blob([JSON.stringify({name:an.dataset.tool||'page',category:'page_view'})],{type:'application/json'});navigator.sendBeacon('/api/track',b)}
