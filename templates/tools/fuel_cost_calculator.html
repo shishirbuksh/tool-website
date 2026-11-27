@@ -84,16 +84,16 @@
     <div class="feature-card p-6 md:p-8">
       <h3 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5",20) | safe }} Cost Breakdown</h3>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Trip cost</div><div id="tripCost" class="font-black font-mono text-xl">₹1,600</div></div>
-        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60" id="perUnitLabel" x-text="perUnitLabel">Per km</div><div id="perKm" class="font-black font-mono text-xl">₹6.40</div></div>
-        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Fuel needed</div><div id="litres" class="font-black font-mono text-xl">16.67 L</div></div>
-        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Per person</div><div id="perPerson" class="font-black font-mono text-xl">₹1,600</div></div>
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Trip cost</div><div id="tripCost" x-text="tripCost" class="font-black font-mono text-xl">₹1,600</div></div>
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60" id="perUnitLabel" x-text="perUnitLabel">Per km</div><div id="perKm" x-text="perKm" class="font-black font-mono text-xl">₹6.40</div></div>
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Fuel needed</div><div id="litres" x-text="litres" class="font-black font-mono text-xl">16.67 L</div></div>
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Per person</div><div id="perPerson" x-text="perPerson" class="font-black font-mono text-xl">₹1,600</div></div>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Monthly budget (same trip daily)</div><div id="monthly" class="font-black font-mono text-lg">₹35,200</div></div>
-        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Alt fuel trip cost</div><div id="altCost" class="font-black font-mono text-lg">₹1,200</div><div id="altVerdict" class="text-xs font-bold mt-1 opacity-70">Saves ₹400 per trip</div></div>
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Monthly budget (same trip daily)</div><div id="monthly" x-text="monthly" class="font-black font-mono text-lg">₹35,200</div></div>
+        <div class="rounded-xl p-4 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Alt fuel trip cost</div><div id="altCost" x-text="altCost" class="font-black font-mono text-lg">₹1,200</div><div id="altVerdict" x-text="altVerdict" class="text-xs font-bold mt-1 opacity-70">Saves ₹400 per trip</div></div>
       </div>
-      <button type="button" id="copyBtn" @click="copy()" class="btn btn-cal-primary mt-5 py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("copy","w-4 h-4",16) | safe }} COPY TRIP SHEET</button>
+      <button type="button" id="copyBtn" @click="copy()" class="btn btn-cal-primary mt-5 py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("copy","w-4 h-4",16) | safe }} <span x-text="copied ? 'Copied!' : 'COPY TRIP SHEET'">COPY TRIP SHEET</span></button>
     </div>
   </div>
 </div>
@@ -110,6 +110,14 @@ window.fuelCalculator = function() {
     days: 22,
     altMileage: 20,
     altPrice: 96,
+    tripCost: '₹1,600',
+    perKm: '₹6.40',
+    litres: '16.67 L',
+    perPerson: '₹1,600',
+    monthly: '₹35,200',
+    altCost: '₹1,200',
+    altVerdict: 'Saves ₹400 per trip',
+    copied: false,
 
     get isMiles() {
       return this.effUnit === 'mpg' || this.effUnit === 'mpg_uk';
@@ -174,28 +182,24 @@ window.fuelCalculator = function() {
       var perPerson = trip / n;
       var monthly = trip * days;
 
-      var elTrip = document.getElementById('tripCost'); if (elTrip) elTrip.textContent = this.fmt(trip);
-      var elPerKm = document.getElementById('perKm'); if (elPerKm) elPerKm.textContent = this.fmt(perUnit, 2);
-      var elLitres = document.getElementById('litres');
-      if (elLitres) {
-        if (u === 'mpg') {
-          elLitres.textContent = vol.toFixed(2) + ' gal';
-        } else if (u === 'mpg_uk') {
-          var galUK = vol / 4.54609;
-          elLitres.textContent = vol.toFixed(2) + ' L (' + galUK.toFixed(2) + ' gal)';
-        } else {
-          elLitres.textContent = vol.toFixed(2) + ' L';
-        }
+      this.tripCost = this.fmt(trip);
+      this.perKm = this.fmt(perUnit, 2);
+      if (u === 'mpg') {
+        this.litres = vol.toFixed(2) + ' gal';
+      } else if (u === 'mpg_uk') {
+        var galUK = vol / 4.54609;
+        this.litres = vol.toFixed(2) + ' L (' + galUK.toFixed(2) + ' gal)';
+      } else {
+        this.litres = vol.toFixed(2) + ' L';
       }
-      var elPerPerson = document.getElementById('perPerson'); if (elPerPerson) elPerPerson.textContent = this.fmt(perPerson);
-      var elMonthly = document.getElementById('monthly'); if (elMonthly) elMonthly.textContent = this.fmt(monthly);
+      this.perPerson = this.fmt(perPerson);
+      this.monthly = this.fmt(monthly);
 
-      var elAlt = document.getElementById('altCost'), elVer = document.getElementById('altVerdict');
-      if (am > 0 && ap >= 0 && elAlt && elVer) {
+      if (am > 0 && ap >= 0) {
         var alt = this.fuelNeeded(d, am, u) * ap;
-        elAlt.textContent = this.fmt(alt);
+        this.altCost = this.fmt(alt);
         var diff = trip - alt;
-        elVer.textContent = diff > 0 ? ('Saves ' + this.fmt(diff) + ' per trip') : diff < 0 ? ('Costs ' + this.fmt(-diff) + ' more') : 'Same cost';
+        this.altVerdict = diff > 0 ? ('Saves ' + this.fmt(diff) + ' per trip') : diff < 0 ? ('Costs ' + this.fmt(-diff) + ' more') : 'Same cost';
       }
       return { trip: trip, perUnit: perUnit, vol: vol, perPerson: perPerson, monthly: monthly, unit: u };
     },
@@ -208,11 +212,9 @@ window.fuelCalculator = function() {
       var tripLabel = this.tripType === 'round' ? 'Round-trip (' + (Number(this.distance) * 2) + distU + ')' : 'One-way (' + this.distance + distU + ')';
       var t = 'Fuel trip (' + tripLabel + '): ' + this.fmt(r.trip) + ' total, ' + this.fmt(r.perUnit, 2) + '/' + distU + ', ' + r.vol.toFixed(2) + ' ' + volU + ', ' + this.fmt(r.perPerson) + '/person';
       if (navigator.clipboard) navigator.clipboard.writeText(t).catch(function(){});
-      var b = document.getElementById('copyBtn');
-      if (b) {
-        b.textContent = 'Copied!';
-        setTimeout(function(){ b.textContent = 'COPY TRIP SHEET'; }, 1200);
-      }
+      var self = this;
+      this.copied = true;
+      setTimeout(function(){ self.copied = false; }, 1200);
     },
 
     init: function() {

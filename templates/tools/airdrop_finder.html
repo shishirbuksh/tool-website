@@ -25,20 +25,54 @@
     <div class="text-xs text-base-content/75 leading-relaxed">
       <strong class="text-base-content">Security Notice:</strong> Never sign blind approvals or connect your primary cold wallet to unverified claim URLs. Verify official protocol domains and contract addresses independently.
     </div>
-    <span class="badge-pill shrink-0 bg-primary/10 text-primary" id="checklistScore">Readiness: 0 / 6</span>
+    <span class="badge-pill shrink-0 bg-primary/10 text-primary" id="checklistScore" x-text="'Readiness: ' + doneCount + ' / ' + checklist.length">Readiness: 0 / 6</span>
   </div>
 
   <div class="flex flex-wrap items-center gap-2 mb-6">
     <span class="text-[10px] font-bold text-base-content/60 uppercase tracking-wider mr-1">Filter:</span>
-    <button type="button" class="filter-btn active" data-filter="all">All</button>
-    <button type="button" class="filter-btn" data-filter="checklist">Sybil Hygiene Checklist</button>
-    <button type="button" class="filter-btn" data-filter="tge">Historical TGE Benchmarks</button>
-    <span class="text-[10px] font-mono text-base-content/60 ml-auto" id="resultCount">14 items</span>
+    <button type="button" class="filter-btn" :class="{ active: filter === 'all' }" @click="filter = 'all'">All</button>
+    <button type="button" class="filter-btn" :class="{ active: filter === 'checklist' }" @click="filter = 'checklist'">Sybil Hygiene Checklist</button>
+    <button type="button" class="filter-btn" :class="{ active: filter === 'tge' }" @click="filter = 'tge'">Historical TGE Benchmarks</button>
+    <span class="text-[10px] font-mono text-base-content/60 ml-auto" id="resultCount" x-text="filteredItems.length + ' items'">14 items</span>
   </div>
 
   <!-- Airdrop Grid -->
   {% include "components/ymyl_disclaimer.html" %}
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="airdropGrid"></div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="airdropGrid">
+    <template x-for="a in filteredItems" :key="a.name">
+      <div class="feature-card p-4" :class="{ 'border-primary/60': a.category === 'checklist' && checkedMap[a.id] }">
+        <template x-if="a.category === 'checklist'">
+          <div>
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <label class="flex items-center gap-2 min-w-0 cursor-pointer">
+                <input type="checkbox" class="checkbox checkbox-xs checkbox-primary chk-item" :checked="!!checkedMap[a.id]" @change="toggleItem(a.id)" :aria-label="'Mark ' + a.name + ' ready'">
+                <div class="min-w-0"><div class="text-sm font-bold truncate" x-text="a.name"></div><span class="text-[11px] font-bold text-base-content/40 uppercase tracking-wider block" x-text="a.tag"></span></div>
+              </label>
+              <span class="badge-pill shrink-0" style="background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary)" x-text="a.val"></span>
+            </div>
+            <p class="text-[11px] text-base-content/70 leading-relaxed mb-3" x-text="a.desc"></p>
+            <div class="flex items-start gap-2 text-[10px]"><span class="font-bold text-base-content/45 shrink-0 w-16">Standard:</span><span class="text-base-content/65" x-text="a.req"></span></div>
+          </div>
+        </template>
+        <template x-if="a.category !== 'checklist'">
+          <div>
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0" style="background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary)" x-text="a.name[0]"></div>
+                <div class="min-w-0"><div class="text-sm font-bold truncate" x-text="a.name"></div><span class="text-[11px] font-bold text-base-content/40 uppercase tracking-wider block" x-text="a.tag"></span></div>
+              </div>
+              <span class="badge-pill shrink-0" style="background:color-mix(in oklab,var(--color-base-content) 10%,transparent);color:var(--color-base-content)">TGE ENDED</span>
+            </div>
+            <p class="text-[11px] text-base-content/70 leading-relaxed mb-3" x-text="a.desc"></p>
+            <div class="space-y-1">
+              <div class="flex items-start gap-2 text-[10px]"><span class="font-bold text-base-content/45 shrink-0 w-16">Criteria:</span><span class="text-base-content/65" x-text="a.req"></span></div>
+              <div class="flex items-center gap-2 text-[10px]"><span class="font-bold text-base-content/45 shrink-0 w-16">Status:</span><span class="font-mono font-bold text-base-content/75" x-text="a.val"></span></div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
 
 </div>
 
@@ -71,96 +105,30 @@ window.airdropFinder = function() {
   ];
 
   const STORAGE_KEY = 'sb_airdrop_chk_v1';
-  let checkedMap = {};
-  try { checkedMap = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; } catch (e) { checkedMap = {}; }
-
-  const $ = id => document.getElementById(id);
-
-  function updateScore(){
-    const done = checklist.filter(c => !!checkedMap[c.id]).length;
-    $('checklistScore').textContent = 'Readiness: ' + done + ' / ' + checklist.length;
-  }
-
-  function render(filter){
-    const grid = $('airdropGrid');
-    const allItems = checklist.concat(tgeArchive);
-    const filtered = filter === 'all' ? allItems : allItems.filter(a => a.category === filter);
-    $('resultCount').innerText = filtered.length + ' items';
-    updateScore();
-
-    grid.innerHTML = filtered.map(a => {
-      if (a.category === 'checklist') {
-        const isChecked = !!checkedMap[a.id];
-        return `
-          <div class="feature-card p-4 ${isChecked ? 'border-primary/60' : ''}">
-            <div class="flex items-start justify-between gap-2 mb-2">
-              <label class="flex items-center gap-2 min-w-0 cursor-pointer">
-                <input type="checkbox" class="checkbox checkbox-xs checkbox-primary chk-item" data-chk-id="${a.id}" ${isChecked ? 'checked' : ''} aria-label="Mark ${a.name} ready">
-                <div class="min-w-0"><div class="text-sm font-bold truncate">${a.name}</div><span class="text-[11px] font-bold text-base-content/40 uppercase tracking-wider block">${a.tag}</span></div>
-              </label>
-              <span class="badge-pill shrink-0" style="background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary)">${a.val}</span>
-            </div>
-            <p class="text-[11px] text-base-content/70 leading-relaxed mb-3">${a.desc}</p>
-            <div class="flex items-start gap-2 text-[10px]"><span class="font-bold text-base-content/45 shrink-0 w-16">Standard:</span><span class="text-base-content/65">${a.req}</span></div>
-          </div>
-        `;
-      }
-      return `
-        <div class="feature-card p-4">
-          <div class="flex items-start justify-between gap-2 mb-2">
-            <div class="flex items-center gap-2 min-w-0">
-              <div class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0" style="background:color-mix(in oklab,var(--color-primary) 12%,transparent);color:var(--color-primary)">${a.name[0]}</div>
-              <div class="min-w-0"><div class="text-sm font-bold truncate">${a.name}</div><span class="text-[11px] font-bold text-base-content/40 uppercase tracking-wider block">${a.tag}</span></div>
-            </div>
-            <span class="badge-pill shrink-0" style="background:color-mix(in oklab,var(--color-base-content) 10%,transparent);color:var(--color-base-content)">TGE ENDED</span>
-          </div>
-          <p class="text-[11px] text-base-content/70 leading-relaxed mb-3">${a.desc}</p>
-          <div class="space-y-1">
-            <div class="flex items-start gap-2 text-[10px]"><span class="font-bold text-base-content/45 shrink-0 w-16">Criteria:</span><span class="text-base-content/65">${a.req}</span></div>
-            <div class="flex items-center gap-2 text-[10px]"><span class="font-bold text-base-content/45 shrink-0 w-16">Status:</span><span class="font-mono font-bold text-base-content/75">${a.val}</span></div>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  var _initialized = false;
-function _initTool(){
-  if (_initialized) return;
-  _initialized = true;
-    render('all');
-    $('airdropGrid').addEventListener('change', function(e){
-      const cb = e.target.closest('.chk-item');
-      if (!cb) return;
-      checkedMap[cb.getAttribute('data-chk-id')] = cb.checked;
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(checkedMap)); } catch (err) {}
-      updateScore();
-    });
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.addEventListener('click', function(){
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        render(this.getAttribute('data-filter'));
-      });
-    });
-}
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', _initTool);
-} else {
-  _initTool();
-}
-
+  let initialChecked = {};
+  try { initialChecked = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; } catch (e) { initialChecked = {}; }
 
   return {
-    init: function() {
-      if (typeof _initTool === 'function') _initTool();
-      if (typeof calc === 'function') calc();
-      else if (typeof generate === 'function') generate();
-      else if (typeof gen === 'function') gen();
-      else if (typeof render === 'function') render();
-      else if (typeof update === 'function') update();
-      else if (typeof calculate === 'function') calculate();
-      else if (typeof build === 'function') build();
+    filter: 'all',
+    checklist: checklist,
+    tgeArchive: tgeArchive,
+    checkedMap: initialChecked,
+
+    get doneCount() {
+      var map = this.checkedMap;
+      return this.checklist.filter(function(c) { return !!map[c.id]; }).length;
+    },
+
+    get filteredItems() {
+      var allItems = this.checklist.concat(this.tgeArchive);
+      if (this.filter === 'all') return allItems;
+      var f = this.filter;
+      return allItems.filter(function(a) { return a.category === f; });
+    },
+
+    toggleItem: function(id) {
+      this.checkedMap[id] = !this.checkedMap[id];
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(this.checkedMap)); } catch (err) {}
     }
   };
 };

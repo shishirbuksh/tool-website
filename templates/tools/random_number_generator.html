@@ -211,8 +211,9 @@
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button type="button" @click="copyHistoryItem(item, $event)" class="btn btn-ghost btn-xs btn-circle text-base-content/60 hover:text-primary" title="Copy this draw" aria-label="Copy past draw">
-                  {{ lucide_icon("copy","w-3.5 h-3.5", 14) | safe }}
+                <button type="button" @click="copyHistoryItem(item, idx)" class="btn btn-ghost btn-xs btn-circle text-base-content/60 hover:text-primary" title="Copy this draw" aria-label="Copy past draw">
+                  <span x-show="copiedHistoryIdx !== idx">{{ lucide_icon("copy","w-3.5 h-3.5", 14) | safe }}</span>
+                  <span x-show="copiedHistoryIdx === idx" x-cloak class="font-bold text-success">✓</span>
                 </button>
                 <button type="button" @click="restoreHistory(item)" class="btn btn-ghost btn-xs btn-circle text-base-content/60 hover:text-success" title="Rerun with these settings" aria-label="Rerun past draw settings">
                   {{ lucide_icon("refresh-cw","w-3.5 h-3.5", 14) | safe }}
@@ -442,6 +443,7 @@ window.rngCalculator = function() {
     history: [],
     isGenerating: false,
     copiedIndex: null,
+    copiedHistoryIdx: null,
     singleCopied: false,
     copiedAll: false,
     shareCopied: false,
@@ -695,12 +697,7 @@ window.rngCalculator = function() {
 
       var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
       var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = 'random-numbers-' + Date.now() + '.txt';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      window.sbr.downloadDataUrl('random-numbers-' + Date.now() + '.txt', url);
       setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
     },
 
@@ -755,15 +752,12 @@ window.rngCalculator = function() {
       return nums.slice(0, 4).join(', ') + ', … (' + nums.length + ')';
     },
 
-    copyHistoryItem: function(item, e) {
+    copyHistoryItem: function(item, idx) {
       if (item && item.nums && navigator.clipboard) {
+        var self = this;
         navigator.clipboard.writeText(item.nums.join(', ')).then(function() {
-          var btn = e ? e.currentTarget : null;
-          if (btn) {
-            var orig = btn.innerHTML;
-            btn.innerHTML = '✓';
-            setTimeout(function(){ btn.innerHTML = orig; }, 1000);
-          }
+          self.copiedHistoryIdx = idx;
+          setTimeout(function(){ if (self.copiedHistoryIdx === idx) self.copiedHistoryIdx = null; }, 1000);
         }).catch(function(){});
       }
     },

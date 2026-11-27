@@ -27,10 +27,10 @@
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("clock","w-4 h-4",16)|safe }} Countdown to Halving</h2>
       <p class="text-xs text-base-content/60 mb-5">The next Bitcoin halving is expected around <strong id="estDateLabel">April 2028</strong>.</p>
       <div class="grid grid-cols-4 gap-3 text-center" role="timer" aria-live="polite" aria-label="Countdown to Bitcoin halving">
-        <div><div class="countdown-num" id="cdDays" style="color:var(--color-primary)">785</div><div class="countdown-label">Days</div></div>
-        <div><div class="countdown-num" id="cdHours" style="color:var(--color-primary)">14</div><div class="countdown-label">Hours</div></div>
-        <div><div class="countdown-num" id="cdMins" style="color:var(--color-primary)">32</div><div class="countdown-label">Mins</div></div>
-        <div><div class="countdown-num" id="cdSecs" style="color:var(--color-primary)">15</div><div class="countdown-label">Secs</div></div>
+        <div><div class="countdown-num" id="cdDays" x-text="days" style="color:var(--color-primary)">785</div><div class="countdown-label">Days</div></div>
+        <div><div class="countdown-num" id="cdHours" x-text="hours" style="color:var(--color-primary)">14</div><div class="countdown-label">Hours</div></div>
+        <div><div class="countdown-num" id="cdMins" x-text="mins" style="color:var(--color-primary)">32</div><div class="countdown-label">Mins</div></div>
+        <div><div class="countdown-num" id="cdSecs" x-text="secs" style="color:var(--color-primary)">15</div><div class="countdown-label">Secs</div></div>
       </div>
     </div>
 
@@ -38,11 +38,11 @@
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Halving Progress</h2>
       <p class="text-xs text-base-content/60 mb-4">Blocks mined this epoch (each cycle is 210,000 blocks).</p>
       <div class="space-y-3">
-        <div class="flex justify-between text-[10px] font-mono font-bold"><span id="blocksMinedLabel" style="color:var(--color-primary)">98,240</span><span>210,000</span></div>
-        <div class="halving-progress"><div class="halving-progress-fill" id="progressFill" style="width:46.8%;background:var(--color-primary)"></div></div>
+        <div class="flex justify-between text-[10px] font-mono font-bold"><span id="blocksMinedLabel" x-text="blocksMinedLabel" style="color:var(--color-primary)">98,240</span><span>210,000</span></div>
+        <div class="halving-progress"><div class="halving-progress-fill" id="progressFill" :style="'width:' + progressPct + '%;background:var(--color-primary)'" style="width:46.8%;background:var(--color-primary)"></div></div>
         <div class="flex justify-between text-[10px]">
-          <span id="pctLabel" class="font-bold font-mono" style="color:var(--color-primary)">46.8%</span>
-          <span id="blocksRemainLabel" class="font-mono text-base-content/60">111,760 blocks remaining</span>
+          <span id="pctLabel" x-text="pctLabel" class="font-bold font-mono" style="color:var(--color-primary)">46.8%</span>
+          <span id="blocksRemainLabel" x-text="blocksRemainLabel" class="font-mono text-base-content/60">111,760 blocks remaining</span>
         </div>
       </div>
     </div>
@@ -94,60 +94,54 @@
 {% block scripts %}
 <script nonce="{{ nonce }}">
 window.cryptoHalvingCountdown = function() {
-
   'use strict';
-  const $ = id => document.getElementById(id);
-
-  // Last halving: block 840,000 on Apr 19, 2024 00:00 UTC
-  // Next halving: block 1,050,000 (~210,000 blocks later)
-  // Each block ~600 seconds → cycle = 126,000,000 seconds
   const LAST_HALVING = new Date('2024-04-19T00:00:00Z').getTime();
-  const CYCLE_MS = 210000 * 600 * 1000; // 126,000,000,000 ms ≈ 4 years
+  const CYCLE_MS = 210000 * 600 * 1000;
   const TOTAL_BLOCKS = 210000;
 
-  function pad(n){ return String(n).padStart(2, '0'); }
-
-  function update(){
-    const now = Date.now();
-    const elapsed = now - LAST_HALVING;
-    const progress = Math.min(1, Math.max(0, elapsed / CYCLE_MS));
-    const remaining = Math.max(0, CYCLE_MS - elapsed);
-    const blocksMined = Math.floor(progress * TOTAL_BLOCKS);
-    const blocksLeft = TOTAL_BLOCKS - blocksMined;
-
-    // Countdown
-    const totalSeconds = Math.floor(remaining / 1000);
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
-    const mins = Math.floor((totalSeconds % 3600) / 60);
-    const secs = totalSeconds % 60;
-
-    $('cdDays').innerText = pad(days);
-    $('cdHours').innerText = pad(hours);
-    $('cdMins').innerText = pad(mins);
-    $('cdSecs').innerText = pad(secs);
-
-    // Progress
-    $('blocksMinedLabel').innerText = blocksMined.toLocaleString('en-US');
-    $('progressFill').style.width = (progress * 100) + '%';
-    $('pctLabel').innerText = (progress * 100).toFixed(1) + '%';
-    $('blocksRemainLabel').innerText = blocksLeft.toLocaleString('en-US') + ' blocks remaining';
-  }
-
-  update();
-  var _hcInterval = setInterval(update, 1000);
-  window._hcCleanup = function(){ clearInterval(_hcInterval); };
-
+  function pad(n) { return String(n).padStart(2, '0'); }
 
   return {
+    days: '785',
+    hours: '14',
+    mins: '32',
+    secs: '15',
+    blocksMinedLabel: '98,240',
+    progressPct: 46.8,
+    pctLabel: '46.8%',
+    blocksRemainLabel: '111,760 blocks remaining',
+    timer: null,
+
+    update: function() {
+      const now = Date.now();
+      const elapsed = now - LAST_HALVING;
+      const progress = Math.min(1, Math.max(0, elapsed / CYCLE_MS));
+      const remaining = Math.max(0, CYCLE_MS - elapsed);
+      const blocksMined = Math.floor(progress * TOTAL_BLOCKS);
+      const blocksLeft = TOTAL_BLOCKS - blocksMined;
+
+      const totalSeconds = Math.floor(remaining / 1000);
+      this.days = pad(Math.floor(totalSeconds / 86400));
+      this.hours = pad(Math.floor((totalSeconds % 86400) / 3600));
+      this.mins = pad(Math.floor((totalSeconds % 3600) / 60));
+      this.secs = pad(totalSeconds % 60);
+
+      this.blocksMinedLabel = blocksMined.toLocaleString('en-US');
+      this.progressPct = +(progress * 100).toFixed(2);
+      this.pctLabel = (progress * 100).toFixed(1) + '%';
+      this.blocksRemainLabel = blocksLeft.toLocaleString('en-US') + ' blocks remaining';
+    },
+
     init: function() {
-      if (typeof calc === 'function') calc();
-      else if (typeof generate === 'function') generate();
-      else if (typeof gen === 'function') gen();
-      else if (typeof render === 'function') render();
-      else if (typeof update === 'function') update();
-      else if (typeof calculate === 'function') calculate();
-      else if (typeof build === 'function') build();
+      this.update();
+      this.timer = setInterval(() => this.update(), 1000);
+    },
+
+    destroy: function() {
+      if (this.timer) {
+        clearInterval(this.timer);
+        this.timer = null;
+      }
     }
   };
 };

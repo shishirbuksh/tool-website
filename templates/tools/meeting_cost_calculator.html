@@ -8,7 +8,7 @@
     <div class="feature-card p-6 md:p-8">
       <h2 class="text-xl font-black mb-6 tracking-tight flex items-center gap-3">{{ lucide_icon("sliders-horizontal","w-5 h-5",20) | safe }} Meeting Setup</h2>
       <form class="flex flex-col gap-5" id="meetForm">
-        <div><label class="text-xs font-semibold text-base-content/70" for="currencySym">Currency</label><select id="currencySym" class="select w-full cal-input font-bold rounded-xl" aria-label="Currency"><option value="$">USD ($)</option><option value="₹">INR (₹)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option></select></div>
+        <div><label class="text-xs font-semibold text-base-content/70" for="currencySym">Currency</label><select id="currencySym" x-model="currency" @change="calc()" class="select w-full cal-input font-bold rounded-xl" aria-label="Currency"><option value="$">USD ($)</option><option value="₹">INR (₹)</option><option value="€">EUR (€)</option><option value="£">GBP (£)</option></select></div>
         <div><label class="text-xs font-semibold text-base-content/70" for="attendees">Attendees</label><input aria-label="Number of attendees" type="number" id="attendees" x-model.number="attendees" @input="calc()" class="input w-full cal-input font-bold rounded-xl" value="6" min="1" max="500"></div>
         <div><label class="text-xs font-semibold text-base-content/70" for="rate">Average hourly rate (per person)</label><input aria-label="Average hourly rate" type="number" id="rate" x-model.number="rate" @input="calc()" class="input w-full cal-input font-bold rounded-xl" value="25" min="0"></div>
         <div><label class="text-xs font-semibold text-base-content/70" for="minutes">Duration (minutes)</label><input aria-label="Meeting duration in minutes" type="number" id="minutes" x-model.number="minutes" @input="calc()" class="input w-full cal-input font-bold rounded-xl" value="60" min="1" max="1440"></div>
@@ -19,23 +19,30 @@
   <div class="lg:w-7/12 flex flex-col gap-6">
     <div class="feature-card p-6 md:p-8 text-center">
       <div class="text-[11px] uppercase font-bold opacity-60 tracking-widest">This meeting costs</div>
-      <div id="totalCost" class="font-black font-mono text-primary" style="font-size:clamp(2.5rem,6vw,4rem)">—</div>
+      <div id="totalCost" x-text="totalCost" class="font-black font-mono text-primary" style="font-size:clamp(2.5rem,6vw,4rem)">—</div>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 text-center">
-        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Per person</div><div id="perPerson" class="font-bold font-mono">—</div></div>
-        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Per minute</div><div id="perMinute" class="font-bold font-mono">—</div></div>
-        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Monthly</div><div id="monthly" class="font-bold font-mono">—</div></div>
-        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Yearly</div><div id="yearly" class="font-bold font-mono">—</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Per person</div><div id="perPerson" x-text="perPerson" class="font-bold font-mono">—</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Per minute</div><div id="perMinute" x-text="perMinute" class="font-bold font-mono">—</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Monthly</div><div id="monthly" x-text="monthly" class="font-bold font-mono">—</div></div>
+        <div class="rounded-xl p-3 bg-base-300/20"><div class="text-[10px] uppercase font-bold opacity-60">Yearly</div><div id="yearly" x-text="yearly" class="font-bold font-mono">—</div></div>
       </div>
     </div>
     <div class="feature-card p-6 md:p-8">
       <h3 class="text-lg font-black mb-4 flex items-center gap-3">{{ lucide_icon("timer","w-5 h-5",20) | safe }} Live Meeting Ticker</h3>
       <div class="flex items-center gap-4 flex-wrap">
-        <button type="button" id="tickBtn" class="btn btn-cal-primary py-2 px-6 text-xs font-bold tracking-widest uppercase rounded-xl">START TICKER</button>
-        <div id="tickCost" class="font-black font-mono text-2xl">$0.00</div>
-        <div id="tickTime" class="font-mono text-sm opacity-60">00:00</div>
+        <button type="button" id="tickBtn" @click="toggleTick()" x-text="tickTimer ? 'STOP TICKER' : 'START TICKER'" class="btn btn-cal-primary py-2 px-6 text-xs font-bold tracking-widest uppercase rounded-xl">START TICKER</button>
+        <div id="tickCost" x-text="tickCost" class="font-black font-mono text-2xl">$0.00</div>
+        <div id="tickTime" x-text="tickTime" class="font-mono text-sm opacity-60">00:00</div>
       </div>
       <h3 class="text-lg font-black mt-6 mb-4 flex items-center gap-3">{{ lucide_icon("piggy-bank","w-5 h-5",20) | safe }} What-If Savings</h3>
-      <div id="savings" class="flex flex-col gap-2 text-sm font-semibold"></div>
+      <div id="savings" class="flex flex-col gap-2 text-sm font-semibold">
+        <template x-for="row in savingsRows" :key="row.label">
+          <div class="flex justify-between rounded-xl px-4 py-2 bg-base-300/20">
+            <span x-text="row.label"></span>
+            <span class="font-mono text-success" x-text="'saves ' + row.saved"></span>
+          </div>
+        </template>
+      </div>
     </div>
   </div>
 </div>
@@ -51,6 +58,14 @@ window.meetingCostCalculator = function() {
     tickTimer: null,
     tickStart: 0,
     tickBase: 0,
+    totalCost: '—',
+    perPerson: '—',
+    perMinute: '—',
+    monthly: '—',
+    yearly: '—',
+    tickCost: '$0.00',
+    tickTime: '00:00',
+    savingsRows: [],
 
     money: function(n) {
       var s = this.currency || '$';
@@ -80,24 +95,22 @@ window.meetingCostCalculator = function() {
 
     calc: function() {
       var r = this.inputs();
-      var elTotal = document.getElementById('totalCost'); if (elTotal) elTotal.textContent = this.money(r.total);
-      var elPerPerson = document.getElementById('perPerson'); if (elPerPerson) elPerPerson.textContent = this.money(r.perPerson);
-      var elPerMinute = document.getElementById('perMinute'); if (elPerMinute) elPerMinute.textContent = this.money(r.perMinute);
-      var elMonthly = document.getElementById('monthly'); if (elMonthly) elMonthly.textContent = this.money(r.monthly);
-      var elYearly = document.getElementById('yearly'); if (elYearly) elYearly.textContent = this.money(r.yearly);
+      this.totalCost = this.money(r.total);
+      this.perPerson = this.money(r.perPerson);
+      this.perMinute = this.money(r.perMinute);
+      this.monthly = this.money(r.monthly);
+      this.yearly = this.money(r.yearly);
 
       var rows = [
         ['Drop 1 attendee', r.total - ((r.a - 1) * r.r * (r.m / 60))],
         ['Cut 15 minutes', r.total - (r.a * r.r * ((r.m - 15) / 60))],
         ['Async instead (90% saved)', r.total * 0.9]
       ];
-      var html = '';
-      var self = this;
-      rows.forEach(function(x) {
-        if (x[1] > 0) html += '<div class="flex justify-between rounded-xl px-4 py-2 bg-base-300/20"><span>' + x[0] + '</span><span class="font-mono text-success">saves ' + self.money(x[1]) + '</span></div>';
-      });
-      var elSavings = document.getElementById('savings');
-      if (elSavings) elSavings.innerHTML = html;
+      var out = [];
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i][1] > 0) out.push({ label: rows[i][0], saved: this.money(rows[i][1]) });
+      }
+      this.savingsRows = out;
       return r;
     },
 
@@ -105,25 +118,28 @@ window.meetingCostCalculator = function() {
       var r = this.inputs();
       var elapsed = (Date.now() - this.tickStart) / 1000;
       var cost = this.tickBase + r.a * r.r * (elapsed / 3600);
-      var elCost = document.getElementById('tickCost'), elTime = document.getElementById('tickTime');
-      if (elCost) elCost.textContent = this.money(cost);
-      if (elTime) elTime.textContent = this.fmtTime(elapsed);
+      this.tickCost = this.money(cost);
+      this.tickTime = this.fmtTime(elapsed);
     },
 
     toggleTick: function() {
-      var btn = document.getElementById('tickBtn');
       if (this.tickTimer) {
         clearInterval(this.tickTimer);
         this.tickTimer = null;
-        if (btn) btn.textContent = 'START TICKER';
         return;
       }
       this.tickStart = Date.now();
       this.tickBase = 0;
       var self = this;
       this.tickTimer = setInterval(function(){ self.tick(); }, 250);
-      if (btn) btn.textContent = 'STOP TICKER';
       this.tick();
+    },
+
+    destroy: function() {
+      if (this.tickTimer) {
+        clearInterval(this.tickTimer);
+        this.tickTimer = null;
+      }
     },
 
     init: function() {

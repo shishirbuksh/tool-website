@@ -20,7 +20,7 @@
           <div class="flex items-center gap-3"><input aria-label="Uppercase UUID Letters" type="checkbox" id="uppercaseUUID" x-model="upper" @change="generate()" class="checkbox checkbox-neutral rounded-md border-base-content/30"><label class="text-xs font-semibold text-base-content/70 mb-0" for="uppercaseUUID">Uppercase letters</label></div>
           <div class="flex items-center gap-3"><input aria-label="Remove Hyphens from UUID" type="checkbox" id="removeDashes" x-model="noDash" @change="generate()" class="checkbox checkbox-neutral rounded-md border-base-content/30"><label class="text-xs font-semibold text-base-content/70 mb-0" for="removeDashes">Compact hex (remove hyphens)</label></div>
           <div class="flex items-center gap-3"><input aria-label="Wrap UUIDs as URN" type="checkbox" id="wrapUrn" x-model="urn" @change="generate()" class="checkbox checkbox-neutral rounded-md border-base-content/30"><label class="text-xs font-semibold text-base-content/70 mb-0" for="wrapUrn">Prefix urn:uuid:</label></div>
-          <button type="button" id="uuidGenBtn" class="btn btn-cal-primary w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("refresh-cw","w-5 h-5", 20) | safe }} GENERATE</button>
+          <button type="button" id="uuidGenBtn" @click="generate()" class="btn btn-cal-primary w-full py-3 font-bold tracking-widest uppercase text-sm shadow-lg shadow-primary/20 rounded-xl">{{ lucide_icon("refresh-cw","w-5 h-5", 20) | safe }} GENERATE</button>
         </form>
       </div>
     </div>
@@ -28,14 +28,14 @@
       <div class="feature-card p-6 md:p-8">
         <div class="flex items-center justify-between gap-3 mb-4">
           <h3 class="text-xl font-black tracking-tight flex items-center gap-3">{{ lucide_icon("bar-chart-3","w-5 h-5", 20) | safe }} Generated UUIDs</h3>
-          <span id="uuidMeta" class="text-xs font-mono text-base-content/50">crypto.getRandomValues()</span>
+          <span id="uuidMeta" x-text="uuidMeta" class="text-xs font-mono text-base-content/50">crypto.getRandomValues()</span>
         </div>
         <div class="feature-card p-6" style="border-color:color-mix(in oklab, var(--color-success) 25%, transparent)">
-          <output id="result" class="block min-h-[160px] max-h-[340px] overflow-y-auto p-4 bg-base-300/20 rounded-xl text-sm font-mono break-all text-base-content leading-loose whitespace-pre-wrap">Click Generate</output>
+          <output id="result" x-text="resultText" class="block min-h-[160px] max-h-[340px] overflow-y-auto p-4 bg-base-300/20 rounded-xl text-sm font-mono break-all text-base-content leading-loose whitespace-pre-wrap">Click Generate</output>
           <div class="flex flex-wrap gap-2 mt-4">
-            <button type="button" id="uuidCopyBtn" class="btn btn-cal-primary py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("copy","w-4 h-4", 16) | safe }} COPY ALL</button>
-            <button type="button" id="uuidCopyJsonBtn" class="btn btn-cal-secondary py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">COPY JSON</button>
-            <button type="button" id="uuidDownloadBtn" class="btn btn-cal-secondary py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("download","w-4 h-4", 16) | safe }} .TXT</button>
+            <button type="button" id="uuidCopyBtn" @click="copyAll()" class="btn btn-cal-primary py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("copy","w-4 h-4", 16) | safe }} <span x-text="copiedAll ? 'Copied!' : 'COPY ALL'">COPY ALL</span></button>
+            <button type="button" id="uuidCopyJsonBtn" @click="copyJson()" class="btn btn-cal-secondary py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl"><span x-text="copiedJson ? 'Copied!' : 'COPY JSON'">COPY JSON</span></button>
+            <button type="button" id="uuidDownloadBtn" @click="download()" class="btn btn-cal-secondary py-2 px-4 text-xs font-bold tracking-widest uppercase rounded-xl">{{ lucide_icon("download","w-4 h-4", 16) | safe }} .TXT</button>
           </div>
         </div>
       </div>
@@ -73,6 +73,10 @@ window.uuidGenerator = function() {
     noDash: false,
     urn: false,
     lastList: [],
+    resultText: 'Click Generate',
+    uuidMeta: 'crypto.getRandomValues()',
+    copiedAll: false,
+    copiedJson: false,
 
     generate: function() {
       var ver = this.version || 'v4';
@@ -86,29 +90,30 @@ window.uuidGenerator = function() {
         if (urn) u = 'urn:uuid:' + u;
         this.lastList.push(u);
       }
-      var resEl = document.getElementById('result'), metaEl = document.getElementById('uuidMeta');
-      if (resEl) resEl.textContent = this.lastList.join('\n');
-      if (metaEl) metaEl.textContent = cnt + ' × ' + ver.toUpperCase() + (window.crypto && window.crypto.getRandomValues ? ' · CSPRNG' : '');
+      this.resultText = this.lastList.join('\n');
+      this.uuidMeta = cnt + ' × ' + ver.toUpperCase() + (window.crypto && window.crypto.getRandomValues ? ' · CSPRNG' : '');
     },
 
-    copyText: function(txt, btnId, label) {
+    copyText: function(txt, flag) {
       if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(txt).catch(function(){}); }
-      var btn = document.getElementById(btnId);
-      if (btn) { var prev = btn.textContent; btn.textContent = 'Copied!'; setTimeout(function(){ btn.textContent = label; }, 1200); }
+      var self = this;
+      self[flag] = true;
+      setTimeout(function(){ self[flag] = false; }, 1200);
     },
 
     copyAll: function() {
-      this.copyText(this.lastList.join('\n'), 'uuidCopyBtn', 'COPY ALL');
+      this.copyText(this.lastList.join('\n'), 'copiedAll');
     },
 
     copyJson: function() {
-      this.copyText(JSON.stringify(this.lastList, null, 2), 'uuidCopyJsonBtn', 'COPY JSON');
+      this.copyText(JSON.stringify(this.lastList, null, 2), 'copiedJson');
     },
 
     download: function() {
       var blob = new Blob([this.lastList.join('\n') + '\n'], { type: 'text/plain' });
-      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'uuids-' + this.version + '.txt'; a.click();
-      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+      var url = URL.createObjectURL(blob);
+      window.sbr.downloadDataUrl('uuids-' + this.version + '.txt', url);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
     },
 
     init: function() {

@@ -32,11 +32,11 @@
       <p class="text-xs text-base-content/60 mb-4">Add a name for your own notes. The name stays in this browser and is not checked against any database.</p>
       <div>
         <label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="projectName">Project Name / Ticker (optional)</label>
-        <input aria-label="Project name or ticker" type="text" id="projectName" class="input cal-input w-full text-sm font-mono font-bold" value="" placeholder="e.g. MegaMoon Token (MOON)">
+        <input aria-label="Project name or ticker" type="text" id="projectName" x-model="projectName" class="input cal-input w-full text-sm font-mono font-bold" placeholder="e.g. MegaMoon Token (MOON)">
       </div>
       <p class="text-[10px] text-base-content/45 leading-relaxed mt-3">This tool does not inspect contract addresses, wallets, bytecode, liquidity pools or holder data.</p>
       <div class="flex gap-2 mt-4">
-        <button id="resetChecklistBtn" type="button" class="btn btn-ghost btn-sm w-full gap-1.5 text-xs" aria-label="Clear checklist">
+        <button id="resetChecklistBtn" type="button" @click="reset()" class="btn btn-ghost btn-sm w-full gap-1.5 text-xs" aria-label="Clear checklist">
           {{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Clear Checklist
         </button>
       </div>
@@ -45,7 +45,15 @@
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("alert-triangle","w-4 h-4",16)|safe }} Red Flag Checklist</h2>
       <p class="text-xs text-base-content/60 mb-4">Click any flags that apply to this project.</p>
-      <div class="space-y-2" id="flagContainer"></div>
+      <div class="space-y-2" id="flagContainer">
+        <template x-for="f in flags" :key="f.id">
+          <button type="button" class="flag-chip" :class="{ active: f.selected }" :aria-pressed="String(f.selected)" @click="toggleFlag(f.id)">
+            <span class="indicator"></span>
+            <span class="flex-1" x-text="f.label"></span>
+            <span class="text-[11px] font-bold font-mono" :style="'color:' + (f.severity === 'High' ? 'var(--color-error)' : 'var(--color-warning)')" x-text="f.severity"></span>
+          </button>
+        </template>
+      </div>
     </div>
 
   </div>
@@ -55,24 +63,36 @@
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("shield-off","w-4 h-4",16)|safe }} Checklist Result</h2>
       <div class="flex items-center gap-5 mb-5" role="status" aria-live="polite">
-        <div class="scam-gauge" id="scamGauge" style="--_pct:0deg;--_gcolor:var(--color-primary);color:var(--color-primary)">0</div>
+        <div class="scam-gauge" id="scamGauge" :style="'--_pct:' + gaugeDeg + 'deg;--_gcolor:' + gcolor + ';color:' + gcolor" x-text="pct">0</div>
         <div>
-          <output id="scamLevel" class="text-lg font-black block" style="color:var(--color-primary)">No Flags Recorded</output>
-          <output id="scamVerdict" class="text-xs text-base-content/60 block mt-1">Select any red flags that apply. The result is not a safety rating.</output>
+          <output id="scamLevel" class="text-lg font-black block" :style="'color:' + gcolor" x-text="level">No Flags Recorded</output>
+          <output id="scamVerdict" class="text-xs text-base-content/60 block mt-1" x-text="verdict">Select any red flags that apply. The result is not a safety rating.</output>
         </div>
       </div>
       <div class="grid grid-cols-2 gap-4">
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Checklist Weight</span><output id="resScore" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">0/100</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Flags Selected</span><output id="resFlags" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">0 Flags</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">High-severity Flags</span><output id="resHigh" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">0 High</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Medium-severity Flags</span><output id="resMed" class="font-display font-semibold text-base-content text-lg leading-tight font-mono">0 Med</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Checklist Weight</span><output id="resScore" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" :style="'color:' + gcolor" x-text="pct + '/100'">0/100</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Flags Selected</span><output id="resFlags" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" :style="'color:' + gcolor" x-text="activeFlags.length">0 Flags</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">High-severity Flags</span><output id="resHigh" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-error)" x-text="highCount">0 High</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Medium-severity Flags</span><output id="resMed" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-warning)" x-text="medCount">0 Med</output></div>
       </div>
     </div>
 
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("list","w-4 h-4",16)|safe }} Flag Details</h2>
       <div id="flagDetailContainer">
-        <p class="text-xs text-base-content/30 text-center py-6">No flags to show. Toggle items above.</p>
+        <p x-show="activeFlags.length === 0" class="text-xs text-base-content/30 text-center py-6">No flags to show. Toggle items above.</p>
+        <table x-show="activeFlags.length > 0" x-cloak class="scam-table" role="table">
+          <thead><tr><th scope="col">Flag</th><th scope="col">Severity</th><th scope="col">Why It Matters</th></tr></thead>
+          <tbody>
+            <template x-for="f in activeFlags" :key="f.id">
+              <tr>
+                <td style="font-weight:700" x-text="f.label"></td>
+                <td :style="'color:' + (f.severity === 'High' ? 'var(--color-error)' : 'var(--color-warning)') + ';font-weight:800'" x-text="f.severity"></td>
+                <td class="text-base-content/60" style="font-weight:400" x-text="f.desc"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -120,147 +140,92 @@
 {% block scripts %}
 <script nonce="{{ nonce }}">
 window.cryptoScamChecker = function() {
-
   'use strict';
-  const $ = id => document.getElementById(id);
-
   const FLAGS = [
-    {id:0, label:'Anonymous team (no public identities)', severity:'High', weight:20, desc:'Pseudonymous teams are common in crypto and are not proof of fraud, but they make accountability and background checks harder. Look for verifiable public information and a consistent track record.'},
-    {id:1, label:'Promises guaranteed or unrealistic returns', severity:'High', weight:20, desc:'No legitimate investment can guarantee a return. Treat fixed-yield promises and pressure to act quickly as warning signs and check the claims against independent sources.'},
-    {id:2, label:'No smart contract audit from a known firm', severity:'High', weight:20, desc:'An audit can identify some technical issues, but it is not a guarantee of safety. If an audit is cited, open the auditor\'s own report and check the contract address, date and scope.'},
-    {id:3, label:'Liquidity is not locked', severity:'High', weight:20, desc:'Unlocked liquidity can make it easier for whoever controls it to withdraw funds. Locked liquidity reduces that specific route but does not guarantee the project is safe.'},
-    {id:4, label:'Airdrop or presale requires payment to claim', severity:'High', weight:20, desc:'Paying an upfront fee, connecting a wallet with funds, or sharing a seed phrase to claim free tokens is a common theft pattern. Legitimate airdrops do not require your recovery phrase or a payment to receive tokens.'},
-    {id:5, label:'Misspelled website or imposter domain', severity:'Medium', weight:10, desc:'Imposter sites often imitate a real brand with a small spelling change or a different domain ending. Type the address yourself, use a bookmark, and double-check every character before connecting a wallet.'},
-    {id:6, label:'No whitepaper or whitepaper is plagiarized', severity:'Medium', weight:10, desc:'A missing, vague or copied whitepaper makes it harder to assess what the project actually does. Compare the claims with independent sources and look for verifiable technical detail.'},
-    {id:7, label:'Social media accounts less than 3 months old', severity:'Medium', weight:10, desc:'A short history is not proof of fraud, but it gives you less evidence to assess. Check who is behind the account and whether the project has verifiable activity elsewhere.'},
+    {id:0, selected:false, label:'Anonymous team (no public identities)', severity:'High', weight:20, desc:'Pseudonymous teams are common in crypto and are not proof of fraud, but they make accountability and background checks harder. Look for verifiable public information and a consistent track record.'},
+    {id:1, selected:false, label:'Promises guaranteed or unrealistic returns', severity:'High', weight:20, desc:'No legitimate investment can guarantee a return. Treat fixed-yield promises and pressure to act quickly as warning signs and check the claims against independent sources.'},
+    {id:2, selected:false, label:'No smart contract audit from a known firm', severity:'High', weight:20, desc:'An audit can identify some technical issues, but it is not a guarantee of safety. If an audit is cited, open the auditor\'s own report and check the contract address, date and scope.'},
+    {id:3, selected:false, label:'Liquidity is not locked', severity:'High', weight:20, desc:'Unlocked liquidity can make it easier for whoever controls it to withdraw funds. Locked liquidity reduces that specific route but does not guarantee the project is safe.'},
+    {id:4, selected:false, label:'Airdrop or presale requires payment to claim', severity:'High', weight:20, desc:'Paying an upfront fee, connecting a wallet with funds, or sharing a seed phrase to claim free tokens is a common theft pattern. Legitimate airdrops do not require your recovery phrase or a payment to receive tokens.'},
+    {id:5, selected:false, label:'Misspelled website or imposter domain', severity:'Medium', weight:10, desc:'Imposter sites often imitate a real brand with a small spelling change or a different domain ending. Type the address yourself, use a bookmark, and double-check every character before connecting a wallet.'},
+    {id:6, selected:false, label:'No whitepaper or whitepaper is plagiarized', severity:'Medium', weight:10, desc:'A missing, vague or copied whitepaper makes it harder to assess what the project actually does. Compare the claims with independent sources and look for verifiable technical detail.'},
+    {id:7, selected:false, label:'Social media accounts less than 3 months old', severity:'Medium', weight:10, desc:'A short history is not proof of fraud, but it gives you less evidence to assess. Check who is behind the account and whether the project has verifiable activity elsewhere.'},
   ];
 
-  function renderFlags(){
-    const container = $('flagContainer');
-    container.innerHTML = FLAGS.map(function(f){
-      const sevColor = f.severity === 'High' ? 'var(--color-error)' : 'var(--color-warning)';
-      return '<button type="button" class="flag-chip" data-id="' + f.id + '" aria-pressed="false">' +
-        '<span class="indicator"></span>' +
-        '<span class="flex-1">' + f.label + '</span>' +
-        '<span class="text-[11px] font-bold font-mono" style="color:' + sevColor + '">' + f.severity + '</span>' +
-      '</button>';
-    }).join('');
-
-    container.querySelectorAll('.flag-chip').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        const pressed = this.getAttribute('aria-pressed') === 'true';
-        this.setAttribute('aria-pressed', String(!pressed));
-        this.classList.toggle('active');
-        calculate();
-      });
-    });
-  }
-
-  function calculate(){
-    const activeFlags = FLAGS.filter(function(f){
-      return document.querySelector('.flag-chip[data-id="' + f.id + '"].active');
-    });
-
-    const totalScore = activeFlags.reduce(function(sum, f){ return sum + f.weight; }, 0);
-    const highCount = activeFlags.filter(function(f){ return f.severity === 'High'; }).length;
-    const medCount = activeFlags.filter(function(f){ return f.severity === 'Medium'; }).length;
-
-    const projName = ($('projectName') ? $('projectName').value.trim() : '') || 'This project';
-    let level, gcolor, verdict;
-    if(totalScore === 0){
-      level = 'No Flags Recorded';
-      gcolor = 'var(--color-primary)';
-      verdict = 'No checklist flags are selected. This is not proof of safety; verify contracts, permissions and audits independently.';
-    } else if(totalScore <= 20){
-      level = 'Few Flags Recorded';
-      gcolor = 'var(--color-info)';
-      verdict = 'A few checklist flags are recorded for ' + projName + '. Research each concern further before acting.';
-    } else if(totalScore <= 40){
-      level = 'Several Flags Recorded';
-      gcolor = 'var(--color-warning)';
-      verdict = 'Several checklist flags are recorded for ' + projName + '. Treat them as prompts for independent verification, not as proof of fraud.';
-    } else if(totalScore <= 60){
-      level = 'Many Flags Recorded';
-      gcolor = 'var(--color-error)';
-      verdict = 'Many checklist flags are recorded for ' + projName + '. Slow down and verify each concern independently before interacting.';
-    } else {
-      level = 'Most Flags Recorded';
-      gcolor = '#dc2626';
-      verdict = 'Most checklist flags are recorded for ' + projName + '. This warrants serious caution, but it still is not an automated scam determination.';
-    }
-
-    const pct = Math.min(100, totalScore);
-    const deg = pct / 100 * 360;
-
-    const gauge = $('scamGauge');
-    gauge.style.setProperty('--_pct', deg + 'deg');
-    gauge.style.setProperty('--_gcolor', gcolor);
-    gauge.style.color = gcolor;
-    gauge.textContent = pct;
-
-    $('scamLevel').textContent = level;
-    $('scamLevel').style.color = gcolor;
-    $('scamVerdict').textContent = verdict;
-    $('scamVerdict').style.color = '';
-    $('resScore').textContent = pct + '/100';
-    $('resScore').style.color = gcolor;
-    $('resFlags').textContent = activeFlags.length;
-    $('resFlags').style.color = gcolor;
-    $('resHigh').textContent = highCount;
-    $('resHigh').style.color = 'var(--color-error)';
-    $('resMed').textContent = medCount;
-    $('resMed').style.color = 'var(--color-warning)';
-
-    // Flag details
-    const detailContainer = $('flagDetailContainer');
-    if(activeFlags.length === 0){
-      detailContainer.innerHTML = '<p class="text-xs text-base-content/30 text-center py-6">No flags to show. Toggle items above.</p>';
-      return;
-    }
-    detailContainer.innerHTML =
-      '<table class="scam-table" role="table"><thead><tr><th scope="col">Flag</th><th scope="col">Severity</th><th scope="col">Why It Matters</th></tr></thead><tbody>' +
-      activeFlags.map(function(f){
-        const sevColor = f.severity === 'High' ? 'var(--color-error)' : 'var(--color-warning)';
-        return '<tr><td style="font-weight:700">' + f.label + '</td><td style="color:' + sevColor + ';font-weight:800">' + f.severity + '</td><td class="text-base-content/60" style="font-weight:400">' + f.desc + '</td></tr>';
-      }).join('') +
-      '</tbody></table>';
-  }
-
-  function reset(){
-    document.querySelectorAll('.flag-chip').forEach(function(b){
-      b.classList.remove('active');
-      b.setAttribute('aria-pressed', 'false');
-    });
-    if($('projectName')) $('projectName').value = '';
-    calculate();
-  }
-
-  function init(){
-    renderFlags();
-    calculate();
-    const clearBtn = $('resetChecklistBtn');
-    if(clearBtn) clearBtn.addEventListener('click', reset);
-    const pInput = $('projectName');
-    if(pInput) pInput.addEventListener('input', calculate);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-
-
   return {
-    init: function() {
-      if (typeof init === 'function') init();
-      if (typeof calc === 'function') calc();
-      else if (typeof generate === 'function') generate();
-      else if (typeof gen === 'function') gen();
-      else if (typeof render === 'function') render();
-      else if (typeof update === 'function') update();
-      else if (typeof calculate === 'function') calculate();
-      else if (typeof build === 'function') build();
+    projectName: '',
+    flags: FLAGS.map(function(f) { return Object.assign({}, f); }),
+
+    get activeFlags() {
+      return this.flags.filter(function(f) { return f.selected; });
+    },
+
+    get totalScore() {
+      return this.activeFlags.reduce(function(sum, f) { return sum + f.weight; }, 0);
+    },
+
+    get pct() {
+      return Math.min(100, this.totalScore);
+    },
+
+    get gaugeDeg() {
+      return (this.pct / 100) * 360;
+    },
+
+    get highCount() {
+      return this.activeFlags.filter(function(f) { return f.severity === 'High'; }).length;
+    },
+
+    get medCount() {
+      return this.activeFlags.filter(function(f) { return f.severity === 'Medium'; }).length;
+    },
+
+    get projLabel() {
+      return (this.projectName || '').trim() || 'This project';
+    },
+
+    get level() {
+      var s = this.totalScore;
+      if (s === 0) return 'No Flags Recorded';
+      if (s <= 20) return 'Few Flags Recorded';
+      if (s <= 40) return 'Several Flags Recorded';
+      if (s <= 60) return 'Many Flags Recorded';
+      return 'Most Flags Recorded';
+    },
+
+    get gcolor() {
+      var s = this.totalScore;
+      if (s === 0) return 'var(--color-primary)';
+      if (s <= 20) return 'var(--color-info)';
+      if (s <= 40) return 'var(--color-warning)';
+      if (s <= 60) return 'var(--color-error)';
+      return '#dc2626';
+    },
+
+    get verdict() {
+      var s = this.totalScore;
+      var proj = this.projLabel;
+      if (s === 0) return 'No checklist flags are selected. This is not proof of safety; verify contracts, permissions and audits independently.';
+      if (s <= 20) return 'A few checklist flags are recorded for ' + proj + '. Research each concern further before acting.';
+      if (s <= 40) return 'Several checklist flags are recorded for ' + proj + '. Treat them as prompts for independent verification, not as proof of fraud.';
+      if (s <= 60) return 'Many checklist flags are recorded for ' + proj + '. Slow down and verify each concern independently before interacting.';
+      return 'Most checklist flags are recorded for ' + proj + '. This warrants serious caution, but it still is not an automated scam determination.';
+    },
+
+    toggleFlag: function(id) {
+      for (var i = 0; i < this.flags.length; i++) {
+        if (this.flags[i].id === id) {
+          this.flags[i].selected = !this.flags[i].selected;
+          break;
+        }
+      }
+    },
+
+    reset: function() {
+      for (var i = 0; i < this.flags.length; i++) {
+        this.flags[i].selected = false;
+      }
+      this.projectName = '';
     }
   };
 };
