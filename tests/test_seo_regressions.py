@@ -292,3 +292,14 @@ class TestSeoAuditRevisions2026:
             for s in scripts:
                 parsed = _json.loads(s.strip())
                 assert isinstance(parsed, dict), f"JSON-LD root must be a dict on /tool/{slug}"
+
+    def test_indexable_directory_hub_blog_exclude_quarantined_links(self) -> None:
+        from apps.core.constants import QUARANTINED_BLOG_POSTS, QUARANTINED_TOOLS
+
+        for page in ("/", "/tools", "/sitemap", "/ai-tools", "/productivity-tools", "/blog", "/blog/ai-crypto", "/blog/productivity-utilities"):
+            resp = client.get(page)
+            assert resp.status_code == 200
+            for t in QUARANTINED_TOOLS:
+                assert f'href="/tool/{t}"' not in resp.text, f"{page} still links to quarantined tool {t}"
+            for b in QUARANTINED_BLOG_POSTS:
+                assert f'/{b}"' not in resp.text, f"{page} still links to quarantined post {b}"

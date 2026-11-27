@@ -10,10 +10,14 @@ from django.http import Http404, HttpResponse
 from django.shortcuts import render
 from apps.blog.services import BlogService
 from apps.catalog.services import CatalogService
-from apps.core.constants import QUARANTINED_BLOG_POSTS
+from apps.core.constants import QUARANTINED_BLOG_POSTS, QUARANTINED_TOOLS
 
 _blog_service = BlogService()
 _catalog_service = CatalogService()
+
+
+def _indexable_posts(posts: list) -> list:
+    return [p for p in posts if p.slug not in QUARANTINED_BLOG_POSTS]
 
 
 def _page_canonical(bare_path: str, page: int) -> str:
@@ -29,10 +33,10 @@ def _post_etag(pillar: str, slug: str, date_modified: str | None) -> str:
 
 def blog_index(request):
     categories, static_pages = _catalog_service.get_categorized_tools()
-    posts = _blog_service.get_all()
+    posts = _indexable_posts(_blog_service.get_all())
     pillars = sorted({p.pillar for p in posts if p.pillar})
     recent = posts[:6]
-    popular = _blog_service.get_popular(3)
+    popular = _indexable_posts(_blog_service.get_popular(10))[:3]
     pillar_counts: dict[str, int] = {}
     for p in posts:
         pillar_counts[p.pillar] = pillar_counts.get(p.pillar, 0) + 1
@@ -80,16 +84,17 @@ def blog_index(request):
 
 
 def blog_pillar(request, pillar: str):
-    posts = _blog_service.get_by_pillar(pillar)
+    all_pillar_posts = _blog_service.get_by_pillar(pillar)
     pillars = _blog_service.get_pillars()
-    if not posts and not any(p["slug"] == pillar for p in pillars):
+    if not all_pillar_posts and not any(p["slug"] == pillar for p in pillars):
         raise Http404("Pillar not found")
 
+    posts = _indexable_posts(all_pillar_posts)
     categories, static_pages = _catalog_service.get_categorized_tools()
     seen: list[str] = []
     for p in posts:
         for t in p.tools:
-            if t not in seen:
+            if t not in QUARANTINED_TOOLS and t not in seen:
                 seen.append(t)
             if len(seen) >= 12:
                 break
@@ -124,7 +129,13 @@ def blog_post(request, pillar: str, cluster: str):
 
     categories, static_pages = _catalog_service.get_categorized_tools()
     pillars = [p["slug"] for p in _blog_service.get_pillars()]
-    sibling_posts = _blog_service.get_by_pillar(pillar)
+    sibling_posts = _indexable_posts(_blog_service.get_by_pillar(pillar))
+    is_quarantined = post.slug in QUARANTINED_BLOG_POSTS
+    post_tools = (
+        post.tools
+        if is_quarantined
+        else [s for s in post.tools if s not in QUARANTINED_TOOLS]
+    )
 
     # Related posts
     related = [p for p in sibling_posts if p.slug != post.slug][:3]
@@ -145,6 +156,7 @@ def blog_post(request, pillar: str, cluster: str):
         "title": post.title,
         "pillar": pillar,
         "post": post,
+        "post_tools": post_tools,
         "related_posts": related,
         "prev_post": prev_post,
         "next_post": next_post,
@@ -156,7 +168,7 @@ def blog_post(request, pillar: str, cluster: str):
         "html_lang": "en",
         "og_locale": "en_US",
         "bare_path": f"/blog/{pillar}/{cluster}",
-        "robots_noindex": post.slug in QUARANTINED_BLOG_POSTS,
+        "robots_noindex": is_quarantined,
         "nonce": getattr(request, "nonce", ""),
     }
 

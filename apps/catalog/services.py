@@ -11,6 +11,8 @@ from typing import Any
 import yaml
 from django.conf import settings
 
+from apps.core.constants import QUARANTINED_TOOLS
+
 _YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 
@@ -222,7 +224,7 @@ class SeoService:
         related_items = []
         if all_tools:
             for rs in rel_slugs:
-                if rs in all_tools:
+                if rs in all_tools and (slug in QUARANTINED_TOOLS or rs not in QUARANTINED_TOOLS):
                     rinfo = all_tools[rs]
                     related_items.append({
                         "name": rinfo.get("name", rs),

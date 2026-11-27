@@ -13,11 +13,25 @@ from django.shortcuts import render
 from django.template import TemplateDoesNotExist
 from apps.catalog.services import CatalogService, SeoService, ToolDataLoader, tool_etag
 from apps.blog.services import BlogService
-from apps.core.constants import QUARANTINED_TOOLS
+from apps.core.constants import QUARANTINED_BLOG_POSTS, QUARANTINED_TOOLS
 
 _catalog_service = CatalogService()
 _seo_service = SeoService()
 _blog_service = BlogService()
+
+
+def _indexable_categories(categories: dict[str, list[dict[str, str]]]) -> dict[str, list[dict[str, str]]]:
+    """Return a copy of categories excluding quarantined noindex tools from crawlable listings."""
+    filtered: dict[str, list[dict[str, str]]] = {}
+    for cat_name, items in categories.items():
+        kept = [t for t in items if t.get("slug") not in QUARANTINED_TOOLS]
+        if kept:
+            filtered[cat_name] = kept
+    return filtered
+
+
+def _indexable_posts(posts: list) -> list:
+    return [p for p in posts if getattr(p, "slug", "") not in QUARANTINED_BLOG_POSTS]
 
 
 def _page_context(request, bare_path: str) -> dict:
@@ -61,13 +75,14 @@ def _build_home_faqs(tool_count: int) -> list[dict[str, str]]:
 
 def home(request):
     categories, static_pages = _catalog_service.get_categorized_tools()
-    recent_posts = _blog_service.get_recent(3)
-    popular_posts = _blog_service.get_popular(3)
+    indexable_categories = _indexable_categories(categories)
+    recent_posts = _indexable_posts(_blog_service.get_recent(10))[:3]
+    popular_posts = _indexable_posts(_blog_service.get_popular(10))[:3]
     pillars = _blog_service.get_pillars()
     base_ctx = _page_context(request, "/")
 
     ctx = {
-        "categories": categories,
+        "categories": indexable_categories,
         "static_pages": static_pages,
         "recent_posts": recent_posts,
         "popular_posts": popular_posts,
@@ -82,7 +97,7 @@ def home(request):
 
 def tools_page(request):
     categories, static_pages = _catalog_service.get_categorized_tools()
-    ctx = {"categories": categories, "static_pages": static_pages}
+    ctx = {"categories": _indexable_categories(categories), "static_pages": static_pages}
     ctx.update(_page_context(request, "/tools"))
     response = render(request, "pages/tools.html", ctx)
     response["Cache-Control"] = "public, max-age=0, must-revalidate"
@@ -112,7 +127,12 @@ def tool_detail(request, tool_name: str):
 
     template_name = f"tools/{tool_name.replace('-', '_')}.html"
     categories, _ = _catalog_service.get_categorized_tools()
-    related_guides = _blog_service.get_posts_for_tool(tool_name, 3)
+    raw_guides = _blog_service.get_posts_for_tool(tool_name, 10)
+    related_guides = (
+        raw_guides[:3]
+        if tool_name in QUARANTINED_TOOLS
+        else _indexable_posts(raw_guides)[:3]
+    )
 
     tool_raw = ToolDataLoader.get(tool_name) or {}
     tool_category = tool_raw.get("category", "")
@@ -167,17 +187,18 @@ def hub_or_page(request, page_name: str):
 
     hub_categories = getattr(settings, "HUB_CATEGORIES", {})
     categories, static_pages = _catalog_service.get_categorized_tools()
+    indexable_categories = _indexable_categories(categories)
 
     if page_name in hub_categories:
         category_name, seo_title = hub_categories[page_name]
-        hub_tools = categories.get(category_name, [])
+        hub_tools = indexable_categories.get(category_name, [])
         ctx = {
             "hub_name": page_name,
             "category_name": category_name,
             "seo_title": seo_title,
             "title": seo_title or category_name,
             "tools": hub_tools,
-            "categories": categories,
+            "categories": indexable_categories,
             "static_pages": static_pages,
         }
         ctx.update(_page_context(request, f"/{page_name}"))
@@ -199,7 +220,7 @@ def hub_or_page(request, page_name: str):
     if os.path.isfile(resolved_path):
         ctx = {
             "title": canonical_name.replace("-", " ").title(),
-            "categories": categories,
+            "categories": indexable_categories,
             "static_pages": static_pages,
         }
         ctx.update(_page_context(request, f"/{page_name}"))
