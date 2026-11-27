@@ -31,7 +31,7 @@
       cachedTools: [],
       canScrollLeft: false,
       canScrollRight: false,
-      totalVisibleCount: 126,
+      totalVisibleCount: 128,
       categoryMatchCounts: {},
 
       init() {
