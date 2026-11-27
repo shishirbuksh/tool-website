@@ -113,15 +113,12 @@ Alpine.data('omniSearch', function() {
           self.show();
         }
       });
-      document.querySelectorAll('[id^=searchToggle]').forEach(function(b) {
-        b.addEventListener('click', function() { self.show(); });
-      });
     },
     show: function() {
-      var dia = document.getElementById('searchDialog');
-      if (dia && !dia.open) {
+      var dia = this.$el || document.getElementById('searchDialog');
+      if (dia && !dia.open && dia.showModal) {
         dia.showModal();
-        var si = document.getElementById('searchInput');
+        var si = (this.$refs && this.$refs.searchInput) || document.getElementById('searchInput');
         if (si) setTimeout(function() { si.focus(); }, 50);
       }
       if (!this.tools) {
@@ -139,8 +136,8 @@ Alpine.data('omniSearch', function() {
       }
     },
     close: function() {
-      var dia = document.getElementById('searchDialog');
-      if (dia && dia.open) dia.close();
+      var dia = this.$el || document.getElementById('searchDialog');
+      if (dia && dia.open && dia.close) dia.close();
       document.querySelectorAll('[id^=searchToggle]').forEach(function(b) {
         b.setAttribute('aria-expanded', 'false');
       });
