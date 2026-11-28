@@ -32,27 +32,27 @@
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("sliders-horizontal","w-4 h-4",16)|safe }} Token Details</h2>
       <p class="text-xs text-base-content/60 mb-4">Enter the token name and recent market data to analyze the trend.</p>
       <div class="space-y-4">
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="tokenName">Token Name</label><input aria-label="Token Name" type="text" id="tokenName" class="input cal-input w-full text-sm font-bold" value="Bitcoin"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="currentPrice">Current Price ($)</label><input aria-label="Current Token Price" type="number" id="currentPrice" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="65000" min="0" step="any"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="change7d">7-Day Change (%)</label><input aria-label="7-Day Price Change (%)" type="number" id="change7d" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="5.2" step="any"></div>
-        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="change30d">30-Day Change (%)</label><input aria-label="30-Day Price Change (%)" type="number" id="change30d" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="12.8" step="any"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="tokenName">Token Name</label><input aria-label="Token Name" type="text" id="tokenName" x-model="tokenName" class="input cal-input w-full text-sm font-bold"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="currentPrice">Current Price ($)</label><input aria-label="Current Token Price" type="number" id="currentPrice" x-model.number="currentPrice" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" min="0" step="any"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="change7d">7-Day Change (%)</label><input aria-label="7-Day Price Change (%)" type="number" id="change7d" x-model.number="change7d" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" step="any"></div>
+        <div><label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="change30d">30-Day Change (%)</label><input aria-label="30-Day Price Change (%)" type="number" id="change30d" x-model.number="change30d" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" step="any"></div>
         <div>
           <span class="text-[10px] font-bold text-base-content/60 block mb-2 uppercase tracking-wider">Volume Trend</span>
           <div class="toggle-group" role="radiogroup" aria-label="Volume trend">
-            <button type="button" class="toggle-opt active" data-vol-trend="increasing" role="radio" aria-checked="true">Increasing</button>
-            <button type="button" class="toggle-opt" data-vol-trend="stable" role="radio" aria-checked="false">Stable</button>
-            <button type="button" class="toggle-opt" data-vol-trend="decreasing" role="radio" aria-checked="false">Decreasing</button>
+            <template x-for="opt in volOptions" :key="opt.val">
+              <button type="button" class="toggle-opt" :class="{ active: volTrend === opt.val }" @click="volTrend = opt.val" role="radio" :aria-checked="volTrend === opt.val ? 'true' : 'false'" x-text="opt.label"></button>
+            </template>
           </div>
         </div>
         <div>
           <span class="text-[10px] font-bold text-base-content/60 block mb-2 uppercase tracking-wider">Market Sentiment</span>
           <div class="toggle-group" role="radiogroup" aria-label="Market sentiment">
-            <button type="button" class="toggle-opt active" data-sentiment="bullish" role="radio" aria-checked="true">Bullish</button>
-            <button type="button" class="toggle-opt" data-sentiment="neutral" role="radio" aria-checked="false">Neutral</button>
-            <button type="button" class="toggle-opt" data-sentiment="bearish" role="radio" aria-checked="false">Bearish</button>
+            <template x-for="opt in sentOptions" :key="opt.val">
+              <button type="button" class="toggle-opt" :class="{ active: sentiment === opt.val }" @click="sentiment = opt.val" role="radio" :aria-checked="sentiment === opt.val ? 'true' : 'false'" x-text="opt.label"></button>
+            </template>
           </div>
         </div>
-        <button type="button" id="resetBtn" class="btn btn-primary w-full mt-2" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
+        <button type="button" id="resetBtn" @click="reset()" class="btn btn-primary w-full mt-2" aria-label="Reset to defaults">{{ lucide_icon("rotate-ccw","w-3.5 h-3.5",14)|safe }} Reset</button>
       </div>
     </div>
 
@@ -64,12 +64,12 @@
       <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} Trend Summary</h2>
       {% include "components/ymyl_disclaimer.html" %}
       <div class="grid grid-cols-2 gap-4 mb-5">
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Trend Score</span><output id="resScore" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-success)">72</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Signal</span><span id="resSignal" class="signal-badge signal-buy">{{ lucide_icon("trending-up","w-3 h-3",12)|safe }} Buy</span></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Volatility</span><output id="resVolatility" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-warning)">Med</output></div>
-        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Confidence</span><output id="resConfidence" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-base-content)">80%</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Trend Score</span><output id="resScore" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" :style="'color:' + scoreColor" x-text="score">72</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Signal</span><span id="resSignal" :class="'signal-badge ' + signal.cls" x-text="signal.label">Buy</span></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Volatility</span><output id="resVolatility" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" :style="'color:' + volColor" x-text="volatility">Med</output></div>
+        <div class="feature-icon-card p-4 rounded-xl border border-base-300 bg-base-100 shadow-2xs text-center p-4"><span class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider">Confidence</span><output id="resConfidence" class="font-display font-semibold text-base-content text-lg leading-tight font-mono" style="color:var(--color-base-content)" x-text="confidence + '%'">80%</output></div>
       </div>
-      <div class="signal-gauge" role="progressbar" aria-valuenow="72" aria-valuemin="0" aria-valuemax="100" aria-label="Trend score gauge"><div class="signal-gauge-fill" id="scoreGauge" style="width:72%;background:var(--color-success)"></div></div>
+      <div class="signal-gauge" role="progressbar" :aria-valuenow="score" aria-valuemin="0" aria-valuemax="100" aria-label="Trend score gauge"><div class="signal-gauge-fill" id="scoreGauge" :style="'width:' + score + '%;background:' + scoreColor"></div></div>
       <div class="flex justify-between text-[10px] text-base-content/40 font-bold mt-1"><span>Bearish 0</span><span>Neutral 50</span><span>Bullish 100</span></div>
     </div>
 
@@ -79,11 +79,21 @@
         <table class="trend-table" role="table">
           <thead><tr><th scope="col">Factor</th><th scope="col">Value</th><th scope="col">Impact</th><th scope="col">Score</th></tr></thead>
           <tbody id="signalBody">
-            <tr><td style="font-weight:800">7-Day Change</td><td>+5.2%</td><td>+8</td><td style="color:var(--color-success)">+8</td></tr>
-            <tr><td style="font-weight:800">30-Day Change</td><td>+12.8%</td><td>+10</td><td style="color:var(--color-success)">+10</td></tr>
-            <tr><td style="font-weight:800">Volume Trend</td><td>Increasing</td><td>+15</td><td style="color:var(--color-success)">+15</td></tr>
-            <tr><td style="font-weight:800">Market Sentiment</td><td>Bullish</td><td>+15</td><td style="color:var(--color-success)">+15</td></tr>
-            <tr><td style="font-weight:800">Final Score</td><td></td><td></td><td style="color:var(--color-success)">72</td></tr>
+            <template x-if="!mounted">
+              <tr><td style="font-weight:800">7-Day Change</td><td>+5.2%</td><td>+8</td><td style="color:var(--color-success)">+8</td></tr>
+            </template>
+            <template x-for="row in signalRows" :key="row.label">
+              <tr>
+                <td style="font-weight:800" x-text="row.label"></td>
+                <td>
+                  <span x-text="row.valueText"></span>
+                  <span x-show="row.dir === 'up'" class="inline-flex align-middle ml-1">{{ lucide_icon("trending-up","w-3 h-3",12)|safe }}</span>
+                  <span x-show="row.dir === 'down'" class="inline-flex align-middle ml-1">{{ lucide_icon("trending-down","w-3 h-3",12)|safe }}</span>
+                </td>
+                <td x-text="row.impact"></td>
+                <td :style="row.scoreColor ? 'color:' + row.scoreColor : ''" x-text="row.scoreText"></td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
@@ -109,172 +119,85 @@
 {% block scripts %}
 <script nonce="{{ nonce }}">
 window.cryptoTrendAnalyzer = function() {
-
-  'use strict';
-  const $ = id => document.getElementById(id);
-
-  function calcScore(change7d, change30d, volTrend, sentiment){
-    let score = 50;
-    // 7-day change: max +/- 15 pts
-    score += Math.max(-15, Math.min(15, change7d * 1.5));
-    // 30-day change: max +/- 15 pts
-    score += Math.max(-15, Math.min(15, change30d * 0.8));
-    // Volume trend
-    if(volTrend === 'increasing') score += 15;
-    else if(volTrend === 'decreasing') score -= 10;
-    // Sentiment
-    if(sentiment === 'bullish') score += 15;
-    else if(sentiment === 'bearish') score -= 15;
-    return Math.max(0, Math.min(100, Math.round(score)));
-  }
-
-  function getVolatility(change7d, change30d){
-    const a7 = Math.abs(change7d), a30 = Math.abs(change30d);
-    if(a7 > 10 || a30 > 30) return 'High';
-    if(a7 > 5 || a30 > 15) return 'Med';
-    return 'Low';
-  }
-
-  function getSignal(score){
-    if(score >= 70) return {label: 'Buy', cls: 'signal-buy', icon: 'trending-up'};
-    if(score >= 40) return {label: 'Hold', cls: 'signal-hold', icon: 'minus'};
-    return {label: 'Sell', cls: 'signal-sell', icon: 'trending-down'};
-  }
-
-  function getConfidence(score, change7d, change30d, volTrend, sentiment){
-    let bullish = 0, total = 0;
-    const factors = [];
-    if(change7d > 0) { bullish++; factors.push(true); } else if(change7d < 0) { factors.push(false); } else { total--; }
-    if(change30d > 0) { bullish++; factors.push(true); } else if(change30d < 0) { factors.push(false); } else { total--; }
-    if(volTrend === 'increasing') { bullish++; factors.push(true); } else if(volTrend === 'decreasing') { factors.push(false); } else { total--; }
-    if(sentiment === 'bullish') { bullish++; factors.push(true); } else if(sentiment === 'bearish') { factors.push(false); } else { total--; }
-    total += 4;
-    // If score is near extremes, confidence is higher
-    const extremeBonus = score >= 80 || score <= 20 ? 20 : score >= 65 || score <= 35 ? 10 : 0;
-    const baseConf = Math.round((factors.filter(Boolean).length / (factors.length || 1)) * 60) + 20 + extremeBonus;
-    return Math.min(100, baseConf);
-  }
-
-  function getScoreColor(score){
-    if(score >= 70) return 'var(--color-success)';
-    if(score >= 40) return 'var(--color-warning)';
-    return 'var(--color-error)';
-  }
-
-  function calculate(){
-    const token = $('tokenName').value.trim() || 'Token';
-    const price = parseFloat($('currentPrice').value) || 0;
-    const change7d = parseFloat($('change7d').value) || 0;
-    const change30d = parseFloat($('change30d').value) || 0;
-
-    const volTrend = document.querySelector('.toggle-opt[data-vol-trend].active');
-    const sentiment = document.querySelector('.toggle-opt[data-sentiment].active');
-    const vt = volTrend ? volTrend.dataset.volTrend : 'stable';
-    const st = sentiment ? sentiment.dataset.sentiment : 'neutral';
-
-    const score = calcScore(change7d, change30d, vt, st);
-    const vol = getVolatility(change7d, change30d);
-    const sig = getSignal(score);
-    const conf = getConfidence(score, change7d, change30d, vt, st);
-
-    $('resScore').textContent = score;
-    $('resScore').style.color = getScoreColor(score);
-    $('resSignal').innerHTML = '<span class="signal-badge ' + sig.cls + '">' + sig.label + '</span>';
-    $('resVolatility').textContent = vol;
-    $('resVolatility').style.color = vol === 'High' ? 'var(--color-error)' : vol === 'Med' ? 'var(--color-warning)' : 'var(--color-success)';
-    $('resConfidence').textContent = conf + '%';
-
-    const gauge = $('scoreGauge');
-    gauge.style.width = score + '%';
-    gauge.style.background = getScoreColor(score);
-    gauge.parentElement.setAttribute('aria-valuenow', score);
-
-    const priceStr = '$' + price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    const c7Str = (change7d >= 0 ? '+' : '') + change7d.toFixed(1) + '%';
-    const c30Str = (change30d >= 0 ? '+' : '') + change30d.toFixed(1) + '%';
-    const volLabel = vt === 'increasing' ? 'Increasing ' + lucideUp : vt === 'decreasing' ? 'Decreasing ' + lucideDown : 'Stable';
-    const sentLabel = st === 'bullish' ? 'Bullish ' + lucideUp : st === 'bearish' ? 'Bearish ' + lucideDown : 'Neutral';
-
-    // Factor scores
-    const f7 = Math.max(-15, Math.min(15, Math.round(change7d * 1.5)));
-    const f30 = Math.max(-15, Math.min(15, Math.round(change30d * 0.8)));
-    const fVol = vt === 'increasing' ? 15 : vt === 'decreasing' ? -10 : 0;
-    const fSent = st === 'bullish' ? 15 : st === 'bearish' ? -15 : 0;
-
-    const rows = [
-      ['7-Day Change', c7Str, (f7 >= 0 ? '+' : '') + f7, (f7 >= 0 ? '+' : '') + f7],
-      ['30-Day Change', c30Str, (f30 >= 0 ? '+' : '') + f30, (f30 >= 0 ? '+' : '') + f30],
-      ['Volume Trend', volLabel, (fVol >= 0 ? '+' : '') + fVol, (fVol >= 0 ? '+' : '') + fVol],
-      ['Market Sentiment', sentLabel, (fSent >= 0 ? '+' : '') + fSent, (fSent >= 0 ? '+' : '') + fSent],
-      ['Final Score', '', '', score]
-    ];
-
-    $('signalBody').innerHTML = rows.map(function(r){
-      var color = '';
-      if(typeof r[3] === 'number' && r[3] >= 0) color = 'style="color:var(--color-success)"';
-      else if(typeof r[3] === 'number') color = 'style="color:var(--color-error)"';
-      return '<tr><td style="font-weight:800">' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td><td ' + color + '>' + r[3] + '</td></tr>';
-    }).join('');
-  }
-
-  var lucideUp = '{{ lucide_icon("trending-up","w-3 h-3",12)|safe }}';
-  var lucideDown = '{{ lucide_icon("trending-down","w-3 h-3",12)|safe }}';
-
-  function setupToggles(){
-    document.querySelectorAll('.toggle-group').forEach(function(group){
-      group.querySelectorAll('.toggle-opt').forEach(function(btn){
-        btn.addEventListener('click', function(){
-          group.querySelectorAll('.toggle-opt').forEach(function(b){
-            b.classList.remove('active');
-            b.setAttribute('aria-checked', 'false');
-          });
-          this.classList.add('active');
-          this.setAttribute('aria-checked', 'true');
-          calculate();
-        });
-      });
-    });
-  }
-
-  function reset(){
-    $('tokenName').value = 'Bitcoin';
-    $('currentPrice').value = 65000;
-    $('change7d').value = 5.2;
-    $('change30d').value = 12.8;
-    document.querySelectorAll('.toggle-opt').forEach(function(b){ b.classList.remove('active'); b.setAttribute('aria-checked', 'false'); });
-    document.querySelector('.toggle-opt[data-vol-trend="increasing"]').classList.add('active');
-    document.querySelector('.toggle-opt[data-vol-trend="increasing"]').setAttribute('aria-checked', 'true');
-    document.querySelector('.toggle-opt[data-sentiment="bullish"]').classList.add('active');
-    document.querySelector('.toggle-opt[data-sentiment="bullish"]').setAttribute('aria-checked', 'true');
-    calculate();
-  }
-
-  var _initialized = false;
-function _initTool(){
-  if (_initialized) return;
-  _initialized = true;
-    setupToggles();
-    calculate();
-    ['tokenName','currentPrice','change7d','change30d'].forEach(function(id){ $(id).addEventListener('input', calculate); });
-    $('resetBtn').addEventListener('click', reset);
-}
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', _initTool);
-} else {
-  _initTool();
-}
-
-
   return {
+    mounted: false,
+    tokenName: 'Bitcoin',
+    currentPrice: 65000,
+    change7d: 5.2,
+    change30d: 12.8,
+    volTrend: 'increasing',
+    sentiment: 'bullish',
+    volOptions: [
+      { val: 'increasing', label: 'Increasing' },
+      { val: 'stable', label: 'Stable' },
+      { val: 'decreasing', label: 'Decreasing' }
+    ],
+    sentOptions: [
+      { val: 'bullish', label: 'Bullish' },
+      { val: 'neutral', label: 'Neutral' },
+      { val: 'bearish', label: 'Bearish' }
+    ],
     init: function() {
-      if (typeof _initTool === 'function') _initTool();
-      if (typeof calc === 'function') calc();
-      else if (typeof generate === 'function') generate();
-      else if (typeof gen === 'function') gen();
-      else if (typeof render === 'function') render();
-      else if (typeof update === 'function') update();
-      else if (typeof calculate === 'function') calculate();
-      else if (typeof build === 'function') build();
+      this.mounted = true;
+    },
+    reset: function() {
+      this.tokenName = 'Bitcoin';
+      this.currentPrice = 65000;
+      this.change7d = 5.2;
+      this.change30d = 12.8;
+      this.volTrend = 'increasing';
+      this.sentiment = 'bullish';
+    },
+    get safe7d() { return Number(this.change7d) || 0; },
+    get safe30d() { return Number(this.change30d) || 0; },
+    get score() {
+      var s = 50;
+      s += Math.max(-15, Math.min(15, this.safe7d * 1.5));
+      s += Math.max(-15, Math.min(15, this.safe30d * 0.8));
+      if (this.volTrend === 'increasing') s += 15;
+      else if (this.volTrend === 'decreasing') s -= 10;
+      if (this.sentiment === 'bullish') s += 15;
+      else if (this.sentiment === 'bearish') s -= 15;
+      return Math.max(0, Math.min(100, Math.round(s)));
+    },
+    get scoreColor() {
+      return this.score >= 70 ? 'var(--color-success)' : this.score >= 40 ? 'var(--color-warning)' : 'var(--color-error)';
+    },
+    get volatility() {
+      var a7 = Math.abs(this.safe7d), a30 = Math.abs(this.safe30d);
+      return (a7 > 10 || a30 > 30) ? 'High' : (a7 > 5 || a30 > 15) ? 'Med' : 'Low';
+    },
+    get volColor() {
+      return this.volatility === 'High' ? 'var(--color-error)' : this.volatility === 'Med' ? 'var(--color-warning)' : 'var(--color-success)';
+    },
+    get signal() {
+      if (this.score >= 70) return { label: 'Buy', cls: 'signal-buy' };
+      if (this.score >= 40) return { label: 'Hold', cls: 'signal-hold' };
+      return { label: 'Sell', cls: 'signal-sell' };
+    },
+    get confidence() {
+      var factors = [];
+      if (this.safe7d > 0) factors.push(true); else if (this.safe7d < 0) factors.push(false);
+      if (this.safe30d > 0) factors.push(true); else if (this.safe30d < 0) factors.push(false);
+      if (this.volTrend === 'increasing') factors.push(true); else if (this.volTrend === 'decreasing') factors.push(false);
+      if (this.sentiment === 'bullish') factors.push(true); else if (this.sentiment === 'bearish') factors.push(false);
+      var extremeBonus = this.score >= 80 || this.score <= 20 ? 20 : (this.score >= 65 || this.score <= 35 ? 10 : 0);
+      var baseConf = Math.round((factors.filter(Boolean).length / (factors.length || 1)) * 60) + 20 + extremeBonus;
+      return Math.min(100, baseConf);
+    },
+    get signalRows() {
+      var c7 = this.safe7d, c30 = this.safe30d;
+      var f7 = Math.max(-15, Math.min(15, Math.round(c7 * 1.5)));
+      var f30 = Math.max(-15, Math.min(15, Math.round(c30 * 0.8)));
+      var fVol = this.volTrend === 'increasing' ? 15 : this.volTrend === 'decreasing' ? -10 : 0;
+      var fSent = this.sentiment === 'bullish' ? 15 : this.sentiment === 'bearish' ? -15 : 0;
+      return [
+        { label: '7-Day Change', valueText: (c7 >= 0 ? '+' : '') + c7.toFixed(1) + '%', dir: '', impact: (f7 >= 0 ? '+' : '') + f7, scoreText: (f7 >= 0 ? '+' : '') + f7, scoreColor: '' },
+        { label: '30-Day Change', valueText: (c30 >= 0 ? '+' : '') + c30.toFixed(1) + '%', dir: '', impact: (f30 >= 0 ? '+' : '') + f30, scoreText: (f30 >= 0 ? '+' : '') + f30, scoreColor: '' },
+        { label: 'Volume Trend', valueText: this.volTrend === 'increasing' ? 'Increasing' : this.volTrend === 'decreasing' ? 'Decreasing' : 'Stable', dir: this.volTrend === 'increasing' ? 'up' : (this.volTrend === 'decreasing' ? 'down' : ''), impact: (fVol >= 0 ? '+' : '') + fVol, scoreText: (fVol >= 0 ? '+' : '') + fVol, scoreColor: '' },
+        { label: 'Market Sentiment', valueText: this.sentiment === 'bullish' ? 'Bullish' : this.sentiment === 'bearish' ? 'Bearish' : 'Neutral', dir: this.sentiment === 'bullish' ? 'up' : (this.sentiment === 'bearish' ? 'down' : ''), impact: (fSent >= 0 ? '+' : '') + fSent, scoreText: (fSent >= 0 ? '+' : '') + fSent, scoreColor: '' },
+        { label: 'Final Score', valueText: '', dir: '', impact: '', scoreText: String(this.score), scoreColor: this.score >= 70 ? 'var(--color-success)' : 'var(--color-error)' }
+      ];
     }
   };
 };

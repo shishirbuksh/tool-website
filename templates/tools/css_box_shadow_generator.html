@@ -56,539 +56,561 @@
       <div class="bsg-card">
         <div class="flex items-center justify-between mb-3">
           <label class="bsg-label" style="margin:0">Shadow Layers</label>
-          <button class="btn btn-ghost btn-xs gap-1" id="bsgAddLayer" type="button">+ Add</button>
+          <button class="btn btn-ghost btn-xs gap-1" id="bsgAddLayer" @click="addLayer()" type="button">+ Add</button>
         </div>
-        <div id="bsgLayerList" class="space-y-1.5"></div>
+        <div id="bsgLayerList" class="space-y-1.5">
+          <template x-if="!mounted">
+            <div class="bsg-layer-item active">
+              <div class="l-swatch" style="background:#000000"></div>
+              <span class="l-label">4px 4px 12px</span>
+            </div>
+          </template>
+          <template x-for="(l, idx) in activeLayers" :key="l.id">
+            <div class="bsg-layer-item" :class="{ 'active': idx === activeIdx }" @click="setActiveLayer(idx)">
+              <div class="l-swatch" :style="'background:' + l.color"></div>
+              <span class="l-label" x-text="l.x + 'px ' + l.y + 'px ' + l.blur + 'px'"></span>
+              <button type="button" class="l-vis" :class="{ 'off': !l.vis }" @click.stop="toggleVisibility(idx)" title="Toggle visibility" x-text="l.vis ? '\u{1F441}' : '\u2715'"></button>
+              <button type="button" class="l-del" @click.stop="removeLayer(idx)" title="Remove layer">&times;</button>
+            </div>
+          </template>
+        </div>
       </div>
       <div class="bsg-card" id="bsgLayerControls">
         <div class="flex items-center justify-between">
-          <label class="bsg-label" style="margin:0">Layer <span id="bsgActiveIdx">1</span></label>
+          <label class="bsg-label" style="margin:0">Layer <span id="bsgActiveIdx" x-text="(hoverMode ? 'H' : '') + (activeIdx + 1)">1</span></label>
           <div class="flex items-center gap-2">
-            <label class="bsg-label" style="margin:0">Inset</label>
+            <label class="bsg-label" style="margin:0" for="bsgInset">Inset</label>
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="bsgInset" class="toggle toggle-primary toggle-xs">
+              <input type="checkbox" id="bsgInset" :checked="activeLayer.inset" @change="setInset($event.target.checked)" class="toggle toggle-primary toggle-xs">
             </label>
           </div>
         </div>
         <div class="flex items-center gap-2 mb-3">
-          <input type="color" id="bsgColor" value="#000000" style="width:32px;height:32px;border-radius:8px;border:2px solid var(--color-base-300);padding:2px;cursor:pointer;background:none;flex-shrink:0" aria-label="Shadow color picker">
-          <input class="bsg-input" id="bsgColorHex" type="text" value="#000000" maxlength="7" style="flex:1;font-size:11px" aria-label="Shadow hex color">
+          <input type="color" id="bsgColor" :value="activeLayer.color" @input="setColor($event.target.value)" style="width:32px;height:32px;border-radius:8px;border:2px solid var(--color-base-300);padding:2px;cursor:pointer;background:none;flex-shrink:0" aria-label="Shadow color picker">
+          <input class="bsg-input" id="bsgColorHex" type="text" :value="activeLayer.color" @change="setHex($event.target.value)" maxlength="7" style="flex:1;font-size:11px" aria-label="Shadow hex color">
         </div>
         <div class="space-y-2">
           <div>
-            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Offset X</span><span class="font-mono opacity-50" id="bsgValX">0</span></div>
+            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Offset X</span><span class="font-mono opacity-50" id="bsgValX" x-text="activeLayer.x">4</span></div>
             <div class="bsg-slider-row">
-              <input type="range" id="bsgX" min="-50" max="50" value="4" aria-label="Horizontal offset slider">
-              <input class="bsg-input" id="bsgXNum" type="number" min="-100" max="100" value="4" style="width:52px;padding:4px 5px;font-size:10px" aria-label="Horizontal offset value">
+              <input type="range" id="bsgX" min="-50" max="50" :value="activeLayer.x" @input="setField('x', $event.target.value, -100, 100)" aria-label="Horizontal offset slider">
+              <input class="bsg-input" id="bsgXNum" type="number" min="-100" max="100" :value="activeLayer.x" @change="setField('x', $event.target.value, -100, 100)" style="width:52px;padding:4px 5px;font-size:10px" aria-label="Horizontal offset value">
             </div>
           </div>
           <div>
-            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Offset Y</span><span class="font-mono opacity-50" id="bsgValY">0</span></div>
+            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Offset Y</span><span class="font-mono opacity-50" id="bsgValY" x-text="activeLayer.y">4</span></div>
             <div class="bsg-slider-row">
-              <input type="range" id="bsgY" min="-50" max="50" value="4" aria-label="Vertical offset slider">
-              <input class="bsg-input" id="bsgYNum" type="number" min="-100" max="100" value="4" style="width:52px;padding:4px 5px;font-size:10px" aria-label="Vertical offset value">
+              <input type="range" id="bsgY" min="-50" max="50" :value="activeLayer.y" @input="setField('y', $event.target.value, -100, 100)" aria-label="Vertical offset slider">
+              <input class="bsg-input" id="bsgYNum" type="number" min="-100" max="100" :value="activeLayer.y" @change="setField('y', $event.target.value, -100, 100)" style="width:52px;padding:4px 5px;font-size:10px" aria-label="Vertical offset value">
             </div>
           </div>
           <div>
-            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Blur</span><span class="font-mono opacity-50" id="bsgValBlur">0</span></div>
+            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Blur</span><span class="font-mono opacity-50" id="bsgValBlur" x-text="activeLayer.blur">12</span></div>
             <div class="bsg-slider-row">
-              <input type="range" id="bsgBlur" min="0" max="100" value="12" aria-label="Blur radius slider">
-              <input class="bsg-input" id="bsgBlurNum" type="number" min="0" max="200" value="12" style="width:52px;padding:4px 5px;font-size:10px" aria-label="Blur radius value">
+              <input type="range" id="bsgBlur" min="0" max="100" :value="activeLayer.blur" @input="setField('blur', $event.target.value, 0, 200)" aria-label="Blur radius slider">
+              <input class="bsg-input" id="bsgBlurNum" type="number" min="0" max="200" :value="activeLayer.blur" @change="setField('blur', $event.target.value, 0, 200)" style="width:52px;padding:4px 5px;font-size:10px" aria-label="Blur radius value">
             </div>
           </div>
           <div>
-            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Spread</span><span class="font-mono opacity-50" id="bsgValSpread">0</span></div>
+            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Spread</span><span class="font-mono opacity-50" id="bsgValSpread" x-text="activeLayer.spread">0</span></div>
             <div class="bsg-slider-row">
-              <input type="range" id="bsgSpread" min="-30" max="30" value="0" aria-label="Spread radius slider">
-              <input class="bsg-input" id="bsgSpreadNum" type="number" min="-50" max="50" value="0" style="width:52px;padding:4px 5px;font-size:10px" aria-label="Spread radius value">
+              <input type="range" id="bsgSpread" min="-30" max="30" :value="activeLayer.spread" @input="setField('spread', $event.target.value, -50, 50)" aria-label="Spread radius slider">
+              <input class="bsg-input" id="bsgSpreadNum" type="number" min="-50" max="50" :value="activeLayer.spread" @change="setField('spread', $event.target.value, -50, 50)" style="width:52px;padding:4px 5px;font-size:10px" aria-label="Spread radius value">
             </div>
           </div>
           <div>
-            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Opacity</span><span class="font-mono opacity-50" id="bsgValOpacity">100</span></div>
-            <input type="range" id="bsgOpacity" min="0" max="100" value="100" aria-label="Shadow opacity slider">
+            <div class="flex justify-between text-[10px] font-bold mb-1"><span>Opacity</span><span class="font-mono opacity-50" id="bsgValOpacity" x-text="activeLayer.opacity">100</span></div>
+            <input type="range" id="bsgOpacity" min="0" max="100" :value="activeLayer.opacity" @input="setField('opacity', $event.target.value, 0, 100)" aria-label="Shadow opacity slider">
           </div>
         </div>
       </div>
       <div class="bsg-card">
         <label class="bsg-label">Background</label>
         <div class="flex gap-2">
-          <button class="bsg-bg-btn light on" data-bg="light" type="button" title="Light background"></button>
-          <button class="bsg-bg-btn dark" data-bg="dark" type="button" title="Dark background"></button>
-          <button class="bsg-bg-btn checker" data-bg="checker" type="button" title="Checkerboard"></button>
+          <button class="bsg-bg-btn light" :class="{ 'on': bg === 'light' }" @click="setBg('light')" data-bg="light" type="button" title="Light background"></button>
+          <button class="bsg-bg-btn dark" :class="{ 'on': bg === 'dark' }" @click="setBg('dark')" data-bg="dark" type="button" title="Dark background"></button>
+          <button class="bsg-bg-btn checker" :class="{ 'on': bg === 'checker' }" @click="setBg('checker')" data-bg="checker" type="button" title="Checkerboard"></button>
         </div>
       </div>
       <div class="bsg-card">
         <label class="bsg-label">Shape</label>
         <div class="bsg-pill-wrap" id="bsgShapes">
-          <button class="bsg-pill on" data-shape="rounded" type="button">Rounded</button>
-          <button class="bsg-pill" data-shape="square" type="button">Square</button>
-          <button class="bsg-pill" data-shape="circle" type="button">Circle</button>
-          <button class="bsg-pill" data-shape="pill" type="button">Pill</button>
+          <button class="bsg-pill" :class="{ 'on': shape === 'rounded' }" @click="setShape('rounded')" data-shape="rounded" type="button">Rounded</button>
+          <button class="bsg-pill" :class="{ 'on': shape === 'square' }" @click="setShape('square')" data-shape="square" type="button">Square</button>
+          <button class="bsg-pill" :class="{ 'on': shape === 'circle' }" @click="setShape('circle')" data-shape="circle" type="button">Circle</button>
+          <button class="bsg-pill" :class="{ 'on': shape === 'pill' }" @click="setShape('pill')" data-shape="pill" type="button">Pill</button>
         </div>
       </div>
       <div class="bsg-card">
         <label class="bsg-label">Presets</label>
         <div class="bsg-pill-wrap" id="bsgPresets">
-          <button class="bsg-pill" data-preset="soft" type="button">Soft</button>
-          <button class="bsg-pill" data-preset="medium" type="button">Medium</button>
-          <button class="bsg-pill" data-preset="hard" type="button">Hard</button>
-          <button class="bsg-pill" data-preset="bottom" type="button">Bottom</button>
-          <button class="bsg-pill" data-preset="glow" type="button">Glow</button>
-          <button class="bsg-pill" data-preset="inner" type="button">Inner</button>
-          <button class="bsg-pill" data-preset="neumorph" type="button">Neumorph</button>
-          <button class="bsg-pill" data-preset="sharp" type="button">Sharp</button>
+          <button class="bsg-pill" @click="applyPreset('soft')" data-preset="soft" type="button">Soft</button>
+          <button class="bsg-pill" @click="applyPreset('medium')" data-preset="medium" type="button">Medium</button>
+          <button class="bsg-pill" @click="applyPreset('hard')" data-preset="hard" type="button">Hard</button>
+          <button class="bsg-pill" @click="applyPreset('bottom')" data-preset="bottom" type="button">Bottom</button>
+          <button class="bsg-pill" @click="applyPreset('glow')" data-preset="glow" type="button">Glow</button>
+          <button class="bsg-pill" @click="applyPreset('inner')" data-preset="inner" type="button">Inner</button>
+          <button class="bsg-pill" @click="applyPreset('neumorph')" data-preset="neumorph" type="button">Neumorph</button>
+          <button class="bsg-pill" @click="applyPreset('sharp')" data-preset="sharp" type="button">Sharp</button>
         </div>
       </div>
       <div class="bsg-card">
         <div class="flex items-center justify-between mb-2">
           <label class="bsg-label" style="margin:0">Shadow Library</label>
           <div class="flex gap-1.5">
-            <button class="btn btn-ghost btn-xs gap-1" id="bsgSaveLib" type="button">Save</button>
-            <button class="btn btn-ghost btn-xs gap-1 text-error" id="bsgClearLib" type="button">Clear</button>
+            <button class="btn btn-ghost btn-xs gap-1" id="bsgSaveLib" @click="saveCurrent()" type="button">Save</button>
+            <button class="btn btn-ghost btn-xs gap-1 text-error" id="bsgClearLib" @click="clearLib()" type="button">Clear</button>
           </div>
         </div>
         <div id="bsgLibList" class="space-y-2 max-h-64 overflow-y-auto">
-          <p class="text-xs text-base-content/40 text-center py-3">No saved shadows yet.</p>
+          <p x-show="libItems.length === 0" class="text-xs text-base-content/40 text-center py-3">No saved shadows yet.</p>
+          <template x-for="entry in reversedLib" :key="entry.origIdx">
+            <div class="bsg-lib-item" @click="loadLibItem(entry.origIdx)">
+              <div class="lib-preview"><div :style="'box-shadow:' + (entry.css || 'none') + ';border-radius:' + entry.radius"></div></div>
+              <span class="lib-name" x-text="entry.item.name || ('Shadow ' + (entry.origIdx + 1))"></span>
+              <button type="button" class="lib-del" @click.stop="deleteLibItem(entry.origIdx)" title="Delete">&times;</button>
+            </div>
+          </template>
         </div>
       </div>
     </div>
     <div class="lg:col-span-3 space-y-6">
       <div class="bsg-card">
         <label class="bsg-label">Preview</label>
-        <div class="flex justify-center py-6" id="bsgPreviewWrap" style="background:#ffffff;border-radius:1rem;border:1px solid var(--color-base-300);transition:background .2s">
-          <div class="bsg-preview-box" id="bsgPreviewBox"></div>
+        <div class="flex justify-center py-6" id="bsgPreviewWrap" :style="'background:' + previewWrapBg + ';border-radius:1rem;border:1px solid var(--color-base-300);transition:background .2s'">
+          <div class="bsg-preview-box" id="bsgPreviewBox" :class="{ 'bsg-anim': playing }" :style="'background:' + previewBoxBg + ';border-radius:' + shapeRadius + ';box-shadow:' + currentPreviewShadow"></div>
         </div>
       </div>
       <div class="bsg-card">
         <div class="flex items-center justify-between mb-2">
           <label class="bsg-label" style="margin:0">CSS Output</label>
           <div class="flex gap-1.5">
-            <button class="btn btn-ghost btn-xs gap-1" id="bsgCopyLink" type="button">Link</button>
+            <button class="btn btn-ghost btn-xs gap-1" id="bsgCopyLink" @click="copyLink()" type="button">Link</button>
             <label class="flex items-center gap-1.5 cursor-pointer" title="Toggle hover state" id="bsgHoverToggle">
               <span class="text-[10px] font-bold opacity-40">Normal</span>
-              <input type="checkbox" class="toggle toggle-primary toggle-xs" id="bsgHoverMode">
+              <input type="checkbox" class="toggle toggle-primary toggle-xs" id="bsgHoverMode" :checked="hoverMode" :disabled="playing" @change="toggleHoverMode($event.target.checked)">
               <span class="text-[10px] font-bold opacity-40">Hover</span>
             </label>
           </div>
         </div>
-        <textarea class="bsg-textarea" id="bsgCssOutput" rows="3" spellcheck="false" readonly aria-label="Generated box-shadow CSS">box-shadow: ...;</textarea>
+        <textarea class="bsg-textarea" id="bsgCssOutput" rows="3" spellcheck="false" x-model="cssText" :readonly="!cssEditable" @click="cssEditable = true" @blur="cssEditable = false" aria-label="Generated box-shadow CSS"></textarea>
         <div class="flex gap-2 mt-3">
-          <button class="btn btn-primary btn-sm flex-1" id="bsgCopyCss" type="button">Copy CSS</button>
-          <button class="btn btn-ghost btn-sm flex-1" id="bsgCopyTw" type="button">Tailwind</button>
-          <button class="btn btn-ghost btn-sm flex-1" id="bsgCopyProps" type="button">CSS Props</button>
-          <button class="btn btn-ghost btn-sm flex-1" id="bsgApplyEdit" type="button">Apply Edit</button>
+          <button class="btn btn-primary btn-sm flex-1" id="bsgCopyCss" @click="copyCss()" type="button">Copy CSS</button>
+          <button class="btn btn-ghost btn-sm flex-1" id="bsgCopyTw" @click="copyTw()" type="button">Tailwind</button>
+          <button class="btn btn-ghost btn-sm flex-1" id="bsgCopyProps" @click="copyProps()" type="button">CSS Props</button>
+          <button class="btn btn-ghost btn-sm flex-1" id="bsgApplyEdit" @click="applyEdit()" type="button">Apply Edit</button>
         </div>
       </div>
       <div class="bsg-card">
         <label class="bsg-label">Animate Preview</label>
         <div class="flex items-center gap-3">
-          <button class="btn btn-ghost btn-sm gap-1" id="bsgPlayBtn" type="button">&#9654; Play</button>
+          <button class="btn btn-ghost btn-sm gap-1" id="bsgPlayBtn" @click="togglePlay()" type="button" x-text="playing ? '\u25ae Stop' : '\u25b6 Play'">&#9654; Play</button>
           <span class="text-[10px] font-bold opacity-40">Toggles between Normal and Hover shadow states to simulate a hover transition.</span>
         </div>
       </div>
     </div>
   </div>
+  <div id="bsgToast" class="bsg-toast" :class="{ 'show': toastVisible }" role="status" aria-live="polite" x-text="toastMsg"></div>
 </div>
-<div id="bsgToast" class="bsg-toast" role="status" aria-live="polite"></div>
 {{ tool_section_end() }}
 {% endblock %}
 {% block scripts %}
 <script nonce="{{ nonce }}">
 window.boxShadowGenerator = function() {
+  'use strict';
+  const LIB_KEY = 'bsg_library';
+  const PRESETS = {
+    soft: [{ x: 0, y: 2, blur: 8, spread: 0, color: '#000000', opacity: 15, inset: 0 }],
+    medium: [{ x: 0, y: 4, blur: 16, spread: 0, color: '#000000', opacity: 20, inset: 0 }],
+    hard: [{ x: 0, y: 8, blur: 32, spread: 0, color: '#000000', opacity: 30, inset: 0 }],
+    bottom: [{ x: 0, y: 12, blur: 24, spread: -6, color: '#000000', opacity: 20, inset: 0 }],
+    glow: [{ x: 0, y: 0, blur: 20, spread: 0, color: '#10b981', opacity: 40, inset: 0 }],
+    inner: [{ x: 0, y: 2, blur: 8, spread: 0, color: '#000000', opacity: 15, inset: 1 }],
+    neumorph: [
+      { x: 8, y: 8, blur: 16, spread: 0, color: '#000000', opacity: 10, inset: 0 },
+      { x: -8, y: -8, blur: 16, spread: 0, color: '#ffffff', opacity: 100, inset: 0 }
+    ],
+    sharp: [{ x: 4, y: 4, blur: 0, spread: 0, color: '#000000', opacity: 100, inset: 0 }]
+  };
 
-var toastEl=document.getElementById('bsgToast');
-function toast(m){toastEl.textContent=m;toastEl.classList.add('show');setTimeout(function(){toastEl.classList.remove('show');},2200);}
-var el=function(id){return document.getElementById(id)};
-var E=function(s){return document.querySelectorAll(s)};
-
-var bg='light',shape='rounded',hoverMode=0,playing=0,animTimer=null;
-var nid=0;
-var layers=[{id:++nid,x:4,y:4,blur:12,spread:0,opacity:100,color:'#000000',inset:0,vis:1}];
-var layersHover=[{id:++nid,x:8,y:8,blur:24,spread:0,opacity:30,color:'#000000',inset:0,vis:1}];
-var activeIdx=0;
-
-function toRgba(hex,a){
-var h=hex.replace('#','');
-if(h.length===3){h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2]}
-var n=parseInt(h,16);
-return'rgba('+[(n>>16)&255,(n>>8)&255,n&255,a/100].join(',')+')'}
-
-function layerCss(l){
-var c=toRgba(l.color,l.opacity);
-var s=l.x+'px '+l.y+'px '+l.blur+'px '+(l.spread>=0?l.spread+'px':'0px');
-if(l.spread!==0&&l.spread<0){s=l.x+'px '+l.y+'px '+l.blur+'px '+l.spread+'px'}
-var v=s+' '+c;
-if(l.inset){v='inset '+v}
-return v}
-
-function shadowsCss(arr){
-var parts=[];
-for(var i=0;i<arr.length;i++){if(arr[i].vis){parts.push(layerCss(arr[i]))}}
-return parts.join(', ')}
-
-function getActiveArr(){return hoverMode?layersHover:layers}
-function getActive(){return getActiveArr()[activeIdx]}
-
-function setActive(idx){activeIdx=Math.max(0,Math.min(getActiveArr().length-1,idx))}
-
-function syncControls(){
-var l=getActive();
-if(!l)return;
-el('bsgColor').value=l.color;
-el('bsgColorHex').value=l.color;
-el('bsgX').value=l.x;el('bsgY').value=l.y;
-el('bsgBlur').value=l.blur;el('bsgSpread').value=l.spread;
-el('bsgOpacity').value=l.opacity;
-el('bsgXNum').value=l.x;el('bsgYNum').value=l.y;
-el('bsgBlurNum').value=l.blur;el('bsgSpreadNum').value=l.spread;
-el('bsgValX').textContent=l.x;el('bsgValY').textContent=l.y;
-el('bsgValBlur').textContent=l.blur;el('bsgValSpread').textContent=l.spread;
-el('bsgValOpacity').textContent=l.opacity;
-el('bsgInset').checked=l.inset;
-el('bsgActiveIdx').textContent=hoverMode?'H'+(activeIdx+1):(activeIdx+1)}
-
-function renderLayers(){
-var arr=getActiveArr();
-var list=el('bsgLayerList');
-var html='';
-for(var i=0;i<arr.length;i++){
-var l=arr[i];
-var act=i===activeIdx?'active':'';
-html+='<div class="bsg-layer-item '+act+'" data-idx="'+i+'">';
-html+='<div class="l-swatch" style="background:'+l.color+'"></div>';
-html+='<span class="l-label">'+l.x+'px '+l.y+'px '+l.blur+'px</span>';
-html+='<button type="button" class="l-vis'+(l.vis?'':' off')+'" data-vi="'+i+'" title="Toggle visibility">'+ (l.vis?'&#x1F441;':'&#x2715;')+'</button>';
-html+='<button type="button" class="l-del" data-rm="'+i+'" title="Remove layer">&times;</button>';
-html+='</div>'}
-list.innerHTML=html}
-
-function updateCssTextarea(){
-var arr=getActiveArr();
-var css=shadowsCss(arr);
-var display=css?'box-shadow: '+css+';':'box-shadow: none;';
-el('bsgCssOutput').value=display}
-
-function updatePreview(){
-var arr=getActiveArr();
-var css=shadowsCss(arr);
-el('bsgPreviewBox').style.boxShadow=css||'none'}
-
-function update(){
-updatePreview();
-updateCssTextarea();
-syncControls();
-renderLayers()}
-
-function setActiveLayer(idx){
-setActive(idx);
-syncControls();renderLayers()}
-
-function onSlide(id,field){
-el(id).addEventListener('input',function(){
-var v=parseInt(this.value)||0;
-var l=getActive();
-if(!l)return;
-l[field]=v;
-el(id+'Num').value=v;
-el('bsgVal'+field.charAt(0).toUpperCase()+field.slice(1)).textContent=v;
-updateCssTextarea();updatePreview()})}
-function onNum(id,field,min,max){
-el(id).addEventListener('change',function(){
-var v=Math.max(min,Math.min(max,parseInt(this.value)||0));
-var l=getActive();
-if(!l)return;
-l[field]=v;
-var sId=id.replace('Num','');
-el(sId).value=v;
-el('bsgVal'+field.charAt(0).toUpperCase()+field.slice(1)).textContent=v;
-updateCssTextarea();updatePreview()})}
-
-onSlide('bsgX','x');onSlide('bsgY','y');onSlide('bsgBlur','blur');onSlide('bsgSpread','spread');onSlide('bsgOpacity','opacity');
-onNum('bsgXNum','x',-100,100);onNum('bsgYNum','y',-100,100);onNum('bsgBlurNum','blur',0,200);onNum('bsgSpreadNum','spread',-50,50);
-
-el('bsgColor').addEventListener('input',function(){
-var l=getActive();if(!l)return;
-l.color=this.value;el('bsgColorHex').value=this.value;updateCssTextarea();updatePreview()});
-el('bsgColorHex').addEventListener('change',function(){
-var v=this.value.trim();
-if(!/^#[0-9a-fA-F]{6}$/.test(v))return;
-var l=getActive();if(!l)return;
-l.color=v;el('bsgColor').value=v;updateCssTextarea();updatePreview()});
-
-el('bsgInset').addEventListener('change',function(){
-var l=getActive();if(!l)return;
-l.inset=this.checked?1:0;updateCssTextarea();updatePreview();renderLayers()});
-
-el('bsgLayerList').addEventListener('click',function(e){
-var item=e.target.closest('.bsg-layer-item');
-var rmBtn=e.target.closest('[data-rm]');
-var viBtn=e.target.closest('[data-vi]');
-var arr=getActiveArr();
-if(rmBtn){var idx=parseInt(rmBtn.dataset.rm);arr.splice(idx,1);if(activeIdx>=arr.length){activeIdx=arr.length-1}if(arr.length===0){arr.push({id:++nid,x:0,y:0,blur:0,spread:0,opacity:100,color:'#000000',inset:0,vis:1});activeIdx=0}update();return}
-if(viBtn){var idx=parseInt(viBtn.dataset.vi);arr[idx].vis=arr[idx].vis?0:1;update();return}
-if(item){var idx=parseInt(item.dataset.idx);setActiveLayer(idx)}});
-
-el('bsgAddLayer').addEventListener('click',function(){
-var arr=getActiveArr();
-if(arr.length>=6){toast('Max 6 layers');return}
-var ref=arr[activeIdx]||arr[0]||{x:0,y:0,blur:0,spread:0,opacity:100,color:'#000000',inset:0,vis:1};
-var layer={id:++nid,x:ref.x,y:ref.y,blur:ref.blur,spread:ref.spread,opacity:ref.opacity,color:ref.color,inset:ref.inset,vis:1};
-arr.push(layer);
-activeIdx=arr.length-1;
-update();
-toast('Layer added')});
-
-el('bsgHoverMode').addEventListener('change',function(){
-hoverMode=this.checked?1:0;
-if(hoverMode&&layersHover.length===0){layersHover=JSON.parse(JSON.stringify(layers))}
-if(!hoverMode&&layersHover.length===0){layersHover=JSON.parse(JSON.stringify(layers))}
-if(activeIdx>=getActiveArr().length){activeIdx=0}
-syncControls();renderLayers();updateCssTextarea();updatePreview()});
-
-el('bsgPresets').addEventListener('click',function(e){
-var btn=e.target.closest('.bsg-pill');
-if(!btn)return;
-var p=btn.dataset.preset;
-var presets={
-soft:[{x:0,y:2,blur:8,spread:0,color:'#000000',opacity:15,inset:0}],
-medium:[{x:0,y:4,blur:16,spread:0,color:'#000000',opacity:20,inset:0}],
-hard:[{x:0,y:8,blur:32,spread:0,color:'#000000',opacity:30,inset:0}],
-bottom:[{x:0,y:12,blur:24,spread:-6,color:'#000000',opacity:20,inset:0}],
-glow:[{x:0,y:0,blur:20,spread:0,color:'#10b981',opacity:40,inset:0}],
-inner:[{x:0,y:2,blur:8,spread:0,color:'#000000',opacity:15,inset:1}],
-neumorph:[{x:8,y:8,blur:16,spread:0,color:'#000000',opacity:10,inset:0},{x:-8,y:-8,blur:16,spread:0,color:'#ffffff',opacity:100,inset:0}],
-sharp:[{x:4,y:4,blur:0,spread:0,color:'#000000',opacity:100,inset:0}]};
-var arr=presets[p];
-if(!arr)return;
-var dest=hoverMode?layersHover:layers;
-dest.length=0;
-for(var i=0;i<arr.length;i++){
-var l=arr[i];
-dest.push({id:++nid,x:l.x,y:l.y,blur:l.blur,spread:l.spread,opacity:l.opacity,color:l.color,inset:l.inset,vis:1})}
-activeIdx=0;
-syncControls();renderLayers();updateCssTextarea();updatePreview();
-toast('Preset loaded')});
-
-E('.bsg-bg-btn').forEach(function(btn){
-btn.addEventListener('click',function(){
-E('.bsg-bg-btn').forEach(function(b){b.classList.remove('on')});
-this.classList.add('on');
-bg=this.dataset.bg;
-var wrap=el('bsgPreviewWrap'),box=el('bsgPreviewBox');
-box.classList.remove('bsg-anim');
-if(bg==='light'){wrap.style.background='#ffffff';box.style.background='#ffffff'}
-else if(bg==='dark'){wrap.style.background='#1a1a2e';box.style.background='#2a2a4e'}
-else{wrap.style.background='repeating-conic-gradient(#ccc 0% 25%,#fff 0% 50%) 0 0 / 16px 16px';box.style.background='#ffffff'}})});
-
-el('bsgShapes').addEventListener('click',function(e){
-var btn=e.target.closest('.bsg-pill');
-if(!btn)return;
-E('#bsgShapes .bsg-pill').forEach(function(b){b.classList.remove('on')});
-btn.classList.add('on');
-shape=btn.dataset.shape;
-var r;
-if(shape==='square'){r='0'}
-else if(shape==='circle'){r='50%'}
-else if(shape==='pill'){r='999px'}
-else{r='16px'}
-el('bsgPreviewBox').style.borderRadius=r});
-
-function copy(text){navigator.clipboard.writeText(text).then(function(){toast('Copied!');});}
-
-el('bsgCopyCss').addEventListener('click',function(){
-var arr=getActiveArr();
-copy('box-shadow: '+shadowsCss(arr)+';')});
-
-el('bsgCopyTw').addEventListener('click',function(){
-var arr=getActiveArr();
-copy('/* Tailwind custom shadow */\nbox-shadow: '+shadowsCss(arr)+';')});
-
-el('bsgCopyProps').addEventListener('click',function(){
-var arr=getActiveArr();
-var lines=['/* CSS Custom Properties */'];
-for(var i=0;i<arr.length;i++){
-if(arr[i].vis){lines.push('--shadow-'+(i+1)+': '+layerCss(arr[i])+';')}}
-copy(lines.join('\n'))});
-
-/* ---- CSS Textarea Edit ---- */
-el('bsgCssOutput').addEventListener('click',function(){this.readOnly=false;this.focus()});
-el('bsgCssOutput').addEventListener('blur',function(){this.readOnly=true});
-el('bsgApplyEdit').addEventListener('click',function(){
-var val=el('bsgCssOutput').value.trim();
-var m=val.match(/box-shadow:\s*(.*?)\s*;?$/i);
-if(!m){toast('Could not parse box-shadow value');return}
-var css=m[1].trim();
-if(!css){toast('Empty shadow value');return}
-var parts=[];
-var depth=0,cur='';
-for(var i=0;i<css.length;i++){
-var ch=css[i];
-if(ch==='('){depth++}
-else if(ch===')'){depth--}
-if(ch===','&&depth===0){parts.push(cur.trim());cur='';continue}
-cur+=ch}
-if(cur.trim()){parts.push(cur.trim())}
-if(parts.length===0){toast('Could not parse shadow layers');return}
-var dest=getActiveArr();
-dest.length=0;
-var ok=0;
-for(var p=0;p<parts.length&&p<6;p++){
-var part=parts[p];
-var inset=0;
-var tp=part.trim();
-if(/^inset\s/i.test(tp)){inset=1;tp=tp.replace(/^inset\s/i,'')}
-var rgba=tp.match(/(rgba?|hsla?)\(.*?\)/i);
-if(!rgba){continue}
-var colStr=rgba[0];
-var nums=tp.replace(colStr,'').trim().split(/\s+/).filter(function(s){return s!==''});
-if(nums.length<3)continue;
-var px=parseFloat(nums[0])||0;
-var py=parseFloat(nums[1])||0;
-var bl=parseFloat(nums[2])||0;
-var sp=nums.length>3?parseFloat(nums[3])||0:0;
-dest.push({id:++nid,x:px,y:py,blur:bl,spread:sp,opacity:100,color:'#000000',inset:inset,vis:1});
-var c=colStr;
-var hex=c;
-if(/^rgba?\(/i.test(c)){
-var m2=c.match(/([\d.]+)/g);
-if(m2&&m2.length>=3){
-var rr=parseInt(m2[0]),gg=parseInt(m2[1]),bb=parseInt(m2[2]);
-hex='#'+[rr,gg,bb].map(function(x){return Math.round(x).toString(16).padStart(2,'0')}).join('');
-var aa=m2.length>3?parseFloat(m2[3]):1;
-dest[dest.length-1].opacity=Math.round(aa*100);
-dest[dest.length-1].color=hex}}
-ok++}
-if(ok){activeIdx=0;syncControls();renderLayers();update();toast('Parsed '+ok+' layer(s)')}
-else{toast('Could not parse any shadow layers')}});
-
-/* ---- Shadow Library (localStorage) ---- */
-var libKey='bsg_library';
-function loadLib(){try{var r=localStorage.getItem(libKey);return r?JSON.parse(r):[]}catch(e){return[]}}
-function saveLib(d){try{localStorage.setItem(libKey,JSON.stringify(d))}catch(e){}}
-
-function renderLib(){
-var items=loadLib();
-var el_=el('bsgLibList');
-if(!items.length){el_.innerHTML='<p class="text-xs text-base-content/40 text-center py-3">No saved shadows yet.</p>';return}
-var html='';
-for(var i=items.length-1;i>=0;i--){
-var it=items[i];
-if(!it||!it.layers)continue;
-var css=shadowsCss(it.layers);
-html+='<div class="bsg-lib-item" data-lib="'+i+'">';
-html+='<div class="lib-preview"><div style="box-shadow:'+(css||'none')+';border-radius:'+(it.shape==='circle'?'50%':it.shape==='pill'?'999px':it.shape==='square'?'0':'6px')+'"></div></div>';
-html+='<span class="lib-name">'+(it.name||'Shadow '+(i+1))+'</span>';
-html+='<button type="button" class="lib-del" data-ld="'+i+'" title="Delete">&times;</button>';
-html+='</div>'}
-el_.innerHTML=html}
-
-function saveCurrent(){
-var name=prompt('Name this shadow:');
-if(!name||!name.trim())return;
-var items=loadLib();
-var normal=layers.map(function(l){return JSON.parse(JSON.stringify(l))});
-var hover=layersHover.map(function(l){return JSON.parse(JSON.stringify(l))});
-items.push({name:name.trim(),layers:normal,hoverLayers:hover,shape:shape,bg:bg,ts:Date.now()});
-if(items.length>30){items=items.slice(-30)}
-saveLib(items);
-renderLib();
-toast('Shadow saved')}
-
-function loadLibItem(idx){
-var items=loadLib();
-var it=items[idx];
-if(!it)return;
-layers=it.layers?it.layers.map(function(l){return JSON.parse(JSON.stringify(l))}):[{id:++nid,x:0,y:0,blur:0,spread:0,opacity:100,color:'#000000',inset:0,vis:1}];
-layersHover=it.hoverLayers?it.hoverLayers.map(function(l){return JSON.parse(JSON.stringify(l))}):JSON.parse(JSON.stringify(layers));
-if(it.shape){var btn=el('bsgShapes').querySelector('[data-shape="'+it.shape+'"]');if(btn){btn.click()}}
-if(it.bg){var bgBtn=document.querySelector('.bsg-bg-btn[data-bg="'+it.bg+'"]');if(bgBtn){bgBtn.click()}}
-activeIdx=0;
-if(el('bsgHoverMode').checked){el('bsgHoverMode').checked=false;hoverMode=0}
-syncControls();renderLayers();updateCssTextarea();updatePreview();
-toast('Shadow restored')}
-
-function deleteLibItem(idx){
-var items=loadLib();
-items.splice(idx,1);
-saveLib(items);
-renderLib()}
-
-el('bsgLibList').addEventListener('click',function(e){
-var item=e.target.closest('.bsg-lib-item');
-var del=e.target.closest('[data-ld]');
-if(del){deleteLibItem(parseInt(del.dataset.ld));return}
-if(item){loadLibItem(parseInt(item.dataset.lib))}});
-
-el('bsgSaveLib').addEventListener('click',saveCurrent);
-el('bsgClearLib').addEventListener('click',function(){
-if(confirm('Delete all saved shadows?')){saveLib([]);renderLib();toast('Library cleared')}});
-
-/* ---- URL Sharing ---- */
-function encodeState(){
-var state={l:layers.map(function(l){return{x:l.x,y:l.y,b:l.blur,s:l.spread,o:l.opacity,c:l.color,i:l.inset,v:l.vis}}),h:layersHover.map(function(l){return{x:l.x,y:l.y,b:l.blur,s:l.spread,o:l.opacity,c:l.color,i:l.inset,v:l.vis}}),sh:shape,bg:bg,hm:hoverMode};
-try{return btoa(JSON.stringify(state))}catch(e){return''}}
-
-function decodeState(str){
-try{var s=JSON.parse(atob(str));if(!s||!s.l)return null;return s}catch(e){return null}}
-
-function restoreFromHash(){
-var hash=window.location.hash.slice(1);
-if(!hash)return;
-var s=decodeState(hash);
-if(!s)return;
-if(s.l){layers=s.l.map(function(l){l.id=++nid;return l})}
-if(s.h){layersHover=s.h.map(function(l){l.id=++nid;return l})}
-if(s.sh){var btn=el('bsgShapes').querySelector('[data-shape="'+s.sh+'"]');if(btn){btn.click()}}
-if(s.bg){var bgBtn=el('bsgPreviewWrap').querySelector('[data-bg="'+s.bg+'"]');if(bgBtn){bgBtn.click()}}
-if(s.hm){el('bsgHoverMode').checked=1;hoverMode=1}
-activeIdx=0;
-syncControls();renderLayers();updateCssTextarea();updatePreview()}
-
-function updateHash(){try{window.location.hash=encodeState()}catch(e){}}
-
-el('bsgCopyLink').addEventListener('click',function(){
-var url=window.location.href.split('#')[0]+'#'+encodeState();
-navigator.clipboard.writeText(url).then(function(){toast('Link copied!');});});
-
-/* ---- Animate Preview ---- */
-function stopAnim(){
-playing=0;
-if(animTimer){clearInterval(animTimer);animTimer=null}
-el('bsgPlayBtn').innerHTML='&#9654; Play';
-el('bsgPreviewBox').classList.remove('bsg-anim');
-el('bsgHoverMode').disabled=false}
-
-el('bsgPlayBtn').addEventListener('click',function(){
-if(playing){stopAnim();return}
-var box=el('bsgPreviewBox');
-var normal=shadowsCss(layers);
-var hover=shadowsCss(layersHover);
-if(!hover){toast('No hover layers to animate');return}
-playing=1;
-el('bsgPlayBtn').innerHTML='&#9646; Stop';
-el('bsgHoverMode').disabled=true;
-box.classList.add('bsg-anim');
-var toggle=0;
-box.style.boxShadow=normal;
-animTimer=setInterval(function(){
-  toggle=toggle?0:1;
-  box.style.boxShadow=toggle?hover:normal;
-},800);
-});
-
-/* ---- Init ---- */
-function init(){
-  restoreFromHash();
-  renderLib();
-  update();
-}
-init();
-
-return {
-  init: function() {
-    init();
+  function toRgba(hex, a) {
+    let h = String(hex || '#000000').replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    const n = parseInt(h, 16) || 0;
+    return 'rgba(' + [(n >> 16) & 255, (n >> 8) & 255, n & 255, a / 100].join(',') + ')';
   }
-};
+
+  function layerCss(l) {
+    const c = toRgba(l.color, l.opacity);
+    const s = l.x + 'px ' + l.y + 'px ' + l.blur + 'px ' + l.spread + 'px';
+    const v = s + ' ' + c;
+    return l.inset ? 'inset ' + v : v;
+  }
+
+  function shadowsCss(arr) {
+    const parts = [];
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i].vis) parts.push(layerCss(arr[i]));
+    }
+    return parts.join(', ');
+  }
+
+  function loadLibStorage() {
+    try {
+      const r = localStorage.getItem(LIB_KEY);
+      return r ? JSON.parse(r) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveLibStorage(d) {
+    try { localStorage.setItem(LIB_KEY, JSON.stringify(d)); } catch (e) {}
+  }
+
+  return {
+    mounted: false,
+    nid: 2,
+    bg: 'light',
+    shape: 'rounded',
+    hoverMode: false,
+    playing: false,
+    animToggle: false,
+    animTimer: null,
+    cssEditable: false,
+    toastMsg: '',
+    toastVisible: false,
+    toastTimer: null,
+    layers: [{ id: 1, x: 4, y: 4, blur: 12, spread: 0, opacity: 100, color: '#000000', inset: 0, vis: 1 }],
+    layersHover: [{ id: 2, x: 8, y: 8, blur: 24, spread: 0, opacity: 30, color: '#000000', inset: 0, vis: 1 }],
+    activeIdx: 0,
+    libItems: [],
+    cssText: 'box-shadow: 4px 4px 12px 0px rgba(0,0,0,1);',
+
+    get activeLayers() {
+      return this.hoverMode ? this.layersHover : this.layers;
+    },
+    get activeLayer() {
+      const arr = this.activeLayers;
+      return arr[this.activeIdx] || arr[0] || { id: 0, x: 0, y: 0, blur: 0, spread: 0, opacity: 100, color: '#000000', inset: 0, vis: 1 };
+    },
+    get normalShadowCss() { return shadowsCss(this.layers); },
+    get hoverShadowCss() { return shadowsCss(this.layersHover); },
+    get activeShadowCss() { return shadowsCss(this.activeLayers); },
+    get currentPreviewShadow() {
+      if (this.playing) return (this.animToggle ? this.hoverShadowCss : this.normalShadowCss) || 'none';
+      return this.activeShadowCss || 'none';
+    },
+    get previewWrapBg() {
+      if (this.bg === 'dark') return '#1a1a2e';
+      if (this.bg === 'checker') return 'repeating-conic-gradient(#ccc 0% 25%,#fff 0% 50%) 0 0 / 16px 16px';
+      return '#ffffff';
+    },
+    get previewBoxBg() {
+      return this.bg === 'dark' ? '#2a2a4e' : '#ffffff';
+    },
+    get shapeRadius() {
+      if (this.shape === 'square') return '0';
+      if (this.shape === 'circle') return '50%';
+      if (this.shape === 'pill') return '999px';
+      return '16px';
+    },
+    get reversedLib() {
+      const out = [];
+      for (let i = this.libItems.length - 1; i >= 0; i--) {
+        const it = this.libItems[i];
+        if (!it || !it.layers) continue;
+        out.push({
+          origIdx: i,
+          item: it,
+          css: shadowsCss(it.layers),
+          radius: it.shape === 'circle' ? '50%' : it.shape === 'pill' ? '999px' : it.shape === 'square' ? '0' : '6px'
+        });
+      }
+      return out;
+    },
+
+    toast(m) {
+      this.toastMsg = m;
+      this.toastVisible = true;
+      if (this.toastTimer) clearTimeout(this.toastTimer);
+      this.toastTimer = setTimeout(() => { this.toastVisible = false; }, 2200);
+    },
+
+    syncCssText() {
+      const css = this.activeShadowCss;
+      this.cssText = css ? 'box-shadow: ' + css + ';' : 'box-shadow: none;';
+    },
+
+    setActiveLayer(idx) {
+      this.activeIdx = Math.max(0, Math.min(this.activeLayers.length - 1, idx));
+    },
+
+    setField(field, raw, min, max) {
+      const v = Math.max(min, Math.min(max, parseInt(raw, 10) || 0));
+      const l = this.activeLayers[this.activeIdx];
+      if (!l) return;
+      l[field] = v;
+      this.syncCssText();
+    },
+
+    setColor(val) {
+      const l = this.activeLayers[this.activeIdx];
+      if (!l) return;
+      l.color = val;
+      this.syncCssText();
+    },
+
+    setHex(val) {
+      const v = String(val || '').trim();
+      if (!/^#[0-9a-fA-F]{6}$/.test(v)) return;
+      this.setColor(v);
+    },
+
+    setInset(checked) {
+      const l = this.activeLayers[this.activeIdx];
+      if (!l) return;
+      l.inset = checked ? 1 : 0;
+      this.syncCssText();
+    },
+
+    toggleVisibility(idx) {
+      const arr = this.activeLayers;
+      if (!arr[idx]) return;
+      arr[idx].vis = arr[idx].vis ? 0 : 1;
+      this.syncCssText();
+    },
+
+    removeLayer(idx) {
+      const arr = this.activeLayers;
+      arr.splice(idx, 1);
+      if (this.activeIdx >= arr.length) this.activeIdx = arr.length - 1;
+      if (arr.length === 0) {
+        arr.push({ id: ++this.nid, x: 0, y: 0, blur: 0, spread: 0, opacity: 100, color: '#000000', inset: 0, vis: 1 });
+        this.activeIdx = 0;
+      }
+      this.syncCssText();
+    },
+
+    addLayer() {
+      const arr = this.activeLayers;
+      if (arr.length >= 6) { this.toast('Max 6 layers'); return; }
+      const ref = arr[this.activeIdx] || arr[0] || { x: 0, y: 0, blur: 0, spread: 0, opacity: 100, color: '#000000', inset: 0, vis: 1 };
+      arr.push({ id: ++this.nid, x: ref.x, y: ref.y, blur: ref.blur, spread: ref.spread, opacity: ref.opacity, color: ref.color, inset: ref.inset, vis: 1 });
+      this.activeIdx = arr.length - 1;
+      this.syncCssText();
+      this.toast('Layer added');
+    },
+
+    toggleHoverMode(checked) {
+      this.hoverMode = !!checked;
+      if (this.layersHover.length === 0) {
+        this.layersHover = JSON.parse(JSON.stringify(this.layers));
+      }
+      if (this.activeIdx >= this.activeLayers.length) this.activeIdx = 0;
+      this.syncCssText();
+    },
+
+    setBg(val) {
+      this.stopAnim();
+      this.bg = val;
+    },
+
+    setShape(val) {
+      this.shape = val;
+    },
+
+    applyPreset(name) {
+      const arr = PRESETS[name];
+      if (!arr) return;
+      const dest = this.activeLayers;
+      dest.length = 0;
+      for (let i = 0; i < arr.length; i++) {
+        const l = arr[i];
+        dest.push({ id: ++this.nid, x: l.x, y: l.y, blur: l.blur, spread: l.spread, opacity: l.opacity, color: l.color, inset: l.inset, vis: 1 });
+      }
+      this.activeIdx = 0;
+      this.syncCssText();
+      this.toast('Preset loaded');
+    },
+
+    copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => { this.toast('Copied!'); });
+      }
+    },
+
+    copyCss() {
+      this.copyText('box-shadow: ' + this.activeShadowCss + ';');
+    },
+
+    copyTw() {
+      this.copyText('/* Tailwind custom shadow */\nbox-shadow: ' + this.activeShadowCss + ';');
+    },
+
+    copyProps() {
+      const arr = this.activeLayers;
+      const lines = ['/* CSS Custom Properties */'];
+      for (let i = 0; i < arr.length; i++) {
+        if (arr[i].vis) lines.push('--shadow-' + (i + 1) + ': ' + layerCss(arr[i]) + ';');
+      }
+      this.copyText(lines.join('\n'));
+    },
+
+    applyEdit() {
+      const val = String(this.cssText || '').trim();
+      const m = val.match(/box-shadow:\s*(.*?)\s*;?$/i);
+      if (!m) { this.toast('Could not parse box-shadow value'); return; }
+      const css = m[1].trim();
+      if (!css) { this.toast('Empty shadow value'); return; }
+      const parts = [];
+      let depth = 0, cur = '';
+      for (let i = 0; i < css.length; i++) {
+        const ch = css[i];
+        if (ch === '(') depth++;
+        else if (ch === ')') depth--;
+        if (ch === ',' && depth === 0) { parts.push(cur.trim()); cur = ''; continue; }
+        cur += ch;
+      }
+      if (cur.trim()) parts.push(cur.trim());
+      if (parts.length === 0) { this.toast('Could not parse shadow layers'); return; }
+      const dest = this.activeLayers;
+      dest.length = 0;
+      let ok = 0;
+      for (let p = 0; p < parts.length && p < 6; p++) {
+        let inset = 0;
+        let tp = parts[p].trim();
+        if (/^inset\s/i.test(tp)) { inset = 1; tp = tp.replace(/^inset\s/i, ''); }
+        const rgba = tp.match(/(rgba?|hsla?)\(.*?\)/i);
+        if (!rgba) continue;
+        const colStr = rgba[0];
+        const nums = tp.replace(colStr, '').trim().split(/\s+/).filter(Boolean);
+        if (nums.length < 3) continue;
+        const px = parseFloat(nums[0]) || 0;
+        const py = parseFloat(nums[1]) || 0;
+        const bl = parseFloat(nums[2]) || 0;
+        const sp = nums.length > 3 ? parseFloat(nums[3]) || 0 : 0;
+        let opacity = 100;
+        let color = '#000000';
+        if (/^rgba?\(/i.test(colStr)) {
+          const m2 = colStr.match(/([\d.]+)/g);
+          if (m2 && m2.length >= 3) {
+            const rr = parseInt(m2[0], 10), gg = parseInt(m2[1], 10), bb = parseInt(m2[2], 10);
+            color = '#' + [rr, gg, bb].map(x => Math.round(x).toString(16).padStart(2, '0')).join('');
+            const aa = m2.length > 3 ? parseFloat(m2[3]) : 1;
+            opacity = Math.round(aa * 100);
+          }
+        }
+        dest.push({ id: ++this.nid, x: px, y: py, blur: bl, spread: sp, opacity: opacity, color: color, inset: inset, vis: 1 });
+        ok++;
+      }
+      if (ok) {
+        this.activeIdx = 0;
+        this.syncCssText();
+        this.toast('Parsed ' + ok + ' layer(s)');
+      } else {
+        this.toast('Could not parse any shadow layers');
+      }
+    },
+
+    saveCurrent() {
+      const name = prompt('Name this shadow:');
+      if (!name || !name.trim()) return;
+      let items = loadLibStorage();
+      const normal = this.layers.map(l => JSON.parse(JSON.stringify(l)));
+      const hover = this.layersHover.map(l => JSON.parse(JSON.stringify(l)));
+      items.push({ name: name.trim(), layers: normal, hoverLayers: hover, shape: this.shape, bg: this.bg, ts: Date.now() });
+      if (items.length > 30) items = items.slice(-30);
+      saveLibStorage(items);
+      this.libItems = items;
+      this.toast('Shadow saved');
+    },
+
+    loadLibItem(idx) {
+      const items = loadLibStorage();
+      const it = items[idx];
+      if (!it) return;
+      this.layers = it.layers ? it.layers.map(l => ({ ...JSON.parse(JSON.stringify(l)), id: ++this.nid })) : [{ id: ++this.nid, x: 0, y: 0, blur: 0, spread: 0, opacity: 100, color: '#000000', inset: 0, vis: 1 }];
+      this.layersHover = it.hoverLayers ? it.hoverLayers.map(l => ({ ...JSON.parse(JSON.stringify(l)), id: ++this.nid })) : JSON.parse(JSON.stringify(this.layers));
+      if (it.shape) this.shape = it.shape;
+      if (it.bg) this.bg = it.bg;
+      this.activeIdx = 0;
+      this.hoverMode = false;
+      this.syncCssText();
+      this.toast('Shadow restored');
+    },
+
+    deleteLibItem(idx) {
+      const items = loadLibStorage();
+      items.splice(idx, 1);
+      saveLibStorage(items);
+      this.libItems = items;
+    },
+
+    clearLib() {
+      if (confirm('Delete all saved shadows?')) {
+        saveLibStorage([]);
+        this.libItems = [];
+        this.toast('Library cleared');
+      }
+    },
+
+    encodeState() {
+      const state = {
+        l: this.layers.map(l => ({ x: l.x, y: l.y, b: l.blur, s: l.spread, o: l.opacity, c: l.color, i: l.inset, v: l.vis })),
+        h: this.layersHover.map(l => ({ x: l.x, y: l.y, b: l.blur, s: l.spread, o: l.opacity, c: l.color, i: l.inset, v: l.vis })),
+        sh: this.shape,
+        bg: this.bg,
+        hm: this.hoverMode ? 1 : 0
+      };
+      try { return btoa(JSON.stringify(state)); } catch (e) { return ''; }
+    },
+
+    copyLink() {
+      const url = window.location.href.split('#')[0] + '#' + this.encodeState();
+      this.copyText(url);
+    },
+
+    restoreFromHash() {
+      const hash = window.location.hash.slice(1);
+      if (!hash) return;
+      try {
+        const s = JSON.parse(atob(hash));
+        if (!s || !s.l) return;
+        this.layers = s.l.map(l => ({ id: ++this.nid, x: l.x, y: l.y, blur: l.b ?? l.blur ?? 0, spread: l.s ?? l.spread ?? 0, opacity: l.o ?? l.opacity ?? 100, color: l.c ?? l.color ?? '#000000', inset: l.i ?? l.inset ?? 0, vis: l.v ?? l.vis ?? 1 }));
+        if (s.h) {
+          this.layersHover = s.h.map(l => ({ id: ++this.nid, x: l.x, y: l.y, blur: l.b ?? l.blur ?? 0, spread: l.s ?? l.spread ?? 0, opacity: l.o ?? l.opacity ?? 100, color: l.c ?? l.color ?? '#000000', inset: l.i ?? l.inset ?? 0, vis: l.v ?? l.vis ?? 1 }));
+        }
+        if (s.sh) this.shape = s.sh;
+        if (s.bg) this.bg = s.bg;
+        this.hoverMode = !!s.hm;
+        this.activeIdx = 0;
+      } catch (e) {}
+    },
+
+    stopAnim() {
+      this.playing = false;
+      this.animToggle = false;
+      if (this.animTimer) { clearInterval(this.animTimer); this.animTimer = null; }
+    },
+
+    togglePlay() {
+      if (this.playing) { this.stopAnim(); return; }
+      if (!this.hoverShadowCss) { this.toast('No hover layers to animate'); return; }
+      this.playing = true;
+      this.animToggle = false;
+      this.animTimer = setInterval(() => {
+        this.animToggle = !this.animToggle;
+      }, 800);
+    },
+
+    init() {
+      this.mounted = true;
+      this.restoreFromHash();
+      this.libItems = loadLibStorage();
+      this.syncCssText();
+    }
+  };
 };
 </script>
 {% endblock %}

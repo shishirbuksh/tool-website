@@ -22,7 +22,6 @@
 
 <div x-data="cryptoFearGreedIndexTracker()" class="flex flex-col lg:flex-row gap-6 reveal" style="animation-delay:0.2s">
 
-  <!-- ===== LEFT COLUMN ===== -->
   <div class="lg:w-5/12 xl:max-w-sm shrink-0 space-y-6">
 
     <div class="feature-card p-6">
@@ -31,17 +30,15 @@
       <div class="space-y-4">
         <div>
           <label class="text-[10px] font-bold text-base-content/60 block mb-1 uppercase tracking-wider" for="fgScore">Index Score (0–100)</label>
-          <input aria-label="Fear and Greed Score" type="number" id="fgScore" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" value="45" min="0" max="100">
-          <input type="range" id="fgRange" class="range range-sm range-neutral w-full mt-2" value="45" min="0" max="100" aria-label="Fear and Greed index slider">
+          <input aria-label="Fear and Greed Score" type="number" id="fgScore" x-model.number="score" class="input cal-input w-full text-sm font-mono font-bold hide-spinner" min="0" max="100">
+          <input type="range" id="fgRange" x-model.number="score" class="range range-sm range-neutral w-full mt-2" min="0" max="100" aria-label="Fear and Greed index slider">
         </div>
         <div>
           <span class="text-[10px] font-bold text-base-content/60 block mb-2 uppercase tracking-wider">Quick Presets</span>
           <div class="flex flex-wrap gap-1.5">
-            <button type="button" class="preset-btn" data-val="15">Extreme Fear</button>
-            <button type="button" class="preset-btn" data-val="30">Fear</button>
-            <button type="button" class="preset-btn active" data-val="45">Neutral</button>
-            <button type="button" class="preset-btn" data-val="65">Greed</button>
-            <button type="button" class="preset-btn" data-val="85">Extreme Greed</button>
+            <template x-for="p in presets" :key="p.val">
+              <button type="button" class="preset-btn" :class="{ active: clampedScore === p.val }" @click="score = p.val" x-text="p.label"></button>
+            </template>
           </div>
         </div>
       </div>
@@ -49,29 +46,34 @@
 
     <div class="feature-card p-6" id="livePanel">
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("radio","w-4 h-4",16)|safe }} Live Data</h2>
-      <div id="liveLoading" class="flex items-center gap-2 text-xs text-base-content/60">
+      <div id="liveLoading" x-show="liveState === 'loading'" class="flex items-center gap-2 text-xs text-base-content/60">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--color-primary);animation:pulse-dot 1.5s ease-in-out infinite"></span>
         Loading live data...
       </div>
-      <div id="liveError" class="hidden text-xs" style="color:var(--color-error)">
+      <div id="liveError" x-show="liveState === 'error'" x-cloak class="text-xs" style="color:var(--color-error)">
         <p class="font-bold">Failed to load live data</p>
-        <p id="liveErrorMsg" class="text-base-content/60 mt-1"></p>
+        <p id="liveErrorMsg" class="text-base-content/60 mt-1" x-text="liveErrorMsg"></p>
       </div>
-      <div id="liveContent" class="hidden space-y-3">
+      <div id="liveContent" x-show="liveState === 'ready'" x-cloak class="space-y-3">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <div class="health-ring" id="liveHealthRing" style="--_pct:162deg">45</div>
+            <div class="health-ring" id="liveHealthRing" :style="'--_pct:' + liveRingDeg + 'deg;color:' + liveZone.color" x-text="liveVal">45</div>
             <div>
-              <output id="liveValue" class="text-2xl font-black font-mono">45</output>
-              <span id="liveLabel" class="text-xs font-black block uppercase tracking-widest">Neutral</span>
+              <output id="liveValue" class="text-2xl font-black font-mono" :style="'color:' + liveZone.color" x-text="liveVal">45</output>
+              <span id="liveLabel" class="text-xs font-black block uppercase tracking-widest" :style="'color:' + liveZone.color" x-text="liveZone.label">Neutral</span>
             </div>
           </div>
-          <span id="liveChange" class="text-xs font-black font-mono flex items-center gap-1"></span>
+          <span id="liveChange" class="text-xs font-black font-mono flex items-center gap-1" :style="'color:' + diffColor">
+            <span x-show="liveDiff > 0" class="inline-flex">{{ lucide_icon("trending-up","w-3.5 h-3.5",14)|safe }}</span>
+            <span x-show="liveDiff < 0" class="inline-flex">{{ lucide_icon("trending-down","w-3.5 h-3.5",14)|safe }}</span>
+            <span x-show="liveDiff === 0" class="inline-flex">{{ lucide_icon("minus","w-3.5 h-3.5",14)|safe }}</span>
+            <span x-text="liveDiff > 0 ? '+' + liveDiff : String(liveDiff)"></span>
+          </span>
         </div>
         <div class="flex items-center justify-between text-[10px] text-base-content/40">
-          <span id="liveTimestamp">Updated today</span>
-          <button id="refreshBtn" type="button" class="btn btn-ghost btn-xs gap-1 text-[10px] font-bold" data-action="refresh-fng">
-            {{ lucide_icon("refresh-cw","w-3 h-3",12)|safe }} Refresh
+          <span id="liveTimestamp" x-text="liveTimestamp">Updated today</span>
+          <button id="refreshBtn" type="button" @click="fetchLive()" class="btn btn-ghost btn-xs gap-1 text-[10px] font-bold">
+            <span :style="refreshing ? 'animation:spin 1s linear infinite' : ''" class="inline-flex">{{ lucide_icon("refresh-cw","w-3 h-3",12)|safe }}</span> Refresh
           </button>
         </div>
       </div>
@@ -79,19 +81,18 @@
 
   </div>
 
-  <!-- ===== RIGHT COLUMN ===== -->
   <div class="flex-1 min-w-0 space-y-6">
 
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-5 flex items-center gap-2">{{ lucide_icon("gauge","w-4 h-4",16)|safe }} Current Sentiment</h2>
       <div class="flex items-center gap-5">
-        <div class="health-ring" id="healthRing" style="--_pct:162deg">45</div>
+        <div class="health-ring" id="healthRing" :style="'--_pct:' + currentRingDeg + 'deg;color:' + currentZone.color" x-text="clampedScore">45</div>
         <div>
-          <output id="fgDisplay" class="text-2xl font-black font-mono" style="color:var(--color-warning)">45</output>
-          <span id="fgLabel" class="text-xs font-black block uppercase tracking-widest" style="color:var(--color-warning)">Neutral</span>
+          <output id="fgDisplay" class="text-2xl font-black font-mono" :style="'color:' + currentZone.color" x-text="clampedScore">45</output>
+          <span id="fgLabel" class="text-xs font-black block uppercase tracking-widest" :style="'color:' + currentZone.color" x-text="currentZone.label">Neutral</span>
         </div>
       </div>
-      <p id="fgDesc" class="text-xs text-base-content/55 mt-4 leading-relaxed">The market is balanced. Neither fear nor greed dominates.</p>
+      <p id="fgDesc" class="text-xs text-base-content/55 mt-4 leading-relaxed" x-text="currentZone.desc">The market is balanced. Neither fear nor greed dominates.</p>
       <div class="grid grid-cols-2 gap-3 mt-5">
         <div><span class="text-[11px] font-bold text-base-content/40 block uppercase tracking-wider">Volatility</span><div class="flex items-center gap-2 mt-1"><div class="sentiment-bar flex-1" style="width:25%;background:color-mix(in oklab,var(--color-primary) 40%,transparent)"></div><span class="text-[10px] font-mono font-bold text-base-content/60">25%</span></div></div>
         <div><span class="text-[11px] font-bold text-base-content/40 block uppercase tracking-wider">Momentum</span><div class="flex items-center gap-2 mt-1"><div class="sentiment-bar flex-1" style="width:25%;background:color-mix(in oklab,var(--color-success) 40%,transparent)"></div><span class="text-[10px] font-mono font-bold text-base-content/60">25%</span></div></div>
@@ -102,20 +103,26 @@
 
     <div class="feature-card p-6">
       <h2 class="text-sm font-black mb-4 flex items-center gap-2">{{ lucide_icon("bar-chart-3","w-4 h-4",16)|safe }} 30-Day History</h2>
-      <div id="histLoading" class="flex items-center gap-2 text-xs text-base-content/60">
+      <div id="histLoading" x-show="histState === 'loading'" class="flex items-center gap-2 text-xs text-base-content/60">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--color-primary);animation:pulse-dot 1.5s ease-in-out infinite"></span>
         Loading chart...
       </div>
-      <div id="histError" class="hidden text-xs" style="color:var(--color-error)">
+      <div id="histError" x-show="histState === 'error'" x-cloak class="text-xs" style="color:var(--color-error)">
         Unable to load history data.
       </div>
-      <div id="histContent" class="hidden">
+      <div id="histContent" x-show="histState === 'ready'" x-cloak>
         <div id="histBars" class="flex items-end gap-[2px] h-28" style="border-bottom:1px solid color-mix(in oklab,var(--color-base-content) 10%,transparent)">
+          <template x-for="b in histBars" :key="b.id">
+            <div class="hist-bar-wrap relative flex-1 flex flex-col justify-end">
+              <div class="hist-tooltip" style="background:color-mix(in oklab, var(--color-base-content) 85%, transparent);color:#fff" x-text="b.tooltip"></div>
+              <div class="chart-bar w-full" :style="'height:' + b.h + 'px;background:' + b.color"></div>
+            </div>
+          </template>
         </div>
         <div class="flex justify-between text-[11px] text-base-content/40 mt-1 font-mono">
-          <span id="histEarliest">—</span>
+          <span id="histEarliest" x-text="histEarliest">—</span>
           <span class="font-bold">← Older</span>
-          <span id="histLatest">—</span>
+          <span id="histLatest" x-text="histLatest">—</span>
         </div>
       </div>
     </div>
@@ -143,223 +150,96 @@
 {% block scripts %}
 <script nonce="{{ nonce }}">
 window.cryptoFearGreedIndexTracker = function() {
-
-  'use strict';
-  const $ = id => document.getElementById(id);
-
-  const ZONES = [
-    {max:24, label:'Extreme Fear', color:'var(--color-error)', desc:'Panic selling. Historically a buying opportunity for long-term investors as the market is oversold.'},
-    {max:44, label:'Fear', color:'var(--color-warning)', desc:'Caution dominates. Investors are uncertain about near-term direction.'},
-    {max:54, label:'Neutral', color:'var(--color-base-content)', desc:'The market is balanced. Neither fear nor greed dominates — often signals consolidation.'},
-    {max:74, label:'Greed', color:'var(--color-primary)', desc:'Bullish momentum. Investors are confident and actively buying into the market.'},
-    {max:100, label:'Extreme Greed', color:'var(--color-success)', desc:'FOMO is driving prices higher. May signal overbought conditions and a potential market top.'},
+  var ZONES = [
+    { max: 24, label: 'Extreme Fear', color: 'var(--color-error)', desc: 'Panic selling. Historically a buying opportunity for long-term investors as the market is oversold.' },
+    { max: 44, label: 'Fear', color: 'var(--color-warning)', desc: 'Caution dominates. Investors are uncertain about near-term direction.' },
+    { max: 54, label: 'Neutral', color: 'var(--color-base-content)', desc: 'The market is balanced. Neither fear nor greed dominates — often signals consolidation.' },
+    { max: 74, label: 'Greed', color: 'var(--color-primary)', desc: 'Bullish momentum. Investors are confident and actively buying into the market.' },
+    { max: 100, label: 'Extreme Greed', color: 'var(--color-success)', desc: 'FOMO is driving prices higher. May signal overbought conditions and a potential market top.' }
   ];
-
-  function getZone(val){
-    val = Math.max(0, Math.min(100, val));
-    for(const z of ZONES){ if(val <= z.max) return z; }
+  function zoneFor(val) {
+    var v = Math.max(0, Math.min(100, Number(val) || 0));
+    for (var i = 0; i < ZONES.length; i++) {
+      if (v <= ZONES[i].max) return ZONES[i];
+    }
     return ZONES[4];
   }
-
-  function setScore(val){
-    val = Math.max(0, Math.min(100, Math.round(val)));
-    $('fgScore').value = val;
-    $('fgRange').value = val;
-    const pct = val / 100 * 360;
-    $('healthRing').style.setProperty('--_pct', pct + 'deg');
-    $('fgDisplay').innerText = val;
-    const zone = getZone(val);
-    $('fgDisplay').style.color = zone.color;
-    $('fgLabel').innerText = zone.label;
-    $('fgLabel').style.color = zone.color;
-    $('fgDesc').innerText = zone.desc;
-    $('healthRing').style.color = zone.color;
-    document.querySelectorAll('.preset-btn').forEach(b => {
-      b.classList.toggle('active', parseInt(b.getAttribute('data-val')) === val);
-    });
-  }
-
-  async function fetchLive(histBarsEl){
-    const liveLoading = $('liveLoading');
-    const liveError = $('liveError');
-    const liveErrorMsg = $('liveErrorMsg');
-    const liveContent = $('liveContent');
-    const histLoading = $('histLoading');
-    const histError = $('histError');
-    const histContent = $('histContent');
-    const histBars = histBarsEl || $('histBars');
-
-    liveLoading.classList.remove('hidden');
-    liveError.classList.add('hidden');
-    liveContent.classList.add('hidden');
-    if(!histBarsEl){
-      histLoading.classList.remove('hidden');
-      histError.classList.add('hidden');
-      histContent.classList.add('hidden');
-    }
-
-    try{
-      const resp = await fetch('/api/fng?limit=31');
-      if(!resp.ok) throw new Error('HTTP ' + resp.status);
-      const json = await resp.json();
-      const dataArr = json.data;
-      if(!dataArr || !dataArr.length) throw new Error('No data received');
-
-      // Live value = most recent entry
-      const latest = dataArr[0];
-      const val = parseInt(latest.value, 10);
-
-      // Yesterday value for change arrow
-      let prevVal = val;
-      if(dataArr.length > 1){
-        prevVal = parseInt(dataArr[1].value, 10);
-      }
-
-      const zone = getZone(val);
-      const diff = val - prevVal;
-      const changeEl = $('liveChange');
-      if(diff > 0){
-        changeEl.innerHTML = '{{ lucide_icon("trending-up","w-3.5 h-3.5",14)|safe }} +' + diff;
-        changeEl.style.color = 'var(--color-success)';
-      } else if(diff < 0){
-        changeEl.innerHTML = '{{ lucide_icon("trending-down","w-3.5 h-3.5",14)|safe }} ' + diff;
-        changeEl.style.color = 'var(--color-error)';
-      } else {
-        changeEl.innerHTML = '{{ lucide_icon("minus","w-3.5 h-3.5",14)|safe }} 0';
-        changeEl.style.color = 'var(--color-base-content)';
-      }
-
-      // Update health ring
-      const lhr = $('liveHealthRing');
-      lhr.style.setProperty('--_pct', (val / 100 * 360) + 'deg');
-      lhr.style.color = zone.color;
-      lhr.innerText = val;
-      $('liveValue').innerText = val;
-      $('liveValue').style.color = zone.color;
-      $('liveLabel').innerText = zone.label;
-      $('liveLabel').style.color = zone.color;
-
-      // Timestamp
-      const ts = latest.timestamp ? parseInt(latest.timestamp, 10) * 1000 : Date.now();
-      $('liveTimestamp').innerText = 'Updated: ' + new Date(ts).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
-      });
-
-      liveLoading.classList.add('hidden');
-      liveContent.classList.remove('hidden');
-
-      // Also update slider/gauge to live value
-      setScore(val);
-
-      // 30-day history bars
-      if(!histBarsEl){
-        renderHistoryBars(dataArr);
-      }
-
-    } catch(e){
-      liveLoading.classList.add('hidden');
-      liveError.classList.remove('hidden');
-      liveErrorMsg.innerText = e.message || 'Unknown error';
-      if(!histBarsEl){
-        histLoading.classList.add('hidden');
-        histError.classList.remove('hidden');
-      }
-    }
-  }
-
-  function renderHistoryBars(dataArr){
-    const histBars = $('histBars');
-    const histLoading = $('histLoading');
-    const histError = $('histError');
-    const histContent = $('histContent');
-    const histEarliest = $('histEarliest');
-    const histLatest = $('histLatest');
-
-    histBars.innerHTML = '';
-    const bars = dataArr.slice().reverse(); // oldest first
-
-    bars.forEach((d, i) => {
-      const v = parseInt(d.value, 10);
-      const zone = getZone(v);
-      const pct = v / 100;
-      const h = Math.max(2, pct * 108);
-      const date = d.timestamp
-        ? new Date(parseInt(d.timestamp, 10) * 1000)
-        : null;
-      const label = date
-        ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        : '';
-      const wrap = document.createElement('div');
-      wrap.className = 'hist-bar-wrap relative flex-1 flex flex-col justify-end';
-      const bar = document.createElement('div');
-      bar.className = 'chart-bar w-full';
-      bar.style.height = h + 'px';
-      bar.style.background = zone.color;
-      const tip = document.createElement('div');
-      tip.className = 'hist-tooltip';
-      tip.style.background = 'color-mix(in oklab, var(--color-base-content) 85%, transparent)';
-      tip.style.color = '#fff';
-      tip.innerText = v + ' — ' + label;
-      wrap.appendChild(tip);
-      wrap.appendChild(bar);
-      histBars.appendChild(wrap);
-    });
-
-    if(bars.length){
-      const first = bars[0];
-      const last = bars[bars.length - 1];
-      histEarliest.innerText = first.timestamp
-        ? new Date(parseInt(first.timestamp, 10) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        : '';
-      histLatest.innerText = last.timestamp
-        ? new Date(parseInt(last.timestamp, 10) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        : '';
-    }
-
-    histLoading.classList.add('hidden');
-    histContent.classList.remove('hidden');
-  }
-
-  function init(){
-    // First render with default 45
-    setScore(45);
-
-    // Wire slider/input/presets
-    $('fgScore').addEventListener('input', function(){ setScore(this.value); });
-    $('fgRange').addEventListener('input', function(){ setScore(this.value); });
-    document.querySelectorAll('.preset-btn').forEach(b => {
-      b.addEventListener('click', function(){ setScore(parseInt(this.getAttribute('data-val'))); });
-    });
-
-    // Fetch live data
-    fetchLive();
-
-    // Refresh button
-    $('refreshBtn').addEventListener('click', function(){
-      const icon = this.querySelector('svg');
-      if(icon) icon.style.animation = 'spin 1s linear infinite';
-      fetchLive().finally(function(){
-        if(icon) icon.style.animation = '';
-      });
-    });
-  }
-
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-
-
   return {
+    score: 45,
+    liveState: 'loading',
+    liveVal: 45,
+    liveDiff: 0,
+    liveErrorMsg: '',
+    liveTimestamp: 'Updated today',
+    histState: 'loading',
+    histBars: [],
+    histEarliest: '—',
+    histLatest: '—',
+    refreshing: false,
+    presets: [
+      { val: 15, label: 'Extreme Fear' },
+      { val: 30, label: 'Fear' },
+      { val: 45, label: 'Neutral' },
+      { val: 65, label: 'Greed' },
+      { val: 85, label: 'Extreme Greed' }
+    ],
     init: function() {
-      if (typeof calc === 'function') calc();
-      else if (typeof generate === 'function') generate();
-      else if (typeof gen === 'function') gen();
-      else if (typeof render === 'function') render();
-      else if (typeof update === 'function') update();
-      else if (typeof calculate === 'function') calculate();
-      else if (typeof build === 'function') build();
+      this.fetchLive();
+    },
+    get clampedScore() { return Math.max(0, Math.min(100, Math.round(Number(this.score) || 0))); },
+    get currentRingDeg() { return (this.clampedScore / 100) * 360; },
+    get liveRingDeg() { return (this.liveVal / 100) * 360; },
+    get currentZone() { return zoneFor(this.clampedScore); },
+    get liveZone() { return zoneFor(this.liveVal); },
+    get diffColor() {
+      return this.liveDiff > 0 ? 'var(--color-success)' : this.liveDiff < 0 ? 'var(--color-error)' : 'var(--color-base-content)';
+    },
+    fetchLive: function() {
+      var self = this;
+      self.refreshing = true;
+      self.liveState = 'loading';
+      self.histState = 'loading';
+      return fetch('/api/fng?limit=31')
+        .then(function(resp) {
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          return resp.json();
+        })
+        .then(function(json) {
+          var dataArr = json && json.data;
+          if (!dataArr || !dataArr.length) throw new Error('No data received');
+          var latest = dataArr[0];
+          var val = parseInt(latest.value, 10);
+          var prevVal = dataArr.length > 1 ? parseInt(dataArr[1].value, 10) : val;
+          self.liveVal = val;
+          self.liveDiff = val - prevVal;
+          var ts = latest.timestamp ? parseInt(latest.timestamp, 10) * 1000 : Date.now();
+          self.liveTimestamp = 'Updated: ' + new Date(ts).toLocaleDateString('en-US', {
+            month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+          });
+          self.liveState = 'ready';
+          self.score = val;
+
+          var ordered = dataArr.slice().reverse();
+          self.histBars = ordered.map(function(d, idx) {
+            var v = parseInt(d.value, 10) || 0;
+            var z = zoneFor(v);
+            var label = d.timestamp ? new Date(parseInt(d.timestamp, 10) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+            return { id: idx + '-' + v, h: Math.max(2, (v / 100) * 108), color: z.color, tooltip: v + ' — ' + label };
+          });
+          if (ordered.length) {
+            var first = ordered[0], last = ordered[ordered.length - 1];
+            self.histEarliest = first.timestamp ? new Date(parseInt(first.timestamp, 10) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+            self.histLatest = last.timestamp ? new Date(parseInt(last.timestamp, 10) * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+          }
+          self.histState = 'ready';
+          self.refreshing = false;
+        })
+        .catch(function(e) {
+          self.liveErrorMsg = (e && e.message) || 'Unknown error';
+          self.liveState = 'error';
+          self.histState = 'error';
+          self.refreshing = false;
+        });
     }
   };
 };
